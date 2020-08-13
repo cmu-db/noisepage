@@ -212,7 +212,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   for (auto &feature : pipe0_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT:
+      case brain::ExecutionOperatingUnitType::SORT_ITERATE:
         build_feature = true;
         break;
       default:
@@ -226,7 +226,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
   for (auto &feature : pipe1_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT:
+      case brain::ExecutionOperatingUnitType::SORT_BUILD:
         iterate_feature = true;
         break;
       case brain::ExecutionOperatingUnitType::SEQ_SCAN:
