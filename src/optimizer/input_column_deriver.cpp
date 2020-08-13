@@ -59,6 +59,8 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     output_cols[entry.second] = entry.first;
 
     // Get the actual expression
+    TERRIER_ASSERT(alias_expr_map.count(tv_expr->GetColumnName()) > 0,
+                   "Couldn't find alias in alias_to_expr map");
     auto input_col = alias_expr_map[tv_expr->GetColumnName()];
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
@@ -126,43 +128,44 @@ void InputColumnDeriver::Visit(const CteScan *op) {
     if (alias_present) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
       for (auto &elem : child_exprs) {
-        if (!elem->GetAlias().empty()) {
-          if ((elem->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE)) {
-            auto child_expr_pointer = reinterpret_cast<parser::ColumnValueExpression *>(elem.Get());
-            std::string table_name = child_expr_pointer->GetTableName();
-            const std::string &col_name = child_expr_pointer->GetAlias();
-            auto col_expr = new parser::ColumnValueExpression(
-                table_name, col_name, child_expr_pointer->GetDatabaseOid(), child_expr_pointer->GetTableOid(),
-                child_expr_pointer->GetColumnOid(), child_expr_pointer->GetReturnValueType());
-            parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
-            new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
-            txn_->RegisterCommitAction([=]() { delete col_expr; });
-            txn_->RegisterAbortAction([=]() { delete col_expr; });
-          } else {
-            if (elem->GetChildrenSize() > 0 &&
-                elem->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-              auto child_expr_pointer = reinterpret_cast<parser::ColumnValueExpression *>(elem->GetChild(0).Get());
-              std::string table_name = child_expr_pointer->GetTableName();
-              std::string col_name = elem->GetAlias();
-              auto col_expr = new parser::ColumnValueExpression(
-                  table_name, col_name, child_expr_pointer->GetDatabaseOid(), child_expr_pointer->GetTableOid(),
-                  child_expr_pointer->GetColumnOid(), elem->GetReturnValueType());
-              parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
-              new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
-              txn_->RegisterCommitAction([=]() { delete col_expr; });
-              txn_->RegisterAbortAction([=]() { delete col_expr; });
-            } else {
-              std::string col_name = elem->GetAlias();
-              auto col_expr = new parser::ColumnValueExpression(col_name, elem->GetReturnValueType());
-              parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
-              new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
-              txn_->RegisterCommitAction([=]() { delete col_expr; });
-              txn_->RegisterAbortAction([=]() { delete col_expr; });
-            }
-          }
-        } else {
+//        if (!elem->GetAlias().empty()) {
+//          if ((elem->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE)) {
+//            auto child_expr_pointer = reinterpret_cast<parser::ColumnValueExpression *>(elem.Get());
+//            std::string table_name = child_expr_pointer->GetTableName();
+//            const std::string &col_name = child_expr_pointer->GetAlias();
+//            auto col_expr = new parser::ColumnValueExpression(
+//                table_name, col_name, child_expr_pointer->GetDatabaseOid(), child_expr_pointer->GetTableOid(),
+//                child_expr_pointer->GetColumnOid(), child_expr_pointer->GetReturnValueType());
+//            parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
+//            new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
+//            txn_->RegisterCommitAction([=]() { delete col_expr; });
+//            txn_->RegisterAbortAction([=]() { delete col_expr; });
+//          } else {
+//            if (elem->GetChildrenSize() > 0 &&
+//                elem->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+//              auto child_expr_pointer = reinterpret_cast<parser::ColumnValueExpression *>(elem->GetChild(0).Get());
+//              std::string table_name = child_expr_pointer->GetTableName();
+//              std::string col_name = elem->GetAlias();
+//              auto col_expr = new parser::ColumnValueExpression(
+//                  table_name, col_name, child_expr_pointer->GetDatabaseOid(), child_expr_pointer->GetTableOid(),
+//                  child_expr_pointer->GetColumnOid(), elem->GetReturnValueType());
+//              parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
+//              new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
+//              txn_->RegisterCommitAction([=]() { delete col_expr; });
+//              txn_->RegisterAbortAction([=]() { delete col_expr; });
+//            } else {
+//              std::string col_name = elem->GetAlias();
+//              auto col_expr = new parser::ColumnValueExpression(col_name, elem->GetReturnValueType());
+//              parser::AbstractExpression *child_expr_abstract_pointer = col_expr;
+//              new_child_exprs.emplace_back(common::ManagedPointer(child_expr_abstract_pointer));
+//              txn_->RegisterCommitAction([=]() { delete col_expr; });
+//              txn_->RegisterAbortAction([=]() { delete col_expr; });
+//            }
+//          }
+//        } else {
+//          new_child_exprs.push_back(elem);
+//        }
           new_child_exprs.push_back(elem);
-        }
       }
       child_exprs.clear();
       child_exprs = new_child_exprs;

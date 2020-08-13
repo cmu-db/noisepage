@@ -88,9 +88,17 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       cte_schemas_.emplace_back(catalog::Schema(with->GetCteColumnAliases(), col_types));
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
       std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
-      for (auto &elem : with->GetSelect()->GetSelectColumns()) {
-        expressions.push_back(elem);
-        col_types.push_back(elem->GetReturnValueType());
+
+      auto index = 0;
+      for (auto &elem : with->GetCteColumnAliases()) {
+        parser::AbstractExpression *cve = new parser::ColumnValueExpression(with->GetTableName(), elem, elem);
+        txn_context->RegisterAbortAction([=]{delete cve;});
+        txn_context->RegisterCommitAction([=]{delete cve;});
+        expressions.push_back(common::ManagedPointer(cve));
+        auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
+        col_types.push_back(ret_type);
+        cve->SetReturnValueType(ret_type);
+        index++;
       }
 
       master_expressions.push_back(std::move(expressions));
