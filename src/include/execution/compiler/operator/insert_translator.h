@@ -1,13 +1,13 @@
 #pragma once
 
 #include <vector>
-#include "execution/ast/identifier.h"
 #include "catalog/schema.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/ast_fwd.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
-#include "storage/storage_defs.h"
 #include "planner/plannodes/insert_plan_node.h"
+#include "storage/storage_defs.h"
 
 namespace terrier::catalog {
 class Schema;

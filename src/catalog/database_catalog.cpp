@@ -1,5 +1,3 @@
-#include "catalog/database_catalog.h"
-
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -19,9 +17,9 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "planner/plannodes/abstract_plan_node.h"
 #include "execution/functions/function_context.h"
 #include "nlohmann/json.hpp"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/deferred_action_manager.h"
@@ -337,9 +335,9 @@ void DatabaseCatalog::BootstrapPRIs() {
   delete_index_pri_ = indexes_->InitializerForProjectedRow(delete_index_oids);
   delete_index_prm_ = indexes_->ProjectionMapForOids(delete_index_oids);
 
-  //pg_constraints
+  // pg_constraints
   const std::vector<col_oid_t> pg_constraints_all_oids{postgres::PG_CONSTRAINT_ALL_COL_OIDS.cbegin(),
-                                                 postgres::PG_CONSTRAINT_ALL_COL_OIDS.cend()};
+                                                       postgres::PG_CONSTRAINT_ALL_COL_OIDS.cend()};
   pg_constraints_all_cols_pri_ = constraints_->InitializerForProjectedRow(pg_constraints_all_oids);
   pg_constraints_all_cols_prm_ = constraints_->ProjectionMapForOids(pg_constraints_all_oids);
 
@@ -1919,10 +1917,10 @@ bool DatabaseCatalog::DeleteConstraint(const common::ManagedPointer<transaction:
   const auto con_index_pr = constraints_index_index_->GetProjectedRowInitializer();
 
   TERRIER_ASSERT((pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_oid_pr.ProjectedRowSize()) &&
-                 (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_name_pr.ProjectedRowSize()) &&
-                 (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_namespace_pr.ProjectedRowSize()) &&
-                 (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_table_pr.ProjectedRowSize()) &&
-                 (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_index_pr.ProjectedRowSize()),
+                     (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_name_pr.ProjectedRowSize()) &&
+                     (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_namespace_pr.ProjectedRowSize()) &&
+                     (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_table_pr.ProjectedRowSize()) &&
+                     (pg_constraints_all_cols_pri_.ProjectedRowSize() >= con_index_pr.ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
 
   // Find the entry in pg_constraint using the oid index
@@ -1943,7 +1941,7 @@ bool DatabaseCatalog::DeleteConstraint(const common::ManagedPointer<transaction:
 
   TERRIER_ASSERT(
       constraint == *(reinterpret_cast<const constraint_oid_t *const>(
-          all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONOID_COL_OID]))),
+                        all_col_pr->AccessForceNotNull(pg_constraints_all_cols_prm_[postgres::CONOID_COL_OID]))),
       "constraint oid from pg_constraint did not match what was found by the constraint scan from the argument.");
 
   // Delete from pg_index table
@@ -2125,8 +2123,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   const auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
 
   TERRIER_ASSERT((pg_class_all_cols_pri_.ProjectedRowSize() >= delete_index_pri_.ProjectedRowSize()) &&
-                 (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
-                 (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
+                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
+                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
 
   // Find the entry in pg_index using the oid index
@@ -2145,7 +2143,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   TERRIER_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
-      table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
+                              table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
                  "index oid from pg_index did not match what was found by the index scan from the argument.");
 
   // Delete from pg_index table
@@ -2204,8 +2202,8 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
   TERRIER_ASSERT((std::is_same<ClassOid, table_oid_t>::value &&
                   (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
-                 (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
-                                                                 std::is_same<Ptr, catalog::IndexSchema>::value)),
+                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
+                                                                     std::is_same<Ptr, catalog::IndexSchema>::value)),
                  "OID type must correspond to the same object type (Table or index)");
   TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -2295,9 +2293,9 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 
   // Do not need projection map when there is only one column
   TERRIER_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
-                 get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
-                 get_class_object_and_schema_pri_.ProjectedRowSize() >=
-                 classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
+                     get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
+                     get_class_object_and_schema_pri_.ProjectedRowSize() >=
+                         classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_object_and_schema_pri_.ProjectedRowSize());
 
@@ -2431,7 +2429,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
-    // pg_proc (func_contexts)
+  // pg_proc (func_contexts)
   const std::vector<col_oid_t> pg_proc_contexts{postgres::PRO_CTX_PTR_COL_OID};
   pci = procs_->InitializerForProjectedColumns(pg_proc_contexts, 100);
   pc = pci.Initialize(buffer);
@@ -2697,8 +2695,8 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   // Allocate buffer of largest size needed
   TERRIER_ASSERT((types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
                   types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
-                 (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-                  types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
+                     (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
+                      types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
   byte *buffer =
       common::AllocationUtil::AllocateAligned(types_name_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -3263,8 +3261,8 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
-               ? Column(name, col_type, col_len, col_null, *expr)
-               : Column(name, col_type, col_null, *expr);
+                   ? Column(name, col_type, col_len, col_null, *expr)
+                   : Column(name, col_type, col_null, *expr);
 
   col.SetOid(ColOid(col_oid));
   return col;

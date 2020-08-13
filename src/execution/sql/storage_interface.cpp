@@ -64,7 +64,8 @@ bool StorageInterface::UpdateVerify(storage::TupleSlot table_tuple_slot) {
 
 bool StorageInterface::UpdateCascade(storage::TupleSlot table_tuple_slot) {
   return true;
-  //return db_accessor_->UpdateCascade(exec_ctx_->DBOid(), table_oid_, col_oids_, table_redo_->Delta(), table_tuple_slot);
+  // return db_accessor_->UpdateCascade(exec_ctx_->DBOid(), table_oid_, col_oids_, table_redo_->Delta(),
+  // table_tuple_slot);
 }
 
 bool StorageInterface::DeleteCascade(storage::TupleSlot table_tuple_slot) {

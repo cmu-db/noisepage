@@ -6,8 +6,8 @@
 
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/update_plan_node.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {

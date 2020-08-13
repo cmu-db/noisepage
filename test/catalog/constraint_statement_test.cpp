@@ -104,7 +104,7 @@ TEST_F(ConstraintStatementTest, FKCreationReferenceNoneUnique) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
                                             port_, catalog::DEFAULT_DATABASE));
-    //FKCreationReferenceNoneUnique;
+    // FKCreationReferenceNoneUnique;
     pqxx::work txn1(connection);
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data INT, name TEXT UNIQUE);");
     txn1.exec("CREATE TABLE TableC (id INT PRIMARY KEY, fk1 INT, fk2 TEXT REFERENCES TableA (data));");

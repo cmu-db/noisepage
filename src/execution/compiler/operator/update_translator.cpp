@@ -194,7 +194,7 @@ void UpdateTranslator::GenTableInsert(FunctionBuilder *builder) const {
   const auto &insert_slot = GetCodeGen()->MakeFreshIdentifier("insert_slot");
   auto *insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert, {GetCodeGen()->AddressOf(updater_)});
   builder->Append(GetCodeGen()->DeclareVar(insert_slot, nullptr, insert_call));
-  GenVerifyInsert(builder,insert_slot);
+  GenVerifyInsert(builder, insert_slot);
 }
 
 void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *builder,

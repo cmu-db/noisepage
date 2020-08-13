@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "execution/exec/execution_context.h"
 #include "catalog/catalog_defs.h"
+#include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 #include "planner/plannodes/update_plan_node.h"
 #include "storage/projected_row.h"
