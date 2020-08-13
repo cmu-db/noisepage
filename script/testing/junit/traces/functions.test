@@ -50,5 +50,15 @@ SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+query I nosort
+SELECT position('C' in str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT position('C' in str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
 statement ok
 DROP TABLE functions1
