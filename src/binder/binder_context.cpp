@@ -291,15 +291,11 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
+    common::ManagedPointer<parser::SelectStatement> stmt,
     std::string table_name) {
   std::unordered_set<std::string> constituent_table_aliases;
   if (table_name.empty()) {
-    for (auto &stmt : parse_result->GetStatements()) {
-      if (stmt->GetType() == parser::StatementType::SELECT) {
-        auto select_stmt = stmt.CastManagedPointerTo<parser::SelectStatement>();
-        select_stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
-      }
-    }
+    stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
   }
   else {
     constituent_table_aliases.insert(table_name);
@@ -331,7 +327,7 @@ void BinderContext::GenerateAllColumnExpressions(
 
   for (auto &entry : nested_table_alias_map_) {
     auto &table_alias = entry.first;
-    if (constituent_table_aliases.count(table_alias) != 0) {
+    if (constituent_table_aliases.count(table_alias) > 0) {
       auto &cols = entry.second;
       for (auto &col_entry : cols) {
         auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));

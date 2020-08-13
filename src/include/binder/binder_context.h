@@ -198,6 +198,7 @@ class BinderContext {
   void GenerateAllColumnExpressions(
       common::ManagedPointer<parser::ParseResult> parse_result,
       common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
+      common::ManagedPointer<parser::SelectStatement> stmt,
       std::string table_name);
 
   /**
