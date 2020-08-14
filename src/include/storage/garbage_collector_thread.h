@@ -12,7 +12,7 @@ class MetricsManager;
 }
 
 namespace terrier::storage {
-constexpr uint8_t NUM_GC_THREADS = 2;
+//constexpr uint8_t NUM_GC_THREADS = 2;
 
 /**
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
@@ -27,8 +27,8 @@ class GarbageCollectorThread {
    * @param gc_period sleep time between GC invocations
    * @param metrics_manager Metrics Manager
    */
-  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period,
-                         common::ManagedPointer<metrics::MetricsManager> metrics_manager, common::ManagedPointer<storage::LogManager> log_manager = nullptr);
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period, common::ManagedPointer<storage::LogManager> log_manager,
+                         common::ManagedPointer<metrics::MetricsManager> metrics_manager, uint32_t num_daf_threads = 2);
 
   ~GarbageCollectorThread() { StopGC(); }
 
@@ -51,7 +51,7 @@ class GarbageCollectorThread {
     TERRIER_ASSERT(!run_gc_, "GC should not already be running.");
     run_gc_ = true;
     gc_paused_ = false;
-    for (size_t i = 0; i < NUM_GC_THREADS; i++) {
+    for (size_t i = 0; i < num_gc_threads_; i++) {
       gc_threads_.emplace_back(std::thread([this, i] {
         if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
         GCThreadLoop(i == 0);
@@ -87,6 +87,7 @@ class GarbageCollectorThread {
   volatile bool gc_paused_;
   std::chrono::milliseconds gc_period_;
   std::vector<std::thread> gc_threads_;
+  std::uint32_t num_gc_threads_;
 
   void GCThreadLoop(bool main_thread) {
     while (run_gc_) {
