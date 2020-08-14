@@ -443,7 +443,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
-
   // record experiment elapsed time and average num_txns processed
   std::string_view expr_result_file_name = "./expr_results.csv";
   // NOLINTNEXTLINE
@@ -502,7 +501,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
 
     std::ofstream expr_result_file(expr_result_file_name.data());
     // num_daf_threads, num_worker_thread, time_elapsed, ave_num_txns_processed
-    expr_result_file << BenchmarkConfig::num_daf_threads << ", " << BenchmarkConfig::num_threads << ", " << static_cast<double>(elapsed_ms) / 1000.0 << ", " << state.iterations() * num_precomputed_txns_per_worker_ * terrier::BenchmarkConfig::num_threads << std::endl;
+    expr_result_file << BenchmarkConfig::num_daf_threads << ", " << BenchmarkConfig::num_threads << ", " << static_cast<double>(elapsed_ms) / 1000.0 << std::endl;
+    expr_result_file.close();
     // cleanup
     delete gc_thread_;
     catalog.TearDown();
