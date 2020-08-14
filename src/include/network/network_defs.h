@@ -115,7 +115,7 @@ enum class QueryType : uint8_t {
   QUERY_DROP_TRIGGER,
   QUERY_DROP_SCHEMA,
   QUERY_DROP_VIEW,
-  // Misc
+  // Misc (non-transactional)
   QUERY_SET,
   // end of what we support in the traffic cop right now
   QUERY_RENAME,

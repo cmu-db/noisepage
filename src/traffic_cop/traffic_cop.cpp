@@ -147,8 +147,8 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCop::OptimizeBoundQuery(
 
 TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                                  common::ManagedPointer<network::Statement> statement) const {
-  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
-                 "Not in a valid txn. This should have been caught before calling this function.");
+  TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::IDLE,
+                 "This is a non-transactional operation and we should not be in a transaction.");
   TERRIER_ASSERT(statement->GetQueryType() == network::QueryType::QUERY_SET,
                  "ExecuteSetStatement called with invalid QueryType.");
 
