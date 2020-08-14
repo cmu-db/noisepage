@@ -2369,7 +2369,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Cos:
     case ast::Builtin::Cot:
     case ast::Builtin::Sin:
-    case ast::Builtin::Floor: //added
+    case ast::Builtin::Floor:
     case ast::Builtin::Ceil:
     case ast::Builtin::Log10:
     case ast::Builtin::Tan: {
