@@ -10,6 +10,7 @@
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sql/sql_def.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/control_flow_builders.h"
@@ -628,13 +629,15 @@ void BytecodeGenerator::VisitSqlStringLikeCall(ast::CallExpr *call) {
 void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builtin) {
   auto dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   auto input = VisitExpressionForLValue(call->Arguments()[0]);
+  auto date_type =
+      sql::DatePartType(call->Arguments()[1]->As<ast::CallExpr>()->Arguments()[0]->As<ast::LitExpr>()->Int64Val());
 
-  switch (builtin) {
-    case ast::Builtin::ExtractYear:
-      GetEmitter()->Emit(Bytecode::ExtractYear, dest, input);
+  switch (date_type) {
+    case sql::DatePartType::YEAR:
+      GetEmitter()->Emit(Bytecode::ExtractYearFromDate, dest, input);
       break;
     default:
-      UNREACHABLE("Impossible date call!");
+      UNREACHABLE("Unimplemented DatePartType");
   }
   GetExecutionResult()->SetDestination(dest);
 }
@@ -2154,7 +2157,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitSqlStringLikeCall(call);
       break;
     }
-    case ast::Builtin::ExtractYear: {
+    case ast::Builtin::DatePart: {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
