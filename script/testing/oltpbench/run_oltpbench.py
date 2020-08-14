@@ -62,17 +62,22 @@ def generate_test_suite(args):
             # there is no loop
             oltp_test_suite.append(TestCaseOLTPBench(oltp_testcase_base))
 
-    return oltp_test_suite
+    # read server commandline args in config files
+    server_args_json = oltp_test_suite_json.get("server_args")
+    if server_args_json:
+        server_args = ""
+        for attribute,value in server_args_json.items():
+            server_args = server_args + " " + "-" + str(attribute) + "=" + str(value)
+        args["server_args"] = server_args
+    oltpbench = TestOLTPBench(args)
+    return oltpbench, oltp_test_suite
 
 
 if __name__ == "__main__":
     
     args = parse_command_line_args()
-
-    test_suite = generate_test_suite(args)
-
     try:
-        oltpbench = TestOLTPBench(args)
+        oltpbench, test_suite = generate_test_suite(args) 
         exit_code = oltpbench.run(test_suite)
     except:
         LOG.error("Exception trying to run OLTP Bench tests")
