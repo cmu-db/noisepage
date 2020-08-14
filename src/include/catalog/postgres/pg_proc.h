@@ -79,6 +79,7 @@ constexpr proc_oid_t LOG10_PRO_OID = proc_oid_t(134);
 constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(127);
 constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(128);
 constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(129);
+constexpr proc_oid_t LOG2_PRO_OID = proc_oid_t(133);
 constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(150);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(94);
