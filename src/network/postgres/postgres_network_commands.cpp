@@ -124,7 +124,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   }
 
   // Set statements are manually handled here.
-  if (query_type == network::QueryType::QUERY_SET) {
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
     auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
     if (set_result.type_ == trafficcop::ResultType::ERROR) {
       out->WriteError(std::get<common::ErrorData>(set_result.extra_));
@@ -340,7 +340,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (NetworkUtil::TransactionalQueryType(query_type)) {
+  if (NetworkUtil::TransactionalQueryType(query_type) || query_type == QueryType::QUERY_SET) {
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
@@ -485,6 +485,16 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   const auto query_type = statement->GetQueryType();
 
   // TODO(Matt): Probably handle EmptyStatement around here somewhere, maybe somewhere more general purpose though?
+  // Set statements are manually handled here.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
+    auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
+    if (set_result.type_ == trafficcop::ResultType::ERROR) {
+      out->WriteError(std::get<common::ErrorData>(set_result.extra_));
+    } else {
+      out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
+    }
+    return Transition::PROCEED;
+  }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::TransactionalQueryType(query_type)) {
