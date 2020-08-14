@@ -496,12 +496,20 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
   for (auto type : types) {
     for (auto key_size : key_sizes) {
-      for (auto lookup_size : lookup_sizes) {
-        for (auto idx_size : idx_sizes) {
+      for (auto idx_size : idx_sizes) {
+        // Special argument used to indicate a build index
+        // We need to do this to prevent update/delete from unintentionally
+        // updating multiple indexes. This way, there will only be 1 index
+        // on the table at a given time.
+        b->Args({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
+
+        for (auto lookup_size : lookup_sizes) {
           if (lookup_size <= idx_size) {
-            b->Args({static_cast<int64_t>(type), key_size, idx_size, lookup_size});
+            b->Args({static_cast<int64_t>(type), key_size, idx_size, lookup_size, -1});
           }
         }
+
+        b->Args({static_cast<int64_t>(type), key_size, idx_size, 0, 0});
       }
     }
   }
@@ -1282,6 +1290,16 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   auto key_num = state.range(1);
   auto num_rows = state.range(2);
   auto lookup_size = state.range(3);
+  auto is_build = state.range(4);
+
+  if (lookup_size == 0) {
+    if (is_build < 0) {
+      throw "Invalid is_build argument for ExecuteUpdate";
+    }
+
+    HandleBuildDropIndex(is_build, num_rows, key_num, type);
+    return;
+  }
 
   int num_iters = 1;
   if (lookup_size <= warmup_rows_limit) {
