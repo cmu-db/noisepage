@@ -330,8 +330,8 @@ class DBMain {
                        "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::milliseconds{gc_interval_},
-                                                                      common::ManagedPointer(metrics_manager),
-                                                                      common::ManagedPointer(log_manager));
+                                                                      common::ManagedPointer(log_manager),
+                                                                      common::ManagedPointer(metrics_manager));
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
