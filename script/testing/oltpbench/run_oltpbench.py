@@ -68,6 +68,13 @@ def generate_test_suite(args):
         server_args = ""
         for attribute,value in server_args_json.items():
             server_args = server_args + " " + "-" + str(attribute) + "=" + str(value)
+
+            #Delete the logfile before each run
+            if attribute == "log_file_path":
+                old_log_path = str(value)
+                if os.path.exists(old_log_path):
+                    os.remove(old_log_path)
+
         args["server_args"] = server_args
     oltpbench = TestOLTPBench(args)
     return oltpbench, oltp_test_suite
