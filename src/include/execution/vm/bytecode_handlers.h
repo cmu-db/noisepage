@@ -20,6 +20,7 @@
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/operators/hash_operators.h"
 #include "execution/sql/sorter.h"
+#include "execution/sql/sql_def.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
@@ -1802,7 +1803,8 @@ VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *sto
 // Date function
 // ---------------------------------
 
-VM_OP_WARM void OpExtractYear(terrier::execution::sql::Integer *result, terrier::execution::sql::DateVal *input) {
+VM_OP_WARM void OpExtractYearFromDate(terrier::execution::sql::Integer *result,
+                                      terrier::execution::sql::DateVal *input) {
   if (input->is_null_) {
     result->is_null_ = true;
   } else {

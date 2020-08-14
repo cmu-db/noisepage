@@ -33,7 +33,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
-  F(ExtractYear, extractYear)                                           \
+  F(DatePart, datePart)                                                 \
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \

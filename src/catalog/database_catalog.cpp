@@ -1801,6 +1801,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
+  auto date_type = GetTypeOidForType(type::TypeId::DATE);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1830,6 +1831,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
   // TODO(tanujnay112): no op codes for lower and upper yet
+
+  // date_part
+  CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
+                  {date_type, int_type}, {}, int_type, "", false);
 
   BootstrapProcContexts(txn);
 }
@@ -1920,6 +1926,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            execution::ast::Builtin::NpRunnersDummyReal, true);
   SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("date_part", type::TypeId::INTEGER,
+                                                           {type::TypeId::DATE, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::DatePart);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+  SetProcCtxPtr(txn, postgres::DATE_PART_PRO_OID, func_context);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
