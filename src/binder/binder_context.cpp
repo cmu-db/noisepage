@@ -293,12 +293,19 @@ void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
     common::ManagedPointer<parser::SelectStatement> stmt,
     std::string table_name) {
+  // Set containing tables whose columns are to be included in the SELECT * query results
   std::unordered_set<std::string> constituent_table_aliases;
-  if (table_name.empty()) {
-    stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
-  }
-  else {
-    constituent_table_aliases.insert(table_name);
+  stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
+  if (!table_name.empty()) {
+    if (constituent_table_aliases.count(table_name) == 0) {
+      // SELECT table_name.* FROM ..., where the from clause does not contain table_name
+      throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", table_name),
+      common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+    }
+    else {
+      constituent_table_aliases.clear();
+      constituent_table_aliases.insert(table_name);
+    }
   }
 
   for (auto &entry : regular_table_alias_map_) {
