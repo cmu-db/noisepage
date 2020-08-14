@@ -14,6 +14,8 @@
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "test_util/tpch/tpch_query.h"
+#include "test_util/ssb/star_schema_query.h"
+
 
 namespace terrier::tpch {
 
@@ -68,6 +70,7 @@ void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &
   query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ7(accessor, exec_settings_));
   query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ11(accessor, exec_settings_));
   query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ18(accessor, exec_settings_));
+  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1(accessor, exec_settings_));
 }
 
 void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,
