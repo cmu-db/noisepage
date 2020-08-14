@@ -1775,6 +1775,15 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
 
+  // cosh
+  BOOTSTRAP_TRIG_FN("cosh", postgres::COSH_PRO_OID, execution::ast::Builtin::Cosh)
+
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
+  // tanh
+  BOOTSTRAP_TRIG_FN("tanh", postgres::TANH_PRO_OID, execution::ast::Builtin::Tanh)
+
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 
@@ -1783,6 +1792,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
+  auto date_type = GetTypeOidForType(type::TypeId::DATE);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1812,6 +1822,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
   // TODO(tanujnay112): no op codes for lower and upper yet
+
+  // date_part
+  CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
+                  {date_type, int_type}, {}, int_type, "", false);
 
   // position
   CreateProcedure(txn, postgres::POSITION_PRO_OID, "position", postgres::INTERNAL_LANGUAGE_OID,
@@ -1850,6 +1865,15 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
+
+  // cosh
+  BOOTSTRAP_TRIG_FN("cosh", postgres::COSH_PRO_OID, execution::ast::Builtin::Cosh)
+
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
+  // tanh
+  BOOTSTRAP_TRIG_FN("tanh", postgres::TANH_PRO_OID, execution::ast::Builtin::Tanh)
 
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
@@ -1896,6 +1920,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            execution::ast::Builtin::NpRunnersDummyReal, true);
   SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("date_part", type::TypeId::INTEGER,
+                                                           {type::TypeId::DATE, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::DatePart);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+  SetProcCtxPtr(txn, postgres::DATE_PART_PRO_OID, func_context);
 }
 
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,

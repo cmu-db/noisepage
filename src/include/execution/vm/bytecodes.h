@@ -585,7 +585,7 @@ namespace terrier::execution::vm {
   F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
                                                                                                                       \
   /* Date Functions */                                                                                                \
-  F(ExtractYear, OperandType::Local, OperandType::Local)                                                              \
+  F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \
                                                                                                                       \
   F(AbortTxn, OperandType::Local)                                                                                     \
                                                                                                                       \
