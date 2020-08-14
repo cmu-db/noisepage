@@ -28,7 +28,8 @@ JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, Memor
       concise_hash_table_(0),
       hll_estimator_(libcount::HLL::Create(DEFAULT_HLL_PRECISION)),
       built_(false),
-      use_concise_ht_(use_concise_ht) {}
+      use_concise_ht_(use_concise_ht),
+      tracker_(memory->GetTracker()) {}
 
 // Needed because we forward-declared HLL from libcount
 JoinHashTable::~JoinHashTable() = default;
@@ -46,7 +47,7 @@ byte *JoinHashTable::AllocInputTuple(const hash_t hash) {
 
 void JoinHashTable::BuildChainingHashTable() {
   // Perfectly size the generic hash table in preparation for bulk-load.
-  chaining_hash_table_.SetSize(GetTupleCount());
+  chaining_hash_table_.SetSize(GetTupleCount(), tracker_);
 
   // Bulk-load the, now correctly sized, generic hash table using a non-concurrent algorithm.
   chaining_hash_table_.InsertBatch<false>(&entries_);
@@ -466,7 +467,7 @@ void JoinHashTable::BuildConciseHashTableInternal() {
 
 void JoinHashTable::BuildConciseHashTable() {
   // Perfectly size the concise hash table in preparation for bulk-load.
-  concise_hash_table_.SetSize(GetTupleCount());
+  concise_hash_table_.SetSize(GetTupleCount(), tracker_);
 
   // Dispatch to internal function based on prefetching requirements. If the CHT
   // is larger than L3 then the total size of all buffered build-side tuples is
@@ -558,7 +559,7 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
 
   // Size the global hash table
   uint64_t num_elem_estimate = hll_estimator_->Estimate();
-  chaining_hash_table_.SetSize(num_elem_estimate);
+  chaining_hash_table_.SetSize(num_elem_estimate, tracker_);
 
   // Resize the owned entries vector now to avoid resizing concurrently during
   // merge. All the thread-local join table data will get placed into our owned
