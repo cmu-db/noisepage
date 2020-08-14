@@ -597,6 +597,15 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
 
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
+      // Special argument used to indicate a build index
+      // We need to do this to prevent update/delete from unintentionally
+      // updating multiple indexes. This way, there will only be 1 index
+      // on the table at a given time.
+      if (type == type::TypeId::INTEGER)
+        b->Args({idx_key_size, 0, 15, 0, row_num, 0, 1});
+      else if (type == type::TypeId::BIGINT)
+        b->Args({0, idx_key_size, 0, 15, row_num, 0, 1});
+
       for (auto row_num : row_nums) {
         if (row_num > updel_limit) continue;
 
@@ -609,11 +618,17 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
 
         for (auto lookup : lookups) {
           if (type == type::TypeId::INTEGER)
-            b->Args({idx_key_size, 0, 15, 0, row_num, lookup});
+            b->Args({idx_key_size, 0, 15, 0, row_num, lookup, -1});
           else if (type == type::TypeId::BIGINT)
-            b->Args({0, idx_key_size, 0, 15, row_num, lookup});
+            b->Args({0, idx_key_size, 0, 15, row_num, lookup, -1});
         }
       }
+
+      // Special argument used to indicate a drop index
+      if (type == type::TypeId::INTEGER)
+        b->Args({idx_key_size, 0, 15, 0, row_num, 0, 0});
+      else if (type == type::TypeId::BIGINT)
+        b->Args({0, idx_key_size, 0, 15, row_num, 0, 0});
     }
   }
 }
@@ -827,6 +842,35 @@ class MiniRunners : public benchmark::Fixture {
     auto ret_val = std::make_pair(std::move(exec_query), out_plan->GetOutputSchema()->Copy());
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     return ret_val;
+  }
+
+  void HandleBuildDropIndex(bool is_build, int64_t num_rows, int64_t num_key, type::TypeId type) {
+    auto block_store = db_main->GetStorageLayer()->GetBlockStore();
+    auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+
+    // Create the database
+    auto txn = txn_manager->BeginTransaction();
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    auto exec_settings = MiniRunners::GetExecutionSettings();
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+        db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings);
+
+    execution::sql::TableGenerator table_generator(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
+    if (is_build) {
+      table_generator.BuildMiniRunnerIndex(type, num_rows, num_key);
+    } else {
+      bool result = table_gnerator.DropMiniRunnerIndex(type, num_rows, num_key);
+      if (!result) {
+        throw "Drop Index has failed";
+      }
+    }
+
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    InvokeGC();
+    InvokeGC();
+    InvokeGC();
+    InvokeGC();
   }
 
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
@@ -1478,10 +1522,22 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto tbl_ints = state->range(2);
   auto row = state->range(4);
   auto car = state->range(5);
+  auto is_build = state->range(6);
 
   if (row == 0) {
     state->SetItemsProcessed(row);
     InvokeGC();
+    return;
+  }
+
+  // A lookup size of 0 indicates a special query
+  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
+  if (car == 0) {
+    if (is_build < 0) {
+      throw "Invalid is_build argument for ExecuteUpdate";
+    }
+
+    HandleBuildDropIndex(is_build, row, num_integers + num_decimals, type);
     return;
   }
 
@@ -1492,8 +1548,6 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
     return;
   }
 
-  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
-  std::string tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
 
   // UPDATE [] SET [col] = random integer()
   // This does not force a read from the underlying tuple more than getting the slot.
@@ -1501,6 +1555,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   // - Iterating over entire table for the slot
   // - Cost of "merging" updates with the undo/redos
   std::stringstream query;
+  std::string tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
   query << "UPDATE " << tbl << " SET ";
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
@@ -1577,6 +1632,17 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
     return;
   }
 
+  // A lookup size of 0 indicates a special query
+  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
+  if (car == 0) {
+    if (is_build < 0) {
+      throw "Invalid is_build argument for ExecuteDelete";
+    }
+
+    HandleBuildDropIndex(is_build, row, num_integers + num_decimals, type);
+    return;
+  }
+
   int num_iters = 1;
   if (car <= warmup_rows_limit) {
     num_iters += warmup_iterations_num;
@@ -1594,7 +1660,6 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>> equery;
   auto cost = std::make_unique<optimizer::TrivialCostModel>();
 
-  auto type = tbl_ints != 0 ? (type::TypeId::INTEGER) : (type::TypeId::BIGINT);
   auto tbl_col = tbl_ints + tbl_decimals;
   auto tbl_size = tbl_ints * int_size + tbl_decimals * decimal_size;
 
