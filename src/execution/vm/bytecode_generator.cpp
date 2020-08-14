@@ -1655,15 +1655,15 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Ceil: {
-      Emitter()->Emit(Bytecode::Ceil, dest, src);
+      GetEmitter()->Emit(Bytecode::Ceil, dest, src);
       break;
     }
     case ast::Builtin::Floor: {
-      Emitter()->Emit(Bytecode::Floor, dest, src);
+      GetEmitter()->Emit(Bytecode::Floor, dest, src);
       break;
     }
     case ast::Builtin::Log10: {
-      Emitter()->Emit(Bytecode::Log10, dest, src);
+      GetEmitter()->Emit(Bytecode::Log10, dest, src);
       break;
     }
     default: {
