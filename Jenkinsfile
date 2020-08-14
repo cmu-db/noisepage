@@ -100,6 +100,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --build-type=debug --config-file=../script/testing/oltpbench/configs/test/tpcc.json' 
                     }
                     post {
                         always {
@@ -129,6 +130,7 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --build-type=debug --config-file=../script/testing/oltpbench/configs/test/tpcc.json' 
                     }
                     post {
                         always {
@@ -205,6 +207,7 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --build-type=debug --config-file=../script/testing/oltpbench/configs/test/tpcc.json' 
                     }
                     post {
                         always {
@@ -232,6 +235,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --build-type=release --config-file=../script/testing/oltpbench/configs/test/tpcc.json' 
                     }
                     post {
                         always {
@@ -260,6 +264,7 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --build-type=release --config-file=../script/testing/oltpbench/configs/test/tpcc.json' 
                     }
                     post {
                         always {
@@ -292,6 +297,7 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --build-type=release --config-file=../script/testing/oltpbench/configs/test/tpcc.json' 
                     }
                     post {
                         always {
