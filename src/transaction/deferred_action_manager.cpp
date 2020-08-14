@@ -74,8 +74,6 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
   uint32_t processed = 0;
   while (true) {
     queue_latch_.Lock();
-    if (processed == 0 && metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(new_deferred_actions_.size());
-
     if (new_deferred_actions_.empty() || !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
       queue_latch_.Unlock();
       break;
