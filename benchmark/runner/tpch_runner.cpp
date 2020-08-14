@@ -17,17 +17,6 @@ class TPCHRunner : public benchmark::Fixture {
   std::unique_ptr<DBMain> db_main_;
   std::unique_ptr<tpch::Workload> tpch_workload_;
 
-  // TPCH setup
-  const std::vector<std::string> tpch_query_filenames_ = {
-      "../../../tpl_tables/sample_tpl/tpch_q1.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q4.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q5.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q6.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q7.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_q11.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_scan_lineitem.tpl",
-      "../../../tpl_tables/sample_tpl/tpch_scan_orders.tpl",
-  };
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";
 
@@ -46,7 +35,7 @@ class TPCHRunner : public benchmark::Fixture {
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
-    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
   }
@@ -61,10 +50,10 @@ class TPCHRunner : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   // Load the TPCH tables and compile the queries
-  tpch_workload_ = std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_,
-                                                    tpch_table_root_, tpch_query_filenames_);
-
-  for (uint32_t query_num = 1; query_num < tpch_query_filenames_.size(); ++query_num)
+  tpch_workload_ =
+      std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_, tpch_table_root_);
+  auto total_query_num = tpch_workload_->GetQueryNum() + 1;
+  for (uint32_t query_num = 1; query_num < total_query_num; ++query_num)
     for (auto num_threads = 1; num_threads <= total_num_threads_; num_threads += 2)
       for (uint32_t repeat = 0; repeat < 3; ++repeat)
         for (auto avg_interval_us : avg_interval_us_) {
@@ -87,5 +76,4 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
 }
 
 BENCHMARK_REGISTER_F(TPCHRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
-
 }  // namespace terrier::runner
