@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
 
@@ -13,7 +14,22 @@ class StarExpression : public AbstractExpression {
   /**
    * Instantiates a new star expression, e.g. as in COUNT(*).
    */
-  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {}
+  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {
+    table_name_ = "";
+  }
+
+  /**
+   * Instantiates a new star expression with a table name, e.g. as in xxx.*
+   */
+  StarExpression(std::string table_name) : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {
+    table_name_ = std::move(table_name);
+  }
+
+  /**
+   * Returns the table name associated with the star expression
+   * @return table name
+   */
+  std::string GetTableName() {return table_name_;}
 
   /**
    * Copies this StarExpression
@@ -36,6 +52,9 @@ class StarExpression : public AbstractExpression {
   }
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+
+ private:
+  std::string table_name_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(StarExpression);
