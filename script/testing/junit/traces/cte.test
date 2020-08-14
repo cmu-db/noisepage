@@ -28,7 +28,7 @@ WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN ct
 ----
 2 values hashing to cb0e93933b5e2202825f38da7587cf07
 
-statement error
+statement ok
 CREATE TABLE tree (node INTEGER, parent INTEGER);
 
 statement ok
@@ -37,10 +37,5 @@ INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 
 query I nosort
 WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
 ----
-73 values hashing to 9d0b617838390327989f2b9e431e6e7f
-
-query I nosort
-WITH ITERATIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
-----
-64 values hashing to e090275e92bee9184059455e178ea2f4
+73 values hashing to e0147388525f89cdac23192c19c5cc75
 
