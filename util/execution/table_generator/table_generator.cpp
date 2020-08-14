@@ -401,7 +401,7 @@ bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int
   catalog::index_oid_t matched(catalog::INVALID_INDEX_OID);
   for (auto idx_oid : index_oids) {
     const auto &schema = accessor->GetIndexSchema(idx_oid);
-    if (schema.GetColumns().size() == key_num) {
+    if (schema.GetColumns().size() == static_cast<size_t>(key_num)) {
       if (matched != catalog::INVALID_INDEX_OID) {
         return false;
       }

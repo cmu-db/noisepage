@@ -597,17 +597,17 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
 
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
-      // Special argument used to indicate a build index
-      // We need to do this to prevent update/delete from unintentionally
-      // updating multiple indexes. This way, there will only be 1 index
-      // on the table at a given time.
-      if (type == type::TypeId::INTEGER)
-        b->Args({idx_key_size, 0, 15, 0, row_num, 0, 1});
-      else if (type == type::TypeId::BIGINT)
-        b->Args({0, idx_key_size, 0, 15, row_num, 0, 1});
-
       for (auto row_num : row_nums) {
         if (row_num > updel_limit) continue;
+
+        // Special argument used to indicate a build index
+        // We need to do this to prevent update/delete from unintentionally
+        // updating multiple indexes. This way, there will only be 1 index
+        // on the table at a given time.
+        if (type == type::TypeId::INTEGER)
+          b->Args({idx_key_size, 0, 15, 0, row_num, 0, 1});
+        else if (type == type::TypeId::BIGINT)
+          b->Args({0, idx_key_size, 0, 15, row_num, 0, 1});
 
         int64_t lookup_size = 1;
         std::vector<int64_t> lookups;
@@ -622,13 +622,13 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
           else if (type == type::TypeId::BIGINT)
             b->Args({0, idx_key_size, 0, 15, row_num, lookup, -1});
         }
-      }
 
-      // Special argument used to indicate a drop index
-      if (type == type::TypeId::INTEGER)
-        b->Args({idx_key_size, 0, 15, 0, row_num, 0, 0});
-      else if (type == type::TypeId::BIGINT)
-        b->Args({0, idx_key_size, 0, 15, row_num, 0, 0});
+        // Special argument used to indicate a drop index
+        if (type == type::TypeId::INTEGER)
+          b->Args({idx_key_size, 0, 15, 0, row_num, 0, 0});
+        else if (type == type::TypeId::BIGINT)
+          b->Args({0, idx_key_size, 0, 15, row_num, 0, 0});
+      }
     }
   }
 }
@@ -860,7 +860,7 @@ class MiniRunners : public benchmark::Fixture {
     if (is_build) {
       table_generator.BuildMiniRunnerIndex(type, num_rows, num_key);
     } else {
-      bool result = table_gnerator.DropMiniRunnerIndex(type, num_rows, num_key);
+      bool result = table_generator.DropMiniRunnerIndex(type, num_rows, num_key);
       if (!result) {
         throw "Drop Index has failed";
       }
@@ -1625,6 +1625,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto tbl_decimals = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
+  auto is_build = state->range(6);
 
   if (row == 0) {
     state->SetItemsProcessed(row);
@@ -1986,7 +1987,7 @@ void InitializeRunnersState() {
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
   table_gen.GenerateTestTables(true);
-  table_gen.GenerateMiniRunnerIndexes();
+  table_gen.GenerateMiniRunnerIndexTables();
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
