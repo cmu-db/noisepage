@@ -246,13 +246,18 @@ void Sema::CheckBuiltinDateFunctionCall(ast::CallExpr *call, ast::Builtin builti
   }
   // First arg must be a date.
   auto date_kind = ast::BuiltinType::Date;
+  auto integer_kind = ast::BuiltinType::Integer;
   if (!call->Arguments()[0]->GetType()->IsSpecificBuiltin(date_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(date_kind));
     return;
   }
 
   switch (builtin) {
-    case ast::Builtin::ExtractYear:
+    case ast::Builtin::DatePart:
+      if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(integer_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(integer_kind));
+        return;
+      }
       call->SetType(GetBuiltinType(ast::BuiltinType::Integer));
       return;
     default:
@@ -2525,7 +2530,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinStringLikeCall(call);
       break;
     }
-    case ast::Builtin::ExtractYear: {
+    case ast::Builtin::DatePart: {
       CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }
