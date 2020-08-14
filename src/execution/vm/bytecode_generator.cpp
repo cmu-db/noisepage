@@ -637,7 +637,7 @@ void BytecodeGenerator::VisitBuiltinDateFunctionCall(ast::CallExpr *call, ast::B
       GetEmitter()->Emit(Bytecode::ExtractYearFromDate, dest, input);
       break;
     default:
-      UNREACHABLE("unimplemented date call!");
+      UNREACHABLE("Unimplemented DatePartType");
   }
   GetExecutionResult()->SetDestination(dest);
 }
