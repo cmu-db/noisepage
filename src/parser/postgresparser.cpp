@@ -2058,12 +2058,12 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
             colnames.emplace_back(column);
           }
         }
-        if (colnames.empty()) {
-          for (auto &expr : select->GetSelectColumns()) {
-            // TODO(tanujnay112) route the "?column?" codepath through traffic cop
-            colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
-          }
-        }
+//        if (colnames.empty()) {
+//          for (auto &expr : select->GetSelectColumns()) {
+//            // TODO(tanujnay112) route the "?column?" codepath through traffic cop
+//            colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
+//          }
+//        }
         CTEType cte_type = CTEType::SIMPLE;
         if (root->recursive_) {
           cte_type = CTEType::RECURSIVE;

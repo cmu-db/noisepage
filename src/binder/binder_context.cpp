@@ -128,17 +128,20 @@ void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor>
     throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
   std::vector<catalog::Schema::Column> schema_columns;
+  std::unordered_map<std::string, type::TypeId> nested_column_mappings;
   for (size_t i = 0; i < col_aliases.size(); i++) {
     catalog::Schema::Column col(col_aliases[i], select_list[i]->GetReturnValueType(), false,
                                 parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
                                 TEMP_OID(catalog::col_oid_t, i));
     schema_columns.push_back(col);
+    nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 
   catalog::Schema cte_schema(schema_columns);
   regular_table_alias_map_[table_name] =
       TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
                     TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()), schema_columns);
+  nested_table_alias_map_[table_name] = nested_column_mappings;
 }
 
 void BinderContext::AddCTETableAlias(const std::string &cte_table_name, const std::string &table_alias) {

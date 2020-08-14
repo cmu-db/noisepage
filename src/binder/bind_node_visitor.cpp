@@ -497,12 +497,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list), node, star_expression->GetTableName());
       continue;
     }
+
+    select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto cve = select_element.CastManagedPointerTo<terrier::parser::ColumnValueExpression>();
       context_->SetTableName(cve, node);
     }
-
-    select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();
@@ -805,10 +805,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
                                  .c_str(),
                              common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
     }
+    std::vector<std::string> aliases;
     for (size_t i = 0; i < num_aliases; i++) {
       columns[i]->SetAlias(column_aliases[i]);
+      aliases.emplace_back(column_aliases[i]);
     }
-    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
+    for(size_t i = num_aliases; i < num_columns;i++){
+      columns[i]->SetAlias("?column?");
+      aliases.emplace_back("?column?");
+    }
+
+//    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
 
@@ -816,7 +823,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       // Add the table to the current context at the end
       // In the case of iterative/recursive CTEs, this was done earlier
       context_->AddCTETable(catalog_accessor_, node->GetAlias(), node->GetSelect()->GetSelectColumns(),
-                            node->GetCteColumnAliases());
+                            std::move(aliases));
     }
   } else if (node->GetJoin() != nullptr) {
     // Join
