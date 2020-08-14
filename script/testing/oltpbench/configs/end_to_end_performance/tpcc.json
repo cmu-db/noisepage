@@ -17,5 +17,8 @@
                 "client_time": 60
             }
         }
-    ]
+    ],
+    "env":{
+        "wal_device":"RAM disk"
+    }
 }
