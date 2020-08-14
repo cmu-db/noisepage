@@ -24,7 +24,7 @@ public class GenerateTrace {
     public static final String QUERY_I_NOSORT = "query I nosort";
     public static final String SEPARATION = "----";
     public static final String DEST_DIR = "traces";
-    public static final String DEST_NAME = "output.test";
+    public static final String DEST_NAME = "cte.test";
 
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
@@ -36,8 +36,8 @@ public class GenerateTrace {
         MogDb db = new MogDb(args[1], args[2], args[3]);
         Connection conn = db.getDbTest().newConn();
         // remove existing table name
-        List<String> tab = getAllExistingTableName(mog,conn);
-        removeExistingTable(tab,conn);
+//        List<String> tab = getAllExistingTableName(mog,conn);
+//        removeExistingTable(tab,conn);
 
         String line;
         String label;
@@ -56,7 +56,7 @@ public class GenerateTrace {
                 label = STATEMENT_ERROR;
             }
 
-            if(line.startsWith("SELECT")){
+            if(line.startsWith("SELECT") || line.toLowerCase().startsWith("with")){
                 // SELECT statement, query from database to construct trace format
                 String[] lines = line.split(",");
                 writeToFile(writer, QUERY_I_NOSORT);

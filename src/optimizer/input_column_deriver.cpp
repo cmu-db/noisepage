@@ -125,7 +125,7 @@ void InputColumnDeriver::Visit(const CteScan *op) {
       }
     }
 
-    if (alias_present) {
+    if (alias_present || true) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
       for (auto &elem : child_exprs) {
           new_child_exprs.push_back(elem);

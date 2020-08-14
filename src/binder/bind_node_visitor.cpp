@@ -813,6 +813,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     for(size_t i = num_aliases; i < num_columns;i++){
       columns[i]->SetAlias("?column?");
       aliases.emplace_back("?column?");
+      node->cte_col_aliases_.emplace_back("?column?");
     }
 
 //    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
