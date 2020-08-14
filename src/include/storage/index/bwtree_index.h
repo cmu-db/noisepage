@@ -18,7 +18,7 @@ class CompactIntsKey;
 template <uint16_t KeySize>
 class GenericKey;
 
-constexpr uint8_t GC_THRESHOLD = 1000;
+constexpr uint32_t GC_THRESHOLD = 1000;
 
 /**
  * Wrapper around Ziqi's OpenBwTree.
