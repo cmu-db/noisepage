@@ -3,6 +3,7 @@ import argparse
 import os
 import socket
 import subprocess
+import shlex
 import sys
 import time
 import traceback
@@ -55,8 +56,13 @@ class TestServer:
                          "cmake-build-{}".format(build_type), build_type)
         ]
         for dir in path_list:
-            path = os.path.join(dir, bin_name)
-            if os.path.exists(path):
+            db_bin_path = os.path.join(dir, bin_name)
+            if os.path.exists(db_bin_path):
+                path = db_bin_path
+                server_args = self.args.get("server_args","").strip()
+                if server_args:
+                    path = db_bin_path + " "+ server_args
+                self.db_bin_path = db_bin_path
                 self.db_path = path
                 return
 
@@ -65,8 +71,8 @@ class TestServer:
 
     def check_db_binary(self):
         """ Check that a Db binary is available """
-        if not os.path.exists(self.db_path):
-            abs_path = os.path.abspath(self.db_path)
+        if not os.path.exists(self.db_bin_path):
+            abs_path = os.path.abspath(self.db_bin_path)
             msg = "No DB binary found at {}".format(abs_path)
             raise RuntimeError(msg)
         return
@@ -85,7 +91,8 @@ class TestServer:
             # FOR
 
             self.db_output_fd = open(self.db_output_file, "w+")
-            self.db_process = subprocess.Popen(self.db_path,
+            print(self.db_path)
+            self.db_process = subprocess.Popen(shlex.split(self.db_path),
                                                stdout=self.db_output_fd,
                                                stderr=self.db_output_fd)
             try:
