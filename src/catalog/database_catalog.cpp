@@ -1775,6 +1775,15 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
 
+  // cosh
+  BOOTSTRAP_TRIG_FN("cosh", postgres::COSH_PRO_OID, execution::ast::Builtin::Cosh)
+
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
+  // tanh
+  BOOTSTRAP_TRIG_FN("tanh", postgres::TANH_PRO_OID, execution::ast::Builtin::Tanh)
+
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
 
@@ -1854,6 +1863,15 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // tan
   BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
+
+  // cosh
+  BOOTSTRAP_TRIG_FN("cosh", postgres::COSH_PRO_OID, execution::ast::Builtin::Cosh)
+
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
+  // tanh
+  BOOTSTRAP_TRIG_FN("tanh", postgres::TANH_PRO_OID, execution::ast::Builtin::Tanh)
 
   // cot
   BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)

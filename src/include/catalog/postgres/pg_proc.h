@@ -77,6 +77,9 @@ constexpr proc_oid_t CEIL_PRO_OID = proc_oid_t(107);
 constexpr proc_oid_t FLOOR_PRO_OID = proc_oid_t(132);
 constexpr proc_oid_t LOG10_PRO_OID = proc_oid_t(134);
 
+constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(127);
+constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(128);
+constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(129);
 constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(150);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(94);
