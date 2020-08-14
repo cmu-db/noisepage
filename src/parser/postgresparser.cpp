@@ -2054,6 +2054,7 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
         }
         if (colnames.empty()) {
           for (auto &expr : select->GetSelectColumns()) {
+            // TODO(tanujnay112) route the "?column?" codepath through traffic cop
             colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
           }
         }
