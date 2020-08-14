@@ -106,6 +106,7 @@ class DeferredActionManager {
   // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
   // wasteful traversals of the version chain.
   std::unordered_set<storage::TupleSlot> visited_slots_;
+  std::atomic<uint32_t> queue_size_ = 0;
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;

@@ -14,6 +14,7 @@ timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, tr
   queue_latch_.Lock();
   new_deferred_actions_.push(elem);
   queue_latch_.Unlock();
+  queue_size_++;
   return result;
 }
 
@@ -34,15 +35,12 @@ uint32_t DeferredActionManager::Process(bool process_index) {
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
 
+  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(queue_size_);
   uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled);
 
   if (process_index) ProcessIndexes();
   common::thread_context.visited_slots_.clear();
   timestamp_manager_->RemoveTransaction(begin);
-//
-//  if (daf_metrics_enabled) {
-//    common::thread_context.metrics_store_->RecordAfterQueueSize(back_log_.size() + new_deferred_actions_.unsafe_size());
-//  }
   return processed;
 }
 
@@ -96,6 +94,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
       common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
     }
     processed++;
+    queue_size_--;
 
   }
   return processed;
