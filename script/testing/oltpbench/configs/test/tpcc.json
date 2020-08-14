@@ -1,7 +1,7 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "metrics_pipeline": true,
+        "metrics_pipeline": false,
         "use_query_cache": true
     },
     "testcases": [

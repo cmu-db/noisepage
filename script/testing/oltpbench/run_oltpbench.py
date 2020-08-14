@@ -67,8 +67,8 @@ def generate_test_suite(args):
     if server_args_json:
         server_args = ""
         for attribute,value in server_args_json.items():
-            server_args = server_args + " " + "-" + str(attribute) + "=" + str(value)
-
+            server_args = '{SERVER_ARGS} -{ATTRIBUTE}={VALUE}'.format(SERVER_ARGS=server_args,ATTRIBUTE=attribute,VALUE=value)
+            
             #Delete the logfile before each run
             if attribute == "log_file_path":
                 old_log_path = str(value)
