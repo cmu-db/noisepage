@@ -194,14 +194,17 @@ void BinderContext::SetColumnPosTuple(const std::string &col_name,
 
 void BinderContext::SetTableName(common::ManagedPointer<parser::ColumnValueExpression> expr,
                                  common::ManagedPointer<parser::SelectStatement> node) {
-  if (node->GetSelectTable() != nullptr && node->GetSelectTable()->GetJoin() == nullptr) {
-    auto table_alias = node->GetSelectTable()->GetAlias();
-    auto expr_table_name = expr->GetTableName();
-    if (expr_table_name.empty()) {
-      expr->SetTableName(table_alias);
-    } else if (expr_table_name != table_alias) {
-      throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", expr_table_name),
-                             common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+  if (node->GetSelectTable() != nullptr) {
+    auto type = node->GetSelectTable()->GetTableReferenceType();
+    if (type == parser::TableReferenceType::NAME || type == parser::TableReferenceType::SELECT) {
+      auto table_alias = node->GetSelectTable()->GetAlias();
+      auto expr_table_name = expr->GetTableName();
+      if (expr_table_name.empty()) {
+        expr->SetTableName(table_alias);
+      } else if (expr_table_name != table_alias) {
+        throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", expr_table_name),
+                               common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+      }
     }
   }
 }

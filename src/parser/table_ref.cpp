@@ -199,9 +199,14 @@ void TableRef::GetConstituentTableAliases(std::unordered_set<std::string> *alias
   if (!alias_.empty()) {
     aliases->insert(GetAlias());
   }
+
   if (join_ != nullptr) {
     join_->GetLeftTable()->GetConstituentTableAliases(aliases);
     join_->GetRightTable()->GetConstituentTableAliases(aliases);
+  }
+
+  for (auto &table: list_) {
+    table->GetConstituentTableAliases(aliases);
   }
 }
 
