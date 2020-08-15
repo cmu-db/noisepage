@@ -31,7 +31,7 @@ struct TestEntry : public HashTableEntry {
 // NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, UntaggedInsertion) {
   UntaggedChainingHashTable table;
-  table.SetSize(10);
+  table.SetSize(10, nullptr);
 
   TestEntry entry1(1, 2);
   TestEntry entry2 = entry1;
@@ -74,7 +74,7 @@ TEST_F(ChainingHashTableTest, UntaggedInsertion) {
 // NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, TaggedInsertion) {
   TaggedChainingHashTable table;
-  table.SetSize(10);
+  table.SetSize(10, nullptr);
 
   TestEntry entry(1, 2);
 
@@ -124,7 +124,7 @@ TEST_F(ChainingHashTableTest, ConcurrentInsertion) {
 
   // Size the hash table
   UntaggedChainingHashTable hash_table;
-  hash_table.SetSize(num_threads * num_entries);
+  hash_table.SetSize(num_threads * num_entries, nullptr);
 
   // Parallel insert
   LaunchParallel(num_threads, [&](auto thread_id) {
@@ -164,7 +164,7 @@ TEST_F(ChainingHashTableTest, Flushing) {
   };
 
   TaggedChainingHashTable ht;
-  ht.SetSize(entries.size());
+  ht.SetSize(entries.size(), nullptr);
 
   for (auto &entry : entries) {
     ht.Insert<false>(&entry);
@@ -208,7 +208,7 @@ TEST_F(ChainingHashTableTest, EmptyIterator) {
     EXPECT_FALSE(iter.HasNext());
   }
 
-  table.SetSize(1000);
+  table.SetSize(1000, nullptr);
 
   //
   // Test: iteration shouldn't begin on an initialized, but empty table
@@ -258,7 +258,7 @@ TEST_F(ChainingHashTableTest, SimpleIteration) {
 
   // The table
   UntaggedChainingHashTable table;
-  table.SetSize(1000);
+  table.SetSize(1000, nullptr);
 
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
@@ -326,7 +326,7 @@ TEST_F(ChainingHashTableTest, LongChainIteration) {
 
   // The table
   UntaggedChainingHashTable table;
-  table.SetSize(1000);
+  table.SetSize(1000, nullptr);
 
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
@@ -370,7 +370,7 @@ TEST_F(ChainingHashTableTest, LongChainIteration) {
 // NOLINTNEXTLINE
 TEST_F(ChainingHashTableTest, ChainStats) {
   TaggedChainingHashTable table;
-  table.SetSize(100);
+  table.SetSize(100, nullptr);
 
   constexpr uint32_t unique_keys = 4;
   constexpr uint32_t bucket_len = 20;
@@ -416,7 +416,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
 
   // The table
   UntaggedChainingHashTable table;
-  table.SetSize(num_inserts);
+  table.SetSize(num_inserts, nullptr);
 
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {

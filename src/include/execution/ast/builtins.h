@@ -33,7 +33,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
-  F(ExtractYear, extractYear)                                           \
+  F(DatePart, datePart)                                                 \
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
@@ -260,6 +260,9 @@ namespace terrier::execution::ast {
   F(ASin, asin)                                                         \
   F(ATan, atan)                                                         \
   F(ATan2, atan2)                                                       \
+  F(Cosh, cosh)                                                         \
+  F(Sinh, sinh)                                                         \
+  F(Tanh, tanh)                                                         \
   F(Cos, cos)                                                           \
   F(Cot, cot)                                                           \
   F(Sin, sin)                                                           \
