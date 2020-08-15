@@ -86,7 +86,7 @@ LargeDataTableTestObject::LargeDataTableTestObject(const LargeDataTableTestConfi
       generator_(generator),
       layout_(config.VarlenAllowed() ? StorageTestUtil::RandomLayoutWithVarlens(config.MaxColumns(), generator_)
                                      : StorageTestUtil::RandomLayoutNoVarlen(config.MaxColumns(), generator_)),
-      table_(common::ManagedPointer<storage::BlockStore>(block_store), layout_, storage::layout_version_t(0)),
+      table_(common::ManagedPointer(block_store), layout_, storage::layout_version_t(0)),
       txn_manager_(txn_manager),
       gc_on_(txn_manager->GCEnabled()),
       wal_on_(log_manager != DISABLED) {

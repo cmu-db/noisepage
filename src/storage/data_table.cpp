@@ -11,7 +11,7 @@
 
 namespace terrier::storage {
 
-DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
+DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
     : accessor_(layout), block_store_(store), layout_version_(layout_version), blocks_(START_VECTOR_SIZE) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,

@@ -67,9 +67,8 @@ class NetworkTests : public TerrierTest {
                                         common::ManagedPointer(deferred_action_manager_),
                                         common::ManagedPointer(txn_manager_), DISABLED);
 
-    catalog_ =
-        new catalog::Catalog(common::ManagedPointer(txn_manager_),
-                             common::ManagedPointer<storage::BlockStore>(&block_store_), common::ManagedPointer(gc_));
+    catalog_ = new catalog::Catalog(common::ManagedPointer(txn_manager_), common::ManagedPointer(&block_store_),
+                                    common::ManagedPointer(gc_));
 
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
                                        DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);

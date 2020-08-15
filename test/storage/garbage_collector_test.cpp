@@ -22,7 +22,7 @@ class GarbageCollectorDataTableTestObject {
   template <class Random>
   GarbageCollectorDataTableTestObject(storage::BlockStore *block_store, const uint16_t max_col, Random *generator)
       : layout_(StorageTestUtil::RandomLayoutNoVarlen(max_col, generator)),
-        table_(common::ManagedPointer<storage::BlockStore>(block_store), layout_, storage::layout_version_t(0)) {}
+        table_(common::ManagedPointer(block_store), layout_, storage::layout_version_t(0)) {}
 
   ~GarbageCollectorDataTableTestObject() {
     for (auto ptr : loose_pointers_) delete[] ptr;

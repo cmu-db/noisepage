@@ -1,12 +1,12 @@
 #pragma once
 
-#include <common/constants.h>
-#include <common/macros.h>
-#include <common/shared_latch.h>
-#include <execution/util/execution_common.h>
 #include <tbb/mutex.h>
 #include <atomic>              // NOLINT
 #include <condition_variable>  // NOLINT
+#include "../common/constants.h"
+#include "../common/macros.h"
+#include "../common/shared_latch.h"
+#include "../execution/util/execution_common.h"
 
 namespace terrier::common {
 
@@ -21,7 +21,7 @@ template <class T>
 class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
  public:
   /**
-   * ConcurrentPointerVector constuctor
+   * ConcurrentPointerVector constructor
    *
    * @param start_size optional initial allocation size for the vector
    */
@@ -33,7 +33,7 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   }
 
   /**
-   * ~ConcurrentPointerVector deconstructor
+   * ~ConcurrentPointerVector destructor
    */
   ~ConcurrentPointerVector() { delete[] array_; }
 
@@ -47,12 +47,10 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   uint64_t Insert(T *item) {
     // claims index in vector, this will be the index of the array that we will use for this item
     // because the claimable_index_ is strictly increasing we know that this index is claimed uniquely by this thread
-    uint64_t my_index;
-    do {
-      my_index = claimable_index_;
-    } while (!claimable_index_.compare_exchange_strong(my_index, my_index + 1));
+    uint64_t my_index = claimable_index_++;
 
-    // we must now make sure that this index is a safe index into the array
+    // we must now make sure that this index is a safe index into the array (the index is a valid index into the array)
+    // safely accessing the memory of the array is maintained by the array_pointer_latch_
     // we will loop until it my_index is safe with a given capacity
     while (my_index >= capacity_) {
       // since we know that my_index is currently unsafe and beyond the end of the array, we can do one of two things:
@@ -281,14 +279,10 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   }
 
   // protected by resize_mutex_
-  uint64_t capacity_ = 0;
-  char padding1_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
-  std::atomic<uint64_t> claimable_index_ = 0;
-  char padding2_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
-  std::atomic<uint64_t> first_not_readable_index_ = 0;
-  char padding3_[Constants::CACHELINE_SIZE - sizeof(uint64_t)] = {};
-
-  T **array_ = nullptr;
+  alignas(Constants::CACHELINE_SIZE) uint64_t capacity_ = 0;
+  alignas(Constants::CACHELINE_SIZE) std::atomic<uint64_t> claimable_index_ = 0;
+  alignas(Constants::CACHELINE_SIZE) std::atomic<uint64_t> first_not_readable_index_ = 0;
+  alignas(Constants::CACHELINE_SIZE) T **array_ = nullptr;
   std::condition_variable resize_cv_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;
