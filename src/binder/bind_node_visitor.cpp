@@ -810,10 +810,14 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       columns[i]->SetAlias(column_aliases[i]);
       aliases.emplace_back(column_aliases[i]);
     }
-    for(size_t i = num_aliases; i < num_columns;i++){
-      columns[i]->SetAlias("?column?");
-      aliases.emplace_back("?column?");
-      node->cte_col_aliases_.emplace_back("?column?");
+    for (size_t i = num_aliases; i < num_columns;i++) {
+      auto new_alias = columns[i]->GetExpressionName();
+      if (new_alias.empty()) {
+        new_alias = "?column?";
+      }
+      columns[i]->SetAlias(new_alias);
+      aliases.emplace_back(new_alias);
+      node->cte_col_aliases_.emplace_back(new_alias);
     }
 
 //    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
