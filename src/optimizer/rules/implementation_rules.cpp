@@ -180,6 +180,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
     }
   } else if (sort_exists) {
     // If no predicates exist, index itself must satisfy sort properties and can push down limit if such an index exists
+    // If sort property is not satsified, should default to sequential scan
     for (auto &index : indexes) {
       if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
         std::vector<AnnotatedExpression> preds = get->GetPredicates();
