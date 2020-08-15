@@ -49,7 +49,7 @@ void Callbacks::BlockStoreReuseLimit(void *const old_value, void *const new_valu
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
-void Callbacks::NumLogManagerBuffers(void *const old_value, void *const new_value, DBMain *const db_main,
+void Callbacks::WalNumBuffers(void *const old_value, void *const new_value, DBMain *const db_main,
                                      common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int new_size = *static_cast<int *>(new_value);

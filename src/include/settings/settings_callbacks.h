@@ -75,7 +75,7 @@ class Callbacks {
    * @param db_main pointer to db_main
    * @param action_context pointer to the action context for this settings change
    */
-  static void NumLogManagerBuffers(void *old_value, void *new_value, DBMain *db_main,
+  static void WalNumBuffers(void *old_value, void *new_value, DBMain *db_main,
                                    common::ManagedPointer<common::ActionContext> action_context);
 
   /**
