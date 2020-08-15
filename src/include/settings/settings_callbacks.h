@@ -76,7 +76,7 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void WalNumBuffers(void *old_value, void *new_value, DBMain *db_main,
-                                   common::ManagedPointer<common::ActionContext> action_context);
+                            common::ManagedPointer<common::ActionContext> action_context);
 
   /**
    * Enable or disable metrics collection for Logging component
