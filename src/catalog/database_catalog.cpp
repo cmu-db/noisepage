@@ -1799,6 +1799,9 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // log2
   BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
 
+  // truncate
+  BOOTSTRAP_TRIG_FN("truncate", postgres::TRUNCATE_PRO_OID, execution::ast::Builtin::Truncate)
+
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
@@ -1896,6 +1899,9 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // log2
   BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
+
+  // truncate
+  BOOTSTRAP_TRIG_FN("truncate", postgres::TRUNCATE_PRO_OID, execution::ast::Builtin::Truncate)
 
 #undef BOOTSTRAP_TRIG_FN
 

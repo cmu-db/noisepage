@@ -253,6 +253,11 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
   CHECK_SQL_FUNC(Exp, std::exp, 4.0);
   CHECK_SQL_FUNC(Exp, std::exp, 1.0);
 
+  CHECK_SQL_FUNC(Truncate, std::trunc, 4.4);
+  CHECK_SQL_FUNC(Truncate, std::trunc, 1.2);
+  CHECK_SQL_FUNC(Truncate, std::trunc, -100.1);
+  CHECK_SQL_FUNC(Truncate, std::trunc, -100.34234);
+
   CHECK_SQL_FUNC(Ceil, std::ceil, 4.5);
   CHECK_SQL_FUNC(Ceil, std::ceil, -100.34234);
 

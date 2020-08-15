@@ -271,6 +271,7 @@ namespace terrier::execution::ast {
   F(Ceil, ceil)                                                         \
   F(Log10, log10)                                                       \
   F(Log2, log2)                                                         \
+  F(Truncate, truncate)                                                 \
                                                                         \
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
