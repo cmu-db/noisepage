@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "parser/postgresparser.h"
+#include "parser/parse_result.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
 
@@ -21,4 +21,9 @@ Statement::Statement(std::string &&query_text, std::unique_ptr<parser::ParseResu
     type_ = trafficcop::TrafficCopUtil::QueryTypeForStatement(root_statement_);
   }
 }
+
+Statement::~Statement() = default;
+
+bool Statement::Empty() const { return parse_result_->Empty(); }
+
 }  // namespace terrier::network

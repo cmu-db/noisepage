@@ -5,8 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
-#include "expression/abstract_expression.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/sql_statement.h"
 
 // TODO(WAN): this file is messy
@@ -96,7 +95,7 @@ class CreateFunctionStatement : public SQLStatement {
         pl_type_(pl_type),
         as_type_(as_type) {}
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /**
    * @return true if this function should replace existing definitions

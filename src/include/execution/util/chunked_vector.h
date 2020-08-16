@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/strong_typedef.h"
+#include "common/terrier_defs.h"
 #include "execution/util/region.h"
 #include "execution/util/region_allocator.h"
 

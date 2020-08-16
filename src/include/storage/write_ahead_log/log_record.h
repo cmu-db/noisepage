@@ -1,9 +1,11 @@
 #pragma once
 
-#include "storage/data_table.h"
-#include "storage/projected_row.h"
-#include "transaction/timestamp_manager.h"
-#include "transaction/transaction_defs.h"
+#include "catalog/catalog_defs.h"
+
+namespace terrier::transaction {
+class TimestampManager;
+class TransactionManager;
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 /**

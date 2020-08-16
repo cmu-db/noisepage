@@ -1,10 +1,12 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <cstring>
 #include <memory>
+
 #include "common/allocator.h"
 #include "common/container/bitmap.h"
-#include "common/strong_typedef.h"
 
 // This code should not compile if these assumptions are not true.
 static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t), "unexpected std::atomic size for 8-bit ints");

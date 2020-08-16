@@ -1,5 +1,6 @@
 #include "parser/expression/case_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 
@@ -67,6 +68,10 @@ std::unique_ptr<AbstractExpression> CaseExpression::Copy() const {
   auto expr = std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
   expr->SetMutableStateForCopy(*this);
   return expr;
+}
+
+void CaseExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json CaseExpression::ToJson() const {

@@ -5,7 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
-#include "storage/storage_defs.h"
+#include "storage/projection_map.h"
 
 namespace terrier::catalog {
 class Schema;

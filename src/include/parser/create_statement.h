@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
 #include "common/error/exception.h"
 #include "loggers/parser_logger.h"
 #include "parser/expression/abstract_expression.h"
@@ -446,7 +445,7 @@ class CreateStatement : public TableRefStatement {
 
   ~CreateStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return the type of create statement */
   CreateType GetCreateType() { return create_type_; }

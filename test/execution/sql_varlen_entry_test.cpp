@@ -3,9 +3,8 @@
 #include <memory>
 #include <random>
 
-#include "execution/sql/runtime_types.h"
 #include "execution/tpl_test.h"
-#include "storage/storage_defs.h"
+#include "storage/varlen_entry.h"
 
 namespace terrier::execution::sql::test {
 

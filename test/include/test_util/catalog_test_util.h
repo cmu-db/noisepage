@@ -3,7 +3,6 @@
 #include <random>
 #include <vector>
 #include "catalog/schema.h"
-#include "common/strong_typedef.h"
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 #include "test_util/storage_test_util.h"

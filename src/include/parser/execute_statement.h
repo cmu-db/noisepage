@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/sql_statement.h"
 
@@ -26,7 +25,7 @@ class ExecuteStatement : public SQLStatement {
 
   ~ExecuteStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return execute statement name */
   std::string GetName() { return name_; }

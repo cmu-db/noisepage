@@ -4,7 +4,6 @@
 
 #include "common/container/bitmap.h"
 #include "common/macros.h"
-#include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 
 namespace terrier::catalog {

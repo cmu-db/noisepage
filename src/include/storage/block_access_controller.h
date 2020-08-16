@@ -1,12 +1,13 @@
 #pragma once
 
 #include <emmintrin.h>
+
 #include <atomic>
 #include <cstring>
 #include <utility>
 
 #include "common/macros.h"
-#include "common/strong_typedef.h"
+#include "common/terrier_defs.h"
 
 namespace terrier::storage {
 

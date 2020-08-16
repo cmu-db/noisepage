@@ -5,7 +5,7 @@
 
 #include "common/constants.h"
 #include "common/macros.h"
-#include "common/strong_typedef.h"
+#include "common/terrier_defs.h"
 #include "execution/sql/memory_pool.h"
 
 namespace terrier::execution::sql {

@@ -6,14 +6,16 @@
 #include <utility>
 #include <vector>
 
+#include "storage/block_layout.h"
+#include "storage/block_store.h"
+#include "storage/column_map.h"
 #include "storage/data_table.h"
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
-#include "storage/write_ahead_log/log_record.h"
-#include "transaction/transaction_context.h"
+#include "storage/projection_map.h"
+#include "storage/tuple_slot.h"
 
 namespace terrier {
-// Forward Declaration
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
 }  // namespace terrier
@@ -27,7 +29,15 @@ namespace terrier::catalog {
 class Schema;
 }  // namespace terrier::catalog
 
+namespace terrier::transaction {
+class TransactionContext;
+}  // namespace terrier::transaction
+
 namespace terrier::storage {
+class DataTable;
+class ProjectedColumn;
+class ProjectedRow;
+class RedoRecord;
 
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
@@ -60,7 +70,7 @@ class SqlTable {
   /**
    * Destructs a SqlTable, frees all its members.
    */
-  ~SqlTable() { delete table_.data_table_; }
+  ~SqlTable();
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -70,10 +80,8 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. @see ProjectedRow.
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
-  bool Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
-              ProjectedRow *const out_buffer) const {
-    return table_.data_table_->Select(txn, slot, out_buffer);
-  }
+  bool Select(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
+              ProjectedRow *out_buffer) const;
 
   /**
    * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
@@ -84,20 +92,7 @@ class SqlTable {
    * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
-    const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
-    if (!result) {
-      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
-      // correctly.
-      txn->SetMustAbort();
-    }
-    return result;
-  }
+  bool Update(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo) const;
 
   /**
    * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
@@ -107,16 +102,7 @@ class SqlTable {
    * @param redo after-image of the inserted tuple.
    * @return TupleSlot for the inserted tuple
    */
-  TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
-    const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
-    redo->SetTupleSlot(slot);
-    return slot;
-  }
+  TupleSlot Insert(common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *redo) const;
 
   /**
    * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
@@ -124,23 +110,7 @@ class SqlTable {
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
-  bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
-    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
-                   "The RedoBuffer is empty even though StageDelete should have been called.");
-    TERRIER_ASSERT(
-        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
-                ->GetTupleSlot() == slot,
-        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
-
-    const auto result = table_.data_table_->Delete(txn, slot);
-    if (!result) {
-      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
-      // correctly.
-      txn->SetMustAbort();
-    }
-    return result;
-  }
+  bool Delete(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot) const;
 
   /**
    * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
@@ -154,10 +124,8 @@ class SqlTable {
    * @param out_buffer output buffer. The object should already contain projection list information. This buffer is
    *                   always cleared of old values.
    */
-  void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
-            ProjectedColumns *const out_buffer) const {
-    return table_.data_table_->Scan(txn, start_pos, out_buffer);
-  }
+  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+            ProjectedColumns *out_buffer) const;
 
   /**
    * Sequentially scans the table starting from the given iterator(inclusive) and materializes as many tuples as would
@@ -170,25 +138,23 @@ class SqlTable {
    * @param start_pos Iterator to the starting location for the sequential scan.
    * @param out_buffer Output buffer. This buffer is always cleared of old values.
    */
-  void Scan(const common::ManagedPointer<transaction::TransactionContext> txn, DataTable::SlotIterator *const start_pos,
-            execution::sql::VectorProjection *const out_buffer) const {
-    return table_.data_table_->Scan(txn, start_pos, out_buffer);
-  }
+  void Scan(common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *start_pos,
+            execution::sql::VectorProjection *out_buffer) const;
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
+  SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
 
   /** @return A blocked slot iterator over the [start, end) blocks. */
-  DataTable::SlotIterator GetBlockedSlotIterator(uint32_t start_block, uint32_t end_block) const {
+  SlotIterator GetBlockedSlotIterator(uint32_t start_block, uint32_t end_block) const {
     return table_.data_table_->GetBlockedSlotIterator(start_block, end_block);
   }
 
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
+  SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid

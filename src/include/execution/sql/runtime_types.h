@@ -6,7 +6,6 @@
 #include <utility>
 
 #include "common/hash_util.h"
-#include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {

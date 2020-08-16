@@ -8,7 +8,6 @@
 #include "common/constants.h"
 #include "common/json_header.h"
 #include "common/macros.h"
-#include "common/strong_typedef.h"
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/plan_visitor.h"

@@ -9,7 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/constants.h"
 #include "common/macros.h"
-#include "common/strong_typedef.h"
+#include "common/terrier_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 #include "type/type_util.h"

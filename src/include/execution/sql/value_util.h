@@ -4,7 +4,8 @@
 #include <string>
 #include <utility>
 
-#include "common/strong_typedef.h"
+#include "common/managed_pointer.h"
+#include "common/terrier_defs.h"
 
 namespace terrier::execution::sql {
 

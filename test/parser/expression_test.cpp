@@ -23,6 +23,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
+#include "parser/parse_result.h"
 #include "parser/postgresparser.h"
 #include "type/type_id.h"
 

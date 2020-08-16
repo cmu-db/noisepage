@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "common/shared_latch.h"
-#include "storage/storage_defs.h"
+#include "storage/tuple_slot.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {

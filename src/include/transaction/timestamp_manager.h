@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/spin_latch.h"
-#include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {

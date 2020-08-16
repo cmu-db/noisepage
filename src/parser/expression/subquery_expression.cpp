@@ -1,5 +1,6 @@
 #include "parser/expression/subquery_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 
@@ -50,6 +51,10 @@ hash_t SubqueryExpression::Hash() const {
   if (subselect_->GetSelectCondition() != nullptr)
     hash = common::HashUtil::CombineHashes(hash, subselect_->GetSelectCondition()->Hash());
   return hash;
+}
+
+void SubqueryExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json SubqueryExpression::ToJson() const {

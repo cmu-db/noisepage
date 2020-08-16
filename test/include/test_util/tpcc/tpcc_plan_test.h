@@ -12,15 +12,18 @@
 #include "catalog/catalog_accessor.h"
 #include "main/db_main.h"
 #include "optimizer/optimizer.h"
-#include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "test_util/test_harness.h"
 
 namespace terrier {
 
+namespace parser {
+class SelectStatement;
+};  // namespace parser
+
 namespace tpcc {
 class Database;
-};
+};  // namespace tpcc
 
 class TpccPlanTest : public TerrierTest {
  public:

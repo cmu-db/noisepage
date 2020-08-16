@@ -7,6 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression/derived_value_expression.h"
 #include "parser/postgresparser.h"
+#include "parser/select_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"

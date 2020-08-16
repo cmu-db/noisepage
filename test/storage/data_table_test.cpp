@@ -136,8 +136,8 @@ class RandomDataTableTestObject {
     return select_row;
   }
 
-  void Scan(storage::DataTable::SlotIterator *begin, const transaction::timestamp_t timestamp,
-            storage::ProjectedColumns *buffer, storage::RecordBufferSegmentPool *buffer_pool) {
+  void Scan(storage::SlotIterator *begin, const transaction::timestamp_t timestamp, storage::ProjectedColumns *buffer,
+            storage::RecordBufferSegmentPool *buffer_pool) {
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(buffer_pool), DISABLED);
     loose_txns_.push_back(txn);

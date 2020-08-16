@@ -11,7 +11,6 @@
 
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
-#include "common/strong_typedef.h"
 #include "gtest/gtest.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -20,7 +19,6 @@
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"

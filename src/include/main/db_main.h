@@ -15,6 +15,7 @@
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
+#include "storage/block_store.h"
 #include "storage/garbage_collector_thread.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"

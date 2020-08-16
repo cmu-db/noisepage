@@ -1,5 +1,6 @@
 #include "parser/create_statement.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 
 namespace terrier::parser {
@@ -21,6 +22,10 @@ hash_t ColumnDefinition::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_update_action_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_match_type_));
   return hash;
+}
+
+void CreateStatement::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 }  // namespace terrier::parser

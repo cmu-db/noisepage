@@ -8,7 +8,7 @@
 #include <type_traits>
 
 #include "common/macros.h"
-#include "common/strong_typedef.h"
+#include "common/terrier_defs.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::common {

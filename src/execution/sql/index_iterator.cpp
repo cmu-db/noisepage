@@ -1,6 +1,7 @@
 #include "execution/sql/index_iterator.h"
 
 #include "catalog/catalog_accessor.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/sql/value.h"
 #include "storage/sql_table.h"
 

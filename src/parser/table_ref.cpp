@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "parser/select_statement.h"
@@ -86,6 +87,12 @@ DEFINE_JSON_BODY_DECLARATIONS(JoinDefinition);
 std::unique_ptr<JoinDefinition> JoinDefinition::Copy() {
   return std::make_unique<JoinDefinition>(type_, left_->Copy(), right_->Copy(), condition_);
 }
+
+void JoinDefinition::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
+void TableRef::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
 
 nlohmann::json TableRef::ToJson() const {
   nlohmann::json j;

@@ -5,7 +5,6 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/object_pool.h"
-#include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/tuple_access_strategy.h"

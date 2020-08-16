@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <string>
 
-#include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"

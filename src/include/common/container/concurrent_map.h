@@ -4,7 +4,6 @@
 #include <functional>
 #include <utility>
 #include "common/macros.h"
-#include "common/strong_typedef.h"
 
 namespace terrier::common {
 #define TEMPLATE_ARGS K, V, Hasher, Equality, Alloc

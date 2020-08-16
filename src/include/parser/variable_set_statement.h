@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
@@ -17,7 +16,7 @@ class VariableSetStatement : public SQLStatement {
   VariableSetStatement() : SQLStatement(StatementType::VARIABLE_SET) {}
   ~VariableSetStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 };
 }  // namespace parser
 }  // namespace terrier

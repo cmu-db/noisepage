@@ -445,7 +445,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
   // Step 4: Cascading deletes
   // Get the objects in this namespace
   auto ns_objects = GetNamespaceClassOids(txn, ns_oid);
-  for (const auto object : ns_objects) {
+  for (const auto &object : ns_objects) {
     // Delete all of the tables. This should get most of the indexes
     if (object.second == postgres::ClassKind::REGULAR_TABLE) {
       result = DeleteTable(txn, static_cast<table_oid_t>(object.first));
@@ -462,7 +462,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
   // advantage of existing PRIs and indexes and expecting that deleting a namespace isn't that common of an operation,
   // so we can be slightly less efficient than optimal.
   ns_objects = GetNamespaceClassOids(txn, ns_oid);
-  for (const auto object : ns_objects) {
+  for (const auto &object : ns_objects) {
     // Delete all of the straggler indexes that may have been built on tables in other namespaces. We shouldn't get any
     // double-deletions because indexes on tables will already be invisible to us (logically deleted already).
     if (object.second == postgres::ClassKind::INDEX) {
@@ -765,7 +765,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the table's columns first
-  auto result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
+  auto UNUSED_ATTRIBUTE result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
   if (!result) return false;
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -1016,7 +1016,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
                                   index_oid_t index) {
   if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the index's columns first
-  auto result = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
+  auto UNUSED_ATTRIBUTE result = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
   if (!result) return false;
 
   // Initialize PRs for pg_class
@@ -2510,7 +2510,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))) =
       all_arg_types_varlen;
 
-  auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
+  auto UNUSED_ATTRIBUTE result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
   if (!result) {
     delete[] buffer;
     return false;

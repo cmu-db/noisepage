@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "storage/block_store.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {

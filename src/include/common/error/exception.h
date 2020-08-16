@@ -6,7 +6,9 @@
 #include <memory>
 #include <string>
 
-#include "common/error/error_code.h"
+namespace terrier::common {
+enum class ErrorCode : uint16_t;
+}
 
 namespace terrier {
 

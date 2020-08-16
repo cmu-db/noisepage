@@ -1,13 +1,15 @@
 #include "execution/sql/storage_interface.h"
 
-#include <algorithm>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::execution::sql {
 

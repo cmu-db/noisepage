@@ -8,7 +8,8 @@
 #include "common/managed_pointer.h"
 #include "execution/compiler/executable_query.h"
 #include "network/postgres/statement.h"
-#include "parser/postgresparser.h"
+#include "parser/parse_result.h"
+#include "parser/sql_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
@@ -44,10 +45,12 @@ class Statement {
   Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
             std::vector<type::TypeId> &&param_types);
 
+  ~Statement();
+
   /**
    * @return true if the statement is empty
    */
-  bool Empty() const { return parse_result_->Empty(); }
+  bool Empty() const;
 
   /**
    * @return managed pointer to the output of the parser for this statement

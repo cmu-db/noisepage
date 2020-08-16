@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "common/terrier_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 #include "network/network_defs.h"

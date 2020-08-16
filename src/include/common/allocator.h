@@ -1,11 +1,11 @@
 #pragma once
+
 #include <cerrno>
 #include <cstdlib>
-#include "common/strong_typedef.h"
-namespace terrier {
-// Use byte for raw byte storage instead of char so string functions are explicitly disabled for those.
-using byte = std::byte;
 
+#include "common/terrier_defs.h"
+
+namespace terrier {
 namespace common {
 /**
  * Static utility class for more advanced memory allocation behavior

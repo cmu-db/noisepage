@@ -9,9 +9,6 @@
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "parser/expression/column_value_expression.h"
-#include "parser/postgresparser.h"
-#include "parser/select_statement.h"
 #include "type/type_id.h"
 
 namespace terrier {
@@ -102,9 +99,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
 
-  static void InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
-    if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
-  }
+  static void InitTableRef(common::ManagedPointer<parser::TableRef> node);
 
   /**
    * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
@@ -114,17 +109,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
                               const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
 
-  void ValidateDatabaseName(const std::string &db_name) {
-    if (!(db_name.empty())) {
-      const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
-      if (db_oid == catalog::INVALID_DATABASE_OID)
-        throw BINDER_EXCEPTION(fmt::format("Database \"{}\" does not exist", db_name),
-                               common::ErrorCode::ERRCODE_UNDEFINED_DATABASE);
-      if (db_oid != db_oid_)
-        throw BINDER_EXCEPTION("cross-database references are not implemented: ",
-                               common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
-    }
-  }
+  void ValidateDatabaseName(const std::string &db_name);
 };
 
 }  // namespace binder

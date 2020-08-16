@@ -1,5 +1,6 @@
 #include "parser/expression/column_value_expression.h"
 
+#include "binder/bind_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 
@@ -44,6 +45,10 @@ void ColumnValueExpression::DeriveExpressionName() {
     this->SetExpressionName(this->GetAlias());
   else
     this->SetExpressionName(column_name_);
+}
+
+void ColumnValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json ColumnValueExpression::ToJson() const {

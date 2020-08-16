@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/json.h"
-#include "common/strong_typedef.h"
 
 namespace terrier::common {
 

@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/sql/table_vector_iterator.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 

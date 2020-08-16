@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
@@ -50,7 +49,7 @@ class InsertStatement : public SQLStatement {
 
   ~InsertStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return type of insertion */
   InsertType GetInsertType() { return type_; }

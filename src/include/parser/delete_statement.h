@@ -4,8 +4,7 @@
 #include <string>
 #include <utility>
 
-#include "binder/sql_node_visitor.h"
-#include "expression/abstract_expression.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
@@ -43,7 +42,7 @@ class DeleteStatement : public SQLStatement {
   /** @return expression that represents deletion condition */
   common::ManagedPointer<AbstractExpression> GetDeleteCondition() { return expr_; }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
  private:
   const std::unique_ptr<TableRef> table_ref_;

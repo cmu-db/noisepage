@@ -1,5 +1,6 @@
 #include "parser/expression/function_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 
@@ -26,6 +27,10 @@ hash_t FunctionExpression::Hash() const {
   hash_t hash = AbstractExpression::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
   return hash;
+}
+
+void FunctionExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json FunctionExpression::ToJson() const {

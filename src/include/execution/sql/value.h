@@ -2,10 +2,11 @@
 
 #include <cstring>
 
+#include "common/allocator.h"
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/util/string_heap.h"
-#include "storage/storage_defs.h"
+#include "storage/varlen_entry.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {

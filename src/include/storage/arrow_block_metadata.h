@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "storage/block_layout.h"
-#include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
 namespace terrier::storage {

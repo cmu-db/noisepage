@@ -4,7 +4,7 @@
 
 #include "execution/util/execution_common.h"
 #include "execution/util/string_heap.h"
-#include "storage/storage_defs.h"
+#include "storage/varlen_entry.h"
 
 namespace terrier::execution::sql {
 

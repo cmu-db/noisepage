@@ -14,6 +14,7 @@
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/projected_row.h"
+#include "storage/projection_map.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::execution::functions {

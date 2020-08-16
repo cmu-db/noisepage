@@ -2,15 +2,9 @@
 
 #include <cstring>
 #include <memory>
-#include "common/strong_typedef.h"
 
-#ifndef BYTE_SIZE
-#define BYTE_SIZE 8U
-#endif
-
-// Some platforms would have already defined the macro. But its presence is not standard and thus not portable. Pretty
-// sure this is always 8 bits. If not, consider getting a new machine, and preferably not from another dimension :)
-static_assert(BYTE_SIZE == 8U, "BYTE_SIZE should be set to 8!");
+#include "common/macros.h"
+#include "common/terrier_defs.h"
 
 // n must be [0, 7], all 0 except for 1 on the nth bit in LSB order.
 #define LSB_ONE_HOT_MASK(n) (1U << n)

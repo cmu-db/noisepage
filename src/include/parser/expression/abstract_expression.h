@@ -5,10 +5,9 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
-#include "common/strong_typedef.h"
+#include "common/terrier_defs.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
 
@@ -21,6 +20,7 @@ class ExpressionNodeContents;
 namespace terrier::binder {
 class BindNodeVisitor;
 class BinderUtil;
+class SqlNodeVisitor;
 }  // namespace terrier::binder
 
 namespace terrier::parser {

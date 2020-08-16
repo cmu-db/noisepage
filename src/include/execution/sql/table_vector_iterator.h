@@ -121,7 +121,7 @@ class EXPORT TableVectorIterator {
   // The SqlTable to iterate over.
   common::ManagedPointer<storage::SqlTable> table_{nullptr};
 
-  std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
+  std::unique_ptr<storage::SlotIterator> iter_ = nullptr;
 
   VectorProjection vector_projection_;
 

@@ -11,6 +11,7 @@
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "execution/util/execution_common.h"
+#include "storage/block_store.h"
 #include "type/type_id.h"
 
 namespace terrier::storage {

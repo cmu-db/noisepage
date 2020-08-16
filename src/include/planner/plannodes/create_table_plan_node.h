@@ -14,6 +14,7 @@
 #include "parser/select_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "storage/block_store.h"
 
 namespace terrier::planner {
 

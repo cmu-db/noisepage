@@ -10,6 +10,7 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/table_generator/sample_output.h"
 #include "execution/vm/module.h"
+#include "storage/block_store.h"
 
 namespace terrier::execution::exec {
 class ExecutionContext;

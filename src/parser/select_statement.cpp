@@ -4,10 +4,15 @@
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 
 namespace terrier::parser {
+
+void OrderByDescription::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
 
 hash_t OrderByDescription::Hash() const {
   hash_t hash = common::HashUtil::Hash(types_.size());
@@ -49,6 +54,10 @@ std::vector<std::unique_ptr<AbstractExpression>> OrderByDescription::FromJson(co
 
 DEFINE_JSON_BODY_DECLARATIONS(OrderByDescription);
 
+void LimitDescription::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 hash_t LimitDescription::Hash() const {
   hash_t hash = common::HashUtil::Hash(limit_);
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
@@ -70,6 +79,10 @@ std::vector<std::unique_ptr<AbstractExpression>> LimitDescription::FromJson(cons
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(LimitDescription);
+
+void GroupByDescription::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
 
 hash_t GroupByDescription::Hash() const {
   hash_t hash = common::HashUtil::Hash(columns_.size());
@@ -116,6 +129,10 @@ std::vector<std::unique_ptr<AbstractExpression>> GroupByDescription::FromJson(co
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(GroupByDescription);
+
+void SelectStatement::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
 
 nlohmann::json SelectStatement::ToJson() const {
   nlohmann::json j = SQLStatement::ToJson();

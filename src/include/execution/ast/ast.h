@@ -6,7 +6,6 @@
 #include <string>
 #include <utility>
 
-#include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/parsing/token.h"
 #include "execution/util/execution_common.h"

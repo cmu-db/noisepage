@@ -1,5 +1,6 @@
 #include "parser/expression/aggregate_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "spdlog/fmt/fmt.h"
@@ -47,6 +48,10 @@ void AggregateExpression::DeriveReturnValueType() {
     default:
       throw PARSER_EXCEPTION(fmt::format("Not a valid aggregation expression type: %d", static_cast<int>(expr_type)));
   }
+}
+
+void AggregateExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json AggregateExpression::ToJson() const {

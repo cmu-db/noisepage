@@ -1,5 +1,6 @@
 #include "parser/expression/parameter_value_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 
@@ -9,6 +10,10 @@ std::unique_ptr<AbstractExpression> ParameterValueExpression::Copy() const {
   auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
   expr->SetMutableStateForCopy(*this);
   return expr;
+}
+
+void ParameterValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json ParameterValueExpression::ToJson() const {

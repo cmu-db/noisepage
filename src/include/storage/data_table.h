@@ -6,8 +6,9 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
+#include "common/spin_latch.h"
+#include "storage/block_store.h"
 #include "storage/projected_columns.h"
-#include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
@@ -31,89 +32,84 @@ class HashIndex;
 }  // namespace index
 
 /**
+ * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
+ */
+class SlotIterator {
+ public:
+  /**
+   * @return reference to the underlying tuple slot
+   */
+  const TupleSlot &operator*() const { return current_slot_; }
+
+  /**
+   * @return pointer to the underlying tuple slot
+   */
+  const TupleSlot *operator->() const { return &current_slot_; }
+
+  /**
+   * pre-fix increment.
+   * @return self-reference after the iterator is advanced
+   */
+  SlotIterator &operator++();
+
+  /**
+   * post-fix increment.
+   * @return copy of the iterator equal to this before increment
+   */
+  SlotIterator operator++(int) {
+    SlotIterator copy = *this;
+    operator++();
+    return copy;
+  }
+
+  /**
+   * Equality check.
+   * @param other other iterator to compare to
+   * @return if the two iterators point to the same slot
+   */
+  bool operator==(const SlotIterator &other) const {
+    // TODO(Tianyu): I believe this is enough?
+    return current_slot_ == other.current_slot_;
+  }
+
+  /**
+   * Inequality check.
+   * @param other other iterator to compare to
+   * @return if the two iterators are not equal
+   */
+  bool operator!=(const SlotIterator &other) const { return !this->operator==(other); }
+
+ private:
+  friend class DataTable;
+
+  /** Indicates that the iterator should advance to the end of the table. */
+  static constexpr int32_t ADVANCE_TO_THE_END = -1;
+  /** An invalid TupleSlot. */
+  static TupleSlot InvalidTupleSlot() { return TupleSlot(nullptr, 0); }
+
+  /**
+   * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
+   */
+  SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block);
+
+  // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
+  // the table anymore. Right now we need the table to know how many slots there are in the block
+  const DataTable *table_;
+  // Warning: this implicitly assumes that blocks will only ever be inserted at the right end.
+  uint32_t block_index_;
+  // The remaining number of times that this iterator will advance to the next block,
+  // or ADVANCE_TO_THE_END to advance to the end.
+  int32_t num_advances_;
+  TupleSlot current_slot_;
+};
+
+/**
  * A DataTable is a thin layer above blocks that handles visibility, schemas, and maintenance of versions for a
  * SQL table. This class should be the main outward facing API for the storage engine. SQL level concepts such
  * as SQL types, varlens and nullabilities are still not meaningful at this level.
  */
 class DataTable {
  public:
-  /**
-   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
-   */
-  class SlotIterator {
-   public:
-    /**
-     * @return reference to the underlying tuple slot
-     */
-    const TupleSlot &operator*() const { return current_slot_; }
-
-    /**
-     * @return pointer to the underlying tuple slot
-     */
-    const TupleSlot *operator->() const { return &current_slot_; }
-
-    /**
-     * pre-fix increment.
-     * @return self-reference after the iterator is advanced
-     */
-    SlotIterator &operator++();
-
-    /**
-     * post-fix increment.
-     * @return copy of the iterator equal to this before increment
-     */
-    SlotIterator operator++(int) {
-      SlotIterator copy = *this;
-      operator++();
-      return copy;
-    }
-
-    /**
-     * Equality check.
-     * @param other other iterator to compare to
-     * @return if the two iterators point to the same slot
-     */
-    bool operator==(const SlotIterator &other) const {
-      // TODO(Tianyu): I believe this is enough?
-      return current_slot_ == other.current_slot_;
-    }
-
-    /**
-     * Inequality check.
-     * @param other other iterator to compare to
-     * @return if the two iterators are not equal
-     */
-    bool operator!=(const SlotIterator &other) const { return !this->operator==(other); }
-
-   private:
-    friend class DataTable;
-
-    /** Indicates that the iterator should advance to the end of the table. */
-    static constexpr int32_t ADVANCE_TO_THE_END = -1;
-    /** An invalid TupleSlot. */
-    static TupleSlot InvalidTupleSlot() { return TupleSlot(nullptr, 0); }
-
-    /**
-     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
-     */
-    SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block)
-        : table_(table), block_index_(block_index), num_advances_(num_advances) {
-      current_slot_ = {block_index >= table_->blocks_.size() ? nullptr : table->blocks_[block_index], offset_in_block};
-      TERRIER_ASSERT((current_slot_.GetBlock() == nullptr && current_slot_.GetOffset() == 0) ||
-                         current_slot_.GetBlock() != nullptr,
-                     "Offset should be 0 when block is nullptr.");
-    }
-
-    // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
-    // the table anymore. Right now we need the table to know how many slots there are in the block
-    const DataTable *table_;
-    // Warning: this implicitly assumes that blocks will only ever be inserted at the right end.
-    uint32_t block_index_;
-    // The remaining number of times that this iterator will advance to the next block,
-    // or ADVANCE_TO_THE_END to advance to the end.
-    int32_t num_advances_;
-    TupleSlot current_slot_;
-  };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
    * of its storage blocks. The first column must be size 8 and is effectively hidden from upper levels.
@@ -278,6 +274,7 @@ class DataTable {
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
+  friend class SlotIterator;
 
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;

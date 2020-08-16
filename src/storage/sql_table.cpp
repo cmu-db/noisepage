@@ -6,7 +6,9 @@
 
 #include "catalog/schema.h"
 #include "common/macros.h"
+#include "storage/data_table.h"
 #include "storage/storage_util.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 
@@ -54,6 +56,68 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
 
   auto layout = storage::BlockLayout(attr_sizes);
   table_ = {new DataTable(store, layout, layout_version_t(0)), layout, col_map};
+}
+
+SqlTable::~SqlTable() { delete table_.data_table_; }
+
+bool SqlTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
+                      ProjectedRow *const out_buffer) const {
+  return table_.data_table_->Select(txn, slot, out_buffer);
+}
+
+bool SqlTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
+  TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
+  TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                             ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                 "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                 "immediately before?");
+  const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+  if (!result) {
+    // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+    // correctly.
+    txn->SetMustAbort();
+  }
+  return result;
+}
+
+TupleSlot SqlTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
+                           RedoRecord *const redo) const {
+  TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+  TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                             ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                 "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                 "immediately before?");
+  const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
+  redo->SetTupleSlot(slot);
+  return slot;
+}
+
+bool SqlTable::Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) const {
+  TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
+                 "The RedoBuffer is empty even though StageDelete should have been called.");
+  TERRIER_ASSERT(
+      reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+              ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+              ->GetTupleSlot() == slot,
+      "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
+
+  const auto result = table_.data_table_->Delete(txn, slot);
+  if (!result) {
+    // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+    // correctly.
+    txn->SetMustAbort();
+  }
+  return result;
+}
+
+void SqlTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
+                    ProjectedColumns *const out_buffer) const {
+  return table_.data_table_->Scan(txn, start_pos, out_buffer);
+}
+
+void SqlTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
+                    execution::sql::VectorProjection *const out_buffer) const {
+  return table_.data_table_->Scan(txn, start_pos, out_buffer);
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const {

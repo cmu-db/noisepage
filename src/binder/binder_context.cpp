@@ -9,10 +9,13 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
+#include "parser/create_statement.h"
 #include "parser/expression/column_value_expression.h"
-#include "parser/postgresparser.h"
+#include "parser/parse_result.h"
 #include "parser/table_ref.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::binder {
 

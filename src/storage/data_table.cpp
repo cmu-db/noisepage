@@ -77,7 +77,7 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->Reset(filled);
 }
 
-DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
+SlotIterator &SlotIterator::operator++() {
   // Jump to the next block if already the last slot in the block.
   if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
     if (num_advances_ > 0 || num_advances_ == SlotIterator::ADVANCE_TO_THE_END) {
@@ -89,14 +89,14 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
         // TODO(WAN): Lin, does this latch still need to be temporarily commented out for TPCH?
         common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
         if (block_index_ >= table_->blocks_.size()) {
-          current_slot_ = DataTable::SlotIterator::InvalidTupleSlot();
+          current_slot_ = SlotIterator::InvalidTupleSlot();
         } else {
           current_slot_ = {table_->blocks_[block_index_], 0};
         }
       }
     } else {
       // Done advancing, time to give up.
-      current_slot_ = DataTable::SlotIterator::InvalidTupleSlot();
+      current_slot_ = SlotIterator::InvalidTupleSlot();
     }
   } else {
     current_slot_ = {current_slot_.GetBlock(), current_slot_.GetOffset() + 1};
@@ -104,7 +104,15 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   return *this;
 }
 
-DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
+SlotIterator::SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block)
+    : table_(table), block_index_(block_index), num_advances_(num_advances) {
+  current_slot_ = {block_index >= table_->blocks_.size() ? nullptr : table->blocks_[block_index], offset_in_block};
+  TERRIER_ASSERT(
+      (current_slot_.GetBlock() == nullptr && current_slot_.GetOffset() == 0) || current_slot_.GetBlock() != nullptr,
+      "Offset should be 0 when block is nullptr.");
+}
+
+SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
@@ -124,7 +132,7 @@ DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compabi
   return {this, last_block_index, SlotIterator::ADVANCE_TO_THE_END, insert_head};
 }
 
-DataTable::SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
+SlotIterator DataTable::GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
   TERRIER_ASSERT(start <= end, "Start index should come before ending index.");
   TERRIER_ASSERT(static_cast<int32_t>(end - start - 1) >= 0, "Too many blocks or sign issue.");
 

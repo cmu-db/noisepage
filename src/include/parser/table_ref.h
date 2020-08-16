@@ -5,9 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
 #include "common/json_header.h"
-#include "expression/abstract_expression.h"
+#include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
 
@@ -48,7 +47,7 @@ class JoinDefinition {
   /**
    * @param v Visitor pattern for the statement
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v);
 
   /**
    * @return type of join
@@ -188,7 +187,7 @@ class TableRef {
   /**
    * @param v Visitor pattern for the statement
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v);
 
   /** @return table reference type*/
   TableReferenceType GetTableReferenceType() { return type_; }

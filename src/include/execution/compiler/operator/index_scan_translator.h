@@ -8,6 +8,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
 #include "planner/plannodes/plan_node_defs.h"
+#include "storage/projection_map.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {

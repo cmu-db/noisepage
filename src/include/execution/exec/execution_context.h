@@ -4,26 +4,41 @@
 #include <utility>
 #include <vector>
 
-#include "common/managed_pointer.h"
+#include "catalog/catalog_defs.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
-#include "execution/sql/memory_tracker.h"
-#include "execution/sql/runtime_types.h"
-#include "execution/sql/thread_state_container.h"
 #include "execution/sql/varlen_heap.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
-#include "planner/plannodes/output_schema.h"
 
 namespace terrier::brain {
 class PipelineOperatingUnits;
-}
+}  // namespace terrier::brain
 
 namespace terrier::catalog {
 class CatalogAccessor;
-}
+}  // namespace terrier::catalog
+
+namespace terrier::execution::sql {
+class MemoryPool;
+class MemoryTracker;
+class ThreadStateContainer;
+}  // namespace terrier::execution::sql
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}  // namespace terrier::parser
+
+namespace terrier::planner {
+class OutputSchema;
+};  // namespace terrier::planner
+
+namespace terrier::transaction {
+class TransactionContext;
+}  // namespace terrier::transaction
 
 namespace terrier::execution::exec {
+class ExecutionSettings;
 
 /**
  * Execution Context: Stores information handed in by upper layers.
@@ -42,18 +57,11 @@ class EXPORT ExecutionContext {
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
-                   const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                   const exec::ExecutionSettings &exec_settings)
-      : exec_settings_(exec_settings),
-        db_oid_(db_oid),
-        txn_(txn),
-        mem_tracker_(std::make_unique<sql::MemoryTracker>()),
-        mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
-        buffer_(schema == nullptr ? nullptr
-                                  : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
-                                                                   ComputeTupleSize(schema), callback)),
-        thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
-        accessor_(accessor) {}
+                   common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                   const exec::ExecutionSettings &exec_settings);
+
+  /** Destructor. */
+  ~ExecutionContext();
 
   /**
    * @return the transaction used by this query

@@ -25,6 +25,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
 #include "parser/expression/constant_value_expression.h"
+#include "transaction/transaction_context.h"
 
 // #include "execution/util/csv_reader.h" Fix later.
 

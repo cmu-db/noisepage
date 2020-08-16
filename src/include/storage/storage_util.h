@@ -4,9 +4,10 @@
 #include <utility>
 #include <vector>
 
-#include "common/macros.h"
-#include "common/strong_typedef.h"
+#include "common/allocator.h"
 #include "storage/storage_defs.h"
+#include "storage/tuple_slot.h"
+#include "storage/varlen_entry.h"
 
 namespace terrier::storage {
 class BlockLayout;

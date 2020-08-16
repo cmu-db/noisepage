@@ -2,11 +2,32 @@
 
 #include "brain/operating_unit.h"
 #include "common/thread_context.h"
+#include "execution/sql/memory_tracker.h"
+#include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::exec {
+
+ExecutionContext::ExecutionContext(catalog::db_oid_t db_oid,
+                                   common::ManagedPointer<transaction::TransactionContext> txn,
+                                   const OutputCallback &callback, const planner::OutputSchema *schema,
+                                   const common::ManagedPointer<catalog::CatalogAccessor> accessor,
+                                   const exec::ExecutionSettings &exec_settings)
+    : exec_settings_(exec_settings),
+      db_oid_(db_oid),
+      txn_(txn),
+      mem_tracker_(std::make_unique<sql::MemoryTracker>()),
+      mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
+      buffer_(schema == nullptr ? nullptr
+                                : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
+                                                                 ComputeTupleSize(schema), callback)),
+      thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
+      accessor_(accessor) {}
+
+ExecutionContext::~ExecutionContext() {}
 
 uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;

@@ -10,11 +10,12 @@
 #include "execution/sql/sql.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
-#include "storage/storage_defs.h"
+#include "storage/tuple_slot.h"
 
 namespace terrier::storage {
 class BlockLayout;
-}
+class DataTable;
+}  // namespace terrier::storage
 
 namespace terrier::execution::sql {
 

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "execution/sql/value.h"
@@ -85,6 +86,10 @@ T ConstantValueExpression::Peek() const {
     return std::get<execution::sql::StringVal>(value_).StringView();
   }
   UNREACHABLE("Invalid type for Peek.");
+}
+
+void ConstantValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 ConstantValueExpression &ConstantValueExpression::operator=(const ConstantValueExpression &other) {

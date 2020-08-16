@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
 #include "common/managed_pointer.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
@@ -29,7 +28,7 @@ class AnalyzeStatement : public SQLStatement {
 
   ~AnalyzeStatement() override = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return analyze table */
   common::ManagedPointer<TableRef> GetAnalyzeTable() { return common::ManagedPointer(analyze_table_); }

@@ -9,9 +9,11 @@
 #include "optimizer/property_set.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/create_statement.h"
 #include "parser/drop_statement.h"
+#include "parser/parse_result.h"
 #include "parser/parser_defs.h"
-#include "parser/postgresparser.h"
+#include "parser/select_statement.h"
 #include "parser/transaction_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 

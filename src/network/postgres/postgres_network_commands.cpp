@@ -10,6 +10,7 @@
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
+#include "parser/parse_result.h"
 #include "traffic_cop/traffic_cop.h"
 
 namespace terrier::network {

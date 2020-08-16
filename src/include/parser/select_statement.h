@@ -16,8 +16,9 @@ class BindNodeVisitor;
 
 namespace parser {
 
+class TableRef;
+
 enum OrderType { kOrderAsc, kOrderDesc };
-using terrier::parser::OrderType;
 
 /**
  * Describes OrderBy clause in a select statement.
@@ -59,7 +60,7 @@ class OrderByDescription {
   /**
    * @param v Visitor pattern for the statement
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v);
 
   /**
    * @return order by types
@@ -156,7 +157,7 @@ class LimitDescription {
   /**
    * @param v Visitor pattern for the statement
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v);
 
   /**
    * @return limit
@@ -243,7 +244,7 @@ class GroupByDescription {
    * Visitor pattern for GroupByDescription.
    * @param v Visitor pattern for the statement
    */
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v);
 
   /** @return group by columns */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetColumns() { return columns_; }
@@ -329,7 +330,7 @@ class SelectStatement : public SQLStatement {
   /** Default constructor for deserialization. */
   SelectStatement() = default;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return a copy of the select statement */
   std::unique_ptr<SelectStatement> Copy();

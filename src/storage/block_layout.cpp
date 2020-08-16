@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/container/bitmap.h"
+#include "common/terrier_defs.h"
 #include "storage/arrow_block_metadata.h"
 #include "storage/storage_util.h"
 
