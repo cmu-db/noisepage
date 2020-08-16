@@ -2402,7 +2402,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::Chr: {
       // check to make sure this function has two arguments
-      if(!CheckArgCount(call, 2)) {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
 
@@ -2426,12 +2426,11 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       // this function returns a string
       sql_type = ast::BuiltinType::StringVal;
       break;
-
     }
 
     case ast::Builtin::CharLength: {
       // check to make sure this function has two arguments
-      if(!CheckArgCount(call, 2)) {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
 

@@ -101,6 +101,5 @@ class StringFunctions {
 
   /** Compute CHR(code). */
   static void Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code);
-
 };
 }  // namespace terrier::execution::sql

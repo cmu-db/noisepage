@@ -409,7 +409,7 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
 }
 
 void StringFunctions::Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code) {
-  uint64_t num = static_cast<uint64_t>(code.val_);
+  auto num = static_cast<uint64_t>(code.val_);
   if (num == 0 || num > 0x10FFFF) {
     // FIXME: this should properly throw a function error
     *result = StringVal::Null();
@@ -418,8 +418,7 @@ void StringFunctions::Chr(exec::ExecutionContext *ctx, StringVal *result, const 
       char res[1];
       res[0] = static_cast<char>(0x7f & num);
       *result = StringVal(res, 1);
-    }
-    else if (num <= 0x7ff) {
+    } else if (num <= 0x7ff) {
       char res[2];
       res[0] = static_cast<char>(0xc0 | ((num >> 6) & 0x1f));
       res[1] = static_cast<char>(0x80 | (num & 0x3f));

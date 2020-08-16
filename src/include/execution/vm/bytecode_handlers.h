@@ -1466,7 +1466,7 @@ VM_OP_WARM void OpNpRunnersDummyReal(UNUSED_ATTRIBUTE terrier::execution::exec::
 // String functions
 // ---------------------------------------------------------
 VM_OP_WARM void OpChr(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
-                             const terrier::execution::sql::Integer *n) {
+                      const terrier::execution::sql::Integer *n) {
   terrier::execution::sql::StringFunctions::Chr(ctx, result, *n);
 }
 
