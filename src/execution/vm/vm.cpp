@@ -2071,7 +2071,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpCharLength(exec_ctx, result, input);
+    OpCharLength(result, exec_ctx, input);
     DISPATCH_NEXT();
   }
   OP(ASCII) : {
