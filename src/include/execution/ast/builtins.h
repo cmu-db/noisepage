@@ -268,6 +268,9 @@ namespace terrier::execution::ast {
   F(Sin, sin)                                                           \
   F(Tan, tan)                                                           \
                                                                         \
+  /* EXP */                                                             \
+  F(Exp, exp)                                                           \
+                                                                        \
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
   F(OffsetOf, offsetOf)                                                 \
@@ -290,6 +293,10 @@ namespace terrier::execution::ast {
   F(Version, version)                                                   \
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
+                                                                        \
+  /* Char function */                                                   \
+  F(Chr, chr)                                                           \
+  F(CharLength, charLength)                                             \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

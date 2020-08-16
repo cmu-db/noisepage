@@ -2060,6 +2060,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // -------------------------------------------------------
   // String functions
   // -------------------------------------------------------
+  OP(Chr) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpChr(exec_ctx, result, input);
+    DISPATCH_NEXT();
+  }
+  OP(CharLength) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpCharLength(exec_ctx, result, input);
+    DISPATCH_NEXT();
+  }
   OP(ASCII) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());

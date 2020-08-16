@@ -564,8 +564,11 @@ namespace terrier::execution::vm {
   F(RoundUpTo, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(Log, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(Exp, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
   /* String functions */                                                                                              \
+  F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(CharLength, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ASCII, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
