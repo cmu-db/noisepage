@@ -213,6 +213,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   const planner::AbstractPlanNode *cur = plan;
   while (inner_outer_map_.find(cur) != inner_outer_map_.end()) {
     // TODO(wz2): Add the estimated # row output
+    cur = inner_outer_map_[cur];
   }
   scaling_factor += adjust_factor;
 
