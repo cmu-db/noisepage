@@ -1671,7 +1671,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
     }
     case ast::Builtin::Exp: {
       src = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::Exp, dest, src);
+      GetEmitter()->Emit(Bytecode::Exp, dest, src);
       break;
     }
     default: {
@@ -2115,11 +2115,13 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   switch (builtin) {
     case ast::Builtin::Chr: {
       // input_string here is a integer type number
-      Emitter()->Emit(Bytecode::Chr, exec_ctx, ret, input_string);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Chr, exec_ctx, ret, input_string);
       break;
     }
     case ast::Builtin::CharLength: {
-      Emitter()->Emit(Bytecode::CharLength, exec_ctx, ret, input_string);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::CharLength, exec_ctx, ret, input_string);
       break;
     }
     case ast::Builtin::ASCII: {
