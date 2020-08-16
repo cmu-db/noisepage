@@ -526,10 +526,16 @@ static void GenIdxJoinArguments(benchmark::internal::Benchmark *b) {
   std::vector<int64_t> idx_sizes = {1,     10,    100,   200,    500,    1000,   2000,   5000,
                                     10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   for (auto key_size : key_sizes) {
-    for (size_t i = 0; i < idx_sizes.size(); i++) {
-      for (size_t j = 0; j < idx_sizes.size(); j++) {
-        b->Args({key_size, idx_sizes[i], idx_sizes[j]});
+    for (size_t j = 0; j < idx_sizes.size(); j++) {
+      // Build the inner index
+      b->Args({key_size, 0, idx_sizes[j], 1});
+
+      for (size_t i = 0; i < idx_sizes.size(); i++) {
+        b->Args({key_size, idx_sizes[i], idx_sizes[j], -1});
       }
+
+      // Drop the inner index
+      b->Args({key_size, 0, idx_sizes[j], 0});
     }
   }
 }
@@ -875,9 +881,6 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-    InvokeGC();
-    InvokeGC();
-    InvokeGC();
     InvokeGC();
   }
 
@@ -1294,7 +1297,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
 
   if (lookup_size == 0) {
     if (is_build < 0) {
-      throw "Invalid is_build argument for ExecuteUpdate";
+      throw "Invalid is_build argument for IndexScan";
     }
 
     HandleBuildDropIndex(is_build, num_rows, key_num, type);
@@ -1364,6 +1367,16 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   auto key_num = state.range(0);
   auto outer = state.range(1);
   auto inner = state.range(2);
+  auto is_build = state.range(3);
+
+  if (outer == 0) {
+    if (is_build < 0) {
+      throw "Invalid is_build argument for IndexJoin";
+    }
+
+    HandleBuildDropIndex(is_build, inner, key_num, type);
+    return;
+  }
 
   // No warmup
   int num_iters = 1;
@@ -2008,6 +2021,7 @@ void InitializeRunnersState() {
   table_gen.GenerateMiniRunnerIndexTables();
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  InvokeGC();
 
   auto network_layer = terrier::runner::db_main->GetNetworkLayer();
   auto server = network_layer->GetServer();

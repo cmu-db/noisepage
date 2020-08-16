@@ -444,7 +444,11 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   uint32_t num_inserted = 0;
   for (const storage::TupleSlot &slot : *table) {
     // Get table data
-    table->Select(exec_ctx_->GetTxn(), slot, table_pr);
+    bool visible = table->Select(exec_ctx_->GetTxn(), slot, table_pr);
+    if (!visible) {
+      continue;
+    }
+
     // Fill up the index data
     for (uint32_t index_col_idx = 0; index_col_idx < index_meta.cols_.size(); index_col_idx++) {
       // Get the offset of this column in the table
