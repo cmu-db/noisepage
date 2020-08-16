@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "brain/brain_util.h"
 #include "brain/operating_unit.h"
 #include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
@@ -9,6 +10,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
+#include "execution/compiler/operator/nested_loop_join_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
@@ -207,13 +209,21 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
   }
 
+  size_t adjust_factor = 0;
+  const planner::AbstractPlanNode *cur = plan;
+  while (inner_outer_map_.find(cur) != inner_outer_map_.end()) {
+    // TODO(wz2): Add the estimated # row output
+  }
+  scaling_factor += adjust_factor;
+
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
 
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
     TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
-    if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys) {
+    if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
+        BrainUtil::IsExecutionOperatingUnitTypeMergeable(itr->first)) {
       itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
       itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
       itr->second.AddMemFactor(mem_factor);
@@ -319,7 +329,7 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NLJOIN_RIGHT ||
+      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
       plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
     // Right side stiches together outputs
     VisitAbstractPlanNode(plan);
@@ -345,7 +355,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of left plan
     auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_BUILD, key_size, plan->GetLeftHashKeys().size(), c_plan, 1,
+    AggregateFeatures(plan_feature_type_, key_size, plan->GetLeftHashKeys().size(), c_plan, 1,
                       scale);
   }
 
@@ -360,7 +370,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, ComputeKeySize(plan->GetRightHashKeys()),
+    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()),
                       plan->GetRightHashKeys().size(), plan, 1, 1);
   }
 
@@ -371,38 +381,18 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
-  // NLJOIN_LEFT is a pass through translator
-  if (plan_feature_type_ == ExecutionOperatingUnitType::NLJOIN_RIGHT) {
-    // Scale them by (num_rows - 1) of left child
-    // num_rows - 1 since the right child has already been inserted once
-    auto *c_plan = plan->GetChild(1);
-    UNUSED_ATTRIBUTE auto *o_plan = plan->GetChild(0);
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::NestedLoopJoinTranslator>();
+  auto *c_plan = translator->GetInnerLoop();
 
-    // Left and right seq scan already exist once
-    // So record the join_predicate information once
-    VisitAbstractJoinPlanNode(plan);
-    RecordArithmeticFeatures(c_plan, 1);
-
-    // TODO(wz2): after #759, get num_rows  of o_plan;
-    size_t o_num_rows = 0;
-    if (o_num_rows > 0) {
-      // Join Predicate evaluated left * right times
-      // Similarly, output evaluated at worst left * right
-      // Already recorded once, so record o_num_rows - 1
-      VisitAbstractJoinPlanNode(plan);
-      RecordArithmeticFeatures(c_plan, o_num_rows - 1);
-
-      // Get all features/card estimates from the right child
-      OperatingUnitRecorder rec(accessor_, ast_ctx_, current_pipeline_);
-      rec.plan_feature_type_ = plan_feature_type_;
-      plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
-      for (auto &feature : rec.pipeline_features_) {
-        // TODO(wz2): maybe a NL join should also record a # iterations feature
-        AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan,
-                          o_num_rows - 1, 1);
-      }
-    }
+  // Left and right seq scan already exist once
+  // So record the join_predicate information once
+  VisitAbstractJoinPlanNode(plan);
+  if (plan->GetJoinPredicate() != nullptr) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetJoinPredicate());
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
   }
+  RecordArithmeticFeatures(c_plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
@@ -547,7 +537,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Sort build sizes/operations are based on the input (from child)
     const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(ExecutionOperatingUnitType::SORT_BUILD, key_size, keys.size(), c_plan, 1, scale);
+    AggregateFeatures(plan_feature_type_, key_size, keys.size(), c_plan, 1, scale);
   } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);
@@ -556,7 +546,7 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(ExecutionOperatingUnitType::SORT_ITERATE, key_size, num_keys, plan, 1, 1);
+    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
   }
 }
 
@@ -566,10 +556,10 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
+  if (current_translator_->GetFeatureType() == ExecutionOperatingUnitType::HASH_AGGREGATE) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+  } else if (current_translator_->GetFeatureType() == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
   }
@@ -605,12 +595,9 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
       num_keys = plan->GetGroupByTerms().size();
 
       // Get Struct and compute memory scaling factor
-      // TODO(WAN): THIS IS NOT BEING SET PROPERLY
-#if 0
       auto offset = sizeof(execution::sql::HashTableEntry);
       auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
       mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
-#endif
     } else {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
       for (auto term : plan->GetAggregateTerms()) {
@@ -629,7 +616,7 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
       }
     }
 
-    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_BUILD, key_size, num_keys, c_plan, 1, mem_factor);
+    AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1, mem_factor);
   } else if (translator->IsProducePipeline(*current_pipeline_)) {
     // AggregateTopTranslator handles any exprs/computations in the output
     VisitAbstractPlanNode(plan);
@@ -644,16 +631,45 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
     auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_ITERATE, key_size, num_keys, plan, 1, 1);
+    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+  }
+}
+
+ExecutionOperatingUnitType OperatingUnitRecorder::ConvertTranslatorType(ExecutionOperatingUnitType f) {
+  if (f == ExecutionOperatingUnitType::SORT) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::SortTranslator>();
+    return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::SORT_BUILD
+                                                           : ExecutionOperatingUnitType::SORT_ITERATE;
+  } else if (f == ExecutionOperatingUnitType::HASH_JOIN) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinTranslator>();
+    return translator->IsLeftPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::HASHJOIN_BUILD
+                                                           : ExecutionOperatingUnitType::HASHJOIN_PROBE;
+  } else if (f == ExecutionOperatingUnitType::HASH_AGGREGATE) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
+    return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
+                                                           : ExecutionOperatingUnitType::AGGREGATE_ITERATE;
+  } else if (f == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
+                                                           : ExecutionOperatingUnitType::AGGREGATE_ITERATE;
+  } else {
+    return f;
   }
 }
 
 ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<execution::compiler::OperatorTranslator *> &translators) {
+  for (const auto &translator : translators) {
+    if (translator->GetFeatureType() == ExecutionOperatingUnitType::NL_JOIN) {
+      auto nlt = reinterpret_cast<execution::compiler::NestedLoopJoinTranslator*>(translator);
+      inner_outer_map_[nlt->GetInnerLoop()] = nlt->GetOuterLoop();
+    }
+  }
+
   pipeline_features_ = {};
   for (const auto &translator : translators) {
-    plan_feature_type_ = translator->GetFeatureType();
     current_translator_ = common::ManagedPointer(translator);
+    plan_feature_type_ = ConvertTranslatorType(translator->GetFeatureType());
 
     if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID) {
       if (plan_feature_type_ == ExecutionOperatingUnitType::OUTPUT) {

@@ -11,8 +11,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
   HASHJOIN_BUILD,
   HASHJOIN_PROBE,
 
-  NLJOIN_LEFT,
-  NLJOIN_RIGHT,
   IDXJOIN,
 
   SORT_BUILD,

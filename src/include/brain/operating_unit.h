@@ -73,13 +73,19 @@ class ExecutionOperatingUnitFeature {
    */
   ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
                                 size_t cardinality, double mem_factor, size_t num_loops)
-      : feature_(feature),
+      : feature_id_(feature_id_counter++),
+        feature_(feature),
         num_rows_(num_rows),
         key_size_(key_size),
         num_keys_(num_keys),
         cardinality_(cardinality),
         mem_factors_({mem_factor}),
         num_loops_(num_loops) {}
+
+  /**
+   * @return ID of the ExecutionOperatingUnitFeature
+   */
+  execution::feature_id_t GetFeatureId() const { return feature_id_; }
 
   /**
    * @returns type
@@ -147,6 +153,8 @@ class ExecutionOperatingUnitFeature {
    */
   void AddMemFactor(double mem_factor) { mem_factors_.emplace_back(mem_factor); }
 
+  static std::atomic<execution::feature_id_t> feature_id_counter;
+  execution::feature_id_t feature_id_;
   ExecutionOperatingUnitType feature_;
   size_t num_rows_;
   size_t key_size_;

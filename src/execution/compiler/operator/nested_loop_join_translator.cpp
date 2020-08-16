@@ -8,6 +8,10 @@
 
 namespace terrier::execution::compiler {
 
+const planner::AbstractPlanNode* NestedLoopJoinTranslator::GetInnerLoop() { return GetNLJPlan().GetChild(0); }
+
+const planner::AbstractPlanNode* NestedLoopJoinTranslator::GetOuterLoop() { return GetNLJPlan().GetChild(1); }
+
 NestedLoopJoinTranslator::NestedLoopJoinTranslator(const planner::NestedLoopJoinPlanNode &plan,
                                                    CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::NL_JOIN) {

@@ -15,6 +15,17 @@ class BrainUtil {
    * @param f ExecutionOperatingUnitType to convert
    */
   static std::string ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f);
+
+  /**
+   * Determines whether an ExecutionOperatingUnitType can be merged
+   *
+   * Extracting features from pipelines can result in multiple features
+   * of the same ExecutionOperatingUnitType. This function determines
+   * whether the features can be merged (i.e arithmetic ops).
+   *
+   * @param f ExecutionOperatingUnitType to coalesce
+   */
+  static bool IsExecutionOperatingUnitTypeMergeable(ExecutionOperatingUnitType f);
 };
 
 }  // namespace terrier::brain

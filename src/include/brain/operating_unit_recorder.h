@@ -165,6 +165,21 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
 
   /**
+   * Convert Translator to mini-runner type
+   * Certain translator feature types need to be converted to mini-runner types
+   * depending on whether it is a build or produce.
+   *
+   * @param f ExecutionOperatingUnitType to convert
+   * @returns mini-runner feature type
+   */
+  ExecutionOperatingUnitType ConvertTranslatorType(ExecutionOperatingUnitType f);
+
+  /**
+   * Map inner loops to the outer loop of a NL join
+   */
+  std::unordered_map<const planner::AbstractPlanNode*, const planner::AbstractPlanNode*> inner_outer_map_;
+
+  /**
    * Current Translator Feature Type
    */
   ExecutionOperatingUnitType plan_feature_type_;
