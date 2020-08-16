@@ -63,13 +63,13 @@ TEST_F(SettingsTests, BasicTest) {
   EXPECT_EQ(static_cast<uint16_t>(settings_manager_->GetInt(Param::record_buffer_segment_size)), 9999);
 
   // String
-  auto log_file_path = static_cast<std::string>(settings_manager_->GetString(Param::log_file_path));
+  auto log_file_path = static_cast<std::string>(settings_manager_->GetString(Param::wal_file_path));
   EXPECT_FALSE(log_file_path.empty());
   // FIXME: We currently do not have a string parameter that is mutable, so we cannot test
   //        whether we are able to set a string in the SettingsManager yet.
-  // settings_manager_->SetString(Param::log_file_path, "fake.log", action_context, setter_callback);
+  // settings_manager_->SetString(Param::wal_file_path, "fake.log", action_context, setter_callback);
   // EXPECT_EQ(common::ActionState::SUCCESS, action_context->GetState());
-  // EXPECT_EQ(static_cast<std::String>(settings_manager_->GetString(Param::log_file_path)), "fake.log");
+  // EXPECT_EQ(static_cast<std::String>(settings_manager_->GetString(Param::wal_file_path)), "fake.log");
 
   // TODO(pavlo): Boolean
 
@@ -181,7 +181,7 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
   const common::action_id_t action_id(1);
 
   // Check default value is correctly passed to log manager
-  auto num_buffers = settings_manager_->GetInt64(Param::num_log_manager_buffers);
+  auto num_buffers = settings_manager_->GetInt64(Param::wal_num_buffers);
   EXPECT_EQ(num_buffers, log_manager_->TestGetNumBuffers());
 
   // Change value
@@ -189,11 +189,11 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
 
   auto action_context = std::make_unique<common::ActionContext>(action_id);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  settings_manager_->SetInt64(Param::num_log_manager_buffers, new_num_buffers, common::ManagedPointer(action_context),
+  settings_manager_->SetInt64(Param::wal_num_buffers, new_num_buffers, common::ManagedPointer(action_context),
                               setter_callback);
 
   // Check new value is propagated
-  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::num_log_manager_buffers));
+  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::wal_num_buffers));
   EXPECT_EQ(new_num_buffers, log_manager_->TestGetNumBuffers());
 }
 
