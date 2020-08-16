@@ -251,3 +251,11 @@ SETTING_string(
     true,
     terrier::settings::Callbacks::NoOp
 )
+
+SETTING_string(
+    transaction_isolation,
+    "The default isolation level (default: TRANSACTION_READ_COMMITTED)",
+    "TRANSACTION_READ_COMMITTED",
+    true,
+    terrier::settings::Callbacks::NoOp
+)
