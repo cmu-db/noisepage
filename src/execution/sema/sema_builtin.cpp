@@ -2425,7 +2425,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // this function returns a string
       sql_type = ast::BuiltinType::StringVal;
-      call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
       break;
 
     }
@@ -2455,7 +2454,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // this function returns a string
       sql_type = ast::BuiltinType::Integer;
-      call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
       break;
     }
     case ast::Builtin::ASCII: {
@@ -2510,7 +2508,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // this function returns a string
       sql_type = ast::BuiltinType::StringVal;
-      call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
       break;
     }
     case ast::Builtin::Version: {
@@ -2570,7 +2567,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     default:
       UNREACHABLE("Unimplemented string call!!");
   }
-
+  call->SetType(ast::BuiltinType::Get(GetContext(), sql_type));
 }
 
 void Sema::CheckBuiltinTestCatalogLookup(ast::CallExpr *call) {
