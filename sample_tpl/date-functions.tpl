@@ -1,7 +1,7 @@
 // Expected output: 0
 
 fun main() -> int {
-  var year = @extractYear(@dateToSql(2019, 9, 20))
+  var year = @datePart(@dateToSql(2019, 9, 20), @intToSql(21))
 
   // Check equality
   if (year != @intToSql(2019)) {
