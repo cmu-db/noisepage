@@ -303,8 +303,8 @@ class DBMain {
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
-            log_file_path_, num_log_manager_buffers_, std::chrono::microseconds{log_serialization_interval_},
-            std::chrono::microseconds{log_persist_interval_}, log_persist_threshold_,
+            wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
+            std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
             common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
@@ -384,8 +384,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogFilePath(const std::string &value) {
-      log_file_path_ = value;
+    Builder &SetWalFilePath(const std::string &value) {
+      wal_file_path_ = value;
       return *this;
     }
 
@@ -447,8 +447,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetNumLogBuffers(const uint64_t value) {
-      num_log_manager_buffers_ = value;
+    Builder &SetWalNumBuffers(const uint64_t value) {
+      wal_num_buffers_ = value;
       return *this;
     }
 
@@ -456,8 +456,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogSerializationInterval(const uint64_t value) {
-      log_serialization_interval_ = value;
+    Builder &SetWalSerializationInterval(const uint64_t value) {
+      wal_serialization_interval_ = value;
       return *this;
     }
 
@@ -465,8 +465,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogPersistInterval(const uint64_t value) {
-      log_persist_interval_ = value;
+    Builder &SetWalPersistInterval(const uint64_t value) {
+      wal_persist_interval_ = value;
       return *this;
     }
 
@@ -474,8 +474,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogPersistThreshold(const uint64_t value) {
-      log_persist_threshold_ = value;
+    Builder &SetWalPersistThreshold(const uint64_t value) {
+      wal_persist_threshold_ = value;
       return *this;
     }
 
@@ -642,11 +642,11 @@ class DBMain {
     bool metrics_execute_command_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
-    std::string log_file_path_ = "wal.log";
-    uint64_t num_log_manager_buffers_ = 100;
-    int32_t log_serialization_interval_ = 100;
-    int32_t log_persist_interval_ = 100;
-    uint64_t log_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    std::string wal_file_path_ = "wal.log";
+    uint64_t wal_num_buffers_ = 100;
+    int32_t wal_serialization_interval_ = 100;
+    int32_t wal_persist_interval_ = 100;
+    uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
     bool use_catalog_ = false;
@@ -681,15 +681,14 @@ class DBMain {
       block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
       block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
 
-      use_logging_ = settings_manager->GetBool(settings::Param::wal);
+      use_logging_ = settings_manager->GetBool(settings::Param::wal_enable);
       if (use_logging_) {
-        log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
-        num_log_manager_buffers_ =
-            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
-        log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
-        log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
-        log_persist_threshold_ =
-            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+        wal_file_path_ = settings_manager->GetString(settings::Param::wal_file_path);
+        wal_num_buffers_ = static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_num_buffers));
+        wal_serialization_interval_ = settings_manager->GetInt(settings::Param::wal_serialization_interval);
+        wal_persist_interval_ = settings_manager->GetInt(settings::Param::wal_persist_interval);
+        wal_persist_threshold_ =
+            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_persist_threshold));
       }
 
       use_metrics_ = use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics);

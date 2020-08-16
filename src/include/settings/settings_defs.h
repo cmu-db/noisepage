@@ -79,7 +79,7 @@ SETTING_int(
 
 // Write ahead logging
 SETTING_bool(
-    wal,
+    wal_enable,
     "Whether WAL is enabled (default: true)",
     true,
     false,
@@ -88,7 +88,7 @@ SETTING_bool(
 
 // Path to log file for WAL
 SETTING_string(
-    log_file_path,
+    wal_file_path,
     "The path to the log file for the WAL (default: wal.log)",
     "wal.log",
     false,
@@ -97,18 +97,18 @@ SETTING_string(
 
 // Number of buffers log manager can use to buffer logs
 SETTING_int64(
-    num_log_manager_buffers,
+    wal_num_buffers,
     "The number of buffers the log manager uses to buffer logs to hand off to log consumer(s) (default: 100)",
     100,
     2,
     10000,
     true,
-    terrier::settings::Callbacks::NumLogManagerBuffers
+    terrier::settings::Callbacks::WalNumBuffers
 )
 
 // Log Serialization interval
 SETTING_int(
-    log_serialization_interval,
+    wal_serialization_interval,
     "Log serialization task interval (us) (default: 100)",
     100,
     1,
@@ -119,7 +119,7 @@ SETTING_int(
 
 // Log file persisting interval
 SETTING_int(
-    log_persist_interval,
+    wal_persist_interval,
     "Log file persisting interval (us) (default: 100)",
     100,
     1,
@@ -145,7 +145,7 @@ SETTING_bool(
 
 // Log file persisting threshold
 SETTING_int64(
-    log_persist_threshold,
+    wal_persist_threshold,
     "Log file persisting write threshold (bytes) (default: 1MB)",
     (1 << 20) /* 1MB */,
     (1 << 12) /* 4KB */,
