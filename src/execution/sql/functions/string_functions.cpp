@@ -409,11 +409,35 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
 }
 
 void StringFunctions::Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code) {
-  if (code >= 0 && code <= 127) {
-    *result = StringVal(&static_cast<char>(code.val_), 1);
-  } else {
+  uint64_t num = static_cast<uint64_t>(code.val_);
+  if (num == 0) {
+    // FIXME: this should properly throw a function error
     *result = StringVal::Null();
+  } else {
+    if (num <= 0x7f) {
+      char res[1];
+      res[0] = static_cast<char>(0x7f & num);
+      *result = StringVal(res, 1);
+    }
+    else if (num <= 0x7ff) {
+      char res[2];
+      res[0] = static_cast<char>(0xc0 | ((num >> 6) & 0x1f));
+      res[1] = static_cast<char>(0x80 | (num & 0x3f));
+      *result = StringVal(res, 2);
+    } else if (num <= 0xffff) {
+      char res[3];
+      res[0] = static_cast<char>(0xe0 | ((num >> 12) & 0x0f));
+      res[1] = static_cast<char>(0x80 | ((num >> 6) & 0x3f));
+      res[2] = static_cast<char>(0x80 | (num & 0x3f));
+      *result = StringVal(res, 3);
+    } else {
+      char res[4];
+      res[0] = static_cast<char>(0xf0 | ((num >> 18) & 0x07));
+      res[1] = static_cast<char>(0x80 | ((num >> 12) & 0x3f));
+      res[2] = static_cast<char>(0x80 | ((num >> 6) & 0x3f));
+      res[3] = static_cast<char>(0x80 | (num & 0x3f));
+      *result = StringVal(res, 4);
+    }
   }
 }
-
 }  // namespace terrier::execution::sql
