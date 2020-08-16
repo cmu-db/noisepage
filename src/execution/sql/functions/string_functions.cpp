@@ -408,4 +408,12 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
   *result = Integer(static_cast<int>(str_view.front()));
 }
 
+void StringFunctions::Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code) {
+  if (code >= 0 && code <= 127) {
+    *result = StringVal(&static_cast<char>(code.val_), 1);
+  } else {
+    *result = StringVal::Null();
+  }
+}
+
 }  // namespace terrier::execution::sql

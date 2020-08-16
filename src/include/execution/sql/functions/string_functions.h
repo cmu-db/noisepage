@@ -98,6 +98,10 @@ class StringFunctions {
   /** Compute POSITION(search_str, search_sub_str). */
   static void Position(exec::ExecutionContext *ctx, Integer *pos, const StringVal &search_str,
                        const StringVal &search_sub_str);
+
+  /** Compute CHR(code). */
+  static void Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code);
+
 };
 
 }  // namespace terrier::execution::sql
