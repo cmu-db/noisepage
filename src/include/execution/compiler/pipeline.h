@@ -8,6 +8,7 @@
 #include "common/managed_pointer.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/ast/identifier.h"
+#include "execution/compiler/function_builder.h"
 #include "execution/compiler/state_descriptor.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
@@ -189,10 +190,10 @@ class Pipeline {
   ast::FunctionDecl *GenerateInitPipelineFunction() const;
 
   // Generate the main pipeline work function.
-  ast::FunctionDecl *GeneratePipelineWorkFunction(query_id_t query_id) const;
+  ast::FunctionDecl *GeneratePipelineWorkFunction() const;
 
   // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction() const;
+  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id) const;
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
@@ -205,6 +206,10 @@ class Pipeline {
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
+
+  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+
+  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
  private:
   // A unique pipeline ID.
