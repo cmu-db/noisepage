@@ -85,7 +85,11 @@ TEST_F(SettingsTests, ImmutableValueTest) {
   // Test immutable parameters.
   auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
-  settings_manager_->SetInt(Param::port, 23333, common::ManagedPointer(action_context), setter_callback);
+  try {
+    settings_manager_->SetInt(Param::port, 23333, common::ManagedPointer(action_context), setter_callback);
+  } catch (SettingsException &e) {
+    EXPECT_EQ(e.code_, common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
   port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
@@ -100,7 +104,11 @@ TEST_F(SettingsTests, InvalidValueTest) {
   // Test setting an invalid parameter using the set API
   auto gc_interval = static_cast<uint32_t>(settings_manager_->GetInt(Param::gc_interval));
   EXPECT_GE(gc_interval, 0);
-  settings_manager_->SetInt(Param::gc_interval, -1, common::ManagedPointer(action_context), setter_callback);
+  try {
+    settings_manager_->SetInt(Param::gc_interval, -1, common::ManagedPointer(action_context), setter_callback);
+  } catch (SettingsException &e) {
+    EXPECT_EQ(e.code_, common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+  }
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
 }
 
@@ -133,7 +141,12 @@ TEST_F(SettingsTests, SetterCallbackTest) {
     EXPECT_EQ(action_context->GetState(), common::ActionState::FAILURE);
     SettingsTests::invoked_ = true;
   };
-  settings_manager_->SetInt(Param::port, 9999, common::ManagedPointer(context1), callback1);
+
+  try {
+    settings_manager_->SetInt(Param::port, 9999, common::ManagedPointer(context1), callback1);
+  } catch (SettingsException &e) {
+    EXPECT_EQ(e.code_, common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
   EXPECT_EQ(context1->GetState(), common::ActionState::FAILURE);
   EXPECT_TRUE(SettingsTests::invoked_);
 }

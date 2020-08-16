@@ -116,6 +116,24 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
     return FinishSimpleQueryCommand(out, connection);
   }
 
+  // Set statements are manually handled here. They are not transactional, so handle them before transactional logic.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
+    if (postgres_interpreter->ExplicitTransactionBlock()) {
+      out->WriteError({common::ErrorSeverity::ERROR, "SET cannot run inside a transaction block",
+                       common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
+      connection->Transaction()->SetMustAbort();
+      return FinishSimpleQueryCommand(out, connection);
+    }
+
+    auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
+    if (set_result.type_ == trafficcop::ResultType::ERROR) {
+      out->WriteError(std::get<common::ErrorData>(set_result.extra_));
+    } else {
+      out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
+    }
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
   // Begin a transaction, regardless of statement type. If it's a BEGIN statement it's implicitly in this txn
   if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE) {
     TERRIER_ASSERT(!postgres_interpreter->ExplicitTransactionBlock(),
@@ -322,15 +340,17 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   }
 
   // Begin a transaction, regardless of statement type. If it's a BEGIN statement it's implicitly in this txn
-  if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE) {
+  if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE &&
+      !NetworkUtil::NonTransactionalQueryType(query_type)) {
     TERRIER_ASSERT(!postgres_interpreter->ExplicitTransactionBlock(),
                    "We shouldn't be in an explicit txn block is transaction state is IDLE.");
     t_cop->BeginTransaction(connection);
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (NetworkUtil::TransactionalQueryType(query_type)) {
-    // Don't begin an implicit txn in this case, and don't bind or optimize this statement
+  // TODO(Matt): maybe this check against SET eventually encompasses a class of non-transactional query types
+  if (NetworkUtil::TransactionalQueryType(query_type) || query_type == QueryType::QUERY_SET) {
+    // Don't bind or optimize this statement
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
@@ -474,6 +494,23 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   const auto query_type = statement->GetQueryType();
 
   // TODO(Matt): Probably handle EmptyStatement around here somewhere, maybe somewhere more general purpose though?
+  // Set statements are manually handled here.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
+    if (postgres_interpreter->ExplicitTransactionBlock()) {
+      out->WriteError({common::ErrorSeverity::ERROR, "SET cannot run inside a transaction block",
+                       common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
+      connection->Transaction()->SetMustAbort();
+      return FinishSimpleQueryCommand(out, connection);
+    }
+
+    auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
+    if (set_result.type_ == trafficcop::ResultType::ERROR) {
+      out->WriteError(std::get<common::ErrorData>(set_result.extra_));
+    } else {
+      out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
+    }
+    return Transition::PROCEED;
+  }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::TransactionalQueryType(query_type)) {
