@@ -177,7 +177,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Map inner loops to the outer loop of a NL join
    */
-  std::unordered_map<const planner::AbstractPlanNode*, const planner::AbstractPlanNode*> inner_outer_map_;
+  std::unordered_map<const planner::AbstractPlanNode *, const planner::AbstractPlanNode *> inner_outer_map_;
 
   /**
    * Current Translator Feature Type

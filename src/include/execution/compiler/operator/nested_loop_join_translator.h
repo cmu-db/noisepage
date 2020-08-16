@@ -37,12 +37,12 @@ class NestedLoopJoinTranslator : public OperatorTranslator {
   /**
    * @returns plan for inner loop
    */
-  const planner::AbstractPlanNode* GetInnerLoop();
+  const planner::AbstractPlanNode *GetInnerLoop();
 
   /**
    * @returns plan for outer loop
    */
-  const planner::AbstractPlanNode* GetOuterLoop();
+  const planner::AbstractPlanNode *GetOuterLoop();
 
  private:
   // Get the NLJ plan node.

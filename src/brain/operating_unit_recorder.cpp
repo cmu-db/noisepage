@@ -10,8 +10,8 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
-#include "execution/compiler/operator/nested_loop_join_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/nested_loop_join_translator.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/operator/sort_translator.h"
 #include "execution/compiler/operator/static_aggregation_translator.h"
@@ -355,8 +355,7 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of left plan
     auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, key_size, plan->GetLeftHashKeys().size(), c_plan, 1,
-                      scale);
+    AggregateFeatures(plan_feature_type_, key_size, plan->GetLeftHashKeys().size(), c_plan, 1, scale);
   }
 
   // Probe
@@ -370,8 +369,8 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()),
-                      plan->GetRightHashKeys().size(), plan, 1, 1);
+    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(),
+                      plan, 1, 1);
   }
 
   // Computes against OutputSchema/Join predicate which will
@@ -643,7 +642,7 @@ ExecutionOperatingUnitType OperatingUnitRecorder::ConvertTranslatorType(Executio
   } else if (f == ExecutionOperatingUnitType::HASH_JOIN) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinTranslator>();
     return translator->IsLeftPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::HASHJOIN_BUILD
-                                                           : ExecutionOperatingUnitType::HASHJOIN_PROBE;
+                                                          : ExecutionOperatingUnitType::HASHJOIN_PROBE;
   } else if (f == ExecutionOperatingUnitType::HASH_AGGREGATE) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
@@ -661,7 +660,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
     const std::vector<execution::compiler::OperatorTranslator *> &translators) {
   for (const auto &translator : translators) {
     if (translator->GetFeatureType() == ExecutionOperatingUnitType::NL_JOIN) {
-      auto nlt = reinterpret_cast<execution::compiler::NestedLoopJoinTranslator*>(translator);
+      auto nlt = reinterpret_cast<execution::compiler::NestedLoopJoinTranslator *>(translator);
       inner_outer_map_[nlt->GetInnerLoop()] = nlt->GetOuterLoop();
     }
   }
