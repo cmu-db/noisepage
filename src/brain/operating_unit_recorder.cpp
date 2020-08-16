@@ -635,24 +635,29 @@ void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Tra
 }
 
 ExecutionOperatingUnitType OperatingUnitRecorder::ConvertTranslatorType(ExecutionOperatingUnitType f) {
-  if (f == ExecutionOperatingUnitType::SORT) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::SortTranslator>();
-    return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::SORT_BUILD
-                                                           : ExecutionOperatingUnitType::SORT_ITERATE;
-  } else if (f == ExecutionOperatingUnitType::HASH_JOIN) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinTranslator>();
-    return translator->IsLeftPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::HASHJOIN_BUILD
-                                                          : ExecutionOperatingUnitType::HASHJOIN_PROBE;
-  } else if (f == ExecutionOperatingUnitType::HASH_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
-    return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
-                                                           : ExecutionOperatingUnitType::AGGREGATE_ITERATE;
-  } else if (f == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
-    return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
-                                                           : ExecutionOperatingUnitType::AGGREGATE_ITERATE;
-  } else {
-    return f;
+  switch (f) {
+    case ExecutionOperatingUnitType::SORT: {
+      auto translator = current_translator_.CastManagedPointerTo<execution::compiler::SortTranslator>();
+      return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::SORT_BUILD
+                                                             : ExecutionOperatingUnitType::SORT_ITERATE;
+    }
+    case ExecutionOperatingUnitType::HASH_JOIN: {
+      auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinTranslator>();
+      return translator->IsLeftPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::HASHJOIN_BUILD
+                                                            : ExecutionOperatingUnitType::HASHJOIN_PROBE;
+    }
+    case ExecutionOperatingUnitType::HASH_AGGREGATE: {
+      auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
+      return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
+                                                             : ExecutionOperatingUnitType::AGGREGATE_ITERATE;
+    }
+    case ExecutionOperatingUnitType::STATIC_AGGREGATE: {
+      auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+      return translator->IsBuildPipeline(*current_pipeline_) ? ExecutionOperatingUnitType::AGGREGATE_BUILD
+                                                             : ExecutionOperatingUnitType::AGGREGATE_ITERATE;
+    }
+    default:
+      return f;
   }
 }
 
