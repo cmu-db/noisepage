@@ -21,6 +21,9 @@ class StringFunctions {
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(StringFunctions);
 
+  /** Compute ASCII(str). */
+  static void ASCII(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+
   /** Compute LENGTH(str). */
   static void CharLength(Integer *result, exec::ExecutionContext *ctx, const StringVal &str) {
     Length(result, ctx, str);

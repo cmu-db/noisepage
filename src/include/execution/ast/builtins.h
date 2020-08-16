@@ -289,6 +289,7 @@ namespace terrier::execution::ast {
   F(Lower, lower)                                                       \
   F(Version, version)                                                   \
   F(Position, position)                                                 \
+  F(ASCII, ascii)                                                       \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \

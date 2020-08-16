@@ -392,4 +392,20 @@ void StringFunctions::Position(exec::ExecutionContext *ctx, Integer *pos, const 
     *pos = Integer(found + 1);
   }
 }
+
+void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+  if (str.is_null_) {
+    *result = Integer::Null();
+    return;
+  }
+
+  if (str.len_ == 0) {
+    *result = Integer(0);
+    return;
+  }
+
+  auto *str_content = str.Content();
+  *result = Integer(int(str_content[0]));
+}
+
 }  // namespace terrier::execution::sql

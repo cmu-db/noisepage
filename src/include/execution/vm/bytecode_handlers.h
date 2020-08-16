@@ -1466,6 +1466,11 @@ VM_OP_WARM void OpNpRunnersDummyReal(UNUSED_ATTRIBUTE terrier::execution::exec::
 // String functions
 // ---------------------------------------------------------
 
+VM_OP_WARM void OpASCII(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result,
+                        const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::ASCII(ctx, result, *str);
+}
+
 VM_OP_WARM void OpCharLength(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
                              const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::CharLength(result, ctx, *str);
