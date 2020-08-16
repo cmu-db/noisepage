@@ -399,7 +399,7 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
     return;
   }
 
-  if (str.len_ == 0) {
+  if (str.GetLength() == 0) {
     *result = Integer(0);
     return;
   }

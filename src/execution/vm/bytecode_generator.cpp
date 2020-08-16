@@ -2109,7 +2109,8 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
     case ast::Builtin::ASCII: {
-      Emitter()->Emit(Bytecode::ASCII, exec_ctx, ret, input_string);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ASCII, exec_ctx, ret, input_string);
       break;
     }
     case ast::Builtin::Lower: {
