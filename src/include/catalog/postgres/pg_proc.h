@@ -67,6 +67,7 @@ constexpr proc_oid_t ASIN_PRO_OID = proc_oid_t(86);
 constexpr proc_oid_t ATAN_PRO_OID = proc_oid_t(87);
 constexpr proc_oid_t COS_PRO_OID = proc_oid_t(88);
 constexpr proc_oid_t SIN_PRO_OID = proc_oid_t(89);
+constexpr proc_oid_t EXP_PRO_OID = proc_oid_t(135);
 
 // TODO(tanujnay112) This overflows into the next internal oid range and will continue to do so
 constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
@@ -78,6 +79,8 @@ constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(127);
 constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(128);
 constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(129);
 constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(150);
+constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(106);
+constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(112);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(94);
 constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(95);
