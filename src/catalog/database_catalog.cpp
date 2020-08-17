@@ -1793,6 +1793,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
+  auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1823,7 +1824,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
   // TODO(tanujnay112): no op codes for lower and upper yet
 
-  auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
   CreateProcedure(txn, postgres::STARTSWITH_PRO_OID, "starts_with", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "start"}, {str_type, str_type},
                   {str_type, str_type}, {}, bool_type, "", true);
