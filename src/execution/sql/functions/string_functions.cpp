@@ -377,7 +377,7 @@ void StringFunctions::StartsWith(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, B
     return;
   }
   *result =
-      BoolVal(start.len_ <= str.len_ && strncmp(str.Content(), start.Content(), static_cast<size_t>(start.len_)) == 0);
+      BoolVal(start.GetLength() <= str.GetLength() && strncmp(str.GetContent(), start.GetContent(), static_cast<size_t>(start.GetLength())) == 0);
 }
 
 }  // namespace terrier::execution::sql
