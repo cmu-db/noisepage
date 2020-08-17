@@ -150,6 +150,9 @@ class ExecutableQuery {
     return common::ManagedPointer(pipeline_operating_units_);
   }
 
+  /** @return The Query Identifier */
+  query_id_t GetQueryId() { return query_id_; }
+
  private:
   // The plan.
   const planner::AbstractPlanNode &plan_;
@@ -173,7 +176,7 @@ class ExecutableQuery {
 
   /** Legacy constructor that creates a hardcoded fragment with main(ExecutionContext*)->int32. */
   ExecutableQuery(const std::string &contents, common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
-                  const exec::ExecutionSettings &exec_settings);
+                  size_t query_state_size, const exec::ExecutionSettings &exec_settings);
   /**
    * Set Pipeline Operating Units for use by mini_runners
    * @param units Pipeline Operating Units
@@ -181,6 +184,7 @@ class ExecutableQuery {
   void SetPipelineOperatingUnits(std::unique_ptr<brain::PipelineOperatingUnits> &&units);
 
   std::string query_name_;
+  query_id_t query_id_;
   static std::atomic<query_id_t> query_identifier;
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
