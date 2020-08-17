@@ -154,6 +154,16 @@ SETTING_int64(
     terrier::settings::Callbacks::NoOp
 )
 
+SETTING_int(
+    extra_float_digits,
+    "Sets the number of digits displayed for floating-point values. (default : 1)",
+    1,
+    -15,
+    3,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",
@@ -231,5 +241,21 @@ SETTING_bool(
     "Compile queries to native machine code using LLVM, rather than relying on TPL interpretation (default: false).",
     false,
     false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    application_name,
+    "The name of the application (default: NO_NAME)",
+    "NO_NAME",
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    transaction_isolation,
+    "The default isolation level (default: TRANSACTION_READ_COMMITTED)",
+    "TRANSACTION_READ_COMMITTED",
+    true,
     terrier::settings::Callbacks::NoOp
 )
