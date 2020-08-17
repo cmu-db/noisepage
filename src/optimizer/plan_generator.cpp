@@ -257,9 +257,6 @@ void PlanGenerator::Visit(const IndexScan *op) {
     builder.SetScanLimit(op->GetLimit());
   }
 
-  // If a sort property exists, set it in the plan node
-  builder.SetSatisfiedSortProp(op->GetSatisfiedSortProp());
-
   output_plan_ = builder.Build();
 }
 

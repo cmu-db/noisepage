@@ -146,14 +146,13 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * @param bounds bounds for IndexScan
    * @param limit_exists whether a limit exists
    * @param limit value of the limit
-   * @param satisfied_sort_prop satisfied sort property satisfied by IndexScan
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
                        std::vector<AnnotatedExpression> &&predicates, bool is_for_update,
                        planner::IndexScanType scan_type,
                        std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds,
-                       bool limit_exists, uint32_t limit, Property *satisfied_sort_prop = nullptr);
+                       bool limit_exists, uint32_t limit);
 
   /**
    * Copy
@@ -212,11 +211,6 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    */
   uint32_t GetLimit() const { return limit_; }
 
-  /**
-   * @return satisfied sort property
-   */
-  Property *GetSatisfiedSortProp() const { return satisfied_sort_prop_; }
-
  private:
   /**
    * OID of the database
@@ -262,11 +256,6 @@ class IndexScan : public OperatorNodeContents<IndexScan> {
    * Limit value for get
    */
   uint32_t limit_;
-
-  /**
-   * Satisfied sort property
-   */
-  Property *satisfied_sort_prop_{};
 };
 
 /**
