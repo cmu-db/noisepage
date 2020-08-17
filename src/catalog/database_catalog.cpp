@@ -1010,27 +1010,25 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
   // get all constraints for table
   std::vector<PGConstraint> con_vec = GetConstraintObjs(txn, sink_table);
   std::unordered_set<col_oid_t> sink_set;
-  //check if sink columns are PK/UNIQUE
+  // check if sink columns are PK/UNIQUE
   for (col_oid_t sink : sink_cols) {
     sink_set.emplace(sink);
     int found = 0;
-    for (uint32_t start = 0; start < con_vec.size(); start++) {
-      if (con_vec[start].concol_[0] == sink) {
-        if (con_vec[start].contype_ == postgres::ConstraintType::PRIMARY_KEY ||
-            con_vec[start].contype_ == postgres::ConstraintType::UNIQUE) {
+    for (auto &con : con_vec) {
+      if (con.concol_[0] == sink) {
+        if (con.contype_ == postgres::ConstraintType::PRIMARY_KEY || con.contype_ == postgres::ConstraintType::UNIQUE) {
           found = 1;
         }
       }
     }
-    if (found == 0){
+    if (found == 0) {
       return false;
     }
   }
 
   // for every PK/UNIQUE constraint from starting
-  for (uint32_t start = 0; start < con_vec.size(); start++) {
-    if (con_vec[start].contype_ == postgres::ConstraintType::PRIMARY_KEY ||
-        con_vec[start].contype_ == postgres::ConstraintType::UNIQUE) {
+  for (auto &con : con_vec) {
+    if (con.contype_ == postgres::ConstraintType::PRIMARY_KEY || con.contype_ == postgres::ConstraintType::UNIQUE) {
       std::unordered_set<col_oid_t> covered_set;
       // Ensure that the constraints are non-overlaping conbim=nation that holds all the keys for the sink_col
       // that is for each constraint to be considered:
@@ -1038,8 +1036,8 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
       // the col cannot be previously covered
       // the col should fall in sink_set
       // use a valid bool to track this
-      for (uint32_t cur = start; cur < con_vec.size(); cur++) {
-        std::vector<col_oid_t> cols = con_vec[cur].concol_;
+      for (auto &cur : con_vec) {
+        std::vector<col_oid_t> cols = cur.concol_;
         std::vector<col_oid_t> extend_set;
         bool valid = true;
         for (auto col : cols) {
