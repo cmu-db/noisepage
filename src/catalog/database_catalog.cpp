@@ -1010,9 +1010,23 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
   // get all constraints for table
   std::vector<PGConstraint> con_vec = GetConstraintObjs(txn, sink_table);
   std::unordered_set<col_oid_t> sink_set;
+  //check if sink columns are PK/UNIQUE
   for (col_oid_t sink : sink_cols) {
     sink_set.emplace(sink);
+    int found = 0;
+    for (uint32_t start = 0; start < con_vec.size(); start++) {
+      if (con_vec[start].concol_[0] == sink) {
+        if (con_vec[start].contype_ == postgres::ConstraintType::PRIMARY_KEY ||
+            con_vec[start].contype_ == postgres::ConstraintType::UNIQUE) {
+          found = 1;
+        }
+      }
+    }
+    if (found == 0){
+      return false;
+    }
   }
+
   // for every PK/UNIQUE constraint from starting
   for (uint32_t start = 0; start < con_vec.size(); start++) {
     if (con_vec[start].contype_ == postgres::ConstraintType::PRIMARY_KEY ||
