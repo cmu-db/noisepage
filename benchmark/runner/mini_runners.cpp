@@ -1116,16 +1116,10 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
-  if (rerun_start) {
-    return;
-  }
-
   auto num_integers = state.range(0);
   auto num_decimals = state.range(1);
   auto row_num = state.range(2);
   auto num_col = num_integers + num_decimals;
-
-  metrics_manager_->RegisterThread();
 
   std::stringstream output;
   output << "struct OutputStruct {\n";
@@ -1217,12 +1211,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::OUTPUT, row_num, tuple_size, num_col, 0, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
   exec_query.SetPipelineOperatingUnits(std::move(units));
-  exec_query.Run(common::ManagedPointer(exec_ctx), mode);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  metrics_manager_->Aggregate();
-  metrics_manager_->UnregisterThread();
+  BenchmarkExecQuery(warmup_iterations_num + 1, &exec_query, schema.get(), true);
 }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
@@ -2108,16 +2099,6 @@ void RunNetworkSequence() {
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
 
-  // Concat pipeline.csv into execution_seq0.csv
-  std::string csv_line;
-  std::ofstream of("execution_NETWORK.csv", std::ios_base::binary | std::ios_base::app);
-  std::ifstream is("pipeline.csv", std::ios_base::binary);
-  std::getline(is, csv_line);
-
-  // Concat rest of data file
-  of.seekp(0, std::ios_base::end);
-  of << is.rdbuf();
-
   thread.join();
 }
 
@@ -2175,27 +2156,23 @@ void RunBenchmarkSequence(bool prepared, int rerun_counter) {
 void RunMiniRunners(bool prepared) {
   terrier::runner::rerun_start = false;
   terrier::runner::simulate_prepared = prepared;
-  RunBenchmarkSequence(prepared, 0);
-  RunNetworkSequence();
-
-  int rerun_counter = 1;
-  terrier::runner::rerun_start = true;
-  for (int i = 0; i < terrier::runner::rerun_iterations; i++) {
-    RunBenchmarkSequence(prepared, rerun_counter);
-    RunNetworkSequence();
-    rerun_counter++;
+  for (int i = 0; i <= terrier::runner::rerun_iterations; i++) {
+    terrier::runner::rerun_start = (i != 0);
+    RunBenchmarkSequence(prepared, i);
   }
+
+  for (int i = 0; i <= terrier::runner::rerun_iterations; i++) {
+    RunNetworkSequence();
+  }
+
+  std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
   std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "NETWORK"};
+                                     "AGGS",   "INSERT", "UPDATE",    "DELETE"};
   for (auto title : titles) {
     char target[64];
-    if (title == "NETWORK") {
-      snprintf(target, sizeof(target), "execution_OUTPUT%s.csv", prepared ? "_prepare" : "");
-    } else {
-      snprintf(target, sizeof(target), "execution_%s%s.csv", title.c_str(), prepared ? "_prepare" : "");
-    }
+    snprintf(target, sizeof(target), "execution_%s%s.csv", title.c_str(), prepared ? "_prepare" : "");
 
     for (int i = 1; i <= terrier::runner::rerun_iterations; i++) {
       char source[64];

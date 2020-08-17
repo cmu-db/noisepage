@@ -323,7 +323,12 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
 
         num_pipelines += 1
 
-    total_elapsed_err = abs(total_actual - total_predicted)[-1]
+    total_elapsed_err = 0
+    for pipeline in actual_pipelines:
+        actual = actual_pipelines[pipeline]
+        predicted = predicted_pipelines[pipeline]
+        total_elapsed_err = total_elapsed_err + (abs(actual - predicted))[-1]
+
     for pipeline in actual_pipelines:
         actual = actual_pipelines[pipeline]
         predicted = predicted_pipelines[pipeline]
