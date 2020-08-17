@@ -1549,6 +1549,12 @@ VM_OP_WARM void OpSubstring(terrier::execution::sql::StringVal *result, terrier:
   terrier::execution::sql::StringFunctions::Substring(result, ctx, *str, *pos, *len);
 }
 
+VM_OP_WARM void OpStartsWith(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::BoolVal *result,
+                             const terrier::execution::sql::StringVal *str,
+                             const terrier::execution::sql::StringVal *start) {
+  terrier::execution::sql::StringFunctions::StartsWith(ctx, result, *str, *start);
+}
+
 VM_OP_WARM void OpTrim(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Trim(result, ctx, *str, *chars);

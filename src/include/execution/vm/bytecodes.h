@@ -582,6 +582,7 @@ namespace terrier::execution::vm {
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(StartsWith, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                       \
                                                                                                                       \
   /* Date Functions */                                                                                                \
   F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \

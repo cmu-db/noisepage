@@ -108,6 +108,25 @@ public class TestUtility {
         }
     }
 
+    /**
+    * Check a single row of real queried values against expected values
+    *
+    * @param rs              resultset, with cursor at the desired row
+    * @param columns         column names
+    * @param expected expected values of columns
+    */
+    public void checkBoolRow(ResultSet rs, String[] columns, Boolean[] expected) throws SQLException {
+        assertEquals(columns.length, expected.length);
+        for (int i = 0; i < columns.length; i++) {
+            Boolean val = (Boolean)rs.getObject(columns[i]);
+            if (expected[i] == null) {
+                assertEquals(expected[i], val);
+            } else {
+                assertEquals(expected[i], val);
+            }
+        }
+    }
+
     public static void DumpSQLException(SQLException ex) {
         System.err.println("Failed to execute test. Got " + ex.getClass().getSimpleName());
         System.err.println(" + Message:    " + ex.getMessage());
