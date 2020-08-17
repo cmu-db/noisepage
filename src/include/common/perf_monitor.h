@@ -28,6 +28,11 @@ class PerfMonitor {
    */
   struct PerfCounters {
     /**
+     * Should always be 6 after a read since that's how many counters we have.
+     */
+    uint64_t num_counters_;
+
+    /**
      * Total cycles. Be wary of what happens during CPU frequency scaling.
      */
     uint64_t cpu_cycles_;
@@ -170,25 +175,8 @@ class PerfMonitor {
   PerfCounters Counters() const {
     PerfCounters counters{};  // zero initialization
     if (valid_) {
-      // Iterate through all of the events' file descriptors reading them
-
-      auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters.cpu_cycles_, sizeof(uint64_t));
-      TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-      bytes_read = read(event_files_[1], &counters.instructions_, sizeof(uint64_t));
-      TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-      bytes_read = read(event_files_[2], &counters.cache_references_, sizeof(uint64_t));
-      TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-      bytes_read = read(event_files_[3], &counters.cache_misses_, sizeof(uint64_t));
-      TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-      bytes_read = read(event_files_[4], &counters.bus_cycles_, sizeof(uint64_t));
-      TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-      bytes_read = read(event_files_[5], &counters.ref_cpu_cycles_, sizeof(uint64_t));
-      TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
+      auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));
+      TERRIER_ASSERT(bytes_read == sizeof(PerfCounters), "Failed to read the counters.");
     }
     return counters;
   }
