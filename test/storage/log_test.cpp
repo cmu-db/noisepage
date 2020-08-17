@@ -34,7 +34,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
 
-    db_main_ = terrier::DBMain::Builder().SetLogFilePath(LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
+    db_main_ = terrier::DBMain::Builder().SetWalFilePath(LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     log_manager_ = db_main_->GetLogManager();
     store_ = db_main_->GetStorageLayer()->GetBlockStore();
