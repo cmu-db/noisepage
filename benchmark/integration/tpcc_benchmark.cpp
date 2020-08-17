@@ -55,7 +55,7 @@ class TPCCBenchmark : public benchmark::Fixture {
    * Number of txns to run per terminal (worker thread)
    * default txn_weights. See definition for values
    */
-  const uint32_t num_precomputed_txns_per_worker_ = 10000000 / ((terrier::BenchmarkConfig::num_threads + 2 - 1) / 2);
+  const uint32_t num_precomputed_txns_per_worker_ = 20000000;
   TransactionWeights txn_weights_;
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
@@ -440,9 +440,18 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   std::vector<Worker> workers;
   workers.reserve(terrier::BenchmarkConfig::num_threads);
 
+  auto curr_num_precomputed_txns = ((terrier::BenchmarkConfig::num_daf_threads + 2 - 1) / 2) * num_precomputed_txns_per_worker_ / terrier::BenchmarkConfig::num_threads;
+  if (terrier::BenchmarkConfig::num_daf_threads == 8 && terrier::BenchmarkConfig::num_threads == 1)
+    curr_num_precomputed_txns = curr_num_precomputed_txns / 4;
+  if (terrier::BenchmarkConfig::num_daf_threads == 4 && terrier::BenchmarkConfig::num_threads == 1)
+    curr_num_precomputed_txns = curr_num_precomputed_txns / 4;
+  if (terrier::BenchmarkConfig::num_daf_threads == 2 && terrier::BenchmarkConfig::num_threads == 8)
+    curr_num_precomputed_txns = curr_num_precomputed_txns * 2;
+
+  std::cout << "num daf thread:" << terrier::BenchmarkConfig::num_daf_threads << " num worker threads:" << terrier::BenchmarkConfig::num_threads << " txns per thread:" << curr_num_precomputed_txns << std::endl;
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
-                                               num_precomputed_txns_per_worker_);
+                                               curr_num_precomputed_txns);
   // record experiment elapsed time and average num_txns processed
   std::string_view expr_result_file_name = "./expr_results.csv";
   // NOLINTNEXTLINE
@@ -500,7 +509,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let MetricThread clean up
 
     std::ofstream expr_result_file(expr_result_file_name.data());
-    // num_daf_threads, num_worker_thread, time_elapsed, ave_num_txns_processed
+    // num_daf_threads, num_worker_thread, time_elapsed
     expr_result_file << BenchmarkConfig::num_daf_threads << ", " << BenchmarkConfig::num_threads << ", " << static_cast<double>(elapsed_ms) / 1000.0 << std::endl;
     expr_result_file.close();
     // cleanup
@@ -526,7 +535,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     }
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
-    state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
+    state.SetItemsProcessed(state.iterations() * curr_num_precomputed_txns *
                             terrier::BenchmarkConfig::num_threads);
   }
 }
@@ -656,7 +665,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(20);
+    ->MinTime(500);
 //BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()

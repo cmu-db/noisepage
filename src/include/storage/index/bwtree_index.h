@@ -72,7 +72,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(
         result,
         "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
-    IncNumModification(txn);
+//    IncNumModification(txn);
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
       const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
@@ -101,7 +101,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
 
     if (result) {
-      IncNumModification(txn);
+//      IncNumModification(txn);
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=]() {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
@@ -125,7 +125,7 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
                        !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
-    IncNumModification(txn);
+//    IncNumModification(txn);
 
     // Register a deferred action for the GC with txn manager. See base function comment.
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {

@@ -38,7 +38,7 @@ uint32_t DeferredActionManager::Process(bool process_index) {
   if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(queue_size_);
   uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled);
 
-//  if (process_index) ProcessIndexes();
+  if (process_index) ProcessIndexes();
   common::thread_context.visited_slots_.clear();
   timestamp_manager_->RemoveTransaction(begin);
   return processed;
