@@ -160,11 +160,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // TODO(wz2): Populate actual num_rows/cardinality after #759
   size_t num_rows = 1;
   size_t cardinality = 1;
-<<<<<<< HEAD
-  size_t num_iterations = 0;
-=======
   size_t num_loops = 0;
->>>>>>> upstream/master
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     // Uses the network result consumer
     cardinality = 1;
@@ -205,11 +201,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
 
       UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
-<<<<<<< HEAD
-      num_iterations = 0; // extract from c_plan num_rows
-=======
       num_loops = 0;  // extract from c_plan num_rows
->>>>>>> upstream/master
     }
 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
@@ -229,11 +221,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-<<<<<<< HEAD
-  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_iterations);
-=======
   auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
->>>>>>> upstream/master
   pipeline_features_.emplace(type, std::move(feature));
 }
 
@@ -372,12 +360,8 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-<<<<<<< HEAD
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(), plan, 1, 1);
-=======
     AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, ComputeKeySize(plan->GetRightHashKeys()),
                       plan->GetRightHashKeys().size(), plan, 1, 1);
->>>>>>> upstream/master
   }
 
   // Computes against OutputSchema/Join predicate which will
@@ -413,14 +397,9 @@ void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
       rec.plan_feature_type_ = plan_feature_type_;
       plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
       for (auto &feature : rec.pipeline_features_) {
-<<<<<<< HEAD
-        // TODO: maybe a NL join should also record a # iterations feature --- but the data/instr is not shared that much
-        AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan, o_num_rows - 1, 1);
-=======
         // TODO(wz2): maybe a NL join should also record a # iterations feature
         AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan,
                           o_num_rows - 1, 1);
->>>>>>> upstream/master
       }
     }
   }
