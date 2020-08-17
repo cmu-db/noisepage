@@ -3,7 +3,6 @@ import org.junit.jupiter.api.function.Executable;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,8 +37,6 @@ public class TracefileTest {
         mog = new MogSqlite(file);
     }
 
-
-
     /**
      * Factory method to generate test
      * @return a collection of DynamicTest object constructed from executables
@@ -56,20 +53,16 @@ public class TracefileTest {
         while (mog.next()) {
             // case for create and insert statements
             lineCounter++;
-            if(mog.skip_status){
-                mog.skip_status = false;
-                continue;
-            }
             String cur_sql = mog.sql.trim();
             int num = queryLine.get(lineCounter);
-            if (mog.queryFirstLine.equals(constants.STATEMENT_ERROR)||mog.queryFirstLine.equals(constants.STATEMENT_OK)) {
+            if (mog.queryFirstLine.equals(Constants.STATEMENT_ERROR)||mog.queryFirstLine.equals(Constants.STATEMENT_OK)) {
                 Statement statement = null;
                 Executable exec = null;
                 String testName = "Line:" + num + " | Expected " + mog.queryFirstLine;
                 try {
                     statement = conn.createStatement();
                     statement.execute(cur_sql);
-                    if(mog.queryFirstLine.equals(constants.STATEMENT_ERROR)){
+                    if(mog.queryFirstLine.equals(Constants.STATEMENT_ERROR)){
                         String message = "Failure at Line " + num + ": Expected failure but success"  + "\n " + cur_sql;
                         exec = () -> check2(message);
                     }else{
@@ -77,7 +70,7 @@ public class TracefileTest {
                     }
                 }
                 catch (Throwable e) {
-                    if(mog.queryFirstLine.equals(constants.STATEMENT_OK)){
+                    if(mog.queryFirstLine.equals(Constants.STATEMENT_OK)){
                         String message = "Failure at Line " + num + ": Expected success but failure"  + "\n " + cur_sql;
                         exec = () -> check2(message);
                     }else{
@@ -89,12 +82,20 @@ public class TracefileTest {
             } else{
                 // case for query statements
                 String parsed_hash;
-                if(mog.queryResults.size()==0 || (!mog.queryResults.get(0).contains(constants.VALUES))) {
+                int parsed_num_result = 0;
+                boolean check_expected = false;
+                if(mog.queryResults.size()==0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
                     parsed_hash = TestUtility.getHashFromDb(mog.queryResults);
                 }else{
                     // parse the line from test file to get the hash
                     String[] sentence = mog.queryResults.get(0).split(" ");
                     parsed_hash = sentence[sentence.length - 1];
+                    try{
+                        parsed_num_result = Integer.parseInt(sentence[0]);
+                    } catch (Exception e){
+                        parsed_num_result = Integer.parseInt(sentence[1]);
+                        check_expected = true;
+                    }
                 }
                 String testName = "Line:" + num +" | Hash:" + parsed_hash;
                 // execute sql query to get result from database
@@ -108,7 +109,20 @@ public class TracefileTest {
                     res = mog.processResults(rs);
                     // create an executable for the query
                     String hash2 = TestUtility.getHashFromDb(res);
-                    exec = () -> check(parsed_hash, hash2, num, cur_sql);
+                    String message = "Failure at Line " + num + ": " + "\n" + cur_sql + "\n" +
+                            "Query expected " + parsed_num_result + " results, got " + res.size() + " results"
+                            + "\n" + res;
+                    boolean len_match;
+                    if(check_expected){
+                        if(parsed_num_result==res.size()){
+                            len_match = true;
+                        }else{
+                            len_match = false;
+                        }
+                    }else{
+                        len_match = true;
+                    }
+                    exec = () -> check(parsed_hash, hash2, message, len_match);
                     // create the DynamicTest object
                 } catch (Throwable e) {
                     String message = "Failure at Line " + num + ": " + e.getMessage() + "\n" + cur_sql;
@@ -128,15 +142,20 @@ public class TracefileTest {
      * compare hash, print line number and error if hash don't match
      * @param hash1 hash
      * @param hash2 hash
-     * @param n line number
+     * @param message error message
+     * @param len_match boolean that indicate if the number of value queried is correct
      * @throws Exception
      */
-    public static void check(String hash1, String hash2, int n, String sql) throws Exception {
+    public static void check(String hash1, String hash2, String message,
+                             boolean len_match) throws Exception {
+        if(!len_match){
+            throw new Exception("Query got wrong number of values");
+        }
         try {
             assertEquals(hash1, hash2);
         }
         catch (AssertionError e) {
-            throw new Exception("Failure at Line " + n + ": " + e.getMessage() + "\n" + sql);
+            throw new Exception(message + "\n" + e.getMessage());
         }
     }
 
@@ -149,5 +168,4 @@ public class TracefileTest {
     public static void check2(String mes) throws Exception {
         throw new Exception(mes);
     }
-
 }

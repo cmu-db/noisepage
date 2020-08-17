@@ -1,13 +1,7 @@
 import java.io.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.List;
 import moglib.*;
-import org.junit.Test;
 
 
 /**
@@ -20,10 +14,6 @@ import org.junit.Test;
  * output file: to be tested by TracefileTest
  */
 public class GenerateTrace {
-    private static final String STATEMENT_OK = "statement ok";
-    private static final String STATEMENT_ERROR = "statement error";
-    public static final String QUERY_I_NOSORT = "query I nosort";
-
     public static void main(String[] args) throws Throwable {
         System.out.println("Working Directory = " + System.getProperty("user.dir"));
         String path = args[0];
@@ -42,43 +32,80 @@ public class GenerateTrace {
         Statement statement = null;
         BufferedReader br = new BufferedReader(new FileReader(file));
         // create output file
-        FileWriter writer = new FileWriter(new File(constants.DEST_DIR, args[4]));
+        FileWriter writer = new FileWriter(new File(Constants.DEST_DIR, args[4]));
+        int expected_result_num = -1;
         while (null != (line = br.readLine())) {
             line = line.trim();
             // execute sql statement
             try{
                 statement = conn.createStatement();
                 statement.execute(line);
-                label = STATEMENT_OK;
+                label = Constants.STATEMENT_OK;
             } catch (Throwable e){
-                label = STATEMENT_ERROR;
+                label = Constants.STATEMENT_ERROR;
             }
 
             if(line.startsWith("SELECT")){
                 // SELECT statement, query from database to construct trace format
-                String[] lines = line.split(",");
-                writeToFile(writer, QUERY_I_NOSORT);
-                writeToFile(writer, line);
-                writeToFile(writer, constants.SEPARATION);
                 ResultSet rs = statement.getResultSet();
+                ResultSetMetaData rsmd = rs.getMetaData();
+                String typeString = "";
+                for (int i = 1; i <= rsmd.getColumnCount(); ++i) {
+                    String colTypeName = rsmd.getColumnTypeName(i);
+                    MogDb.DbColumnType colType = db.getDbTest().getDbColumnType(colTypeName);
+                    if(colType==MogDb.DbColumnType.FLOAT){
+                        typeString += "R";
+                    }else if(colType==MogDb.DbColumnType.INTEGER){
+                        typeString += "I";
+                    }else if(colType==MogDb.DbColumnType.TEXT){
+                        typeString += "T";
+                    }else{
+                        System.out.println(colTypeName + " column invalid");
+                    }
+                }
+                String query_sort = Constants.QUERY + " " + typeString + " nosort";
+                writeToFile(writer, query_sort);
+                writeToFile(writer, line);
+                writeToFile(writer, Constants.SEPARATION);
                 List<String> res = mog.processResults(rs);
                 // compute the hash
                 String hash = TestUtility.getHashFromDb(res);
-                int num = res.size();
-                String queryResult = num + " values hashing to " + hash;
+                String queryResult = "";
+                if(expected_result_num>=0){
+                    queryResult = "Expected " + expected_result_num + " values hashing to " + hash;
+                }else{
+                    if(res.size()>0){
+                        queryResult = res.size() + " values hashing to " + hash;
+                    }
+                }
                 writeToFile(writer, queryResult);
-                writer.write('\n');
-            } else if(line.startsWith(constants.HASHTAG)||line.startsWith(constants.SKIP)){
+                if(res.size()>0){
+                    writer.write('\n');
+                }
+                expected_result_num = -1;
+            } else if(line.startsWith(Constants.HASHTAG)){
                 writeToFile(writer, line);
+                if(line.contains("No of outputs")){
+                    String[] arr = line.split(" ");
+                    expected_result_num = Integer.parseInt(arr[arr.length-1]);
+                }else if(line.contains("FAIL")){
+                    label = Constants.STATEMENT_ERROR;
+                }
             } else{
                 // other sql statements
+                int rs = statement.getUpdateCount();
+                if(expected_result_num>=0 && expected_result_num!=rs){
+                    label = Constants.STATEMENT_ERROR;
+                }
                 writeToFile(writer, label);
                 writeToFile(writer, line);
                 writer.write('\n');
+                expected_result_num = -1;
             }
         }
         writer.close();
     }
+
     public static void writeToFile(FileWriter writer, String str) throws IOException {
         writer.write(str);
         writer.write('\n');

@@ -1,17 +1,10 @@
 import java.io.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 import moglib.*;
-import org.junit.Test;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.function.Executable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -28,7 +21,7 @@ public class FilterTrace {
         System.out.println("File path: " + path);
         MogSqlite mog = new MogSqlite(file);
         // create output file
-        File outputFile = new File(constants.DEST_DIR, args[5]);
+        File outputFile = new File(Constants.DEST_DIR, args[5]);
         FileWriter writer = new FileWriter(outputFile);
         String[] skip_list = args[4].split(",");
         for(String i: skip_list){
@@ -42,17 +35,6 @@ public class FilterTrace {
         removeExistingTable(tab,conn);
         while (mog.next()) {
             String cur_sql = mog.sql.trim();
-            // the commented code below adds the skip tag to queries
-//            for(String i:mog.comments){
-//                writeToFile(writer, i);
-//            }
-//            for(String skip_word:skip_list){
-//                if(cur_sql.contains(skip_word)){
-//                    skip_flag = true;
-//                    writeToFile(writer, constants.SKIP);
-//                    break;
-//                }
-//            }
             // the code below remove the queries that contain any skip keyword
             for(String skip_word:skip_list) {
                 if (cur_sql.contains(skip_word)) {
@@ -73,10 +55,10 @@ public class FilterTrace {
             writeToFile(writer, mog.queryFirstLine);
             writeToFile(writer, cur_sql);
             if(skip_flag){
-                if(mog.queryFirstLine.contains(constants.QUERY)){
-                    writeToFile(writer, constants.SEPARATION);
+                if(mog.queryFirstLine.contains(Constants.QUERY)){
+                    writeToFile(writer, Constants.SEPARATION);
                     if(mog.queryResults.size()>0){
-                        if(mog.queryResults.get(0).contains(constants.VALUES)){
+                        if(mog.queryResults.get(0).contains(Constants.VALUES)){
                             writeToFile(writer, mog.queryResults.get(0));
                         }else{
                             for(String i:mog.queryResults){
@@ -87,8 +69,8 @@ public class FilterTrace {
                     }
                 }
             }else{
-                if(mog.queryFirstLine.contains(constants.QUERY)){
-                    writeToFile(writer, constants.SEPARATION);
+                if(mog.queryFirstLine.contains(Constants.QUERY)){
+                    writeToFile(writer, Constants.SEPARATION);
                     try{
                         Statement statement = conn.createStatement();
                         statement.execute(cur_sql);

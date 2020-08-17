@@ -82,6 +82,19 @@ db username jeffniu, password "", and output name select_new.test, the command s
 
 ant generate-trace -Dpath=traces/select.sql -Ddb-url=jdbc:postgresql://localhost/jeffdb
  -Ddb-user=jeffniu -Ddb-password="" -Doutput-name=select_new.test
+ 
+Comments are supported for input files (line starting with "#")
+Inlucde "Fail" in comment if you expect the query to fail
+Use the format "No of outputs" to specify the expected number of outputs; if a number is specified,
+then in TracefileTest the queryresult length are checked as well.
+
+Example input line for GenerateTrace: 
+# No of outputs: 2
+SELECT t1 FROM TableA
+
+Then in TracefileTest, the sql statement will be executed and in addition to checking if the hash
+match, the number of results will be checked as well. An exception will be thrown if we don't
+get 2 results for the example.
 
 ## Installation and pre-requisites
 
