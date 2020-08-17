@@ -219,7 +219,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       delete[] col_data.second;
     }
   }
-  // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
+  EXECUTION_LOG_TRACE("Wrote {} tuples into table {}.", vals_written, table_meta->name_);
 }
 
 void TableGenerator::CreateTable(TableInsertMeta *metadata) {
@@ -346,7 +346,8 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
 void TableGenerator::GenerateMiniRunnerIndexes() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
-  std::vector<uint32_t> row_nums = {1, 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
+                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   for (auto row_num : row_nums) {
     for (type::TypeId type : types) {
@@ -437,14 +438,14 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   // Cleanup
   delete[] table_buffer;
   delete[] index_buffer;
-  // EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
+  EXECUTION_LOG_TRACE("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
 }
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<std::vector<type::TypeId>> mixed_types = {{type::TypeId::INTEGER, type::TypeId::DECIMAL}};
   std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}};
-  std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
+  std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto types : mixed_types) {
     for (auto col_dist : mixed_dist) {

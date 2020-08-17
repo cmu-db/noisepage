@@ -7,7 +7,13 @@
 // attributes
 //===--------------------------------------------------------------------===//
 
+#define UNUSED_ATTRIBUTE __attribute__((unused))
+#define RESTRICT __restrict__
 #define NEVER_INLINE __attribute__((noinline))
+#define PACKED __attribute__((packed))
+// NOLINTNEXTLINE
+#define FALLTHROUGH [[fallthrough]]
+#define NORETURN __attribute((noreturn))
 
 #ifdef NDEBUG
 #define ALWAYS_INLINE __attribute__((always_inline))
@@ -22,12 +28,6 @@
 #else
 #define NO_CLONE __attribute__((noclone))
 #endif
-
-#define UNUSED_ATTRIBUTE __attribute__((unused))
-
-#define PACKED __attribute__((packed))
-
-#define RESTRICT __restrict__
 
 //===--------------------------------------------------------------------===//
 // ALWAYS_ASSERT
@@ -105,6 +105,12 @@
 #define DISALLOW_COPY_AND_MOVE(cname) \
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);
+
+/** Disallow instantiation of the class. This should be used for classes that only have static functions. */
+#define DISALLOW_INSTANTIATION(cname) \
+  /* Prevent instantiation. */        \
+  cname() = delete;
+
 #endif
 
 /**

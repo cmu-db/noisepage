@@ -40,12 +40,12 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
       exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   table_iter.Init();
   index_iter.Init();
-  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
 
   // Iterate through the table.
   while (table_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *key = pci->Get<int32_t, false>(0, nullptr);
+    for (; vpi->HasNext(); vpi->Advance()) {
+      auto *key = vpi->GetValue<int32_t, false>(0, nullptr);
       // Check that the key can be recovered through the index
       auto *const index_pr(index_iter.PR());
       index_pr->Set<int32_t, false>(0, *key, false);
@@ -66,7 +66,7 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
       // Check that there are no more entries.
       ASSERT_FALSE(index_iter.Advance());
     }
-    pci->Reset();
+    vpi->Reset();
   }
 }
 

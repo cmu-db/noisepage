@@ -17,6 +17,7 @@ class PerfMonitorTests : public TerrierTest {
     common::PerfMonitor monitor(false);
 
     auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    monitor.Start();
     db_main.reset();
 
     monitor.Stop();

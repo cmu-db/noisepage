@@ -1,6 +1,10 @@
+#pragma once
+
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include "execution/exec/output.h"
 #include "execution/sql/value.h"
 #include "planner/plannodes/output_schema.h"
 #include "test_util/test_harness.h"
@@ -9,7 +13,7 @@
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
 // expressions, but this is no simple task. We would basically need an expression evaluator on output rows.
 
-namespace terrier::execution::compiler {
+namespace terrier::execution::compiler::test {
 /**
  * Helper class to check if the output of a query is corrected.
  */
@@ -232,7 +236,7 @@ class SingleIntSortChecker : public OutputChecker {
   }
 
  private:
-  sql::Integer prev_val_{true, 0};
+  sql::Integer prev_val_{sql::Integer::Null()};
   uint32_t col_idx_;
 };
 
@@ -281,6 +285,10 @@ class OutputStore {
       uint32_t curr_offset = 0;
       std::vector<sql::Val *> vals;
       for (const auto &col : schema_->GetColumns()) {
+        auto alignment = execution::sql::ValUtil::GetSqlAlignment(col.GetType());
+        if (!common::MathUtil::IsAligned(curr_offset, alignment)) {
+          curr_offset = static_cast<uint32_t>(common::MathUtil::AlignTo(curr_offset, alignment));
+        }
         // TODO(Amadou): Figure out to print other types.
         switch (col.GetType()) {
           case terrier::type::TypeId::TINYINT:
@@ -335,4 +343,4 @@ class OutputStore {
   // checker to run
   OutputChecker *checker_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace terrier::execution::compiler::test

@@ -164,7 +164,7 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
   data_table_.blocks_latch_.Lock();
-  std::list<RawBlock *> tmp_blocks = data_table_.blocks_;
+  std::vector<RawBlock *> tmp_blocks = data_table_.blocks_;
   data_table_.blocks_latch_.Unlock();
 
   for (RawBlock *block : tmp_blocks) {
