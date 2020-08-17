@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+
 #include "test_util/tpcc/delivery.h"
 #include "test_util/tpcc/new_order.h"
 #include "test_util/tpcc/order_status.h"
@@ -238,7 +239,7 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
     std::vector<TransactionArgs> txns;
     txns.reserve(num_precomputed_txns_per_worker);
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
-//      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
+      //      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
       switch (deck.NextCard()) {
         case TransactionType::NewOrder:
           txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
@@ -274,6 +275,7 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
  * @param workers preallocated workers with buffers to use for execution
  */
 void Workload(int8_t worker_id, Database *tpcc_db, transaction::TransactionManager *txn_manager,
+              transaction::DeferredActionManager *daf_manager,
               const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *workers);
 
 /**

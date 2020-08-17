@@ -1,9 +1,13 @@
 #include "test_util/tpcc/workload.h"
+
 #include <vector>
 
 namespace terrier::tpcc {
 
+const int GC_RATIO = 4;
+
 void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::TransactionManager *const txn_manager,
+              transaction::DeferredActionManager *const daf_manager,
               const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *const workers) {
   auto new_order = NewOrder(tpcc_db);
   auto payment = Payment(tpcc_db);
@@ -11,10 +15,11 @@ void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::Tran
   auto delivery = Delivery(tpcc_db);
   auto stock_level = StockLevel(tpcc_db);
 
-//  for (const auto &txn_args : precomputed_args[worker_id]) {
-//    new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-//  }
+  //  for (const auto &txn_args : precomputed_args[worker_id]) {
+  //    new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
+  //  }
 
+  int iter_count = 0;
   for (const auto &txn_args : precomputed_args[worker_id]) {
     switch (txn_args.type_) {
       case TransactionType::NewOrder: {
@@ -39,6 +44,11 @@ void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::Tran
       }
       default:
         throw std::runtime_error("Unexpected transaction type.");
+    }
+
+    if (++iter_count == GC_RATIO) {
+      iter_count = 0;
+      daf_manager->Process(worker_id == 0);
     }
   }
 }
