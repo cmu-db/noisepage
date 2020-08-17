@@ -1,6 +1,7 @@
 #include "execution/sql/filter_manager.h"
 
 #include <algorithm>
+#include <iostream>
 
 #include "common/settings.h"
 #include "execution/exec/execution_settings.h"
@@ -177,6 +178,7 @@ void FilterManager::RunFilters(exec::ExecutionContext *exec_ctx, VectorProjectio
 
     // Update output list with surviving TIDs.
     output_list_.UnionWith(tmp_list_);
+    output_list_.Dump(std::cout);
   }
 
   input_batch->SetFilteredSelections(output_list_);

@@ -256,7 +256,10 @@ class VectorProjectionIterator {
   uint32_t GetTotalTupleCount() const { return vector_projection_->GetTotalTupleCount(); }
 
   /** @return The vector projection's current tuple slot. */
-  storage::TupleSlot GetCurrentSlot() const { return vector_projection_->GetTupleSlot(GetPosition()); }
+  storage::TupleSlot GetCurrentSlot() const {
+//    vector_projection_->GetFilteredTupleIdList()->Dump(std::cout);
+//    std::cout << GetPosition() << std::endl;
+    return vector_projection_->GetTupleSlot(GetPosition()); }
 
  private:
   void Init(VectorProjection *vector_projection, TupleIdList *tid_list) {
