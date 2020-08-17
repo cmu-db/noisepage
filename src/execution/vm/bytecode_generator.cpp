@@ -2118,8 +2118,9 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::StartsWith: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar start_str = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->Emit(Bytecode::StartsWith, exec_ctx, ret, input_string, start_str);
+      GetEmitter()->Emit(Bytecode::StartsWith, exec_ctx, ret, input_string, start_str);
       break;
     }
     default:
