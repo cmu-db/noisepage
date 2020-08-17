@@ -177,6 +177,7 @@ class PerfMonitor {
     if (valid_) {
       auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));
       TERRIER_ASSERT(bytes_read == sizeof(PerfCounters), "Failed to read the counters.");
+      TERRIER_ASSERT(counters.num_counters_ == NUM_HW_EVENTS, "Failed to read the counters.");
     }
     return counters;
   }
