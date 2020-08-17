@@ -2468,7 +2468,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // this function returns a boolean
-      sql_type = ast::BuiltinType::Bool;
+      sql_type = ast::BuiltinType::Boolean;
       break;
     }
     default:
