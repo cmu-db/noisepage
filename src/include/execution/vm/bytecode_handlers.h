@@ -1465,14 +1465,14 @@ VM_OP_WARM void OpNpRunnersDummyReal(UNUSED_ATTRIBUTE terrier::execution::exec::
 // ---------------------------------------------------------
 // String functions
 // ---------------------------------------------------------
-VM_OP_WARM void OpChr(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+VM_OP_WARM void OpChr(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                       const terrier::execution::sql::Integer *n) {
-  terrier::execution::sql::StringFunctions::Chr(ctx, result, *n);
+  terrier::execution::sql::StringFunctions::Chr(result, ctx, *n);
 }
 
-VM_OP_WARM void OpASCII(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result,
+VM_OP_WARM void OpASCII(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
                         const terrier::execution::sql::StringVal *str) {
-  terrier::execution::sql::StringFunctions::ASCII(ctx, result, *str);
+  terrier::execution::sql::StringFunctions::ASCII(result, ctx, *str);
 }
 
 VM_OP_WARM void OpCharLength(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
@@ -1506,10 +1506,10 @@ VM_OP_WARM void OpLower(terrier::execution::sql::StringVal *result, terrier::exe
   terrier::execution::sql::StringFunctions::Lower(result, ctx, *str);
 }
 
-VM_OP_WARM void OpPosition(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result,
+VM_OP_WARM void OpPosition(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
                            const terrier::execution::sql::StringVal *search_str,
                            const terrier::execution::sql::StringVal *search_sub_str) {
-  terrier::execution::sql::StringFunctions::Position(ctx, result, *search_str, *search_sub_str);
+  terrier::execution::sql::StringFunctions::Position(result, ctx, *search_str, *search_sub_str);
 }
 
 VM_OP_WARM void OpLPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,

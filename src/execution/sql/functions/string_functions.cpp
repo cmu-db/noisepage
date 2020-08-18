@@ -370,10 +370,10 @@ void StringFunctions::Like(BoolVal *result, UNUSED_ATTRIBUTE exec::ExecutionCont
   result->val_ = sql::Like{}(string.val_, pattern.val_);  // NOLINT
 }
 
-void StringFunctions::Position(exec::ExecutionContext *ctx, Integer *pos, const StringVal &search_str,
+void StringFunctions::Position(Integer *result, exec::ExecutionContext *ctx, const StringVal &search_str,
                                const StringVal &search_sub_str) {
   if (search_str.is_null_ || search_sub_str.is_null_) {
-    *pos = Integer::Null();
+    *result = Integer::Null();
     return;
   }
 
@@ -387,13 +387,13 @@ void StringFunctions::Position(exec::ExecutionContext *ctx, Integer *pos, const 
   auto found = (it - search_str_view.begin());
 
   if (static_cast<size_t>(found) == search_str_view.length()) {
-    *pos = Integer(0);
+    *result = Integer(0);
   } else {
-    *pos = Integer(found + 1);
+    *result = Integer(found + 1);
   }
 }
 
-void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+void StringFunctions::ASCII(Integer *result, exec::ExecutionContext *ctx, const StringVal &str) {
   if (str.is_null_) {
     *result = Integer::Null();
     return;
@@ -408,7 +408,7 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
   *result = Integer(static_cast<int>(str_view.front()));
 }
 
-void StringFunctions::Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code) {
+void StringFunctions::Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code) {
   auto num = static_cast<uint64_t>(code.val_);
   if (num == 0 || num > 0x10FFFF) {
     *result = StringVal::Null();

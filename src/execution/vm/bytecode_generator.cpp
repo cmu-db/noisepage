@@ -2116,17 +2116,17 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     case ast::Builtin::Chr: {
       // input_string here is a integer type number
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::Chr, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::Chr, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::CharLength: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::CharLength, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::CharLength, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::ASCII: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::ASCII, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::ASCII, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Lower: {
@@ -2141,7 +2141,7 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     case ast::Builtin::Position: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar sub_string = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::Position, exec_ctx, ret, input_string, sub_string);
+      GetEmitter()->Emit(Bytecode::Position, ret, exec_ctx, input_string, sub_string);
       break;
     }
     default:

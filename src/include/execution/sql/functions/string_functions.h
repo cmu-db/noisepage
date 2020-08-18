@@ -22,7 +22,7 @@ class StringFunctions {
   DISALLOW_COPY_AND_MOVE(StringFunctions);
 
   /** Compute ASCII(str). */
-  static void ASCII(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+  static void ASCII(Integer *result, exec::ExecutionContext *ctx, const StringVal &str);
 
   /** Compute LENGTH(str). */
   static void CharLength(Integer *result, exec::ExecutionContext *ctx, const StringVal &str) {
@@ -96,10 +96,10 @@ class StringFunctions {
   static void Like(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &string, const StringVal &pattern);
 
   /** Compute POSITION(search_str, search_sub_str). */
-  static void Position(exec::ExecutionContext *ctx, Integer *pos, const StringVal &search_str,
+  static void Position(Integer *result, exec::ExecutionContext *ctx, const StringVal &search_str,
                        const StringVal &search_sub_str);
 
   /** Compute CHR(code). */
-  static void Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code);
+  static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
 };
 }  // namespace terrier::execution::sql

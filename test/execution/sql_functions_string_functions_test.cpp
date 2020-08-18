@@ -547,7 +547,7 @@ TEST_F(StringFunctionsTests, ASCII) {
     auto x = StringVal::Null();
     auto result = Integer(-1);
 
-    StringFunctions::ASCII(Ctx(), &result, x);
+    StringFunctions::ASCII(&result, Ctx(), x);
     EXPECT_TRUE(result.is_null_);
   }
 
@@ -556,7 +556,7 @@ TEST_F(StringFunctionsTests, ASCII) {
     auto x = StringVal("");
     auto result = Integer(-1);
 
-    StringFunctions::ASCII(Ctx(), &result, x);
+    StringFunctions::ASCII(&result, Ctx(), x);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(0, result.val_);
   }
@@ -565,7 +565,7 @@ TEST_F(StringFunctionsTests, ASCII) {
   {
     auto x = StringVal("a");
     auto result = Integer(-1);
-    StringFunctions::ASCII(Ctx(), &result, x);
+    StringFunctions::ASCII(&result, Ctx(), x);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(97, result.val_);
   }
@@ -574,7 +574,7 @@ TEST_F(StringFunctionsTests, ASCII) {
   {
     auto x = StringVal(" a");
     auto result = Integer(-1);
-    StringFunctions::ASCII(Ctx(), &result, x);
+    StringFunctions::ASCII(&result, Ctx(), x);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(32, result.val_);
   }
@@ -584,7 +584,7 @@ TEST_F(StringFunctionsTests, ASCII) {
   {
     auto x = StringVal("ALPHA");
     auto result = Integer(-1);
-    StringFunctions::ASCII(Ctx(), &result, x);
+    StringFunctions::ASCII(&result, Ctx(), x);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(65, result.val_);
   }
@@ -595,18 +595,18 @@ TEST_F(StringFunctionsTests, Chr) {
   // Nulls
   {
     auto result = StringVal("");
-    StringFunctions::Chr(Ctx(), &result, Integer(0));
+    StringFunctions::Chr(&result, Ctx(), Integer(0));
     EXPECT_TRUE(result.is_null_);
   }
 
   // Simple ascii
   auto result = StringVal("");
-  StringFunctions::Chr(Ctx(), &result, Integer(65));
+  StringFunctions::Chr(&result, Ctx(), Integer(65));
   EXPECT_TRUE(StringVal("A", 1) == result);
 
   // More than ascii 127
   result = StringVal("");
-  StringFunctions::Chr(Ctx(), &result, Integer(352));
+  StringFunctions::Chr(&result, Ctx(), Integer(352));
   EXPECT_TRUE(StringVal("Š", 2) == result);
 }
 
