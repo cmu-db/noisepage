@@ -411,7 +411,6 @@ void StringFunctions::ASCII(exec::ExecutionContext *ctx, Integer *result, const 
 void StringFunctions::Chr(exec::ExecutionContext *ctx, StringVal *result, const Integer &code) {
   auto num = static_cast<uint64_t>(code.val_);
   if (num == 0 || num > 0x10FFFF) {
-    // FIXME: this should properly throw a function error
     *result = StringVal::Null();
   } else {
     if (num <= 0x7f) {
