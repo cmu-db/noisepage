@@ -44,7 +44,6 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   for (const auto &col : table_info->cols_) {
     col_names.emplace_back(col.Name());
   }
-
   csv::CSVReader reader(data_file);
   for (csv::CSVRow &row : reader) {
     // Write table data
