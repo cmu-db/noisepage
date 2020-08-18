@@ -53,6 +53,7 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
   static const std::vector<std::string> tpch_tables{"part",   "supplier", "partsupp", "customer",
                                                     "orders", "lineitem", "nation",   "region"};
   // SSB table names;
+  // static const std::vector<std::string> ssb_tables{"part"};
   static const std::vector<std::string> ssb_tables{"part", "lineorder", "customer", "date", "supplier"};
   const std::vector<std::string> *tables;
   std::string kind;
@@ -87,11 +88,12 @@ void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ7(accessor, exec_settings_));
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ11(accessor, exec_settings_));
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ18(accessor, exec_settings_));
+      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ19(accessor, exec_settings_));
       break;
     case tpch::Workload::BenchmarkType::SSB:
-      //  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_1(accessor, exec_settings_));
-      //  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_2(accessor, exec_settings_));
-      //  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_3(accessor, exec_settings_));
+       //query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_1(accessor, exec_settings_));
+       query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_2(accessor, exec_settings_));
+       // query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_3(accessor, exec_settings_));
       // query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_1(accessor, exec_settings_));
       //  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_2(accessor, exec_settings_));
       //  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_3(accessor, exec_settings_));
@@ -101,7 +103,7 @@ void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &
       //  query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_4(accessor, exec_settings_));
       // query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_1(accessor, exec_settings_));
       // query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_3(accessor, exec_settings_));
+       //query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_3(accessor, exec_settings_));
       break;
     default:
       UNREACHABLE("unimplemented benchmark type");

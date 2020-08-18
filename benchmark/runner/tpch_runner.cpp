@@ -20,7 +20,7 @@ class TPCHRunner : public benchmark::Fixture {
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";
 
-  const std::string ssb_dir_ = "../../../ssb-dbgen/";
+  const std::string ssb_dir_ = "../../../ssb_tables/ssb_tables/tables/";
   tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::SSB;
 
   void SetUp(const benchmark::State &state) final {
@@ -91,5 +91,4 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
 }
 
 BENCHMARK_REGISTER_F(TPCHRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
-
 }  // namespace terrier::runner
