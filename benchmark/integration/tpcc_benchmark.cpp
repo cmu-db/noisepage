@@ -399,7 +399,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager] {
           metrics_manager->RegisterThread();
           Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
         });
@@ -444,7 +444,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   std::vector<Worker> workers;
   workers.reserve(terrier::BenchmarkConfig::num_threads);
 
-  auto curr_num_precomputed_txns = ((terrier::BenchmarkConfig::num_daf_threads + 2 - 1) / 2) * num_precomputed_txns_per_worker_ / terrier::BenchmarkConfig::num_threads;
+  auto curr_num_precomputed_txns = 2 * ((terrier::BenchmarkConfig::num_daf_threads + 2 - 1) / 2) * num_precomputed_txns_per_worker_ / terrier::BenchmarkConfig::num_threads;
   if (terrier::BenchmarkConfig::num_daf_threads == 8 && terrier::BenchmarkConfig::num_threads == 1)
     curr_num_precomputed_txns = curr_num_precomputed_txns / 4;
   if (terrier::BenchmarkConfig::num_daf_threads == 4 && terrier::BenchmarkConfig::num_threads == 1)
@@ -501,7 +501,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager] {
           metrics_manager->RegisterThread();
           Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
         });
@@ -605,7 +605,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager] {
           metrics_manager->RegisterThread();
           Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
         });
@@ -670,7 +670,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(500);
+    ->MinTime(1);
 //BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()

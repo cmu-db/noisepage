@@ -15,10 +15,6 @@ void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::Tran
   auto delivery = Delivery(tpcc_db);
   auto stock_level = StockLevel(tpcc_db);
 
-  //  for (const auto &txn_args : precomputed_args[worker_id]) {
-  //    new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
-  //  }
-
   int iter_count = 0;
   for (const auto &txn_args : precomputed_args[worker_id]) {
     switch (txn_args.type_) {
