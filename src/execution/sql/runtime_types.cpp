@@ -139,6 +139,7 @@ bool EndsWith(const char *str, std::size_t len, const char *suffix, std::size_t 
 // Date
 //
 //===----------------------------------------------------------------------===//
+
 bool Date::IsValid() const {
   int32_t year, month, day;
   SplitJulianDate(value_, &year, &month, &day);
