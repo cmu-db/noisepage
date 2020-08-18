@@ -1,6 +1,5 @@
 #include "execution/sql/vector_projection.h"
 
-#include <iostream>
 #include <memory>
 #include <numeric>
 #include <string>

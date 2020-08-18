@@ -1,7 +1,5 @@
 #include "execution/compiler/compiler.h"
 
-#include <iostream>
-
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
 #include "execution/parsing/parser.h"
@@ -123,7 +121,6 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
   // -------------------------------------------------------
 
   callbacks->TakeOwnership(std::move(module));
-  ast::AstPrettyPrint::Dump(std::cout, root_);
 }
 
 void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks) {
