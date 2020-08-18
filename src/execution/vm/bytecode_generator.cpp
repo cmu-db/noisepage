@@ -2124,9 +2124,10 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::Substring: {
-      auto start_ind = VisitExpressionForRValue(call->Arguments()[2]);
-      auto length = VisitExpressionForRValue(call->Arguments()[3]);
-      Emitter()->Emit(Bytecode::Substring, exec_ctx, ret, input_string, start_ind, length);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar start_ind = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar length = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::Substring, exec_ctx, ret, input_string, start_ind, length);
       break;
     }
     default:
