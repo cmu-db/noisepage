@@ -27,27 +27,21 @@ void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, con
 
 void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
-  if (str.is_null_ || pos.is_null_ || len.is_null_ || pos.val_ > str.GetLength()) {
+
+  // If the length is 0 return empty string
+  if(pos.val_ < 0 || len.val_ == 0) {
+    *result = StringVal("");
+    return;
+  }
+
+  if (str.is_null_ || pos.is_null_ || len.is_null_ ||  static_cast<uint32_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
     *result = StringVal::Null();
     return;
   }
 
   // If the start index is less than 0 we set the index to 0
-  const auto str_start = std::max(pos.val_ - 1, int64_t{0});
-  const auto str_len = std::min(int64_t{str.GetLength()} - str_start, len.val_);
-
-  // The end can be before the start only if the length was negative. This is an
-  // error.
-  if (str_len < 0) {
-    *result = StringVal::Null();
-    return;
-  }
-
-  // If the length is 0 return empty string
-  if (str_len == 0 || pos.val_ < 0) {
-    *result = StringVal("");
-    return;
-  }
+  const auto str_start = static_cast<uint32_t>(std::max(pos.val_ - 1, int64_t{0}));
+  const auto str_len = std::min(uint32_t(str.GetLength()) - str_start, static_cast<uint32_t>(len.val_));
 
   // All good
   *result = StringVal(str.GetContent() + str_start, uint32_t(str_len));
