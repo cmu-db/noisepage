@@ -7,9 +7,9 @@
 
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/schema_reader.h"
+#include "test_util/tpch/workload.h"
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
-#include "test_util/tpch/workload.h"
 
 // Forward declaration
 namespace csv {

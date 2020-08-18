@@ -37,12 +37,10 @@ namespace terrier::tpch {
  */
 class Workload {
  public:
-  enum class BenchmarkType: uint32_t {
-    TPCH,
-    SSB
-  };
+  enum class BenchmarkType : uint32_t { TPCH, SSB };
 
-  Workload(common::ManagedPointer<DBMain> db_main, const std::string &db_name, const std::string &table_root, enum BenchmarkType type);
+  Workload(common::ManagedPointer<DBMain> db_main, const std::string &db_name, const std::string &table_root,
+           enum BenchmarkType type);
 
   /**
    * Function to invoke for a single worker thread to invoke the TPCH queries
@@ -53,9 +51,10 @@ class Workload {
   uint32_t GetQueryNum() { return query_and_plan_.size(); }
 
  private:
-  void GenerateTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name, enum BenchmarkType type);
+  void GenerateTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name,
+                      enum BenchmarkType type);
 
-  void LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor);
+  void LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type);
 
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;

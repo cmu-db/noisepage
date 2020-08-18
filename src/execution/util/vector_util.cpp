@@ -270,7 +270,7 @@ uint32_t VectorUtil::BitVectorToSelectionVectorDenseAVX512(const uint64_t *bit_v
 
 uint32_t VectorUtil::BitVectorToSelectionVectorDense(const uint64_t *bit_vector, uint32_t num_bits, sel_t *sel_vector) {
 #if __AVX512VBMI2__
-  return BitVectorToSelectionVectorDenseAVX512(bit_vector, num_bits, sel_vector);
+  return BitVectorToSelectionVectorDenseAvX2(bit_vector, num_bits, sel_vector);
 #else
   return BitVectorToSelectionVectorDenseAvX2(bit_vector, num_bits, sel_vector);
 #endif
