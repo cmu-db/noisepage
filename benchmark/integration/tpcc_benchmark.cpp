@@ -664,7 +664,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(1);
+    ->MinTime(500);
 //BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
