@@ -81,7 +81,7 @@ class StringFunctions {
   }
 
   /** Compute STARTS_WITH(str, start). */
-  static void StartsWith(exec::ExecutionContext *ctx, BoolVal *result, const StringVal &str, const StringVal &start);
+  static void StartsWith(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &start);
 
   /** Compute TRIM(str, chars). */
   static void Trim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);

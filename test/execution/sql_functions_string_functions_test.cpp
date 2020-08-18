@@ -116,13 +116,13 @@ TEST_F(StringFunctionsTests, StartsWith) {
     auto y = StringVal("a");
     auto result = BoolVal::Null();
 
-    StringFunctions::StartsWith(Ctx(), &result, x, y);
+    StringFunctions::StartsWith(&result, Ctx(), x, y);
     EXPECT_TRUE(result.is_null_);
 
-    StringFunctions::StartsWith(Ctx(), &result, y, x);
+    StringFunctions::StartsWith(&result, Ctx(), y, x);
     EXPECT_TRUE(result.is_null_);
 
-    StringFunctions::StartsWith(Ctx(), &result, x, x);
+    StringFunctions::StartsWith(&result, Ctx(), x, x);
     EXPECT_TRUE(result.is_null_);
   }
 
@@ -134,16 +134,16 @@ TEST_F(StringFunctionsTests, StartsWith) {
     auto w = StringVal("abCDE");
     auto result = BoolVal::Null();
 
-    StringFunctions::StartsWith(Ctx(), &result, x, y);
+    StringFunctions::StartsWith(&result, Ctx(), x, y);
     EXPECT_TRUE(result.val_);
 
-    StringFunctions::StartsWith(Ctx(), &result, y, z);
+    StringFunctions::StartsWith(&result, Ctx(), y, z);
     EXPECT_FALSE(result.val_);
 
-    StringFunctions::StartsWith(Ctx(), &result, x, x);
+    StringFunctions::StartsWith(&result, Ctx(), x, x);
     EXPECT_TRUE(result.val_);
 
-    StringFunctions::StartsWith(Ctx(), &result, x, w);
+    StringFunctions::StartsWith(&result, Ctx(), x, w);
     EXPECT_FALSE(result.val_);
   }
 }

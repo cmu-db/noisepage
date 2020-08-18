@@ -365,7 +365,7 @@ void StringFunctions::Like(BoolVal *result, UNUSED_ATTRIBUTE exec::ExecutionCont
   result->val_ = sql::Like{}(string.val_, pattern.val_);  // NOLINT
 }
 
-void StringFunctions::StartsWith(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, BoolVal *result, const StringVal &str,
+void StringFunctions::StartsWith(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &str,
                                  const StringVal &start) {
   if (str.is_null_ || start.is_null_) {
     *result = BoolVal::Null();
