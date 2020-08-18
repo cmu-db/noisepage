@@ -3003,10 +3003,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::CharLength:
     case ast::Builtin::ASCII:
     case ast::Builtin::Lower:
-    case ast::Builtin::Version: {
-      CheckBuiltinStringCall(call, builtin);
-      break;
-    }
+    case ast::Builtin::Version:
     case ast::Builtin::Position: {
       CheckBuiltinStringCall(call, builtin);
       break;
