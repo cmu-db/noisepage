@@ -21,7 +21,7 @@ class TPCHRunner : public benchmark::Fixture {
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
   const std::string tpch_database_name_ = "tpch_db";
 
-  const std::string ssb_dir_ = "../../../ssb_tables/ssb_tables/tables/";
+  const std::string ssb_dir_ = "../../../ssb-dbgen/";
   tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::SSB;
 
   void SetUp(const benchmark::State &state) final {
