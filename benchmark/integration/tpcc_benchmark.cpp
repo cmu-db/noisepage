@@ -444,7 +444,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   std::vector<Worker> workers;
   workers.reserve(terrier::BenchmarkConfig::num_threads);
 
-  auto curr_num_precomputed_txns = 2 * num_precomputed_txns_per_worker_ / terrier::BenchmarkConfig::num_threads;
+  auto curr_num_precomputed_txns = num_precomputed_txns_per_worker_ / ((terrier::BenchmarkConfig::num_threads + 2  - 1) / 2);
 
   std::cout << "num daf thread:" << terrier::BenchmarkConfig::num_daf_threads << " num worker threads:" << terrier::BenchmarkConfig::num_threads << " txns per thread:" << curr_num_precomputed_txns << std::endl;
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
