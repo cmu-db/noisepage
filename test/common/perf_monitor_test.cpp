@@ -15,9 +15,9 @@ class PerfMonitorTests : public TerrierTest {
  public:
   static void CreateAndDestroyCatalog(common::PerfMonitor::PerfCounters *const counters) {
     common::PerfMonitor monitor(false);
+    monitor.Start();
 
     auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
-    monitor.Start();
     db_main.reset();
 
     monitor.Stop();
@@ -27,7 +27,9 @@ class PerfMonitorTests : public TerrierTest {
   static void JustSleep(common::PerfMonitor::PerfCounters *const counters) {
     common::PerfMonitor monitor(false);
     monitor.Start();
+
     std::this_thread::sleep_for(std::chrono::seconds(2));
+
     monitor.Stop();
     *counters = monitor.Counters();
   }
