@@ -9,7 +9,7 @@
 namespace terrier::runner {
 class TPCHRunner : public benchmark::Fixture {
  public:
-  const int8_t total_num_threads_ = 1;                // defines the number of terminals (workers threads)
+  const int8_t total_num_threads_ = 4;                // defines the number of terminals (workers threads)
   const uint64_t execution_us_per_worker_ = 1000000;  // Time (us) to run per terminal (worker thread)
   std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
@@ -35,7 +35,6 @@ class TPCHRunner : public benchmark::Fixture {
                                .SetBlockStoreReuse(1000000)
                                .SetRecordBufferSegmentSize(1000000)
                                .SetRecordBufferSegmentReuse(1000000);
-
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
@@ -92,4 +91,5 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
 }
 
 BENCHMARK_REGISTER_F(TPCHRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
+
 }  // namespace terrier::runner

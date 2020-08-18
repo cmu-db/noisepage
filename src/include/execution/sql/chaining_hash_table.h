@@ -75,8 +75,9 @@ class ChainingHashTableBase {
    * size is a lower-bound of the expected number of elements. The sizing operation may compute a
    * larger value to (1) respect the load factor or to (2) ensure a power-of-two size.
    * @param new_size The expected number of elements that will be inserted into the table.
+   * @param tracker Memory Tracker
    */
-  void SetSize(uint64_t new_size);
+  void SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker);
 
   /**
    * Insert an entry into the hash table without tagging it.
@@ -285,8 +286,9 @@ class ChainingHashTable : public ChainingHashTableBase {
    * larger value to (1) respect the load factor or to (2) ensure a power-of-two size. Also resets
    * the element count.
    * @param new_size The expected number of elements that will be inserted into the table.
+   * @param tracker Memory Tracker
    */
-  void SetSize(uint64_t new_size);
+  void SetSize(uint64_t new_size, common::ManagedPointer<MemoryTracker> tracker);
 
   /**
    * Insert the given hash table entry into this hash table.
