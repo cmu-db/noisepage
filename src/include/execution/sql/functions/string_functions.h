@@ -72,7 +72,7 @@ class StringFunctions {
                         const Integer &field);
 
   /** Compute SUBSTRING(str, pos, len). */
-  static void Substring(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &pos,
+  static void Substring(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &pos,
                         const Integer &len);
 
   /** Compute SUBSTRING(str, pos). */
