@@ -206,9 +206,6 @@ void VectorOps::SelectGreaterThanEqual(const exec::ExecutionSettings &exec_setti
 void VectorOps::SelectLessThan(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                                TupleIdList *tid_list) {
   SelectOperation<terrier::execution::sql::LessThan>(exec_settings, left, right, tid_list);
-  left.Dump(std::cout);
-  right.Dump(std::cout);
-  tid_list->Dump(std::cout);
 }
 
 void VectorOps::SelectLessThanEqual(const exec::ExecutionSettings &exec_settings, const Vector &left,

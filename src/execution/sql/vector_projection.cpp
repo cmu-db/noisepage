@@ -1,10 +1,10 @@
 #include "execution/sql/vector_projection.h"
 
+#include <iostream>
 #include <memory>
 #include <numeric>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector.h"
@@ -73,7 +73,6 @@ void VectorProjection::RefreshFilteredTupleIdList() {
   for (auto &col : columns_) {
     col->SetFilteredTupleIdList(filter_, count);
   }
-  this->Dump(std::cout);
 }
 
 void VectorProjection::SetFilteredSelections(const TupleIdList &tid_list) {

@@ -164,6 +164,15 @@ class ExpressionMaker {
   }
 
   /**
+   * Create expression for child1 <= input <= child2
+   */
+  ManagedExpression ComparisonBetween(ManagedExpression input, ManagedExpression child1, ManagedExpression child2) {
+    auto left = ConjunctionOr(ComparisonGt(input, child1), ComparisonEq(input, input));
+    auto right = ConjunctionOr(ComparisonLt(input, child2), ComparisonEq(input, child2));
+    return ConjunctionAnd(left, right);
+  }
+
+  /**
    * Create a unary operation expression
    */
   ManagedExpression Operator(parser::ExpressionType op_type, type::TypeId ret_type, ManagedExpression child) {

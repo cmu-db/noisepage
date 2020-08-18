@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <iostream>
 
 #include "common/constants.h"
 #include "common/macros.h"
@@ -230,8 +229,6 @@ class EXPORT Vector {
     TERRIER_ASSERT(tid_list == nullptr || tid_list->GetTupleCount() == count, "TID list size and count do not match");
     TERRIER_ASSERT(count <= num_elements_, "TID list count must be smaller than vector size");
     tid_list_ = tid_list;
-    std::cout << "tid list for every col" << std::endl;
-    tid_list_->Dump(std::cout);
     count_ = count;
   }
 
