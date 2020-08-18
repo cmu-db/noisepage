@@ -48,6 +48,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   tbb::enumerable_thread_specific<TLSHandle> states_;
+  std::vector<TLSHandle> states_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -63,7 +64,8 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       destroy_fn_(nullptr),
       ctx_(nullptr),
       impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
+  // impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
+  impl_->states_.push_back(*(new TLSHandle(this)));
 }
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }
@@ -83,8 +85,9 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 }
 
 byte *ThreadStateContainer::AccessCurrentThreadState() {
-  auto &tls_handle = impl_->states_.local();
-  return tls_handle.State();
+  // auto &tls_handle = impl_->states_.local();
+  // return tls_handle.State();
+  return impl_->states_[0].State();
 }
 
 void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *container) const {
