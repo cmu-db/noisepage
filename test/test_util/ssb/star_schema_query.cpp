@@ -16,7 +16,7 @@
 namespace terrier::ssb {
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -131,7 +131,7 @@ SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -243,7 +243,7 @@ SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -357,7 +357,7 @@ SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -604,7 +604,7 @@ SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -849,7 +849,7 @@ SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -1093,7 +1093,7 @@ SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -1354,7 +1354,7 @@ SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -1611,7 +1611,7 @@ SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -1870,7 +1870,7 @@ SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -2130,7 +2130,7 @@ SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -2441,7 +2441,7 @@ SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
@@ -2772,7 +2772,7 @@ SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccesso
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
-                                const execution::exec::ExecutionSettings &exec_settings) {
+                                   const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
   auto d_table_oid = accessor->GetTableOid("ssbm.date");
