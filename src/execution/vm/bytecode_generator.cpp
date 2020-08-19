@@ -2133,7 +2133,7 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::Upper: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::Upper, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::Upper, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Version: {
@@ -2155,36 +2155,36 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::Reverse: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::Reverse, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::Reverse, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Left: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::Left, exec_ctx, ret, input_string, len);
+      GetEmitter()->Emit(Bytecode::Left, ret, exec_ctx, input_string, len);
       break;
     }
     case ast::Builtin::Right: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::Right, exec_ctx, ret, input_string, len);
+      GetEmitter()->Emit(Bytecode::Right, ret, exec_ctx, input_string, len);
       break;
     }
     case ast::Builtin::Repeat: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar num_repeat = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::Repeat, exec_ctx, ret, input_string, num_repeat);
+      GetEmitter()->Emit(Bytecode::Repeat, ret, exec_ctx, input_string, num_repeat);
       break;
     }
     case ast::Builtin::Trim: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::Trim, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::Trim, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Trim2: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar trim_str = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::Trim2, exec_ctx, ret, input_string, trim_str);
+      GetEmitter()->Emit(Bytecode::Trim2, ret, exec_ctx, input_string, trim_str);
       break;
     }
     default:
