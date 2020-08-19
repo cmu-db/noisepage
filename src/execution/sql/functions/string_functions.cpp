@@ -27,14 +27,14 @@ void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, con
 
 void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
-
   // If the length is 0 return empty string
-  if(pos.val_ < 0 || len.val_ == 0) {
+  if (pos.val_ < 0 || len.val_ == 0) {
     *result = StringVal("");
     return;
   }
 
-  if (str.is_null_ || pos.is_null_ || len.is_null_ ||  static_cast<uint32_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
+  if (str.is_null_ || pos.is_null_ || len.is_null_ || static_cast<uint32_t>(pos.val_) > str.GetLength() ||
+      len.val_ < 0) {
     *result = StringVal::Null();
     return;
   }
@@ -371,8 +371,8 @@ void StringFunctions::StartsWith(BoolVal *result, exec::ExecutionContext *ctx, c
     *result = BoolVal::Null();
     return;
   }
-  *result =
-      BoolVal(start.GetLength() <= str.GetLength() && strncmp(str.GetContent(), start.GetContent(), static_cast<size_t>(start.GetLength())) == 0);
+  *result = BoolVal(start.GetLength() <= str.GetLength() &&
+                    strncmp(str.GetContent(), start.GetContent(), static_cast<size_t>(start.GetLength())) == 0);
 }
 
 }  // namespace terrier::execution::sql
