@@ -39,6 +39,31 @@ def generate_test_suite(args):
             args_configfile)
         raise TypeError(msg)
 
+    max_connection_threads = constants.OLTPBENCH_DEFAULT_CONNECTION_THREAD_COUNT
+
+    # read server commandline args in config files
+    server_args_json = oltp_test_suite_json.get("server_args")
+    if server_args_json:
+        server_args = ""
+        for attribute,value in server_args_json.items():
+            server_args = '{SERVER_ARGS} -{ATTRIBUTE}={VALUE}'.format(SERVER_ARGS=server_args,ATTRIBUTE=attribute,VALUE=value)
+            
+            #Delete the logfile before each run
+            if attribute == "log_file_path":
+                old_log_path = str(value)
+                if os.path.exists(old_log_path):
+                    os.remove(old_log_path)
+            
+            #Update connection_thread_count if user override
+            if attribute == "connection_thread_count":
+                max_connection_threads=int(value)
+
+        args["server_args"] = server_args
+
+    # read metadata in config file
+    server_data = oltp_test_suite_json.get("env")
+    server_data["max_connection_threads"] = max_connection_threads
+    
     # publish test results to the server
     oltp_report_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get("publish_results")]
     oltp_report_username = args.get("publish_username")
@@ -46,6 +71,8 @@ def generate_test_suite(args):
 
     for oltp_testcase in oltp_test_suite_json.get("testcases", []):
         oltp_testcase_base = oltp_testcase.get("base")
+
+        oltp_testcase_base["server_data"] = server_data
 
         oltp_testcase_base["publish_results"] = oltp_report_server
         oltp_testcase_base["publish_username"] = oltp_report_username
@@ -62,20 +89,6 @@ def generate_test_suite(args):
             # there is no loop
             oltp_test_suite.append(TestCaseOLTPBench(oltp_testcase_base))
 
-    # read server commandline args in config files
-    server_args_json = oltp_test_suite_json.get("server_args")
-    if server_args_json:
-        server_args = ""
-        for attribute,value in server_args_json.items():
-            server_args = '{SERVER_ARGS} -{ATTRIBUTE}={VALUE}'.format(SERVER_ARGS=server_args,ATTRIBUTE=attribute,VALUE=value)
-            
-            #Delete the logfile before each run
-            if attribute == "log_file_path":
-                old_log_path = str(value)
-                if os.path.exists(old_log_path):
-                    os.remove(old_log_path)
-
-        args["server_args"] = server_args
     oltpbench = TestOLTPBench(args)
     return oltpbench, oltp_test_suite
 
