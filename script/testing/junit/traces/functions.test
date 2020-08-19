@@ -1,12 +1,12 @@
 # Initialize the database and table for testing
 statement ok
-CREATE TABLE functions1 (int_val INT, double_val DECIMAL, str_i_val VARCHAR(32), str_a_val VARCHAR(32), is_null INT)
+CREATE TABLE functions1 (int_val INT, double_val DECIMAL, small_double_val DECIMAL, str_i_val VARCHAR(32), str_a_val VARCHAR(32), str_b_val VARCHAR(32), is_null INT)
 
 statement ok
-INSERT INTO functions1(int_val, double_val, str_i_val, str_a_val, is_null) VALUES(123, 12.34, '123456', 'AbCdEf', 0)
+INSERT INTO functions1(int_val, double_val, small_double_val, str_i_val, str_a_val, str_b_val, is_null) VALUES(123, 12.34, 0.5, '123456', 'AbCdEf', '  AbCdEf ', 0)
 
 statement ok
-INSERT INTO functions1(int_val, double_val, str_i_val, str_a_val, is_null) VALUES(NULL, NULL, NULL, NULL, 1)
+INSERT INTO functions1(int_val, double_val, small_double_val, str_i_val, str_a_val, str_b_val, is_null) VALUES(NULL, NULL, NULL, NULL, NULL, NULL, 1)
 
 # Tests usage of trig udf functions
 # #744 test
@@ -70,6 +70,7 @@ SELECT tanh(double_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+# String functions
 query I nosort
 SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 0
 ----
@@ -77,6 +78,198 @@ SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 0
 
 query I nosort
 SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT starts_with(str_a_val, 'A') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to b7269fa2508548e4032c455818f1e321
+
+query I nosort
+SELECT starts_with(str_a_val, 'f') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query I nosort
+SELECT starts_with(str_a_val, 'AbCdEf') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to b7269fa2508548e4032c455818f1e321
+
+query I nosort
+SELECT starts_with(str_a_val, 'AbCdEfg') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query I nosort
+SELECT starts_with(str_a_val, '') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to b7269fa2508548e4032c455818f1e321
+
+query I nosort
+SELECT starts_with(str_a_val, 'AbCdEf') AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT substr(str_a_val, 1, 1) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to bf072e9119077b4e76437a93986787ef
+
+query I nosort
+SELECT substr(str_a_val, 1, 2) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 635e29181b5d91fbc76d41b140491116
+
+query I nosort
+SELECT substr(str_a_val, 2, 3) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 12d1f394c82e8f77dc3db547ba0d60e0
+
+query I nosort
+SELECT substr(str_a_val, 2, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to a76fdd2df273c02e7d9707ee5f3a2c1a
+
+query I nosort
+SELECT substr(str_a_val, -1, 2) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT substr(str_a_val, 1, 0) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT substr(str_a_val, 10, 2) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT substr(str_a_val, 1, 1) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT trim(str_b_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query I nosort
+SELECT trim(str_b_val, ' f') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 33681630005210cfa6daf1c86127ca0d
+
+query I nosort
+SELECT trim(str_b_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT upper(str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to f6674e62795f798fe2b01b08580c3fdc
+
+query I nosort
+SELECT upper(str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT reverse(str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to f5fa4082cc1741ae80d46238e252bff0
+
+query I nosort
+SELECT reverse(str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+
+query I nosort
+SELECT left(str_a_val, 3) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5e4ba05a7069cf2db26660252cd3061a
+
+query I nosort
+SELECT left(str_a_val, -2) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to a49417435670f78d9867f4458e86349b
+
+query I nosort
+SELECT left(str_a_val, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query I nosort
+SELECT left(str_a_val, -10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT left(str_a_val, 3) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+
+query I nosort
+SELECT right(str_a_val, 3) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to fd0edba1aae619f7f37007677fdbc4c9
+
+query I nosort
+SELECT right(str_a_val, -2) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 1dc10f22ae90544e8acc9d95256dc0d4
+
+query I nosort
+SELECT right(str_a_val, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query I nosort
+SELECT right(str_a_val, -10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT right(str_a_val, 3) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT repeat(str_a_val, -1) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT repeat(str_a_val, 0) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT repeat(str_a_val, 1) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query I nosort
+SELECT repeat(str_a_val, 2) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 3581e789c18550d97f0e766be7a70eb8
+
+query I nosort
+SELECT repeat(str_a_val, 3) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to a9a54e092846d7d793665bb9ae0a04f8
+
+query I nosort
+SELECT repeat(str_a_val, 4) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e85b8b420767fdc83afc95550b67326d
+
+query I nosort
+SELECT repeat(str_a_val, 4) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
