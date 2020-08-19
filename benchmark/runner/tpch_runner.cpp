@@ -22,7 +22,7 @@ class TPCHRunner : public benchmark::Fixture {
   const std::string tpch_database_name_ = "tpch_db";
 
   const std::string ssb_dir_ = "../../../ssb_tables/ssb_tables/tables/";
-  tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::TPCH;
+  tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::SSB;
 
   void SetUp(const benchmark::State &state) final {
     terrier::execution::ExecutionUtil::InitTPL();
