@@ -47,7 +47,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
-  tbb::enumerable_thread_specific<TLSHandle> states_;
+  // tbb::enumerable_thread_specific<TLSHandle> states_;
   std::vector<TLSHandle> states_;
 };
 
