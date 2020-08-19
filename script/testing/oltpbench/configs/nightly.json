@@ -1,8 +1,8 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "wal": false,
-        "log_file_path": "/mnt/ramdisk/wal.log"
+        "wal_enable": false,
+        "wal_file_path": "/mnt/ramdisk/wal.log"
     },
     "testcases": [
         {

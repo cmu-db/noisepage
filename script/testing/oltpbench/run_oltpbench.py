@@ -49,7 +49,7 @@ def generate_test_suite(args):
             server_args = '{SERVER_ARGS} -{ATTRIBUTE}={VALUE}'.format(SERVER_ARGS=server_args,ATTRIBUTE=attribute,VALUE=value)
             
             #Delete the logfile before each run
-            if attribute == "log_file_path":
+            if attribute == "wal_file_path":
                 old_log_path = str(value)
                 if os.path.exists(old_log_path):
                     os.remove(old_log_path)

@@ -2,7 +2,7 @@
     "type": "oltpbenchmark",
     "server_args":{
         "connection_thread_count": 32,
-        "log_file_path": "/mnt/ramdisk/wal.log"
+        "wal_file_path": "/mnt/ramdisk/wal.log"
     },
     "testcases": [
         {
