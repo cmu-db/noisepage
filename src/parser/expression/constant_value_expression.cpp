@@ -7,9 +7,11 @@
 
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::parser {
 
@@ -212,6 +214,35 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
       return Peek<std::string_view>() == other_cve.Peek<std::string_view>();
+    }
+    default:
+      UNREACHABLE("Invalid TypeId.");
+  }
+}
+
+std::string ConstantValueExpression::ToString() const {
+  switch (GetReturnValueType()) {
+    case type::TypeId::BOOLEAN: {
+      return fmt::format("{}", GetBoolVal().val_);
+    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT: {
+      return fmt::format("{}", GetInteger().val_);
+    }
+    case type::TypeId::DECIMAL: {
+      return fmt::format("{}", GetReal().val_);
+    }
+    case type::TypeId::TIMESTAMP: {
+      return fmt::format("{}", GetTimestampVal().val_.ToString());
+    }
+    case type::TypeId::DATE: {
+      return fmt::format("{}", GetDateVal().val_.ToString());
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      return fmt::format("{}", GetStringVal().val_.StringView());
     }
     default:
       UNREACHABLE("Invalid TypeId.");
