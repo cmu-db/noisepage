@@ -167,9 +167,8 @@ class ExpressionMaker {
    * Create expression for child1 <= input <= child2
    */
   ManagedExpression ComparisonBetween(ManagedExpression input, ManagedExpression child1, ManagedExpression child2) {
-    auto left = ConjunctionOr(ComparisonGt(input, child1), ComparisonEq(input, input));
-    auto right = ConjunctionOr(ComparisonLt(input, child2), ComparisonEq(input, child2));
-    return ConjunctionAnd(left, right);
+    return ConjunctionAnd(ConjunctionOr(ComparisonGt(input, child1), ComparisonEq(input, child1)),
+                          ConjunctionOr(ComparisonLt(input, child2), ComparisonEq(input, child2)));
   }
 
   /**
