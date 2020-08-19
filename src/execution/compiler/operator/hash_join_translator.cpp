@@ -73,7 +73,7 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
     ctx.AdvancePipelineIter();
   }
   auto *codegen = GetCodeGen();
-  util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
+  util::RegionVector<ast::FieldDecl *> params = cc->QueryParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
   outer_join_flag_ = true;
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
@@ -288,30 +288,29 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
 
   // while (hasNext()):
   ast::Expr *join_ht = global_join_ht_.GetPtr(codegen);
-  Loop loop(function, codegen->MakeStmt(codegen->HTNaiveIteratorInit(codegen->MakeExpr(naive_iter), join_ht)),
-            codegen->HTNaiveIteratorHasNext(codegen->MakeExpr(naive_iter)),
-            codegen->MakeStmt(codegen->HTNaiveIteratorNext(codegen->MakeExpr(naive_iter))));
+  ast::Expr *naive_iter_expr = codegen->MakeExpr(naive_iter);
+  Loop loop(function, codegen->MakeStmt(codegen->HTNaiveIteratorInit(naive_iter_expr, join_ht)),
+            codegen->HTNaiveIteratorHasNext(naive_iter_expr),
+            codegen->MakeStmt(codegen->HTNaiveIteratorNext(naive_iter_expr)));
   {
     // var buildRow = @htNaiveIterGetRow()
     function->Append(codegen->DeclareVarWithInit(
-        build_row_var_, codegen->HTNaiveIteratorGetRow(codegen->MakeExpr(naive_iter), build_row_type_)));
+        build_row_var_, codegen->HTNaiveIteratorGetRow(naive_iter_expr, build_row_type_)));
 
     auto left_mark = codegen->AccessStructMember(codegen->MakeExpr(build_row_var_), build_mark_);
 
     // If mark is true, then row was not matched
     If check_condition(function, left_mark);
     {
-      // outerJoinConsumer(queryState, buildRow);
-      std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
-                                              GetPipelineStatePtr(),
-                                              codegen->MakeExpr(build_row_var_)};
+      // // outerJoinConsumer(queryState, buildRow);
+      std::initializer_list<ast::Expr *> args{GetQueryStatePtr(), codegen->MakeExpr(build_row_var_)};
       function->Append(codegen->Call(outer_join_consumer_, args));
     }
   }
   loop.EndLoop();
 
   // Close iterator.
-  function->Append(codegen->HTNaiveIteratorFree(codegen->MakeExpr(naive_iter)));
+  function->Append(codegen->HTNaiveIteratorFree(naive_iter_expr));
 }
 
 void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const {

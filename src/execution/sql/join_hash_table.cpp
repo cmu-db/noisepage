@@ -586,6 +586,24 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
                       use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
                       chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);
+
+  built_ = true;
 }
 
+
+HashTableNaiveIterator::HashTableNaiveIterator(const JoinHashTable &table)
+    : entry_list_iter_(table.owned_.begin()),
+      entry_list_end_(table.owned_.end()),
+      entry_iter_(table.entries_.begin()),
+      entry_end_(table.entries_.end()) {
+  TERRIER_ASSERT(table.IsBuilt(), "Cannot iterate a JoinHashTable that hasn't been built yet!");
+  if (!table.owned_.empty()) FindNextNonEmptyList();
+}
+
+void HashTableNaiveIterator::FindNextNonEmptyList() {
+  for (; entry_list_iter_ != entry_list_end_ && entry_iter_ == entry_end_; ++entry_list_iter_) {
+    entry_iter_ = entry_list_iter_->begin();
+    entry_end_ = entry_list_iter_->end();
+  }
+}
 }  // namespace terrier::execution::sql

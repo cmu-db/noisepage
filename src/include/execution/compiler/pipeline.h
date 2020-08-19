@@ -172,7 +172,7 @@ class Pipeline {
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
   /**
-   * @return The pipleline state
+   * @return The pipeline state
    */
   StateDescriptor *GetPipelineState() { return &state_; }
 

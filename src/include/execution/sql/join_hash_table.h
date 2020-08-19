@@ -275,71 +275,78 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
 }
 
 //===----------------------------------------------------------------------===//
-// Join Hash Table Naive Iterator
+//
+// Join Hash Table Iterator
+//
 //===----------------------------------------------------------------------===//
-
 /**
- * A tuple-at-a-time iterator over the contents of a join hash table.
+ * A tuple-at-a-time iterator over the contents of a join hash table. The join hash table must be
+ * fully built either through a serial call to JoinHashTable::Build() or merged (in parallel) from
+ * other join hash tables through JoinHashTable::MergeParallel().
+ *
+ * Users use the OOP-ish iteration API:
+ * for (JoinHashTableIterator iter(table); iter.HasNext(); iter.Next()) {
+ *   auto row = iter.GetCurrentRowAs<MyFancyAssType>();
+ *   ...
+ * }
+ *
+ * // TODO(pmenon): Vectorized version, too.
  */
 class HashTableNaiveIterator {
  public:
   /**
-   * Construct an iterator over the given join hash table.
-   * @param join_table The table to iterate.
+   * Construct an iterator over the given hash table.
+   * @param table The join hash table to iterate.
    */
-  explicit HashTableNaiveIterator(const JoinHashTable &join_table)
-      : table_(join_table), entries_index_(0), curr_entry_(nullptr) {
-    if (join_table.use_concise_ht_) {
-      table_capacity_ = join_table.concise_hash_table_.GetCapacity();
-    } else {
-      table_capacity_ = join_table.chaining_hash_table_.GetCapacity();
-    }
-    Next();
-  }
-
+  explicit HashTableNaiveIterator(const JoinHashTable &table);
   /**
-   * @return True if the iterator has more data; false otherwise
+   * @return True if there is more data in the iterator; false otherwise.
    */
-  bool HasNext() const { return curr_entry_ != nullptr; }
-
+  bool HasNext() const noexcept { return entry_iter_ != entry_end_; }
   /**
-   * Advance the iterator one element.
+   * Advance to the next tuple.
    */
   void Next() noexcept {
-    // If the current entry has a next link, use that
-    if (curr_entry_ != nullptr) {
-      curr_entry_ = curr_entry_->next_;
-      if (curr_entry_ != nullptr) {
-        return;
-      }
+    // Advance the entry iterator by one.
+    ++entry_iter_;
+    // If we've exhausted the current entry list, find another.
+    if (entry_iter_ == entry_end_) {
+      FindNextNonEmptyList();
     }
-
-    // While we haven't exhausted the directory, and haven't found a valid entry
-    // continue on ...
-    while (entries_index_ < table_capacity_) {
-      curr_entry_ = table_.EntryAt(entries_index_++);
-
-      if (curr_entry_ != nullptr) {
-        return;
-      }
-    }
+  }
+  /**
+   * Access the row the iterator is currently positioned at.
+   * @pre A previous call to HasNext() must have returned true.
+   * @return A read-only opaque byte pointer to the row at the current iteration position.
+   */
+  const byte *GetCurrentRow() const noexcept {
+    TERRIER_ASSERT(HasNext(), "HasNext() indicates no more data!");
+    const auto entry = reinterpret_cast<const HashTableEntry *>(*entry_iter_);
+    return entry->payload_;
   }
 
   /**
-   * @return A pointer to the current row. This assumes a previous call to HasNext() indicated there
-   *         is more data.
+   * Access the row the iterator is currently positioned at as the given template type.
+   * @pre A previous call to HasNext() must have returned true.
+   * @tparam T The type of the row.
+   * @return A typed read-only pointer to row at the current iteration position.
    */
-  const byte *GetCurrentRow() const { return curr_entry_->payload_; }
+  template <typename T>
+  const T *GetCurrentRowAs() const noexcept {
+    return reinterpret_cast<const T *>(GetCurrentRow());
+  }
 
  private:
-  // The JoinTable over which this iterator iterates
-  const JoinHashTable &table_;
-  // The index into the hash table's entries directory to read from next
-  uint64_t entries_index_;
-  // The current entry the iterator is pointing to
-  const HashTableEntry *curr_entry_;
-  // The maximum number of entries the table holds
-  uint64_t table_capacity_;
+  // Advance past any empty entry lists.
+  void FindNextNonEmptyList();
+
+ private:
+  using EntryListIterator = decltype(JoinHashTable::owned_)::const_iterator;
+  using EntryIterator = decltype(JoinHashTable::entries_)::Iterator;
+  // An iterator over the entry lists owned by the join hash table.
+  EntryListIterator entry_list_iter_, entry_list_end_;
+  // An iterator over the entries in a single entry list.
+  EntryIterator entry_iter_, entry_end_;
 };
 
 }  // namespace terrier::execution::sql
