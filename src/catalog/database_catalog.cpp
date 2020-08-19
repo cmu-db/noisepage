@@ -1797,7 +1797,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 #undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
-  auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
   auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
