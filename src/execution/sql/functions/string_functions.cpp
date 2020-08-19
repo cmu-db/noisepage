@@ -32,7 +32,7 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
     return;
   }
 
-  // If the length is 0 return empty string
+  // If the position is negative or the length is 0 return empty string
   if (pos.val_ < 0 || len.val_ == 0) {
     *result = StringVal("");
     return;
