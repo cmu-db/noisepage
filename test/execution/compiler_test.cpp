@@ -2226,9 +2226,13 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // NLJOIN left and right are in same pipeline
   // But NLJOIN left/right features do not exist
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec0 =
+      std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                     brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                     brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                     brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+                                                     brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                     brain::ExecutionOperatingUnitType::OUTPUT};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
