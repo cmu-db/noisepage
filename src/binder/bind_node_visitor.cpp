@@ -810,6 +810,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
       auto serial_no = catalog_accessor_->GetNewTempOid();
       columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
       aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
+      node->cte_col_aliases_[i] = parser::AliasType(column_aliases[i].GetName(), serial_no);
     }
     for (size_t i = num_aliases; i < num_columns;i++) {
       auto serial_no = catalog_accessor_->GetNewTempOid();
