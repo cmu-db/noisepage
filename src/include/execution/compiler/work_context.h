@@ -76,6 +76,9 @@ class WorkContext {
    */
   void SetExpressionCacheEnable(bool val) { cache_enabled_ = val; }
 
+  /**
+   * Advances the WorkContext to the next step in the pipeline
+   */
   void AdvancePipelineIter() { pipeline_iter_++; }
 
  private:
