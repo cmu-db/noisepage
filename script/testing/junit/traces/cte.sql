@@ -19,9 +19,8 @@ CREATE TABLE company(id INT PRIMARY KEY NOT NULL, name TEXT NOT NULL, age INT NO
 INSERT INTO company (id,name,age,address,salary) VALUES (1, 'Paul', 32, 'California', 20000.00);
 INSERT INTO company (id,name,age,address,salary) VALUES (2, 'George', 21, 'NY', 10000.00);
 
-# The following two queries die; more generally several queries die if the select inside the cte has mixed types
-# WITH employee AS (SELECT id, name, age FROM company) SELECT name FROM employee;
-# WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E1.sumage FROM employee AS E1, employee AS E2 WHERE E1.name = E2.name;
+WITH employee AS (SELECT id, name, age FROM company) SELECT name FROM employee;
+WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E1.sumage FROM employee AS E1, employee AS E2 WHERE E1.name = E2.name;
 # Aggregate inside cte query
 WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee;
 # Join inside cte query
