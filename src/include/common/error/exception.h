@@ -20,12 +20,12 @@ namespace terrier {
 #define CONVERSION_EXCEPTION(msg) ConversionException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
-#define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
-#define BINDER_EXCEPTION(msg, code) BinderException(msg, __FILE__, __LINE__, (code))
 #define EXECUTION_EXCEPTION(msg) ExecutionException(msg, __FILE__, __LINE__)
 #define ABORT_EXCEPTION(msg) AbortException(msg, __FILE__, __LINE__)
+#define BINDER_EXCEPTION(msg, code) BinderException(msg, __FILE__, __LINE__, (code))
+#define SETTINGS_EXCEPTION(msg, code) SettingsException(msg, __FILE__, __LINE__, (code))
 
 /**
  * Exception types
@@ -135,15 +135,30 @@ class Exception : public std::runtime_error {
     e_name(const std::string &msg, const char *file, int line) : Exception(e_type, msg.c_str(), file, line) {} \
   }
 
+#define DEFINE_EXCEPTION_WITH_ERRCODE(e_name, e_type)                                  \
+  class e_name : public Exception {                                                    \
+    e_name() = delete;                                                                 \
+                                                                                       \
+   public:                                                                             \
+    e_name(const char *msg, const char *file, int line, common::ErrorCode code)        \
+        : Exception(e_type, msg, file, line), code_(code) {}                           \
+    e_name(const std::string &msg, const char *file, int line, common::ErrorCode code) \
+        : Exception(e_type, msg.c_str(), file, line), code_(code) {}                   \
+                                                                                       \
+    /** The SQL error code. */                                                         \
+    common::ErrorCode code_;                                                           \
+  }
+
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
 DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
-DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
 DEFINE_EXCEPTION(ExecutionException, ExceptionType::EXECUTION);
 DEFINE_EXCEPTION(AbortException, ExceptionType::EXECUTION);
+DEFINE_EXCEPTION_WITH_ERRCODE(BinderException, ExceptionType::BINDER);
+DEFINE_EXCEPTION_WITH_ERRCODE(SettingsException, ExceptionType::SETTINGS);
 
 /**
  * Specialized Parser exception since we want a cursor position to get more verbose output
@@ -194,39 +209,6 @@ class ParserException : public Exception {
    * @return from libpgquery
    */
   uint32_t GetCursorPos() const { return cursorpos_; }
-};
-
-/**
- * Specialized Binder exception since we want an error code to get more verbose output
- */
-class BinderException : public Exception {
- public:
-  BinderException() = delete;
-
-  /**
-   * Creates a new ParserException with the given parameters.
-   * @param msg exception message to be displayed
-   * @param file name of the file in which the exception occurred
-   * @param line line number at which the exception occurred
-   * @param code sql error code
-   */
-  BinderException(const char *msg, const char *file, int line, common::ErrorCode code)
-      : Exception(ExceptionType::BINDER, msg, file, line), code_(code) {}
-
-  /**
-   * Creates a new ParserException with the given parameters.
-   * @param msg exception message to be displayed
-   * @param file name of the file in which the exception occurred
-   * @param line line number at which the exception occurred
-   * @param code sql error code
-   */
-  BinderException(const std::string &msg, const char *file, int line, common::ErrorCode code)
-      : Exception(ExceptionType::BINDER, msg.c_str(), file, line), code_(code) {}
-
-  /**
-   * sql error code
-   */
-  common::ErrorCode code_;
 };
 
 }  // namespace terrier
