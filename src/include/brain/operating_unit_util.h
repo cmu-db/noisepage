@@ -164,6 +164,11 @@ class OperatingUnitUtil {
     return feature_types;
   }
 
+  /**
+   * Whether or not an operating unit type can be merged
+   * @param f OperatingUnitType to consider
+   * @returns mergeable or not
+   */
   static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType f) {
     return f > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
   }
