@@ -108,7 +108,7 @@ class Optimizer : public AbstractOptimizer {
    * tree to assign the CTE leader node and also provide each
    * CTE Plan node with the cte table schema
    */
-  void ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode> plan, const std::string &table_name,
+  void ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode> plan, catalog::table_oid_t table_oid,
                       common::ManagedPointer<planner::CteScanPlanNode> *leader);
 
   std::unique_ptr<AbstractCostModel> cost_model_;

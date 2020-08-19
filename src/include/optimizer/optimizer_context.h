@@ -80,10 +80,10 @@ class OptimizerContext {
    * Gets the CTE Schema
    * @returns CTE Schema
    */
-  catalog::Schema &GetCTESchema(const std::string &cte_name) { return cte_schemas_.find(cte_name)->second; }
+  catalog::Schema &GetCTESchema(catalog::table_oid_t &cte_oid) { return cte_schemas_.find(cte_oid)->second; }
 
-  std::vector<std::string> GetCTETables() {
-    std::vector<std::string> keys;
+  std::vector<catalog::table_oid_t> GetCTETables() {
+    std::vector<catalog::table_oid_t> keys;
     for (auto &it : cte_schemas_) {
       keys.push_back(it.first);
     }
@@ -136,7 +136,7 @@ class OptimizerContext {
    * Sets the CTE Schema
    * @param schema OutputSchema
    */
-  void SetCTESchema(const std::string &cte_name, catalog::Schema schema) { cte_schemas_[cte_name] = std::move(schema); }
+  void SetCTESchema(catalog::table_oid_t table_id, catalog::Schema schema) { cte_schemas_[table_id] = std::move(schema); }
 
   /**
    * Sets the StatsStorage
@@ -225,7 +225,7 @@ class OptimizerContext {
   StatsStorage *stats_storage_{};
   transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
-  std::unordered_map<std::string, catalog::Schema> cte_schemas_;
+  std::unordered_map<catalog::table_oid_t, catalog::Schema> cte_schemas_;
 };
 
 }  // namespace optimizer
