@@ -1677,6 +1677,26 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       GetEmitter()->Emit(Bytecode::Tan, dest, src);
       break;
     }
+    case ast::Builtin::Ceil: {
+      GetEmitter()->Emit(Bytecode::Ceil, dest, src);
+      break;
+    }
+    case ast::Builtin::Floor: {
+      GetEmitter()->Emit(Bytecode::Floor, dest, src);
+      break;
+    }
+    case ast::Builtin::Truncate: {
+      GetEmitter()->Emit(Bytecode::Truncate, dest, src);
+      break;
+    }
+    case ast::Builtin::Log10: {
+      GetEmitter()->Emit(Bytecode::Log10, dest, src);
+      break;
+    }
+    case ast::Builtin::Log2: {
+      GetEmitter()->Emit(Bytecode::Log2, dest, src);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
     }
@@ -2385,7 +2405,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Cos:
     case ast::Builtin::Cot:
     case ast::Builtin::Sin:
-    case ast::Builtin::Tan: {
+    case ast::Builtin::Tan:
+    case ast::Builtin::Ceil:
+    case ast::Builtin::Floor:
+    case ast::Builtin::Truncate:
+    case ast::Builtin::Log10:
+    case ast::Builtin::Log2: {
       VisitBuiltinTrigCall(call, builtin);
       break;
     }
