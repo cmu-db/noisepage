@@ -6,13 +6,14 @@ import pandas as pd
 import os
 
 from data_class import data_util
+from data_class import tpcc_fixer
 from info import data_info, query_info, query_info_1G, query_info_10G
 import global_model_config
 
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename, warmup_period):
+def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
     """Get the training data from the global model
 
     :param filename: the input data file
@@ -28,7 +29,7 @@ def get_grouped_op_unit_data(filename, warmup_period):
         return _execution_get_grouped_op_unit_data(filename)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename, warmup_period)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
@@ -69,7 +70,7 @@ def _execution_get_grouped_op_unit_data(filename):
     return data_list
 
 
-def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
     # Get the global running data for the execution engine
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
@@ -106,33 +107,8 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
 
                 q_id = int(line[0])
                 p_id = int(line[1])
-
-                # Hack to tweak the feature based on the query
-                if q_id == 29 and p_id == 0:
-                    # q31 returns ~850 tuples from IDX_SCAN to SORT_BUILD
-                    if feature == 'SORT_BUILD':
-                        # Set # input rows to SORT_BUILD as 850
-                        # Set cardinality to 1 since query runs with LIMIT 1
-                        x_loc[0] = 850
-                        x_loc[3] = 1
-                    elif feature == 'IDX_SCAN':
-                        # Set # output rows of IDX_SCAN as 850
-                        x_loc[3] = 850
-                elif q_id == 37 and p_id == 0:
-                    if feature == 'AGG_BUILD':
-                        # Set agg_build input rows to 200, assume output unchanged
-                        # Since there's distinct, set the correct key size/input key
-                        x_loc[0] = 200
-                        x_loc[1] = 4
-                        x_loc[2] = 1
-                        x_loc[3] = 1
-                    elif feature == 'IDX_SCAN' and x_loc[2] == 2:
-                        # Scale to account for the "loop" factor
-                        # Then don't need to adjust the prediction metric
-                        x_loc[5] = 200
-                    elif feature == 'IDX_SCAN' and x_loc[2] == 3:
-                        # Outer index scan returns multiple values
-                        x_loc[3] = 200
+                if tpcc_hack:
+                    x_loc = tpcc_fixer.transformFeature(feature, q_id, p_id, x_loc)
 
                 opunits.append((opunit, x_loc))
 
