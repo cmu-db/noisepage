@@ -286,7 +286,8 @@ class EXPORT VectorOps {
    * @param b The vector of strings to compare with.
    * @param[in,out] tid_list The list of TIDs to check, and the output of the check.
    */
-  static void SelectLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b, TupleIdList *tid_list);
+  static void SelectLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                         TupleIdList *tid_list);
 
   /**
    * Store the TIDs of all string elements in @em a that are NOT LIKE their counterparts in @em b in
@@ -297,7 +298,8 @@ class EXPORT VectorOps {
    * @param b The vector of strings to compare with.
    * @param[in,out] tid_list The list of TIDs to check, and the output of the check.
    */
-  static void SelectNotLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b, TupleIdList *tid_list);
+  static void SelectNotLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                            TupleIdList *tid_list);
 
   // -------------------------------------------------------
   //

@@ -55,13 +55,15 @@ void TemplatedLikeOperation(const Vector &a, const Vector &b, TupleIdList *tid_l
   }
 }
 
-}  // namespace like
+}  // namespace
 
-void VectorOps::SelectLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b, TupleIdList *tid_list) {
+void VectorOps::SelectLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                           TupleIdList *tid_list) {
   TemplatedLikeOperation<sql::Like>(a, b, tid_list);
 }
 
-void VectorOps::SelectNotLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b, TupleIdList *tid_list) {
+void VectorOps::SelectNotLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                              TupleIdList *tid_list) {
   TemplatedLikeOperation<sql::NotLike>(a, b, tid_list);
 }
 

@@ -170,50 +170,50 @@ class VectorFilterExecutor {
                                 uint32_t col_idx, const Val &val, TupleIdList *tid_list);
 
   /**
- * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
- * that are like the provided constant value (@em val).
- * @param exec_settings The execution settings to use.
- * @param vector_projection The vector projection to run on.
- * @param col_idx The index of the column to compare with.
- * @param val The value to compare with.
- * @param tid_list The tuple ID list to use.
- */
+   * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
+   * that are like the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
+   * @param col_idx The index of the column to compare with.
+   * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
+   */
   static void SelectLikeVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                             uint32_t col_idx, const Val &val, TupleIdList *tid_list);
 
   /**
-* Select tuples in the column stored at the given index (@em col_idx) in the vector projection
-* that are like the provided constant value (@em val).
-* @param exec_settings The execution settings to use.
-* @param vector_projection The vector projection to run on.
-* @param col_idx The index of the column to compare with.
-* @param val The value to compare with.
-* @param tid_list The tuple ID list to use.
-*/
+   * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
+   * that are like the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
+   * @param col_idx The index of the column to compare with.
+   * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
+   */
   static void SelectLikeVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                             uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
 
   /**
- * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
- * that are not like the provided constant value (@em val).
- * @param exec_settings The execution settings to use.
- * @param vector_projection The vector projection to run on.
- * @param col_idx The index of the column to compare with.
- * @param val The value to compare with.
- * @param tid_list The tuple ID list to use.
- */
+   * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
+   * that are not like the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
+   * @param col_idx The index of the column to compare with.
+   * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
+   */
   static void SelectNotLikeVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                uint32_t col_idx, const Val &val, TupleIdList *tid_list);
 
   /**
-* Select tuples in the column stored at the given index (@em col_idx) in the vector projection
-* that are not like the provided constant value (@em val).
-* @param exec_settings The execution settings to use.
-* @param vector_projection The vector projection to run on.
-* @param col_idx The index of the column to compare with.
-* @param val The value to compare with.
-* @param tid_list The tuple ID list to use.
-*/
+   * Select tuples in the column stored at the given index (@em col_idx) in the vector projection
+   * that are not like the provided constant value (@em val).
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
+   * @param col_idx The index of the column to compare with.
+   * @param val The value to compare with.
+   * @param tid_list The tuple ID list to use.
+   */
   static void SelectNotLikeVal(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
                                uint32_t col_idx, const GenericValue &val, TupleIdList *tid_list);
 
@@ -290,28 +290,28 @@ class VectorFilterExecutor {
                              uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
 
   /**
- * Select tuples whose values in the left (first) column are like the values in the right
- * (second) column.
- * @param exec_settings The execution settings to use.
- * @param vector_projection The vector projection to run on.
- * @param left_col_idx The index of the left column to compare with.
- * @param right_col_idx The index of the right column to compare with.
- * @param tid_list The tuple ID list to use.
- */
+   * Select tuples whose values in the left (first) column are like the values in the right
+   * (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
+   * @param left_col_idx The index of the left column to compare with.
+   * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
+   */
   static void SelectLike(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
-                             uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
+                         uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
 
   /**
- * Select tuples whose values in the left (first) column are not like the values in the right
- * (second) column.
- * @param exec_settings The execution settings to use.
- * @param vector_projection The vector projection to run on.
- * @param left_col_idx The index of the left column to compare with.
- * @param right_col_idx The index of the right column to compare with.
- * @param tid_list The tuple ID list to use.
- */
+   * Select tuples whose values in the left (first) column are not like the values in the right
+   * (second) column.
+   * @param exec_settings The execution settings to use.
+   * @param vector_projection The vector projection to run on.
+   * @param left_col_idx The index of the left column to compare with.
+   * @param right_col_idx The index of the right column to compare with.
+   * @param tid_list The tuple ID list to use.
+   */
   static void SelectNotLike(const exec::ExecutionSettings &exec_settings, VectorProjection *vector_projection,
-                             uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
+                            uint32_t left_col_idx, uint32_t right_col_idx, TupleIdList *tid_list);
 };
 
 // ---------------------------------------------------------
