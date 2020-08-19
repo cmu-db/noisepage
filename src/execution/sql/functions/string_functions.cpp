@@ -27,14 +27,18 @@ void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, con
 
 void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
+  if (str.is_null_ || pos.is_null_ || len.is_null_) {
+    *result = StringVal::Null();
+    return;
+  }
+
   // If the length is 0 return empty string
   if (pos.val_ < 0 || len.val_ == 0) {
     *result = StringVal("");
     return;
   }
 
-  if (str.is_null_ || pos.is_null_ || len.is_null_ || static_cast<uint32_t>(pos.val_) > str.GetLength() ||
-      len.val_ < 0) {
+  if (static_cast<uint32_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
     *result = StringVal::Null();
     return;
   }
