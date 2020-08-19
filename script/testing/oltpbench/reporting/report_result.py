@@ -8,7 +8,7 @@ def report(api_url, server_data, results_dir, username, password, query_mode='si
     metadata, timestamp, type, parameters, metrics = parse_data(results_dir)
     parameters['query_mode'] = query_mode
     parameters['max_connection_threads'] = server_data['max_connection_threads']
-    metadata['wal_device'] = server_data['wal_device']
+    metadata['environment']['wal_device'] = server_data['wal_device']
     results = {
         'metadata': metadata,
         'timestamp': timestamp,
