@@ -474,10 +474,15 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
 }
 
 /**
- * Arg: <0, 1, 2>
- * 0 - Key Sizes
- * 1 - Idx Size
- * 2 - Lookup size
+ * Arg: <0, 1, 2, 3, 4>
+ * 0 - Type
+ * 1 - Key Size
+ * 2 - Index Size
+ * 3 - Lookup size
+ * 4 - Special argument used to indicate building an index.
+ *     A value of 0 means to drop the index. A value of -1 is
+ *     a dummy/sentinel value. A value of 1 means to create the
+ *     index. This argument is only used when lookup_size = 0
  */
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
@@ -487,10 +492,6 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   for (auto type : types) {
     for (auto key_size : key_sizes) {
       for (auto idx_size : idx_sizes) {
-        // Special argument used to indicate a build index
-        // We need to do this to prevent update/delete from unintentionally
-        // updating multiple indexes. This way, there will only be 1 index
-        // on the table at a given time.
         b->Args({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
 
         for (auto lookup_size : lookup_sizes) {
@@ -853,7 +854,6 @@ class MiniRunners : public benchmark::Fixture {
     auto catalog = db_main->GetCatalogLayer()->GetCatalog();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
 
-    // Create the database
     auto txn = txn_manager->BeginTransaction();
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_settings = MiniRunners::GetExecutionSettings();
