@@ -35,7 +35,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       unlink(terrier::BenchmarkConfig::logfile_path.data());
       // Initialize table and run workload with logging enabled
       auto db_main = terrier::DBMain::Builder()
-                         .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
+                         .SetWalFilePath(terrier::BenchmarkConfig::logfile_path.data())
                          .SetUseLogging(true)
                          .SetUseGC(true)
                          .SetUseGCThread(true)
@@ -144,7 +144,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     unlink(terrier::BenchmarkConfig::logfile_path.data());
     // Initialize table and run workload with logging enabled
     auto db_main = terrier::DBMain::Builder()
-                       .SetLogFilePath(terrier::BenchmarkConfig::logfile_path.data())
+                       .SetWalFilePath(terrier::BenchmarkConfig::logfile_path.data())
                        .SetUseLogging(true)
                        .SetUseGC(true)
                        .SetUseGCThread(true)

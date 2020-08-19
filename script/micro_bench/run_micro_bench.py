@@ -108,7 +108,7 @@ class Config(object):
         self.benchmarks = BENCHMARKS_TO_RUN
 
         # if fewer than min_ref_values are available
-        self.lax_tolerance = 30
+        self.lax_tolerance = 50
 
         # minimum run time for the benchmark, seconds
         self.min_time = 10

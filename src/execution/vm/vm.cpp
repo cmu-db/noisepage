@@ -459,7 +459,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecutionContextAddRowsAffected) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto rows_affected = frame->LocalAt<int64_t>(READ_LOCAL_ID());
+    auto rows_affected = frame->LocalAt<int32_t>(READ_LOCAL_ID());
 
     OpExecutionContextAddRowsAffected(exec_ctx, rows_affected);
     DISPATCH_NEXT();
@@ -2241,10 +2241,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Date functions
   // -------------------------------------------------------
 
-  OP(ExtractYear) : {
+  OP(ExtractYearFromDate) : {
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
-    OpExtractYear(result, input);
+    OpExtractYearFromDate(result, input);
     DISPATCH_NEXT();
   }
 

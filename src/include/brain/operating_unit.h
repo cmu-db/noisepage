@@ -69,15 +69,17 @@ class ExecutionOperatingUnitFeature {
    * @param num_keys Number of keys
    * @param cardinality Estimated cardinality
    * @param mem_factor Memory adjustment factor
+   * @param num_loops Number of loops
    */
   ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
-                                size_t cardinality, double mem_factor)
+                                size_t cardinality, double mem_factor, size_t num_loops)
       : feature_(feature),
         num_rows_(num_rows),
         key_size_(key_size),
         num_keys_(num_keys),
         cardinality_(cardinality),
-        mem_factors_({mem_factor}) {}
+        mem_factors_({mem_factor}),
+        num_loops_(num_loops) {}
 
   /**
    * @returns type
@@ -118,6 +120,11 @@ class ExecutionOperatingUnitFeature {
     return sum / mem_factors_.size();
   }
 
+  /**
+   * @returns number of iterations
+   */
+  size_t GetNumLoops() const { return num_loops_; }
+
  private:
   /**
    * Set the estimated number of output tuples
@@ -146,6 +153,7 @@ class ExecutionOperatingUnitFeature {
   size_t num_keys_;
   size_t cardinality_;
   std::vector<double> mem_factors_;
+  size_t num_loops_;
 };
 
 /**

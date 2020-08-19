@@ -48,7 +48,7 @@ TUPLE_NUM_INDEX = 0
 CARDINALITY_INDEX = 3
 
 # Index for execution mode in the model input feature vector
-EXECUTION_MODE_INDEX = 5
+EXECUTION_MODE_INDEX = 6
 
 # Size of a pointer on the target architecture
 POINTER_SIZE = 8
@@ -59,8 +59,11 @@ RAW_FEATURES_VECTOR_INDEX = 4
 # Index of execution mode in the raw input from CSV
 RAW_EXECUTION_MODE_INDEX = 2
 
+# Index of cpu time in the raw input from CSV
+RAW_CPU_TIME_INDEX = 11
+
 # End index of model input feature vector
-RECORD_FEATURES_END = 6
+RECORD_FEATURES_END = 7
 
 # Start index of metrics
 RECORD_METRICS_START = MINI_MODEL_TARGET_NUM
