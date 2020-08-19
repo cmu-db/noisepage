@@ -36,16 +36,6 @@
 namespace terrier::runner {
 
 /**
- * Should start transaction before each warmup
- */
-bool simulate_prepared = false;
-
-/**
- * Should run and generate prepared
- */
-bool run_with_prepared = false;
-
-/**
  * Should start small-row only scans
  */
 bool rerun_start = false;
@@ -889,21 +879,14 @@ class MiniRunners : public benchmark::Fixture {
                           std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
-    if (simulate_prepared) {
-      txn = txn_manager_->BeginTransaction();
-      accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-    }
-
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
     for (auto i = 0; i < num_iters; i++) {
       if (i == num_iters - 1) {
         metrics_manager_->RegisterThread();
       }
 
-      if (!simulate_prepared) {
-        txn = txn_manager_->BeginTransaction();
-        accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-      }
+      txn = txn_manager_->BeginTransaction();
+      accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
       auto exec_settings = GetExecutionSettings();
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
@@ -917,27 +900,15 @@ class MiniRunners : public benchmark::Fixture {
 
       exec_query->Run(common::ManagedPointer(exec_ctx), mode);
 
-      if (!simulate_prepared) {
-        if (commit)
-          txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-        else
-          txn_manager_->Abort(txn);
-      }
+      if (commit)
+        txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      else
+        txn_manager_->Abort(txn);
 
       if (i == num_iters - 1) {
         metrics_manager_->Aggregate();
         metrics_manager_->UnregisterThread();
       }
-    }
-
-    // An important thing to be aware of is that the warmup iterations and the real iteration
-    // should not have significant variation or cause any *noticeable* interference: i.e warmup
-    // delete should not delete the same tuple.
-    if (simulate_prepared) {
-      if (commit)
-        txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-      else
-        txn_manager_->Abort(txn);
     }
   }
 
@@ -2106,7 +2077,7 @@ void Shutdown() {
   delete terrier::runner::db_main;
 }
 
-void RunBenchmarkSequence(bool prepared, int rerun_counter) {
+void RunBenchmarkSequence(int rerun_counter) {
   // As discussed, certain runners utilize multiple features.
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
@@ -2142,22 +2113,20 @@ void RunBenchmarkSequence(bool prepared, int rerun_counter) {
     terrier::runner::db_main->GetMetricsManager()->ToCSV();
 
     if (!terrier::runner::rerun_start) {
-      snprintf(buffer, sizeof(buffer), "execution_%s%s.csv", titles[i].c_str(), prepared ? "_prepare" : "");
+      snprintf(buffer, sizeof(buffer), "execution_%s.csv", titles[i].c_str());
     } else {
-      snprintf(buffer, sizeof(buffer), "execution_%s%s_%d.csv", titles[i].c_str(), prepared ? "_prepare" : "",
-               rerun_counter);
+      snprintf(buffer, sizeof(buffer), "execution_%s_%d.csv", titles[i].c_str(), rerun_counter);
     }
 
     std::rename("pipeline.csv", buffer);
   }
 }
 
-void RunMiniRunners(bool prepared) {
+void RunMiniRunners() {
   terrier::runner::rerun_start = false;
-  terrier::runner::simulate_prepared = prepared;
   for (int i = 0; i <= terrier::runner::rerun_iterations; i++) {
     terrier::runner::rerun_start = (i != 0);
-    RunBenchmarkSequence(prepared, i);
+    RunBenchmarkSequence(i);
   }
 
   for (int i = 0; i <= terrier::runner::rerun_iterations; i++) {
@@ -2171,11 +2140,11 @@ void RunMiniRunners(bool prepared) {
                                      "AGGS",   "INSERT", "UPDATE",    "DELETE"};
   for (auto title : titles) {
     char target[64];
-    snprintf(target, sizeof(target), "execution_%s%s.csv", title.c_str(), prepared ? "_prepare" : "");
+    snprintf(target, sizeof(target), "execution_%s.csv", title.c_str());
 
     for (int i = 1; i <= terrier::runner::rerun_iterations; i++) {
       char source[64];
-      snprintf(source, sizeof(target), "execution_%s%s_%d.csv", title.c_str(), prepared ? "_prepare" : "", i);
+      snprintf(source, sizeof(target), "execution_%s_%d.csv", title.c_str(), i);
 
       std::string csv_line;
       std::ofstream of(target, std::ios_base::binary | std::ios_base::app);
@@ -2208,11 +2177,8 @@ int main(int argc, char **argv) {
   Arg updel_info{"--updel_limit=", false};
   Arg warm_limit_info{"--warm_limit=", false};
   Arg compiled_info{"--compiled=", false};
-  Arg sim_prepare_info{"--simulate_prepared=", false};
-  Arg run_prepare_info{"--run_prepared=", false};
-  Arg *args[] = {&port_info,        &filter_info,     &skip_large_rows_runs_info, &warm_num_info,
-                 &rerun_info,       &updel_info,      &warm_limit_info,           &compiled_info,
-                 &sim_prepare_info, &run_prepare_info};
+  Arg *args[] = {&port_info,  &filter_info, &skip_large_rows_runs_info, &warm_num_info,
+                 &rerun_info, &updel_info,  &warm_limit_info,           &compiled_info};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -2230,8 +2196,6 @@ int main(int argc, char **argv) {
   if (rerun_info.found) terrier::runner::rerun_iterations = rerun_info.intValue;
   if (updel_info.found) terrier::runner::updel_limit = updel_info.intValue;
   if (warm_limit_info.found) terrier::runner::warmup_rows_limit = warm_limit_info.intValue;
-  if (sim_prepare_info.found) terrier::runner::simulate_prepared = true;
-  if (run_prepare_info.found) terrier::runner::run_with_prepared = true;
 
   terrier::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
@@ -2241,8 +2205,6 @@ int main(int argc, char **argv) {
   SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match, terrier::runner::rerun_iterations);
   SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match, terrier::runner::updel_limit);
   SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match, terrier::runner::warmup_rows_limit);
-  SETTINGS_LOG_INFO("Simulate Prepared ({}): {}", sim_prepare_info.match, terrier::runner::simulate_prepared);
-  SETTINGS_LOG_INFO("Run with Prepared ({}): {}", run_prepare_info.match, terrier::runner::run_with_prepared);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match, filter_info.value);
   SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match, compiled_info.found);
 
@@ -2267,11 +2229,7 @@ int main(int argc, char **argv) {
     benchmark::RunSpecifiedBenchmarks();
     terrier::runner::EndRunnersState();
   } else {
-    RunMiniRunners(terrier::runner::simulate_prepared);
-    if (terrier::runner::run_with_prepared) {
-      RunMiniRunners(true);
-    }
-
+    RunMiniRunners();
     Shutdown();
   }
 
