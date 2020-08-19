@@ -70,7 +70,7 @@ void IterCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, Func
   context->Push(function);
 }
 
-void IterCteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) const {
+void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *builder) const {
   // Generate col types
   auto codegen = GetCodeGen();
   SetColumnTypes(builder);
@@ -119,7 +119,7 @@ void IterCteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const 
 }
 
 void IterCteScanLeaderTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  DeclareCteScanIterator(function);
+  DeclareIterCteScanIterator(function);
 }
 
 ast::Expr *IterCteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const {
@@ -171,17 +171,6 @@ void IterCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *b
       GetCodeGen()->CallBuiltin(ast::Builtin::IterCteScanGetResult, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
   ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_setup);
   builder->Append(assign);
-}
-
-void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *builder) const {
-  // Generate col types
-  SetColumnTypes(builder);
-  SetColumnOids(builder);
-  // Call @cteScanIteratorInit
-  auto is_recursive = op_->GetIsRecursive();
-  ast::Expr *cte_scan_iterator_setup = GetCodeGen()->IterCteScanIteratorInit(
-      cte_scan_val_entry_.GetPtr(GetCodeGen()), op_->GetTableOid(), col_oids_var_, col_types_, is_recursive, GetExecutionContext());
-  builder->Append(GetCodeGen()->MakeStmt(cte_scan_iterator_setup));
 }
 
 void IterCteScanLeaderTranslator::GenInductiveLoop(WorkContext *context, FunctionBuilder *builder) const {

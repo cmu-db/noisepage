@@ -58,7 +58,6 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   //  ast::Identifier GetCteScanIteratorVal();
   //  ast::Identifier GetCteScanIterator();
   // Declare Cte Scan Itarator
-  void DeclareCteScanIterator(FunctionBuilder *builder) const;
   //  // Set Column Types for insertion
   //  void SetColumnTypes(FunctionBuilder *builder);
   // Declare the insert PR
