@@ -12,7 +12,7 @@ namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
-  static double cotan(const double arg) { return Cot<double>{}(arg); }
+  static double Cotan(const double arg) { return Cot<double>{}(arg); }
 };
 
 // NOLINTNEXTLINE
@@ -226,7 +226,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
   // Check some of the trig functions on all inputs
   for (const auto input : inputs) {
     CHECK_SQL_FUNC(Cos, std::cos);
-    CHECK_SQL_FUNC(Cot, cotan);
+    CHECK_SQL_FUNC(Cot, Cotan);
     CHECK_SQL_FUNC(Sin, std::sin);
     CHECK_SQL_FUNC(Tan, std::tan);
     CHECK_SQL_FUNC(Cosh, std::cosh);
