@@ -94,6 +94,8 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   StateDescriptor::Entry cte_scan_val_entry_;
 
   Pipeline build_pipeline_;
+
+  storage::ColumnMap table_pm_;
   void SetColumnTypes(FunctionBuilder *builder) const;
   void SetColumnOids(FunctionBuilder *builder) const;
 };
