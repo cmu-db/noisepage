@@ -1960,7 +1960,8 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   static Operator Make();
 
-  static Operator Make(std::string table_alias, catalog::table_oid_t table_oid, catalog::Schema table_schema,
+  static Operator Make(std::string table_alias, std::string table_name, catalog::table_oid_t table_oid,
+                       catalog::Schema table_schema,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
                        parser::CTEType cte_type, std::vector<AnnotatedExpression> &&scan_predicate);
 
@@ -1977,6 +1978,11 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    * @return the alias of the table to get from
    */
   const std::string &GetTableAlias() const { return table_alias_; }
+
+  /**
+   * @return the name of the table to get from
+   */
+  const std::string &GetTableName() const { return table_name_; }
 
   /**
    * GetExpressions
@@ -2006,6 +2012,7 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    * Alias of the table to get from
    */
   std::string table_alias_;
+  std::string table_name_;
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
   parser::CTEType cte_type_;
   std::vector<AnnotatedExpression> scan_predicate_;

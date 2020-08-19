@@ -399,8 +399,8 @@ void RewriteEmbedFilterIntoChildlessCteScan::Transform(common::ManagedPointer<Ab
     c.push_back(child->Copy());
   }
   auto output = std::make_unique<OperatorNode>(
-      LogicalCteScan::Make(get->GetTableAlias(), get->GetTableOid(), get->GetTableSchema(), get->GetExpressions(),
-                           get->GetCTEType(), std::move(predicates))
+      LogicalCteScan::Make(get->GetTableAlias(), get->GetTableName(), get->GetTableOid(), get->GetTableSchema(),
+                           get->GetExpressions(), get->GetCTEType(), std::move(predicates))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
@@ -437,8 +437,8 @@ void RewriteEmbedFilterIntoCteScan::Transform(common::ManagedPointer<AbstractOpt
     c.push_back(child->Copy());
   }
   auto output = std::make_unique<OperatorNode>(
-      LogicalCteScan::Make(get->GetTableAlias(), get->GetTableOid(), get->GetTableSchema(), get->GetExpressions(),
-                           get->GetCTEType(), std::move(predicates))
+      LogicalCteScan::Make(get->GetTableAlias(), get->GetTableName(), get->GetTableOid(), get->GetTableSchema(),
+                           get->GetExpressions(), get->GetCTEType(), std::move(predicates))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
@@ -553,8 +553,9 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
   children.push_back(std::move(new_derived));
   children.push_back(right_node->Copy());
   auto new_root = std::make_unique<OperatorNode>(
-      LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetTableOid(), cte_scan->GetTableSchema(),
-                           cte_scan->GetExpressions(), cte_scan->GetCTEType(), cte_scan->GetScanPredicate())
+      LogicalCteScan::Make(cte_scan->GetTableAlias(), cte_scan->GetTableName(), cte_scan->GetTableOid(),
+                           cte_scan->GetTableSchema(), cte_scan->GetExpressions(), cte_scan->GetCTEType(),
+                           cte_scan->GetScanPredicate())
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(children), context->GetOptimizerContext()->GetTxn());
   transformed->push_back(std::move(new_root));

@@ -47,7 +47,7 @@ bool QueryToOperatorTransformer::FindFirstCTEScanNode(common::ManagedPointer<Abs
 
   // TODO(preetang): Replace explicit string usage for operator name with reference to constant string
   if (child_expr->Contents()->GetOpType() == OpType::LOGICALCTESCAN &&
-      (child_expr->Contents()->GetContentsAs<LogicalCteScan>()->GetTableAlias() == cte_table_name)) {
+      (child_expr->Contents()->GetContentsAs<LogicalCteScan>()->GetTableName() == cte_table_name)) {
     // Leftmost LogicalCteScan found in tree
     child_expr->PushChild(std::move(output_expr_));
     is_added = true;
@@ -120,7 +120,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
 
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(with->GetAlias(), oid, catalog::Schema(std::move(columns)), {},
+          LogicalCteScan::Make(with->GetAlias(), with->GetTableName(), oid, catalog::Schema(std::move(columns)), {},
                                with->GetCteType(), {}),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       cte_scan_expr->PushChild(std::move(output_expr_));
@@ -390,8 +390,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       std::vector<type::TypeId> col_types;
 
       auto cte_scan_expr =
-          std::make_unique<OperatorNode>(LogicalCteScan::Make(node->GetAlias(), cte_oids_[index], cte_schemas_[index],
-                                                              cte_expressions_[index], cte_type_[index], {})
+          std::make_unique<OperatorNode>(LogicalCteScan::Make(node->GetAlias(), node->GetTableName(), cte_oids_[index],
+                                                              cte_schemas_[index],cte_expressions_[index],
+                                                              cte_type_[index], {})
                                              .RegisterWithTxnContext(txn_context),
                                          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
