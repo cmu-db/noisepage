@@ -150,3 +150,28 @@ SELECT * FROM temp3 WHERE id=1 OR time=300 AND id=3 OR id=4 AND time=200 OR id=2
 
 statement ok
 DROP TABLE temp3
+
+# left outer join
+
+statement ok
+CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
+
+statement ok
+CREATE TABLE yyy (id INT PRIMARY KEY, val INT);
+
+statement ok
+INSERT INTO xxx VALUES (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (2,2), (3,3), (4,4);
+
+query I nosort
+SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.id = yyy.id;
+----
+16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
+
+statement ok
+DROP TABLE xxx;
+
+statement ok
+DROP TABLE yyy;
