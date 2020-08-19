@@ -448,7 +448,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   if (terrier::BenchmarkConfig::num_daf_threads == 2 && terrier::BenchmarkConfig::num_threads == 8)
     curr_num_precomputed_txns = curr_num_precomputed_txns * 2;
 
-  std::cout << "num daf thread:" << terrier::BenchmarkConfig::num_daf_threads << " num worker threads:" << terrier::BenchmarkConfig::num_threads << " txns per thread:" << curr_num_precomputed_txns << std::endl;
+  std::cout << "DAF | num daf thread:" << terrier::BenchmarkConfig::num_daf_threads << " num worker threads:" << terrier::BenchmarkConfig::num_threads << " txns per thread:" << curr_num_precomputed_txns << std::endl;
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
                                                curr_num_precomputed_txns);
