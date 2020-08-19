@@ -1445,11 +1445,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  int num_iters = 1;
-  if (num_rows <= warmup_rows_limit) {
-    num_iters += warmup_iterations_num_crud;
-  }
-  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
+  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
 
   // Drop the table
   {
