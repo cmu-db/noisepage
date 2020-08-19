@@ -50,7 +50,7 @@ class RecoveryTests : public TerrierTest {
     unlink(LOG_FILE_NAME);
 
     db_main_ = terrier::DBMain::Builder()
-                   .SetLogFilePath(LOG_FILE_NAME)
+                   .SetWalFilePath(LOG_FILE_NAME)
                    .SetUseLogging(true)
                    .SetUseGC(true)
                    .SetUseGCThread(true)
@@ -639,7 +639,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // Override the recovery DBMain to now log out
   recovery_db_main_ = terrier::DBMain::Builder()
-                          .SetLogFilePath(secondary_log_file)
+                          .SetWalFilePath(secondary_log_file)
                           .SetUseLogging(true)
                           .SetUseGC(true)
                           .SetUseGCThread(true)
