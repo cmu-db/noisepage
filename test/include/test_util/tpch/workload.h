@@ -53,7 +53,7 @@ class Workload {
   void GenerateTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name,
                       enum BenchmarkType type);
 
-  void LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type);
+  void LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type);
 
   common::ManagedPointer<DBMain> db_main_;
   common::ManagedPointer<storage::BlockStore> block_store_;

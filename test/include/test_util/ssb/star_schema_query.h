@@ -8,7 +8,6 @@ namespace terrier::ssb {
 class SSBQuery {
  public:
   /// Static functions to generate executable queries for SSB benchmark. Query plans are hard coded.
-  // TODO(Wuwen): modify q16 after LIKE fix and q19 after VARCHAR fix
   static std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
   SSBMakeExecutableQ1_1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                         const execution::exec::ExecutionSettings &exec_settings);

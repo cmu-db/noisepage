@@ -42,7 +42,7 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
 
   // create the TPCH database and compile the queries
   GenerateTables(&exec_ctx, table_root, type);
-  LoadTPCHQueries(accessor, type);
+  LoadQueries(accessor, type);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -76,9 +76,9 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
   }
 }
 
-void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type) {
-  // TODO(Wuwen): add q16 after LIKE fix
+void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type) {
   // Executable query and plan node are stored as a tuple as the entry of vector
+  // TODO(wuwenw): add q16 after LIKE PR get merged
   switch (type) {
     case tpch::Workload::BenchmarkType::TPCH:
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));

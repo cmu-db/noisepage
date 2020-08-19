@@ -1571,12 +1571,7 @@ TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &ac
 
     // Predicate
     auto brand_comp = expr_maker.ComparisonNeq(p_brand, expr_maker.Constant("Brand#45"));
-    auto type_like = expr_maker.Constant("MEDIUM POLISHED%");
-    // TODO(Wuwen): fix me after LIKE get fixed
-    auto like_call = expr_maker.Function("like", {p_type, type_like}, type::TypeId::BOOLEAN, catalog::proc_oid_t(0));
-    // auto conversion_call =
-    // expr_maker.Function("sqlToBool", {like_call}, type::TypeId::BOOLEAN, catalog::postgres::SQL_TO_BOOL_PRO_OID);
-    auto type_comp = expr_maker.OpNot(like_call);
+    auto type_comp = expr_maker.ComparisonNotLike(p_type, expr_maker.Constant("MEDIUM POLISHED%"));
     auto size_comp = expr_maker.ConjunctionOr(
         expr_maker.ComparisonEq(p_size, expr_maker.Constant(49)),
         expr_maker.ConjunctionOr(
@@ -1614,15 +1609,11 @@ TPCHQuery::MakeExecutableQ16(const std::unique_ptr<catalog::CatalogAccessor> &ac
     s_seq_scan_out.AddOutput("s_suppkey", s_suppkey);
     auto schema = s_seq_scan_out.MakeSchema();
     // Predicate
-    auto comment_like = expr_maker.Constant("%Customer%Complaints%");
-    // TODO(Wuwen): fix me after LIKE get fixed
-    auto like_call =
-        expr_maker.Function("like", {s_comment, comment_like}, type::TypeId::BOOLEAN, catalog::proc_oid_t(0));
-    // auto predicate = expr_maker.Function("sqlToBool", {like_call}, type::TypeId::BOOLEAN,
-    // catalog::postgres::SQL_TO_BOOL_PRO_OID); Build
+    auto predicate = expr_maker.ComparisonLike(s_comment, expr_maker.Constant("%Customer%Complaints%"));
+    // Build
     planner::SeqScanPlanNode::Builder builder;
     s_seq_scan = builder.SetOutputSchema(std::move(schema))
-                     .SetScanPredicate(like_call)
+                     .SetScanPredicate(predicate)
                      .SetTableOid(s_table_oid)
                      .SetColumnOids(std::move(s_col_oids))
                      .Build();

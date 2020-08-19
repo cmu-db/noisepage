@@ -172,6 +172,20 @@ class ExpressionMaker {
   }
 
   /**
+   * Create expression for child1 Like child2
+   */
+  ManagedExpression ComparisonLike(ManagedExpression child1, ManagedExpression child2) {
+    return Comparison(parser::ExpressionType::COMPARE_LIKE, child1, child2);
+  }
+
+  /**
+   * Create expression for child1 Not Like child2
+   */
+  ManagedExpression ComparisonNotLike(ManagedExpression child1, ManagedExpression child2) {
+    return Comparison(parser::ExpressionType::COMPARE_NOT_LIKE, child1, child2);
+  }
+
+  /**
    * Create a unary operation expression
    */
   ManagedExpression Operator(parser::ExpressionType op_type, type::TypeId ret_type, ManagedExpression child) {
