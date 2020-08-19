@@ -78,20 +78,6 @@ class LogicalGet : public OperatorNodeContents<LogicalGet> {
                        std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update);
 
   /**
-   * Make a select statement with limit value
-   * @param database_oid OID of the database
-   * @param table_oid OID of the table
-   * @param predicates predicates for get
-   * @param table_alias alias of table to get from
-   * @param is_for_update whether the scan is used for update
-   * @param limit value of limit to be used in scan
-   * @return
-   */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
-                       std::vector<AnnotatedExpression> predicates, std::string table_alias, bool is_for_update,
-                       size_t limit);
-
-  /**
    * For select statement without a from table
    * @return
    */

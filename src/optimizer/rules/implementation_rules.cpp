@@ -130,8 +130,9 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
   }
 
   std::vector<catalog::col_oid_t> sort_col_ids;
-  bool sort_exists = sort != nullptr && IndexUtil::CheckSortProperty(sort->As<PropertySort>());
+  bool sort_exists = sort != nullptr;
   auto sort_prop = sort_exists ? sort->As<PropertySort>() : nullptr;
+  bool sort_possible = sort_exists ? IndexUtil::CheckSortProperty(sort_prop) : false;
   bool predicate_exists = !get->GetPredicates().empty();
 
   if (predicate_exists) {
@@ -145,7 +146,8 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
                                                  allow_cves_, &scan_type, &bounds)) {
         // There is an index that satisfies predicates for at least one column
         if (sort_exists) {
-          if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index, &bounds)) {
+          if (sort_possible &&
+              IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index, &bounds)) {
             // Index also satisfies sort properties so can push down limit and sort
             preds = get->GetPredicates();
             auto op = std::make_unique<OperatorNode>(
@@ -182,7 +184,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
     // If no predicates exist, index itself must satisfy sort properties and can push down limit if such an index exists
     // If sort property is not satsified, should default to sequential scan
     for (auto &index : indexes) {
-      if (IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
+      if (sort_possible && IndexUtil::SatisfiesSortWithIndex(accessor, sort_prop, get->GetTableOid(), index)) {
         std::vector<AnnotatedExpression> preds = get->GetPredicates();
         auto op = std::make_unique<OperatorNode>(
             IndexScan::Make(db_oid, get->GetTableOid(), index, std::move(preds), is_update,
