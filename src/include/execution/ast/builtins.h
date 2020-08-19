@@ -322,7 +322,7 @@ namespace terrier::execution::ast {
 /**
  * An enumeration of all TPL builtin functions.
  */
-enum class Builtin : uint8_t {
+enum class Builtin : uint16_t {
 #define ENTRY(Name, ...) Name,
   BUILTINS_LIST(ENTRY)
 #undef ENTRY
@@ -353,7 +353,9 @@ class Builtins {
   /**
    * @return The name of the function associated with the given builtin enumeration.
    */
-  static const char *GetFunctionName(Builtin builtin) { return builtin_function_names[static_cast<uint8_t>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) {
+    return builtin_function_names[static_cast<std::underlying_type<Builtin>::type>(builtin)];
+  }
 
  private:
   static const char *builtin_function_names[];
