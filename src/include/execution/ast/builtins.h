@@ -267,6 +267,11 @@ namespace terrier::execution::ast {
   F(Cot, cot)                                                           \
   F(Sin, sin)                                                           \
   F(Tan, tan)                                                           \
+  F(Ceil, ceil)                                                         \
+  F(Floor, floor)                                                       \
+  F(Truncate, truncate)                                                 \
+  F(Log10, log10)                                                       \
+  F(Log2, log2)                                                         \
                                                                         \
   /* EXP */                                                             \
   F(Exp, exp)                                                           \
