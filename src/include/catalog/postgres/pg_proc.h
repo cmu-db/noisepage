@@ -82,13 +82,12 @@ constexpr proc_oid_t LOG2_PRO_OID = proc_oid_t(99);
 constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(100);
 constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(101);
 constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(102);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(103);
 
-constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(103);
-constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(104);
-constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(105);
-constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(106);
 
-// SQL Function
-constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(107);
+constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
+constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(902);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(903);
 
 }  // namespace terrier::catalog::postgres
