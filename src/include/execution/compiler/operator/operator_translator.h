@@ -214,9 +214,6 @@ class OperatorTranslator : public ColumnValueProvider {
   /** Get a pointer to the query state. */
   ast::Expr *GetQueryStatePtr() const;
 
-  /** Get a pointer to the pipeline state. */
-  ast::Expr *GetPipelineStatePtr() const;
-
   /** Get the execution context pointer in the current function. */
   ast::Expr *GetExecutionContext() const;
 

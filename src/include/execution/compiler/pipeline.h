@@ -172,11 +172,6 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
-  /**
-   * @return The pipeline state
-   */
-  StateDescriptor *GetPipelineState() { return &state_; }
-
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization

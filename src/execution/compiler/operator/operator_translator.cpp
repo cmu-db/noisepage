@@ -53,10 +53,6 @@ ast::Expr *OperatorTranslator::GetQueryStatePtr() const {
   return compilation_context_->GetQueryState()->GetStatePointer(GetCodeGen());
 }
 
-ast::Expr *OperatorTranslator::GetPipelineStatePtr() const {
-  return pipeline_->GetPipelineState()->GetStatePointer(GetCodeGen());
-}
-
 ast::Expr *OperatorTranslator::GetExecutionContext() const {
   return compilation_context_->GetExecutionContextPtrFromQueryState();
 }

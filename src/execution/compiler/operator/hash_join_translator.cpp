@@ -294,8 +294,8 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
             codegen->MakeStmt(codegen->HTNaiveIteratorNext(naive_iter_expr)));
   {
     // var buildRow = @htNaiveIterGetRow()
-    function->Append(codegen->DeclareVarWithInit(
-        build_row_var_, codegen->HTNaiveIteratorGetRow(naive_iter_expr, build_row_type_)));
+    function->Append(
+        codegen->DeclareVarWithInit(build_row_var_, codegen->HTNaiveIteratorGetRow(naive_iter_expr, build_row_type_)));
 
     auto left_mark = codegen->AccessStructMember(codegen->MakeExpr(build_row_var_), build_mark_);
 

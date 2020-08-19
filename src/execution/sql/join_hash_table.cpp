@@ -591,7 +591,6 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   built_ = true;
 }
 
-
 HashTableNaiveIterator::HashTableNaiveIterator(const JoinHashTable &table)
     : entry_list_iter_(table.owned_.begin()),
       entry_list_end_(table.owned_.end()),
