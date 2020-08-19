@@ -13,13 +13,11 @@
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
-#include "test_util/ssb/star_schema_query.h"
 #include "test_util/tpch/tpch_query.h"
 
 namespace terrier::tpch {
 
-Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db_name, const std::string &table_root,
-                   enum BenchmarkType type) {
+Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db_name, const std::string &table_root) {
   // cache db main and members
   db_main_ = db_main;
   txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
@@ -41,73 +39,35 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
       common::ManagedPointer<catalog::CatalogAccessor>(accessor), exec_settings_);
 
   // create the TPCH database and compile the queries
-  GenerateTables(&exec_ctx, table_root, type);
-  LoadTPCHQueries(accessor, type);
+  GenerateTPCHTables(&exec_ctx, table_root);
+  LoadTPCHQueries(accessor);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name,
-                              enum BenchmarkType type) {
+void Workload::GenerateTPCHTables(execution::exec::ExecutionContext *exec_ctx, const std::string &dir_name) {
   // TPCH table names;
-  static const std::vector<std::string> tpch_tables{"part",   "supplier", "partsupp", "customer",
-                                                    "orders", "lineitem", "nation",   "region"};
-
-  // SSB table names;
-  static const std::vector<std::string> ssb_tables{"part", "lineorder", "customer", "date", "supplier"};
-  const std::vector<std::string> *tables;
-  std::string kind;
-  switch (type) {
-    case tpch::Workload::BenchmarkType::TPCH:
-      tables = &tpch_tables;
-      kind = ".data";
-      break;
-    case tpch::Workload::BenchmarkType::SSB:
-      tables = &ssb_tables;
-      kind = ".csv";
-      break;
-    default:
-      UNREACHABLE("unimplemented benchmark type");
-  }
+  static const std::vector<std::string> tpch_tables{
+      "part", "supplier", "partsupp", "customer", "orders", "lineitem", "nation", "region",
+  };
   execution::sql::TableReader table_reader(exec_ctx, block_store_.Get(), ns_oid_);
-  for (const auto &table_name : *tables) {
-    auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + kind);
+  for (const auto &table_name : tpch_tables) {
+    auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
     EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
   }
 }
 
-void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type) {
-  // TODO(Wuwen): add q16 after LIKE fix
+void Workload::LoadTPCHQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor) {
+  // TODO(Wuwen): add q16 after LIKE fix and 19 after VARCHAR fix
   // Executable query and plan node are stored as a tuple as the entry of vector
-  switch (type) {
-    case tpch::Workload::BenchmarkType::TPCH:
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ4(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ5(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ6(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ7(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ11(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ18(accessor, exec_settings_));
-      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ19(accessor, exec_settings_));
-      break;
-    case tpch::Workload::BenchmarkType::SSB:
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_3(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_3(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_3(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_4(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_3(accessor, exec_settings_));
-      break;
-    default:
-      UNREACHABLE("Unimplemented Benchmark Type");
-  }
+
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ4(accessor, exec_settings_));
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ5(accessor, exec_settings_));
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ6(accessor, exec_settings_));
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ7(accessor, exec_settings_));
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ11(accessor, exec_settings_));
+  query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ18(accessor, exec_settings_));
 }
 
 void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint64_t avg_interval_us, uint32_t query_num,

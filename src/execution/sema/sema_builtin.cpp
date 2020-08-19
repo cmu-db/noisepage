@@ -2636,7 +2636,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::VectorFilterGreaterThanEqual:
     case ast::Builtin::VectorFilterLessThan:
     case ast::Builtin::VectorFilterLessThanEqual:
-    case ast::Builtin::VectorFilterNotEqual: {
+    case ast::Builtin::VectorFilterNotEqual:
+    case ast::Builtin::VectorFilterLike:
+    case ast::Builtin::VectorFilterNotLike: {
       CheckBuiltinVectorFilterCall(call);
       break;
     }

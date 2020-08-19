@@ -124,6 +124,8 @@ namespace terrier::execution::ast {
   F(VectorFilterLessThan, filterLt)                                     \
   F(VectorFilterLessThanEqual, filterLe)                                \
   F(VectorFilterNotEqual, filterNe)                                     \
+  F(VectorFilterLike, filterLike)                                       \
+  F(VectorFilterNotLike, filterNotLike)                                 \
                                                                         \
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \

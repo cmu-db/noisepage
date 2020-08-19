@@ -854,6 +854,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_VEC_FILTER(VectorFilterLessThan)
   GEN_VEC_FILTER(VectorFilterLessThanEqual)
   GEN_VEC_FILTER(VectorFilterNotEqual)
+  GEN_VEC_FILTER(VectorFilterLike)
+  GEN_VEC_FILTER(VectorFilterNotLike)
 
 #undef GEN_VEC_FILTER
 

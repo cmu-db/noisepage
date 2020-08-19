@@ -698,9 +698,9 @@ TPCHQuery::MakeExecutableQ6(const std::unique_ptr<catalog::CatalogAccessor> &acc
     // Predicate
     auto lo_date = expr_maker.Constant(1994, 1, 1);
     auto hi_date = expr_maker.Constant(1995, 1, 1);
-    auto lo_discount = expr_maker.Constant(0.05);
-    auto hi_discount = expr_maker.Constant(0.07);
-    auto lo_qty = expr_maker.Constant(24.0);
+    auto lo_discount = expr_maker.Constant(0.05f);
+    auto hi_discount = expr_maker.Constant(0.07f);
+    auto lo_qty = expr_maker.Constant(24.0f);
     auto lo_date_comp = expr_maker.ComparisonGe(l_shipdate, lo_date);
     auto hi_date_comp = expr_maker.ComparisonLt(l_shipdate, hi_date);
     auto lo_discount_comp = expr_maker.ComparisonGe(l_discount, lo_discount);
