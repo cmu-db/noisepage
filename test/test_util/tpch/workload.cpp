@@ -91,19 +91,19 @@ void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &acce
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ19(accessor, exec_settings_));
       break;
     case tpch::Workload::BenchmarkType::SSB:
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1_3(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2_3(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_3(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3_4(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_1(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_2(accessor, exec_settings_));
-      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4_3(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1Part1(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1Part2(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ1Part3(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2Part1(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2Part2(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ2Part3(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3Part1(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3Part2(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3Part3(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ3Part4(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4Part1(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4Part2(accessor, exec_settings_));
+      query_and_plan_.emplace_back(ssb::SSBQuery::SSBMakeExecutableQ4Part3(accessor, exec_settings_));
       break;
     default:
       UNREACHABLE("Unimplemented Benchmark Type");

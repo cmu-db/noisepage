@@ -18,7 +18,7 @@ class TPCHRunner : public benchmark::Fixture {
   std::unique_ptr<tpch::Workload> workload_;
 
   const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
-  const std::string ssb_dir_ = "../../../ssb_tables/ssb_tables/tables/";
+  const std::string ssb_dir_ = "../../../SSB_Table_Generator/ssb_tables/";
   const std::string tpch_database_name_ = "benchmark_db";
 
   tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::TPCH;

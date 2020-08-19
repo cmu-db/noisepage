@@ -15,7 +15,7 @@
 
 namespace terrier::ssb {
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ1_1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -130,7 +130,7 @@ SSBQuery::SSBMakeExecutableQ1_1(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ1_2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ1Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -242,7 +242,7 @@ SSBQuery::SSBMakeExecutableQ1_2(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ1_3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ1Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -356,7 +356,7 @@ SSBQuery::SSBMakeExecutableQ1_3(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ2_1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ2Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -603,7 +603,7 @@ SSBQuery::SSBMakeExecutableQ2_1(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ2_2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ2Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -848,7 +848,7 @@ SSBQuery::SSBMakeExecutableQ2_2(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ2_3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ2Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -1092,7 +1092,7 @@ SSBQuery::SSBMakeExecutableQ2_3(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ3_1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ3Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -1353,7 +1353,7 @@ SSBQuery::SSBMakeExecutableQ3_1(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ3_2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ3Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -1610,7 +1610,7 @@ SSBQuery::SSBMakeExecutableQ3_2(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ3_3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ3Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -1869,7 +1869,7 @@ SSBQuery::SSBMakeExecutableQ3_3(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ3_4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ3Part4(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -2129,7 +2129,7 @@ SSBQuery::SSBMakeExecutableQ3_4(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ4_1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ4Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -2440,7 +2440,7 @@ SSBQuery::SSBMakeExecutableQ4_1(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ4_2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ4Part2(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date
@@ -2771,7 +2771,7 @@ SSBQuery::SSBMakeExecutableQ4_2(const std::unique_ptr<catalog::CatalogAccessor> 
 }
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
-SSBQuery::SSBMakeExecutableQ4_3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                 const execution::exec::ExecutionSettings &exec_settings) {
   execution::compiler::test::ExpressionMaker expr_maker;
   // Date

@@ -37,4 +37,11 @@ $ python3 convert.py
 ```
 csv files are generated under ../ssb_tables. Note that this will only compile in Linux system.
 
-
+3. To switch to SSB, change
+```
+ tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::TPCH;
+``` 
+to 
+```
+ tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::SSB;
+```
