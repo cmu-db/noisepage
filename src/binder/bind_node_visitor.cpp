@@ -805,15 +805,16 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
                                  .c_str(),
                              common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
     }
-    std::vector<std::string> aliases;
+    std::vector<parser::AliasType> aliases;
     for (size_t i = 0; i < num_aliases; i++) {
-      columns[i]->SetAlias(column_aliases[i]);
-      aliases.emplace_back(column_aliases[i]);
+      columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), i));
+      aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), i));
     }
     for(size_t i = num_aliases; i < num_columns;i++){
-      columns[i]->SetAlias("?column?");
-      aliases.emplace_back("?column?");
-      node->cte_col_aliases_.emplace_back("?column?");
+      auto alias = columns[i]->GetAlias().empty() ? parser::AliasType("?column?", i) : columns[i]->GetAlias();
+      columns[i]->SetAlias(alias);
+      aliases.emplace_back(alias);
+      node->cte_col_aliases_.emplace_back(alias);
     }
 
 //    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");

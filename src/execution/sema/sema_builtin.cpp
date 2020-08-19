@@ -2057,7 +2057,7 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
 void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::CteScanInit: {
-      if (!CheckArgCount(call, 4)) {
+      if (!CheckArgCount(call, 5)) {
         return;
       }
       const auto cte_scan_iterator_kind = ast::BuiltinType::CteScanIterator;
@@ -2085,6 +2085,16 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
       auto uint32_t_kind = ast::BuiltinType::Uint32;
       if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
+      }
+
+      // The fourth argument is a uint32_t array
+      if (!call->Arguments()[4]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 4, "Fourth argument should be a fixed length uint32 array");
+        return;
+      }
+      arr_type = call->Arguments()[4]->GetType()->SafeAs<ast::ArrayType>();
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 4, "Fourth argument should be a fixed length uint32 array");
       }
 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -2150,7 +2160,7 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
     } break;
     case ast::Builtin::IterCteScanInit: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
       const auto cte_scan_iterator_kind = ast::BuiltinType::IterCteScanIterator;
@@ -2179,10 +2189,20 @@ void Sema::CheckBuiltinCteScanCall(ast::CallExpr *call, ast::Builtin builtin) {
       if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
       }
+
+      // The third argument is a uint32_t array
+      if (!call->Arguments()[4]->GetType()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
+        return;
+      }
+      arr_type = call->Arguments()[4]->GetType()->SafeAs<ast::ArrayType>();
+      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 4, "Fourth argument should be a fixed length uint32 array");
+      }
       // The fourth argument is a boolean
       auto bool_kind = ast::BuiltinType::Bool;
-      if (!call->Arguments()[4]->GetType()->IsSpecificBuiltin(bool_kind)) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(bool_kind));
+      if (!call->Arguments()[5]->GetType()->IsSpecificBuiltin(bool_kind)) {
+        ReportIncorrectCallArg(call, 5, GetBuiltinType(bool_kind));
         return;
       }
 

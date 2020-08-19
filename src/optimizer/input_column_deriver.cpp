@@ -50,6 +50,7 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   for (auto expr : required_cols_) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
+  TERRIER_ASSERT(output_cols_map.size() == required_cols_.size(), "???");
 
   auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
   std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols(output_cols.size());
@@ -59,9 +60,10 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     output_cols[entry.second] = entry.first;
 
     // Get the actual expression
-    TERRIER_ASSERT(alias_expr_map.count(tv_expr->GetColumnName()) > 0,
+    auto alias = tv_expr->GetAlias().IsSerialNoValid() ? tv_expr->GetAlias() : parser::AliasType(tv_expr->GetColumnName());
+    TERRIER_ASSERT(alias_expr_map.count(alias) > 0,
                    "Couldn't find alias in alias_to_expr map");
-    auto input_col = alias_expr_map[tv_expr->GetColumnName()];
+    auto input_col = alias_expr_map[alias];
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;
@@ -119,7 +121,7 @@ void InputColumnDeriver::Visit(const CteScan *op) {
   for (auto child_exprs : op->GetChildExpressions()) {
     bool alias_present = false;
     for (auto &elem : child_exprs) {
-      if (!elem->GetAlias().empty()) {
+      if (!elem->GetAlias().GetName().empty()) {
         alias_present = true;
         break;
       }

@@ -12,6 +12,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
                                                  CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
       op_(&plan),
+      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
@@ -52,9 +53,10 @@ void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) c
   // Generate col types
   auto codegen = GetCodeGen();
   SetColumnTypes(builder);
+  SetColumnOids(builder);
   // Call @cteScanIteratorInit
   ast::Expr *cte_scan_iterator_setup = codegen->CteScanIteratorInit(
-      cte_scan_val_entry_.GetPtr(codegen), GetPlanAs<planner::CteScanPlanNode>().GetTableOid(), col_types_,
+      cte_scan_val_entry_.GetPtr(codegen), GetPlanAs<planner::CteScanPlanNode>().GetTableOid(), col_oids_var_, col_types_,
       GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   builder->Append(codegen->MakeStmt(cte_scan_iterator_setup));
 
@@ -73,6 +75,21 @@ void CteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const {
   for (uint16_t i = 0; i < size; i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_types_, i);
     ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Type()));
+    builder->Append(codegen->Assign(lhs, rhs));
+  }
+}
+
+void CteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const {
+  // Declare: var col_types: [num_cols]uint32
+  auto codegen = GetCodeGen();
+  auto size = op_->GetTableSchema()->GetColumns().size();
+  ast::Expr *arr_type = codegen->ArrayType(size, ast::BuiltinType::Kind::Uint32);
+  builder->Append(codegen->DeclareVar(col_oids_var_, arr_type, nullptr));
+
+  // For each oid, set col_oids[i] = col_oid
+  for (uint16_t i = 0; i < size; i++) {
+    ast::Expr *lhs = codegen->ArrayAccess(col_oids_var_, i);
+    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Oid()));
     builder->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -106,17 +123,25 @@ void CteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const {
 }
 
 void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuilder *builder) const {
-  const auto &cols = op_->GetTableSchema()->GetColumns();
+  auto &plan = GetPlanAs<planner::CteScanPlanNode>();
+  const auto &cols = plan.GetOutputSchema()->GetColumns();
   auto codegen = GetCodeGen();
 
   for (uint32_t i = 0; i < cols.size(); i++) {
-    const auto &table_col = cols[i];
-    const auto &table_col_oid = table_col.Oid();
-    auto val = GetChildOutput(context, 0, i);
+    const auto &table_col = cols[i].GetExpr().CastManagedPointerTo<parser::ColumnValueExpression>();
+    const auto &table_col_oid = table_col->GetColumnOid();
+    size_t col_ind = 0;
+    for(auto col : plan.GetColumnOids()){
+      if(col == table_col_oid){
+        break;
+      }
+      col_ind++;
+    }
+    auto val = GetChildOutput(context, 0, col_ind);
     // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
     // Right now it is only Non Null
-    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col.Type(), table_col.Nullable(),
-                                      !EXTRACT_OID(catalog::col_oid_t, table_col_oid), val, true);
+    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col->GetReturnValueType(), false,
+                                      col_ind, val, true);
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }

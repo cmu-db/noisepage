@@ -37,5 +37,20 @@ INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 
 query I nosort
 WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
 ----
-73 values hashing to e0147388525f89cdac23192c19c5cc75
+7 values hashing to e0147388525f89cdac23192c19c5cc75
+
+query I nosort
+with cte(x,x) as (select 1, 2) select * from cte;
+----
+2 values hashing to cb0e93933b5e2202825f38da7587cf07
+
+query I nosort
+with cte as (select 4, 3) select * from cte;
+----
+2 values hashing to 59dd3f9ecdec2a5dc45c99b7b093f8bf
+
+query I nosort
+with cte(y,y,x) as (select 5,4,3) select x from cte;
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
 

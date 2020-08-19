@@ -70,6 +70,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   // Insert into table.
   void GenTableInsert(FunctionBuilder *builder) const;
   ast::Identifier col_types_;
+  ast::Identifier col_oids_var_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
   //  void SetReadOids(FunctionBuilder *builder);
@@ -93,6 +94,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   Pipeline base_pipeline_;
   Pipeline build_pipeline_;
   void SetColumnTypes(FunctionBuilder *builder) const;
+  void SetColumnOids(FunctionBuilder *builder) const;
   void DeclareIterCteScanIterator(FunctionBuilder *builder) const;
   void GenInductiveLoop(WorkContext *context, FunctionBuilder *builder) const;
   void FinalizeReadCteScanIterator(FunctionBuilder *builder) const;

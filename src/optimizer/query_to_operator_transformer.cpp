@@ -85,13 +85,21 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       for (uint32_t i = 0; i < with->GetCteColumnAliases().size(); i++) {
         col_types.push_back(with->GetSelect()->GetSelectColumns()[i]->GetReturnValueType());
       }
-      cte_schemas_.emplace_back(catalog::Schema(with->GetCteColumnAliases(), col_types));
+      std::vector<catalog::Schema::Column> columns1;
+      size_t i = 0;
+      for(auto &alias : with->GetCteColumnAliases()){
+        columns1.emplace_back(alias.GetName(), col_types[i], false,
+                             parser::ConstantValueExpression(col_types[i]), TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
+        i++;
+      }
+
+      cte_schemas_.emplace_back(catalog::Schema(std::move(columns1)));
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> master_expressions;
       std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions;
 
       auto index = 0;
       for (auto &elem : with->GetCteColumnAliases()) {
-        parser::AbstractExpression *cve = new parser::ColumnValueExpression(with->GetTableName(), elem, elem);
+        parser::AbstractExpression *cve = new parser::ColumnValueExpression(with->GetTableName(), elem.GetName(), elem);
         txn_context->RegisterAbortAction([=]{delete cve;});
         txn_context->RegisterCommitAction([=]{delete cve;});
         expressions.push_back(common::ManagedPointer(cve));
@@ -102,8 +110,17 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       }
 
       master_expressions.push_back(std::move(expressions));
+      std::vector<catalog::Schema::Column> columns;
+      size_t ind = 0;
+      for(auto &alias : with->GetCteColumnAliases()){
+        columns.emplace_back(alias.GetName(), col_types[ind], false,
+                             parser::ConstantValueExpression(col_types[ind]), TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
+        ind++;
+      }
+
+
       auto cte_scan_expr = std::make_unique<OperatorNode>(
-          LogicalCteScan::Make(with->GetAlias(), oid, catalog::Schema(with->GetCteColumnAliases(), col_types), {},
+          LogicalCteScan::Make(with->GetAlias(), oid, catalog::Schema(std::move(columns)), {},
                                with->GetCteType(), {}),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       cte_scan_expr->PushChild(std::move(output_expr_));
@@ -982,21 +999,22 @@ void QueryToOperatorTransformer::SplitPredicates(
   }
 }
 
-std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>
-QueryToOperatorTransformer::ConstructSelectElementMap(
+std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                   parser::AliasType::HashKey> QueryToOperatorTransformer::ConstructSelectElementMap(
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> res;
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                     parser::AliasType::HashKey> res;
   for (auto &expr : select_list) {
-    std::string alias;
+    parser::AliasType alias;
     if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
-      alias = tv_expr->GetColumnName();
+      alias = parser::AliasType(tv_expr->GetColumnName());
     } else {
       continue;
     }
-    std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
+//    std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr);
   }
   return res;

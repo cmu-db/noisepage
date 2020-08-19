@@ -301,7 +301,8 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
     auto colve = output.CastManagedPointerTo<parser::ColumnValueExpression>();
 
     // Get offset into child_expr_ma
-    auto expr = alias_expr_map.at(colve->GetColumnName());
+    auto expr = alias_expr_map.at(colve->GetAlias().IsSerialNoValid() ? colve->GetAlias()
+                                                                      : parser::AliasType(colve->GetColumnName()));
     auto offset = child_expr_map.at(expr);
 
     auto dve = std::make_unique<parser::DerivedValueExpression>(colve->GetReturnValueType(), 0, offset);

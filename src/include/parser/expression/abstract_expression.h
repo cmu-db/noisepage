@@ -26,6 +26,50 @@ class BinderUtil;
 namespace terrier::parser {
 class ParseResult;
 
+class AliasType {
+ public:
+  AliasType() : name_{}, serial_no_{0}, serial_valid_{false} {}
+
+  explicit AliasType(std::string &&name, size_t serial_no) : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
+
+  explicit AliasType(const std::string &name, size_t serial_no) : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
+
+  explicit AliasType(std::string &&name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
+
+  explicit AliasType(const std::string &name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
+
+  const std::string &GetName() const { return name_; }
+
+  bool IsSerialNoValid() const { return serial_valid_; }
+
+  size_t GetSerialNo() const { return serial_no_; }
+
+  bool operator==(const AliasType &other) const {
+    bool names_equal = (name_ == other.name_);
+    if (!serial_valid_ | !other.serial_valid_) {
+      return names_equal;
+    } else {
+      return names_equal && (serial_no_ == other.serial_no_);
+    }
+  }
+
+  bool empty() const {
+    return name_.empty();
+  }
+
+  struct HashKey {
+    size_t operator()(const AliasType &p) const {
+      auto hash1 = std::hash<std::string>{}(p.name_);
+      return hash1;
+    }
+  };
+
+ private:
+  std::string name_;
+  size_t serial_no_;
+  bool serial_valid_;
+};
+
 /**
  * AbstractExpression is the base class of any expression which is output from the parser.
  *
@@ -54,7 +98,7 @@ class AbstractExpression {
    * @param alias alias of the column (used in column value expression)
    * @param children the list of children for this node
    */
-  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
+  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, AliasType alias,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type),
         alias_(std::move(alias)),
@@ -106,6 +150,7 @@ class AbstractExpression {
   void SetMutableStateForCopy(const AbstractExpression &copy_expr);
 
  public:
+
   virtual ~AbstractExpression() = default;
 
   /**
@@ -185,10 +230,12 @@ class AbstractExpression {
   virtual void DeriveExpressionName();
 
   /** @return alias of this abstract expression */
-  const std::string &GetAlias() const { return alias_; }
+  const std::string &GetAliasName() const { return alias_.GetName(); }
+
+  const AliasType &GetAlias() const { return alias_; }
 
   /** set alias of this abstract expression */
-  void SetAlias(std::string alias) { alias_ = std::move(alias); }
+  void SetAlias(AliasType alias) { alias_ = std::move(alias); }
 
   /**
    * Derive the expression type of the current expression.
@@ -261,7 +308,7 @@ class AbstractExpression {
   /** MUTABLE Name of the current expression */
   std::string expression_name_;
   /** Alias of the current expression */
-  std::string alias_;
+  AliasType alias_;
   /** Type of the return value */
   type::TypeId return_value_type_;
 

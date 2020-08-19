@@ -39,7 +39,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    * @param alias alias of the expression
    */
-  ColumnValueExpression(std::string table_name, std::string col_name, std::string alias)
+  ColumnValueExpression(std::string table_name, std::string col_name, AliasType alias)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, std::move(alias), {}),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}

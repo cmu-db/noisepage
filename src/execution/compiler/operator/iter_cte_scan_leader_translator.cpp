@@ -15,6 +15,7 @@ IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const planner::CteScanP
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
       op_(&plan),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
+      col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       base_pipeline_(this, Pipeline::Parallelism::Parallel),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
@@ -73,10 +74,11 @@ void IterCteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builde
   // Generate col types
   auto codegen = GetCodeGen();
   SetColumnTypes(builder);
+  SetColumnOids(builder);
   auto &plan = GetPlanAs<planner::CteScanPlanNode>();
   // Call @cteScanIteratorInit
   ast::Expr *cte_scan_iterator_setup = codegen->IterCteScanIteratorInit(
-      cte_scan_val_entry_.GetPtr(codegen), plan.GetTableOid(), col_types_, plan.GetIsRecursive(),
+      cte_scan_val_entry_.GetPtr(codegen), plan.GetTableOid(), col_oids_var_, col_types_, plan.GetIsRecursive(),
       GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   builder->Append(codegen->MakeStmt(cte_scan_iterator_setup));
 
@@ -97,6 +99,21 @@ void IterCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const
   for (uint16_t i = 0; i < size; i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_types_, i);
     ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Type()));
+    builder->Append(codegen->Assign(lhs, rhs));
+  }
+}
+
+void IterCteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const {
+  // Declare: var col_types: [num_cols]uint32
+  auto codegen = GetCodeGen();
+  auto size = op_->GetTableSchema()->GetColumns().size();
+  ast::Expr *arr_type = codegen->ArrayType(size, ast::BuiltinType::Kind::Uint32);
+  builder->Append(codegen->DeclareVar(col_oids_var_, arr_type, nullptr));
+
+  // For each oid, set col_oids[i] = col_oid
+  for (uint16_t i = 0; i < size; i++) {
+    ast::Expr *lhs = codegen->ArrayAccess(col_oids_var_, i);
+    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Oid()));
     builder->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -159,10 +176,11 @@ void IterCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *b
 void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *builder) const {
   // Generate col types
   SetColumnTypes(builder);
+  SetColumnOids(builder);
   // Call @cteScanIteratorInit
   auto is_recursive = op_->GetIsRecursive();
   ast::Expr *cte_scan_iterator_setup = GetCodeGen()->IterCteScanIteratorInit(
-      cte_scan_val_entry_.GetPtr(GetCodeGen()), op_->GetTableOid(), col_types_, is_recursive, GetExecutionContext());
+      cte_scan_val_entry_.GetPtr(GetCodeGen()), op_->GetTableOid(), col_oids_var_, col_types_, is_recursive, GetExecutionContext());
   builder->Append(GetCodeGen()->MakeStmt(cte_scan_iterator_setup));
 }
 

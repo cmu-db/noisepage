@@ -235,7 +235,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
     }
   }
   if (alias != nullptr) {
-    expr->SetAlias(alias);
+    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void*>(expr.get()))));
   }
   return expr;
 }
@@ -540,10 +540,13 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
         }
       }
 
-      if (alias != nullptr)
-        result = std::make_unique<ColumnValueExpression>(table_name, col_name, std::string(alias));
-      else
+      if (alias != nullptr){
+        result = std::make_unique<ColumnValueExpression>(table_name,
+          col_name, parser::AliasType(alias,reinterpret_cast<size_t>(reinterpret_cast<void*>(alias))));
+      }
+      else {
         result = std::make_unique<ColumnValueExpression>(table_name, col_name);
+      }
       break;
     }
     case T_A_Star: {
@@ -2049,13 +2052,15 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
         }
         auto alias = common_table_expr->ctename_;
 
-        std::vector<std::string> colnames;
+        std::vector<parser::AliasType> colnames;
         auto col_names_root = common_table_expr->aliascolnames_;
         if (col_names_root != nullptr) {
+          size_t i = 0;
           for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
             auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
             auto column = target->val_.str_;
-            colnames.emplace_back(column);
+            colnames.emplace_back(parser::AliasType(column, i));
+            i++;
           }
         }
 //        if (colnames.empty()) {

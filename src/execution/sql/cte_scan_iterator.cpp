@@ -10,15 +10,17 @@ parser::ConstantValueExpression DummyCVE() {
 }
 
 CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
+                                 uint32_t *schema_cols_ids,
                                  uint32_t *schema_cols_type, uint32_t num_schema_cols)
     : exec_ctx_(exec_ctx), cte_table_oid_(table_oid), table_redo_(nullptr) {
   // Create column metadata for every column.
   std::vector<catalog::Schema::Column> all_columns;
   for (uint32_t i = 0; i < num_schema_cols; i++) {
     catalog::Schema::Column col("col" + std::to_string(i), static_cast<type::TypeId>(schema_cols_type[i]), false,
-                                DummyCVE(), TEMP_OID(catalog::col_oid_t, i));
+                                parser::ConstantValueExpression(static_cast<type::TypeId>(schema_cols_type[i])),
+                                catalog::col_oid_t(schema_cols_ids[i]));
     all_columns.push_back(col);
-    col_oids_.push_back(TEMP_OID(catalog::col_oid_t, i));
+    col_oids_.push_back(catalog::col_oid_t(schema_cols_ids[i]));
   }
 
   // Create the table in the catalog.

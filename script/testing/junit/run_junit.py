@@ -27,9 +27,9 @@ if __name__ == "__main__":
     exit_code = ErrorCode.SUCCESS
     junit_test_runner = TestJUnit(args)
 
-    # # Step 1: Run the regular JUnit tests.
-    # LOG.info(section_header("JUNIT TESTS"))
-    # test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
+    # Step 1: Run the regular JUnit tests.
+    LOG.info(section_header("JUNIT TESTS"))
+    test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
     # try:
     #     test_case_junit = TestCaseJUnit(
     #         args, test_command=test_command_regular)

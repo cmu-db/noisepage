@@ -7,3 +7,6 @@ WITH cte(x) AS (SELECT 1), cte2(y) AS (SELECT 2) SELECT * FROM cte INNER JOIN ct
 CREATE TABLE tree (node INTEGER, parent INTEGER);
 INSERT INTO tree VALUES (1,NULL), (10, 1), (11, 1), (100, 10), (101, 10), (110, 11), (111, 11);
 WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JOIN cte ON tree.parent=cte.x) SELECT * FROM cte;
+with cte(x,x) as (select 1, 2) select * from cte;
+with cte as (select 4, 3) select * from cte;
+with cte(y,y,x) as (select 5,4,3) select x from cte;

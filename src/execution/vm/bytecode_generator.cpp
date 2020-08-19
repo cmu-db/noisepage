@@ -3298,8 +3298,9 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       uint32_t table_oid = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val();
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar col_types = VisitExpressionForLValue(call->Arguments()[4]);
       // Emit the initialization codes
-      GetEmitter()->EmitCteScanIteratorInit(Bytecode::CteScanInit, iterator, exec_ctx, table_oid, col_oids,
+      GetEmitter()->EmitCteScanIteratorInit(Bytecode::CteScanInit, iterator, exec_ctx, table_oid, col_oids, col_types,
                                             static_cast<uint32_t>(arr_type->GetLength()));
       break;
     }
@@ -3333,9 +3334,11 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       uint32_t table_oid = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val();
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
-      bool is_recursive = call->Arguments()[4]->As<ast::LitExpr>()->BoolVal();
+      LocalVar col_types = VisitExpressionForLValue(call->Arguments()[4]);
+      bool is_recursive = call->Arguments()[5]->As<ast::LitExpr>()->BoolVal();
       // Emit the initialization codes
       GetEmitter()->EmitIterCteScanIteratorInit(Bytecode::IterCteScanInit, iterator, exec_ctx, table_oid, col_oids,
+                                                col_types,
                                                 static_cast<uint32_t>(arr_type->GetLength()), is_recursive);
       break;
     }

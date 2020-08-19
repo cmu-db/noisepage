@@ -78,11 +78,11 @@ class BinderContext {
    */
   void AddNestedTable(const std::string &table_alias,
                       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
-                      const std::vector<std::string> &col_aliases);
+                      const std::vector<parser::AliasType> &col_aliases);
 
   void AddCTETable(common::ManagedPointer<catalog::CatalogAccessor> accessor, const std::string &table_name,
                    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
-                   const std::vector<std::string> &col_aliases);
+                   const std::vector<parser::AliasType> &col_aliases);
 
   /**
    * Update the nested table alias map to create a copy of CTE table's entry for given alias
@@ -217,7 +217,8 @@ class BinderContext {
   /**
    * Map the table alias to maps which is from table alias to the value type
    */
-  std::unordered_map<std::string, std::unordered_map<std::string, type::TypeId>> nested_table_alias_map_;
+  std::unordered_map<std::string, std::unordered_map<parser::AliasType, type::TypeId,
+                                                     parser::AliasType::HashKey>> nested_table_alias_map_;
 
   /**
    * Upper binder context of the current binder context

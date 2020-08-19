@@ -185,7 +185,8 @@ void LogicalQueryDerivedGetToPhysicalQueryDerivedScan::Transform(
   const auto get = input->Contents()->GetContentsAs<LogicalQueryDerivedGet>();
 
   auto tbl_alias = std::string(get->GetTableAlias());
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> expr_map;
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+      parser::AliasType::HashKey> expr_map;
   expr_map = get->GetAliasToExprMap();
 
   auto input_child = input->GetChildren()[0];

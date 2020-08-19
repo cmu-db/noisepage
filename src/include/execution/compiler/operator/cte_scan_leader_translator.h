@@ -68,6 +68,7 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   void FillPRFromChild(WorkContext *context, FunctionBuilder *builder) const;
   // Insert into table.
   void GenTableInsert(FunctionBuilder *builder) const;
+  ast::Identifier col_oids_var_;
   ast::Identifier col_types_;
   std::vector<int> all_types_;
   ast::Identifier insert_pr_;
@@ -94,6 +95,7 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
 
   Pipeline build_pipeline_;
   void SetColumnTypes(FunctionBuilder *builder) const;
+  void SetColumnOids(FunctionBuilder *builder) const;
 };
 
 }  // namespace terrier::execution::compiler

@@ -15,7 +15,8 @@ class EXPORT IterCteScanIterator {
    * Constructor for the CTEScanIterator
    */
 
-  IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_type,
+  IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_ids,
+                      uint32_t *schema_cols_type,
                       uint32_t num_schema_cols, bool is_recursive);
 
   /**

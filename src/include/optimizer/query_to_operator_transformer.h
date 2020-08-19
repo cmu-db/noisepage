@@ -152,7 +152,8 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
    * @param select_list Select columns in the select statement
    * @return table alias map
    */
-  static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(
+  static std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                            parser::AliasType::HashKey> ConstructSelectElementMap(
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
   /**
