@@ -1570,7 +1570,6 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
     return;
   }
 
-
   // UPDATE [] SET [col] = random integer()
   // This does not force a read from the underlying tuple more than getting the slot.
   // Arguably, this approach has the least amount of "SEQ_SCAN" overhead and measures:
@@ -2168,7 +2167,7 @@ void RunMiniRunners(bool prepared) {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
                                      "AGGS",   "INSERT", "UPDATE",    "DELETE"};
   for (auto title : titles) {
     char target[64];

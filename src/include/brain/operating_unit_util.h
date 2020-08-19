@@ -163,6 +163,10 @@ class OperatingUnitUtil {
 
     return feature_types;
   }
+
+  static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType f) {
+    return f > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+  }
 };
 
 }  // namespace terrier::brain
