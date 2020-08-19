@@ -807,13 +807,15 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     }
     std::vector<parser::AliasType> aliases;
     for (size_t i = 0; i < num_aliases; i++) {
-      columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), i));
-      aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), i));
+      auto serial_no = catalog_accessor_->GetNewTempOid();
+      columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
+      aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
     }
     for (size_t i = num_aliases; i < num_columns;i++) {
-      auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), i);
+      auto serial_no = catalog_accessor_->GetNewTempOid();
+      auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
       if (new_alias.empty()) {
-        new_alias = parser::AliasType("?column?");
+        new_alias = parser::AliasType("?column?", i);
       }
       columns[i]->SetAlias(new_alias);
       aliases.emplace_back(new_alias);
