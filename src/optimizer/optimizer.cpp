@@ -96,12 +96,20 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
     if (*leader == nullptr) {
       auto current_cte = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
 
+      std::vector<planner::OutputSchema::Column> table_columns;
+      for(auto &col : context_->GetCTESchema(table_oid).GetColumns()){
+        table_columns.emplace_back(col.Name(), col.Type(), std::make_unique<parser::ColumnValueExpression>(
+            current_cte->GetCTETableName(), col.Name(), catalog::INVALID_DATABASE_OID,
+            table_oid, col.Oid(), col.Type()));
+      }
+      auto new_output_schema = std::make_unique<planner::OutputSchema>(std::move(table_columns));
+
       auto builder = planner::CteScanPlanNode::Builder();
       builder.SetLeader(true)
           .SetScanPredicate(current_cte->GetScanPredicate())
           .SetCTEType(current_cte->GetCTEType())
           .SetCTETableName(std::string(current_cte->GetCTETableName()))
-          .SetOutputSchema(current_cte->GetOutputSchema()->Copy())
+          .SetOutputSchema(std::move(new_output_schema))
           .SetTableSchema(catalog::Schema(*current_cte->GetTableSchema().Get()))
           .SetTableOid(table_oid);
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> children;
@@ -110,7 +118,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       //        builder.AddChild(std::move(child));
       //      }
 
-      TERRIER_ASSERT(children.size() > 0, "Nothing to fill the leader with???");
+//      TERRIER_ASSERT(children.size() > 0, "Nothing to fill the leader with???");
       for(size_t i = 0;i < children.size();i++){
         builder.AddChild(std::move(children[i]));
       }
