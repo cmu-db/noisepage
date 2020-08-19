@@ -11,7 +11,6 @@
 #include "common/managed_pointer.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
-#include "execution/table_generator/sample_output.h"
 #include "execution/vm/module.h"
 
 namespace terrier::execution::exec {
