@@ -624,7 +624,7 @@ TEST_F(StringFunctionsTests, CharLength) {
   StringFunctions::CharLength(&result, Ctx(), StringVal("H"));
   EXPECT_EQ(1, result.val_);
 
-  // Simple nulti char
+  // Simple multi char
   result = Integer(0);
   StringFunctions::CharLength(&result, Ctx(), StringVal("Has a beg"));
   EXPECT_EQ(9, result.val_);
