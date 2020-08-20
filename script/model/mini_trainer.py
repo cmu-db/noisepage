@@ -77,7 +77,7 @@ class MiniTrainer:
         best_y_transformer = -1
         best_method = -1
         for i, y_transformer in enumerate(y_transformers):
-            for m, method in methods:
+            for m, method in enumerate(methods):
                 # Train the model
                 label = method if i == 0 else method + " transform"
                 logging.info("{} {}".format(data.opunit.name, label))
@@ -171,7 +171,7 @@ if __name__ == '__main__':
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
-    aparser.add_argument('--expose_all', default=False, help='Should expose all data to the model')
+    aparser.add_argument('--expose_all', default=True, help='Should expose all data to the model')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 

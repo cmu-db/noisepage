@@ -108,7 +108,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
                 q_id = int(line[0])
                 p_id = int(line[1])
                 if tpcc_hack:
-                    x_loc = tpcc_fixer.transformFeature(feature, q_id, p_id, x_loc)
+                    x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
                 opunits.append((opunit, x_loc))
 
