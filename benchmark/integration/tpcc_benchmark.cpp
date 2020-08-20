@@ -544,7 +544,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
                    shut_down);
         });
       }
-      std::this_thread::sleep_for(std::chrono::seconds(250));
+      std::this_thread::sleep_for(std::chrono::seconds(300));
       shut_down = true;
       thread_pool.WaitUntilAllFinished();
     }
@@ -563,7 +563,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     catalog.TearDown();
     delete gc_thread_;
     deferred_action_manager.FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
-//    thread_pool.Shutdown();
+    thread_pool.Shutdown();
     delete gc_;
     delete metrics_thread;
     delete metrics_manager;
