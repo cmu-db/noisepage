@@ -40,7 +40,7 @@ bool ColumnValueExpression::operator==(const AbstractExpression &rhs) const {
 }
 
 void ColumnValueExpression::DeriveExpressionName() {
-  if (!(this->GetAlias().empty()))
+  if (!(this->GetAlias().Empty()))
     this->SetExpressionName(this->GetAlias().GetName());
   else
     this->SetExpressionName(column_name_);

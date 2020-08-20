@@ -498,7 +498,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       for (size_t i = num_aliases; i < num_columns; i++) {
         auto serial_no = catalog_accessor_->GetNewTempOid();
         auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
-        if (new_alias.empty()) {
+        if (new_alias.Empty()) {
           new_alias = parser::AliasType("?column?", serial_no);
         }
         columns[i]->SetAlias(new_alias);

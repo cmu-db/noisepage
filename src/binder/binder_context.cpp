@@ -69,6 +69,7 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
+  regular_table_alias_list_.push_back(table_alias);
 }
 
 void BinderContext::AddNewTable(const std::string &new_table_name,
@@ -318,34 +319,38 @@ void BinderContext::GenerateAllColumnExpressions(
     }
   }
 
-  for (auto &entry : regular_table_alias_map_) {
-    auto &table_alias = entry.first;
-    if (constituent_table_aliases.count(table_alias) > 0) {
-      auto &schema = std::get<2>(entry.second);
-      auto col_cnt = schema.GetColumns().size();
-      for (uint32_t i = 0; i < col_cnt; i++) {
-        const auto &col_obj = schema.GetColumn(i);
-        auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
-        tv_expr->SetReturnValueType(col_obj.Type());
-        tv_expr->DeriveExpressionName();
-        tv_expr->SetDatabaseOID(std::get<0>(entry.second));
-        tv_expr->SetTableOID(std::get<1>(entry.second));
-        tv_expr->SetColumnOID(col_obj.Oid());
-        tv_expr->SetDepth(depth_);
+//  for (auto &entry : regular_table_alias_map_) {
+    for (auto &entry : regular_table_alias_list_) {
+      auto &table_alias = entry;
+      if (constituent_table_aliases.count(table_alias) > 0) {
+        auto table_data = regular_table_alias_map_[entry];
+        auto &schema = std::get<2>(table_data);
+        auto col_cnt = schema.GetColumns().size();
+        for (uint32_t i = 0; i < col_cnt; i++) {
+          const auto &col_obj = schema.GetColumn(i);
+          auto tv_expr = new parser::ColumnValueExpression(std::string(entry), std::string(col_obj.Name()));
+          tv_expr->SetReturnValueType(col_obj.Type());
+          tv_expr->DeriveExpressionName();
+          tv_expr->SetDatabaseOID(std::get<0>(table_data));
+          tv_expr->SetTableOID(std::get<1>(table_data));
+          tv_expr->SetColumnOID(col_obj.Oid());
+          tv_expr->SetDepth(depth_);
 
-        auto unique_tv_expr =
-            std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
-        parse_result->AddExpression(std::move(unique_tv_expr));
-        auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
-        exprs->push_back(new_tv_expr);
+          auto unique_tv_expr =
+              std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+          parse_result->AddExpression(std::move(unique_tv_expr));
+          auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
+          exprs->push_back(new_tv_expr);
+        }
       }
     }
-  }
+//  }
 
   for (auto &entry : nested_table_alias_map_) {
     auto &table_alias = entry.first;
     if (constituent_table_aliases.count(table_alias) > 0) {
       auto &cols = entry.second;
+      auto start_iter = exprs->end();
       for (auto &col_entry : cols) {
         auto tv_expr =
             new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
@@ -362,6 +367,10 @@ void BinderContext::GenerateAllColumnExpressions(
         // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
         exprs->push_back(new_tv_expr);
       }
+      auto end_iter = exprs->end();
+      std::sort(start_iter, end_iter, [](common::ManagedPointer<parser::AbstractExpression> a,
+                                         common::ManagedPointer<parser::AbstractExpression> b)
+                {return parser::AliasType::CompareSerialNo()(a->GetAlias(),b->GetAlias());});
     }
   }
 }
