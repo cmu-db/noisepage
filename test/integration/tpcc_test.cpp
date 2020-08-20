@@ -84,11 +84,12 @@ class TPCCTests : public TerrierTest {
     Loader::PopulateDatabase(txn_manager, tpcc_db, &workers, &thread_pool_);
 
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion
     for (int8_t i = 0; i < num_threads_; i++) {
-      thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers] {
-        Workload(i, tpcc_db, txn_manager.Get(), precomputed_args, &workers);
+      thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers, &shut_down] {
+        Workload(i, tpcc_db, txn_manager.Get(), precomputed_args, &workers, nullptr, shut_down);
       });
     }
     thread_pool_.WaitUntilAllFinished();
