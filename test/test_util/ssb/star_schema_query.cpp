@@ -7,7 +7,7 @@
 #include "execution/compiler/output_schema_util.h"
 #include "execution/sql/sql_def.h"
 #include "loggers/execution_logger.h"
-#include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/aggregate_plan_node.h"_
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
@@ -34,8 +34,8 @@ SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccesso
     std::vector<catalog::col_oid_t> d_oids = {d_schema.GetColumn("d_datekey").Oid(),
                                               d_schema.GetColumn("d_year").Oid()};
     // Make the predicate: d_year=1993
-    auto _1993 = expr_maker.Constant(1993);
-    auto predicate = expr_maker.ComparisonEq(d_year, _1993);
+    auto d_year_constant = expr_maker.Constant(1993);
+    auto predicate = expr_maker.ComparisonEq(d_year, d_year_constant);
     // Make output schema.
     d_seq_scan_out.AddOutput("d_datekey", d_datekey);
     // Build plan node.
