@@ -134,6 +134,7 @@ void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor>
 //                                parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
 //                                TEMP_OID(catalog::col_oid_t, i));
 //    schema_columns.push_back(col);
+    TERRIER_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 

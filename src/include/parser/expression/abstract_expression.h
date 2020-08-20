@@ -46,7 +46,7 @@ class AliasType {
 
   bool operator==(const AliasType &other) const {
     bool names_equal = (name_ == other.name_);
-    if (!serial_valid_ | !other.serial_valid_) {
+    if (!serial_valid_ || !other.serial_valid_) {
       return names_equal;
     } else {
       return names_equal && (serial_no_ == other.serial_no_);
@@ -61,6 +61,12 @@ class AliasType {
     size_t operator()(const AliasType &p) const {
       auto hash1 = std::hash<std::string>{}(p.name_);
       return hash1;
+    }
+  };
+
+  struct CompareSerialNo {
+    bool operator()(const AliasType &p, const AliasType &q) const {
+      return p.GetSerialNo() < q.GetSerialNo();
     }
   };
 

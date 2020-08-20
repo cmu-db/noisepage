@@ -99,11 +99,16 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
       auto index = 0;
       for (auto &elem : with->GetCteColumnAliases()) {
-        parser::AbstractExpression *cve = new parser::ColumnValueExpression(with->GetTableName(), elem.GetName(), elem);
+        TERRIER_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
+        auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
+        parser::AbstractExpression *cve = new parser::ColumnValueExpression(with->GetTableName(), elem.GetName(), ret_type,
+                                                                            elem,
+                                                                            TEMP_OID(catalog::col_oid_t,
+                                                                                     elem.GetSerialNo()));
         txn_context->RegisterAbortAction([=]{delete cve;});
         txn_context->RegisterCommitAction([=]{delete cve;});
         expressions.push_back(common::ManagedPointer(cve));
-        auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
+
         col_types.push_back(ret_type);
         cve->SetReturnValueType(ret_type);
         index++;
