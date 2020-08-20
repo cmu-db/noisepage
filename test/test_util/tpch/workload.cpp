@@ -1,6 +1,7 @@
 #include "test_util/tpch/workload.h"
 
 #include <random>
+#include <string>
 
 #include "common/managed_pointer.h"
 #include "execution/compiler/output_schema_util.h"
@@ -55,6 +56,7 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
 
   // SSB table names;
   static const std::vector<std::string> ssb_tables{"part", "lineorder", "customer", "date", "supplier"};
+
   const std::vector<std::string> *tables;
   std::string kind;
   switch (type) {
@@ -70,8 +72,10 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
       UNREACHABLE("unimplemented benchmark type");
   }
   execution::sql::TableReader table_reader(exec_ctx, block_store_.Get(), ns_oid_);
+
   for (const auto &table_name : *tables) {
-    auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + kind);
+    auto table_dir = dir_name + table_name;
+    auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", table_dir.append(kind));
     EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
   }
 }
