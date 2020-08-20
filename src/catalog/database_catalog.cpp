@@ -677,7 +677,7 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
 
-  auto next_oid = ClassOid(class_oid.underlying_value() + 1);
+  auto next_oid = ClassOid(class_oid.UnderlyingValue() + 1);
   // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
@@ -927,7 +927,7 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
  */
 common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
     const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table) {
-  const auto ptr_pair = GetClassPtrKind(txn, table.underlying_value());
+  const auto ptr_pair = GetClassPtrKind(txn, table.UnderlyingValue());
   if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::SqlTable>(nullptr);
@@ -953,7 +953,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
 
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const table_oid_t table) {
-  const auto ptr_pair = GetClassSchemaPtrKind(txn, table.underlying_value());
+  const auto ptr_pair = GetClassSchemaPtrKind(txn, table.UnderlyingValue());
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
@@ -1225,7 +1225,7 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  const auto ptr_pair = GetClassPtrKind(txn, index.underlying_value());
+  const auto ptr_pair = GetClassPtrKind(txn, index.UnderlyingValue());
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
@@ -1245,7 +1245,7 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
-  auto ptr_pair = GetClassSchemaPtrKind(txn, index.underlying_value());
+  auto ptr_pair = GetClassSchemaPtrKind(txn, index.UnderlyingValue());
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
@@ -1294,7 +1294,7 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   class_tuple_slots.reserve(index_oids.size());
   for (const auto &index_oid : index_oids) {
     // Find the entry using the index
-    *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = index_oid.underlying_value();
+    *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = index_oid.UnderlyingValue();
     classes_oid_index_->ScanKey(*txn, *class_key_pr, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1,
                    "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
@@ -1666,7 +1666,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   // Insert into oid index
   auto oid_index_delta = types_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   auto oid_index_offset = types_oid_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) = type_oid.underlying_value();
+  *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) = type_oid.UnderlyingValue();
   auto result UNUSED_ATTRIBUTE = types_oid_index_->InsertUnique(txn, *oid_index_delta, tuple_slot);
   TERRIER_ASSERT(result, "Insert into type oid index should always succeed");
 
@@ -1675,7 +1675,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   // Populate namespace
   auto name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
   *(reinterpret_cast<uint32_t *>(name_index_delta->AccessForceNotNull(name_index_offset))) =
-      namespace_oid.underlying_value();
+      namespace_oid.UnderlyingValue();
   // Populate type name
   name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(2));
   *(reinterpret_cast<storage::VarlenEntry *>(name_index_delta->AccessForceNotNull(name_index_offset))) = name_varlen;
@@ -1686,7 +1686,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   auto namespace_index_delta = types_namespace_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   auto namespace_index_offset = types_namespace_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
   *(reinterpret_cast<uint32_t *>(namespace_index_delta->AccessForceNotNull(namespace_index_offset))) =
-      namespace_oid.underlying_value();
+      namespace_oid.UnderlyingValue();
   result = types_namespace_index_->Insert(txn, *name_index_delta, tuple_slot);
   TERRIER_ASSERT(result, "Insert into type namespace index should always succeed");
 

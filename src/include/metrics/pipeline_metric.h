@@ -49,8 +49,8 @@ class PipelineMetricRawData : public AbstractRawData {
     auto &outfile = (*outfiles)[0];
 
     for (auto &data : pipeline_data_) {
-      outfile << data.query_id_.underlying_value() << ", ";
-      outfile << data.pipeline_id_.underlying_value() << ", ";
+      outfile << data.query_id_.UnderlyingValue() << ", ";
+      outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";

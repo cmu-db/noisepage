@@ -110,7 +110,7 @@ void IndexJoinTranslator::SetOids(FunctionBuilder *builder) const {
   for (uint16_t i = 0; i < input_oids_.size(); i++) {
     // col_oids[i] = col_oid
     ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(input_oids_[i].underlying_value());
+    ast::Expr *rhs = GetCodeGen()->Const32(input_oids_[i].UnderlyingValue());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -125,7 +125,7 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) const {
 
   ast::Expr *init_call = GetCodeGen()->IndexIteratorInit(
       index_iter_, GetCompilationContext()->GetExecutionContextPtrFromQueryState(), num_attrs,
-      op.GetTableOid().underlying_value(), op.GetIndexOid().underlying_value(), col_oids_);
+      op.GetTableOid().UnderlyingValue(), op.GetIndexOid().UnderlyingValue(), col_oids_);
   builder->Append(GetCodeGen()->MakeStmt(init_call));
 }
 
@@ -161,8 +161,8 @@ void IndexJoinTranslator::FillKey(
   for (const auto &key : index_exprs) {
     // @prSet(pr, type, nullable, attr, expr, true)
     uint16_t attr_offset = index_pm_.at(key.first);
-    type::TypeId attr_type = index_schema_.GetColumn(key.first.underlying_value() - 1).Type();
-    bool nullable = index_schema_.GetColumn(key.first.underlying_value() - 1).Nullable();
+    type::TypeId attr_type = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Type();
+    bool nullable = index_schema_.GetColumn(key.first.UnderlyingValue() - 1).Nullable();
     auto *set_key_call = GetCodeGen()->PRSet(GetCodeGen()->MakeExpr(pr), attr_type, nullable, attr_offset,
                                              context->DeriveValue(*key.second.Get(), this), true);
     builder->Append(GetCodeGen()->MakeStmt(set_key_call));

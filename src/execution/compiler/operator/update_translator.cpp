@@ -90,7 +90,7 @@ void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuil
   builder->Append(GetCodeGen()->DeclareVar(updater_, storage_interface_type, nullptr));
   // @storageInterfaceInit(updater, execCtx, table_oid, col_oids, true)
   ast::Expr *updater_setup = GetCodeGen()->StorageInterfaceInit(
-      updater_, GetExecutionContext(), GetPlanAs<planner::UpdatePlanNode>().GetTableOid().underlying_value(), col_oids_,
+      updater_, GetExecutionContext(), GetPlanAs<planner::UpdatePlanNode>().GetTableOid().UnderlyingValue(), col_oids_,
       true);
   builder->Append(GetCodeGen()->MakeStmt(updater_setup));
 }
@@ -125,7 +125,7 @@ void UpdateTranslator::SetOids(FunctionBuilder *builder) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids[i] = col_oid
     ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(all_oids_[i].underlying_value());
+    ast::Expr *rhs = GetCodeGen()->Const32(all_oids_[i].UnderlyingValue());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -200,7 +200,7 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
   // var insert_index_pr = @getIndexPR(&updater, oid)
   const auto &insert_index_pr = GetCodeGen()->MakeFreshIdentifier("insert_index_pr");
   std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_),
-                                        GetCodeGen()->Const32(index_oid.underlying_value())};
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(insert_index_pr, nullptr, get_index_pr_call));
 
@@ -250,7 +250,7 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   // var delete_index_pr = @getIndexPR(&updater, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
   std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_),
-                                        GetCodeGen()->Const32(index_oid.underlying_value())};
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 

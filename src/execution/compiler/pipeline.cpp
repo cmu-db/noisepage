@@ -100,8 +100,8 @@ void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
 void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const {
   // Inject EndPipelineTracker();
   std::vector<ast::Expr *> args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
-  args.push_back(codegen_->Const64(query_id.underlying_value()));
-  args.push_back(codegen_->Const64(GetPipelineId().underlying_value()));
+  args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
+  args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
   auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
   builder->Append(codegen_->MakeStmt(end_call));
 }

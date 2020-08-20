@@ -46,7 +46,7 @@ namespace terrier::common {
  * using A = StrongTypeAlias<struct SomeTag, int>
  *
  * A a(42)
- * assert(a.underlying_value() == 42)
+ * assert(a.UnderlyingValue() == 42)
  *
  * This mechanism works with all integral types (as defined by std::is_integral).
  *
@@ -95,12 +95,19 @@ class StrongTypeAlias {
   /**
    * @return the underlying value
    */
-  constexpr IntType &underlying_value() { return val_; }
+  constexpr IntType &UnderlyingValue() { return val_; }
 
   /**
    * @return the underlying value
    */
-  constexpr const IntType &underlying_value() const { return val_; }
+  constexpr const IntType &UnderlyingValue() const { return val_; }
+
+  // TODO(Kyle): perhaps remove ability to static_cast to underlying value altogether.
+  /**
+   *
+   * @return the underlying value
+   */
+  explicit operator IntType() const { return val_; }
 
   /**
    * Checks if this is equal to the other StrongTypeAlias.
@@ -260,7 +267,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * Constructs new atomic variable.
    * @param val value to initialize with.
    */
-  explicit atomic(t val) : underlying_{val.underlying_value()} {}
+  explicit atomic(t val) : underlying_{val.UnderlyingValue()} {}
 
   DISALLOW_COPY_AND_MOVE(atomic)
 
@@ -278,7 +285,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param order memory order constraints to enforce.
    */
   void store(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {  // NOLINT match underlying API
-    underlying_.store(desired.underlying_value(), order);
+    underlying_.store(desired.UnderlyingValue(), order);
   }
 
   /**
@@ -314,7 +321,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_weak(expected.underlying_value(), desired.underlying_value(), order);
+    return underlying_.compare_exchange_weak(expected.UnderlyingValue(), desired.UnderlyingValue(), order);
   }
 
   /**
@@ -329,7 +336,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_strong(expected.underlying_value(), desired.underlying_value(), order);
+    return underlying_.compare_exchange_strong(expected.UnderlyingValue(), desired.UnderlyingValue(), order);
   }
 
   /**
@@ -367,7 +374,7 @@ struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
    * @return the hash of the aliased type.
    */
   size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const {
-    return hash<T>()(alias.underlying_value());
+    return hash<T>()(alias.UnderlyingValue());
   }
 };
 
@@ -385,7 +392,7 @@ struct less<terrier::common::StrongTypeAlias<Tag, T>> {
    */
   bool operator()(const terrier::common::StrongTypeAlias<Tag, T> &x,
                   const terrier::common::StrongTypeAlias<Tag, T> &y) const {
-    return std::less<T>()(x.underlying_value(), y.underlying_value());
+    return std::less<T>()(x.UnderlyingValue(), y.UnderlyingValue());
   }
 };
 }  // namespace std

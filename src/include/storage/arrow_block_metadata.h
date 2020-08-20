@@ -247,7 +247,7 @@ class ArrowBlockMetadata {
    * @return reference to the null count value for given column
    */
   uint32_t &NullCount(col_id_t col_id) {
-    return reinterpret_cast<uint32_t *>(varlen_content_)[col_id.underlying_value()];
+    return reinterpret_cast<uint32_t *>(varlen_content_)[col_id.UnderlyingValue()];
   }
 
   /**
@@ -255,7 +255,7 @@ class ArrowBlockMetadata {
    * @return the null count for given column
    */
   uint32_t NullCount(col_id_t col_id) const {
-    return reinterpret_cast<const uint32_t *>(varlen_content_)[col_id.underlying_value()];
+    return reinterpret_cast<const uint32_t *>(varlen_content_)[col_id.UnderlyingValue()];
   }
 
   /**
@@ -266,7 +266,7 @@ class ArrowBlockMetadata {
   ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.underlying_value()];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.UnderlyingValue()];
   }
 
   /**
@@ -277,7 +277,7 @@ class ArrowBlockMetadata {
   const ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) const {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.underlying_value()];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.UnderlyingValue()];
   }
 
  private:

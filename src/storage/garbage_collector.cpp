@@ -50,7 +50,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
     last_unlinked_ = timestamp_manager_->CheckOutTimestamp();
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
-                    last_unlinked_.underlying_value());
+                    last_unlinked_.UnderlyingValue());
   ProcessDeferredActions(oldest_txn);
   ProcessIndexes();
 

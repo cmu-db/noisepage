@@ -53,7 +53,7 @@ void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   // @storageInterfaceInit(&deleter, execCtx, table_oid, col_oids, true)
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
   ast::Expr *deleter_setup = GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(),
-                                                                op.GetTableOid().underlying_value(), col_oids_, true);
+                                                                op.GetTableOid().UnderlyingValue(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(deleter_setup));
 }
 
@@ -86,7 +86,7 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   // var delete_index_pr = @getIndexPR(&deleter, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
   std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_),
-                                        GetCodeGen()->Const32(index_oid.underlying_value())};
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 
