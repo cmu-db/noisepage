@@ -139,26 +139,6 @@ public class TestUtility {
     }
 
     /**
-     * Get all sql query statement start line numbers
-     * @param input test file
-     * @return list of integers that contains start line numbers
-     * @throws IOException
-     */
-    public static List<Integer> getQueryLineNum(File input) throws IOException {
-        BufferedReader bf = new BufferedReader(new FileReader(input));
-        List<Integer> res = new ArrayList<>();
-        String line;
-        int counter = 0;
-        while (null != (line = bf.readLine())){
-            counter++;
-            if(line.startsWith("query") || line.startsWith("statement")){
-                res.add(counter);
-            }
-        }
-        return res;
-    }
-
-    /**
      * Compute the hash from result list
      * @param res result list of strings queried from database
      * @return hash computed
