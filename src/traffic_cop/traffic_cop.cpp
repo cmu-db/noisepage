@@ -358,7 +358,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
   auto exec_query =
-      execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
+      execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get(),
+                                                       execution::compiler::CompilationMode::Interleaved,
+                                                       common::ManagedPointer<const std::string>(&portal->GetStatement()
+                                                                                         ->GetQueryText()));
 
   std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
 
