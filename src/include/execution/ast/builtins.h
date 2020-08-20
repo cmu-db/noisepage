@@ -356,7 +356,9 @@ class Builtins {
   /**
    * @return The name of the function associated with the given builtin enumeration.
    */
-  static const char *GetFunctionName(Builtin builtin) { return builtin_function_names[static_cast<uint16_t>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) {
+    return builtin_function_names[static_cast<std::underlying_type<Builtin>::type>(builtin)];
+  }
 
  private:
   static const char *builtin_function_names[];
