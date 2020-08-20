@@ -208,7 +208,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
 
-  if (tpcc_feature_fix_) FixTPCCFeature(type, num_rows, cardinality);
+  if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
 
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
@@ -226,13 +226,57 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   pipeline_features_.emplace(type, std::move(feature));
 }
 
-void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t &num_rows, size_t
-                                                                                                         &cardinality) {
-  if (query_text_->compare("SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
-      " ORDER BY NO_O_ID ASC  LIMIT 1") && ((!current_pipeline_->GetPipelineId()) == 2)) {
+void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, size_t *num_keys,
+                                           size_t *cardinality, size_t *num_loops) {
+  if (*query_text_ == "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
+      " ORDER BY NO_O_ID ASC  LIMIT 1" && (!current_pipeline_->GetPipelineId()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
-      num_rows = 850;
-      cardinality = 1;
+      *num_rows = 850;
+      *cardinality = 1;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
+      *cardinality = 850;
+    }
+  }
+
+  if (*query_text_ == "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
+                           " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
+                           " AND S_QUANTITY < $6" && (!current_pipeline_->GetPipelineId()) == 2) {
+    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+      *num_rows = 200;
+      *cardinality = 1;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 2) {
+      *num_loops = 200;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 3) {
+      *cardinality = 200;
+    }
+  }
+
+  if (*query_text_ == "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
+      "OL_W_ID = $4 " && (!current_pipeline_->GetPipelineId()) == 1) {
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
+      *cardinality = 10;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::UPDATE) {
+      *num_rows = 10;
+      *cardinality = 200;
+    }
+  }
+
+  if (*query_text_ == "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
+      "AND OL_W_ID = $3" && (!current_pipeline_->GetPipelineId()) == 2) {
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
+      *cardinality = 10;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+      *num_rows = 10;
     }
   }
 }
