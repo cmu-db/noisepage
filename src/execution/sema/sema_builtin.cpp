@@ -1453,6 +1453,7 @@ void Sema::CheckBuiltinVectorFilterCall(ast::CallExpr *call) {
 
 void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto real_kind = ast::BuiltinType::Real;
+  auto return_kind = real_kind;
 
   const auto &call_args = call->Arguments();
   switch (builtin) {
@@ -1496,8 +1497,14 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
       if (!call_args[0]->GetType()->IsArithmetic()) {
+        // TODO(jkosh44): would be nice to be able to provide multiple types
+        // to ReportIncorrectCallArg to indicate multiple valid types
         ReportIncorrectCallArg(call, 0, GetBuiltinType(real_kind));
         return;
+      }
+      if (call->Arguments()[0]->GetType()->IsIntegerType() ||
+          call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        return_kind = ast::BuiltinType::Integer;
       }
       break;
     }
@@ -1506,8 +1513,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
   }
 
-  // Trig functions return real values
-  call->SetType(GetBuiltinType(real_kind));
+  call->SetType(GetBuiltinType(return_kind));
 }
 
 void Sema::CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
