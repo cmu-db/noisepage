@@ -16,8 +16,7 @@ class EXPORT IterCteScanIterator {
    */
 
   IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_ids,
-                      uint32_t *schema_cols_type,
-                      uint32_t num_schema_cols, bool is_recursive);
+                      uint32_t *schema_cols_type, uint32_t num_schema_cols, bool is_recursive);
 
   /**
    * Returns the temporary table that the cte has made

@@ -80,7 +80,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
 
     // If the table is given, we're either writing or reading all columns
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list), node->GetSelectStatement(), "");
+    context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list),
+                                           node->GetSelectStatement(), "");
     auto col = node->GetSelectStatement()->GetSelectColumns();
     col.insert(std::end(col), std::begin(new_select_list), std::end(new_select_list));
   } else {
@@ -458,68 +459,67 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     // Store CTE table name
     cte_table_name_.push_back(ref->GetAlias());
 
-    bool inductive = (ref->GetCteType() == parser::CTEType::ITERATIVE) ||
-                     (ref->GetCteType() == parser::CTEType::RECURSIVE);
+    bool inductive =
+        (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
     if (ref->GetSelect() != nullptr) {
-        // get schema
-        if(!inductive){
-          ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+      // get schema
+      if (!inductive) {
+        ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
+      }
+      auto sel_cols = ref->GetSelect()->GetSelectColumns();
+      if (inductive) {
+        auto union_larg = ref->GetSelect();
+        auto base_case = union_larg->GetUnionSelect();
+        if (base_case != nullptr) {
+          base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         }
-        auto sel_cols = ref->GetSelect()->GetSelectColumns();
-        if( inductive ) {
-          auto union_larg = ref->GetSelect();
-          auto base_case = union_larg->GetUnionSelect();
-          if (base_case != nullptr) {
-            base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-          }
-          sel_cols = base_case->GetSelectColumns();
-        }
+        sel_cols = base_case->GetSelectColumns();
+      }
 
-        auto column_aliases = ref->GetCteColumnAliases();     // Get aliases from TableRef
-        auto columns = sel_cols;  // AbstractExpressions in select
+      auto column_aliases = ref->GetCteColumnAliases();  // Get aliases from TableRef
+      auto columns = sel_cols;                           // AbstractExpressions in select
 
-        auto num_aliases = column_aliases.size();
-        auto num_columns = columns.size();
+      auto num_aliases = column_aliases.size();
+      auto num_columns = columns.size();
 
-        if (num_aliases > num_columns) {
-          throw BINDER_EXCEPTION(("WITH query " + cte_table_name_.back() + " has " + std::to_string(num_columns) +
-              " columns available but " + std::to_string(num_aliases) + " specified")
-                                     .c_str(),
-                                 common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
+      if (num_aliases > num_columns) {
+        throw BINDER_EXCEPTION(("WITH query " + cte_table_name_.back() + " has " + std::to_string(num_columns) +
+                                " columns available but " + std::to_string(num_aliases) + " specified")
+                                   .c_str(),
+                               common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
+      }
+      std::vector<parser::AliasType> aliases;
+      for (size_t i = 0; i < num_aliases; i++) {
+        auto serial_no = catalog_accessor_->GetNewTempOid();
+        columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
+        aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
+        ref->cte_col_aliases_[i] = parser::AliasType(column_aliases[i].GetName(), serial_no);
+      }
+      for (size_t i = num_aliases; i < num_columns; i++) {
+        auto serial_no = catalog_accessor_->GetNewTempOid();
+        auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
+        if (new_alias.empty()) {
+          new_alias = parser::AliasType("?column?", serial_no);
         }
-        std::vector<parser::AliasType> aliases;
-        for (size_t i = 0; i < num_aliases; i++) {
-          auto serial_no = catalog_accessor_->GetNewTempOid();
-          columns[i]->SetAlias(parser::AliasType(column_aliases[i].GetName(), serial_no));
-          aliases.emplace_back(parser::AliasType(column_aliases[i].GetName(), serial_no));
-          ref->cte_col_aliases_[i] = parser::AliasType(column_aliases[i].GetName(), serial_no);
-        }
-        for (size_t i = num_aliases; i < num_columns;i++) {
-          auto serial_no = catalog_accessor_->GetNewTempOid();
-          auto new_alias = parser::AliasType(columns[i]->GetExpressionName(), serial_no);
-          if (new_alias.empty()) {
-            new_alias = parser::AliasType("?column?", serial_no);
-          }
-          columns[i]->SetAlias(new_alias);
-          aliases.emplace_back(new_alias);
-          ref->cte_col_aliases_.emplace_back(new_alias);
-        }
+        columns[i]->SetAlias(new_alias);
+        aliases.emplace_back(new_alias);
+        ref->cte_col_aliases_.emplace_back(new_alias);
+      }
 
-        if(inductive){
-          size_t i = 0;
-          for(auto &alias : ref->GetCteColumnAliases()){
-            ref->GetSelect()->GetSelectColumns()[i]->SetAlias(alias);
-            i++;
-          }
+      if (inductive) {
+        size_t i = 0;
+        for (auto &alias : ref->GetCteColumnAliases()) {
+          ref->GetSelect()->GetSelectColumns()[i]->SetAlias(alias);
+          i++;
         }
-        sel_cols = ref->GetSelect()->GetSelectColumns();
-        if(inductive){
-          sel_cols = ref->GetSelect()->GetUnionSelect()->GetSelectColumns();
-        }
-      context.AddCTETable(catalog_accessor_, ref->GetAlias(), sel_cols,
-                            ref->GetCteColumnAliases());
+      }
+      sel_cols = ref->GetSelect()->GetSelectColumns();
+      if (inductive) {
+        sel_cols = ref->GetSelect()->GetUnionSelect()->GetSelectColumns();
+      }
+      context.AddCTETable(catalog_accessor_, ref->GetAlias(), sel_cols, ref->GetCteColumnAliases());
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-    }else {
+    } else {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     }
   }
@@ -544,7 +544,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       auto star_expression = select_element.CastManagedPointerTo<terrier::parser::StarExpression>();
-      context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list), node, star_expression->GetTableName());
+      context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list), node,
+                                             star_expression->GetTableName());
       continue;
     }
 
@@ -843,7 +844,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     auto pre_context = context_;
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
-//    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
+    //    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
   } else if (node->GetJoin() != nullptr) {

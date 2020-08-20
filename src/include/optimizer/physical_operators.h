@@ -322,10 +322,9 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
    * @param alias_to_expr_map map from table aliases to expressions of those tables
    * @return a QueryDerivedScan operator
    */
-  static Operator Make(
-      std::string table_alias,
-      std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                                                                   parser::AliasType::HashKey> &&alias_to_expr_map);
+  static Operator Make(std::string table_alias,
+                       std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                          parser::AliasType::HashKey> &&alias_to_expr_map);
 
   /**
    * Copy
@@ -346,7 +345,8 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
    * @return map from table aliases to expressions
    */
   const std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                                                                     parser::AliasType::HashKey> &GetAliasToExprMap() const {
+                           parser::AliasType::HashKey>
+      &GetAliasToExprMap() const {
     return alias_to_expr_map_;
   }
 
@@ -359,8 +359,8 @@ class QueryDerivedScan : public OperatorNodeContents<QueryDerivedScan> {
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                                                         parser::AliasType::HashKey> alias_to_expr_map_;
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>, parser::AliasType::HashKey>
+      alias_to_expr_map_;
 };
 
 /**

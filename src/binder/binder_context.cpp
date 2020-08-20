@@ -126,22 +126,21 @@ void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor>
   if (nested_table_alias_map_.find(table_name) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
-//  std::vector<catalog::Schema::Column> schema_columns;
-  std::unordered_map<parser::AliasType, type::TypeId,
-                     parser::AliasType::HashKey> nested_column_mappings;
+  //  std::vector<catalog::Schema::Column> schema_columns;
+  std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> nested_column_mappings;
   for (size_t i = 0; i < col_aliases.size(); i++) {
-//    catalog::Schema::Column col(col_aliases[i].GetName(), select_list[i]->GetReturnValueType(), false,
-//                                parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
-//                                TEMP_OID(catalog::col_oid_t, i));
-//    schema_columns.push_back(col);
+    //    catalog::Schema::Column col(col_aliases[i].GetName(), select_list[i]->GetReturnValueType(), false,
+    //                                parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
+    //                                TEMP_OID(catalog::col_oid_t, i));
+    //    schema_columns.push_back(col);
     TERRIER_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 
-//  catalog::Schema cte_schema(schema_columns);
-//  nested_table_alias_map_[table_name] =
-//      TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
-//                    TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()), schema_columns);
+  //  catalog::Schema cte_schema(schema_columns);
+  //  nested_table_alias_map_[table_name] =
+  //      TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
+  //                    TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()), schema_columns);
   nested_table_alias_map_[table_name] = nested_column_mappings;
 }
 
@@ -238,7 +237,7 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
       auto iter = entry.second.find(alias_name);
       bool get_match = iter != entry.second.end();
       auto matches = std::count_if(entry.second.begin(), entry.second.end(),
-                                   [=](auto it){ return entry.second.key_eq()(it.first, alias_name);});
+                                   [=](auto it) { return entry.second.key_eq()(it.first, alias_name); });
       if (get_match) {
         if (!find_matched && (matches == 1)) {
           // First match
@@ -246,7 +245,7 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
           expr->SetTableName(entry.first);
           expr->SetReturnValueType(entry.second[alias_name]);
           expr->SetColumnName(col_name);
-          expr->SetColumnOID(TEMP_OID(catalog::col_oid_t , iter->first.GetSerialNo()));
+          expr->SetColumnOID(TEMP_OID(catalog::col_oid_t, iter->first.GetSerialNo()));
         } else {
           throw BINDER_EXCEPTION(fmt::format("Ambiguous column name \"{}\"", col_name),
                                  common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
@@ -304,8 +303,7 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
-    common::ManagedPointer<parser::SelectStatement> stmt,
-    std::string table_name) {
+    common::ManagedPointer<parser::SelectStatement> stmt, std::string table_name) {
   // Set containing tables whose columns are to be included in the SELECT * query results
   std::unordered_set<std::string> constituent_table_aliases;
   stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
@@ -313,9 +311,8 @@ void BinderContext::GenerateAllColumnExpressions(
     if (constituent_table_aliases.count(table_name) == 0) {
       // SELECT table_name.* FROM ..., where the from clause does not contain table_name
       throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", table_name),
-      common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
-    }
-    else {
+                             common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
+    } else {
       constituent_table_aliases.clear();
       constituent_table_aliases.insert(table_name);
     }
@@ -350,7 +347,8 @@ void BinderContext::GenerateAllColumnExpressions(
     if (constituent_table_aliases.count(table_alias) > 0) {
       auto &cols = entry.second;
       for (auto &col_entry : cols) {
-        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
+        auto tv_expr =
+            new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
         tv_expr->SetReturnValueType(col_entry.second);
         tv_expr->DeriveExpressionName();
         tv_expr->SetAlias(col_entry.first);

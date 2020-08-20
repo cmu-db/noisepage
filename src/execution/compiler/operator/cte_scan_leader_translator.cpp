@@ -86,8 +86,8 @@ void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) c
   SetColumnOids(builder);
   // Call @cteScanIteratorInit
   ast::Expr *cte_scan_iterator_setup = codegen->CteScanIteratorInit(
-      cte_scan_val_entry_.GetPtr(codegen), GetPlanAs<planner::CteScanPlanNode>().GetTableOid(), col_oids_var_, col_types_,
-      GetCompilationContext()->GetExecutionContextPtrFromQueryState());
+      cte_scan_val_entry_.GetPtr(codegen), GetPlanAs<planner::CteScanPlanNode>().GetTableOid(), col_oids_var_,
+      col_types_, GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   builder->Append(codegen->MakeStmt(cte_scan_iterator_setup));
 
   ast::Stmt *pointer_setup = codegen->Assign(cte_scan_ptr_entry_.Get(codegen), cte_scan_val_entry_.GetPtr(codegen));
@@ -161,8 +161,8 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     const auto &table_col = cols[i].GetExpr().CastManagedPointerTo<parser::ColumnValueExpression>();
     const auto &table_col_oid = table_col->GetColumnOid();
     size_t col_ind = 0;
-    for(auto col : plan.GetColumnOids()){
-      if(col == table_col_oid){
+    for (auto col : plan.GetColumnOids()) {
+      if (col == table_col_oid) {
         break;
       }
       col_ind++;

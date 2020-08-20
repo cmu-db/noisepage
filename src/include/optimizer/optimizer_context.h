@@ -136,7 +136,9 @@ class OptimizerContext {
    * Sets the CTE Schema
    * @param schema OutputSchema
    */
-  void SetCTESchema(catalog::table_oid_t table_id, catalog::Schema schema) { cte_schemas_[table_id] = std::move(schema); }
+  void SetCTESchema(catalog::table_oid_t table_id, catalog::Schema schema) {
+    cte_schemas_[table_id] = std::move(schema);
+  }
 
   /**
    * Sets the StatsStorage

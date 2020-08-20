@@ -205,7 +205,7 @@ void TableRef::GetConstituentTableAliases(std::unordered_set<std::string> *alias
     join_->GetRightTable()->GetConstituentTableAliases(aliases);
   }
 
-  for (auto &table: list_) {
+  for (auto &table : list_) {
     table->GetConstituentTableAliases(aliases);
   }
 }

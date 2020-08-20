@@ -10,8 +10,7 @@ parser::ConstantValueExpression DummyCVE() {
 }
 
 CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
-                                 uint32_t *schema_cols_ids,
-                                 uint32_t *schema_cols_type, uint32_t num_schema_cols)
+                                 uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols)
     : exec_ctx_(exec_ctx), cte_table_oid_(table_oid), table_redo_(nullptr) {
   // Create column metadata for every column.
   std::vector<catalog::Schema::Column> all_columns;

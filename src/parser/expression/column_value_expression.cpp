@@ -35,7 +35,7 @@ bool ColumnValueExpression::operator==(const AbstractExpression &rhs) const {
   if (GetTableName() != other.GetTableName()) return false;
   if (GetColumnOid() != other.GetColumnOid()) return false;
   if (GetTableOid() != other.GetTableOid()) return false;
-  if(!(GetAlias() == rhs.GetAlias())) return false;
+  if (!(GetAlias() == rhs.GetAlias())) return false;
   return GetDatabaseOid() == other.GetDatabaseOid();
 }
 

@@ -87,9 +87,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       }
       std::vector<catalog::Schema::Column> columns1;
       size_t i = 0;
-      for(auto &alias : with->GetCteColumnAliases()){
-        columns1.emplace_back(alias.GetName(), col_types[i], false,
-                             parser::ConstantValueExpression(col_types[i]), TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
+      for (auto &alias : with->GetCteColumnAliases()) {
+        columns1.emplace_back(alias.GetName(), col_types[i], false, parser::ConstantValueExpression(col_types[i]),
+                              TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
         i++;
       }
 
@@ -101,12 +101,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       for (auto &elem : with->GetCteColumnAliases()) {
         TERRIER_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
         auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
-        parser::AbstractExpression *cve = new parser::ColumnValueExpression(with->GetTableName(), elem.GetName(), ret_type,
-                                                                            elem,
-                                                                            TEMP_OID(catalog::col_oid_t,
-                                                                                     elem.GetSerialNo()));
-        txn_context->RegisterAbortAction([=]{delete cve;});
-        txn_context->RegisterCommitAction([=]{delete cve;});
+        parser::AbstractExpression *cve = new parser::ColumnValueExpression(
+            with->GetTableName(), elem.GetName(), ret_type, elem, TEMP_OID(catalog::col_oid_t, elem.GetSerialNo()));
+        txn_context->RegisterAbortAction([=] { delete cve; });
+        txn_context->RegisterCommitAction([=] { delete cve; });
         expressions.push_back(common::ManagedPointer(cve));
 
         col_types.push_back(ret_type);
@@ -117,12 +115,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       master_expressions.push_back(std::move(expressions));
       std::vector<catalog::Schema::Column> columns;
       size_t ind = 0;
-      for(auto &alias : with->GetCteColumnAliases()){
-        columns.emplace_back(alias.GetName(), col_types[ind], false,
-                             parser::ConstantValueExpression(col_types[ind]), TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
+      for (auto &alias : with->GetCteColumnAliases()) {
+        columns.emplace_back(alias.GetName(), col_types[ind], false, parser::ConstantValueExpression(col_types[ind]),
+                             TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
         ind++;
       }
-
 
       auto cte_scan_expr = std::make_unique<OperatorNode>(
           LogicalCteScan::Make(with->GetAlias(), with->GetTableName(), oid, catalog::Schema(std::move(columns)), {},
@@ -394,12 +391,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
       auto index = std::distance(cte_table_name_.begin(), it);
       std::vector<type::TypeId> col_types;
 
-      auto cte_scan_expr =
-          std::make_unique<OperatorNode>(LogicalCteScan::Make(node->GetAlias(), node->GetTableName(), cte_oids_[index],
-                                                              cte_schemas_[index],cte_expressions_[index],
-                                                              cte_type_[index], {})
-                                             .RegisterWithTxnContext(txn_context),
-                                         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+      auto cte_scan_expr = std::make_unique<OperatorNode>(
+          LogicalCteScan::Make(node->GetAlias(), node->GetTableName(), cte_oids_[index], cte_schemas_[index],
+                               cte_expressions_[index], cte_type_[index], {})
+              .RegisterWithTxnContext(txn_context),
+          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       output_expr_ = std::move(cte_scan_expr);
     } else {
       // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
@@ -1005,11 +1001,11 @@ void QueryToOperatorTransformer::SplitPredicates(
   }
 }
 
-std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                   parser::AliasType::HashKey> QueryToOperatorTransformer::ConstructSelectElementMap(
+std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>, parser::AliasType::HashKey>
+QueryToOperatorTransformer::ConstructSelectElementMap(
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
-  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
-                     parser::AliasType::HashKey> res;
+  std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>, parser::AliasType::HashKey>
+      res;
   for (auto &expr : select_list) {
     parser::AliasType alias;
     if (!expr->GetAlias().empty()) {
@@ -1020,7 +1016,7 @@ std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExp
     } else {
       continue;
     }
-//    std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
+    //    std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr);
   }
   return res;

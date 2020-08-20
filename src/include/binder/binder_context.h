@@ -198,8 +198,7 @@ class BinderContext {
   void GenerateAllColumnExpressions(
       common::ManagedPointer<parser::ParseResult> parse_result,
       common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
-      common::ManagedPointer<parser::SelectStatement> stmt,
-      std::string table_name);
+      common::ManagedPointer<parser::SelectStatement> stmt, std::string table_name);
 
   /**
    * Return the binder context's metadata for the provided @p table_name.
@@ -217,8 +216,8 @@ class BinderContext {
   /**
    * Map the table alias to maps which is from table alias to the value type
    */
-  std::unordered_map<std::string, std::unordered_map<parser::AliasType, type::TypeId,
-                                                     parser::AliasType::HashKey>> nested_table_alias_map_;
+  std::unordered_map<std::string, std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey>>
+      nested_table_alias_map_;
 
   /**
    * Upper binder context of the current binder context

@@ -32,7 +32,8 @@ class AliasType {
 
   explicit AliasType(std::string &&name, size_t serial_no) : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
 
-  explicit AliasType(const std::string &name, size_t serial_no) : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
+  explicit AliasType(const std::string &name, size_t serial_no)
+      : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
 
   explicit AliasType(std::string &&name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
 
@@ -53,9 +54,7 @@ class AliasType {
     }
   }
 
-  bool empty() const {
-    return name_.empty();
-  }
+  bool empty() const { return name_.empty(); }
 
   struct HashKey {
     size_t operator()(const AliasType &p) const {
@@ -65,9 +64,7 @@ class AliasType {
   };
 
   struct CompareSerialNo {
-    bool operator()(const AliasType &p, const AliasType &q) const {
-      return p.GetSerialNo() < q.GetSerialNo();
-    }
+    bool operator()(const AliasType &p, const AliasType &q) const { return p.GetSerialNo() < q.GetSerialNo(); }
   };
 
  private:
@@ -156,7 +153,6 @@ class AbstractExpression {
   void SetMutableStateForCopy(const AbstractExpression &copy_expr);
 
  public:
-
   virtual ~AbstractExpression() = default;
 
   /**
