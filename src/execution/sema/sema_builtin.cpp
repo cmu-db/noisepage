@@ -2426,9 +2426,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
@@ -2462,9 +2459,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
@@ -2491,18 +2485,12 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
       }
 
       resolved_type = call->Arguments()[2]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Integer));
         return;
@@ -2529,9 +2517,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
@@ -2585,9 +2570,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the second argument is a string
       auto *resolved_type = call->Arguments()[1]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
@@ -2595,9 +2577,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // checking to see if the third argument is a string
       resolved_type = call->Arguments()[2]->GetType();
-      if (resolved_type == nullptr) {
-        return;
-      }
       if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
         ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
         return;
@@ -3052,6 +3031,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Trim:
     case ast::Builtin::Trim2:
     case ast::Builtin::Lower:
+    case ast::Builtin::Upper:
     case ast::Builtin::Version:
     case ast::Builtin::StartsWith:
     case ast::Builtin::Substring:
@@ -3059,10 +3039,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Right:
     case ast::Builtin::Left:
     case ast::Builtin::Repeat: {
-      CheckBuiltinStringCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::Upper: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
