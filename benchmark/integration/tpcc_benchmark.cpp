@@ -535,7 +535,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
                    shut_down);
         });
       }
-      std::this_thread::sleep_for(std::chrono::seconds(250));
+      std::this_thread::sleep_for(std::chrono::seconds(300));
       shut_down = true;
       thread_pool.WaitUntilAllFinished();
     }
@@ -710,7 +710,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(500);
+    ->MinTime(5);
 //BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
