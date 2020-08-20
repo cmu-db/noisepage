@@ -280,7 +280,7 @@ class TableRef {
    * (i.e., all the aliases used in the from clause, including all aliases in all JOINs)
    * @param aliases set to insert aliases into
    */
-  void GetConstituentTableAliases(std::unordered_set<std::string> *aliases);
+  void GetConstituentTableAliases(std::vector<std::string> *aliases);
 
   /** @return TableRef serialized to json */
   nlohmann::json ToJson() const;

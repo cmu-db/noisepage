@@ -305,31 +305,31 @@ void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
     common::ManagedPointer<parser::SelectStatement> stmt, std::string table_name) {
   // Set containing tables whose columns are to be included in the SELECT * query results
-  std::unordered_set<std::string> constituent_table_aliases;
+  std::vector<std::string> constituent_table_aliases;
   stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);
   if (!table_name.empty()) {
-    if (constituent_table_aliases.count(table_name) == 0) {
+    if (count(constituent_table_aliases.begin(), constituent_table_aliases.end(), table_name) == 0) {
       // SELECT table_name.* FROM ..., where the from clause does not contain table_name
       throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", table_name),
                              common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
     } else {
       constituent_table_aliases.clear();
-      constituent_table_aliases.insert(table_name);
+      constituent_table_aliases.push_back(table_name);
     }
   }
 
-  for (auto &entry : regular_table_alias_map_) {
-    auto &table_alias = entry.first;
-    if (constituent_table_aliases.count(table_alias) > 0) {
-      auto &schema = std::get<2>(entry.second);
+  for (auto &table_alias : constituent_table_aliases) {
+    if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end()) {
+      auto table_data = regular_table_alias_map_[table_alias];
+      auto &schema = std::get<2>(table_data);
       auto col_cnt = schema.GetColumns().size();
       for (uint32_t i = 0; i < col_cnt; i++) {
         const auto &col_obj = schema.GetColumn(i);
-        auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
+        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_obj.Name()));
         tv_expr->SetReturnValueType(col_obj.Type());
         tv_expr->DeriveExpressionName();
-        tv_expr->SetDatabaseOID(std::get<0>(entry.second));
-        tv_expr->SetTableOID(std::get<1>(entry.second));
+        tv_expr->SetDatabaseOID(std::get<0>(table_data));
+        tv_expr->SetTableOID(std::get<1>(table_data));
         tv_expr->SetColumnOID(col_obj.Oid());
         tv_expr->SetDepth(depth_);
 
@@ -340,12 +340,8 @@ void BinderContext::GenerateAllColumnExpressions(
         exprs->push_back(new_tv_expr);
       }
     }
-  }
-
-  for (auto &entry : nested_table_alias_map_) {
-    auto &table_alias = entry.first;
-    if (constituent_table_aliases.count(table_alias) > 0) {
-      auto &cols = entry.second;
+    else if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+      auto &cols = nested_table_alias_map_[table_alias];
       for (auto &col_entry : cols) {
         auto tv_expr =
             new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));

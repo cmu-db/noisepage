@@ -195,9 +195,9 @@ std::unique_ptr<TableRef> TableRef::Copy() {
   return table_ref;
 }
 
-void TableRef::GetConstituentTableAliases(std::unordered_set<std::string> *aliases) {
+void TableRef::GetConstituentTableAliases(std::vector<std::string> *aliases) {
   if (!alias_.empty()) {
-    aliases->insert(GetAlias());
+    aliases->push_back(GetAlias());
   }
 
   if (join_ != nullptr) {
