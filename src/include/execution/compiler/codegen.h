@@ -1303,12 +1303,10 @@ class CodeGen {
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
-                                 ast::Identifier col_types,
-                                 ast::Expr *exec_ctx_var);
+                                 ast::Identifier col_types, ast::Expr *exec_ctx_var);
 
   ast::Expr *IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
-                                     ast::Identifier col_types,
-                                     bool is_recursive, ast::Expr *exec_ctx_var);
+                                     ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var);
 
   // ---------------------------------------------------------------------------
   //

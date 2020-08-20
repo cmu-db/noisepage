@@ -22,7 +22,7 @@ common::hash_t ColumnValueExpression::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
+  hash = common::HashUtil::CombineHashes(hash, parser::AliasType::HashKey()(alias_));
   return hash;
 }
 
@@ -35,7 +35,7 @@ bool ColumnValueExpression::operator==(const AbstractExpression &rhs) const {
   if (GetTableName() != other.GetTableName()) return false;
   if (GetColumnOid() != other.GetColumnOid()) return false;
   if (GetTableOid() != other.GetTableOid()) return false;
-  if(!(GetAlias() == rhs.GetAlias())) return false;
+  if (!(GetAlias() == rhs.GetAlias())) return false;
   return GetDatabaseOid() == other.GetDatabaseOid();
 }
 

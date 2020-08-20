@@ -60,9 +60,9 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     output_cols[entry.second] = entry.first;
 
     // Get the actual expression
-    auto alias = tv_expr->GetAlias().IsSerialNoValid() ? tv_expr->GetAlias() : parser::AliasType(tv_expr->GetColumnName());
-    TERRIER_ASSERT(alias_expr_map.count(alias) > 0,
-                   "Couldn't find alias in alias_to_expr map");
+    auto alias =
+        tv_expr->GetAlias().IsSerialNoValid() ? tv_expr->GetAlias() : parser::AliasType(tv_expr->GetColumnName());
+    TERRIER_ASSERT(alias_expr_map.count(alias) > 0, "Couldn't find alias in alias_to_expr map");
     auto input_col = alias_expr_map[alias];
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
@@ -130,7 +130,7 @@ void InputColumnDeriver::Visit(const CteScan *op) {
     if (alias_present || true) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
       for (auto &elem : child_exprs) {
-          new_child_exprs.push_back(elem);
+        new_child_exprs.push_back(elem);
       }
       child_exprs.clear();
       child_exprs = new_child_exprs;

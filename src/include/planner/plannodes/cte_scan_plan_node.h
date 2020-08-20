@@ -130,9 +130,9 @@ class CteScanPlanNode : public SeqScanPlanNode {
   /**
    * @return the hashed value of this plan node
    */
-//  common::hash_t Hash() const override;
+  //  common::hash_t Hash() const override;
 
-//  bool operator==(const AbstractPlanNode &rhs) const override;
+  //  bool operator==(const AbstractPlanNode &rhs) const override;
 
   void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
@@ -174,8 +174,8 @@ class CteScanPlanNode : public SeqScanPlanNode {
 
   const std::string &GetCTETableName() const { return cte_table_name_; }
 
-//  nlohmann::json ToJson() const override;
-//  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
+  //  nlohmann::json ToJson() const override;
+  //  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   //===--------------------------------------------------------------------===//
   // Update schema

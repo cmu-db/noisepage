@@ -235,7 +235,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
     }
   }
   if (alias != nullptr) {
-    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void*>(expr.get()))));
+    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get()))));
   }
   return expr;
 }
@@ -534,17 +534,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
         if (next_node->type == T_A_Star) {
           result = std::make_unique<StarExpression>(table_name);
           break;
-        }
-        else {
+        } else {
           col_name = reinterpret_cast<value *>(next_node)->val_.str_;
         }
       }
 
-      if (alias != nullptr){
-        result = std::make_unique<ColumnValueExpression>(table_name,
-          col_name, parser::AliasType(alias,reinterpret_cast<size_t>(reinterpret_cast<void*>(alias))));
-      }
-      else {
+      if (alias != nullptr) {
+        result = std::make_unique<ColumnValueExpression>(
+            table_name, col_name, parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(alias))));
+      } else {
         result = std::make_unique<ColumnValueExpression>(table_name, col_name);
       }
       break;
@@ -2063,12 +2061,12 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
             i++;
           }
         }
-//        if (colnames.empty()) {
-//          for (auto &expr : select->GetSelectColumns()) {
-//            // TODO(tanujnay112) route the "?column?" codepath through traffic cop
-//            colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
-//          }
-//        }
+        //        if (colnames.empty()) {
+        //          for (auto &expr : select->GetSelectColumns()) {
+        //            // TODO(tanujnay112) route the "?column?" codepath through traffic cop
+        //            colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
+        //          }
+        //        }
         CTEType cte_type = CTEType::SIMPLE;
         if (root->recursive_) {
           cte_type = CTEType::RECURSIVE;

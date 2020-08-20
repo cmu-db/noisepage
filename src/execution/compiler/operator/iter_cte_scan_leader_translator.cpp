@@ -157,8 +157,8 @@ void IterCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, Function
   for (uint32_t i = 0; i < cols.size(); i++) {
     const auto &table_col_oid = cols[i].Oid();
     size_t col_ind = 0;
-    for(auto col : op_->GetColumnOids()){
-      if(col == table_col_oid){
+    for (auto col : op_->GetColumnOids()) {
+      if (col == table_col_oid) {
         break;
       }
       col_ind++;
@@ -166,8 +166,7 @@ void IterCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, Function
     auto val = GetChildOutput(context, child_idx, col_ind);
     // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
     // Right now it is only Non Null
-    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), cols[i].Type(), false,
-                                      col_ind, val, true);
+    auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), cols[i].Type(), false, col_ind, val, true);
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }

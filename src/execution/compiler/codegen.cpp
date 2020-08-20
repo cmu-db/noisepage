@@ -1173,8 +1173,7 @@ ast::FieldDecl *CodeGen::MakeField(ast::Identifier name, ast::Expr *type) const 
 }
 
 ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table, ast::Identifier col_ids,
-                                        ast::Identifier col_types,
-                                        ast::Expr *exec_ctx_var) {
+                                        ast::Identifier col_types, ast::Expr *exec_ctx_var) {
   ast::Expr *col_oids_expr = MakeExpr(col_ids);
   ast::Expr *col_types_expr = MakeExpr(col_types);
 
@@ -1183,12 +1182,12 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t tabl
 }
 
 ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
-                                            ast::Identifier col_types,
-                                            bool is_recursive, ast::Expr *exec_ctx_var) {
+                                            ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var) {
   ast::Expr *col_ids_expr = MakeExpr(col_ids);
   ast::Expr *col_types_expr = MakeExpr(col_types);
 
-  std::vector<ast::Expr *> args{si, exec_ctx_var, Const32(!table_oid), col_ids_expr, col_types_expr, ConstBool(is_recursive)};
+  std::vector<ast::Expr *> args{si,           exec_ctx_var,   Const32(!table_oid),
+                                col_ids_expr, col_types_expr, ConstBool(is_recursive)};
   return CallBuiltin(ast::Builtin::IterCteScanInit, args);
 }
 

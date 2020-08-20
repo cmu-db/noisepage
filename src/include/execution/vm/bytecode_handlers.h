@@ -288,8 +288,8 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 // ---------------------------------------------------------
 
 VM_OP void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *schema_cols_ids,
-                         uint32_t *schema_cols_type, uint32_t num_schema_cols);
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                         uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols);
 
 VM_OP void OpCteScanGetTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::CteScanIterator *iter);
 
@@ -307,8 +307,9 @@ VM_OP void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter);
 // ---------------------------------------------------------
 
 VM_OP void OpIterCteScanInit(terrier::execution::sql::IterCteScanIterator *iter,
-                             terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *schema_cols_ids,
-                             uint32_t *schema_cols_type, uint32_t num_schema_cols, bool is_recursive);
+                             terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                             uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
+                             bool is_recursive);
 
 VM_OP void OpIterCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
                                    terrier::execution::sql::IterCteScanIterator *iter);

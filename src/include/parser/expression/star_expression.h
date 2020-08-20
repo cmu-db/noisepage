@@ -14,9 +14,7 @@ class StarExpression : public AbstractExpression {
   /**
    * Instantiates a new star expression, e.g. as in COUNT(*).
    */
-  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {
-    table_name_ = "";
-  }
+  StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) { table_name_ = ""; }
 
   /**
    * Instantiates a new star expression with a table name, e.g. as in xxx.*
@@ -29,7 +27,7 @@ class StarExpression : public AbstractExpression {
    * Returns the table name associated with the star expression
    * @return table name
    */
-  std::string GetTableName() {return table_name_;}
+  std::string GetTableName() { return table_name_; }
 
   /**
    * Copies this StarExpression

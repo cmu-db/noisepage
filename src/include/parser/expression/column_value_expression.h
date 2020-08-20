@@ -78,8 +78,12 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name name of the column.
    * @param type Type of the column.
    */
-  ColumnValueExpression(std::string col_name, type::TypeId type)
-      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), column_name_(std::move(col_name)) {}
+  ColumnValueExpression(std::string table_name, std::string col_name, type::TypeId type, AliasType alias,
+                        catalog::col_oid_t column_oid)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, std::move(alias), {}),
+        table_name_(std::move(table_name)),
+        column_name_(std::move(col_name)),
+        column_oid_(column_oid) {}
 
   /**
    * @param table_name table name
