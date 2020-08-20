@@ -153,333 +153,431 @@ DROP TABLE temp3
 
 # LIKE AND NOT LIKE
 statement ok
-CREATE TABLE like_tbl (int_val INT, double_val DECIMAL,str_i_val VARCHAR(32),str_a_val VARCHAR(32),is_null INT);
+CREATE TABLE like_tbl (int_val INT, double_val DECIMAL,str_i_val VARCHAR(32),str_a_val VARCHAR(32));
 
 statement ok
-INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val, is_null) VALUES (1, 2.0, '123456', 'AbCdEf', 0);
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (1, 2.0, '123456', 'AbCdEf');
+
+query  nosort
+SELECT str_a_val LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to b7269fa2508548e4032c455818f1e321
+
+query  nosort
+SELECT str_a_val LIKE '.*' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val LIKE '\\D%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val LIKE '(%)' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCd[E]f';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val LIKE 'abc';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf';
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE '%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbC%dEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE 'Ab%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val NOT LIKE '%Ef';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val  NOT LIKE '%d%';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val NOT LIKE '%A%d%E%';
+----
 
 statement ok
-INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val, is_null) VALUES (null, null, null, null, 1);
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (2, 2.0, '123456', 'AbCdEF');
 
-query  nosort
-SELECT str_a_val LIKE 'AbCdEf' AS result FROM like_tbl WHERE is_null = 0;
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (3, 2.0, '123456', 'AbcdEf');
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (4, 2.0, '123456', 'abcdEf');
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (null, null, null, null);
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
-query  nosort
-SELECT str_a_val LIKE '%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEF';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
 
-query  nosort
-SELECT str_a_val LIKE 'AbCdEf%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbcdEf';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
 
-query  nosort
-SELECT str_a_val LIKE 'AbC%dEf' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'abcdEf';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to 48a24b70a0b376535542b996af517398
 
-query  nosort
-SELECT str_a_val LIKE 'Ab%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+4 values hashing to 302c28003d487124d97c242de94da856
 
-query  nosort
-SELECT str_a_val LIKE '%Ef' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf%';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
-query  nosort
-SELECT str_a_val LIKE '%d%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbC%dEf';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
-query  nosort
-SELECT str_a_val LIKE '%A%d%E%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'Ab%';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
 
-query  nosort
-SELECT str_a_val LIKE '______' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%Ef';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+3 values hashing to d99c0b2e82d6d483eed4d4f7edb09941
 
-query  nosort
-SELECT str_a_val LIKE '_b____' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%d%';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+4 values hashing to 302c28003d487124d97c242de94da856
 
-query  nosort
-SELECT str_a_val LIKE 'AbCd_f' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%A%d%E%';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
 
-query  nosort
-SELECT str_a_val LIKE '_bCdEf' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '______';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+4 values hashing to 302c28003d487124d97c242de94da856
 
-query  nosort
-SELECT str_a_val LIKE '_b_d_f' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_b____';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+4 values hashing to 302c28003d487124d97c242de94da856
 
-query  nosort
-SELECT str_a_val LIKE '___%___' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCd_f';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
-query  nosort
-SELECT str_a_val LIKE '_b%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_bCdEf';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
-query  nosort
-SELECT str_a_val LIKE '%d_f' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_b_d_f';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+3 values hashing to d99c0b2e82d6d483eed4d4f7edb09941
 
-query  nosort
-SELECT str_a_val LIKE '%C_E%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '___%___';
 ----
-1 values hashing to b7269fa2508548e4032c455818f1e321
+4 values hashing to 302c28003d487124d97c242de94da856
 
-query  nosort
-SELECT str_a_val LIKE '' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_b%';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+4 values hashing to 302c28003d487124d97c242de94da856
 
-query  nosort
-SELECT str_a_val LIKE '_' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%d_f';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+3 values hashing to d99c0b2e82d6d483eed4d4f7edb09941
 
-query  nosort
-SELECT str_a_val LIKE '___%____' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%C_E%';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
 
-query  nosort
-SELECT str_a_val LIKE 'AbCdEf_' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE 'AbC' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE '\"AbCdEf\"' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '___%____';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE 'abcdef' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf_';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE 'ABCDEF' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbC';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE '%e%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '\"AbCdEf\"';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE '.*' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'abcdef';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE '\\D%' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'ABCDEF';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE '(%)' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%e%';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE 'AbCd[E]f' AS result FROM like_tbl WHERE is_null = 0;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '.*';
 ----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
 
-query  nosort
-SELECT str_a_val LIKE 'abc' AS result FROM like_tbl WHERE is_null = 1;
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '\\D%';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '(%)';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCd[E]f';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val IS NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val IS NULL;
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 query  nosort
-SELECT str_a_val LIKE 'AbCdEf' AS result FROM like_tbl WHERE is_null = 1;
+SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEF' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 85de89aaa1b0385c43913a20d810bdb0
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbcdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 6af861be1c2a073fe3f6cc63a2775e5f
+
+query  nosort
+SELECT str_a_val NOT LIKE 'abcdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to af7ffb60963d7edc08cd189776dd7b0f
+
+query  nosort
+SELECT str_a_val NOT LIKE '%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbC%dEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE 'Ab%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to e309130f659d3f873a2df5867470fec1
+
+query  nosort
+SELECT str_a_val NOT LIKE '%Ef' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 70e87fb72c05fbabaedb14fd8daf81a3
+
+query  nosort
+SELECT str_a_val NOT LIKE '%d%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '%A%d%E%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to e309130f659d3f873a2df5867470fec1
+
+query  nosort
+SELECT str_a_val NOT LIKE '______' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '_b____' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCd_f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE '_bCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE '_b_d_f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 70e87fb72c05fbabaedb14fd8daf81a3
+
+query  nosort
+SELECT str_a_val NOT LIKE '___%___' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '_b%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '%d_f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 70e87fb72c05fbabaedb14fd8daf81a3
+
+query  nosort
+SELECT str_a_val NOT LIKE '%C_E%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 1902fb2018692f1cd7edb56a3050f825
+
+query  nosort
+SELECT str_a_val NOT LIKE '' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '_' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '___%____' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf_' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbC' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '\"AbCdEf\"' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'abcdef' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'ABCDEF' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '%e%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '.*' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '\\D%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '(%)' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCd[E]f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'abc' AS result FROM like_tbl WHERE str_a_val IS NULL;
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 query  nosort
-SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbCdEf%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbC%dEf' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE 'Ab%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '%Ef' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '%d%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '%A%d%E%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '______' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '_b____' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbCd_f' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '_bCdEf' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '_b_d_f' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '___%___' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '_b%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '%d_f' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '%C_E%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
-
-query  nosort
-SELECT str_a_val NOT LIKE '' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '_' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '___%____' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbCdEf_' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbC' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '\"AbCdEf\"' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE 'abcdef' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE 'ABCDEF' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '%e%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '.*' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '\\D%' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE '(%)' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbCd[E]f' AS result FROM like_tbl WHERE is_null = 0;
-----
-1 values hashing to b7269fa2508548e4032c455818f1e321
-
-query  nosort
-SELECT str_a_val NOT LIKE 'abc' AS result FROM like_tbl WHERE is_null = 1;
-----
-1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
-
-query  nosort
-SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE is_null = 1;
+SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NULL;
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 statement ok
 DROP TABLE like_tbl;
+
+
