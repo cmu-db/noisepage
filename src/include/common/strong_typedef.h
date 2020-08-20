@@ -48,7 +48,7 @@ namespace terrier::common {
  * A a(42)
  * assert(a.underlying_value() == 42)
  *
- * This mechanism works with all types of integral types (as defined by std::is_integral).
+ * This mechanism works with all integral types (as defined by std::is_integral).
  *
  * In order to use this macro, you need to use STRONG_TYPEDEF_HEADER in the .h file, then
  * include common/strong_typedef_body.h in the corresponding .cpp file and use
