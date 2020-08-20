@@ -1,8 +1,8 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "wal_enable": false,
-        "wal_file_path": "/mnt/ramdisk/wal.log"
+        "wal_file_path": "/mnt/ramdisk/wal.log",
+        "connection_thread_count": 32
     },
     "env":{
         "wal_device":"RAM disk"

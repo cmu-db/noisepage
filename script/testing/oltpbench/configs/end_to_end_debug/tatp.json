@@ -1,8 +1,5 @@
 {
     "type": "oltpbenchmark",
-    "server_args":{
-        "connection_thread_count": 32
-    },
     "testcases": [
         {
             "base": {
