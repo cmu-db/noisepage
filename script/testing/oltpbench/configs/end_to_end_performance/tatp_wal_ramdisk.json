@@ -1,13 +1,17 @@
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "connection_thread_count": 32,
+        "wal_file_path": "/mnt/ramdisk/wal.log"
+    },
     "testcases": [
         {
             "base": {
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
-                "terminals": 2,
                 "query_mode": "extended",
-                "scale_factor": 0.01
+                "terminals": 16,
+                "client_time": 60
             }
         }
     ]

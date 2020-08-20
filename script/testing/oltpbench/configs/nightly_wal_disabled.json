@@ -1,9 +1,22 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
+        "wal_enable": false,
         "connection_thread_count": 32
     },
+    "env":{
+        "wal_device":"None"
+    },
     "testcases": [
+        {
+            "base": {
+                "benchmark": "tatp",
+                "weights": "2,35,10,35,2,14,2",
+                "query_mode": "extended",
+                "terminals": 16,
+                "client_time": 60
+            }
+        },
         {
             "base": {
                 "benchmark": "tpcc",
@@ -14,8 +27,5 @@
                 "client_time": 60
             }
         }
-    ],
-    "env":{
-        "wal_device":"RAM disk"
-    }
+    ]
 }

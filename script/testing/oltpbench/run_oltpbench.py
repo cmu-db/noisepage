@@ -41,8 +41,10 @@ def generate_test_suite(args):
 
     max_connection_threads = constants.OLTPBENCH_DEFAULT_CONNECTION_THREAD_COUNT
 
+    wal_enable = constants.OLTPBENCH_DEFAULT_WAL_ENABLE
     # read server commandline args in config files
     server_args_json = oltp_test_suite_json.get("server_args")
+
     if server_args_json:
         server_args = ""
         for attribute,value in server_args_json.items():
@@ -54,6 +56,9 @@ def generate_test_suite(args):
                 if os.path.exists(old_log_path):
                     os.remove(old_log_path)
             
+            if attribute == "wal_enable":
+                wal_enable = value    
+
             #Update connection_thread_count if user override
             if attribute == "connection_thread_count":
                 max_connection_threads=int(value)
@@ -63,7 +68,11 @@ def generate_test_suite(args):
     # read metadata in config file
     server_data = oltp_test_suite_json.get("env",{})
     server_data["max_connection_threads"] = max_connection_threads
-    
+
+    # if wal_enable is false then wal_device is "None"
+    if not wal_enable:
+        server_data["wal_device"] ="None"
+
     # publish test results to the server
     oltp_report_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get("publish_results")]
     oltp_report_username = args.get("publish_username")

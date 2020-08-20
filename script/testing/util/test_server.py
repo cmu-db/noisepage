@@ -91,7 +91,7 @@ class TestServer:
             # FOR
 
             self.db_output_fd = open(self.db_output_file, "w+")
-            print("server start: ",self.db_path)
+            LOG.info("Server start: {}".format(self.db_path))
             self.db_process = subprocess.Popen(shlex.split(self.db_path),
                                                stdout=self.db_output_fd,
                                                stderr=self.db_output_fd)

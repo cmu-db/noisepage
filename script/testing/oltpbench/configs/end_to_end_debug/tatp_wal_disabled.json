@@ -1,5 +1,8 @@
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "wal_enable": false
+    },
     "testcases": [
         {
             "base": {
