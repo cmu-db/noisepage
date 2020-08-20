@@ -38,7 +38,7 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
     return;
   }
 
-  if (static_cast<uint32_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
+  if (static_cast<uint64_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
     *result = StringVal::Null();
     return;
   }
@@ -48,7 +48,7 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
   const auto str_len = std::min(uint32_t(str.GetLength()) - str_start, static_cast<uint32_t>(len.val_));
 
   // All good
-  *result = StringVal(str.GetContent() + str_start, uint32_t(str_len));
+  *result = StringVal(str.GetContent() + str_start, str_len);
 }
 
 namespace {
