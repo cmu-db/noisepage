@@ -37,7 +37,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
-                uint16_t connection_thread_count);
+                uint16_t connection_thread_count, bool use_unix_socket, const std::string& socket_directory);
 
   ~TerrierServer() override = default;
 
@@ -79,6 +79,8 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // threads can be safely taken away, but I don't understand the networking stuff well enough to say for sure what
   // that assertion is
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
+  enum SocketType { UNIX_DOMAIN_SOCKET, NETWORKED_SOCKET };
+  template<SocketType type> void RegisterSocket();
 
   std::mutex running_mutex_;
   bool running_;
@@ -87,9 +89,12 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  uint16_t port_;                   // port number
-  int listen_fd_ = -1;              // server socket fd that TerrierServer is listening on
-  const uint32_t max_connections_;  // maximum number of connections
+  const bool use_unix_socket_;          // Enables a low-overhead communication protocol protocol
+  uint16_t port_;                       // port number
+  int network_socket_fd_ = -1;          // networked server socket fd that TerrierServer is listening on
+  int unix_domain_socket_fd_ = -1;      // unix-based local socket fd that TerrierServer may listen on
+  const std::string socket_directory_;  // Where to store the Unix domain socket
+  const uint32_t max_connections_;      // maximum number of connections
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   common::ManagedPointer<ProtocolInterpreter::Provider> provider_;

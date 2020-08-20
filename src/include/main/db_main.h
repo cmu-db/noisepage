@@ -232,14 +232,16 @@ class DBMain {
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
-                 const uint16_t connection_thread_count) {
+                 const uint16_t connection_thread_count, const bool use_unix_domain_sockets,
+                 const std::string socket_directory) {
       connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
           std::make_unique<network::PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_));
       server_ = std::make_unique<network::TerrierServer>(common::ManagedPointer(provider_),
                                                          common::ManagedPointer(connection_handle_factory_),
-                                                         thread_registry, port, connection_thread_count);
+                                                         thread_registry, port, connection_thread_count,
+                                                         use_unix_domain_sockets, socket_directory);
     }
 
     /**
@@ -360,7 +362,7 @@ class DBMain {
         TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
-                                           network_port_, connection_thread_count_);
+                                           network_port_, connection_thread_count_, uds_enable, uds_file_directory);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -663,6 +665,9 @@ class DBMain {
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
     uint16_t network_port_ = 15721;
+    bool uds_enable = true; // Unix domain sockets
+    std::string uds_file_directory = "/tmp/";
+    std::string uds_file_name = "noisepage.sock";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
 

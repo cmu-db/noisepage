@@ -51,6 +51,7 @@ Transition NetworkIoWrapper::FillReadBuffer() {
 Transition NetworkIoWrapper::FlushWriteBuffer(const common::ManagedPointer<WriteBuffer> wbuf) {
   while (wbuf->HasMore()) {
     auto bytes_written = wbuf->WriteOutTo(sock_fd_);
+//    printf("bytes: %d\n", bytes_written);
     if (bytes_written < 0) {
       switch (errno) {
         case EINTR:
@@ -79,7 +80,7 @@ void NetworkIoWrapper::RestartState() {
   }
   // Set TCP No Delay
   int one = 1;
-  setsockopt(sock_fd_, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+  setsockopt(sock_fd_, IPPROTO_TCP, TCP_CORK, &one, sizeof(one));
 
   in_->Reset();
   out_->Reset();

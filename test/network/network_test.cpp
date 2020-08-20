@@ -1,4 +1,5 @@
 #include <cstring>
+#include <filesystem>
 #include <memory>
 #include <pqxx/pqxx>  // NOLINT
 #include <string>
@@ -52,6 +53,8 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = 15721;
+  std::string socket_directory_ = "/tmp/";
+  std::string socket_name_ = "noisepage.sock";
   uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
@@ -85,7 +88,8 @@ class NetworkTests : public TerrierTest {
       server_ =
           std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
                                           common::ManagedPointer(handle_factory_.get()),
-                                          common::ManagedPointer(&thread_registry_), port_, connection_thread_count_);
+                                          common::ManagedPointer(&thread_registry_), port_, connection_thread_count_,
+                                          true /* Use unix domain socket */, socket_directory_, socket_name_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
@@ -166,6 +170,33 @@ TEST_F(NetworkTests, SimpleQueryTest) {
   try {
     pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
                                    catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(c);
+    txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
+    txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
+    txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
+
+    pqxx::result r = txn1.exec("SELECT name FROM employee where id=1;");
+    txn1.commit();
+    EXPECT_EQ(r.size(), 0);
+  } catch (const std::exception &e) {
+    NETWORK_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+  NETWORK_LOG_DEBUG("[SimpleQueryTest] Client has closed");
+}
+
+/**
+ * Use std::thread to initiate peloton server and pqxx client in separate
+ * threads
+ * Simple query test to guarantee both sides run correctly
+ * Callback method to close server after client finishes
+ */
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, UnixDomainSocketTest) {
+  try {
+    pqxx::connection c(fmt::format("host={0} port={1} user={2} sslmode=disable application_name=psql",
+                                   socket_directory_, socket_name_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
