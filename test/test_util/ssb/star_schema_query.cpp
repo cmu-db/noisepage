@@ -7,7 +7,7 @@
 #include "execution/compiler/output_schema_util.h"
 #include "execution/sql/sql_def.h"
 #include "loggers/execution_logger.h"
-#include "planner/plannodes/aggregate_plan_node.h"_
+#include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
