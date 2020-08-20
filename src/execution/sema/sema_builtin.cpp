@@ -2450,7 +2450,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      // this function returns a string
+      // this function returns an Integer
       sql_type = ast::BuiltinType::Integer;
       break;
     }
@@ -2546,7 +2546,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      // this function returns a string
+      // this function returns an Integer
       sql_type = ast::BuiltinType::Integer;
       break;
     }
