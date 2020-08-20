@@ -39,7 +39,9 @@ uint32_t DeferredActionManager::Process(bool process_index) {
   uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled);
 
   if (process_index) ProcessIndexes();
+  auto previous_size = common::thread_context.visited_slots_.size();
   common::thread_context.visited_slots_.clear();
+  common::thread_context.visited_slots_.reserve(previous_size);
   timestamp_manager_->RemoveTransaction(begin);
   return processed;
 }
