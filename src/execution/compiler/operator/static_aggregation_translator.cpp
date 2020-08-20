@@ -22,6 +22,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
+  build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
+
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 

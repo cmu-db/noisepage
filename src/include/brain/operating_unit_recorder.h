@@ -122,40 +122,56 @@ class OperatingUnitRecorder : planner::PlanVisitor {
                                   size_t ref_offset);
 
   /**
+   * Adjust key_size and num_key based on type
+   *
+   * @param type Type
+   * @param key_size
+   * @param num_key
+   */
+  void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
+
+  /**
    * Compute key size from vector of expressions
    * @param exprs Expressions
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs);
+  size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs, size_t *num_key);
 
   /**
    * Compute key size from output schema
    * @param plan Plan
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan);
+  size_t ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan, size_t *num_key);
 
   /**
    * Compute key size from output schema
    * @param tbl_oid Table OID
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(catalog::table_oid_t tbl_oid);
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, size_t *num_key);
 
   /**
    * Compute key size from vector of column oids
    * @param tbl_oid Table OID
    * @param cols vector of column oids
+   * @param num_key Number of keys
+   * @returns key size
    */
-  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols);
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols, size_t *num_key);
 
   /**
    * Compute key size from vector of index oids
    * @param idx_oid Index OID
    * @param cols index column oids
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols);
+  size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols,
+                        size_t *num_key);
 
   /**
    * Record arithmetic features
