@@ -28,7 +28,6 @@ TEST_F(VectorLikeTest, InputVerification) {
     auto tid_list = TupleIdList(a->GetSize());
     EXPECT_THROW(VectorOps::SelectLike(exec_settings, *a, *b, &tid_list), ExecutionException);
   }
-
 }
 
 // NOLINTNEXTLINE
