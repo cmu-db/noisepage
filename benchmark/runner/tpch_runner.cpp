@@ -21,7 +21,7 @@ class TPCHRunner : public benchmark::Fixture {
   const std::string ssb_dir_ = "../../../SSB_Table_Generator/ssb_tables/";
   const std::string tpch_database_name_ = "benchmark_db";
 
-  tpch::Workload::BenchmarkType type = tpch::Workload::BenchmarkType::TPCH;
+  tpch::Workload::BenchmarkType type_ = tpch::Workload::BenchmarkType::TPCH;
 
   void SetUp(const benchmark::State &state) final {
     terrier::execution::ExecutionUtil::InitTPL();
@@ -54,7 +54,7 @@ class TPCHRunner : public benchmark::Fixture {
 BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   // Load the TPCH tables and compile the queries
   std::string table_root;
-  switch (type) {
+  switch (type_) {
     case tpch::Workload::BenchmarkType::TPCH:
       table_root = tpch_table_root_;
       break;
@@ -65,7 +65,7 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
       UNREACHABLE("Unimplemented Benchmark Type");
   }
   workload_ =
-      std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_, table_root, type);
+      std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_, table_root, type_);
 
   auto total_query_num = workload_->GetQueryNum() + 1;
   for (uint32_t query_num = 1; query_num < total_query_num; ++query_num)
