@@ -468,18 +468,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   std::vector<Worker> workers;
   workers.reserve(terrier::BenchmarkConfig::num_threads);
 
-  auto curr_num_precomputed_txns = ((terrier::BenchmarkConfig::num_daf_threads + 2 - 1) / 2) * num_precomputed_txns_per_worker_ / terrier::BenchmarkConfig::num_threads;
-  if (terrier::BenchmarkConfig::num_daf_threads == 8 && terrier::BenchmarkConfig::num_threads == 1)
-    curr_num_precomputed_txns = curr_num_precomputed_txns / 4;
-  if (terrier::BenchmarkConfig::num_daf_threads == 4 && terrier::BenchmarkConfig::num_threads == 1)
-    curr_num_precomputed_txns = curr_num_precomputed_txns / 4;
-  if (terrier::BenchmarkConfig::num_daf_threads == 2 && terrier::BenchmarkConfig::num_threads == 8)
-    curr_num_precomputed_txns = curr_num_precomputed_txns * 2;
-
-  std::cout << "DAF | num daf thread:" << terrier::BenchmarkConfig::num_daf_threads << " num worker threads:" << terrier::BenchmarkConfig::num_threads << " txns per thread:" << curr_num_precomputed_txns << std::endl;
+  std::cout << "DAF | num daf thread:" << terrier::BenchmarkConfig::num_daf_threads << " num worker threads:" << terrier::BenchmarkConfig::num_threads << " txns per thread:" << num_precomputed_txns_per_worker_ << std::endl;
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
-                                               curr_num_precomputed_txns);
+                                               num_precomputed_txns_per_worker_);
   // record experiment elapsed time and average num_txns processed
   std::string_view expr_result_file_name = "./expr_results.csv";
 
@@ -718,7 +710,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(5);
+    ->MinTime(500);
 //BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
