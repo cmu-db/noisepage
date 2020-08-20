@@ -54,7 +54,8 @@ class IndexUtil {
   /**
    * Checks whether a given index can be used to satisfy a property.
    * For an index to fulfill the sort property, the columns sorted
-   * on must be in the same order and in the same direction.
+   * on must be in the same order and in the same direction as the index columns.
+   * However, if an intermediate column is in a bound, then the index may be used.
    *
    * @param accessor CatalogAccessor
    * @param prop PropertySort to satisfy
@@ -62,6 +63,8 @@ class IndexUtil {
    * @param idx_oid OID of index to use to satisfy
    * @param bounds bounds for IndexScan
    * @returns TRUE if the specified index can fulfill sort property
+   * TODO(dpatra): We should combine this function and the following function
+   * to check both sorts and predicates at once.
    */
   static bool SatisfiesSortWithIndex(
       catalog::CatalogAccessor *accessor, const PropertySort *prop, catalog::table_oid_t tbl_oid,
@@ -69,7 +72,11 @@ class IndexUtil {
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds = nullptr);
 
   /**
-   * Checks whether a set of predicates can be satisfied with an index
+   * Checks whether a set of predicates can be satisfied with an index.
+   * For an index to satisfy a subset of the predicates, the predicates must be in
+   * the same order as the index columns and start from the first column in
+   * the index schema.
+   *
    * @param accessor CatalogAccessor
    * @param tbl_oid OID of the table
    * @param tbl_alias Name of the table
@@ -79,6 +86,8 @@ class IndexUtil {
    * @param scan_type IndexScanType to utilize
    * @param bounds Relevant bounds for the index scan
    * @returns Whether index can be used
+   * TODO(dpatra): We should combine this function and the previous function
+   * to check both sorts and predicates at once.
    */
   static bool SatisfiesPredicateWithIndex(
       catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,

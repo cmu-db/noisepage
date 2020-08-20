@@ -44,7 +44,7 @@ bool IndexUtil::SatisfiesSortWithIndex(
     auto tv_expr = prop->GetSortColumn(sort_ind).CastManagedPointerTo<parser::ColumnValueExpression>();
     auto tv_col_oid = tv_expr->GetColumnOid();
 
-    // Sort a,b can only be fulfilled on Index a,c,b if c is a bound
+    // Sort c,b can only be fulfilled on Index a,c,b if a is a bound
     if (tv_col_oid == mapped_cols[idx_ind]) {
       // Column is present in both sort and index so increment both
       sort_ind++, idx_ind++;

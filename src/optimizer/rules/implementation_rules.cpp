@@ -141,7 +141,7 @@ void LogicalGetToPhysicalIndexScan::Transform(common::ManagedPointer<AbstractOpt
       planner::IndexScanType scan_type;
       std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> bounds;
       std::vector<AnnotatedExpression> preds = get->GetPredicates();
-      // Check whether any index can fulfill predicate evaluation
+      // Check whether any index can fulfill in-order predicate evaluation
       if (IndexUtil::SatisfiesPredicateWithIndex(accessor, get->GetTableOid(), get->GetTableAlias(), index, preds,
                                                  allow_cves_, &scan_type, &bounds)) {
         // There is an index that satisfies predicates for at least one column
