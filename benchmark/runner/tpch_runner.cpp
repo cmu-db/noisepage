@@ -64,8 +64,8 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
     default:
       UNREACHABLE("Unimplemented Benchmark Type");
   }
-  workload_ =
-      std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_, table_root, type_);
+  workload_ = std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_,
+                                               table_root, type_);
 
   auto total_query_num = workload_->GetQueryNum() + 1;
   for (uint32_t query_num = 1; query_num < total_query_num; ++query_num)
