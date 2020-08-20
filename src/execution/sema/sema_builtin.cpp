@@ -2419,7 +2419,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the second argument is a number
-      auto *resolved_type = Resolve(call->Arguments()[1]);
+      auto *resolved_type = call->Arguments()[1]->GetType();
       if (resolved_type == nullptr) {
         return;
       }
@@ -2447,7 +2447,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the second argument is a string
-      auto *resolved_type = Resolve(call->Arguments()[1]);
+      auto *resolved_type = call->Arguments()[1]->GetType();
       if (resolved_type == nullptr) {
         return;
       }
@@ -2474,7 +2474,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the second argument is a string
-      auto *resolved_type = Resolve(call->Arguments()[1]);
+      auto *resolved_type = call->Arguments()[1]->GetType();
       if (resolved_type == nullptr) {
         return;
       }
@@ -2501,7 +2501,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the second argument is a string
-      auto *resolved_type = Resolve(call->Arguments()[1]);
+      auto *resolved_type = call->Arguments()[1]->GetType();
       if (resolved_type == nullptr) {
         return;
       }
@@ -2545,7 +2545,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the second argument is a string
-      auto *resolved_type = Resolve(call->Arguments()[1]);
+      auto *resolved_type = call->Arguments()[1]->GetType();
       if (resolved_type == nullptr) {
         return;
       }
