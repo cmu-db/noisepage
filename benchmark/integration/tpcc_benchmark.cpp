@@ -109,14 +109,22 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_), nullptr, BenchmarkConfig::num_daf_threads);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers] {
-          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
+          Workload(i,
+                   tpcc_db,
+                   &txn_manager,
+                   &deferred_action_manager,
+                   precomputed_args,
+                   &workers,
+                   nullptr,
+                   shut_down);
         });
       }
       thread_pool.WaitUntilAllFinished();
@@ -200,14 +208,22 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_), nullptr, BenchmarkConfig::num_daf_threads);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers] {
-          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
+          Workload(i,
+                   tpcc_db,
+                   &txn_manager,
+                   &deferred_action_manager,
+                   precomputed_args,
+                   &workers,
+                   nullptr,
+                   shut_down);
         });
       }
       thread_pool.WaitUntilAllFinished();
@@ -300,14 +316,22 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_), nullptr, BenchmarkConfig::num_daf_threads);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers] {
-          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
+          Workload(i,
+                   tpcc_db,
+                   &txn_manager,
+                   &deferred_action_manager,
+                   precomputed_args,
+                   &workers,
+                   nullptr,
+                   shut_down);
         });
       }
       thread_pool.WaitUntilAllFinished();
@@ -393,15 +417,23 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_), nullptr, BenchmarkConfig::num_daf_threads);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager, &shut_down] {
           metrics_manager->RegisterThread();
-          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
+          Workload(i,
+                   tpcc_db,
+                   &txn_manager,
+                   &deferred_action_manager,
+                   precomputed_args,
+                   &workers,
+                   nullptr,
+                   shut_down);
         });
       }
       thread_pool.WaitUntilAllFinished();
@@ -454,6 +486,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
                                                curr_num_precomputed_txns);
   // record experiment elapsed time and average num_txns processed
   std::string_view expr_result_file_name = "./expr_results.csv";
+
+  // record actual number of txns processed
+  uint32_t num_txns_processed = 0;
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
@@ -494,14 +530,26 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     // run the TPCC workload to completion, timing the execution
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
     uint64_t elapsed_ms;
+
+    std::atomic<uint32_t> num_actual_processed = 0;
+    bool shut_down = false;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager, &num_actual_processed, &shut_down] {
           metrics_manager->RegisterThread();
-          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
+          Workload(i,
+                   tpcc_db,
+                   &txn_manager,
+                   &deferred_action_manager,
+                   precomputed_args,
+                   &workers,
+                   &num_actual_processed,
+                   shut_down);
         });
       }
+      std::this_thread::sleep_for(std::chrono::seconds(250));
+      shut_down = true;
       thread_pool.WaitUntilAllFinished();
     }
 
@@ -512,11 +560,14 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     // num_daf_threads, num_worker_thread, time_elapsed
     expr_result_file << BenchmarkConfig::num_threads << ", " << static_cast<double>(elapsed_ms) / 1000.0 << std::endl;
     expr_result_file.close();
+
+    num_txns_processed += num_actual_processed.load();
+
     // cleanup
     catalog.TearDown();
     delete gc_thread_;
     deferred_action_manager.FullyPerformGC(common::ManagedPointer(gc_), common::ManagedPointer(log_manager_));
-    thread_pool.Shutdown();
+//    thread_pool.Shutdown();
     delete gc_;
     delete metrics_thread;
     delete metrics_manager;
@@ -535,8 +586,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     }
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
-    state.SetItemsProcessed(state.iterations() * curr_num_precomputed_txns *
-                            terrier::BenchmarkConfig::num_threads);
+    state.SetItemsProcessed(num_txns_processed);
   }
 }
 
@@ -595,15 +645,23 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_), nullptr, BenchmarkConfig::num_daf_threads);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager, &shut_down] {
           metrics_manager->RegisterThread();
-          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers);
+          Workload(i,
+                   tpcc_db,
+                   &txn_manager,
+                   &deferred_action_manager,
+                   precomputed_args,
+                   &workers,
+                   nullptr,
+                   shut_down);
         });
       }
       thread_pool.WaitUntilAllFinished();
@@ -666,7 +724,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(500);
+    ->MinTime(5);
 //BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
 //    ->Unit(benchmark::kMillisecond)
 //    ->UseManualTime()
