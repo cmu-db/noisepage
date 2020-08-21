@@ -69,9 +69,9 @@ def generate_test_suite(args):
     server_data = oltp_test_suite_json.get("env",{})
     server_data["max_connection_threads"] = max_connection_threads
 
-    # if wal_enable is false then wal_device is "none"
+    # if wal_enable is false then wal_device is "None"
     if not wal_enable:
-        server_data["wal_device"] ="none"
+        server_data["wal_device"] ="None"
 
     # publish test results to the server
     oltp_report_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get("publish_results")]
