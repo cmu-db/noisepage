@@ -342,7 +342,12 @@ void BinderContext::GenerateAllColumnExpressions(
     }
     else if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
       auto &cols = nested_table_alias_map_[table_alias];
-      for (auto &col_entry : cols) {
+      std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector(cols.begin(), cols.end());
+      std::sort(cols_vector.begin(), cols_vector.end(),
+                [](const std::pair<parser::AliasType, type::TypeId> A, const std::pair<parser::AliasType, type::TypeId> B) {
+                  return A.first.GetSerialNo() < B.first.GetSerialNo();
+                });
+      for (auto &col_entry : cols_vector) {
         auto tv_expr =
             new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
         tv_expr->SetReturnValueType(col_entry.second);
