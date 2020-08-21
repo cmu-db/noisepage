@@ -89,7 +89,7 @@ class TPCCTests : public TerrierTest {
     // run the TPCC workload to completion
     for (int8_t i = 0; i < num_threads_; i++) {
       thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers, &shut_down] {
-        Workload(i, tpcc_db, txn_manager.Get(), precomputed_args, &workers, nullptr, shut_down);
+        Workload(i, tpcc_db, txn_manager.Get(), precomputed_args, &workers, shut_down);
       });
     }
     thread_pool_.WaitUntilAllFinished();
