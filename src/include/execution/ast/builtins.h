@@ -273,6 +273,9 @@ namespace terrier::execution::ast {
   F(Log10, log10)                                                       \
   F(Log2, log2)                                                         \
                                                                         \
+  /* EXP */                                                             \
+  F(Exp, exp)                                                           \
+                                                                        \
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
   F(OffsetOf, offsetOf)                                                 \
@@ -302,6 +305,12 @@ namespace terrier::execution::ast {
   F(Repeat, repeat)                                                     \
   F(Trim, trim)                                                         \
   F(Trim2, trim2)                                                       \
+  F(Position, position)                                                 \
+  F(ASCII, ascii)                                                       \
+                                                                        \
+  /* Char function */                                                   \
+  F(Chr, chr)                                                           \
+  F(CharLength, charLength)                                             \
                                                                         \
   /* Arithmetic functions */                                            \
   F(Abs, abs)                                                           \
