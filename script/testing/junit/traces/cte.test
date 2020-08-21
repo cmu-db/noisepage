@@ -87,6 +87,9 @@ WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E
 ----
 4 values hashing to 17bcc53db5d5a4ed62836d923837a49e
 
+statement ok
+
+
 # Aggregate inside cte query
 query I nosort
 WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee;

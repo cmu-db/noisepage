@@ -21,6 +21,7 @@ INSERT INTO company (id,name,age,address,salary) VALUES (2, 'George', 21, 'NY', 
 
 WITH employee AS (SELECT id, name, age FROM company) SELECT name FROM employee;
 WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E1.sumage FROM employee AS E1, employee AS E2 WHERE E1.name = E2.name;
+
 # Aggregate inside cte query
 WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee;
 # Join inside cte query
