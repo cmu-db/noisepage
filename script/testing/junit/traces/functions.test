@@ -120,12 +120,62 @@ SELECT truncate(double_val) AS result FROM functions1 WHERE is_null = 1
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 query I nosort
+SELECT exp(double_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 73eeec3b16d21b9f2c49fc66bb912349
+
+query I nosort
+SELECT exp(double_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
 SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 0
 ----
 1 values hashing to 5ab557c937e38f15291c04b7e99544ad
 
 query I nosort
 SELECT lower(str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT position('C' in str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT position('C' in str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT ascii(str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 767abe6119a018446bcd7627ff8a4f2d
+
+query I nosort
+SELECT ascii(str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT chr(int_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to d9bed3b7e151f11b8fdadf75f1db96d9
+
+query I nosort
+SELECT chr(int_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT char_length(str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 9ae0ea9e3c9c6e1b9b6252c8395efdc1
+
+query I nosort
+SELECT char_length(str_a_val) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 

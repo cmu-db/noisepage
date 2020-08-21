@@ -279,6 +279,9 @@ namespace terrier::execution::ast {
   F(Log10, log10)                                                       \
   F(Log2, log2)                                                         \
                                                                         \
+  /* EXP */                                                             \
+  F(Exp, exp)                                                           \
+                                                                        \
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
   F(OffsetOf, offsetOf)                                                 \
@@ -299,6 +302,12 @@ namespace terrier::execution::ast {
   /* String functions */                                                \
   F(Lower, lower)                                                       \
   F(Version, version)                                                   \
+  F(Position, position)                                                 \
+  F(ASCII, ascii)                                                       \
+                                                                        \
+  /* Char function */                                                   \
+  F(Chr, chr)                                                           \
+  F(CharLength, charLength)                                             \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
@@ -350,7 +359,9 @@ class Builtins {
   /**
    * @return The name of the function associated with the given builtin enumeration.
    */
-  static const char *GetFunctionName(Builtin builtin) { return builtin_function_names[static_cast<uint16_t>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) {
+    return builtin_function_names[static_cast<std::underlying_type<Builtin>::type>(builtin)];
+  }
 
  private:
   static const char *builtin_function_names[];

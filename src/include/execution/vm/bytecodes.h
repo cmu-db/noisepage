@@ -571,6 +571,9 @@ namespace terrier::execution::vm {
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
                                                                                                                       \
   /* String functions */                                                                                              \
+  F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(CharLength, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(ASCII, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
@@ -587,6 +590,7 @@ namespace terrier::execution::vm {
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
                                                                                                                       \
   /* Date Functions */                                                                                                \
   F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \
