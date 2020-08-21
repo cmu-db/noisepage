@@ -378,6 +378,7 @@ void StringFunctions::StartsWith(BoolVal *result, exec::ExecutionContext *ctx, c
   *result = BoolVal(start.GetLength() <= str.GetLength() &&
                     strncmp(str.GetContent(), start.GetContent(), static_cast<size_t>(start.GetLength())) == 0);
 }
+
 void StringFunctions::Position(Integer *result, exec::ExecutionContext *ctx, const StringVal &search_str,
                                const StringVal &search_sub_str) {
   if (search_str.is_null_ || search_sub_str.is_null_) {
