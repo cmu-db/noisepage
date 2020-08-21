@@ -1181,14 +1181,14 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t tabl
   return CallBuiltin(ast::Builtin::CteScanInit, args);
 }
 
-ast::Expr *CodeGen::IterCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
+ast::Expr *CodeGen::IndCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
                                             ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var) {
   ast::Expr *col_ids_expr = MakeExpr(col_ids);
   ast::Expr *col_types_expr = MakeExpr(col_types);
 
   std::vector<ast::Expr *> args{si,           exec_ctx_var,   Const32(!table_oid),
                                 col_ids_expr, col_types_expr, ConstBool(is_recursive)};
-  return CallBuiltin(ast::Builtin::IterCteScanInit, args);
+  return CallBuiltin(ast::Builtin::IndCteScanInit, args);
 }
 
 ast::AstNodeFactory *CodeGen::GetFactory() { return context_->GetNodeFactory(); }

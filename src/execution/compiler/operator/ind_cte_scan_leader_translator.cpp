@@ -1,4 +1,4 @@
-#include "execution/compiler/operator/iter_cte_scan_leader_translator.h"
+#include "execution/compiler/operator/ind_cte_scan_leader_translator.h"
 
 #include <execution/compiler/loop.h>
 
@@ -10,7 +10,7 @@
 //
 namespace terrier::execution::compiler {
 
-IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
+IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                          CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
       op_(&plan),
@@ -19,7 +19,7 @@ IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const planner::CteScanP
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       base_pipeline_(this, Pipeline::Parallelism::Parallel),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  auto iter_cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IterCteScanIterator);
+  auto iter_cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
   auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
   cte_scan_val_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
       GetCodeGen(), op_->GetCTETableName() + "val", iter_cte_type);
@@ -32,13 +32,13 @@ IterCteScanLeaderTranslator::IterCteScanLeaderTranslator(const planner::CteScanP
   compilation_context->Prepare(*(plan.GetChild(0)), &build_pipeline_);
 }
 
-void IterCteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {
+void IndCteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {
   ast::Expr *cte_free_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::CteScanFree, {cte_scan_ptr_entry_.Get(GetCodeGen())});
   function->Append(GetCodeGen()->MakeStmt(cte_free_call));
 }
 
-void IterCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
+void IndCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   if (&context->GetPipeline() == &base_pipeline_) {
     DeclareInsertPR(function);
     GetInsertPR(function);
@@ -70,25 +70,25 @@ void IterCteScanLeaderTranslator::PerformPipelineWork(WorkContext *context, Func
   context->Push(function);
 }
 
-void IterCteScanLeaderTranslator::DeclareIterCteScanIterator(FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::DeclareIndCteScanIterator(FunctionBuilder *builder) const {
   // Generate col types
   auto codegen = GetCodeGen();
   SetColumnTypes(builder);
   SetColumnOids(builder);
   auto &plan = GetPlanAs<planner::CteScanPlanNode>();
   // Call @cteScanIteratorInit
-  ast::Expr *cte_scan_iterator_setup = codegen->IterCteScanIteratorInit(
+  ast::Expr *cte_scan_iterator_setup = codegen->IndCteScanIteratorInit(
       cte_scan_val_entry_.GetPtr(codegen), plan.GetTableOid(), col_oids_var_, col_types_, plan.GetIsRecursive(),
       GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   builder->Append(codegen->MakeStmt(cte_scan_iterator_setup));
 
   ast::Stmt *pointer_setup =
       codegen->Assign(cte_scan_ptr_entry_.Get(codegen),
-                      codegen->CallBuiltin(ast::Builtin::IterCteScanGetReadCte, {cte_scan_val_entry_.GetPtr(codegen)}));
+                      codegen->CallBuiltin(ast::Builtin::IndCteScanGetReadCte, {cte_scan_val_entry_.GetPtr(codegen)}));
   builder->Append(pointer_setup);
 }
 
-void IterCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const {
   // Declare: var col_types: [num_cols]uint32
   auto codegen = GetCodeGen();
   auto size = op_->GetTableSchema()->GetColumns().size();
@@ -103,7 +103,7 @@ void IterCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const
   }
 }
 
-void IterCteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const {
   // Declare: var col_types: [num_cols]uint32
   auto codegen = GetCodeGen();
   auto size = op_->GetTableSchema()->GetColumns().size();
@@ -118,38 +118,38 @@ void IterCteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const 
   }
 }
 
-void IterCteScanLeaderTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  DeclareIterCteScanIterator(function);
+void IndCteScanLeaderTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  DeclareIndCteScanIterator(function);
 }
 
-ast::Expr *IterCteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const {
+ast::Expr *IndCteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const {
   return cte_scan_ptr_entry_.Get(codegen);
 }
 
-void IterCteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr : *ProjectedRow
   auto codegen = GetCodeGen();
   auto pr_type = codegen->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
   builder->Append(codegen->DeclareVar(insert_pr_, codegen->PointerType(pr_type), nullptr));
 }
 
-void IterCteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto codegen = GetCodeGen();
   auto get_pr_call =
-      codegen->CallBuiltin(ast::Builtin::IterCteScanGetInsertTempTablePR, {cte_scan_val_entry_.GetPtr(codegen)});
+      codegen->CallBuiltin(ast::Builtin::IndCteScanGetInsertTempTablePR, {cte_scan_val_entry_.GetPtr(codegen)});
   builder->Append(codegen->Assign(codegen->MakeExpr(insert_pr_), get_pr_call));
 }
 
-void IterCteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const {
   // var insert_slot = @cteScanTableInsert(&inserter_)
   auto codegen = GetCodeGen();
   auto insert_slot = codegen->MakeFreshIdentifier("insert_slot");
-  auto insert_call = codegen->CallBuiltin(ast::Builtin::IterCteScanTableInsert, {cte_scan_val_entry_.GetPtr(codegen)});
+  auto insert_call = codegen->CallBuiltin(ast::Builtin::IndCteScanTableInsert, {cte_scan_val_entry_.GetPtr(codegen)});
   builder->Append(codegen->DeclareVar(insert_slot, nullptr, insert_call));
 }
 
-void IterCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuilder *builder,
+void IndCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuilder *builder,
                                                   uint32_t child_idx) const {
   const auto &cols = op_->GetTableSchema()->GetColumns();
   auto codegen = GetCodeGen();
@@ -172,16 +172,16 @@ void IterCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, Function
   }
 }
 
-void IterCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::FinalizeReadCteScanIterator(FunctionBuilder *builder) const {
   ast::Expr *cte_scan_iterator_setup =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IterCteScanGetResult, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanGetResult, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
   ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_setup);
   builder->Append(assign);
 }
 
-void IterCteScanLeaderTranslator::GenInductiveLoop(WorkContext *context, FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::GenInductiveLoop(WorkContext *context, FunctionBuilder *builder) const {
   Loop loop(builder, nullptr,
-            GetCodeGen()->CallBuiltin(ast::Builtin::IterCteScanAccumulate, {cte_scan_val_entry_.GetPtr(GetCodeGen())}),
+            GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanAccumulate, {cte_scan_val_entry_.GetPtr(GetCodeGen())}),
             nullptr);
   {
     PopulateReadCteScanIterator(builder);
@@ -195,9 +195,9 @@ void IterCteScanLeaderTranslator::GenInductiveLoop(WorkContext *context, Functio
   FinalizeReadCteScanIterator(builder);
 }
 
-void IterCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *builder) const {
   ast::Expr *cte_scan_iterator_setup =
-      GetCodeGen()->CallBuiltin(ast::Builtin::IterCteScanGetReadCte, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
+      GetCodeGen()->CallBuiltin(ast::Builtin::IndCteScanGetReadCte, {cte_scan_val_entry_.GetPtr(GetCodeGen())});
   ast::Stmt *assign = GetCodeGen()->Assign(cte_scan_ptr_entry_.Get(GetCodeGen()), cte_scan_iterator_setup);
   builder->Append(assign);
 }

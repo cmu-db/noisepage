@@ -380,7 +380,7 @@ class BytecodeEmitter {
    * @param num_oids length of the array
    * @param is_recursive whether the inductive CTE is recursive
    */
-  void EmitIterCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+  void EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
                                    LocalVar col_oids, LocalVar col_types, uint32_t num_oids, bool is_recursive);
 
   /** ONLY FOR TESTING! */
@@ -408,7 +408,7 @@ class BytecodeEmitter {
    * @param num_oids length of the array
    * @param is_recursive whether the inductive CTE is recursive
    */
-  void EmitIterCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids,
+  void EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids,
                                    uint32_t num_oids, bool is_recursive);
 
   // -------------------------------------------

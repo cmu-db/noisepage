@@ -9,13 +9,13 @@ namespace terrier::execution::sql {
 /**
  * An iterator over a CTE Temp table's data
  */
-class EXPORT IterCteScanIterator {
+class EXPORT IndCteScanIterator {
  public:
   /**
    * Constructor for the CTEScanIterator
    */
 
-  IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_ids,
+  IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *schema_cols_ids,
                       uint32_t *schema_cols_type, uint32_t num_schema_cols, bool is_recursive);
 
   /**
@@ -60,12 +60,12 @@ class EXPORT IterCteScanIterator {
   /**
    * Destructor
    */
-  ~IterCteScanIterator() = default;
+  ~IndCteScanIterator() = default;
 
   /**
    * This class cannot be copied or moved
    */
-  DISALLOW_COPY_AND_MOVE(IterCteScanIterator);
+  DISALLOW_COPY_AND_MOVE(IndCteScanIterator);
 
  private:
   exec::ExecutionContext *exec_ctx_;

@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "execution/sql/ind_cte_scan_iterator.h"
 #include "execution/sql/index_iterator.h"
-#include "execution/sql/iter_cte_scan_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
@@ -12,7 +12,7 @@
 
 namespace terrier::execution::sql::test {
 
-class IterCTEScanTest : public SqlBasedTest {
+class IndCteScanTest : public SqlBasedTest {
   void SetUp() override {
     // Create the test tables
     SqlBasedTest::SetUp();
@@ -27,15 +27,15 @@ class IterCTEScanTest : public SqlBasedTest {
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
-TEST_F(IterCTEScanTest, IterCTEEmptyAccumulateTest) {
+TEST_F(IndCteScanTest, IterCTEEmptyAccumulateTest) {
   // Test that Accumulate() returns false on empty
 
   // Create cte_table
   std::array<uint32_t, 1> col_oids{1};
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{
+  // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  terrier::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
       false};
   EXPECT_FALSE(cte_scan.Accumulate());
@@ -56,7 +56,7 @@ TEST_F(IterCTEScanTest, IterCTEEmptyAccumulateTest) {
   EXPECT_EQ(count, 0);
 }
 
-TEST_F(IterCTEScanTest, IterCTESingleInsertTest) {
+TEST_F(IndCteScanTest, IterCTESingleInsertTest) {
   // Simple insert into cte_table
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 1 and 20.
 
@@ -75,8 +75,8 @@ TEST_F(IterCTEScanTest, IterCTESingleInsertTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{
+  // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  terrier::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
       false};
 
@@ -120,7 +120,7 @@ TEST_F(IterCTEScanTest, IterCTESingleInsertTest) {
   }
   EXPECT_EQ(count, inserted_vals.size());
 }
-TEST_F(IterCTEScanTest, IterCTEWriteTableTest) {
+TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
   // Simple insert into cte_table
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 1 and 20.
 
@@ -139,8 +139,8 @@ TEST_F(IterCTEScanTest, IterCTEWriteTableTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{
+  // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  terrier::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
       false};
 
@@ -184,7 +184,7 @@ TEST_F(IterCTEScanTest, IterCTEWriteTableTest) {
   EXPECT_EQ(count, inserted_vals.size());
 }
 
-TEST_F(IterCTEScanTest, IterCTEDoubleAccumulateTest) {
+TEST_F(IndCteScanTest, IterCTEDoubleAccumulateTest) {
   // Same insertion as the previous test, but accumulate TWICE instead of once.
   // Since there are no insertions between the two accumulates, tne second accumulate should do nothing.
 
@@ -203,8 +203,8 @@ TEST_F(IterCTEScanTest, IterCTEDoubleAccumulateTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{
+  // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  terrier::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
       false};
 
@@ -250,7 +250,7 @@ TEST_F(IterCTEScanTest, IterCTEDoubleAccumulateTest) {
   EXPECT_EQ(count, inserted_vals.size());
 }
 
-TEST_F(IterCTEScanTest, IterCTEMultipleInsertTest) {
+TEST_F(IndCteScanTest, IterCTEMultipleInsertTest) {
   // Multiple iteration insert into cte_table
   //
   // SELECT colA FROM test_1 where colA BETWEEN 1 AND 20
@@ -274,8 +274,8 @@ TEST_F(IterCTEScanTest, IterCTEMultipleInsertTest) {
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  // auto cte_scan = new terrier::execution::sql::IterCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
-  terrier::execution::sql::IterCteScanIterator cte_scan{
+  // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
+  terrier::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
       false};
 

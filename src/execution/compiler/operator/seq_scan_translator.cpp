@@ -1,7 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include <execution/compiler/operator/cte_scan_leader_translator.h>
-#include <execution/compiler/operator/iter_cte_scan_leader_translator.h>
+#include <execution/compiler/operator/ind_cte_scan_leader_translator.h>
 
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
@@ -265,7 +265,7 @@ ast::Expr *SeqScanTranslator::TableIterInitExpr() const {
     ast::Expr *cte_scan_ptr;
     auto leader = GetPlanAs<planner::CteScanPlanNode>().GetLeader();
     if (leader->GetIsInductive()) {
-      cte_scan_ptr = reinterpret_cast<IterCteScanLeaderTranslator *>(GetCompilationContext()->LookupTranslator(*leader))
+      cte_scan_ptr = reinterpret_cast<IndCteScanLeaderTranslator *>(GetCompilationContext()->LookupTranslator(*leader))
                          ->GetCteScanPtr(GetCodeGen());
     } else {
       cte_scan_ptr = reinterpret_cast<CteScanLeaderTranslator *>(GetCompilationContext()->LookupTranslator(*leader))

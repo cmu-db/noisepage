@@ -1,6 +1,6 @@
 #include "execution/compiler/compilation_context.h"
 
-#include <execution/compiler/operator/iter_cte_scan_leader_translator.h>
+#include <execution/compiler/operator/ind_cte_scan_leader_translator.h>
 
 #include <algorithm>
 #include <atomic>
@@ -282,7 +282,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::CTESCANLEADER: {
       const auto &cte_scan_leader = dynamic_cast<const planner::CteScanPlanNode &>(plan);
       if (cte_scan_leader.GetIsInductive()) {
-        translator = std::make_unique<IterCteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+        translator = std::make_unique<IndCteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
       } else {
         translator = std::make_unique<CteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
       }

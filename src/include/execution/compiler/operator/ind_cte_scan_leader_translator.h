@@ -11,16 +11,16 @@
 namespace terrier::execution::compiler {
 
 /**
- * IterCteScanLeader Translator
+ * IndCteScanLeader Translator
  */
-class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
+class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
  public:
   /**
    * Constructor
    * @param op The plan node
    * @param codegen The code generator
    */
-  IterCteScanLeaderTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
+  IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
                               Pipeline *pipeline);
 
   /**
@@ -94,7 +94,7 @@ class IterCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   Pipeline build_pipeline_;
   void SetColumnTypes(FunctionBuilder *builder) const;
   void SetColumnOids(FunctionBuilder *builder) const;
-  void DeclareIterCteScanIterator(FunctionBuilder *builder) const;
+  void DeclareIndCteScanIterator(FunctionBuilder *builder) const;
   void GenInductiveLoop(WorkContext *context, FunctionBuilder *builder) const;
   void FinalizeReadCteScanIterator(FunctionBuilder *builder) const;
 };

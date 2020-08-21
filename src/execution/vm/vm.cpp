@@ -656,64 +656,64 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Iterative Cte Scan operations
   // -------------------------------------------------------
 
-  OP(IterCteScanInit) : {
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
+  OP(IndCteScanInit) : {
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto schema_cols_ids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
     auto is_recursive = static_cast<bool>(READ_IMM1());
-    OpIterCteScanInit(iter, exec_ctx, table_oid, schema_cols_ids, schema_cols_type, num_oids, is_recursive);
+    OpIndCteScanInit(iter, exec_ctx, table_oid, schema_cols_ids, schema_cols_type, num_oids, is_recursive);
     DISPATCH_NEXT();
   }
 
-  OP(IterCteScanGetResult) : {
+  OP(IndCteScanGetResult) : {
     auto *result = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetResult(result, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanGetResult(result, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanGetReadCte) : {
+  OP(IndCteScanGetReadCte) : {
     auto *table = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetReadCte(table, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanGetReadCte(table, iter);
     DISPATCH_NEXT();
   }
 
-  OP(IterCteScanGetWriteCte) : {
+  OP(IndCteScanGetWriteCte) : {
     auto *table = frame->LocalAt<sql::CteScanIterator **>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetWriteCte(table, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanGetWriteCte(table, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanGetReadTableOid) : {
+  OP(IndCteScanGetReadTableOid) : {
     auto table_oid = frame->LocalAt<terrier::catalog::table_oid_t *>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetReadTableOid(table_oid, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanGetReadTableOid(table_oid, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanAccumulate) : {
+  OP(IndCteScanAccumulate) : {
     auto table_oid = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanAccumulate(table_oid, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanAccumulate(table_oid, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanGetInsertTempTablePR) : {
+  OP(IndCteScanGetInsertTempTablePR) : {
     auto projected_row = frame->LocalAt<terrier::storage::ProjectedRow **>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanGetInsertTempTablePR(projected_row, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanGetInsertTempTablePR(projected_row, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanTableInsert) : {
+  OP(IndCteScanTableInsert) : {
     auto tuple_slot = frame->LocalAt<terrier::storage::TupleSlot *>(READ_LOCAL_ID());
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanTableInsert(tuple_slot, iter);
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanTableInsert(tuple_slot, iter);
     DISPATCH_NEXT();
   }
-  OP(IterCteScanFree) : {
-    auto iter = frame->LocalAt<sql::IterCteScanIterator *>(READ_LOCAL_ID());
-    OpIterCteScanFree(iter);
+  OP(IndCteScanFree) : {
+    auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
+    OpIndCteScanFree(iter);
     DISPATCH_NEXT();
   }
 

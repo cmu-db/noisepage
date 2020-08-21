@@ -1,15 +1,14 @@
 
-#include "execution/sql/iter_cte_scan_iterator.h"
+#include "execution/sql/ind_cte_scan_iterator.h"
 
 #include "execution/sql/cte_scan_iterator.h"
-
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::execution::sql {
 
-IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
+IndCteScanIterator::IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                                          uint32_t *schema_cols_ids, uint32_t *schema_cols_type,
                                          uint32_t num_schema_cols, bool is_recursive)
     : exec_ctx_{exec_ctx},
@@ -29,11 +28,11 @@ IterCteScanIterator::IterCteScanIterator(exec::ExecutionContext *exec_ctx, catal
       written_{false},
       is_recursive_{is_recursive} {}
 
-CteScanIterator *IterCteScanIterator::GetWriteCte() { return cte_scan_write_; }
+CteScanIterator *IndCteScanIterator::GetWriteCte() { return cte_scan_write_; }
 
-CteScanIterator *IterCteScanIterator::GetReadCte() { return cte_scan_read_; }
+CteScanIterator *IndCteScanIterator::GetReadCte() { return cte_scan_read_; }
 
-CteScanIterator *IterCteScanIterator::GetResultCTE() {
+CteScanIterator *IndCteScanIterator::GetResultCTE() {
   if (is_recursive_) {
     exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_1_.GetTable()));
     return &cte_scan_1_;
@@ -42,16 +41,16 @@ CteScanIterator *IterCteScanIterator::GetResultCTE() {
   return cte_scan_read_;
 }
 
-catalog::table_oid_t IterCteScanIterator::GetReadTableOid() { return cte_scan_read_->GetTableOid(); }
+catalog::table_oid_t IndCteScanIterator::GetReadTableOid() { return cte_scan_read_->GetTableOid(); }
 
-storage::ProjectedRow *IterCteScanIterator::GetInsertTempTablePR() { return cte_scan_write_->GetInsertTempTablePR(); }
+storage::ProjectedRow *IndCteScanIterator::GetInsertTempTablePR() { return cte_scan_write_->GetInsertTempTablePR(); }
 
-storage::TupleSlot IterCteScanIterator::TableInsert() {
+storage::TupleSlot IndCteScanIterator::TableInsert() {
   written_ = true;
   return cte_scan_write_->TableInsert();
 }
 
-bool IterCteScanIterator::Accumulate() {
+bool IndCteScanIterator::Accumulate() {
   // Dump contents from read table into table_1, and then swap read and write
   // dump read table into table_1
   if (is_recursive_) {

@@ -364,10 +364,6 @@ void BinderContext::GenerateAllColumnExpressions(
         // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
         exprs->push_back(new_tv_expr);
       }
-      auto end_iter = exprs->end();
-      std::sort(start_iter, end_iter, [](common::ManagedPointer<parser::AbstractExpression> a,
-                                         common::ManagedPointer<parser::AbstractExpression> b)
-                {return parser::AliasType::CompareSerialNo()(a->GetAlias(),b->GetAlias());});
     }
   }
 }

@@ -36,8 +36,8 @@ public class GenerateTrace {
         MogDb db = new MogDb(args[1], args[2], args[3]);
         Connection conn = db.getDbTest().newConn();
         // remove existing table name
-//        List<String> tab = getAllExistingTableName(mog,conn);
-//        removeExistingTable(tab,conn);
+        List<String> tab = getAllExistingTableName(mog,conn);
+        removeExistingTable(tab,conn);
 
         String line;
         String label;

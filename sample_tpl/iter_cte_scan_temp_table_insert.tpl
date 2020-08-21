@@ -10,7 +10,7 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
   col_types[0] = 4
 
   var cte_scan: IterCteScanIterator
-  @iterCteScanInit(&cte_scan, exec_ctx, col_types, false)
+  @indCteScanInit(&cte_scan, exec_ctx, col_types, false)
 
   // Iterate from 1 -> 20
   var index_iter: IndexIterator
@@ -28,13 +28,13 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
     var slot = @indexIteratorGetSlot(&index_iter)
 
     // Insert entry
-    var insert_pr = @iterCteScanGetInsertTempTablePR(&cte_scan)
+    var insert_pr = @indCteScanGetInsertTempTablePR(&cte_scan)
     @prSetInt(insert_pr, 0, cur_val)
-    var insert_temp_table_slot = @iterCteScanTableInsert(&cte_scan)
+    var insert_temp_table_slot = @indCteScanTableInsert(&cte_scan)
   }
-  var acc_bool = @iterCteScanAccumulate(&cte_scan)
+  var acc_bool = @indCteScanAccumulate(&cte_scan)
   // Test accumulate on empty WriteTable
-  acc_bool = @iterCteScanAccumulate(&cte_scan)
+  acc_bool = @indCteScanAccumulate(&cte_scan)
   @indexIteratorFree(&index_iter)
 
   var count = 0
@@ -42,7 +42,7 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
   oids[0] = 1
 
   var seq_iter : TableVectorIterator
-  var read_cte_scan = @iterCteScanGetResult(&cte_scan)
+  var read_cte_scan = @indCteScanGetResult(&cte_scan)
 
   // Count entries in temp table
   @tempTableIterInitBind(&seq_iter, exec_ctx, oids, read_cte_scan)
@@ -55,7 +55,7 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
     @pciReset(pci)
   }
   @tableIterClose(&seq_iter)
-  @iterCteScanFree(&cte_scan)
+  @indCteScanFree(&cte_scan)
 
   return count
 }
