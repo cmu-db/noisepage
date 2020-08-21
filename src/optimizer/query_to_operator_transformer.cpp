@@ -1008,7 +1008,7 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
       res;
   for (auto &expr : select_list) {
     parser::AliasType alias;
-    if (!expr->GetAlias().empty()) {
+    if (!expr->GetAlias().Empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = expr.CastManagedPointerTo<parser::ColumnValueExpression>();

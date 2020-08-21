@@ -28,11 +28,9 @@ class ParseResult;
 
 class AliasType {
  public:
-  AliasType() : name_{}, serial_no_{0}, serial_valid_{false} {}
-
-  explicit AliasType(std::string &&name, size_t serial_no) : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
-
-  explicit AliasType(const std::string &name, size_t serial_no)
+  AliasType() :  serial_no_{0}, serial_valid_{false} {}
+  
+  explicit AliasType(std::string name, size_t serial_no)
       : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
 
   explicit AliasType(std::string &&name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
@@ -49,12 +47,11 @@ class AliasType {
     bool names_equal = (name_ == other.name_);
     if (!serial_valid_ || !other.serial_valid_) {
       return names_equal;
-    } else {
-      return names_equal && (serial_no_ == other.serial_no_);
     }
+    return names_equal && (serial_no_ == other.serial_no_);
   }
 
-  bool empty() const { return name_.empty(); }
+  bool Empty() const { return name_.empty(); }
 
   struct HashKey {
     size_t operator()(const AliasType &p) const {

@@ -69,6 +69,7 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
+  regular_table_alias_list_.push_back(table_alias);
 }
 
 void BinderContext::AddNewTable(const std::string &new_table_name,
@@ -363,6 +364,10 @@ void BinderContext::GenerateAllColumnExpressions(
         // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
         exprs->push_back(new_tv_expr);
       }
+      auto end_iter = exprs->end();
+      std::sort(start_iter, end_iter, [](common::ManagedPointer<parser::AbstractExpression> a,
+                                         common::ManagedPointer<parser::AbstractExpression> b)
+                {return parser::AliasType::CompareSerialNo()(a->GetAlias(),b->GetAlias());});
     }
   }
 }
