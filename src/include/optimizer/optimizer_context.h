@@ -80,7 +80,7 @@ class OptimizerContext {
    * Gets the CTE Schema
    * @returns CTE Schema
    */
-  catalog::Schema &GetCTESchema(catalog::table_oid_t &cte_oid) { return cte_schemas_.find(cte_oid)->second; }
+  catalog::Schema &GetCTESchema(const catalog::table_oid_t &cte_oid) { return cte_schemas_.find(cte_oid)->second; }
 
   std::vector<catalog::table_oid_t> GetCTETables() {
     std::vector<catalog::table_oid_t> keys;

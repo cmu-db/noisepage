@@ -120,8 +120,8 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       //      }
 
       //      TERRIER_ASSERT(children.size() > 0, "Nothing to fill the leader with???");
-      for (size_t i = 0; i < children.size(); i++) {
-        builder.AddChild(std::move(children[i]));
+      for (auto &child : children) {
+        builder.AddChild(std::move(child));
       }
 
       auto new_leader = builder.Build();

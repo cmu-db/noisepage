@@ -29,13 +29,13 @@ class ParseResult;
 class AliasType {
  public:
   AliasType() :  serial_no_{0}, serial_valid_{false} {}
-  
+
   explicit AliasType(std::string name, size_t serial_no)
-      : name_{name}, serial_no_{serial_no}, serial_valid_{true} {}
+      : name_{std::move(name)}, serial_no_{serial_no}, serial_valid_{true} {}
 
   explicit AliasType(std::string &&name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
 
-  explicit AliasType(const std::string &name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
+  explicit AliasType(const std::string &name) : name_{std::string(name)}, serial_no_{0}, serial_valid_{false} {}
 
   const std::string &GetName() const { return name_; }
 

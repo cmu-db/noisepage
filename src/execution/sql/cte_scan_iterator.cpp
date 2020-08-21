@@ -19,7 +19,7 @@ CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exe
                                 parser::ConstantValueExpression(static_cast<type::TypeId>(schema_cols_type[i])),
                                 catalog::col_oid_t(schema_cols_ids[i]));
     all_columns.push_back(col);
-    col_oids_.push_back(catalog::col_oid_t(schema_cols_ids[i]));
+    col_oids_.emplace_back(catalog::col_oid_t(schema_cols_ids[i]));
   }
 
   // Create the table in the catalog.

@@ -304,7 +304,7 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
-    common::ManagedPointer<parser::SelectStatement> stmt, std::string table_name) {
+    common::ManagedPointer<parser::SelectStatement> stmt, const std::string &table_name) {
   // Set containing tables whose columns are to be included in the SELECT * query results
   std::vector<std::string> constituent_table_aliases;
   stmt->GetSelectTable()->GetConstituentTableAliases(&constituent_table_aliases);

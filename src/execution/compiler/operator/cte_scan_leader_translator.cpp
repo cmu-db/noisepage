@@ -157,8 +157,8 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
   const auto &cols = plan.GetOutputSchema()->GetColumns();
   auto codegen = GetCodeGen();
 
-  for (uint32_t i = 0; i < cols.size(); i++) {
-    const auto &table_col = cols[i].GetExpr().CastManagedPointerTo<parser::ColumnValueExpression>();
+  for (const auto &col : cols) {
+    const auto &table_col = col.GetExpr().CastManagedPointerTo<parser::ColumnValueExpression>();
     const auto &table_col_oid = table_col->GetColumnOid();
     size_t col_ind = 0;
     for (auto col : plan.GetColumnOids()) {
@@ -168,7 +168,7 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
       col_ind++;
     }
     auto val = GetChildOutput(context, 0, col_ind);
-    // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullable
+    // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullablef
     // Right now it is only Non Null
     auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col->GetReturnValueType(), false,
                                       !table_pm_.find(table_col_oid)->second.col_id_, val, true);
