@@ -107,7 +107,7 @@ public class TestUtility {
             }
         }
     }
-    
+
     public static void DumpSQLException(SQLException ex) {
         System.err.println("Failed to execute test. Got " + ex.getClass().getSimpleName());
         System.err.println(" + Message:    " + ex.getMessage());
