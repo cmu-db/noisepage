@@ -3,6 +3,7 @@
 #include "execution/compiler/compilation_context.h"
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
 #include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_schema_util.h"
 #include "execution/sql/sql_def.h"
@@ -12,7 +13,6 @@
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
-#include "catalog/catalog_defs.h"
 
 namespace terrier::ssb {
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
