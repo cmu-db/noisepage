@@ -1,7 +1,7 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "connection_thread_count": 32
+        "wal_enable": false
     },
     "testcases": [
         {
@@ -9,8 +9,8 @@
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
                 "query_mode": "extended",
-                "terminals": 16,
-                "client_time": 60
+                "scale_factor": 0.01,
+                "loader_threads": 4
             }
         }
     ]

@@ -90,11 +90,12 @@
                 "client_time": 60
             },
             "loop": [
-                {"terminals":1},
-                {"terminals":2},
-                {"terminals":4},
-                {"terminals":8},
-                {"terminals":16}
+                {"terminals":1, "scale_factor":1},
+                {"terminals":2, "scale_factor":2},
+                {"terminals":4, "scale_factor":4},
+                {"terminals":8, "scale_factor":8},
+                {"terminals":16,"scale_factor":16},
+                {"terminals":32,"scale_factor":32}
             ]
         },
         {
@@ -102,7 +103,7 @@
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
                 "query_mode": "extended",
-                "terminals": 8,
+                "terminals": 32,
                 "loader_threads": 4,
                 "client_time": 600
             }
