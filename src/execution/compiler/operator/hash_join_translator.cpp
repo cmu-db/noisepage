@@ -17,7 +17,7 @@ const char *build_row_attr_prefix = "attr";
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_JOIN),
-      outer_join_flag_(false),
+      left_outer_join_flag_(false),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
@@ -65,20 +65,22 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
 
 void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
   auto cc = GetCompilationContext();
-  auto pipeline = GetPipeline();
+  auto *pipeline = GetPipeline();
   // Create a WorkContext and make the state identical to the WorkContext generated inside
   // of PerformPipelineWork
   WorkContext ctx(cc, *pipeline);
   while (ctx.CurrentOp() != this) {
-    ctx.AdvancePipelineIter();
+    ctx.AdvancePipelineIterator();
   }
   auto *codegen = GetCodeGen();
   util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
-  outer_join_flag_ = true;
+  auto join_type = GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType();
+  // Set flag here, so GetChildOutput outputs NULL's for outer join correctly
+  left_outer_join_flag_ = (join_type == planner::LogicalJoinType::LEFT);
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
   { ctx.Push(&function); }
-  outer_join_flag_ = false;
+  left_outer_join_flag_ = false;
   decls->push_back(function.Finish());
 }
 
@@ -277,18 +279,18 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
   auto *codegen = GetCodeGen();
 
   // var naiveIterBase: HashTableNaiveIterator
-  ast::Identifier naive_iter_base = codegen->MakeFreshIdentifier("naiveIterBase");
-  ast::Expr *naive_iter_type = codegen->BuiltinType(ast::BuiltinType::HashTableNaiveIterator);
+  auto naive_iter_base = codegen->MakeFreshIdentifier("naiveIterBase");
+  auto naive_iter_type = codegen->BuiltinType(ast::BuiltinType::HashTableNaiveIterator);
   function->Append(codegen->DeclareVarNoInit(naive_iter_base, naive_iter_type));
 
   // var naiveIter = &naiveIterBase
-  ast::Identifier naive_iter = codegen->MakeFreshIdentifier("naiveIter");
-  ast::Expr *naive_iter_init = codegen->AddressOf(codegen->MakeExpr(naive_iter_base));
+  auto naive_iter = codegen->MakeFreshIdentifier("naiveIter");
+  auto naive_iter_init = codegen->AddressOf(codegen->MakeExpr(naive_iter_base));
   function->Append(codegen->DeclareVarWithInit(naive_iter, naive_iter_init));
 
   // while (hasNext()):
-  ast::Expr *join_ht = global_join_ht_.GetPtr(codegen);
-  ast::Expr *naive_iter_expr = codegen->MakeExpr(naive_iter);
+  auto join_ht = global_join_ht_.GetPtr(codegen);
+  auto naive_iter_expr = codegen->MakeExpr(naive_iter);
   Loop loop(function, codegen->MakeStmt(codegen->HTNaiveIteratorInit(naive_iter_expr, join_ht)),
             codegen->HTNaiveIteratorHasNext(naive_iter_expr),
             codegen->MakeStmt(codegen->HTNaiveIteratorNext(naive_iter_expr)));
@@ -302,7 +304,7 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
     // If mark is true, then row was not matched
     If check_condition(function, left_mark);
     {
-      // // outerJoinConsumer(queryState, buildRow);
+      // outerJoinConsumer(queryState, pipelineState, buildRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
                                               codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
                                               codegen->MakeExpr(build_row_var_)};
@@ -344,13 +346,15 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
 
 ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
   // If the request is in the probe pipeline and for an attribute in the left
-  // child, we read it from the probe/materialized build row. Otherwise, we
-  // propagate to the appropriate child.
+  // child, we read it from the probe/materialized build row.
+  //
+  // Otherwise we either output a NULL if needed for an outer join or propagate
+  // the request to the correct child
   if (IsRightPipeline(context->GetPipeline()) && child_idx == 0) {
     auto row = GetCodeGen()->MakeExpr(build_row_var_);
     return GetBuildRowAttribute(row, attr_idx);
   }
-  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1 && outer_join_flag_) {
+  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1 && left_outer_join_flag_) {
     auto schema = this->GetPlan().GetOutputSchema();
     auto type = schema->GetColumn(attr_idx).GetType();
     return GetCodeGen()->ConstNull(type);

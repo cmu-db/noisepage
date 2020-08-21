@@ -79,7 +79,7 @@ class WorkContext {
   /**
    * Advances the WorkContext to the next step in the pipeline
    */
-  void AdvancePipelineIter() { pipeline_iter_++; }
+  void AdvancePipelineIterator() { pipeline_iter_++; }
 
  private:
   // The compilation context.

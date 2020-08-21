@@ -152,7 +152,7 @@ class HashJoinTranslator : public OperatorTranslator {
 
  private:
   // Flag to indicate we're generating code for the outer join
-  bool outer_join_flag_;
+  bool left_outer_join_flag_;
   // The name of the materialized row when inserting or probing into join hash
   // table.
   ast::Identifier build_row_var_;
