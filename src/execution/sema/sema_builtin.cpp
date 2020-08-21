@@ -2445,6 +2445,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::StringVal;
       break;
     }
+    case ast::Builtin::ASCII:
     case ast::Builtin::CharLength: {
       // check to make sure this function has two arguments
       if (!CheckArgCount(call, 2)) {
@@ -2524,30 +2525,6 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // this function returns a string
       sql_type = ast::BuiltinType::StringVal;
-      break;
-    }
-    case ast::Builtin::ASCII: {
-      // check to make sure this function has two arguments
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-
-      // checking to see if the first argument is an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      // checking to see if the second argument is a string
-      auto *resolved_type = call->Arguments()[1]->GetType();
-      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      // this function returns an Integer (an ASCII value)
-      sql_type = ast::BuiltinType::Integer;
       break;
     }
     case ast::Builtin::Left:
