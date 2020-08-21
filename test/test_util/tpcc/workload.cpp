@@ -6,20 +6,20 @@ namespace terrier::tpcc {
 
 const int GC_RATIO = 4;
 
-void Workload(const int8_t worker_id,
-              Database *const tpcc_db,
-              transaction::TransactionManager *const txn_manager,
-              transaction::DeferredActionManager *const daf_manager,
-              const std::vector<std::vector<TransactionArgs>> &precomputed_args,
-              std::vector<Worker> *const workers,
-              std::atomic<uint32_t> *txn_counter,
-              const bool &shutdown) {
+uint32_t Workload(const int8_t worker_id,
+                  Database *const tpcc_db,
+                  transaction::TransactionManager *const txn_manager,
+                  transaction::DeferredActionManager *const daf_manager,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args,
+                  std::vector<Worker> *const workers,
+                  const bool &shutdown) {
   auto new_order = NewOrder(tpcc_db);
   auto payment = Payment(tpcc_db);
   auto order_status = OrderStatus(tpcc_db);
   auto delivery = Delivery(tpcc_db);
   auto stock_level = StockLevel(tpcc_db);
 
+  uint32_t txn_counter = 0;
   int iter_count = 0;
   for (const auto &txn_args : precomputed_args[worker_id]) {
     if (shutdown) {
@@ -50,12 +50,14 @@ void Workload(const int8_t worker_id,
       default:
         throw std::runtime_error("Unexpected transaction type.");
     }
-    if (txn_counter != nullptr) (*txn_counter)++;
+    txn_counter++;
 
     if (++iter_count == GC_RATIO) {
       iter_count = 0;
       daf_manager->Process(worker_id == 0);
     }
+
+    return txn_counter;
   }
 }
 

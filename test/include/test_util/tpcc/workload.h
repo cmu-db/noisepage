@@ -274,14 +274,13 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
  * @param precomputed_args all of the precomputed args for this TPC-C run
  * @param workers preallocated workers with buffers to use for execution
  */
-void Workload(const int8_t worker_id,
-              Database *const tpcc_db,
-              transaction::TransactionManager *const txn_manager,
-              transaction::DeferredActionManager *const daf_manager,
-              const std::vector<std::vector<TransactionArgs>> &precomputed_args,
-              std::vector<Worker> *const workers,
-              std::atomic<uint32_t> *txn_counter,
-              const bool &shutdown);
+uint32_t Workload(const int8_t worker_id,
+                  Database *const tpcc_db,
+                  transaction::TransactionManager *const txn_manager,
+                  transaction::DeferredActionManager *const daf_manager,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args,
+                  std::vector<Worker> *const workers,
+                  const bool &shutdown);
 
 /**
  * Clean up the buffers from any non-inlined VarlenEntrys in the precomputed args
