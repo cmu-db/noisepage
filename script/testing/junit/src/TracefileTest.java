@@ -109,7 +109,7 @@ public class TracefileTest {
                     "Query expected " + parsed_num_result + " results, got " + res.size() + " results"
                     + "\n" + res;
             boolean len_match = getCheckLength(check_expected, parsed_num_result, res.size());
-            exec = () -> checkResultMatch(parsed_hash, hash2, message, len_match);
+            exec = () -> checkResultMatch(parsed_hash, hash2, message, len_match, res);
         } catch (Throwable e) {
             String message = "Failure at Line " + num + ": " + e.getMessage() + "\n" + cur_sql;
             exec = () -> checkAlwaysFail(message);
@@ -172,7 +172,7 @@ public class TracefileTest {
      * @throws Exception
      */
     public static void checkResultMatch(String hash1, String hash2, String message,
-                             boolean len_match) throws Exception {
+                             boolean len_match, List<String> res) throws Exception {
         if(!len_match){
             throw new Exception("Query got wrong number of values");
         }
@@ -180,7 +180,21 @@ public class TracefileTest {
             assertEquals(hash1, hash2);
         }
         catch (AssertionError e) {
-            throw new Exception(message + "\n" + e.getMessage());
+            if(len_match){
+                List<String> new_res = new ArrayList<>();
+                for(String i:res){
+                    try{
+                        int cur = (int)Double.parseDouble(i);
+                        new_res.add(cur+"");
+                    }catch(Exception e1){
+                        new_res.add(i);
+                    }
+                }
+                String new_hash = TestUtility.getHashFromDb(new_res);
+                assertEquals(hash1, new_hash);
+            }else{
+                throw new Exception(message + "\n" + e.getMessage());
+            }
         }
     }
 

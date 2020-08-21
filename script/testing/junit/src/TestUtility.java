@@ -150,6 +150,7 @@ public class TestUtility {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+
         String resultString = String.join("\n", res) + "\n";
         md.update(resultString.getBytes());
         byte[] byteArr = md.digest();
