@@ -75,7 +75,9 @@ bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pat
       return false;
     }
   }
-
+  while (plen > 0 && *p == '%') {
+    NextByte(p, plen);
+  }
   return slen == 0 && plen == 0;
 }
 

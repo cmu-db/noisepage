@@ -217,6 +217,14 @@ namespace terrier::execution::vm {
     OperandType::Local)                                                                                               \
   F(VectorFilterNotEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
     OperandType::Local)                                                                                               \
+  F(VectorFilterLike, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                 \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLikeVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,              \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotLike, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,              \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotLikeVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,           \
+    OperandType::Local)                                                                                               \
                                                                                                                       \
   /* SQL value creation */                                                                                            \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
