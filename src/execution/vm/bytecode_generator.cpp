@@ -1689,6 +1689,11 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       GetEmitter()->Emit(Bytecode::Log2, dest, src);
       break;
     }
+    case ast::Builtin::Exp: {
+      src = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Exp, dest, src);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
     }
@@ -2128,6 +2133,22 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
+    case ast::Builtin::Chr: {
+      // input_string here is a integer type number
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Chr, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::CharLength: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::CharLength, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::ASCII: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ASCII, ret, exec_ctx, input_string);
+      break;
+    }
     case ast::Builtin::Lower: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Lower, ret, exec_ctx, input_string);
@@ -2135,6 +2156,12 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::Version: {
       GetEmitter()->Emit(Bytecode::Version, ret, exec_ctx);
+      break;
+    }
+    case ast::Builtin::Position: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar sub_string = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Position, ret, exec_ctx, input_string, sub_string);
       break;
     }
     default:
@@ -2385,6 +2412,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorGetSlot:
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;
+    case ast::Builtin::Exp:
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
     case ast::Builtin::ATan:
@@ -2489,8 +2517,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinParamCall(call, builtin);
       break;
     }
+    case ast::Builtin::Chr:
+    case ast::Builtin::CharLength:
+    case ast::Builtin::ASCII:
     case ast::Builtin::Lower:
-    case ast::Builtin::Version: {
+    case ast::Builtin::Version:
+    case ast::Builtin::Position: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }
