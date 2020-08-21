@@ -118,23 +118,15 @@ void InputColumnDeriver::Visit(const CteScan *op) {
 
   PT2 child_cols;
 
+  child_cols.reserve(op->GetChildExpressions().size());
   for (auto child_exprs : op->GetChildExpressions()) {
-    bool alias_present = false;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
+    new_child_exprs.reserve(child_exprs.size());
     for (auto &elem : child_exprs) {
-      if (!elem->GetAlias().GetName().empty()) {
-        alias_present = true;
-        break;
-      }
+      new_child_exprs.push_back(elem);
     }
-
-    if (alias_present || true) {
-      std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
-      for (auto &elem : child_exprs) {
-        new_child_exprs.push_back(elem);
-      }
-      child_exprs.clear();
-      child_exprs = new_child_exprs;
-    }
+    child_exprs.clear();
+    child_exprs = new_child_exprs;
     child_cols.push_back(std::move(child_exprs));
   }
 

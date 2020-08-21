@@ -534,9 +534,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
         if (next_node->type == T_A_Star) {
           result = std::make_unique<StarExpression>(table_name);
           break;
-        } else {
-          col_name = reinterpret_cast<value *>(next_node)->val_.str_;
         }
+        col_name = reinterpret_cast<value *>(next_node)->val_.str_;
       }
 
       if (alias != nullptr) {

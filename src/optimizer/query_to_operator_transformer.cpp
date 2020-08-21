@@ -105,7 +105,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
             with->GetTableName(), elem.GetName(), ret_type, elem, TEMP_OID(catalog::col_oid_t, elem.GetSerialNo()));
         txn_context->RegisterAbortAction([=] { delete cve; });
         txn_context->RegisterCommitAction([=] { delete cve; });
-        expressions.push_back(common::ManagedPointer(cve));
+        expressions.emplace_back(common::ManagedPointer(cve));
 
         col_types.push_back(ret_type);
         cve->SetReturnValueType(ret_type);
