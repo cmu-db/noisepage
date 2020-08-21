@@ -46,9 +46,27 @@ WITH RECURSIVE cte(x) AS (SELECT 1 UNION ALL SELECT tree.node FROM tree INNER JO
 statement ok
 
 
+query I nosort
+with cte(x,x) as (select 1, 2) select * from cte;
+----
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+
+query I nosort
+with cte as (select 4, 3) select * from cte;
+----
+2 values hashing to ba1c8aaf233bb794bc3fc52c7c5c5ac8
+
+query I nosort
+with cte(y,y,x) as (select 5,4,3) select x from cte;
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+statement ok
+
+
 # Porting over junit test cases
 statement ok
-CREATE TABLE company(id INT PRIMARY KEY NOT NULL, name TEXT NOT NULL, age INT NOT NULL, address CHAR(50), salary REAL);
+CREATE TABLE company (id INT PRIMARY KEY NOT NULL, name TEXT NOT NULL, age INT NOT NULL, address CHAR(50), salary REAL);
 
 statement ok
 INSERT INTO company (id,name,age,address,salary) VALUES (1, 'Paul', 32, 'California', 20000.00);
@@ -59,9 +77,19 @@ INSERT INTO company (id,name,age,address,salary) VALUES (2, 'George', 21, 'NY', 
 statement ok
 
 
-# The following two queries die; more generally several queries die if the select inside the cte has mixed types
-# WITH employee AS (SELECT id, name, age FROM company) SELECT name FROM employee;
-# WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E1.sumage FROM employee AS E1, employee AS E2 WHERE E1.name = E2.name;
+query I nosort
+WITH employee AS (SELECT id, name, age FROM company) SELECT name FROM employee;
+----
+2 values hashing to be0a0e6a6f990291de5dd0ee0d93b07a
+
+query I nosort
+WITH employee AS (SELECT age+age AS sumage, name FROM company) SELECT E2.name, E1.sumage FROM employee AS E1, employee AS E2 WHERE E1.name = E2.name;
+----
+4 values hashing to 17bcc53db5d5a4ed62836d923837a49e
+
+statement ok
+
+
 # Aggregate inside cte query
 query I nosort
 WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee;
@@ -80,14 +108,23 @@ WITH employee AS (SELECT MAX(age) AS mxage FROM company) SELECT E2.name, E2.age 
 ----
 2 values hashing to 00ea2298aacdab6ef3a930939cd949de
 
+statement ok
+
+
+statement ok
+CREATE TABLE tmp(x INT);
+
+statement ok
+INSERT INTO tmp VALUES (1), (2);
+
 # CTE with self-join
 query I nosort
-WITH employee AS (SELECT * FROM company) SELECT E1.name,E2.age,E3.salary FROM employee AS E1, employee AS E2, company AS E3;
+WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, tmp C ORDER BY A.x, B.x, C.x;
 ----
-24 values hashing to 6d42f19fa5fd7a230e6475f36d65f8e7
+24 values hashing to 15f5a3ad9d0103293409308a7f45ec34
 
 query I nosort
-WITH employee AS (SELECT * FROM company) SELECT E1.name,E2.age,E3.salary FROM employee AS E1, employee AS E2, employee AS E3;
+WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, cte C ORDER BY A.x, B.x, C.x;
 ----
-24 values hashing to 6d42f19fa5fd7a230e6475f36d65f8e7
+24 values hashing to 15f5a3ad9d0103293409308a7f45ec34
 
