@@ -56,9 +56,8 @@ uint32_t Workload(const int8_t worker_id,
       iter_count = 0;
       daf_manager->Process(worker_id == 0);
     }
-
-    return txn_counter;
   }
+  return txn_counter;
 }
 
 void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *const precomputed_args) {
