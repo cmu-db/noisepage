@@ -15,7 +15,7 @@ with cte as (select 4, 3) select * from cte;
 with cte(y,y,x) as (select 5,4,3) select x from cte;
 
 # Porting over junit test cases
-CREATE TABLE company(id INT PRIMARY KEY NOT NULL, name TEXT NOT NULL, age INT NOT NULL, address CHAR(50), salary REAL);
+CREATE TABLE company (id INT PRIMARY KEY NOT NULL, name TEXT NOT NULL, age INT NOT NULL, address CHAR(50), salary REAL);
 INSERT INTO company (id,name,age,address,salary) VALUES (1, 'Paul', 32, 'California', 20000.00);
 INSERT INTO company (id,name,age,address,salary) VALUES (2, 'George', 21, 'NY', 10000.00);
 
@@ -27,6 +27,9 @@ WITH employee AS (SELECT SUM(age) AS sumage FROM company) SELECT * FROM employee
 WITH employee AS (SELECT C1.name AS name, C2.age AS age FROM company AS C1, company AS C2) SELECT * FROM employee;
 # Aggregate with alias inside cte query
 WITH employee AS (SELECT MAX(age) AS mxage FROM company) SELECT E2.name, E2.age FROM employee AS E1, company AS E2 WHERE E1.mxage = E2.age;
+
+CREATE TABLE tmp(x INT);
+INSERT INTO tmp VALUES (1), (2);
 # CTE with self-join
-WITH employee AS (SELECT * FROM company) SELECT E1.name,E2.age,E3.salary FROM employee AS E1, employee AS E2, company AS E3;
-WITH employee AS (SELECT * FROM company) SELECT E1.name,E2.age,E3.salary FROM employee AS E1, employee AS E2, employee AS E3;
+WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, tmp C ORDER BY A.x, B.x, C.x;
+WITH cte AS (SELECT * FROM tmp) SELECT A.x, B.x, C.x FROM cte A, cte B, cte C ORDER BY A.x, B.x, C.x;
