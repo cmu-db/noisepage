@@ -1703,20 +1703,15 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
 }
 
 void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
-  ast::Context *ctx = call->GetType()->GetContext();
   LocalVar dest, src;
-
-  if (call->Arguments()[0]->GetType()->IsIntegerType() ||
-      call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
-    dest = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
-    src = VisitExpressionForRValue(call->Arguments()[0]);
-    GetEmitter()->Emit(Bytecode::AbsInteger, dest, src);
-  } else {
-    dest = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
-    src = VisitExpressionForRValue(call->Arguments()[0]);
-    GetEmitter()->Emit(Bytecode::AbsReal, dest, src);
-  }
-
+  auto dest_type = call->GetType();
+  dest = GetExecutionResult()->GetOrCreateDestination(dest_type);
+  src = VisitExpressionForRValue(call->Arguments()[0]);
+  Bytecode abs_bytecode = call->Arguments()[0]->GetType()->IsIntegerType() ||
+                                  call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)
+                              ? Bytecode::AbsInteger
+                              : Bytecode::AbsReal;
+  GetEmitter()->Emit(abs_bytecode, dest, src);
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
