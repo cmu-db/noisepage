@@ -814,21 +814,21 @@ void Sema::CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin 
   }
 }
 
-void Sema::CheckBuiltinHashTableNaiveIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinJoinHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
 
   const auto &args = call->Arguments();
 
-  const auto ht_iter_kind = ast::BuiltinType::HashTableNaiveIterator;
+  const auto ht_iter_kind = ast::BuiltinType::JoinHashTableIterator;
   if (!IsPointerToSpecificBuiltin(args[0]->GetType(), ht_iter_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(ht_iter_kind)->PointerTo());
     return;
   }
 
   switch (builtin) {
-    case ast::Builtin::HashTableNaiveIterInit: {
+    case ast::Builtin::JoinHashTableIterInit: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
@@ -840,21 +840,21 @@ void Sema::CheckBuiltinHashTableNaiveIterCall(ast::CallExpr *call, ast::Builtin 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::HashTableNaiveIterHasNext: {
+    case ast::Builtin::JoinHashTableIterHasNext: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
-    case ast::Builtin::HashTableNaiveIterNext: {
+    case ast::Builtin::JoinHashTableIterNext: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::HashTableNaiveIterGetRow: {
+    case ast::Builtin::JoinHashTableIterGetRow: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
@@ -862,7 +862,7 @@ void Sema::CheckBuiltinHashTableNaiveIterCall(ast::CallExpr *call, ast::Builtin 
       call->SetType(GetBuiltinType(byte_kind)->PointerTo());
       break;
     }
-    case ast::Builtin::HashTableNaiveIterFree: {
+    case ast::Builtin::JoinHashTableIterFree: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
@@ -2877,12 +2877,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinHashTableEntryIterCall(call, builtin);
       break;
     }
-    case ast::Builtin::HashTableNaiveIterInit:
-    case ast::Builtin::HashTableNaiveIterHasNext:
-    case ast::Builtin::HashTableNaiveIterNext:
-    case ast::Builtin::HashTableNaiveIterGetRow:
-    case ast::Builtin::HashTableNaiveIterFree: {
-      CheckBuiltinHashTableNaiveIterCall(call, builtin);
+    case ast::Builtin::JoinHashTableIterInit:
+    case ast::Builtin::JoinHashTableIterHasNext:
+    case ast::Builtin::JoinHashTableIterNext:
+    case ast::Builtin::JoinHashTableIterGetRow:
+    case ast::Builtin::JoinHashTableIterFree: {
+      CheckBuiltinJoinHashTableIterCall(call, builtin);
       break;
     }
     case ast::Builtin::SorterInit: {

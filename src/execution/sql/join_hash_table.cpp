@@ -591,7 +591,7 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   built_ = true;
 }
 
-HashTableNaiveIterator::HashTableNaiveIterator(const JoinHashTable &table)
+JoinHashTableIterator::JoinHashTableIterator(const JoinHashTable &table)
     : entry_list_iter_(table.owned_.begin()),
       entry_list_end_(table.owned_.end()),
       entry_iter_(table.entries_.begin()),
@@ -600,7 +600,7 @@ HashTableNaiveIterator::HashTableNaiveIterator(const JoinHashTable &table)
   if (!table.owned_.empty()) FindNextNonEmptyList();
 }
 
-void HashTableNaiveIterator::FindNextNonEmptyList() {
+void JoinHashTableIterator::FindNextNonEmptyList() {
   for (; entry_list_iter_ != entry_list_end_ && entry_iter_ == entry_end_; ++entry_list_iter_) {
     entry_iter_ = entry_list_iter_->begin();
     entry_end_ = entry_list_iter_->end();

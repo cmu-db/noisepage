@@ -1216,21 +1216,21 @@ VM_OP_HOT void OpHashTableEntryIteratorGetRow(const terrier::byte **row,
   *row = ht_entry_iter->GetMatchPayload();
 }
 
-VM_OP void OpHashTableNaiveIteratorInit(terrier::execution::sql::HashTableNaiveIterator *iter,
-                                        terrier::execution::sql::JoinHashTable *join_hash_table);
+VM_OP void OpJoinHashTableIteratorInit(terrier::execution::sql::JoinHashTableIterator *iter,
+                                       terrier::execution::sql::JoinHashTable *join_hash_table);
 
-VM_OP_HOT void OpHashTableNaiveIteratorHasNext(bool *has_more, terrier::execution::sql::HashTableNaiveIterator *iter) {
+VM_OP_HOT void OpJoinHashTableIteratorHasNext(bool *has_more, terrier::execution::sql::JoinHashTableIterator *iter) {
   *has_more = iter->HasNext();
 }
 
-VM_OP_HOT void OpHashTableNaiveIteratorNext(terrier::execution::sql::HashTableNaiveIterator *iter) { iter->Next(); }
+VM_OP_HOT void OpJoinHashTableIteratorNext(terrier::execution::sql::JoinHashTableIterator *iter) { iter->Next(); }
 
-VM_OP_HOT void OpHashTableNaiveIteratorGetRow(const terrier::byte **row,
-                                              terrier::execution::sql::HashTableNaiveIterator *iter) {
+VM_OP_HOT void OpJoinHashTableIteratorGetRow(const terrier::byte **row,
+                                             terrier::execution::sql::JoinHashTableIterator *iter) {
   *row = iter->GetCurrentRow();
 }
 
-VM_OP void OpHashTableNaiveIteratorFree(terrier::execution::sql::HashTableNaiveIterator *iter);
+VM_OP void OpJoinHashTableIteratorFree(terrier::execution::sql::JoinHashTableIterator *iter);
 
 // ---------------------------------------------------------
 // Sorting

@@ -278,26 +278,26 @@ void HashJoinTranslator::CheckRightMark(WorkContext *ctx, FunctionBuilder *funct
 void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 
-  // var naiveIterBase: HashTableNaiveIterator
-  auto naive_iter_base = codegen->MakeFreshIdentifier("naiveIterBase");
-  auto naive_iter_type = codegen->BuiltinType(ast::BuiltinType::HashTableNaiveIterator);
-  function->Append(codegen->DeclareVarNoInit(naive_iter_base, naive_iter_type));
+  // var joinHTIterBase: JoinHashTableIterator
+  auto jht_iter_base = codegen->MakeFreshIdentifier("joinHTIterBase");
+  auto jht_iter_type = codegen->BuiltinType(ast::BuiltinType::JoinHashTableIterator);
+  function->Append(codegen->DeclareVarNoInit(jht_iter_base, jht_iter_type));
 
-  // var naiveIter = &naiveIterBase
-  auto naive_iter = codegen->MakeFreshIdentifier("naiveIter");
-  auto naive_iter_init = codegen->AddressOf(codegen->MakeExpr(naive_iter_base));
-  function->Append(codegen->DeclareVarWithInit(naive_iter, naive_iter_init));
+  // var joinHTIter = &joinHTIterBase
+  auto jht_iter = codegen->MakeFreshIdentifier("joinHTIter");
+  auto jht_iter_init = codegen->AddressOf(codegen->MakeExpr(jht_iter_base));
+  function->Append(codegen->DeclareVarWithInit(jht_iter, jht_iter_init));
 
   // while (hasNext()):
-  auto join_ht = global_join_ht_.GetPtr(codegen);
-  auto naive_iter_expr = codegen->MakeExpr(naive_iter);
-  Loop loop(function, codegen->MakeStmt(codegen->HTNaiveIteratorInit(naive_iter_expr, join_ht)),
-            codegen->HTNaiveIteratorHasNext(naive_iter_expr),
-            codegen->MakeStmt(codegen->HTNaiveIteratorNext(naive_iter_expr)));
+  auto jht = global_join_ht_.GetPtr(codegen);
+  auto jht_iter_expr = codegen->MakeExpr(jht_iter);
+  Loop loop(function, codegen->MakeStmt(codegen->JoinHTIteratorInit(jht_iter_expr, jht)),
+            codegen->JoinHTIteratorHasNext(jht_iter_expr),
+            codegen->MakeStmt(codegen->JoinHTIteratorNext(jht_iter_expr)));
   {
-    // var buildRow = @htNaiveIterGetRow()
+    // var buildRow = @joinHTIterGetRow()
     function->Append(
-        codegen->DeclareVarWithInit(build_row_var_, codegen->HTNaiveIteratorGetRow(naive_iter_expr, build_row_type_)));
+        codegen->DeclareVarWithInit(build_row_var_, codegen->JoinHTIteratorGetRow(jht_iter_expr, build_row_type_)));
 
     auto left_mark = codegen->AccessStructMember(codegen->MakeExpr(build_row_var_), build_mark_);
 
@@ -314,7 +314,7 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
   loop.EndLoop();
 
   // Close iterator.
-  function->Append(codegen->HTNaiveIteratorFree(naive_iter_expr));
+  function->Append(codegen->JoinHTIteratorFree(jht_iter_expr));
 }
 
 void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const {

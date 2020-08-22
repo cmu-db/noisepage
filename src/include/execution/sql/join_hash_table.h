@@ -181,7 +181,7 @@ class EXPORT JoinHashTable {
   const BloomFilter *GetBloomFilter() const { return &bloom_filter_; }
 
  private:
-  friend class HashTableNaiveIterator;
+  friend class JoinHashTableIterator;
   FRIEND_TEST(JoinHashTableTest, LazyInsertionTest);
   FRIEND_TEST(JoinHashTableTest, PerfTest);
 
@@ -280,9 +280,13 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
 //
 //===----------------------------------------------------------------------===//
 /**
- * A tuple-at-a-time iterator over the contents of a join hash table. The join hash table must be
- * fully built either through a serial call to JoinHashTable::Build() or merged (in parallel) from
- * other join hash tables through JoinHashTable::MergeParallel().
+ * There are two distinct iterators related to hash tables. The HashTableEntryIterator
+ * defined in hash_table_entry.h takes in a hash value and iterates over all entries in
+ * the hash table whose hash matches the given hash. The iterator defined below simply
+ * iterates over all the entries of the join hash table one tuple at a time.
+ *
+ * The join hash table must be fully built either through a serial call to JoinHashTable::Build()
+ * or merged (in parallel) from other join hash tables through JoinHashTable::MergeParallel().
  *
  * Users use the OOP-ish iteration API:
  * for (JoinHashTableIterator iter(table); iter.HasNext(); iter.Next()) {
@@ -292,13 +296,13 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
  *
  * // TODO(pmenon): Vectorized version, too.
  */
-class HashTableNaiveIterator {
+class JoinHashTableIterator {
  public:
   /**
    * Construct an iterator over the given hash table.
    * @param table The join hash table to iterate.
    */
-  explicit HashTableNaiveIterator(const JoinHashTable &table);
+  explicit JoinHashTableIterator(const JoinHashTable &table);
   /**
    * @return True if there is more data in the iterator; false otherwise.
    */

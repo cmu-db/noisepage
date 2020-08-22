@@ -866,32 +866,32 @@ ast::Expr *CodeGen::HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type)
   return PtrCast(row_type, call);
 }
 
-ast::Expr *CodeGen::HTNaiveIteratorInit(ast::Expr *iter, ast::Expr *ht) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterInit, {iter, ht});
+ast::Expr *CodeGen::JoinHTIteratorInit(ast::Expr *iter, ast::Expr *ht) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterInit, {iter, ht});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
 
-ast::Expr *CodeGen::HTNaiveIteratorHasNext(ast::Expr *iter) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterHasNext, {iter});
+ast::Expr *CodeGen::JoinHTIteratorHasNext(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterHasNext, {iter});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Bool));
   return call;
 }
 
-ast::Expr *CodeGen::HTNaiveIteratorNext(ast::Expr *iter) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterNext, {iter});
+ast::Expr *CodeGen::JoinHTIteratorNext(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterNext, {iter});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
 
-ast::Expr *CodeGen::HTNaiveIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterGetRow, {iter});
+ast::Expr *CodeGen::JoinHTIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterGetRow, {iter});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint8)->PointerTo());
   return PtrCast(payload_type, call);
 }
 
-ast::Expr *CodeGen::HTNaiveIteratorFree(ast::Expr *iter) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::HashTableNaiveIterFree, {iter});
+ast::Expr *CodeGen::JoinHTIteratorFree(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterFree, {iter});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

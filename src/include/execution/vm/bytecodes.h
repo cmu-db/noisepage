@@ -432,11 +432,11 @@ namespace terrier::execution::vm {
   F(JoinHashTableFree, OperandType::Local)                                                                            \
   F(HashTableEntryIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
   F(HashTableEntryIteratorGetRow, OperandType::Local, OperandType::Local)                                             \
-  F(HashTableNaiveIteratorInit, OperandType::Local, OperandType::Local)                                               \
-  F(HashTableNaiveIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
-  F(HashTableNaiveIteratorNext, OperandType::Local)                                                                   \
-  F(HashTableNaiveIteratorGetRow, OperandType::Local, OperandType::Local)                                             \
-  F(HashTableNaiveIteratorFree, OperandType::Local)                                                                   \
+  F(JoinHashTableIteratorInit, OperandType::Local, OperandType::Local)                                                \
+  F(JoinHashTableIteratorHasNext, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorNext, OperandType::Local)                                                                    \
+  F(JoinHashTableIteratorGetRow, OperandType::Local, OperandType::Local)                                              \
+  F(JoinHashTableIteratorFree, OperandType::Local)                                                                    \
                                                                                                                       \
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \

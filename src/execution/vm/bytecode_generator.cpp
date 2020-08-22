@@ -1381,36 +1381,36 @@ void BytecodeGenerator::VisitBuiltinHashTableEntryIteratorCall(ast::CallExpr *ca
   }
 }
 
-void BytecodeGenerator::VisitBuiltinHashTableNaiveIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+void BytecodeGenerator::VisitBuiltinJoinHashTableIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
-    case ast::Builtin::HashTableNaiveIterInit: {
+    case ast::Builtin::JoinHashTableIterInit: {
       LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar ht = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::HashTableNaiveIteratorInit, ht_iter, ht);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorInit, ht_iter, ht);
       break;
     }
-    case ast::Builtin::HashTableNaiveIterHasNext: {
+    case ast::Builtin::JoinHashTableIterHasNext: {
       LocalVar has_more = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::HashTableNaiveIteratorHasNext, has_more, ht_iter);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorHasNext, has_more, ht_iter);
       GetExecutionResult()->SetDestination(has_more.ValueOf());
       break;
     }
-    case ast::Builtin::HashTableNaiveIterNext: {
+    case ast::Builtin::JoinHashTableIterNext: {
       LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::HashTableNaiveIteratorNext, ht_iter);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorNext, ht_iter);
       break;
     }
-    case ast::Builtin::HashTableNaiveIterGetRow: {
+    case ast::Builtin::JoinHashTableIterGetRow: {
       LocalVar row_ptr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::HashTableNaiveIteratorGetRow, row_ptr, ht_iter);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorGetRow, row_ptr, ht_iter);
       GetExecutionResult()->SetDestination(row_ptr.ValueOf());
       break;
     }
-    case ast::Builtin::HashTableNaiveIterFree: {
+    case ast::Builtin::JoinHashTableIterFree: {
       LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::HashTableNaiveIteratorFree, ht_iter);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorFree, ht_iter);
       break;
     }
     default: {
@@ -2401,12 +2401,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinHashTableEntryIteratorCall(call, builtin);
       break;
     }
-    case ast::Builtin::HashTableNaiveIterInit:
-    case ast::Builtin::HashTableNaiveIterHasNext:
-    case ast::Builtin::HashTableNaiveIterNext:
-    case ast::Builtin::HashTableNaiveIterGetRow:
-    case ast::Builtin::HashTableNaiveIterFree: {
-      VisitBuiltinHashTableNaiveIterCall(call, builtin);
+    case ast::Builtin::JoinHashTableIterInit:
+    case ast::Builtin::JoinHashTableIterHasNext:
+    case ast::Builtin::JoinHashTableIterNext:
+    case ast::Builtin::JoinHashTableIterGetRow:
+    case ast::Builtin::JoinHashTableIterFree: {
+      VisitBuiltinJoinHashTableIteratorCall(call, builtin);
       break;
     }
     case ast::Builtin::SorterInit:
