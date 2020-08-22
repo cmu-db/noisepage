@@ -249,6 +249,16 @@ SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN
 ----
 36 values hashing to 85710c95d9cc0b47c11f8d9f337a14ea
 
+query I nosort
+SELECT * FROM tab1 LEFT OUTER JOIN tab0 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN tab2 ON tab1.col0 = tab2.col0 ORDER BY tab1.col0 ASC;
+----
+36 values hashing to c7a1815881623a3bd00c29e67f9e8947
+
+query I nosort
+SELECT * FROM tab2 LEFT OUTER JOIN tab0 ON tab2.col0 = tab0.col0 LEFT OUTER JOIN tab1 ON tab2.col0 = tab1.col0 ORDER BY tab2.col0 ASC;
+----
+36 values hashing to dd53c7839eafa8257a7c65224d248e7f
+
 statement ok
 DROP TABLE tab0;
 
