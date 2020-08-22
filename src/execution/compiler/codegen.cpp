@@ -680,6 +680,12 @@ ast::Expr *CodeGen::VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::Expres
     case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
       builtin = ast::Builtin::VectorFilterGreaterThanEqual;
       break;
+    case parser::ExpressionType::COMPARE_LIKE:
+      builtin = ast::Builtin::VectorFilterLike;
+      break;
+    case parser::ExpressionType::COMPARE_NOT_LIKE:
+      builtin = ast::Builtin::VectorFilterNotLike;
+      break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("CodeGen: Vector filter type {} from VPI not supported.",
                                                   parser::ExpressionTypeToString(comp_type, true)));
