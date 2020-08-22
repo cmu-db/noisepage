@@ -1695,19 +1695,19 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Sqrt: {
-      Emitter()->Emit(Bytecode::Sqrt, dest, src);
+      GetEmitter()->Emit(Bytecode::Sqrt, dest, src);
       break;
     }
     case ast::Builtin::Cbrt: {
-      Emitter()->Emit(Bytecode::Cbrt, dest, src);
+      GetEmitter()->Emit(Bytecode::Cbrt, dest, src);
       break;
     }
     case ast::Builtin::Round: {
-      Emitter()->Emit(Bytecode::Round, dest, src);
+      GetEmitter()->Emit(Bytecode::Round, dest, src);
       break;
     }
     case ast::Builtin::Round2: {
-      Emitter()->Emit(Bytecode::Round2, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
+      GetEmitter()->Emit(Bytecode::Round2, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
       break;
     }
     default: {
@@ -2181,7 +2181,8 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::Length: {
-      Emitter()->Emit(Bytecode::Length, exec_ctx, ret, input_string);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Length, ret, exec_ctx, input_string);
       break;
     }
     default:
