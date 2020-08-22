@@ -2170,18 +2170,28 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
 }
 
 void BytecodeGenerator::VisitBuiltinArithCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-  LocalVar first_input = VisitExpressionForRValue(call->Arguments()[1]);
-  LocalVar second_input = VisitExpressionForRValue(call->Arguments()[2]);
-  LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+
   switch (builtin) {
     case ast::Builtin::Mod: {
-      GetEmitter()->Emit(Bytecode::Lower, exec_ctx, ret, first_input, second_input);
+      LocalVar first_input = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar second_input = VisitExpressionForRValue(call->Arguments()[1]);
+
+      bool first_input_is_int = call->Arguments()[0]->GetType()->IsIntegerType() ||
+                                call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+      bool second_input_is_int = call->Arguments()[1]->GetType()->IsIntegerType() ||
+                                call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+      if(first_input_is_int && second_input_is_int) {
+        GetEmitter()->Emit(Bytecode::ModInteger, dest, first_input, second_input);
+      } else {
+        GetEmitter()->Emit(Bytecode::ModReal, dest, first_input, second_input);
+      }
       break;
     }
     default:
       UNREACHABLE("Unimplemented arithmetic function!");
   }
+  GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {

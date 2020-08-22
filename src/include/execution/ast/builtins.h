@@ -304,7 +304,6 @@ namespace terrier::execution::ast {
   F(CharLength, charLength)                                             \
                                                                         \
   /* Math functions */                                                  \
-  F(IntMod, intMod)                                                     \
   F(Mod, mod)                                                           \
                                                                         \
   /* Mini runners functions */                                          \
