@@ -170,8 +170,90 @@ SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.id = yyy.id;
 ----
 16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
 
+query I nosort
+SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.val = yyy.val;
+----
+16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
+
 statement ok
 DROP TABLE xxx;
 
 statement ok
 DROP TABLE yyy;
+
+statement ok
+
+
+statement ok
+CREATE TABLE tab0(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab1(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab2(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+INSERT INTO tab0 VALUES(97,1,99);
+
+statement ok
+INSERT INTO tab0 VALUES(15,81,47);
+
+statement ok
+INSERT INTO tab0 VALUES(87,21,10);
+
+statement ok
+INSERT INTO tab0 VALUES(65, 57, 73);
+
+statement ok
+INSERT INTO tab1 VALUES(51,14,96);
+
+statement ok
+INSERT INTO tab1 VALUES(85,5,59);
+
+statement ok
+INSERT INTO tab1 VALUES(91,47,68);
+
+statement ok
+INSERT INTO tab1 VALUES(65, 57, 21);
+
+statement ok
+INSERT INTO tab2 VALUES(64,77,40);
+
+statement ok
+INSERT INTO tab2 VALUES(75,67,58);
+
+statement ok
+INSERT INTO tab2 VALUES(46,51,23);
+
+statement ok
+INSERT INTO tab2 VALUES(65, 84, 93);
+
+query I nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 ORDER BY tab0.col0 ASC;
+----
+24 values hashing to 2a84540455705fe817e98454de2ace6c
+
+query I nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col1 = tab1.col1 ORDER BY tab0.col1 ASC;
+----
+24 values hashing to 5a527294c5e516c91f3272a2cf40b839
+
+query I nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col2 = tab1.col2 ORDER BY tab0.col2 ASC;
+----
+24 values hashing to 14518454e4a8b066a4b4da08adc9b70e
+
+query I nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN tab2 ON tab0.col0 = tab2.col0 ORDER BY tab0.col0 ASC;
+----
+36 values hashing to 85710c95d9cc0b47c11f8d9f337a14ea
+
+statement ok
+DROP TABLE tab0;
+
+statement ok
+DROP TABLE tab1;
+
+statement ok
+DROP TABLE tab2;
