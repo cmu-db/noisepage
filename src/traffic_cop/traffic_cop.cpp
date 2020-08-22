@@ -363,8 +363,6 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
                                                        common::ManagedPointer<const std::string>(&portal->GetStatement()
                                                                                          ->GetQueryText()));
 
-  std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
-
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
