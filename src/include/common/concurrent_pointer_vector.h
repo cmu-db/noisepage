@@ -47,7 +47,14 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   uint64_t Insert(T *item) {
     // claims index in vector, this will be the index of the array that we will use for this item
     // because the claimable_index_ is strictly increasing we know that this index is claimed uniquely by this thread
-    uint64_t my_index = claimable_index_++;
+    uint64_t my_index;
+    do {
+      my_index = claimable_index_;
+      if (my_index == SHRINKING) {
+        TERRIER_ASSERT(smaller_cpv_ != nullptr, "should have initialized new cpv");
+        return smaller_cpv_->Insert(item);
+      }
+    } while (!claimable_index_.compare_exchange_strong(my_index, my_index + 1));
 
     // we must now make sure that this index is a safe index into the array (the index is a valid index into the array)
     // safely accessing the memory of the array is maintained by the array_pointer_latch_
@@ -263,6 +270,7 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
 
  private:
   static constexpr Iterator END = {};
+  static constexpr uint64_t SHRINKING = std::numeric_limits<uint64_t>::max();
   static constexpr uint64_t SHIFT_AMOUNT = 63;
   static constexpr uint64_t READABLE_FLAG = static_cast<uint64_t>(1) << SHIFT_AMOUNT;
   // the first bit in the pointer is used as a flag to denote whether an item has been inserted into this
@@ -278,11 +286,27 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
     return static_cast<bool>(reinterpret_cast<uint64_t>(array[i]) >> SHIFT_AMOUNT);
   }
 
+  template <typename U>
+  ConcurrentPointerVector<T> shrink(U toDelete) {
+    smaller_cpv_ = new ConcurrentPointerVector<T>(static_cast<uint64_t>(toDelete.size() * 1.5));
+    claimable_index_ = SHRINKING;
+
+    for (uint64_t i = 0; i < claimable_index_; i++) {
+      T* ith = LookUp(i);
+      if (!toDelete.count(ith)) {
+        smaller_cpv_->Insert(ith);
+      }
+    }
+
+    return smaller_cpv_;
+  }
+
   // protected by resize_mutex_
   alignas(Constants::CACHELINE_SIZE) uint64_t capacity_ = 0;
   alignas(Constants::CACHELINE_SIZE) std::atomic<uint64_t> claimable_index_ = 0;
   alignas(Constants::CACHELINE_SIZE) std::atomic<uint64_t> first_not_readable_index_ = 0;
   alignas(Constants::CACHELINE_SIZE) T **array_ = nullptr;
+  alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector<T>* smaller_cpv_ = nullptr;
   std::condition_variable resize_cv_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;
