@@ -144,6 +144,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for the columns
+   * @param cte_type The type of cte this table is referencing (iterative, recursive, simple)
    */
   TableRef(std::string alias, std::unique_ptr<SelectStatement> select, std::vector<AliasType> cte_col_aliases,
            parser::CTEType cte_type)

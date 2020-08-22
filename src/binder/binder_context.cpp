@@ -120,7 +120,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-void BinderContext::AddCTETable(common::ManagedPointer<catalog::CatalogAccessor> accessor,
+void BinderContext::AddCTETable(
                                 const std::string &table_name,
                                 const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                                 const std::vector<parser::AliasType> &col_aliases) {

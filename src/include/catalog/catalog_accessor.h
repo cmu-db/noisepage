@@ -381,9 +381,18 @@ class EXPORT CatalogAccessor {
    */
   common::ManagedPointer<transaction::TransactionContext> GetTxn() const { return txn_; }
 
+  /**
+   * Registers a temporary table in this accessor
+   * @param table_oid The temporary oid of this table
+   * @param table The temp table being registered
+   */
   void RegisterTempTable(table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table);
 
-  uint32_t GetNewTempOid() { return ++temp_oid_counter_; }
+  /**
+   * Allocates and returns a new temporary oid. These oids are only valid for the lifetime of this accessor
+   * @return The newly allocated temporary oid
+   */
+  uint32_t GetNewTempOid() { return TEMP_OID_MASK | (++temp_oid_counter_); }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.

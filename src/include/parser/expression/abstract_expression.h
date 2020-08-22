@@ -26,23 +26,62 @@ class BinderUtil;
 namespace terrier::parser {
 class ParseResult;
 
+/**
+ * Type to represent aliases. This was added to account for the fact that you can have duplicate aliases
+ * in queries that stil need have distinguishable identifiers. For example in SELECT * FROM (SELECT 1 as x, 2 as x) p;
+ * We achieve this by having an additional serial number field. This field allows for two aliases with the same
+ * name string but different valid serial numbers to be distinguishable. However, we maintain that an alias with name
+ * "xxx" but with an invalid serial number matches with all aliases with name "xxx" regardless of their serial number
+ */
 class AliasType {
  public:
+
+  /**
+   * Default constructor
+   */
   AliasType() :  serial_no_{0}, serial_valid_{false} {}
 
+  /**
+   * Constructs an alias with a name and valid serial number
+   * @param name Alias name
+   * @param serial_no Serial number
+   */
   explicit AliasType(std::string name, size_t serial_no)
       : name_{std::move(name)}, serial_no_{serial_no}, serial_valid_{true} {}
 
+  /**
+   * Constructs an alias with a name and invalid serial number
+   * @param name Alias name
+   */
   explicit AliasType(std::string &&name) : name_{name}, serial_no_{0}, serial_valid_{false} {}
 
+  /**
+   * Constructs an alias with a name and invalid serial number
+   * @param name Alias name
+   */
   explicit AliasType(const std::string &name) : name_{std::string(name)}, serial_no_{0}, serial_valid_{false} {}
 
+  /**
+   * Gets the name of this alias
+   * @return Name of this alias
+   */
   const std::string &GetName() const { return name_; }
 
+  /**
+   * @return Whether or not the serial number of this alias is valid
+   */
   bool IsSerialNoValid() const { return serial_valid_; }
 
+  /**
+   * @return The serial number of this alias
+   */
   size_t GetSerialNo() const { return serial_no_; }
 
+  /**
+   * Equality function
+   * @param other The alias we are comparing against
+   * @return Whether or not these two aliases are considered equal as documented above
+   */
   bool operator==(const AliasType &other) const {
     bool names_equal = (name_ == other.name_);
     if (!serial_valid_ || !other.serial_valid_) {
@@ -51,16 +90,40 @@ class AliasType {
     return names_equal && (serial_no_ == other.serial_no_);
   }
 
+  /**
+   * @return Whether this alias's name is empty
+   */
   bool Empty() const { return name_.empty(); }
 
+  /**
+   * Hash structure for AliasType. This does not include the serial number as
+   * we wish for parser::AliasType("xxx",1) and parser::AliasType("xxx") to be
+   * considered equal. In other words, if the serial number is invalid, it should
+   * match with all alias types with a matching string regardless of serial number
+   */
   struct HashKey {
+
+    /**
+     * @param p Alias we are hashing
+     * @return Hash value of alias, effectively the hash of the name
+     */
     size_t operator()(const AliasType &p) const {
-      auto hash1 = std::hash<std::string>{}(p.name_);
-      return hash1;
+      return std::hash<std::string>{}(p.name_);
     }
   };
 
+  /**
+   * Compare function struct for comparing aliases purely based on their serial number in ascending order
+   * SHOUlD NOT BE USED ON ALIASES WHOSE SERIAL NUMBERS ARE INVALID
+   */
   struct CompareSerialNo {
+
+    /**
+     * Comparison function based on serial number
+     * @param p first alias we are comparing
+     * @param q second alias we are comparing against p
+     * @return false if p is strictly considered "less" than q
+     */
     bool operator()(const AliasType &p, const AliasType &q) const { return p.GetSerialNo() < q.GetSerialNo(); }
   };
 
@@ -228,9 +291,12 @@ class AbstractExpression {
    */
   virtual void DeriveExpressionName();
 
-  /** @return alias of this abstract expression */
+  /** @return alias name of this abstract expression */
   const std::string &GetAliasName() const { return alias_.GetName(); }
 
+  /**
+   * @return The full alias type of this abstract expression
+   */
   const AliasType &GetAlias() const { return alias_; }
 
   /** set alias of this abstract expression */

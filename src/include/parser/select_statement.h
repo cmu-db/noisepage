@@ -392,6 +392,10 @@ class SelectStatement : public SQLStatement {
    */
   void SetUnionSelect(std::unique_ptr<SelectStatement> select_stmt) { union_select_ = std::move(select_stmt); }
 
+  /**
+   * Gets the select statement this statement is unioned with if at all
+   * @return The select statement this is unioned with if that exists else nullptr
+   */
   common::ManagedPointer<SelectStatement> GetUnionSelect() {
     return common::ManagedPointer<SelectStatement>(union_select_);
   }

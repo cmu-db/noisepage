@@ -517,7 +517,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       if (inductive) {
         sel_cols = ref->GetSelect()->GetUnionSelect()->GetSelectColumns();
       }
-      context.AddCTETable(catalog_accessor_, ref->GetAlias(), sel_cols, ref->GetCteColumnAliases());
+      context.AddCTETable(ref->GetAlias(), sel_cols, ref->GetCteColumnAliases());
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     } else {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());

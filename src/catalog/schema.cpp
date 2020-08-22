@@ -44,24 +44,24 @@ std::unique_ptr<Schema> Schema::DeserializeSchema(const nlohmann::json &j) {
   return std::make_unique<Schema>(columns);
 }
 
-Schema::Schema(std::vector<std::string> column_aliases, std::vector<type::TypeId> column_types) {
-  std::vector<Column> columns;
-  for (uint32_t i = 0; i < column_aliases.size(); i++) {
-    columns.emplace_back(column_aliases[i], column_types[i], false, parser::ConstantValueExpression(column_types[i]),
-                         TEMP_OID(catalog::col_oid_t, i));
-  }
-
-  columns_ = std::move(columns);
-  for (uint32_t i = 0; i < columns_.size(); i++) {
-    // If not all columns assigned OIDs, then clear the map because this is
-    // a definition of a new/modified table not a catalog generated schema.
-    if (columns_[i].Oid() == catalog::INVALID_COLUMN_OID) {
-      col_oid_to_offset_.clear();
-      return;
-    }
-    col_oid_to_offset_[columns_[i].Oid()] = i;
-  }
-}
+//Schema::Schema(std::vector<std::string> column_aliases, std::vector<type::TypeId> column_types) {
+//  std::vector<Column> columns;
+//  for (uint32_t i = 0; i < column_aliases.size(); i++) {
+//    columns.emplace_back(column_aliases[i], column_types[i], false, parser::ConstantValueExpression(column_types[i]),
+//                         TEMP_OID(catalog::col_oid_t, i));
+//  }
+//
+//  columns_ = std::move(columns);
+//  for (uint32_t i = 0; i < columns_.size(); i++) {
+//    // If not all columns assigned OIDs, then clear the map because this is
+//    // a definition of a new/modified table not a catalog generated schema.
+//    if (columns_[i].Oid() == catalog::INVALID_COLUMN_OID) {
+//      col_oid_to_offset_.clear();
+//      return;
+//    }
+//    col_oid_to_offset_[columns_[i].Oid()] = i;
+//  }
+//}
 
 DEFINE_JSON_BODY_DECLARATIONS(Schema::Column);
 DEFINE_JSON_BODY_DECLARATIONS(Schema);
