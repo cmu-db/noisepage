@@ -275,8 +275,10 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND)) {
+  const bool bind_command_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND);
+  if (bind_command_metrics_enabled) {
     // start the operating unit resource tracker
     common::thread_context.resource_tracker_.Start();
   }
@@ -407,8 +409,7 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     postgres_interpreter->SetWaitingForSync();
   }
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND)) {
+  if (bind_command_metrics_enabled) {
     common::thread_context.resource_tracker_.Stop();
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
     common::thread_context.metrics_store_->RecordBindCommandData(param_num, statement->GetQueryText().size(),
@@ -466,8 +467,10 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
+  const bool execute_command_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND);
+  if (execute_command_metrics_enabled) {
     // start the operating unit resource tracker
     common::thread_context.resource_tracker_.Start();
   }
@@ -529,8 +532,7 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     return Transition::PROCEED;
   }
 
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND)) {
+  if (execute_command_metrics_enabled) {
     common::thread_context.resource_tracker_.Stop();
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
     common::thread_context.metrics_store_->RecordExecuteCommandData(portal_name.size(), resource_metrics);
