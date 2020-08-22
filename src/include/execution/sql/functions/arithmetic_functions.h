@@ -340,14 +340,6 @@ inline void ArithmeticFunctions::Atan2(Real *result, const Real &a, const Real &
   *result = Real(terrier::execution::sql::Atan2<double>{}(a.val_, b.val_));
 }
 
-inline void ArithmeticFunctions::Round(Real *result, const Real &v) {
-  if (v.is_null_) {
-    *result = Real::Null();
-    return;
-  }
-  *result = Real(terrier::execution::sql::Round<double>{}(v.val_));
-}
-
 inline void ArithmeticFunctions::Round2(Real *result, const Real &v, const Integer &precision) {
   if (v.is_null_ || precision.is_null_) {
     *result = Real::Null();
