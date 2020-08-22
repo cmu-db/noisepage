@@ -203,9 +203,9 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input_concurrent',
+    aparser.add_argument('--input_path', default='global_runner_input_40_40',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results_concurrent',
+    aparser.add_argument('--model_results_path', default='global_model_results_40_40',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
-    aparser.add_argument('--warmup_period', type=float, default=1, help='OLTPBench warmup period')
+    aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
     aparser.add_argument('--simulate_cache', default=False, help='Should simulate cache at 0.4')
     aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
     aparser.add_argument('--log', default='info', help='The logging level')
