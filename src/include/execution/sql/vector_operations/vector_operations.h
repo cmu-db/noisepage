@@ -281,21 +281,25 @@ class EXPORT VectorOps {
    * Store the TIDs of all string elements in @em a that are LIKE their counterparts in @em b in the
    * output Tuple ID list @em tid_list. Only elements whose TIDs appear in @em tid_list are
    * read and processed.
+   * @param exec_settings The execution settings.
    * @param a The vector of strings to compare.
    * @param b The vector of strings to compare with.
    * @param[in,out] tid_list The list of TIDs to check, and the output of the check.
    */
-  static void Like(const Vector &a, const Vector &b, TupleIdList *tid_list);
+  static void SelectLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                         TupleIdList *tid_list);
 
   /**
    * Store the TIDs of all string elements in @em a that are NOT LIKE their counterparts in @em b in
    * the output Tuple ID list @em tid_list. Only elements whose TIDs appear in @em tid_list are
    * read and processed.
+   * @param exec_settings The execution settings.
    * @param a The vector of strings to compare.
    * @param b The vector of strings to compare with.
    * @param[in,out] tid_list The list of TIDs to check, and the output of the check.
    */
-  static void NotLike(const Vector &a, const Vector &b, TupleIdList *tid_list);
+  static void SelectNotLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                            TupleIdList *tid_list);
 
   // -------------------------------------------------------
   //

@@ -965,6 +965,14 @@ void BytecodeGenerator::VisitBuiltinVectorFilterCall(ast::CallExpr *call, ast::B
       GEN_CASE(Bytecode::VectorFilterNotEqual);
       break;
     }
+    case ast::Builtin::VectorFilterLike: {
+      GEN_CASE(Bytecode::VectorFilterLike);
+      break;
+    }
+    case ast::Builtin::VectorFilterNotLike: {
+      GEN_CASE(Bytecode::VectorFilterNotLike);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible vector filter executor call");
     }
@@ -2348,7 +2356,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VectorFilterGreaterThanEqual:
     case ast::Builtin::VectorFilterLessThan:
     case ast::Builtin::VectorFilterLessThanEqual:
-    case ast::Builtin::VectorFilterNotEqual: {
+    case ast::Builtin::VectorFilterNotEqual:
+    case ast::Builtin::VectorFilterLike:
+    case ast::Builtin::VectorFilterNotLike: {
       VisitBuiltinVectorFilterCall(call, builtin);
       break;
     }
