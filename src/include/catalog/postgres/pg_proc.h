@@ -67,8 +67,6 @@ constexpr proc_oid_t ASIN_PRO_OID = proc_oid_t(86);
 constexpr proc_oid_t ATAN_PRO_OID = proc_oid_t(87);
 constexpr proc_oid_t COS_PRO_OID = proc_oid_t(88);
 constexpr proc_oid_t SIN_PRO_OID = proc_oid_t(89);
-constexpr proc_oid_t MOD_PRO_OID = proc_oid_t(108);
-constexpr proc_oid_t INTMOD_PRO_OID = proc_oid_t(142);
 
 // TODO(tanujnay112) This overflows into the next internal oid range and will continue to do so
 constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
@@ -82,14 +80,16 @@ constexpr proc_oid_t FLOOR_PRO_OID = proc_oid_t(97);
 constexpr proc_oid_t TRUNCATE_PRO_OID = proc_oid_t(98);
 constexpr proc_oid_t LOG10_PRO_OID = proc_oid_t(99);
 constexpr proc_oid_t LOG2_PRO_OID = proc_oid_t(100);
-constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(101);
-constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(102);
-constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(103);
-constexpr proc_oid_t ASCII_PRO_OID = proc_oid_t(104);
-constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(105);
-constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(106);
-constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(107);
-constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t MOD_PRO_OID = proc_oid_t(101);
+constexpr proc_oid_t INTMOD_PRO_OID = proc_oid_t(102);
+constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(103);
+constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(104);
+constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(105);
+constexpr proc_oid_t ASCII_PRO_OID = proc_oid_t(106);
+constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(107);
+constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(109);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(110);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
 constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
