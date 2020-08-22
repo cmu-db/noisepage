@@ -37,10 +37,11 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param thread_registry DedicatedThreadRegistry dependency needed because it eventually spawns more threads in
    * RunTask
    */
-  ConnectionDispatcherTask(uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+  ConnectionDispatcherTask(uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                           common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
+                           common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                           std::initializer_list<int> file_descriptors);
 
   /**
    * @brief Dispatches the client connection at fd to a handler.

@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <memory>
+#include <utility>
 #include <sys/un.h>
 
 #include "common/dedicated_thread_registry.h"
@@ -19,12 +20,12 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                              const uint16_t port, const uint16_t connection_thread_count, const bool use_unix_socket,
-                             const std::string& socket_directory)
+                             std::string socket_directory)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
       use_unix_socket_(use_unix_socket),
       port_(port),
-      socket_directory_(socket_directory),
+      socket_directory_(std::move(socket_directory)),
       max_connections_(connection_thread_count),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {
@@ -130,10 +131,6 @@ void TerrierServer::RegisterSocket() {
     throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to listen on {} socket.", socket_description));
   }
 
-  dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, max_connections_, socket_fd, this, common::ManagedPointer(provider_.Get()),
-      connection_handle_factory_, thread_registry_);
-
   NETWORK_LOG_INFO("Listening on {} socket with port {} [PID={}]", socket_description, port_, ::getpid());
 }
 
@@ -146,9 +143,14 @@ void TerrierServer::RunServer() {
 
   // Register the Unix domain socket if Unix domain sockets have been turned on
   if (use_unix_socket_) {
-    // TODO(jordig) Why would we need a lockfile á la Postgres? What do they even use it for?
     RegisterSocket<UNIX_DOMAIN_SOCKET>();
   }
+
+  // Create a dispatcher to handle connections to the sockets that have been created.
+  dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
+      this /* requester */, max_connections_, this, common::ManagedPointer(provider_.Get()),
+      connection_handle_factory_, thread_registry_,
+      std::initializer_list<int>({unix_domain_socket_fd_, network_socket_fd_}));
 
   // Set the running_ flag for any waiting threads
   {
@@ -169,7 +171,6 @@ void TerrierServer::StopServer() {
   // Close the Unix domain socket if it exists
   if (use_unix_socket_ && unix_domain_socket_fd_ >= 0) {
     std::remove(fmt::format("{0}.s.PGSQL.{1}", socket_directory_, port_).c_str());
-    TerrierClose(unix_domain_socket_fd_); // TODO(jordig) Does this do *anything*?
   }
 
   NETWORK_LOG_INFO("Server Closed");

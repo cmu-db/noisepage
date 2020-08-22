@@ -37,7 +37,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
-                uint16_t connection_thread_count, bool use_unix_socket, const std::string& socket_directory);
+                uint16_t connection_thread_count, bool use_unix_socket, std::string  socket_directory);
 
   ~TerrierServer() override = default;
 

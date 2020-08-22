@@ -1,5 +1,4 @@
 #include <cstring>
-#include <filesystem>
 #include <memory>
 #include <pqxx/pqxx>  // NOLINT
 #include <string>
@@ -54,7 +53,6 @@ class NetworkTests : public TerrierTest {
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = 15721;
   std::string socket_directory_ = "/tmp/";
-  std::string socket_name_ = "noisepage.sock";
   uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
@@ -89,7 +87,7 @@ class NetworkTests : public TerrierTest {
           std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
                                           common::ManagedPointer(handle_factory_.get()),
                                           common::ManagedPointer(&thread_registry_), port_, connection_thread_count_,
-                                          true /* Use unix domain socket */, socket_directory_, socket_name_);
+                                          true /* Use unix domain socket */, socket_directory_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
@@ -196,7 +194,7 @@ TEST_F(NetworkTests, SimpleQueryTest) {
 TEST_F(NetworkTests, UnixDomainSocketTest) {
   try {
     pqxx::connection c(fmt::format("host={0} port={1} user={2} sslmode=disable application_name=psql",
-                                   socket_directory_, socket_name_, catalog::DEFAULT_DATABASE));
+                                   socket_directory_, port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");

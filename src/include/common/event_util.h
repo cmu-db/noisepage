@@ -89,6 +89,7 @@ class EventUtil {
    * @return a positive integer or an exception is thrown on failure
    */
   static int EventBaseDispatch(struct event_base *base) {
+
     return Wrap(event_base_dispatch(base), NonNegative, "Error in event base dispatch");
   }
 };
