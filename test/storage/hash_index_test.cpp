@@ -80,9 +80,13 @@ class HashIndexTests : public TerrierTest {
   void TearDown() override {
     db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
         [=]() {
-          delete sql_table_;
-          delete default_index_;
-          delete unique_index_;
+          db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+              [=]() {
+                delete sql_table_;
+                delete default_index_;
+                delete unique_index_;
+              },
+              transaction::DafId::INVALID);
         },
         transaction::DafId::INVALID);
 
