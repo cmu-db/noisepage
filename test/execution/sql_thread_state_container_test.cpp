@@ -61,41 +61,41 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   EXECUTION_LOG_TRACE("{} thread states", container.GetThreadStateCount());
 }
 
-// NOLINTNEXTLINE
-TEST_F(ThreadStateContainerTest, ContainerResetTest) {
-  // The container
-  MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
-
-  //
-  // Test: Create thread local state that adds to a contextually provided
-  //       counter on construction, and decrements upon destruction. Try
-  //       resetting the container multiple times. After all is said and done,
-  //       the count should be zero.
-  //
-
-  const uint32_t init_num = 44;
-  std::atomic<uint32_t> count(init_num);
-
-#define RESET(N)                                                                                                \
-  {                                                                                                             \
-    /* Reset the container, add/sub upon creation/destruction by amount */                                      \
-    container.Reset(                                                                                            \
-        sizeof(uint32_t),                                                                                       \
-        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; },          \
-        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count); \
-    ForceCreationOfThreadStates(&container, 4);                                                                 \
-  }
-
-  RESET(1)
-  RESET(2)
-  RESET(3)
-  RESET(4)
-
-  container.Clear();
-
-  EXPECT_EQ(init_num, count);
-}
+//// NOLINTNEXTLINE
+//TEST_F(ThreadStateContainerTest, ContainerResetTest) {
+//  // The container
+//  MemoryPool memory(nullptr);
+//  ThreadStateContainer container(&memory);
+//
+//  //
+//  // Test: Create thread local state that adds to a contextually provided
+//  //       counter on construction, and decrements upon destruction. Try
+//  //       resetting the container multiple times. After all is said and done,
+//  //       the count should be zero.
+//  //
+//
+//  const uint32_t init_num = 44;
+//  std::atomic<uint32_t> count(init_num);
+//
+//#define RESET(N)                                                                                                \
+//  {                                                                                                             \
+//    /* Reset the container, add/sub upon creation/destruction by amount */                                      \
+//    container.Reset(                                                                                            \
+//        sizeof(uint32_t),                                                                                       \
+//        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; },          \
+//        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count); \
+//    ForceCreationOfThreadStates(&container, 4);                                                                 \
+//  }
+//
+//  RESET(1)
+//  RESET(2)
+//  RESET(3)
+//  RESET(4)
+//
+//  container.Clear();
+//
+//  EXPECT_EQ(init_num, count);
+//}
 
 // NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
