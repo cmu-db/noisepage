@@ -12,7 +12,7 @@ from data_class import data_util
 from info import data_info
 from util import io_util
 
-from type import OpUnit, Target
+from type import OpUnit
 
 
 def write_extended_data(output_path, symbol, index_value_list, data_map):

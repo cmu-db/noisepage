@@ -199,7 +199,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     :param mini_model_map: The trained mini models
     :param model_results_path: file path to log the prediction results
     """
-    # TODO: Needs a better encapsulation
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
     pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
@@ -218,17 +217,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     current_query_id = None
     query_y = None
     query_y_pred = None
-
-    pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
-    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us", "Us Error"])
-
-    # Track pipeline cumulative numbers
-    num_pipelines = 0
-    total_actual = None
-    total_predicted = None
-    actual_pipelines = {}
-    predicted_pipelines = {}
-    count_pipelines = {}
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}

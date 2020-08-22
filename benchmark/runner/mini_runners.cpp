@@ -30,7 +30,6 @@
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
-#include "planner/plannodes/index_join_plan_node.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
@@ -71,9 +70,7 @@ catalog::db_oid_t db_oid{0};
 /**
  * Number of warmup iterations
  */
-int64_t warmup_iterations_num{-1};
-int64_t warmup_iterations_num_idx(1);
-int64_t warmup_iterations_num_crud{-1};
+int64_t warmup_iterations_num{5};
 
 /**
  * warmup_rows_limit controls which queries need warming up.
