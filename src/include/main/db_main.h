@@ -362,7 +362,7 @@ class DBMain {
         TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
-                                           network_port_, connection_thread_count_, uds_enable, uds_file_directory);
+                                           network_port_, connection_thread_count_, uds_enable_, uds_file_directory_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -665,9 +665,8 @@ class DBMain {
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
     uint16_t network_port_ = 15721;
-    bool uds_enable = true; // Unix domain sockets
-    std::string uds_file_directory = "/tmp/";
-    std::string uds_file_name = "noisepage.sock";
+    bool uds_enable_ = true; // Unix domain sockets
+    std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
 
@@ -701,6 +700,8 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
+      uds_enable_ = settings_manager->GetBool(settings::Param::uds_enable);
+      uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
