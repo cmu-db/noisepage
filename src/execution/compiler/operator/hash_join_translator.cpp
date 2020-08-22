@@ -75,9 +75,8 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
   auto *codegen = GetCodeGen();
   util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
-  auto join_type = GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType();
-  // Set flag here, so GetChildOutput outputs NULL's for outer join correctly
-  left_outer_join_flag_ = (join_type == planner::LogicalJoinType::LEFT);
+  // Set flag here, so GetChildOutput outputs NULL's for left outer join correctly
+  left_outer_join_flag_ = true;
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
   { ctx.Push(&function); }
   left_outer_join_flag_ = false;
