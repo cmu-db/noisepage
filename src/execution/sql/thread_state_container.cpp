@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <vector>
+#include <tbb/mutex.h>
 
 #include "common/constants.h"
 #include "execution/exec/execution_settings.h"
@@ -48,6 +49,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   // tbb::enumerable_thread_specific<TLSHandle> states_;
+  tbb::mutex states_mutex_;
   std::map<tbb::tbb_thread::id, std::shared_ptr<TLSHandle>> states_;
 };
 
@@ -86,6 +88,7 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 byte *ThreadStateContainer::AccessCurrentThreadState() {
   // auto &tls_handle = impl_->states_.local();
   // return tls_handle.State();
+  tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   if (impl_->states_.find(tbb::this_tbb_thread::get_id()) == impl_->states_.end()) {
     std::shared_ptr<TLSHandle> tls_handle(new TLSHandle(this));
     impl_->states_.insert(std::make_pair(tbb::this_tbb_thread::get_id(), tls_handle));
@@ -95,6 +98,7 @@ byte *ThreadStateContainer::AccessCurrentThreadState() {
 
 void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *container) const {
   container->clear();
+  tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   container->reserve(impl_->states_.size());
   for (auto &tls_handle : impl_->states_) {
     container->push_back(tls_handle.second->State());
@@ -104,6 +108,7 @@ void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *contain
 void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *container,
                                                            const std::size_t element_offset) const {
   container->clear();
+  tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   container->reserve(impl_->states_.size());
   for (auto &tls_handle : impl_->states_) {
     container->push_back(tls_handle.second->State() + element_offset);
@@ -111,12 +116,14 @@ void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *
 }
 
 void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
+  tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   for (auto &tls_handle : impl_->states_) {
     iterate_fn(ctx, tls_handle.second->State());
   }
 }
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
+  tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   tbb::parallel_for_each(impl_->states_, [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.second->State()); });
 }
 
