@@ -226,7 +226,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   pipeline_features_.emplace(type, std::move(feature));
 }
 
-void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, size_t *num_keys,
+void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, const size_t *num_keys,
                                            size_t *cardinality, size_t *num_loops) {
   if (*query_text_ ==
           "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
