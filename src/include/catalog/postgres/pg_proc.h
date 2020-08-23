@@ -86,23 +86,23 @@ constexpr proc_oid_t SQRT_PRO_OID = proc_oid_t(103);
 constexpr proc_oid_t CBRT_PRO_OID = proc_oid_t(104);
 constexpr proc_oid_t ROUND_PRO_OID = proc_oid_t(105);
 constexpr proc_oid_t ROUND2_PRO_OID = proc_oid_t(106);
-constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(107);
-constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(108);
-constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(109);
-constexpr proc_oid_t ASCII_PRO_OID = proc_oid_t(110);
-constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(111);
-constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(112);
-constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(113);
-constexpr proc_oid_t LENGTH_PRO_OID = proc_oid_t(114);
-constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(115);
+constexpr proc_oid_t POW_PRO_OID = proc_oid_t(107);
+constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(109);
+constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(110);
+constexpr proc_oid_t ASCII_PRO_OID = proc_oid_t(111);
+constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(112);
+constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(113);
+constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(114);
+constexpr proc_oid_t LENGTH_PRO_OID = proc_oid_t(115);
+constexpr proc_oid_t MD5_PRO_OID = proc_oid_t(116);
+constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(117);
+constexpr proc_oid_t SPLIT_PART_PRO_OID = proc_oid_t(118);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(119);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
 constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
 constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(902);
 constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(903);
 
-constexpr proc_oid_t POW_PRO_OID = proc_oid_t(94);
-constexpr proc_oid_t MD5_PRO_OID = proc_oid_t(103);
-constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(102);
-constexpr proc_oid_t SPLIT_PART_PRO_OID = proc_oid_t(122);
 }  // namespace terrier::catalog::postgres
