@@ -44,13 +44,13 @@ TEST_F(CTEScanTest, CTEInitTest) {
 
   std::unordered_map<catalog::col_oid_t, uint16_t> oid_to_iid;
   std::vector<catalog::col_oid_t> col_oids2;
-  for (int i = 1; i <= 4; i++) {
-    col_oids2.push_back(static_cast<catalog::col_oid_t>(i));
+  for (auto col_id : cte_table_col_ids) {
+    col_oids2.push_back(static_cast<catalog::col_oid_t>(col_id));
   }
-  oid_to_iid[static_cast<catalog::col_oid_t>(1)] = 1;
-  oid_to_iid[static_cast<catalog::col_oid_t>(2)] = 2;
-  oid_to_iid[static_cast<catalog::col_oid_t>(3)] = 3;
-  oid_to_iid[static_cast<catalog::col_oid_t>(4)] = 0;
+  oid_to_iid[static_cast<catalog::col_oid_t>(cte_table_col_ids[0])] = 1;
+  oid_to_iid[static_cast<catalog::col_oid_t>(cte_table_col_ids[1])] = 2;
+  oid_to_iid[static_cast<catalog::col_oid_t>(cte_table_col_ids[2])] = 3;
+  oid_to_iid[static_cast<catalog::col_oid_t>(cte_table_col_ids[3])] = 0;
   /* Expected Result:
    * 1 = 1
    * 2 = 2
@@ -113,7 +113,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
 
   // Try to fetch the inserted values.
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
-  TableVectorIterator table_iter(exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
+  TableVectorIterator table_iter(exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), cte_table_col_ids,
                                  static_cast<uint32_t>(col_oids.size()));
   table_iter.InitTempTable(common::ManagedPointer(cte_table));
   VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
@@ -177,7 +177,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
 
   // Try to fetch the inserted values.
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
-  auto table_iter = new TableVectorIterator(exec_ctx_.get(), !(cte_scan->GetTableOid()), col_oids.data(),
+  auto table_iter = new TableVectorIterator(exec_ctx_.get(), !(cte_scan->GetTableOid()), cte_table_col_ids,
                                             static_cast<uint32_t>(col_oids.size()));
   table_iter->InitTempTable(common::ManagedPointer(cte_table));
   VectorProjectionIterator *vpi = table_iter->GetVectorProjectionIterator();

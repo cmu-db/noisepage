@@ -110,7 +110,7 @@ TEST_F(IndCteScanTest, IterCTESingleInsertTest) {
   }
   EXPECT_TRUE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
+  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
@@ -177,7 +177,7 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
     cte_scan.TableInsert();
   }
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
+  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
@@ -247,7 +247,7 @@ TEST_F(IndCteScanTest, IterCTEDoubleAccumulateTest) {
   EXPECT_TRUE(cte_scan.Accumulate());
   EXPECT_FALSE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
+  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
@@ -342,7 +342,7 @@ TEST_F(IndCteScanTest, IterCTEMultipleInsertTest) {
   }
   EXPECT_TRUE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
+  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
