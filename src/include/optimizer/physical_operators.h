@@ -2099,7 +2099,6 @@ class Analyze : public OperatorNodeContents<Analyze> {
  */
 class CteScan : public OperatorNodeContents<CteScan> {
  public:
-
   /**
    * Makes a physical cte scan node
    * @param child_expressions The top level expressions that are used to fill the columns of the cte table

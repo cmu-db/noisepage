@@ -32,10 +32,13 @@ TEST_F(CTEScanTest, CTEInitTest) {
   // Check the mapping of col_oids to the col_ids in the constructed table
 
   uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // {BIGINT, INTEGER, SMALLINT, VARCHAR}
+  uint32_t cte_table_col_ids[4] = {exec_ctx_->GetAccessor()->GetNewTempOid(), exec_ctx_->GetAccessor()->GetNewTempOid(),
+                                   exec_ctx_->GetAccessor()->GetNewTempOid(),
+                                   exec_ctx_->GetAccessor()->GetNewTempOid()};
 
-  auto cte_scan = new fterrier::execution::sql::CteScanIterator(
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
-      4);
+  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_ids,
+      cte_table_col_type, 4);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -80,10 +83,11 @@ TEST_F(CTEScanTest, CTEInsertTest) {
 
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   auto cte_scan = new terrier::execution::sql::CteScanIterator(
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
-      1);
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_ids,
+      cte_table_col_type, 1);
 
   auto cte_table = cte_scan->GetTable();
 
@@ -142,11 +146,12 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   index_iter1.Init();
 
   // Create cte_table
+  uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   auto cte_scan = new terrier::execution::sql::CteScanIterator(
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
-      1);
+      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_ids,
+      cte_table_col_type, 1);
 
   auto cte_table = cte_scan->GetTable();
 

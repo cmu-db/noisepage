@@ -10,7 +10,6 @@ namespace terrier::execution::compiler {
  */
 class CteScanProvider {
  public:
-
   /**
    * @param codegen The current code generator object
    * @return A pointer to a readable cte scan iterator

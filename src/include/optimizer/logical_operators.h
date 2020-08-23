@@ -1933,7 +1933,6 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
  */
 class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
  public:
-
   /**
    * Makes a logical union operator
    * @param is_all Whether this is a UNION ALL

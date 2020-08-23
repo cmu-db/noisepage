@@ -15,7 +15,6 @@ namespace terrier::execution::compiler {
  */
 class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
  public:
-
   /**
    * Constructor
    * @param plan The ctescanplanndoe this translator is generating code for
@@ -23,7 +22,7 @@ class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
    * @param pipeline The pipeline this is being translated on
    */
   IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
-                              Pipeline *pipeline);
+                             Pipeline *pipeline);
 
   /**
    * Does nothing
@@ -64,7 +63,6 @@ class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   }
 
  private:
-
   void PopulateReadCteScanIterator(FunctionBuilder *builder) const;
 
   void DeclareInsertPR(FunctionBuilder *builder) const;

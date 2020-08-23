@@ -1181,11 +1181,11 @@ ast::Expr *CodeGen::CteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t tab
 }
 
 ast::Expr *CodeGen::IndCteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
-                                            ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var) {
+                                           ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var) {
   ast::Expr *col_ids_expr = MakeExpr(col_ids);
   ast::Expr *col_types_expr = MakeExpr(col_types);
 
-  std::vector<ast::Expr *> args{csi,           exec_ctx_var,   Const32(!table_oid),
+  std::vector<ast::Expr *> args{csi,          exec_ctx_var,   Const32(!table_oid),
                                 col_ids_expr, col_types_expr, ConstBool(is_recursive)};
   return CallBuiltin(ast::Builtin::IndCteScanInit, args);
 }

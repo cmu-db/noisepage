@@ -999,7 +999,7 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   auto select_expression = statement->GetSelectColumns()[0].CastManagedPointerTo<ColumnValueExpression>();
   EXPECT_EQ("foo", select_expression->GetTableName());
   EXPECT_EQ("name", select_expression->GetColumnName());
-  EXPECT_EQ("name_new", select_expression->GetAlias());
+  EXPECT_EQ(parser::AliasType("name_new"), select_expression->GetAlias());
 
   auto from = statement->GetSelectTable();
   EXPECT_EQ(TableReferenceType::CROSS_PRODUCT, from->GetTableReferenceType());

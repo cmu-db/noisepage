@@ -9,8 +9,8 @@
 namespace terrier::execution::sql {
 
 IndCteScanIterator::IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
-                                         uint32_t *schema_cols_ids, uint32_t *schema_cols_type,
-                                         uint32_t num_schema_cols, bool is_recursive)
+                                       uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
+                                       bool is_recursive)
     : exec_ctx_{exec_ctx},
       cte_scan_1_{exec_ctx,
                   catalog::table_oid_t(TEMP_OID(catalog::table_oid_t, exec_ctx->GetAccessor()->GetNewTempOid())),

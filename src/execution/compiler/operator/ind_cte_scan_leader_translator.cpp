@@ -11,7 +11,7 @@
 namespace terrier::execution::compiler {
 
 IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
-                                                         CompilationContext *compilation_context, Pipeline *pipeline)
+                                                       CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
@@ -151,7 +151,7 @@ void IndCteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const 
 }
 
 void IndCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuilder *builder,
-                                                  uint32_t child_idx) const {
+                                                 uint32_t child_idx) const {
   auto &plan = GetPlanAs<planner::CteScanPlanNode>();
   const auto &cols = plan.GetTableSchema()->GetColumns();
   auto codegen = GetCodeGen();
@@ -160,8 +160,7 @@ void IndCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionB
     const auto &table_col_oid = col.Oid();
     size_t col_ind = 0;
     for (auto col_oid : plan.GetColumnOids()) {
-      if (col_oid
-          == table_col_oid) {
+      if (col_oid == table_col_oid) {
         break;
       }
       col_ind++;

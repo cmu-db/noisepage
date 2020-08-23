@@ -81,26 +81,26 @@ void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) { iter->~CteS
 // ---------------------------------------------------------
 
 void OpIndCteScanInit(terrier::execution::sql::IndCteScanIterator *iter,
-                       terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                       uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
-                       bool is_recursive) {
+                      terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                      uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
+                      bool is_recursive) {
   new (iter)
       terrier::execution::sql::IndCteScanIterator(exec_ctx, terrier::catalog::table_oid_t(table_oid), schema_cols_ids,
-                                                   schema_cols_type, num_schema_cols, is_recursive);
+                                                  schema_cols_type, num_schema_cols, is_recursive);
 }
 
 void OpIndCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
-                             terrier::execution::sql::IndCteScanIterator *iter) {
+                            terrier::execution::sql::IndCteScanIterator *iter) {
   *sql_table = iter->GetReadCte();
 }
 
 void OpIndCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
-                              terrier::execution::sql::IndCteScanIterator *iter) {
+                             terrier::execution::sql::IndCteScanIterator *iter) {
   *sql_table = iter->GetWriteCte();
 }
 
 void OpIndCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,
-                                  terrier::execution::sql::IndCteScanIterator *iter) {
+                                 terrier::execution::sql::IndCteScanIterator *iter) {
   *table_oid = iter->GetReadTableOid();
 }
 
@@ -109,17 +109,17 @@ void OpIndCteScanAccumulate(bool *accumulate_bool, terrier::execution::sql::IndC
 }
 
 void OpIndCteScanGetResult(terrier::execution::sql::CteScanIterator **result,
-                            terrier::execution::sql::IndCteScanIterator *iter) {
+                           terrier::execution::sql::IndCteScanIterator *iter) {
   *result = iter->GetResultCTE();
 }
 
 void OpIndCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                       terrier::execution::sql::IndCteScanIterator *iter) {
+                                      terrier::execution::sql::IndCteScanIterator *iter) {
   *projected_row = iter->GetInsertTempTablePR();
 }
 
 void OpIndCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                              terrier::execution::sql::IndCteScanIterator *iter) {
+                             terrier::execution::sql::IndCteScanIterator *iter) {
   *tuple_slot = iter->TableInsert();
 }
 

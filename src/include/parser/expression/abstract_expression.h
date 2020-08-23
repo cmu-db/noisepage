@@ -35,11 +35,10 @@ class ParseResult;
  */
 class AliasType {
  public:
-
   /**
    * Default constructor
    */
-  AliasType() :  serial_no_{0}, serial_valid_{false} {}
+  AliasType() : serial_no_{0}, serial_valid_{false} {}
 
   /**
    * Constructs an alias with a name and valid serial number
@@ -102,14 +101,11 @@ class AliasType {
    * match with all alias types with a matching string regardless of serial number
    */
   struct HashKey {
-
     /**
      * @param p Alias we are hashing
      * @return Hash value of alias, effectively the hash of the name
      */
-    size_t operator()(const AliasType &p) const {
-      return std::hash<std::string>{}(p.name_);
-    }
+    size_t operator()(const AliasType &p) const { return std::hash<std::string>{}(p.name_); }
   };
 
   /**
@@ -117,7 +113,6 @@ class AliasType {
    * SHOUlD NOT BE USED ON ALIASES WHOSE SERIAL NUMBERS ARE INVALID
    */
   struct CompareSerialNo {
-
     /**
      * Comparison function based on serial number
      * @param p first alias we are comparing

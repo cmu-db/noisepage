@@ -44,7 +44,7 @@ std::unique_ptr<Schema> Schema::DeserializeSchema(const nlohmann::json &j) {
   return std::make_unique<Schema>(columns);
 }
 
-//Schema::Schema(std::vector<std::string> column_aliases, std::vector<type::TypeId> column_types) {
+// Schema::Schema(std::vector<std::string> column_aliases, std::vector<type::TypeId> column_types) {
 //  std::vector<Column> columns;
 //  for (uint32_t i = 0; i < column_aliases.size(); i++) {
 //    columns.emplace_back(column_aliases[i], column_types[i], false, parser::ConstantValueExpression(column_types[i]),

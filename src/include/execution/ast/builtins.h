@@ -61,15 +61,15 @@ namespace terrier::execution::ast {
   F(CteScanFree, cteScanFree)                                           \
                                                                         \
   /*Iterative Cte Scans*/                                               \
-  F(IndCteScanInit, IndCteScanInit)                                   \
-  F(IndCteScanGetResult, IndCteScanGetResult)                         \
-  F(IndCteScanGetReadCte, IndCteScanGetReadCte)                       \
-  F(IndCteScanGetWriteCte, IndCteScanGetWriteCte)                     \
-  F(IndCteScanGetReadTableOid, IndCteScanGetReadTableOid)             \
-  F(IndCteScanAccumulate, IndCteScanAccumulate)                       \
-  F(IndCteScanGetInsertTempTablePR, IndCteScanGetInsertTempTablePR)   \
-  F(IndCteScanTableInsert, IndCteScanTableInsert)                     \
-  F(IndCteScanFree, IndCteScanFree)                                   \
+  F(IndCteScanInit, IndCteScanInit)                                     \
+  F(IndCteScanGetResult, IndCteScanGetResult)                           \
+  F(IndCteScanGetReadCte, IndCteScanGetReadCte)                         \
+  F(IndCteScanGetWriteCte, IndCteScanGetWriteCte)                       \
+  F(IndCteScanGetReadTableOid, IndCteScanGetReadTableOid)               \
+  F(IndCteScanAccumulate, IndCteScanAccumulate)                         \
+  F(IndCteScanGetInsertTempTablePR, IndCteScanGetInsertTempTablePR)     \
+  F(IndCteScanTableInsert, IndCteScanTableInsert)                       \
+  F(IndCteScanFree, IndCteScanFree)                                     \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \

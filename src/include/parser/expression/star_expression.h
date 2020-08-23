@@ -19,7 +19,8 @@ class StarExpression : public AbstractExpression {
   /**
    * Instantiates a new star expression with a table name, e.g. as in xxx.*
    */
-  explicit StarExpression(std::string table_name) : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {
+  explicit StarExpression(std::string table_name)
+      : AbstractExpression(ExpressionType::STAR, type::TypeId::INTEGER, {}) {
     table_name_ = std::move(table_name);
   }
 

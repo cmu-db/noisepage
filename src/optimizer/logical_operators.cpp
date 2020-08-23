@@ -1280,7 +1280,6 @@ bool LogicalCteScan::operator==(const BaseOperatorNodeContents &r) {
   const LogicalCteScan &node = *dynamic_cast<const LogicalCteScan *>(&r);
   bool ret = (table_alias_ == node.table_alias_ && cte_type_ == node.cte_type_);
   if (scan_predicate_.size() != node.scan_predicate_.size()) return false;
-  std::cerr << scan_predicate_.size() << " " << node.scan_predicate_.size() << "\n";
   for (size_t i = 0; i < scan_predicate_.size(); i++) {
     if (scan_predicate_[i].GetExpr() != node.scan_predicate_[i].GetExpr()) return false;
   }

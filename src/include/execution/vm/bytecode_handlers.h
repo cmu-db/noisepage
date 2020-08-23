@@ -307,29 +307,29 @@ VM_OP void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter);
 // ---------------------------------------------------------
 
 VM_OP void OpIndCteScanInit(terrier::execution::sql::IndCteScanIterator *iter,
-                             terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                             uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
-                             bool is_recursive);
+                            terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                            uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
+                            bool is_recursive);
 
 VM_OP void OpIndCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
-                                   terrier::execution::sql::IndCteScanIterator *iter);
+                                  terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
-                                    terrier::execution::sql::IndCteScanIterator *iter);
+                                   terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,
-                                        terrier::execution::sql::IndCteScanIterator *iter);
+                                       terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanAccumulate(bool *accumulate_bool, terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                             terrier::execution::sql::IndCteScanIterator *iter);
+                                            terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanGetResult(terrier::execution::sql::CteScanIterator **result,
-                                  terrier::execution::sql::IndCteScanIterator *iter);
+                                 terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                                    terrier::execution::sql::IndCteScanIterator *iter);
+                                   terrier::execution::sql::IndCteScanIterator *iter);
 
 VM_OP void OpIndCteScanFree(terrier::execution::sql::IndCteScanIterator *iter);
 

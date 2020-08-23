@@ -31,17 +31,20 @@ TEST_F(IndCteScanTest, IterCTEEmptyAccumulateTest) {
   // Test that Accumulate() returns false on empty
 
   // Create cte_table
-  std::array<uint32_t, 1> col_oids{1};
+  uint32_t col_oids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
   // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   terrier::execution::sql::IndCteScanIterator cte_scan{
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      exec_ctx_.get(),
+      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      col_oids,
+      cte_table_col_type,
+      1,
       false};
   EXPECT_FALSE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
-                               static_cast<uint32_t>(col_oids.size())};
+  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids, 1};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;  // The number of records found
@@ -77,7 +80,11 @@ TEST_F(IndCteScanTest, IterCTESingleInsertTest) {
 
   // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   terrier::execution::sql::IndCteScanIterator cte_scan{
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      exec_ctx_.get(),
+      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      col_oids.data(),
+      cte_table_col_type,
+      1,
       false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
@@ -129,7 +136,7 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
 
   // Just one column
-  std::array<uint32_t, 1> col_oids{1};
+  std::array<uint32_t, 1> col_oids{exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   // The index iterator gives us the slots to update.
   IndexIterator index_iter{
@@ -141,7 +148,11 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
 
   // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   terrier::execution::sql::IndCteScanIterator cte_scan{
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      exec_ctx_.get(),
+      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      col_oids.data(),
+      cte_table_col_type,
+      1,
       false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
@@ -205,7 +216,11 @@ TEST_F(IndCteScanTest, IterCTEDoubleAccumulateTest) {
 
   // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   terrier::execution::sql::IndCteScanIterator cte_scan{
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      exec_ctx_.get(),
+      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      col_oids.data(),
+      cte_table_col_type,
+      1,
       false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query
@@ -276,7 +291,11 @@ TEST_F(IndCteScanTest, IterCTEMultipleInsertTest) {
 
   // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   terrier::execution::sql::IndCteScanIterator cte_scan{
-      exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type, 1,
+      exec_ctx_.get(),
+      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      col_oids.data(),
+      cte_table_col_type,
+      1,
       false};
 
   // Find the rows with colA BETWEEN 1 AND 20. SELECT query

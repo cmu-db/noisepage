@@ -3338,7 +3338,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
       bool is_recursive = call->Arguments()[5]->As<ast::LitExpr>()->BoolVal();
       // Emit the initialization codes
       GetEmitter()->EmitIndCteScanIteratorInit(Bytecode::IndCteScanInit, iterator, exec_ctx, table_oid, col_oids,
-                                                col_types, static_cast<uint32_t>(arr_type->GetLength()), is_recursive);
+                                               col_types, static_cast<uint32_t>(arr_type->GetLength()), is_recursive);
       break;
     }
     case ast::Builtin::IndCteScanGetResult: {

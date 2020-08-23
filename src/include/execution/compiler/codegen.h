@@ -1310,17 +1310,17 @@ class CodeGen {
                                  ast::Identifier col_types, ast::Expr *exec_ctx_var);
 
   /**
-    *
-    * @param csi The inductive cte scan iterator to initialize
-    * @param table_oid temp oid of the cte table
-    * @param col_ids temp column oids of all columns in this cte table
-    * @param col_types The identifier of the array of column types to access.
-    * @param is_recursive whether or not this represents a recursive cte scan
-    * @param exec_ctx_var the execution context variable pointer
-    * @return The expression corresponding to the builtin call.
-    */
+   *
+   * @param csi The inductive cte scan iterator to initialize
+   * @param table_oid temp oid of the cte table
+   * @param col_ids temp column oids of all columns in this cte table
+   * @param col_types The identifier of the array of column types to access.
+   * @param is_recursive whether or not this represents a recursive cte scan
+   * @param exec_ctx_var the execution context variable pointer
+   * @return The expression corresponding to the builtin call.
+   */
   ast::Expr *IndCteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
-                                     ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var);
+                                    ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var);
 
   // ---------------------------------------------------------------------------
   //

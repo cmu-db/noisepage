@@ -77,7 +77,7 @@ class Context;
   NON_PRIM(VectorProjectionIterator, terrier::execution::sql::VectorProjectionIterator)         \
   NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
   NON_PRIM(CteScanIterator, terrier::execution::sql::CteScanIterator)                           \
-  NON_PRIM(IndCteScanIterator, terrier::execution::sql::IndCteScanIterator)                   \
+  NON_PRIM(IndCteScanIterator, terrier::execution::sql::IndCteScanIterator)                     \
   NON_PRIM(SqlTable, terrier::storage::SqlTable)                                                \
   NON_PRIM(TableOid, terrier::catalog::table_oid_t)                                             \
                                                                                                 \

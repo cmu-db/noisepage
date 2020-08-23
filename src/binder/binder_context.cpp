@@ -120,8 +120,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
   nested_table_alias_map_[table_alias] = column_alias_map;
 }
 
-void BinderContext::AddCTETable(
-                                const std::string &table_name,
+void BinderContext::AddCTETable(const std::string &table_name,
                                 const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list,
                                 const std::vector<parser::AliasType> &col_aliases) {
   if (nested_table_alias_map_.find(table_name) != nested_table_alias_map_.end()) {
@@ -340,14 +339,14 @@ void BinderContext::GenerateAllColumnExpressions(
         auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
         exprs->push_back(new_tv_expr);
       }
-    }
-    else if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
+    } else if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
       auto &cols = nested_table_alias_map_[table_alias];
       std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector(cols.begin(), cols.end());
-      std::sort(cols_vector.begin(), cols_vector.end(),
-                [](const std::pair<parser::AliasType, type::TypeId> A, const std::pair<parser::AliasType, type::TypeId> B) {
-                  return A.first.GetSerialNo() < B.first.GetSerialNo();
-                });
+      std::sort(
+          cols_vector.begin(), cols_vector.end(),
+          [](const std::pair<parser::AliasType, type::TypeId> A, const std::pair<parser::AliasType, type::TypeId> B) {
+            return A.first.GetSerialNo() < B.first.GetSerialNo();
+          });
       for (auto &col_entry : cols_vector) {
         auto tv_expr =
             new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));

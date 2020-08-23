@@ -132,16 +132,16 @@ namespace terrier::execution::vm {
   F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
-  F(IndCteScanInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                  \
+  F(IndCteScanInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                   \
     OperandType::Local, OperandType::UImm4, OperandType::Local)                                                       \
-  F(IndCteScanGetResult, OperandType::Local, OperandType::Local)                                                     \
-  F(IndCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                    \
-  F(IndCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                   \
-  F(IndCteScanGetReadTableOid, OperandType::Local, OperandType::Local)                                               \
-  F(IndCteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                          \
-  F(IndCteScanAccumulate, OperandType::Local, OperandType::Local)                                                    \
-  F(IndCteScanTableInsert, OperandType::Local, OperandType::Local)                                                   \
-  F(IndCteScanFree, OperandType::Local)                                                                              \
+  F(IndCteScanGetResult, OperandType::Local, OperandType::Local)                                                      \
+  F(IndCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                     \
+  F(IndCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                    \
+  F(IndCteScanGetReadTableOid, OperandType::Local, OperandType::Local)                                                \
+  F(IndCteScanGetInsertTempTablePR, OperandType::Local, OperandType::Local)                                           \
+  F(IndCteScanAccumulate, OperandType::Local, OperandType::Local)                                                     \
+  F(IndCteScanTableInsert, OperandType::Local, OperandType::Local)                                                    \
+  F(IndCteScanFree, OperandType::Local)                                                                               \
                                                                                                                       \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
