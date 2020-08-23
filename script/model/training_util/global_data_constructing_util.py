@@ -14,7 +14,8 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack):
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack,
+             ee_sample_interval, txn_sample_interval):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -23,6 +24,10 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
     :param mini_model_map: mini models used for prediction
     :param model_results_path: directory path to log the result information
     :param warmup_period: warmup period for pipeline data
+    :param simulate_cache: whether to simulate the impact of cache locality interference
+    :param tpcc_hack: whether to manually fix the tpcc features
+    :param ee_sample_interval: sampling interval for the EE OUs
+    :param txn_sample_interval: sampling interval for the transaction OUs
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
@@ -30,7 +35,9 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
-        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack)
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
+                                                             warmup_period, simulate_cache, tpcc_hack,
+                                                             ee_sample_interval, txn_sample_interval)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -39,7 +46,8 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
     return resource_data_list, impact_data_list
 
 
-def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack):
+def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period,
+                                             simulate_cache, tpcc_hack, ee_sample_interval, txn_sample_interval):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -48,7 +56,7 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path, warmup_period, tpcc_hack)
+    data_list = _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval)
     _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
@@ -140,13 +148,17 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
         data_end_time = data.get_end_time(ConcurrentCountingMode.ESTIMATED)
         ratio = _calculate_range_overlap(start_time, end_time, data_start_time, data_end_time) / (data_end_time -
                                                                                                   data_start_time + 1)
+        sample_interval = data.sample_interval
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
         logging.debug("{} {}".format(data.y, data.y_pred))
-        adjusted_y += data.y * ratio
+        logging.debug("Sampling interval: {}".format(sample_interval))
+        # Multiply the resource metrics based on the sampling interval
+        adjusted_y += data.y * ratio * (sample_interval + 1)
         cpu_id = data.cpu_id
         if cpu_id > physical_core_num:
             cpu_id -= physical_core_num
-        adjusted_x_list[cpu_id] += data.y_pred * ratio
+        # Multiply the mini-model predictions based on the sampling interval
+        adjusted_x_list[cpu_id] += data.y_pred * ratio * (sample_interval + 1)
 
     # change the number to per time unit (us) utilization
     for x in adjusted_x_list:
@@ -174,7 +186,7 @@ def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path, warmup_period, tpcc_hack):
+def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
     """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
 
     :param input_path: input data file path
@@ -185,7 +197,8 @@ def _get_data_list(input_path, warmup_period, tpcc_hack):
 
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
-        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period, tpcc_hack)
+        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period, tpcc_hack,
+                                                                   ee_sample_interval, txn_sample_interval)
         logging.info("Loaded file: {}".format(filename))
 
     return data_list
