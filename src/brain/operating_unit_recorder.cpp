@@ -271,7 +271,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
 
     if (type == brain::ExecutionOperatingUnitType::UPDATE) {
       *num_rows = 10;
-      *cardinality = 200;
+      *cardinality = 10;
     }
   }
 
