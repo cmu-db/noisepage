@@ -1066,7 +1066,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(Abs##_##type) : {                                    \
     auto *dest = frame->LocalAt<type *>(READ_LOCAL_ID()); \
     auto input = frame->LocalAt<type>(READ_LOCAL_ID());   \
-    OpNeg##_##type(dest, input);                          \
+    OpAbs##_##type(dest, input);                          \
     DISPATCH_NEXT();                                      \
   }
 
