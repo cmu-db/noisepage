@@ -1062,17 +1062,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
 #undef GEN_UNARY_MATH_OPS
 
-#define GEN_ABS_OP(type, ...)                             \
-  OP(Abs##_##type) : {                                    \
-    auto *dest = frame->LocalAt<type *>(READ_LOCAL_ID()); \
-    auto input = frame->LocalAt<type>(READ_LOCAL_ID());   \
-    OpAbs##_##type(dest, input);                          \
-    DISPATCH_NEXT();                                      \
-  }
-
-  ALL_NUMERIC_TYPES(GEN_ABS_OP)
-#undef GEN_ABS_OP
-
   OP(ValIsNull) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *val = frame->LocalAt<const sql::Val *>(READ_LOCAL_ID());

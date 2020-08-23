@@ -47,7 +47,6 @@ namespace terrier::execution::vm {
  */
 #define BYTECODE_LIST(F)                                                                                              \
   /* Primitive operations */                                                                                          \
-  CREATE_FOR_NUMERIC_TYPES(F, Abs, OperandType::Local, OperandType::Local)                                            \
   CREATE_FOR_NUMERIC_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                            \
   CREATE_FOR_NUMERIC_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_NUMERIC_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                        \
