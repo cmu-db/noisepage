@@ -67,22 +67,25 @@ class EndtoendEstimator:
         # Then apply the global impact model
         x = []
         y = []
+        mini_model_y_pred = []  # The labels directly predicted from the mini models
+        raw_y = []  # The actual labels
         # The input feature is (normalized mini model prediction, predicted global resource util, the predicted
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
         for d in tqdm.tqdm(impact_data_list, desc="Construct data for the {} model".format(model_name)):
-            mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
-            predicted_elapsed_us = mini_model_y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
+            mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
+            raw_y.append(d.target_grouped_op_unit_data.y)
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.resource_data.y_pred
             if model_name == "direct":
                 predicted_resource_util = d.resource_data.x
-            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util,
+            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
-            y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
+            y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1))
 
         # Predict
         x = np.array(x)
@@ -91,6 +94,23 @@ class EndtoendEstimator:
 
         # Record results
         self._record_results(x, y, y_pred, model_name)
+
+        # Calculate the accumulated ratio error
+        mini_model_y_pred = np.array(mini_model_y_pred)
+        raw_y = np.array(raw_y)
+        raw_y_pred = (mini_model_y_pred + 1) * y_pred
+        accumulated_raw_y = np.sum(raw_y, axis=0)
+        accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
+        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1), axis=0)
+        ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + 1), axis=0)
+        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
+        original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
+                accumulated_raw_y + 1)
+
+        logging.info('Original Ratio Error: {}'.format(original_ratio_error))
+        logging.info('Ratio Error: {}'.format(ratio_error))
+        logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
+        logging.info('Accumulated Ratio Error: {}'.format(accumulated_percentage_error))
 
     def _record_results(self, x, y, y_pred, label):
         """Record the prediction results
@@ -115,8 +135,9 @@ class EndtoendEstimator:
             original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
         else:
             original_ratio_error = np.average(np.abs(1/(y+1e-6) - 1), axis=0)
-        logging.info('{} Model Original Ratio Error: {}'.format(label, original_ratio_error))
-        logging.info('{} Model Ratio Error: {}'.format(label, ratio_error))
+        logging.info('Model Original Ratio Error ({}): {}'.format(label, original_ratio_error))
+        logging.info('Model Ratio Error ({}): {}'.format(label, ratio_error))
+        logging.info('')
 
 
 # ==============================================
