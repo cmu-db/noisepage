@@ -1300,11 +1300,11 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 BaseOperatorNodeContents *CteScan::Copy() const { return new CteScan(*this); }
 
 Operator CteScan::Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_alias, catalog::table_oid_t table_oid, parser::CTEType cte_type,
+                       std::string table_name, catalog::table_oid_t table_oid, parser::CTEType cte_type,
                        std::vector<AnnotatedExpression> &&scan_predicate, catalog::Schema &&table_schema) {
   auto *cte_scan_op = new CteScan();
   cte_scan_op->child_expressions_ = std::move(child_expressions);
-  cte_scan_op->table_alias_ = std::move(table_alias);
+  cte_scan_op->table_name_ = std::move(table_name);
   cte_scan_op->table_oid_ = table_oid;
   cte_scan_op->cte_type_ = cte_type;
   cte_scan_op->scan_predicate_ = std::move(scan_predicate);
@@ -1315,13 +1315,13 @@ Operator CteScan::Make(std::vector<std::vector<common::ManagedPointer<parser::Ab
 bool CteScan::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::CTESCAN) return false;
   const CteScan &node = *dynamic_cast<const CteScan *>(&r);
-  return table_alias_ == node.GetTableAlias();
+  return table_name_ == node.GetTableName();
 }
 
 common::hash_t CteScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, static_cast<uint32_t>(cte_type_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
   hash = common::HashUtil::CombineHashInRange(hash, scan_predicate_.begin(), scan_predicate_.end());
   return hash;
 }

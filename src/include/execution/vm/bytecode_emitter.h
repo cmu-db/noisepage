@@ -319,6 +319,7 @@ class BytecodeEmitter {
   void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid, LocalVar col_oids,
                          uint32_t num_oids);
 
+  /** Emit an initialization of a TVI on a temporary table */
   void EmitTempTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
 
   /** Emit a parallel table scan. */
@@ -360,14 +361,16 @@ class BytecodeEmitter {
 
   /*Cte Scan Calls*/
 
-  /**
-   * Emit code to initialize a CTE scan iterator
-   * @param bytecode index initialization bytecode
-   * @param iter iterator in initialize
-   * @param exec_ctx the execution context
-   * @param col_oids column oids
-   * @param num_oids length of the array
-   */
+   /**
+    * Emit code to initialize a CTE scan iterator
+    * @param bytecode cte scan iterator initialization bytecode
+    * @param iter iterator to initialize
+    * @param exec_ctx the execution context
+    * @param table_oid the temp table oid of this table
+    * @param col_oids the temp column oids of this cte table
+    * @param col_types an array of types of the columns
+    * @param num_oids number of columns in the cte table
+    */
   void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
                                LocalVar col_oids, LocalVar col_types, uint32_t num_oids);
 
@@ -376,7 +379,9 @@ class BytecodeEmitter {
    * @param bytecode index initialization bytecode
    * @param iter iterator in initialize
    * @param exec_ctx the execution context
+   * @param table_oid The temp table oid of the cte
    * @param col_oids column oids
+   * @param col_types an array of the types of each column in the cte table
    * @param num_oids length of the array
    * @param is_recursive whether the inductive CTE is recursive
    */

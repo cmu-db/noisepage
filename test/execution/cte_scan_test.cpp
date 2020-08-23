@@ -33,7 +33,7 @@ TEST_F(CTEScanTest, CTEInitTest) {
 
   uint32_t cte_table_col_type[4] = {5, 4, 3, 9};  // {BIGINT, INTEGER, SMALLINT, VARCHAR}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+  auto cte_scan = new fterrier::execution::sql::CteScanIterator(
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_type,
       4);
 

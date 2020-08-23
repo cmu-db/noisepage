@@ -18,8 +18,9 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
  public:
   /**
    * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * @param plan The ctescanplanndoe this translator is generating code for
+   * @param compilation_context The compilation context being used to translate this node
+   * @param pipeline The pipeline this is being translated on
    */
   CteScanLeaderTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
                           Pipeline *pipeline);
@@ -37,29 +38,35 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
+  /**
+   * @param codegen The codegen object being used in the current context
+   * @return A pointer to the cte scan iterator to read from
+   */
   ast::Expr *GetCteScanPtr(CodeGen *codegen) const override;
 
+  /**
+   * Initialize ctescaniterator
+   * @param function The function we are currently building
+   */
   void InitializeQueryState(FunctionBuilder *function) const override;
 
+  /**
+   * Free the ctescaniterator
+   * @param function The cleanup function being built
+   */
   void TearDownQueryState(FunctionBuilder *function) const override;
 
   /**
-   * @return The value (or value vector) of the column with the provided column OID in the table
-   *         this sequential scan is operating over.
+   * @return This is unreachable as the leader doesn't provide column values
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("No column value expressions should be used in cte leader node");
   }
 
  private:
-  const planner::CteScanPlanNode *op_;
-  //
-  //  ast::Identifier GetCteScanIteratorVal();
-  //  ast::Identifier GetCteScanIterator();
   // Declare Cte Scan Itarator
   void DeclareCteScanIterator(FunctionBuilder *builder) const;
-  //  // Set Column Types for insertion
-  //  void SetColumnTypes(FunctionBuilder *builder);
+
   // Declare the insert PR
   void DeclareInsertPR(FunctionBuilder *builder) const;
   // Get the pr to insert
@@ -75,20 +82,7 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   std::vector<catalog::col_oid_t> col_oids_;
   storage::ProjectionMap projection_map_;
   std::unordered_map<std::string, uint32_t> col_name_to_oid_;
-  //  void SetReadOids(FunctionBuilder *builder);
-  //  void DeclareReadTVI(FunctionBuilder *builder);
-  //  void GenReadTVIClose(FunctionBuilder *builder);
-  //  void DoTableScan(FunctionBuilder *builder);
-  //
-  //  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-  //  void GenTVILoop(FunctionBuilder *builder);
-  //
-  //  void DeclarePCI(FunctionBuilder *builder);
-  //  void DeclareSlot(FunctionBuilder *builder);
-  //
-  //  // var pci = @tableIterGetPCI(&tvi)
-  //  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-  //  void GenPCILoop(FunctionBuilder *builder);
+
   catalog::Schema schema_;
   StateDescriptor::Entry cte_scan_ptr_entry_;
   StateDescriptor::Entry cte_scan_val_entry_;

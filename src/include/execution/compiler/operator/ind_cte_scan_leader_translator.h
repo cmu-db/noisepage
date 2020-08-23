@@ -15,52 +15,58 @@ namespace terrier::execution::compiler {
  */
 class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
  public:
+
   /**
    * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * @param plan The ctescanplanndoe this translator is generating code for
+   * @param compilation_context The compilation context being used to translate this node
+   * @param pipeline The pipeline this is being translated on
    */
   IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan, CompilationContext *compilation_context,
                               Pipeline *pipeline);
 
   /**
-   * If the scan has a predicate, this function will define all clause functions.
+   * Does nothing
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Get tuples from children and insert into ctescaniterator
+   * Get tuples from children and insert into indctescaniterator
    * @param context The context of the work.
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
+  /**
+   * @param codegen The codegen object being used in the current context
+   * @return A pointer to the cte scan iterator to read from
+   */
   ast::Expr *GetCteScanPtr(CodeGen *codegen) const override;
 
+  /**
+   * Initialize the indctescaniterator
+   * @param function The initialzation function being built
+   */
   void InitializeQueryState(FunctionBuilder *function) const override;
 
+  /**
+   * Free the indctescaniterator
+   * @param function The cleanup function being built
+   */
   void TearDownQueryState(FunctionBuilder *function) const override;
 
   /**
-   * @return The value (or value vector) of the column with the provided column OID in the table
-   *         this sequential scan is operating over.
+   * @return Leader nodes shouldn't provide column value expressions
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("No column value expressions should be used in cte leader node");
   }
 
+ private:
+
   void PopulateReadCteScanIterator(FunctionBuilder *builder) const;
 
- private:
-  const planner::CteScanPlanNode *op_;
-  //
-  //  ast::Identifier GetCteScanIteratorVal();
-  //  ast::Identifier GetCteScanIterator();
-  // Declare Cte Scan Itarator
-  //  // Set Column Types for insertion
-  //  void SetColumnTypes(FunctionBuilder *builder);
-  // Declare the insert PR
   void DeclareInsertPR(FunctionBuilder *builder) const;
   // Get the pr to insert
   void GetInsertPR(FunctionBuilder *builder) const;
@@ -72,20 +78,6 @@ class IndCteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   ast::Identifier col_oids_var_;
   ast::Identifier insert_pr_;
   std::vector<catalog::col_oid_t> col_oids_;
-  //  void SetReadOids(FunctionBuilder *builder);
-  //  void DeclareReadTVI(FunctionBuilder *builder);
-  //  void GenReadTVIClose(FunctionBuilder *builder);
-  //  void DoTableScan(FunctionBuilder *builder);
-  //
-  //  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-  //  void GenTVILoop(FunctionBuilder *builder);
-  //
-  //  void DeclarePCI(FunctionBuilder *builder);
-  //  void DeclareSlot(FunctionBuilder *builder);
-  //
-  //  // var pci = @tableIterGetPCI(&tvi)
-  //  // for (; @pciHasNext(pci); @pciAdvance(pci))n {...}
-  //  void GenPCILoop(FunctionBuilder *builder);
   catalog::Schema schema_;
   StateDescriptor::Entry cte_scan_ptr_entry_;
   StateDescriptor::Entry cte_scan_val_entry_;

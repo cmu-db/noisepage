@@ -271,9 +271,6 @@ ast::Expr *SeqScanTranslator::TableIterInitExpr() const {
       cte_scan_ptr = reinterpret_cast<CteScanLeaderTranslator *>(GetCompilationContext()->LookupTranslator(*leader))
                          ->GetCteScanPtr(GetCodeGen());
     }
-    //    auto leader_translator =
-    //        reinterpret_cast<CteScanLeaderTranslator*>(GetCompilationContext()->LookupTranslator(
-    //            *GetPlanAs<planner::CteScanPlanNode>().GetLeader()));
     return GetCodeGen()->TempTableIterInit(tvi_var_, cte_scan_ptr, col_oids_var_,
                                            GetCompilationContext()->GetExecutionContextPtrFromQueryState());
   }

@@ -91,9 +91,11 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   /** @return The expression representing the current VPI. */
   ast::Expr *GetVPI() const;
 
-  virtual ast::Expr *TableIterInitExpr() const;
+  /** @return An expression that initializes the table iterator */
+  ast::Expr *TableIterInitExpr() const;
 
-  virtual catalog::Schema GetPlanSchema() const;
+  /** @return Returns the schema for the underlying plan node */
+  catalog::Schema GetPlanSchema() const;
 
  private:
   // Does the scan have a predicate?
@@ -147,9 +149,14 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> col_oids_;
 
  protected:
-  // The name of the declared TVI and VPI.
+  /**
+   * The name of the declared TVI and VPI.
+   */
   ast::Identifier tvi_var_;
-  // The name of the col_oids that the plan wants to scan over.
+
+  /**
+   * The name of the col_oids that the plan wants to scan over.
+   */
   ast::Identifier col_oids_var_;
 };
 

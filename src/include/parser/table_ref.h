@@ -188,6 +188,7 @@ class TableRef {
    * @param alias alias for table ref
    * @param select select statement to use in creation
    * @param cte_col_aliases aliases for column names
+   * @param cte_type the type of cte (simple/recursive/iterative)
    * @return unique pointer to the created (CTE) table ref
    */
   static std::unique_ptr<TableRef> CreateCTETableRefBySelect(std::string alias, std::unique_ptr<SelectStatement> select,

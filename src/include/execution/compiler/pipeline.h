@@ -110,6 +110,10 @@ class Pipeline {
    */
   void LinkSourcePipeline(Pipeline *dependency);
 
+  /**
+   * Registers a nested pipeline. These pipelines are invoked from other pipelines and are not added to the main steps
+   * @param pipeline The pipeline to nest
+   */
   void LinkNestedPipeline(Pipeline *pipeline);
 
   /**
@@ -173,7 +177,14 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
+  /**
+   * @return A vector of expressions that initialize, run and teardown a nested pipeline
+   */
   std::vector<ast::Expr *> CallSingleRunPipelineFunction() const;
+
+  /**
+   * @return A vector of expressions that do the work of running a pipeline function and its dependencies
+   */
   std::vector<ast::Expr *> CallRunPipelineFunction() const;
 
  private:

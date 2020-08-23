@@ -2099,13 +2099,19 @@ class Analyze : public OperatorNodeContents<Analyze> {
  */
 class CteScan : public OperatorNodeContents<CteScan> {
  public:
+
   /**
-   * @param child_expressions The child expressions to setup this CteScan node
-   * @param table_alias Alias of the CTE table
-   * @return
+   * Makes a physical cte scan node
+   * @param child_expressions The top level expressions that are used to fill the columns of the cte table
+   * @param table_name The alias of the cte table
+   * @param table_oid The temp oid of the cte table
+   * @param cte_type The type of cte
+   * @param scan_predicate The predicates of this scan
+   * @param table_schema The schema of the cte table
+   * @return a physical cte scan node operator
    */
   static Operator Make(std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
-                       std::string table_alias, catalog::table_oid_t table_oid, parser::CTEType cte_type,
+                       std::string table_name, catalog::table_oid_t table_oid, parser::CTEType cte_type,
                        std::vector<AnnotatedExpression> &&scan_predicate, catalog::Schema &&table_schema);
 
   /**
@@ -2125,32 +2131,51 @@ class CteScan : public OperatorNodeContents<CteScan> {
     return child_expressions_;
   }
 
+  /**
+   * Gets the scan predicates for this scan
+   * @return vector of scan predicates
+   */
   std::vector<AnnotatedExpression> GetScanPredicate() const { return scan_predicate_; }
 
   /**
    * @return the alias of the table to get from
    */
-  const std::string &GetTableAlias() const { return table_alias_; }
+  const std::string &GetTableName() const { return table_name_; }
 
+  /**
+   * @return The cte type of the table this is reading from
+   */
   parser::CTEType GetCTEType() const { return cte_type_; }
 
+  /**
+   * @return whether or not this is part of an iterative CTE
+   */
   bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
 
+  /**
+   * @return whether or not this is part of a recursive CTE
+   */
   bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
 
+  /**
+   * @return whether or not this is part of an inductive (recursive or iterative) cte
+   */
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
+  /**
+   * @return Schema of the table of this cte
+   */
   const catalog::Schema &GetTableSchema() const { return table_schema_; }
 
+  /**
+   * @return The temporary table oid of this cte table
+   */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
  private:
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;
 
-  /**
-   * Table alias
-   */
-  std::string table_alias_;
+  std::string table_name_;
 
   parser::CTEType cte_type_;
 

@@ -81,6 +81,10 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param is_for_update flag for if scan is for an update
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
+   * @param scan_limit The limit on number of tuples for this scan if any
+   * @param scan_has_limit Whether or not a limit exists for this scan
+   * @param scan_offset The offset into a table for this scan
+   * @param scan_has_offset Whether or not this scan has an offset
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,

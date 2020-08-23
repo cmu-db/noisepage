@@ -41,7 +41,7 @@ class CteScanPlanNode : public SeqScanPlanNode {
     }
 
     /**
-     * @param table_output_schema output schema for plan node
+     * @param table_schema schema for the cte table
      * @return builder object
      */
     Builder &SetTableSchema(catalog::Schema table_schema) {
@@ -49,21 +49,37 @@ class CteScanPlanNode : public SeqScanPlanNode {
       return *this;
     }
 
+    /**
+     * @param cte_type The cte type to set this node to
+     * @return builder object
+     */
     Builder &SetCTEType(parser::CTEType cte_type) {
       cte_type_ = cte_type;
       return *this;
     }
 
+    /**
+     * @param table_name The table name this node's cte refers to
+     * @return builder object
+     */
     Builder &SetCTETableName(std::string &&table_name) {
       cte_table_name_ = std::move(table_name);
       return *this;
     }
 
+    /**
+     * @param scan_predicate Sets a scan predicate for this
+     * @return builder object
+     */
     Builder &SetScanPredicate(common::ManagedPointer<parser::AbstractExpression> scan_predicate) {
       scan_predicate_ = scan_predicate;
       return *this;
     }
 
+    /**
+     * @param table_oid The temp table oid for this cte table
+     * @return builder object
+     */
     Builder &SetTableOid(catalog::table_oid_t table_oid) {
       table_oid_ = table_oid;
       return *this;
@@ -147,20 +163,41 @@ class CteScanPlanNode : public SeqScanPlanNode {
    */
   void MakeLeader() { is_leader_ = true; }
 
+  /**
+   * Sets the leader cte node for this/the node that fills in the cte temp table
+   * @param leader The leader for this cte node
+   */
   void SetLeader(common::ManagedPointer<const planner::CteScanPlanNode> leader) { leader_ = leader; }
 
+  /**
+   * Gets the leader of this node
+   * @return The leader for this cte node
+   */
   common::ManagedPointer<const planner::CteScanPlanNode> GetLeader() const { return leader_; }
 
+  /**
+   * @return What cte type this node represents
+   */
   parser::CTEType GetCTEType() const { return cte_type_; }
 
+  /**
+   * @return Whether or not this is an iterative cte
+   */
   bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
 
+  /**
+   * @return Whether or not this is a recursive cte
+   */
   bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
 
+  /**
+   * @return Whether or not this is an inductive (recursive or iterative) cte
+   */
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
   /**
-   * Assigns a boolean for whether this node is for a recursive tabl
+   * Set the cte type for this node
+   * @param cte_type The cte type to set this node to
    */
   void SetCTEType(parser::CTEType cte_type) { cte_type_ = cte_type; }
 
@@ -172,6 +209,9 @@ class CteScanPlanNode : public SeqScanPlanNode {
     return common::ManagedPointer(&table_schema_);
   }
 
+  /**
+   * @return The table name of this cte
+   */
   const std::string &GetCTETableName() const { return cte_table_name_; }
 
   //  nlohmann::json ToJson() const override;

@@ -1928,10 +1928,19 @@ class LogicalAnalyze : public OperatorNodeContents<LogicalAnalyze> {
   std::vector<catalog::col_oid_t> columns_;
 };
 
+/**
+ * Logical operator for union
+ */
 class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
  public:
-  static Operator Make();
 
+  /**
+   * Makes a logical union operator
+   * @param is_all Whether this is a UNION ALL
+   * @param left_expr Left child of union
+   * @param right_expr Right child of union
+   * @return A new logical union operator
+   */
   static Operator Make(bool is_all, common::ManagedPointer<parser::SelectStatement> left_expr,
                        common::ManagedPointer<parser::SelectStatement> right_expr);
 
@@ -1941,6 +1950,10 @@ class LogicalUnion : public OperatorNodeContents<LogicalUnion> {
    */
   BaseOperatorNodeContents *Copy() const override;
 
+  /**
+   * @param r Equality operator for logical unions
+   * @return Whether or not this is equal to r, a given
+   */
   bool operator==(const BaseOperatorNodeContents &r) override;
   common::hash_t Hash() const override;
 
@@ -1960,6 +1973,17 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
    */
   static Operator Make();
 
+  /**
+   * Makes a logical cte scan node
+   * @param table_alias Alias of the table this node is scanning
+   * @param table_name The name of the cte table
+   * @param table_oid The temp oid of the cte table
+   * @param table_schema The schema of the cte table
+   * @param child_expressions The top level expressions that are used to fill the columns of the cte table
+   * @param cte_type The type of cte
+   * @param scan_predicate The predicates of this scan
+   * @return
+   */
   static Operator Make(std::string table_alias, std::string table_name, catalog::table_oid_t table_oid,
                        catalog::Schema table_schema,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions,
@@ -1993,24 +2017,42 @@ class LogicalCteScan : public OperatorNodeContents<LogicalCteScan> {
     return child_expressions_;
   }
 
+  /**
+   * @return The type of this cte
+   */
   parser::CTEType GetCTEType() const { return cte_type_; }
 
+  /**
+   * @return whether or not this cte is iterative
+   */
   bool GetIsIterative() const { return cte_type_ == parser::CTEType::ITERATIVE; }
 
+  /**
+   * @return whether or not this cte is recursive
+   */
   bool GetIsRecursive() const { return cte_type_ == parser::CTEType::RECURSIVE; }
 
+  /**
+   * @return whether or not this cte is inductive (recursive or iterative)
+   */
   bool GetIsInductive() const { return GetIsRecursive() || GetIsIterative(); }
 
+  /**
+   * @return the temp table oid for the cte table being scanned
+   */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
+  /**
+   * @return the predicates for this cte scan
+   */
   std::vector<AnnotatedExpression> GetScanPredicate() const { return scan_predicate_; }
 
+  /**
+   * @return the schema for this cte table
+   */
   const catalog::Schema &GetTableSchema() const { return table_schema_; }
 
  private:
-  /**
-   * Alias of the table to get from
-   */
   std::string table_alias_;
   std::string table_name_;
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> child_expressions_;

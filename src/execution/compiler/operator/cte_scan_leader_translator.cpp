@@ -11,19 +11,18 @@ namespace terrier::execution::compiler {
 CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                  CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
-      op_(&plan),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
   cte_scan_val_entry_ =
-      compilation_context->GetQueryState()->DeclareStateEntry(GetCodeGen(), op_->GetCTETableName() + "val", cte_type);
+      compilation_context->GetQueryState()->DeclareStateEntry(GetCodeGen(), plan.GetCTETableName() + "val", cte_type);
   cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
-      GetCodeGen(), op_->GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
+      GetCodeGen(), plan.GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
 
   pipeline->LinkSourcePipeline(&build_pipeline_);
-  compilation_context->Prepare(*(op_->GetChild(0)), &build_pipeline_);
+  compilation_context->Prepare(*(plan.GetChild(0)), &build_pipeline_);
 
   std::vector<uint16_t> attr_sizes;
   for (const auto &column : plan.GetTableSchema()->GetColumns()) {
@@ -96,15 +95,16 @@ void CteScanLeaderTranslator::DeclareCteScanIterator(FunctionBuilder *builder) c
 
 void CteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const {
   // Declare: var col_types: [num_cols]uint32
+  auto &plan = GetPlanAs<planner::CteScanPlanNode>();
   auto codegen = GetCodeGen();
-  auto size = op_->GetTableSchema()->GetColumns().size();
+  auto size = plan.GetTableSchema()->GetColumns().size();
   ast::Expr *arr_type = codegen->ArrayType(size, ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen->DeclareVar(col_types_, arr_type, nullptr));
 
   // For each oid, set col_oids[i] = col_oid
   for (uint16_t i = 0; i < size; i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_types_, i);
-    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Type()));
+    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(plan.GetTableSchema()->GetColumns()[i].Type()));
     builder->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -112,14 +112,15 @@ void CteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const {
 void CteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const {
   // Declare: var col_types: [num_cols]uint32
   auto codegen = GetCodeGen();
-  auto size = op_->GetTableSchema()->GetColumns().size();
+  auto &plan = GetPlanAs<planner::CteScanPlanNode>();
+  auto size = plan.GetTableSchema()->GetColumns().size();
   ast::Expr *arr_type = codegen->ArrayType(size, ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen->DeclareVar(col_oids_var_, arr_type, nullptr));
 
   // For each oid, set col_oids[i] = col_oid
   for (uint16_t i = 0; i < size; i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_oids_var_, i);
-    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Oid()));
+    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(plan.GetTableSchema()->GetColumns()[i].Oid()));
     builder->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -161,8 +162,8 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     const auto &table_col = col.GetExpr().CastManagedPointerTo<parser::ColumnValueExpression>();
     const auto &table_col_oid = table_col->GetColumnOid();
     size_t col_ind = 0;
-    for (auto col : plan.GetColumnOids()) {
-      if (col == table_col_oid) {
+    for (auto col_id : plan.GetColumnOids()) {
+      if (col_id == table_col_oid) {
         break;
       }
       col_ind++;

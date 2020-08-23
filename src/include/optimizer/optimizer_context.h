@@ -82,6 +82,10 @@ class OptimizerContext {
    */
   catalog::Schema &GetCTESchema(const catalog::table_oid_t &cte_oid) { return cte_schemas_.find(cte_oid)->second; }
 
+  /**
+   * Gets a vector of all temp oids of cte tables in the current query context
+   * @return a vector of temporary table oids
+   */
   std::vector<catalog::table_oid_t> GetCTETables() {
     std::vector<catalog::table_oid_t> keys;
     for (auto &it : cte_schemas_) {
@@ -134,6 +138,7 @@ class OptimizerContext {
 
   /**
    * Sets the CTE Schema
+   * @param table_id the temp table oid of the cte table we are setting a schema for
    * @param schema OutputSchema
    */
   void SetCTESchema(catalog::table_oid_t table_id, catalog::Schema schema) {

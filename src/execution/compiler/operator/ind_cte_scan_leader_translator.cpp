@@ -13,7 +13,6 @@ namespace terrier::execution::compiler {
 IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                          CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),
-      op_(&plan),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
@@ -22,9 +21,9 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
   auto iter_cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
   auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
   cte_scan_val_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
-      GetCodeGen(), op_->GetCTETableName() + "val", iter_cte_type);
+      GetCodeGen(), plan.GetCTETableName() + "val", iter_cte_type);
   cte_scan_ptr_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
-      GetCodeGen(), op_->GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
+      GetCodeGen(), plan.GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
 
   pipeline->LinkNestedPipeline(&build_pipeline_);
   pipeline->LinkNestedPipeline(&base_pipeline_);
@@ -90,15 +89,16 @@ void IndCteScanLeaderTranslator::DeclareIndCteScanIterator(FunctionBuilder *buil
 
 void IndCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const {
   // Declare: var col_types: [num_cols]uint32
+  auto &plan = GetPlanAs<planner::CteScanPlanNode>();
   auto codegen = GetCodeGen();
-  auto size = op_->GetTableSchema()->GetColumns().size();
+  auto size = plan.GetTableSchema()->GetColumns().size();
   ast::Expr *arr_type = codegen->ArrayType(size, ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen->DeclareVar(col_types_, arr_type, nullptr));
 
   // For each oid, set col_oids[i] = col_oid
   for (uint16_t i = 0; i < size; i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_types_, i);
-    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Type()));
+    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(plan.GetTableSchema()->GetColumns()[i].Type()));
     builder->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -106,14 +106,15 @@ void IndCteScanLeaderTranslator::SetColumnTypes(FunctionBuilder *builder) const 
 void IndCteScanLeaderTranslator::SetColumnOids(FunctionBuilder *builder) const {
   // Declare: var col_types: [num_cols]uint32
   auto codegen = GetCodeGen();
-  auto size = op_->GetTableSchema()->GetColumns().size();
+  auto &plan = GetPlanAs<planner::CteScanPlanNode>();
+  auto size = plan.GetTableSchema()->GetColumns().size();
   ast::Expr *arr_type = codegen->ArrayType(size, ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen->DeclareVar(col_oids_var_, arr_type, nullptr));
 
   // For each oid, set col_oids[i] = col_oid
   for (uint16_t i = 0; i < size; i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_oids_var_, i);
-    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(op_->GetTableSchema()->GetColumns()[i].Oid()));
+    ast::Expr *rhs = codegen->Const32(static_cast<uint32_t>(plan.GetTableSchema()->GetColumns()[i].Oid()));
     builder->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -151,13 +152,14 @@ void IndCteScanLeaderTranslator::GenTableInsert(FunctionBuilder *builder) const 
 
 void IndCteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuilder *builder,
                                                   uint32_t child_idx) const {
-  const auto &cols = op_->GetTableSchema()->GetColumns();
+  auto &plan = GetPlanAs<planner::CteScanPlanNode>();
+  const auto &cols = plan.GetTableSchema()->GetColumns();
   auto codegen = GetCodeGen();
 
   for (const auto &col : cols) {
     const auto &table_col_oid = col.Oid();
     size_t col_ind = 0;
-    for (auto col_oid : op_->GetColumnOids()) {
+    for (auto col_oid : plan.GetColumnOids()) {
       if (col_oid
           == table_col_oid) {
         break;

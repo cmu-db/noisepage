@@ -1060,7 +1060,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
                          .SetCTEType(cte_scan->GetCTEType())
                          .AddChild(std::move(output_plan_))
                          .AddChild(std::move(children_plans_[1]))
-                         .SetCTETableName(std::string(cte_scan->GetTableAlias()))
+                         .SetCTETableName(std::string(cte_scan->GetTableName()))
                          .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                          .Build();
     } else {
@@ -1070,7 +1070,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
                          .SetTableOid(cte_scan->GetTableOid())
                          .SetCTEType(cte_scan->GetCTEType())
                          .AddChild(std::move(output_plan_))
-                         .SetCTETableName(std::string(cte_scan->GetTableAlias()))
+                         .SetCTETableName(std::string(cte_scan->GetTableName()))
                          .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                          .Build();
     }
@@ -1090,7 +1090,7 @@ void PlanGenerator::Visit(const CteScan *cte_scan) {
                        .SetTableSchema(cte_scan->GetTableSchema())
                        .SetTableOid(cte_scan->GetTableOid())
                        .SetCTEType(cte_scan->GetCTEType())
-                       .SetCTETableName(std::string(cte_scan->GetTableAlias()))
+                       .SetCTETableName(std::string(cte_scan->GetTableName()))
                        .SetScanPredicate(common::ManagedPointer<parser::AbstractExpression>(predicate))
                        .Build();
   }

@@ -63,6 +63,10 @@ class StatsCalculator : public OperatorVisitor {
    */
   void Visit(const LogicalLimit *op) override;
 
+  /**
+   * Visit a LogicalUnion
+   * @param op Operator being visited
+   */
   void Visit(const LogicalUnion *op) override;
 
  private:

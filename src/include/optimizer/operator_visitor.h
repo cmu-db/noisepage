@@ -535,6 +535,10 @@ class OperatorVisitor {
    */
   virtual void Visit(const LogicalCteScan *logical_cte_scan) {}
 
+  /**
+   * Visit a LogicalUnion operator
+   * @param logical_union a logicalunion operator
+   */
   virtual void Visit(const LogicalUnion *logical_union) {}
 };
 

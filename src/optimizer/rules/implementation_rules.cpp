@@ -1168,7 +1168,7 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<AbstractO
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
   auto result_plan = std::make_unique<OperatorNode>(
-      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()), logical_op->GetTableOid(),
+      CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableName()), logical_op->GetTableOid(),
                     logical_op->GetCTEType(), logical_op->GetScanPredicate(),
                     catalog::Schema(logical_op->GetTableSchema()))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),

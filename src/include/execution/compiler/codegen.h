@@ -591,6 +591,7 @@ class CodeGen {
    * @param tvi The identifier of table vector iterator
    * @param cte_scan_iterator_ptr The identifier of cte scan iterator
    * @param col_oids The identifier of the array of column oids to read.
+   * @param exec_ctx_expr The pointer to the execution context variable
    * @return The expression corresponding to the builtin call.
    */
   ast::Expr *TempTableIterInit(ast::Identifier tvi, ast::Expr *cte_scan_iterator_ptr, ast::Identifier col_oids,
@@ -1297,15 +1298,28 @@ class CodeGen {
                                   bool need_indexes);
 
   /**
-   * Call cteScanIteratorInit(&cte_scan_iterator, execCtx, col_types)
-   * @param si The cte scan iterator to initialize
+   *
+   * @param csi The cte scan iterator to initialize
+   * @param table_oid temp oid of the cte table
+   * @param col_ids temp column oids of all columns in this cte table
    * @param col_types The identifier of the array of column types to access.
+   * @param exec_ctx_var the execution context variable pointer
    * @return The expression corresponding to the builtin call.
    */
-  ast::Expr *CteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
+  ast::Expr *CteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
                                  ast::Identifier col_types, ast::Expr *exec_ctx_var);
 
-  ast::Expr *IndCteScanIteratorInit(ast::Expr *si, catalog::table_oid_t table_oid, ast::Identifier col_ids,
+  /**
+    *
+    * @param csi The inductive cte scan iterator to initialize
+    * @param table_oid temp oid of the cte table
+    * @param col_ids temp column oids of all columns in this cte table
+    * @param col_types The identifier of the array of column types to access.
+    * @param is_recursive whether or not this represents a recursive cte scan
+    * @param exec_ctx_var the execution context variable pointer
+    * @return The expression corresponding to the builtin call.
+    */
+  ast::Expr *IndCteScanIteratorInit(ast::Expr *csi, catalog::table_oid_t table_oid, ast::Identifier col_ids,
                                      ast::Identifier col_types, bool is_recursive, ast::Expr *exec_ctx_var);
 
   // ---------------------------------------------------------------------------

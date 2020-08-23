@@ -1227,11 +1227,6 @@ bool LogicalAnalyze::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LogicalUnion::Copy() const { return new LogicalUnion(*this); }
 
-Operator LogicalUnion::Make() {
-  auto *op = new LogicalUnion();
-  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(op));
-}
-
 Operator LogicalUnion::Make(bool is_all, common::ManagedPointer<parser::SelectStatement> left_expr,
                             common::ManagedPointer<parser::SelectStatement> right_expr) {
   auto *op = new LogicalUnion();

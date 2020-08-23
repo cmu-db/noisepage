@@ -236,6 +236,11 @@ class SqlTable {
    */
   void Reset();
 
+  /**
+   * Copies all data from src to this table
+   * @param txn The current transaction context
+   * @param src The source table to copy from
+   */
   void CopyTable(common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<SqlTable> src);
   /**
    * @return a coarse estimation on the number of tuples in this table
