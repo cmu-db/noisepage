@@ -101,14 +101,14 @@ ALL_NUMERIC_TYPES(ARITHMETIC);
 
 #define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+  VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = lhs % rhs;                                            \
   }
 
 #define FLOAT_MODULAR(type, ...)                                    \
   /* Primitive modulo-remainder (no zero-check) */                  \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+  VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = std::fmod(lhs, rhs);                                  \
   }

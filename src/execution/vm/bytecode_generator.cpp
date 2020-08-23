@@ -1712,7 +1712,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
     }
     case ast::Builtin::Pow: {
       LocalVar src2 = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::Pow, dest, src, src2);
+      GetEmitter()->Emit(Bytecode::Pow, dest, src, src2);
       break;
     }
     default: {
@@ -2155,9 +2155,10 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
     case ast::Builtin::SplitPart: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar delim = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar field = VisitExpressionForRValue(call->Arguments()[3]);
-      Emitter()->Emit(Bytecode::SplitPart, exec_ctx, ret, input_string, delim, field);
+      GetEmitter()->Emit(Bytecode::SplitPart, exec_ctx, ret, input_string, delim, field);
       break;
     }
     case ast::Builtin::Chr: {
@@ -2197,11 +2198,13 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       break;
     }
     case ast::Builtin::Md5Sum: {
-      Emitter()->Emit(Bytecode::Md5Sum, exec_ctx, ret, input_string);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Md5Sum, exec_ctx, ret, input_string);
       break;
     }
     case ast::Builtin::InitCap: {
-      Emitter()->Emit(Bytecode::InitCap, exec_ctx, ret, input_string);
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::InitCap, exec_ctx, ret, input_string);
       break;
     }
     default:
@@ -2901,7 +2904,7 @@ void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
       break;
     }
     case parsing::Token::Type::PERCENT: {
-      MATH_BYTECODE(bytecode, Rem, node->GetType());
+      MATH_BYTECODE(bytecode, Mod, node->GetType());
       break;
     }
     case parsing::Token::Type::AMPERSAND: {
