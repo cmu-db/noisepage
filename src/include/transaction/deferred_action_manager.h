@@ -15,6 +15,8 @@ class GarbageCollectorThread;
 namespace terrier::transaction {
 
 constexpr uint8_t MIN_GC_INVOCATIONS = 6;
+constexpr uint8_t BATCH_SIZE = 6;
+
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */
