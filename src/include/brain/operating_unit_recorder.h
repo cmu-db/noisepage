@@ -183,8 +183,8 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    */
   void RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
 
-  void FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, const size_t *num_keys, size_t *cardinality,
-                      size_t *num_loops);
+  void FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, const size_t *num_keys,
+                      size_t *cardinality, size_t *num_loops);
 
   /**
    * Current Translator Feature Type
