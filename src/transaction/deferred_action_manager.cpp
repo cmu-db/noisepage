@@ -74,28 +74,41 @@ void DeferredActionManager::ProcessIndexes() {
 
 uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled) {
   uint32_t processed = 0;
+  std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> temp_action_queue;
+  bool break_loop = false;
   while (true) {
+    // pop a batch of actions
     queue_latch_.Lock();
-    if (new_deferred_actions_.empty() || !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
-      queue_latch_.Unlock();
-      break;
+    for (size_t i = 0; i < BATCH_SIZE; i++) {
+      if (new_deferred_actions_.empty() || !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
+        break_loop = true;
+        break;
+      }
+
+      std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = new_deferred_actions_.front();
+      new_deferred_actions_.pop();
+      temp_action_queue.push(curr_action);
+      queue_size_--;
     }
 
-    std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = new_deferred_actions_.front();
-    new_deferred_actions_.pop();
     queue_latch_.Unlock();
-    if (metrics_enabled) common::thread_context.resource_tracker_.Start();
 
-    curr_action.second.first(oldest_txn);
+    // process a batch of actions
+    while (!temp_action_queue.empty()) {
+      if (metrics_enabled) common::thread_context.resource_tracker_.Start();
 
-    if (metrics_enabled) {
-      common::thread_context.resource_tracker_.Stop();
-      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordActionData(curr_action.second.second, resource_metrics);
+      temp_action_queue.front().second.first(oldest_txn);
+
+      if (metrics_enabled) {
+        common::thread_context.resource_tracker_.Stop();
+        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+        common::thread_context.metrics_store_->RecordActionData(temp_action_queue.front().second.second, resource_metrics);
+      }
+      processed++;
+      temp_action_queue.pop();
     }
-    processed++;
-    queue_size_--;
 
+    if (break_loop) break;
   }
   return processed;
 }
