@@ -1830,7 +1830,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
-  auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
 
   // round2
   CreateProcedure(txn, postgres::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
