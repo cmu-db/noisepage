@@ -109,6 +109,46 @@ TEST_F(StringFunctionsTests, Substring) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, StartsWith) {
+  // Nulls
+  {
+    auto x = StringVal::Null();
+    auto y = StringVal("a");
+    auto result = BoolVal::Null();
+
+    StringFunctions::StartsWith(&result, Ctx(), x, y);
+    EXPECT_TRUE(result.is_null_);
+
+    StringFunctions::StartsWith(&result, Ctx(), y, x);
+    EXPECT_TRUE(result.is_null_);
+
+    StringFunctions::StartsWith(&result, Ctx(), x, x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Generic tests
+  {
+    auto x = StringVal("abCD");
+    auto y = StringVal("a");
+    auto z = StringVal("A");
+    auto w = StringVal("abCDE");
+    auto result = BoolVal::Null();
+
+    StringFunctions::StartsWith(&result, Ctx(), x, y);
+    EXPECT_TRUE(result.val_);
+
+    StringFunctions::StartsWith(&result, Ctx(), y, z);
+    EXPECT_FALSE(result.val_);
+
+    StringFunctions::StartsWith(&result, Ctx(), x, x);
+    EXPECT_TRUE(result.val_);
+
+    StringFunctions::StartsWith(&result, Ctx(), x, w);
+    EXPECT_FALSE(result.val_);
+  }
+}
+
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, SplitPart) {
   // Nulls
   {
