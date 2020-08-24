@@ -62,7 +62,6 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoGet());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoCteScan());
   AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteEmbedFilterIntoChildlessCteScan());
-  //  AddRule(RuleSetName::PREDICATE_PUSH_DOWN, new RewriteLogicalQueryDerivedGetOnTableFreeScan());
 
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());

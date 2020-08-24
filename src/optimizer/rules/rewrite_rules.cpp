@@ -562,34 +562,6 @@ void RewriteUnionWithRecursiveCTE::Transform(common::ManagedPointer<AbstractOpti
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// RewriteLogicalQueryDerivedGetOnTableFreeScan
-///////////////////////////////////////////////////////////////////////////////
-RewriteLogicalQueryDerivedGetOnTableFreeScan::RewriteLogicalQueryDerivedGetOnTableFreeScan() {
-  type_ = RuleType::QUERY_DERIVED_GET_ON_TABLE_FREE_SCAN;
-
-  match_pattern_ = new Pattern(OpType::LOGICALQUERYDERIVEDGET);
-  auto scan = new Pattern(OpType::LOGICALGET);
-  match_pattern_->AddChild(scan);
-}
-
-RulePromise RewriteLogicalQueryDerivedGetOnTableFreeScan::Promise(GroupExpression *group_expr) const {
-  return RulePromise::LOGICAL_PROMISE;
-}
-
-bool RewriteLogicalQueryDerivedGetOnTableFreeScan::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
-                                                         OptimizationContext *context) const {
-  return true;
-}
-
-void RewriteLogicalQueryDerivedGetOnTableFreeScan::Transform(
-    common::ManagedPointer<AbstractOptimizerNode> input,
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed, OptimizationContext *context) const {
-  auto scan = input->GetChildren()[0];
-  auto new_root = scan->Copy();
-  transformed->push_back(std::move(new_root));
-}
-
-///////////////////////////////////////////////////////////////////////////////
 /// RewritePullFilterThroughAggregation
 ///////////////////////////////////////////////////////////////////////////////
 RewritePullFilterThroughAggregation::RewritePullFilterThroughAggregation() {
