@@ -47,9 +47,6 @@ void TemplatedLikeOperation(const Vector &a, const Vector &b, TupleIdList *tid_l
     throw EXECUTION_EXCEPTION(fmt::format("Inputs to (NOT) LIKE must be VARCHAR, left {} right {}.",
                                           TypeIdToString(a.GetTypeId()), TypeIdToString(b.GetTypeId())));
   }
-  if (a.IsConstant()) {
-    throw EXECUTION_EXCEPTION("First input to LIKE cannot be constant.");
-  }
 
   if (b.IsConstant()) {
     TemplatedLikeOperationVectorConstant<Op>(a, b, tid_list);
@@ -60,11 +57,13 @@ void TemplatedLikeOperation(const Vector &a, const Vector &b, TupleIdList *tid_l
 
 }  // namespace
 
-void VectorOps::Like(const Vector &a, const Vector &b, TupleIdList *tid_list) {
+void VectorOps::SelectLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                           TupleIdList *tid_list) {
   TemplatedLikeOperation<sql::Like>(a, b, tid_list);
 }
 
-void VectorOps::NotLike(const Vector &a, const Vector &b, TupleIdList *tid_list) {
+void VectorOps::SelectNotLike(const exec::ExecutionSettings &exec_settings, const Vector &a, const Vector &b,
+                              TupleIdList *tid_list) {
   TemplatedLikeOperation<sql::NotLike>(a, b, tid_list);
 }
 
