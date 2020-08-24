@@ -1,7 +1,7 @@
 #include "execution/sql/functions/string_functions.h"
 
 #include <execution/sql/value_util.h>
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 #include <bitset>
@@ -460,7 +460,7 @@ void StringFunctions::Md5(StringVal *result, exec::ExecutionContext *ctx, const 
   MD5Final(&md5ctx, md5sum);
   std::ostringstream sout;
   sout << std::hex << std::setfill('0');
-  for (auto c : md5sum) sout << std::setw(2) << (int)c;
+  for (auto c : md5sum) sout << std::setw(2) << static_cast<int>(c);
   auto src = sout.str();
   char *ptr = ctx->GetStringAllocator()->PreAllocate(src.size());
   auto source = src.c_str();
@@ -481,7 +481,6 @@ void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, co
     return;
   }
 
-  // Try CreateStringVal which gives a buffer
   char *ptr = ctx->GetStringAllocator()->PreAllocate(str.GetLength());
   if (UNLIKELY(ptr == nullptr)) {
     // Allocation failed
@@ -491,8 +490,8 @@ void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, co
   auto *src = str.GetContent();
   bool upper = true;
   for (uint32_t i = 0; i < str.GetLength(); i++) {
-    ptr[i] = upper ? static_cast<char>(std::toupper(src[i])) : src[i];
-    upper = !isalnum(src[i]);
+    ptr[i] = upper ? static_cast<char>(std::toupper(src[i])) : static_cast<char>(std::tolower(src[i]));
+    upper = !static_cast<bool>(isalnum(src[i]));
   }
   *result = StringVal(ptr, str.GetLength());
 }
