@@ -149,15 +149,16 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
-    pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
-
-    // Extract and record the translators.
+    // Extract and record the translators. This must be done before generating the pipelines
+    // as the pipelines may rely on obtaining feature IDs, which will be generated while recording translators.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
                                           common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
+
+    pipeline->Prepare(query_->GetExecutionSettings());
+    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
   }
 
   // Register the tear-down function.

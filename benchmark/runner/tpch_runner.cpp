@@ -17,7 +17,7 @@ class TPCHRunner : public benchmark::Fixture {
   std::unique_ptr<DBMain> db_main_;
   std::unique_ptr<tpch::Workload> workload_;
 
-  const std::string tpch_table_root_ = "../../../tpl_tables/tables/";
+  const std::string tpch_table_root_ = "/home/kapi/git/tpl_tables/tables/";
   const std::string ssb_dir_ = "../../../SSB_Table_Generator/ssb_tables/";
   const std::string tpch_database_name_ = "benchmark_db";
 
@@ -69,8 +69,8 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
 
   auto total_query_num = workload_->GetQueryNum() + 1;
   for (uint32_t query_num = 1; query_num < total_query_num; ++query_num)
-    for (auto num_threads = 1; num_threads <= total_num_threads_; num_threads += 2)
-      for (uint32_t repeat = 0; repeat < 3; ++repeat)
+    for (auto num_threads = 1; num_threads <= 1; num_threads += 2)
+      for (uint32_t repeat = 0; repeat < 1; ++repeat)
         for (auto avg_interval_us : avg_interval_us_) {
           std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
           common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};

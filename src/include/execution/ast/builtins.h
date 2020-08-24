@@ -157,6 +157,7 @@ namespace terrier::execution::ast {
   F(JoinHashTableInsert, joinHTInsert)                                  \
   F(JoinHashTableBuild, joinHTBuild)                                    \
   F(JoinHashTableBuildParallel, joinHTBuildParallel)                    \
+  F(JoinHashTableGetTupleCount, joinHTGetTupleCount)                    \
   F(JoinHashTableLookup, joinHTLookup)                                  \
   F(JoinHashTableFree, joinHTFree)                                      \
                                                                         \
@@ -313,7 +314,10 @@ namespace terrier::execution::ast {
                                                                         \
   F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
+  F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
+  F(ExecutionContextGetFeature, execCtxGetFeature)                      \
+  F(ExecutionContextRecordFeature, execCtxRecordFeature)                \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \

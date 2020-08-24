@@ -55,8 +55,8 @@ namespace terrier::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
-  auto *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
-  auto &fields = type->Fields();
+  auto *struct_type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
+  auto &fields = struct_type->Fields();
 
   // Rough loop to get an estimate size of entire struct
   size_t total = total_offset;
@@ -222,7 +222,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
+  auto feature = ExecutionOperatingUnitFeature(current_translator_->translator_id_, type, num_rows, key_size, num_keys,
+                                               cardinality, mem_factor, num_loops);
   pipeline_features_.emplace(type, std::move(feature));
 }
 
@@ -385,7 +386,7 @@ void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoi
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
       plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
       plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
-    // Right side stiches together outputs
+    // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
   }
 }

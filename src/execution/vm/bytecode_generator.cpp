@@ -1341,6 +1341,12 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
       GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
+    case ast::Builtin::JoinHashTableGetTupleCount: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::JoinHashTableGetTupleCount, dest, join_hash_table);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
     case ast::Builtin::JoinHashTableBuild: {
       GetEmitter()->Emit(Bytecode::JoinHashTableBuild, join_hash_table);
       break;
@@ -1561,8 +1567,8 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
-      LocalVar cmp = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, cmp);
+      LocalVar metrics_component = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, metrics_component);
       break;
     }
     case ast::Builtin::ExecutionContextEndResourceTracker: {
@@ -1570,10 +1576,33 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::ExecutionContextEndResourceTracker, exec_ctx, name);
       break;
     }
+    case ast::Builtin::ExecutionContextStartPipelineTracker: {
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextStartPipelineTracker, exec_ctx, pipeline_id);
+      break;
+    }
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       LocalVar query_id = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
+      break;
+    }
+    case ast::Builtin::ExecutionContextGetFeature: {
+      LocalVar value = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextGetFeature, value, exec_ctx, pipeline_id, feature_id,
+                         feature_attribute);
+      break;
+    }
+    case ast::Builtin::ExecutionContextRecordFeature: {
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar value = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextRecordFeature, exec_ctx, pipeline_id, feature_id, feature_attribute,
+                         value);
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
@@ -2221,7 +2250,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
-    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+    case ast::Builtin::ExecutionContextStartPipelineTracker:
+    case ast::Builtin::ExecutionContextEndPipelineTracker:
+    case ast::Builtin::ExecutionContextGetFeature:
+    case ast::Builtin::ExecutionContextRecordFeature: {
       VisitExecutionContextCall(call, builtin);
       break;
     }
@@ -2361,6 +2393,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::JoinHashTableInit:
     case ast::Builtin::JoinHashTableInsert:
+    case ast::Builtin::JoinHashTableGetTupleCount:
     case ast::Builtin::JoinHashTableBuild:
     case ast::Builtin::JoinHashTableBuildParallel:
     case ast::Builtin::JoinHashTableLookup:

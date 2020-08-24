@@ -220,14 +220,35 @@ VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::Ex
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
 }
 
+VM_OP_HOT void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->StartPipelineTracker(pipeline_id);
+}
+
 VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     terrier::execution::query_id_t query_id,
                                                     terrier::execution::pipeline_id_t pipeline_id) {
   exec_ctx->EndPipelineTracker(query_id, pipeline_id);
 }
 
-VM_OP_WARM void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,
-                                         terrier::execution::exec::ExecutionContext *const exec_ctx) {
+VM_OP_HOT void OpExecutionContextGetFeature(uint32_t *value, terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                            terrier::execution::pipeline_id_t pipeline_id,
+                                            terrier::execution::feature_id_t feature_id,
+                                            terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute) {
+  exec_ctx->GetFeature(value, pipeline_id, feature_id, feature_attribute);
+}
+
+VM_OP_HOT void OpExecutionContextRecordFeature(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                               terrier::execution::pipeline_id_t pipeline_id,
+                                               terrier::execution::feature_id_t feature_id,
+                                               terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                               uint32_t value) {
+  exec_ctx->RecordFeature(pipeline_id, feature_id, feature_attribute, value);
+}
+
+VM_OP_WARM
+void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,
+                              terrier::execution::exec::ExecutionContext *const exec_ctx) {
   *thread_state_container = exec_ctx->GetThreadStateContainer();
 }
 
@@ -1192,6 +1213,10 @@ VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
                                          terrier::execution::sql::JoinHashTable *join_hash_table,
                                          terrier::hash_t hash) {
   *result = join_hash_table->AllocInputTuple(hash);
+}
+
+VM_OP_HOT void OpJoinHashTableGetTupleCount(uint64_t *result, terrier::execution::sql::JoinHashTable *join_hash_table) {
+  *result = join_hash_table->GetTupleCount();
 }
 
 VM_OP void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);

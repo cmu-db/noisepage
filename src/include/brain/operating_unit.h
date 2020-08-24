@@ -35,9 +35,13 @@ class CompilerTest_SimpleInsertWithParamsTest_Test;
 class CompilerTest_StaticDistinctAggregateTest_Test;
 }  // namespace terrier::execution::compiler::test
 
+namespace terrier::execution::exec {
+class ExecutionContext;
+}  // namespace terrier::execution::exec
+
 namespace terrier::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
-}
+}  // namespace terrier::optimizer
 
 namespace terrier::brain {
 
@@ -57,8 +61,9 @@ class OperatingUnitRecorder;
  * - Estimated cardinality
  */
 class ExecutionOperatingUnitFeature {
-  friend class PipelineOperatingUnits;
+  friend class execution::exec::ExecutionContext;
   friend class OperatingUnitRecorder;
+  friend class PipelineOperatingUnits;
 
  public:
   /**
@@ -71,15 +76,24 @@ class ExecutionOperatingUnitFeature {
    * @param mem_factor Memory adjustment factor
    * @param num_loops Number of loops
    */
-  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
-                                size_t cardinality, double mem_factor, size_t num_loops)
-      : feature_(feature),
+  ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
+                                size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,
+                                double mem_factor, size_t num_loops)
+      : translator_id_(translator_id),
+        feature_id_(feature_id_counter++),
+        feature_(feature),
         num_rows_(num_rows),
         key_size_(key_size),
         num_keys_(num_keys),
         cardinality_(cardinality),
         mem_factors_({mem_factor}),
         num_loops_(num_loops) {}
+
+  /** @return The ID of the translator for this ExecutionOperatingUnitFeature. */
+  execution::translator_id_t GetTranslatorId() const { return translator_id_; }
+
+  /** @return The ID of this ExecutionOperatingUnitFeature. */
+  execution::feature_id_t GetFeatureId() const { return feature_id_; }
 
   /**
    * @returns type
@@ -147,6 +161,10 @@ class ExecutionOperatingUnitFeature {
    */
   void AddMemFactor(double mem_factor) { mem_factors_.emplace_back(mem_factor); }
 
+  static std::atomic<execution::feature_id_t> feature_id_counter;
+
+  execution::translator_id_t translator_id_;
+  execution::feature_id_t feature_id_;
   ExecutionOperatingUnitType feature_;
   size_t num_rows_;
   size_t key_size_;

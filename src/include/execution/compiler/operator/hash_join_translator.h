@@ -156,6 +156,11 @@ class HashJoinTranslator : public OperatorTranslator {
   StateDescriptor::Entry global_join_ht_;
   StateDescriptor::Entry local_join_ht_;
 
+  // The number of probes that are performed.
+  StateDescriptor::Entry num_probes_;
+  // The ID of the probing pipeline.
+  pipeline_id_t probing_pipeline_id_;
+
   // Struct declaration for minirunner.
   ast::StructDecl *struct_decl_;
 };

@@ -694,6 +694,24 @@ void Sema::CheckBuiltinJoinHashTableInsert(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(byte_kind)->PointerTo());
 }
 
+void Sema::CheckBuiltinJoinHashTableGetTupleCount(ast::CallExpr *call) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+
+  const auto &call_args = call->Arguments();
+
+  // The first and only argument must be a pointer to a JoinHashTable.
+  const auto jht_kind = ast::BuiltinType::JoinHashTable;
+  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), jht_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_kind)->PointerTo());
+    return;
+  }
+
+  // This call returns the tuple count.
+  call->SetType(GetBuiltinType(ast::BuiltinType::Uint64));
+}
+
 void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -701,7 +719,7 @@ void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin buil
 
   const auto &call_args = call->Arguments();
 
-  // The first and only argument must be a pointer to a JoinHashTable
+  // The first argument must be a pointer to a JoinHashTable
   const auto jht_kind = ast::BuiltinType::JoinHashTable;
   if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), jht_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(jht_kind)->PointerTo());
@@ -824,11 +842,18 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
       expected_arg_count = 2;
       break;
     case ast::Builtin::ExecutionContextEndPipelineTracker:
       expected_arg_count = 3;
+      break;
+    case ast::Builtin::ExecutionContextGetFeature:
+      expected_arg_count = 4;
+      break;
+    case ast::Builtin::ExecutionContextRecordFeature:
+      expected_arg_count = 5;
       break;
     default:
       UNREACHABLE("Impossible execution context call");
@@ -900,6 +925,57 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
       // Init returns nil
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextStartPipelineTracker: {
+      // Pipeline ID.
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // Init returns nil
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextGetFeature: {
+      // Pipeline ID.
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature ID.
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature attribute.
+      if (!call_args[3]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Features are 64-bit integers.
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint64));
+      break;
+    }
+    case ast::Builtin::ExecutionContextRecordFeature: {
+      // Pipeline ID.
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature ID.
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature attribute.
+      if (!call_args[3]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // call_args[4] is the value to be recorded, currently unchecked.
+      // Doesn't return anything.
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -2654,7 +2730,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextEndResourceTracker:
-    case ast::Builtin::ExecutionContextEndPipelineTracker: {
+    case ast::Builtin::ExecutionContextStartPipelineTracker:
+    case ast::Builtin::ExecutionContextEndPipelineTracker:
+    case ast::Builtin::ExecutionContextGetFeature:
+    case ast::Builtin::ExecutionContextRecordFeature: {
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }
@@ -2798,6 +2877,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::JoinHashTableInsert: {
       CheckBuiltinJoinHashTableInsert(call);
+      break;
+    }
+    case ast::Builtin::JoinHashTableGetTupleCount: {
+      CheckBuiltinJoinHashTableGetTupleCount(call);
       break;
     }
     case ast::Builtin::JoinHashTableBuild:

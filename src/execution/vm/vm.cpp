@@ -481,8 +481,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecutionContextStartResourceTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto cmp = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
-    OpExecutionContextStartResourceTracker(exec_ctx, cmp);
+    auto metrics_component = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
+    OpExecutionContextStartResourceTracker(exec_ctx, metrics_component);
     DISPATCH_NEXT();
   }
 
@@ -493,11 +493,40 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextStartPipelineTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    OpExecutionContextStartPipelineTracker(exec_ctx, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextEndPipelineTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto query_id = execution::query_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextGetFeature) : {
+    auto *value = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_attribute =
+        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    OpExecutionContextGetFeature(value, exec_ctx, pipeline_id, feature_id, feature_attribute);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextRecordFeature) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_attribute =
+        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    auto value = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpExecutionContextRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value);
     DISPATCH_NEXT();
   }
 
@@ -1450,6 +1479,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto hash = frame->LocalAt<hash_t>(READ_LOCAL_ID());
     OpJoinHashTableAllocTuple(result, join_hash_table, hash);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableGetTupleCount) : {
+    auto *result = frame->LocalAt<uint64_t *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    OpJoinHashTableGetTupleCount(result, join_hash_table);
     DISPATCH_NEXT();
   }
 

@@ -103,7 +103,11 @@ namespace terrier::execution::vm {
   F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
+  F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(ExecutionContextGetFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)       \
+  F(ExecutionContextRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,    \
+    OperandType::Local)                                                                                               \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \
@@ -434,6 +438,7 @@ namespace terrier::execution::vm {
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
   F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(JoinHashTableLookup, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
