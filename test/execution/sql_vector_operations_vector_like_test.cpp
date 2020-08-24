@@ -12,12 +12,13 @@ class VectorLikeTest : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(VectorLikeTest, InputVerification) {
+  exec::ExecutionSettings exec_settings{};
   // Left input is invalid type
   {
     auto a = MakeIntegerVector(10);
     auto b = MakeVarcharVector(10);
     auto tid_list = TupleIdList(a->GetSize());
-    EXPECT_THROW(VectorOps::Like(*a, *b, &tid_list), ExecutionException);
+    EXPECT_THROW(VectorOps::SelectLike(exec_settings, *a, *b, &tid_list), ExecutionException);
   }
 
   // Right input is invalid type
@@ -25,20 +26,13 @@ TEST_F(VectorLikeTest, InputVerification) {
     auto a = MakeVarcharVector(10);
     auto b = MakeFloatVector(10);
     auto tid_list = TupleIdList(a->GetSize());
-    EXPECT_THROW(VectorOps::Like(*a, *b, &tid_list), ExecutionException);
-  }
-
-  // First input must not be constant
-  {
-    auto a = ConstantVector(GenericValue::CreateVarchar("bruh"));
-    auto b = MakeVarcharVector(2);
-    auto tid_list = TupleIdList(a.GetSize());
-    EXPECT_THROW(VectorOps::Like(a, *b, &tid_list), Exception);
+    EXPECT_THROW(VectorOps::SelectLike(exec_settings, *a, *b, &tid_list), ExecutionException);
   }
 }
 
 // NOLINTNEXTLINE
 TEST_F(VectorLikeTest, LikeConstant) {
+  exec::ExecutionSettings exec_settings{};
   auto strings =
       MakeVarcharVector({"first", "second", "third", "fourth", "fifth"}, {false, false, false, false, false});
   auto pattern = ConstantVector(GenericValue::CreateVarchar("%d"));
@@ -46,14 +40,14 @@ TEST_F(VectorLikeTest, LikeConstant) {
 
   // strings == pattern = [1, 2]
   tid_list.AddAll();
-  VectorOps::Like(*strings, pattern, &tid_list);
+  VectorOps::SelectLike(exec_settings, *strings, pattern, &tid_list);
   EXPECT_EQ(2u, tid_list.GetTupleCount());
   EXPECT_EQ(1u, tid_list[0]);
   EXPECT_EQ(2u, tid_list[1]);
 
   // strings != pattern = [0, 3, 4]
   tid_list.AddAll();
-  VectorOps::NotLike(*strings, pattern, &tid_list);
+  VectorOps::SelectNotLike(exec_settings, *strings, pattern, &tid_list);
   EXPECT_EQ(3u, tid_list.GetTupleCount());
   EXPECT_EQ(0u, tid_list[0]);
   EXPECT_EQ(3u, tid_list[1]);
@@ -66,23 +60,24 @@ TEST_F(VectorLikeTest, LikeConstant) {
 
   // strings == pattern = [2]
   tid_list.AddAll();
-  VectorOps::Like(*strings, pattern, &tid_list);
+  VectorOps::SelectLike(exec_settings, *strings, pattern, &tid_list);
   EXPECT_EQ(1u, tid_list.GetTupleCount());
   EXPECT_EQ(2u, tid_list[0]);
 
   // strings != pattern = [2]
   tid_list.AddAll();
-  VectorOps::NotLike(*strings, pattern, &tid_list);
+  VectorOps::SelectNotLike(exec_settings, *strings, pattern, &tid_list);
   EXPECT_EQ(1u, tid_list.GetTupleCount());
   EXPECT_EQ(0u, tid_list[0]);
 
   tid_list.Clear();
-  VectorOps::NotLike(*strings, pattern, &tid_list);
+  VectorOps::SelectNotLike(exec_settings, *strings, pattern, &tid_list);
   EXPECT_EQ(0u, tid_list.GetTupleCount());
 }
 
 // NOLINTNEXTLINE
 TEST_F(VectorLikeTest, LikeVectorOfPatterns) {
+  exec::ExecutionSettings exec_settings{};
   auto strings =
       MakeVarcharVector({"first", "second", "third", "fourth", "fifth"}, {false, false, false, false, false});
   auto patterns = MakeVarcharVector({"_%", "s_cnd", "third", "f%%_th", "fifth "}, {true, false, false, false, false});
@@ -90,7 +85,7 @@ TEST_F(VectorLikeTest, LikeVectorOfPatterns) {
 
   // strings == patterns = [2, 3]
   tid_list.AddAll();
-  VectorOps::Like(*strings, *patterns, &tid_list);
+  VectorOps::SelectLike(exec_settings, *strings, *patterns, &tid_list);
   EXPECT_EQ(2u, tid_list.GetTupleCount());
   EXPECT_EQ(2u, tid_list[0]);
   EXPECT_EQ(3u, tid_list[1]);
