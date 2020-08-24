@@ -584,7 +584,7 @@ void OperatingUnitRecorder::Visit(const planner::CteScanPlanNode *plan) {
   auto num_keys = plan->GetOutputSchema()->GetColumns().size();
   auto key_size = 0;
   if (num_keys > 0) {
-    key_size = ComputeKeySizeOutputSchema(plan);
+    key_size = ComputeKeySizeOutputSchema(plan, &num_keys);
   }
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }

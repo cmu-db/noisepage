@@ -1,6 +1,7 @@
 
 #include "execution/sql/ind_cte_scan_iterator.h"
 
+#include "catalog/catalog_accessor.h"
 #include "execution/sql/cte_scan_iterator.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/deferred_action_manager.h"

@@ -160,7 +160,7 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
 
   const bool parallel_exec_disabled = !exec_settings.GetIsParallelQueryExecutionEnabled();
   const bool parallel_consumer = true;
-  if (!parallel_exec_enabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
+  if (!parallel_exec_disabled || !parallel_consumer || parallelism_ == Pipeline::Parallelism::Serial) {
     parallelism_ = Pipeline::Parallelism::Serial;
   } else {
     parallelism_ = Pipeline::Parallelism::Parallel;
@@ -343,20 +343,19 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
 
   // Generate pipeline state initialization and tear-down functions.
   builder->DeclareFunction(GenerateSetupPipelineStateFunction());
-  builder->DeclareFunction(GenerateTearDownPipelineStateFunction());
-
-  // Generate main pipeline logic.
-  builder->DeclareFunction(GeneratePipelineWorkFunction(query_id));
-  builder->DeclareFunction(GenerateRunPipelineFunction(query_id));
-  builder->DeclareFunction(GenerateInitPipelineFunction());
   auto teardown = GenerateTearDownPipelineFunction();
   builder->DeclareFunction(teardown);
+
+  // Generate main pipeline logic.
+  builder->DeclareFunction(GeneratePipelineWorkFunction());
+  builder->DeclareFunction(GenerateRunPipelineFunction(query_id));
+  builder->DeclareFunction(GenerateInitPipelineFunction());
 
   // Register the main init, run, tear-down functions as steps, in that order.
   if (!nested_) {
     builder->RegisterStep(GenerateInitPipelineFunction());
 
-    builder->RegisterStep(GenerateRunPipelineFunction());
+    builder->RegisterStep(GenerateRunPipelineFunction(query_id));
     builder->RegisterStep(teardown);
   }
   builder->AddTeardownFn(teardown);
