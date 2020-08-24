@@ -102,7 +102,7 @@ void StringFunctions::SplitPart(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
   for (uint32_t index = 1;; index++) {
     const auto remaining_len = end - curr;
     const auto next_delim = SearchSubstring(curr, remaining_len, delimiter, delim.GetLength());
-    if (next_delim == nullptr) {
+    if (next_delim == nullptr || next_delim == end) {
       if (index == field.val_) {
         *result = StringVal(curr, remaining_len);
       } else {
