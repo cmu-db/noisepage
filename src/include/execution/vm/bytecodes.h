@@ -591,8 +591,10 @@ namespace terrier::execution::vm {
   F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
-  F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(Trim, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
+  F(Trim2, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(StartsWith, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(Md5, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(InitCap, OperandType::Local, OperandType::Local, OperandType::Local)                                              \

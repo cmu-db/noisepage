@@ -39,24 +39,23 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
     return;
   }
 
-  const auto start = std::max(pos.val_, int64_t{1});
-  const auto end = pos.val_ + std::min(static_cast<int64_t>(str.GetLength()), len.val_);
-
-  // The end can be before the start only if the length was negative. This is an
-  // error.
-  if (end < pos.val_) {
-    *result = StringVal::Null();
-    return;
-  }
-
-  // If start is negative, return empty string
-  if (end < 1) {
+  // If the position is negative or the length is 0 return empty string
+  if (pos.val_ < 0 || len.val_ == 0) {
     *result = StringVal("");
     return;
   }
 
+  if (static_cast<uint64_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
+    *result = StringVal::Null();
+    return;
+  }
+
+  // If the start index is less than 0 we set the index to 0
+  const auto str_start = static_cast<uint32_t>(std::max(pos.val_ - 1, int64_t{0}));
+  const auto str_len = std::min(uint32_t(str.GetLength()) - str_start, static_cast<uint32_t>(len.val_));
+
   // All good
-  *result = StringVal(str.GetContent() + start - 1, end - start);
+  *result = StringVal(str.GetContent() + str_start, str_len);
 }
 
 namespace {
@@ -375,6 +374,16 @@ void StringFunctions::Like(BoolVal *result, UNUSED_ATTRIBUTE exec::ExecutionCont
 
   result->is_null_ = false;
   result->val_ = sql::Like{}(string.val_, pattern.val_);  // NOLINT
+}
+
+void StringFunctions::StartsWith(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &str,
+                                 const StringVal &start) {
+  if (str.is_null_ || start.is_null_) {
+    *result = BoolVal::Null();
+    return;
+  }
+  *result = BoolVal(start.GetLength() <= str.GetLength() &&
+                    strncmp(str.GetContent(), start.GetContent(), static_cast<size_t>(start.GetLength())) == 0);
 }
 
 void StringFunctions::Position(Integer *result, exec::ExecutionContext *ctx, const StringVal &search_str,
