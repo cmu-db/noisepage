@@ -1732,15 +1732,36 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
 }
 
 void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar dest, src;
-  auto dest_type = call->GetType();
-  dest = GetExecutionResult()->GetOrCreateDestination(dest_type);
-  src = VisitExpressionForRValue(call->Arguments()[0]);
-  Bytecode abs_bytecode = call->Arguments()[0]->GetType()->IsIntegerType() ||
-                                  call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)
-                              ? Bytecode::AbsInteger
-                              : Bytecode::AbsReal;
-  GetEmitter()->Emit(abs_bytecode, dest, src);
+  LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+
+  switch (builtin) {
+    case ast::Builtin::Abs: {
+      LocalVar src = VisitExpressionForRValue(call->Arguments()[0]);
+      Bytecode abs_bytecode = call->Arguments()[0]->GetType()->IsIntegerType() ||
+                                      call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)
+                                  ? Bytecode::AbsInteger
+                                  : Bytecode::AbsReal;
+      GetEmitter()->Emit(abs_bytecode, dest, src);
+      break;
+    }
+    case ast::Builtin::Mod: {
+      LocalVar first_input = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar second_input = VisitExpressionForRValue(call->Arguments()[1]);
+
+      bool first_input_is_int = call->Arguments()[0]->GetType()->IsIntegerType() ||
+                                call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+      bool second_input_is_int = call->Arguments()[1]->GetType()->IsIntegerType() ||
+                                 call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+      if (first_input_is_int && second_input_is_int) {
+        GetEmitter()->Emit(Bytecode::ModInteger, dest, first_input, second_input);
+      } else {
+        GetEmitter()->Emit(Bytecode::ModReal, dest, first_input, second_input);
+      }
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented arithmetic function!");
+  }
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
@@ -2285,31 +2306,6 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   }
 }
 
-void BytecodeGenerator::VisitBuiltinArithCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-
-  switch (builtin) {
-    case ast::Builtin::Mod: {
-      LocalVar first_input = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar second_input = VisitExpressionForRValue(call->Arguments()[1]);
-
-      bool first_input_is_int = call->Arguments()[0]->GetType()->IsIntegerType() ||
-                                call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
-      bool second_input_is_int = call->Arguments()[1]->GetType()->IsIntegerType() ||
-                                 call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
-      if (first_input_is_int && second_input_is_int) {
-        GetEmitter()->Emit(Bytecode::ModInteger, dest, first_input, second_input);
-      } else {
-        GetEmitter()->Emit(Bytecode::ModReal, dest, first_input, second_input);
-      }
-      break;
-    }
-    default:
-      UNREACHABLE("Unimplemented arithmetic function!");
-  }
-  GetExecutionResult()->SetDestination(dest.ValueOf());
-}
-
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -2580,7 +2576,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTrigCall(call, builtin);
       break;
     }
-    case ast::Builtin::Abs: {
+    case ast::Builtin::Abs:
+    case ast::Builtin::Mod: {
       VisitBuiltinArithmeticCall(call, builtin);
       break;
     }
@@ -2687,13 +2684,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Reverse:
     case ast::Builtin::Repeat:
     case ast::Builtin::Trim:
-    case ast::Builtin::Trim2:
-    case ast::Builtin::Position: {
+    case ast::Builtin::Trim2: {
       VisitBuiltinStringCall(call, builtin);
-      break;
-    }
-    case ast::Builtin::Mod: {
-      VisitBuiltinArithCall(call, builtin);
       break;
     }
     case ast::Builtin::NpRunnersEmitInt:
