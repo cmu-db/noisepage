@@ -1773,6 +1773,16 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {int_type, int_type}, {int_type, int_type}, {},
                   int_type, "", true);
 
+  // round2
+  CreateProcedure(txn, postgres::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type}, {dec_type, int_type}, {},
+                  dec_type, "", true);
+
+  // pow
+  CreateProcedure(txn, postgres::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
+                  dec_type, "", true);
+
 #define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                 \
   CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, \
                   {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
@@ -1838,11 +1848,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
   auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
 
-  // round2
-  CreateProcedure(txn, postgres::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type}, {dec_type, int_type}, {},
-                  dec_type, "", true);
-
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
       postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
@@ -1889,11 +1894,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // initCap
   CreateProcedure(txn, postgres::INITCAP_PRO_OID, "initcap", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
-
-  // pow
-  CreateProcedure(txn, postgres::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
-                  dec_type, "", true);
 
   // version
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
