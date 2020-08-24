@@ -103,9 +103,9 @@ class StringFunctions {
   static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
 
   /** Compute MD5(str). */
-  static void Md5Sum(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void Md5(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
   /** Compute INITCAP(str). */
-  static void InitCap(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  static void InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 };
 }  // namespace terrier::execution::sql

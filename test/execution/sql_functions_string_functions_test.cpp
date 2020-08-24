@@ -1,11 +1,11 @@
 #include <llvm/ADT/StringRef.h>
 
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <random>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "execution/exec/execution_context.h"
 #include "execution/sql/functions/string_functions.h"
@@ -364,13 +364,13 @@ TEST_F(StringFunctionsTests, Md5) {
     auto x = StringVal::Null();
     auto result = StringVal("");
 
-    StringFunctions::Md5Sum(Ctx(), &result, x);
+    StringFunctions::Md5(&result, Ctx(), x);
     EXPECT_TRUE(result.is_null_);
   }
 
   auto x = StringVal("PostgreSQL MD5");
   auto result = StringVal("");
-  StringFunctions::Md5Sum(Ctx(), &result, x);
+  StringFunctions::Md5(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("f78fdb18bf39b23d42313edfaf7e0a44") == result);
 }
 // NOLINTNEXTLINE

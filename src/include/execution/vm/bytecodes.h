@@ -586,7 +586,7 @@ namespace terrier::execution::vm {
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  F(Md5Sum, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
+  F(Md5, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(InitCap, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Date Functions */                                                                                                \

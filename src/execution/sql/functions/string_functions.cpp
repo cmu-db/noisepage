@@ -1,15 +1,17 @@
 #include "execution/sql/functions/string_functions.h"
 
+#include <execution/sql/value_util.h>
+#include <string.h>
+
 #include <algorithm>
 #include <bitset>
+#include <iomanip>
+#include <iostream>
 #include <string>
 
 #include "execution/exec/execution_context.h"
 #include "execution/sql/operators/like_operators.h"
 #include "execution/util/bit_util.h"
-#include <iostream>
-#include <string.h>
-#include <iomanip>
 #include "md5/md5.h"
 
 namespace terrier::execution::sql {
@@ -444,52 +446,55 @@ void StringFunctions::Chr(StringVal *result, exec::ExecutionContext *ctx, const 
   }
 }
 
-void StringFunctions::Md5Sum(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Md5(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
   if (str.is_null_) {
     *result = StringVal::Null();
     return;
   }
-  char new_str[str.len_];
-  memcpy(new_str, str.Content(), str.len_);
+  char new_str[str.GetLength()];
+  memcpy(new_str, str.GetContent(), str.GetLength());
   MD5_CTX md5ctx;
   MD5Init(&md5ctx);
-  MD5Update(&md5ctx, reinterpret_cast<unsigned char *>(new_str), str.len_);
+  MD5Update(&md5ctx, reinterpret_cast<unsigned char *>(new_str), str.GetLength());
   unsigned char md5sum[16];
   MD5Final(&md5ctx, md5sum);
   std::ostringstream sout;
   sout << std::hex << std::setfill('0');
   for (auto c : md5sum) sout << std::setw(2) << (int)c;
   auto src = sout.str();
-  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), src.size());
+  char *ptr = ctx->GetStringAllocator()->PreAllocate(src.size());
   auto source = src.c_str();
   for (unsigned int i = 0; i < src.size(); i++) {
     ptr[i] = source[i];
   }
+  *result = StringVal(ptr, src.size());
 }
 
-void StringFunctions::InitCap(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
   if (str.is_null_) {
     *result = StringVal::Null();
     return;
   }
 
-  if (str.len_ == 0) {
+  if (str.GetLength() == 0) {
     *result = str;
     return;
   }
 
-  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len_);
+  // Try CreateStringVal which gives a buffer
+  char *ptr = ctx->GetStringAllocator()->PreAllocate(str.GetLength());
   if (UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
   }
 
-  auto *src = str.Content();
+  auto *src = str.GetContent();
   bool upper = true;
-  for (uint32_t i = 0; i < str.len_; i++) {
+  for (uint32_t i = 0; i < str.GetLength(); i++) {
     ptr[i] = upper ? static_cast<char>(std::toupper(src[i])) : src[i];
     upper = !isalnum(src[i]);
   }
+  *result = StringVal(ptr, str.GetLength());
 }
 
 }  // namespace terrier::execution::sql

@@ -2006,7 +2006,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // md5
   func_context = new execution::functions::FunctionContext("md5", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                                                           execution::ast::Builtin::Md5Sum, true);
+                                                           execution::ast::Builtin::Md5, true);
   SetProcCtxPtr(txn, postgres::MD5_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
@@ -2018,14 +2018,14 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 
   // pow
   func_context = new execution::functions::FunctionContext("pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
-                                                                execution::ast::Builtin::Pow);
+                                                           execution::ast::Builtin::Pow);
   SetProcCtxPtr(txn, postgres::POW_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   // split part
-  func_context = new execution::functions::FunctionContext("split_part", type::TypeId::VARCHAR, {type::TypeId::VARCHAR,
-                                                           type::TypeId::VARCHAR, type::TypeId::INTEGER},
-                                                           execution::ast::Builtin::SplitPart, true);
+  func_context = new execution::functions::FunctionContext(
+      "split_part", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::VARCHAR, type::TypeId::INTEGER},
+      execution::ast::Builtin::SplitPart, true);
   SetProcCtxPtr(txn, postgres::SPLIT_PART_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
@@ -2056,13 +2056,13 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   SetProcCtxPtr(txn, postgres::VERSION_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
-  func_context = new execution::functions::FunctionContext("mod", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::DECIMAL},
-                                                           execution::ast::Builtin::Mod);
+  func_context = new execution::functions::FunctionContext(
+      "mod", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::Mod);
   SetProcCtxPtr(txn, postgres::MOD_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
-  func_context = new execution::functions::FunctionContext("mod", type::TypeId::INTEGER, {type::TypeId::INTEGER, type::TypeId::INTEGER},
-                                                           execution::ast::Builtin::Mod);
+  func_context = new execution::functions::FunctionContext(
+      "mod", type::TypeId::INTEGER, {type::TypeId::INTEGER, type::TypeId::INTEGER}, execution::ast::Builtin::Mod);
   SetProcCtxPtr(txn, postgres::INTMOD_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 

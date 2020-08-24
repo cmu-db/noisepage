@@ -1552,8 +1552,8 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // If both operands are ints then we return an int, otherwise we return a real
-      if((first_operand_type->IsIntegerType() || first_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer))
-          && (second_operand_type->IsIntegerType() || second_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer))) {
+      if ((first_operand_type->IsIntegerType() || first_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer)) &&
+          (second_operand_type->IsIntegerType() || second_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer))) {
         return_kind = int_kind;
       }
 
@@ -2566,7 +2566,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::Lower:
-    case ast::Builtin::Md5Sum:
+    case ast::Builtin::Md5:
     case ast::Builtin::InitCap: {
       // check to make sure this function has two arguments
       if (!CheckArgCount(call, 2)) {
@@ -3107,7 +3107,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Version:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::Md5Sum:
+    case ast::Builtin::Md5:
     case ast::Builtin::InitCap: {
       CheckBuiltinStringCall(call, builtin);
       break;

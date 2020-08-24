@@ -2158,7 +2158,7 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar delim = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar field = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::SplitPart, exec_ctx, ret, input_string, delim, field);
+      GetEmitter()->Emit(Bytecode::SplitPart, ret, exec_ctx, input_string, delim, field);
       break;
     }
     case ast::Builtin::Chr: {
@@ -2197,14 +2197,14 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::Length, ret, exec_ctx, input_string);
       break;
     }
-    case ast::Builtin::Md5Sum: {
+    case ast::Builtin::Md5: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::Md5Sum, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::Md5, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::InitCap: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::InitCap, exec_ctx, ret, input_string);
+      GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
       break;
     }
     default:
@@ -2223,8 +2223,8 @@ void BytecodeGenerator::VisitBuiltinArithCall(ast::CallExpr *call, ast::Builtin 
       bool first_input_is_int = call->Arguments()[0]->GetType()->IsIntegerType() ||
                                 call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
       bool second_input_is_int = call->Arguments()[1]->GetType()->IsIntegerType() ||
-                                call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
-      if(first_input_is_int && second_input_is_int) {
+                                 call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+      if (first_input_is_int && second_input_is_int) {
         GetEmitter()->Emit(Bytecode::ModInteger, dest, first_input, second_input);
       } else {
         GetEmitter()->Emit(Bytecode::ModReal, dest, first_input, second_input);
@@ -2598,7 +2598,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Version:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::Md5Sum:
+    case ast::Builtin::Md5:
     case ast::Builtin::InitCap: {
       VisitBuiltinStringCall(call, builtin);
       break;

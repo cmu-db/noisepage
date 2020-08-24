@@ -303,7 +303,7 @@ namespace terrier::execution::ast {
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
   F(Length, length)                                                     \
-  F(Md5Sum, md5)                                                        \
+  F(Md5, md5)                                                           \
   F(InitCap, initCap)                                                   \
   F(SplitPart, splitPart)                                               \
                                                                         \
@@ -311,7 +311,7 @@ namespace terrier::execution::ast {
   F(Chr, chr)                                                           \
   F(CharLength, charLength)                                             \
                                                                         \
-  /* Arithmetic functions */                                                  \
+  /* Arithmetic functions */                                            \
   F(Mod, mod)                                                           \
   F(Pow, pow)                                                           \
                                                                         \
