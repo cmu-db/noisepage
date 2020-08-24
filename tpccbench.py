@@ -18,7 +18,7 @@ BENCHMARK_LOGFILE_PATH = "/tmp/benchmark_ling.log"
 def run_single_benchmark(num_worker_threads):
 	""" Run benchmark, generate JSON results
 	"""
-	output_file = "gc_{}worker_result.json".format(str(num_worker_threads))	 
+	output_file = "coor_{}worker_result.json".format(str(num_worker_threads))	 
 
 	cmd = "{} --benchmark_format=json" + \
 		  " --benchmark_out={}"
