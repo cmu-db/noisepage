@@ -2110,6 +2110,11 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   SetProcCtxPtr(txn, postgres::UPPER_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
+  func_context = new execution::functions::FunctionContext("upper", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Upper, true);
+  SetProcCtxPtr(txn, postgres::UPPER_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
   func_context = new execution::functions::FunctionContext("version", type::TypeId::VARCHAR, {},
                                                            execution::ast::Builtin::Version, true);
   SetProcCtxPtr(txn, postgres::VERSION_PRO_OID, func_context);

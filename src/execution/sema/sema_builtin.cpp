@@ -1581,7 +1581,6 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
   }
 
-  // Trig functions return real values
   call->SetType(GetBuiltinType(return_kind));
 }
 
