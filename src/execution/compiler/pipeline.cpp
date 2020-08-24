@@ -343,13 +343,14 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
 
   // Generate pipeline state initialization and tear-down functions.
   builder->DeclareFunction(GenerateSetupPipelineStateFunction());
-  auto teardown = GenerateTearDownPipelineFunction();
-  builder->DeclareFunction(teardown);
+  builder->DeclareFunction(GenerateTearDownPipelineStateFunction());
 
   // Generate main pipeline logic.
   builder->DeclareFunction(GeneratePipelineWorkFunction());
   builder->DeclareFunction(GenerateRunPipelineFunction(query_id));
   builder->DeclareFunction(GenerateInitPipelineFunction());
+  auto teardown = GenerateTearDownPipelineFunction();
+  builder->DeclareFunction(teardown);
 
   // Register the main init, run, tear-down functions as steps, in that order.
   if (!nested_) {

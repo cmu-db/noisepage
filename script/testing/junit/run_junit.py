@@ -28,19 +28,19 @@ if __name__ == "__main__":
     junit_test_runner = TestJUnit(args)
 
     # Step 1: Run the regular JUnit tests.
-    # LOG.info(section_header("JUNIT TESTS"))
-    # test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
-    # try:
-    #     test_case_junit = TestCaseJUnit(
-    #         args, test_command=test_command_regular)
-    #     exit_code = junit_test_runner.run(test_case_junit)
-    # except:
-    #     LOG.error("Exception trying to run '%s'" % test_command_regular)
-    #     LOG.error("================ Python Error Output ==================")
-    #     traceback.print_exc(file=sys.stdout)
-    #     exit_code = ErrorCode.ERROR
-    # finally:
-    #     all_exit_codes.append(exit_code)
+    LOG.info(section_header("JUNIT TESTS"))
+    test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
+    try:
+        test_case_junit = TestCaseJUnit(
+            args, test_command=test_command_regular)
+        exit_code = junit_test_runner.run(test_case_junit)
+    except:
+        LOG.error("Exception trying to run '%s'" % test_command_regular)
+        LOG.error("================ Python Error Output ==================")
+        traceback.print_exc(file=sys.stdout)
+        exit_code = ErrorCode.ERROR
+    finally:
+        all_exit_codes.append(exit_code)
 
     # Step 2: Run the trace test for each file that we find
     # Each directory represents another set of SQL traces to test.
