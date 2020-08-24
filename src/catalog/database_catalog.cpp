@@ -1861,7 +1861,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   // version
   CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
-  // TODO(tanujnay112): no op codes for lower and upper yet
 
   // starts_with
   CreateProcedure(txn, postgres::STARTSWITH_PRO_OID, "starts_with", postgres::INTERNAL_LANGUAGE_OID,
