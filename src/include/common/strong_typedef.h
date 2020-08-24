@@ -41,7 +41,7 @@ namespace terrier::common {
  * Now foo(b, a) would be a type mismatch.
  *
  * To extract the primitive integral type that backs the strong typedef out
- * of an instance, use the StrongTypeAlias::underlying_value() member. For example:
+ * of an instance, use the StrongTypeAlias::UnderlyingValue() member. For example:
  *
  * using A = StrongTypeAlias<struct SomeTag, int>
  *
