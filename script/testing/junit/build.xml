@@ -47,6 +47,7 @@
     <arg value="${db-url}"></arg>
     <arg value="${db-user}"></arg>
     <arg value="${db-password}"></arg>
+    <arg value="${output-name}"></arg>
   </java>
 </target>
 
@@ -65,6 +66,21 @@
     <arg value="--scan-class-path" />
     <arg value="--include-classname" />
     <arg value="TracefileTest" />
+  </java>
+</target>
+
+<target name="filter-trace" depends="compile">
+  <java classname="FilterTrace" fork="yes">
+    <classpath>
+      <pathelement location="${out.dir}" />
+      <path refid="lib.classpath" />
+    </classpath>
+    <arg value="${path}"></arg>
+    <arg value="${db-url}"></arg>
+    <arg value="${db-user}"></arg>
+    <arg value="${db-password}"></arg>
+    <arg value="${skip-list}"></arg>
+    <arg value="${output-name}"></arg>
   </java>
 </target>
 
