@@ -1904,8 +1904,6 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "delim", "field"}, {str_type, str_type, int_type},
                   {str_type, str_type, int_type}, {}, str_type, "", true);
 
-  // TODO(tanujnay112): no op codes for lower and upper yet
-
   // length
   CreateProcedure(txn, postgres::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
