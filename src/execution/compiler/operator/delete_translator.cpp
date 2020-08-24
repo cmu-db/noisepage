@@ -8,6 +8,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
+#include "planner/plannodes/delete_plan_node.h"
 #include "storage/index/index.h"
 
 namespace terrier::execution::compiler {
@@ -16,6 +17,7 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DELETE),
       deleter_(GetCodeGen()->MakeFreshIdentifier("deleter")),
       col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   // Prepare the child.
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 

@@ -102,6 +102,6 @@ struct Constants {
   /**
    * Flag indicating if parallel execution is supported.
    */
-  static constexpr const bool IS_PARALLEL_QUERY_EXECUTION = false;
+  static constexpr const bool IS_PARALLEL_EXECUTION_ENABLED = true;
 };
 }  // namespace terrier::common

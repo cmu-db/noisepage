@@ -19,3 +19,4 @@
 
 # False positive from atexit() registration in libc
 leak:*__new_exitfn*
+leak:libtbb.so

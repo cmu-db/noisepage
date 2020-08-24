@@ -7,10 +7,7 @@
 
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/executable_query.h"
-#include "execution/compiler/expression/expression_translator.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::parser {
 class AbstractExpression;
@@ -50,11 +47,13 @@ class CompilationContext {
    * @param exec_settings The execution settings to be used for compilation.
    * @param accessor The catalog accessor to use for compilation.
    * @param mode The compilation mode.
+   * @param query_text The SQL query string (temporary)
    */
   static std::unique_ptr<ExecutableQuery> Compile(const planner::AbstractPlanNode &plan,
                                                   const exec::ExecutionSettings &exec_settings,
                                                   catalog::CatalogAccessor *accessor,
-                                                  CompilationMode mode = CompilationMode::Interleaved);
+                                                  CompilationMode mode = CompilationMode::Interleaved,
+                                                  common::ManagedPointer<const std::string> query_text = nullptr);
 
   /**
    * Register a pipeline in this context.

@@ -10,19 +10,19 @@ ConciseHashTable::ConciseHashTable(const uint32_t probe_threshold) : probe_limit
 
 ConciseHashTable::~ConciseHashTable() {
   if (slot_groups_ != nullptr) {
-    util::Memory::FreeHugeArray(slot_groups_, num_groups_);
+    util::Memory::TrackFreeHugeArray(nullptr, slot_groups_, num_groups_);
   }
 }
 
-void ConciseHashTable::SetSize(const uint32_t new_size) {
+void ConciseHashTable::SetSize(const uint32_t new_size, common::ManagedPointer<MemoryTracker> tracker) {
   if (slot_groups_ != nullptr) {
-    util::Memory::FreeHugeArray(slot_groups_, num_groups_);
+    util::Memory::TrackFreeHugeArray(tracker, slot_groups_, num_groups_);
   }
 
   uint64_t capacity = std::max(MIN_NUM_SLOTS, common::MathUtil::PowerOf2Floor(new_size * LOAD_FACTOR));
   slot_mask_ = capacity - 1;
   num_groups_ = capacity >> LOG_SLOTS_PER_GROUP;
-  slot_groups_ = util::Memory::MallocHugeArray<SlotGroup>(num_groups_, true);
+  slot_groups_ = util::Memory::TrackMallocHugeArray<SlotGroup>(tracker, num_groups_, true);
 }
 
 void ConciseHashTable::Build() {

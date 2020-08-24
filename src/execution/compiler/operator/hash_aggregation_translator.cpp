@@ -5,6 +5,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
+#include "execution/compiler/work_context.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -85,7 +86,8 @@ ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
     term_idx++;
   }
 
-  return codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+  struct_decl_ = codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+  return struct_decl_;
 }
 
 ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {

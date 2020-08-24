@@ -2011,11 +2011,26 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(ParseResult *pa
   return result;
 }
 
-// TODO(WAN): Document why exactly this is required as a JDBC hack.
 // Postgres.VariableSetStmt -> terrier.VariableSetStatement
 std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(ParseResult *parse_result,
-                                                                           UNUSED_ATTRIBUTE VariableSetStmt *root) {
-  auto result = std::make_unique<VariableSetStatement>();
+                                                                           VariableSetStmt *root) {
+  std::string name = root->name_;
+  // TODO(WAN): This is an unfortunate hack around the way SET SESSION CHARACTERISTICS comes in.
+  std::vector<common::ManagedPointer<AbstractExpression>> values;
+  if (name == "SESSION CHARACTERISTICS") {
+    auto list_cell = root->args_->head;
+    TERRIER_ASSERT(reinterpret_cast<Node *>(list_cell->data.ptr_value)->type == T_DefElem, "Expect a DefElem.");
+    TERRIER_ASSERT(list_cell->next == nullptr, "Expect only one argument.");
+    auto def_cell = reinterpret_cast<DefElem *>(list_cell->data.ptr_value);
+    name = def_cell->defname_;
+    auto expr = ConstTransform(parse_result, reinterpret_cast<AConst *>(def_cell->arg_));
+    values.emplace_back(common::ManagedPointer(expr));
+    parse_result->AddExpression(std::move(expr));
+  } else {
+    values = ParamListTransform(parse_result, root->args_);
+  }
+  bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
+  auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
   return result;
 }
 

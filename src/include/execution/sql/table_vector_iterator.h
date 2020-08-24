@@ -92,14 +92,13 @@ class EXPORT TableVectorIterator {
 
   /**
    * Scan function callback used to scan a partition of the table.
-   * Convention: First argument is the opaque query state,
+   * Convention: First argument is the opaque query state (that must contain execCtx as a member),
    *             second argument is the thread state,
-   *             third argument is the table vector iterator configured to iterate a sub-range of the table,
-   *             fourth argument is the execution context.
+   *             third argument is the table vector iterator configured to iterate a sub-range of the table.
    *             The first two arguments are void because their types are only known at runtime
    *             (i.e., defined in generated code).
    */
-  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter, exec::ExecutionContext *);
+  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
 
   /**
    * Perform a parallel scan over the table with ID @em table_id using the callback function

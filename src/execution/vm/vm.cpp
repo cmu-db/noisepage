@@ -459,7 +459,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecutionContextAddRowsAffected) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto rows_affected = frame->LocalAt<int64_t>(READ_LOCAL_ID());
+    auto rows_affected = frame->LocalAt<int32_t>(READ_LOCAL_ID());
 
     OpExecutionContextAddRowsAffected(exec_ctx, rows_affected);
     DISPATCH_NEXT();
@@ -979,6 +979,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_VEC_FILTER(VectorFilterLessThan)
   GEN_VEC_FILTER(VectorFilterLessThanEqual)
   GEN_VEC_FILTER(VectorFilterNotEqual)
+  GEN_VEC_FILTER(VectorFilterLike)
+  GEN_VEC_FILTER(VectorFilterNotLike)
 
 #undef GEN_VEC_FILTER
 
@@ -2185,6 +2187,29 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // -------------------------------------------------------
   // String functions
   // -------------------------------------------------------
+  OP(Chr) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpChr(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
+
+  OP(CharLength) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpCharLength(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
+
+  OP(ASCII) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpASCII(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
 
   OP(Concat) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
@@ -2225,6 +2250,15 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     OpLower(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
+
+  OP(Position) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *search_str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *search_sub_str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpPosition(result, exec_ctx, search_str, search_sub_str);
     DISPATCH_NEXT();
   }
 
@@ -2333,10 +2367,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Date functions
   // -------------------------------------------------------
 
-  OP(ExtractYear) : {
+  OP(ExtractYearFromDate) : {
     auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<sql::DateVal *>(READ_LOCAL_ID());
-    OpExtractYear(result, input);
+    OpExtractYearFromDate(result, input);
     DISPATCH_NEXT();
   }
 

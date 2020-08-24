@@ -91,18 +91,26 @@ void SeqScanTranslator::GenerateFilterClauseFunctions(util::RegionVector<ast::Fu
                                                       std::vector<ast::Identifier> *curr_clause,
                                                       bool seen_conjunction) {
   // The top-most disjunctions in the tree form separate clauses in the filter manager.
+  // For a SQL statement like "SELECT * FROM tbl WHERE a=1 OR b=2 OR c=3;", its predicate is an AbstractExpression
+  // with type CONJUNCTION_OR, and it has 3 children expression with type COMPARE_EQUAL. For each child, this function
+  // is recursively called to append the predicate to the filter. seen_conjunction is used to indicate if DNF is
+  // violated, if so (such as an OR nested within an AND), then we treat it as a generic term.
   if (!seen_conjunction && predicate->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {
-    std::vector<ast::Identifier> next_clause;
-    GenerateFilterClauseFunctions(decls, predicate->GetChild(0), &next_clause, false);
-    filters_.emplace_back(std::move(next_clause));
-    GenerateFilterClauseFunctions(decls, predicate->GetChild(1), curr_clause, false);
+    for (size_t idx = 0; idx < predicate->GetChildrenSize() - 1; ++idx) {
+      std::vector<ast::Identifier> next_clause;
+      GenerateFilterClauseFunctions(decls, predicate->GetChild(idx), &next_clause, false);
+      filters_.emplace_back(std::move(next_clause));
+    }
+    // Last predicate is handled separately to keep api unitform
+    GenerateFilterClauseFunctions(decls, predicate->GetChild(predicate->GetChildrenSize() - 1), curr_clause, false);
     return;
   }
 
   // Consecutive conjunctions are part of the same clause.
   if (predicate->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
-    GenerateFilterClauseFunctions(decls, predicate->GetChild(0), curr_clause, true);
-    GenerateFilterClauseFunctions(decls, predicate->GetChild(1), curr_clause, true);
+    for (const auto &child : predicate->GetChildren()) {
+      GenerateFilterClauseFunctions(decls, child, curr_clause, true);
+    }
     return;
   }
 
@@ -314,8 +322,8 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const 
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   DeclareColOids(function);
-  function->Append(GetCodeGen()->IterateTableParallel(GetExecutionContext(), GetTableOid(), col_oids_var_,
-                                                      GetQueryStatePtr(), GetThreadStateContainer(), work_func));
+  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oids_var_, GetQueryStatePtr(),
+                                                      GetExecutionContext(), work_func));
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

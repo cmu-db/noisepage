@@ -2,9 +2,14 @@
 
 #include <vector>
 
-#include "catalog/schema.h"
-#include "execution/compiler/ast_fwd.h"
+#include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
+#include "storage/storage_defs.h"
+
+namespace terrier::catalog {
+class Schema;
+}  // namespace terrier::catalog
 
 namespace terrier::planner {
 class InsertPlanNode;
@@ -15,7 +20,7 @@ namespace terrier::execution::compiler {
 /**
  * InsertTranslator
  */
-class InsertTranslator : public OperatorTranslator {
+class InsertTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a new translator for the given insert plan. The compilation occurs within the
@@ -57,6 +62,14 @@ class InsertTranslator : public OperatorTranslator {
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Insert is serial."); };
+
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Insert is serial.");
+  };
+
  private:
   // Declare storage interface.
   void DeclareInserter(FunctionBuilder *builder) const;
@@ -83,13 +96,7 @@ class InsertTranslator : public OperatorTranslator {
   void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
 
   // Gets all the column oids in a schema.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
+  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema);
 
   // Storage interface inserter struct which we use to insert.
   ast::Identifier inserter_;

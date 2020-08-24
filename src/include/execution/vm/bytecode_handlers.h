@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include "catalog/catalog_accessor.h"
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
@@ -20,12 +21,14 @@
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/operators/hash_operators.h"
 #include "execution/sql/sorter.h"
+#include "execution/sql/sql_def.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
-// #include "execution/util/csv_reader.h" Fix later.
 #include "parser/expression/constant_value_expression.h"
+
+// #include "execution/util/csv_reader.h" Fix later.
 
 // All VM bytecode op handlers must use this macro
 #define VM_OP EXPORT
@@ -534,6 +537,8 @@ GEN_VECTOR_FILTER(GreaterThanEqual)
 GEN_VECTOR_FILTER(LessThan)
 GEN_VECTOR_FILTER(LessThanEqual)
 GEN_VECTOR_FILTER(NotEqual)
+GEN_VECTOR_FILTER(Like)
+GEN_VECTOR_FILTER(NotLike)
 
 #undef GEN_VECTOR_FILTER
 
@@ -1516,6 +1521,15 @@ VM_OP_WARM void OpNpRunnersDummyReal(UNUSED_ATTRIBUTE terrier::execution::exec::
 // ---------------------------------------------------------
 // String functions
 // ---------------------------------------------------------
+VM_OP_WARM void OpChr(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                      const terrier::execution::sql::Integer *n) {
+  terrier::execution::sql::StringFunctions::Chr(result, ctx, *n);
+}
+
+VM_OP_WARM void OpASCII(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
+                        const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::ASCII(result, ctx, *str);
+}
 
 VM_OP_WARM void OpCharLength(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
                              const terrier::execution::sql::StringVal *str) {
@@ -1546,6 +1560,12 @@ VM_OP_WARM void OpLength(terrier::execution::sql::Integer *result, terrier::exec
 VM_OP_WARM void OpLower(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Lower(result, ctx, *str);
+}
+
+VM_OP_WARM void OpPosition(terrier::execution::sql::Integer *result, terrier::execution::exec::ExecutionContext *ctx,
+                           const terrier::execution::sql::StringVal *search_str,
+                           const terrier::execution::sql::StringVal *search_sub_str) {
+  terrier::execution::sql::StringFunctions::Position(result, ctx, *search_str, *search_sub_str);
 }
 
 VM_OP_WARM void OpLPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
@@ -1854,7 +1874,8 @@ VM_OP void OpStorageInterfaceFree(terrier::execution::sql::StorageInterface *sto
 // Date function
 // ---------------------------------
 
-VM_OP_WARM void OpExtractYear(terrier::execution::sql::Integer *result, terrier::execution::sql::DateVal *input) {
+VM_OP_WARM void OpExtractYearFromDate(terrier::execution::sql::Integer *result,
+                                      terrier::execution::sql::DateVal *input) {
   if (input->is_null_) {
     result->is_null_ = true;
   } else {

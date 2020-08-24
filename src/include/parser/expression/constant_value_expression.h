@@ -229,6 +229,9 @@ class ConstantValueExpression : public AbstractExpression {
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
+  /** @return A string representation of this ConstantValueExpression. */
+  std::string ToString() const;
+
   /**
    * @return expression serialized to json
    */

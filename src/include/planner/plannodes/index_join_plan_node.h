@@ -13,8 +13,6 @@
 
 namespace terrier::planner {
 
-using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
-
 /**
  * Plan node for nested loop joins
  * TODO(Amadou): This class is fairly similar to the IndexScan plan node. However, the translators are diffrerent.

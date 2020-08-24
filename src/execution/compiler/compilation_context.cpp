@@ -48,6 +48,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
+#include "parser/expression/constant_value_expression.h"
 #include "parser/expression/derived_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -58,6 +59,7 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
@@ -157,7 +159,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Extract and record the translators.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
-                                          common::ManagedPointer(pipeline));
+                                          common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
   }
@@ -177,9 +179,12 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
                                                              const exec::ExecutionSettings &exec_settings,
                                                              catalog::CatalogAccessor *accessor,
-                                                             const CompilationMode mode) {
+                                                             const CompilationMode mode,
+                                                             common::ManagedPointer<const std::string> query_text) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
+  // TODO(Lin): Hacking... remove this after getting the counters in
+  query->SetQueryText(query_text);
 
   // Generate the plan for the query
   CompilationContext ctx(query.get(), accessor, mode);

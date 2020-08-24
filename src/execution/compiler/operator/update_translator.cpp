@@ -9,6 +9,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
+#include "planner/plannodes/update_plan_node.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
@@ -22,6 +23,7 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       all_oids_(CollectOids(table_schema_)),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(all_oids_)) {
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   compilation_context->Prepare(*plan.GetChild(0), pipeline);
 
   for (const auto &clause : plan.GetSetClauses()) {
@@ -270,6 +272,14 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(updater_), child->GetSlotAddress()};
   auto *index_delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::IndexDelete, delete_args);
   builder->Append(GetCodeGen()->MakeStmt(index_delete_call));
+}
+
+std::vector<catalog::col_oid_t> UpdateTranslator::CollectOids(const catalog::Schema &schema) {
+  std::vector<catalog::col_oid_t> oids;
+  for (const auto &col : schema.GetColumns()) {
+    oids.emplace_back(col.Oid());
+  }
+  return oids;
 }
 
 }  // namespace terrier::execution::compiler

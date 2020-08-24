@@ -39,6 +39,8 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
     }
   }
 
+  if (tracker_ != nullptr) tracker_->Increment(size);
+
   // Done
   return buf;
 }
@@ -49,6 +51,8 @@ void MemoryPool::Deallocate(void *ptr, std::size_t size) {
   } else {
     std::free(ptr);
   }
+
+  if (tracker_ != nullptr) tracker_->Decrement(size);
 }
 
 void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { mmap_threshold = size; }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
 
 namespace terrier::planner {
 class ProjectionPlanNode;
@@ -11,7 +12,7 @@ namespace terrier::execution::compiler {
 /**
  * Translator for projections.
  */
-class ProjectionTranslator : public OperatorTranslator {
+class ProjectionTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
    * Create a translator for the given plan.
@@ -35,6 +36,14 @@ class ProjectionTranslator : public OperatorTranslator {
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Projections do not produce columns from base tables.");
   }
+
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Projection is serial."); };
+
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Projection is serial.");
+  };
 };
 
 }  // namespace terrier::execution::compiler

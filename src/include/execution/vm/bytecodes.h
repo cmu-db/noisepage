@@ -237,6 +237,14 @@ namespace terrier::execution::vm {
     OperandType::Local)                                                                                               \
   F(VectorFilterNotEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
     OperandType::Local)                                                                                               \
+  F(VectorFilterLike, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                 \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLikeVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,              \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotLike, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,              \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotLikeVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,           \
+    OperandType::Local)                                                                                               \
                                                                                                                       \
   /* SQL value creation */                                                                                            \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
@@ -586,6 +594,9 @@ namespace terrier::execution::vm {
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
                                                                                                                       \
   /* String functions */                                                                                              \
+  F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(CharLength, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(ASCII, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
@@ -602,9 +613,10 @@ namespace terrier::execution::vm {
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
                                                                                                                       \
   /* Date Functions */                                                                                                \
-  F(ExtractYear, OperandType::Local, OperandType::Local)                                                              \
+  F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \
                                                                                                                       \
   F(AbortTxn, OperandType::Local)                                                                                     \
                                                                                                                       \
