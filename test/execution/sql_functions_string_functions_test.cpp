@@ -319,7 +319,7 @@ TEST_F(StringFunctionsTests, Length) {
     auto x = StringVal::Null();
     auto result = Integer(0);
 
-    StringFunctions::Length(Ctx(), &result, x);
+    StringFunctions::Length(&result, Ctx(), x);
     EXPECT_TRUE(result.is_null_);
   }
 
@@ -328,14 +328,14 @@ TEST_F(StringFunctionsTests, Length) {
     auto x = StringVal("");
     auto result = Integer(0);
 
-    StringFunctions::Length(Ctx(), &result, x);
+    StringFunctions::Length(&result, Ctx(), x);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(0, result.val_);
   }
 
   auto x = StringVal("test");
   auto result = Integer(0);
-  StringFunctions::Length(Ctx(), &result, x);
+  StringFunctions::Length(&result, Ctx(), x);
   EXPECT_FALSE(result.is_null_);
   EXPECT_EQ(4, result.val_);
 }
@@ -682,34 +682,34 @@ TEST_F(StringFunctionsTests, InitCap) {
     auto x = StringVal::Null();
     auto result = StringVal("");
 
-    StringFunctions::Upper(Ctx(), &result, x);
+    StringFunctions::Upper(&result, Ctx(), x);
     EXPECT_TRUE(result.is_null_);
   }
 
   // simple
   auto x = StringVal("simple test");
   auto result = StringVal("");
-  StringFunctions::InitCap(Ctx(), &result, x);
+  StringFunctions::InitCap(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("Simple Test") == result);
 
   // one word
   x = StringVal("zyh");
-  StringFunctions::InitCap(Ctx(), &result, x);
+  StringFunctions::InitCap(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("Zyh") == result);
 
   // spaces
   x = StringVal("--test--");
-  StringFunctions::InitCap(Ctx(), &result, x);
+  StringFunctions::InitCap(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("--Test--") == result);
 
   // special char
   x = StringVal("3imple 7est");
-  StringFunctions::InitCap(Ctx(), &result, x);
+  StringFunctions::InitCap(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("3imple 7est") == result);
 
   // complex
   x = StringVal("-a 3imple   7est  simple t  Test");
-  StringFunctions::InitCap(Ctx(), &result, x);
+  StringFunctions::InitCap(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("-A 3imple   7est  Simple T  Test") == result);
 }
 
