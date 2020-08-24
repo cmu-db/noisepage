@@ -265,9 +265,6 @@ VM_OP void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterato
 
 VM_OP void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter);
 
-VM_OP void OpTempTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter,
-                                                terrier::execution::sql::CteScanIterator *cte_scan_iter);
-
 VM_OP_HOT void OpTableVectorIteratorNext(bool *has_more, terrier::execution::sql::TableVectorIterator *iter) {
   *has_more = iter->Advance();
 }

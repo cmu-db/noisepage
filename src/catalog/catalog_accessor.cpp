@@ -79,6 +79,9 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
+  if (UNLIKELY(IS_TEMP_OID(table))) {
+    return temp_tables_.find(table)->second;
+  }
   if (cache_ != DISABLED) {
     auto table_ptr = cache_->GetTable(table);
     if (table_ptr == nullptr) {
@@ -87,9 +90,6 @@ common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t 
       cache_->PutTable(table, table_ptr);
     }
     return table_ptr;
-  }
-  if (UNLIKELY(IS_TEMP_OID(table))) {
-    return temp_tables_.find(table)->second;
   }
   return dbc_->GetTable(txn_, table);
 }

@@ -661,19 +661,6 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
     }
-    case ast::Builtin::TempTableIterInitBind: {
-      // The second argument should be the execution context
-      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      auto *arr_type = call->Arguments()[2]->GetType()->As<ast::ArrayType>();
-      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[2]);
-      LocalVar cte_scan_iterator = VisitExpressionForRValue(call->Arguments()[3]);
-      // Emit the initialization codes
-      UNUSED_ATTRIBUTE LocalVar dummy_oid = LocalVar();
-      GetEmitter()->EmitTempTableIterInit(Bytecode::TempTableVectorIteratorInit, iter, exec_ctx, col_oids,
-                                          static_cast<uint32_t>(arr_type->GetLength()));
-      GetEmitter()->Emit(Bytecode::TempTableVectorIteratorPerformInit, iter, cte_scan_iterator);
-      break;
-    }
     case ast::Builtin::TableIterAdvance: {
       LocalVar cond = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::TableVectorIteratorNext, cond, iter);
@@ -2248,7 +2235,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::TableIterInit:
-    case ast::Builtin::TempTableIterInitBind:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetVPI:
     case ast::Builtin::TableIterClose: {

@@ -553,25 +553,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(TempTableVectorIteratorInit) : {
-    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
-    auto num_oids = READ_UIMM4();
-    OpTableVectorIteratorInit(iter, exec_ctx, 999, col_oids, num_oids);
-    DISPATCH_NEXT();
-  }
-
   OP(TableVectorIteratorPerformInit) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     OpTableVectorIteratorPerformInit(iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(TempTableVectorIteratorPerformInit) : {
-    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    auto *cte_scan_iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
-    OpTempTableVectorIteratorPerformInit(iter, cte_scan_iter);
     DISPATCH_NEXT();
   }
 

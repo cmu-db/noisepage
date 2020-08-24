@@ -269,19 +269,6 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
 }
 
 ast::Expr *SeqScanTranslator::TableIterInitExpr() const {
-  if (IS_TEMP_OID(GetTableOid())) {
-    ast::Expr *cte_scan_ptr;
-    auto leader = GetPlanAs<planner::CteScanPlanNode>().GetLeader();
-    if (leader->GetIsInductive()) {
-      cte_scan_ptr = reinterpret_cast<IndCteScanLeaderTranslator *>(GetCompilationContext()->LookupTranslator(*leader))
-                         ->GetCteScanPtr(GetCodeGen());
-    } else {
-      cte_scan_ptr = reinterpret_cast<CteScanLeaderTranslator *>(GetCompilationContext()->LookupTranslator(*leader))
-                         ->GetCteScanPtr(GetCodeGen());
-    }
-    return GetCodeGen()->TempTableIterInit(tvi_var_, cte_scan_ptr, col_oids_var_,
-                                           GetCompilationContext()->GetExecutionContextPtrFromQueryState());
-  }
   return GetCodeGen()->TableIterInit(GetCodeGen()->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(),
                                      col_oids_var_);
 }

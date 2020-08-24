@@ -31,7 +31,10 @@ IndCteScanIterator::IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog
 
 CteScanIterator *IndCteScanIterator::GetWriteCte() { return cte_scan_write_; }
 
-CteScanIterator *IndCteScanIterator::GetReadCte() { return cte_scan_read_; }
+CteScanIterator *IndCteScanIterator::GetReadCte() {
+  exec_ctx_->GetAccessor()->RegisterTempTable(table_oid_, common::ManagedPointer(cte_scan_read_->GetTable()));
+  return cte_scan_read_;
+}
 
 CteScanIterator *IndCteScanIterator::GetResultCTE() {
   if (is_recursive_) {

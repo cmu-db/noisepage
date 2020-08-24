@@ -25,11 +25,6 @@ void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterat
   iter->Init();
 }
 
-void OpTempTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter,
-                                          terrier::execution::sql::CteScanIterator *cte_scan_iter) {
-  iter->InitTempTable(terrier::common::ManagedPointer(cte_scan_iter->GetTable()));
-}
-
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {
   TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
   iter->~TableVectorIterator();

@@ -1016,34 +1016,6 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::TempTableIterInitBind: {
-      if (!CheckArgCount(call, 4)) {
-        return;
-      }
-      // The second argument is the execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      // The third argument is a uint32_t array
-      if (!call_args[2]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 2, "Fourth argument should be a uint32 array");
-        return;
-      }
-      auto *arr_type = call_args[2]->GetType()->SafeAs<ast::ArrayType>();
-      auto uint32_t_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->GetElementType()->IsSpecificBuiltin(uint32_t_kind)) {
-        ReportIncorrectCallArg(call, 2, "Fourth argument should be a uint32 array");
-      }
-      const auto cte_scan_iterator_kind = ast::BuiltinType::CteScanIterator;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[3]->GetType(), cte_scan_iterator_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(cte_scan_iterator_kind)->PointerTo());
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
     case ast::Builtin::TableIterAdvance: {
       // A single-arg builtin returning a boolean
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
@@ -2957,7 +2929,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::TableIterInit:
-    case ast::Builtin::TempTableIterInitBind:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetVPI:
     case ast::Builtin::TableIterClose: {

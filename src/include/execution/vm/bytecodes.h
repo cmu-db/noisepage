@@ -116,8 +116,6 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
-  F(TempTableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)      \
-  F(TempTableVectorIteratorPerformInit, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
