@@ -13,8 +13,9 @@ namespace terrier {
 
 class PerfMonitorTests : public TerrierTest {
  public:
-  static void CreateAndDestroyCatalog(common::PerfMonitor::PerfCounters *const counters) {
-    common::PerfMonitor monitor(false);
+  template <bool inherit, typename perf_counters>
+  static void CreateAndDestroyCatalog(perf_counters *const counters) {
+    common::PerfMonitor<inherit> monitor;
     monitor.Start();
 
     auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
@@ -24,8 +25,9 @@ class PerfMonitorTests : public TerrierTest {
     *counters = monitor.Counters();
   }
 
-  static void JustSleep(common::PerfMonitor::PerfCounters *const counters) {
-    common::PerfMonitor monitor(false);
+  template <bool inherit, typename perf_counters>
+  static void JustSleep(perf_counters *const counters) {
+    common::PerfMonitor<inherit> monitor;
     monitor.Start();
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -41,11 +43,13 @@ class PerfMonitorTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(PerfMonitorTests, BasicTest) {
-  common::PerfMonitor parent_monitor(false);
-  common::PerfMonitor::PerfCounters parent_counters, catalog_counters, sleep_counters;
+constexpr bool inherit = false;
+
+  common::PerfMonitor<inherit> parent_monitor;
+  common::PerfMonitor<inherit>::PerfCounters parent_counters, catalog_counters, sleep_counters;
   parent_monitor.Start();
-  std::thread thread1(CreateAndDestroyCatalog, &catalog_counters);
-  std::thread thread2(JustSleep, &sleep_counters);
+  std::thread thread1(CreateAndDestroyCatalog<inherit,common::PerfMonitor<inherit>::PerfCounters>, &catalog_counters);
+  std::thread thread2(JustSleep<inherit,common::PerfMonitor<inherit>::PerfCounters>, &sleep_counters);
   thread1.join();
   thread2.join();
   parent_monitor.Stop();
@@ -70,11 +74,13 @@ TEST_F(PerfMonitorTests, BasicTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(PerfMonitorTests, InheritTest) {
-  common::PerfMonitor parent_monitor(true);
-  common::PerfMonitor::PerfCounters parent_counters, catalog_counters, sleep_counters;
+  constexpr bool inherit = true;
+
+  common::PerfMonitor<inherit> parent_monitor;
+  common::PerfMonitor<inherit>::PerfCounters parent_counters, catalog_counters, sleep_counters;
   parent_monitor.Start();
-  std::thread thread1(CreateAndDestroyCatalog, &catalog_counters);
-  std::thread thread2(JustSleep, &sleep_counters);
+  std::thread thread1(CreateAndDestroyCatalog<inherit,common::PerfMonitor<inherit>::PerfCounters>, &catalog_counters);
+  std::thread thread2(JustSleep<inherit,common::PerfMonitor<inherit>::PerfCounters>, &sleep_counters);
   thread1.join();
   thread2.join();
   parent_monitor.Stop();
