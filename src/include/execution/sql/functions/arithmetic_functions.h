@@ -180,7 +180,7 @@ class EXPORT ArithmeticFunctions {
   static void Ceil(Real *result, const Real &v);
 
   /**
-   * Floot
+   * Floor
    */
   static void Floor(Real *result, const Real &v);
 

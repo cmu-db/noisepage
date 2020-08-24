@@ -37,14 +37,16 @@ class MiniTrainer:
         self.trim = trim
         self.expose_all = expose_all
 
-    def _train_specific_model(self, data, transformer_idx, method_idx):
+    def _train_specific_model(self, data, y_transformer_idx, method_idx):
         methods = self.ml_models
         method = methods[method_idx]
-        label = method if transformer_idx == 0 else method + " transform"
+        label = method if y_transformer_idx == 0 else method + " transform"
         logging.info("Finalizing model {} {}".format(data.opunit.name, label))
 
-        transformers = [None, data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]]
-        regressor = model.Model(methods[method_idx], modeling_transformer=transformers[transformer_idx])
+        y_transformers = [None, data_transforming_util.OPUNIT_Y_TRANSFORMER_MAP[data.opunit]]
+        x_transformer = data_transforming_util.OPUNIT_X_TRANSFORMER_MAP[data.opunit]
+        regressor = model.Model(methods[method_idx], y_transformer=y_transformers[y_transformer_idx],
+                                x_transformer=x_transformer)
         regressor.train(data.x, data.y)
         self.model_map[data.opunit] = regressor
 
@@ -61,24 +63,25 @@ class MiniTrainer:
         methods = self.ml_models
 
         # Test the prediction with/without the target transformer
-        transformers = [None, data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]]
+        y_transformers = [None, data_transforming_util.OPUNIT_Y_TRANSFORMER_MAP[data.opunit]]
         # modeling_transformer = data_transforming_util.OPUNIT_MODELING_TRANSFORMER_MAP[data.opunit]
         # if modeling_transformer is not None:
         #    transformers.append(modeling_transformer)
+        x_transformer = data_transforming_util.OPUNIT_X_TRANSFORMER_MAP[data.opunit]
 
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
-        best_transformer = -1
+        best_y_transformer = -1
         best_method = -1
-        for i, transformer in enumerate(transformers):
+        for i, y_transformer in enumerate(y_transformers):
             for m, method in enumerate(methods):
                 # Train the model
                 label = method if i == 0 else method + " transform"
                 logging.info("{} {}".format(data.opunit.name, label))
-                regressor = model.Model(method, modeling_transformer=transformer)
+                regressor = model.Model(method, y_transformer=y_transformer, x_transformer=x_transformer)
                 regressor.train(x_train, y_train)
 
                 # Evaluate on both the training and test set
@@ -92,7 +95,12 @@ class MiniTrainer:
                     y_pred = regressor.predict(evaluate_x)
                     logging.debug("x shape: {}".format(evaluate_x.shape))
                     logging.debug("y shape: {}".format(y_pred.shape))
-                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + 1 + error_bias), axis=0)
+                    # In order to avoid the percentage error to explode when the actual label is very small,
+                    # we omit the data point with the actual label <= 5 when calculating the percentage error (by
+                    # essentially giving the data points with small labels a very small weight)
+                    weights = np.where(evaluate_y > 5, np.ones(evaluate_y.shape), np.full(evaluate_y.shape, 1e-6))
+                    percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + error_bias), axis=0,
+                                                  weights=weights)
                     results += list(percentage_error) + [""]
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
@@ -101,11 +109,11 @@ class MiniTrainer:
                     # important prediction)
                     # Only use linear regression for the arithmetic operating units
                     if (j == 1 and percentage_error[elapsed_us_index] < min_percentage_error
-                            and transformer == transformers[-1]
+                            and y_transformer == y_transformers[-1]
                             and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
                         min_percentage_error = percentage_error[elapsed_us_index]
                         if self.expose_all:
-                            best_transformer = i
+                            best_y_transformer = i
                             best_method = m
                         else:
                             self.model_map[data.opunit] = regressor
@@ -123,7 +131,7 @@ class MiniTrainer:
 
         # Record the best prediction results on the test data
         result_writing_util.record_predictions(pred_results, prediction_path)
-        return best_transformer, best_method
+        return best_y_transformer, best_method
 
     def train(self):
         """Train the mini-models
@@ -144,9 +152,9 @@ class MiniTrainer:
             data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
                                                          self.stats_map, self.trim)
             for data in data_list:
-                best_transformer, best_method = self._train_data(data, summary_file)
+                best_y_transformer, best_method = self._train_data(data, summary_file)
                 if self.expose_all:
-                    self._train_specific_model(data, best_transformer, best_method)
+                    self._train_specific_model(data, best_y_transformer, best_method)
 
         return self.model_map
 
@@ -156,17 +164,17 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input_nogen',
+    aparser.add_argument('--input_path', default='mini_runner_input',
                          help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_nogen_model', help='Path to save the mini models')
+    aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
                          default=["lr", "rf", "gbm"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
-    aparser.add_argument('--expose_all', default=False, help='Should expose all data to the model')
+    aparser.add_argument('--expose_all', default=True, help='Should expose all data to the model')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 

@@ -3,11 +3,21 @@
  * Base class (helper functions) for prepared statement tests
  */
 
+import moglib.MogUtil;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 
@@ -126,5 +136,25 @@ public class TestUtility {
         for (int i = 0; i < values.length; i++) {
             pstmt.setInt(col++, (int) values[i]);
         }
+    }
+
+    /**
+     * Compute the hash from result list
+     * @param res result list of strings queried from database
+     * @return hash computed
+     */
+    public static String getHashFromDb(List<String> res)  {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
+        String resultString = String.join("\n", res) + "\n";
+        md.update(resultString.getBytes());
+        byte[] byteArr = md.digest();
+        String hex = MogUtil.bytesToHex(byteArr);
+        return hex.toLowerCase();
     }
 }

@@ -100,7 +100,28 @@ class TableGenerator {
   /**
    * Generate mini runners indexes
    */
-  void GenerateMiniRunnerIndexes();
+  void GenerateMiniRunnerIndexTables();
+
+  /**
+   * Adds a mini-runner index
+   * Function does not check whether an index of the same key_num
+   * already exists on the table GenerateTableIndexName(type, row_num)
+   *
+   * @param type Datatype of the underlying table
+   * @param row_num # of rows in the underlying table
+   * @param key_num Number of keys comprising the index
+   */
+  void BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
+
+  /**
+   * Drops a unique mini-runner index
+   *
+   * @param type Datatype of the underlying table
+   * @param row_num # of rows in the underlying table
+   * @param key_num Number of keys comprising the index
+   * @returns bool indicating whether successful
+   */
+  bool DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;

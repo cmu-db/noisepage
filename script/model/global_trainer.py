@@ -86,7 +86,7 @@ class GlobalTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map, warmup_period, simulate_cache):
+    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map, warmup_period, simulate_cache, tpcc_hack):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -95,6 +95,7 @@ class GlobalTrainer:
         self.mini_model_map = mini_model_map
         self.warmup_period = warmup_period
         self.simulate_cache = simulate_cache
+        self.tpcc_hack = tpcc_hack
 
     def train(self):
         """Train the mini-models
@@ -105,7 +106,8 @@ class GlobalTrainer:
                                                                                       self.mini_model_map,
                                                                                       self.model_results_path,
                                                                                       self.warmup_period,
-                                                                                      self.simulate_cache)
+                                                                                      self.simulate_cache,
+                                                                                      self.tpcc_hack)
 
         return self._train_global_models(resource_data_list, impact_data_list)
 
@@ -163,7 +165,9 @@ class GlobalTrainer:
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
-            y.append(raw_y[-1] / (mini_model_y_pred[-1] + 1e-6))
+            y.append(raw_y[-1] / (mini_model_y_pred[-1] + 1))
+            # Do not adjust memory consumption since it shouldn't change
+            y[-1][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = 1
 
         # Training
         metrics_path = "{}/global_{}_model_metrics.csv".format(self.model_results_path, model_name)
@@ -176,16 +180,18 @@ class GlobalTrainer:
         # Calculate the accumulated ratio error
         mini_model_y_pred = np.array(mini_model_y_pred)[test_indices]
         y_pred = trained_model.predict(x)[test_indices]
-        raw_y_pred = mini_model_y_pred * (y_pred + 1e-6)
+        raw_y_pred = (mini_model_y_pred + 1) * y_pred
         raw_y = np.array(raw_y)[test_indices]
         accumulated_raw_y = np.sum(raw_y, axis=0)
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
-        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1e-6), axis=0)
+        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1), axis=0)
+        ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + 1), axis=0)
         accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
         original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                 accumulated_raw_y + 1)
 
         logging.info('Original Ratio Error: {}'.format(original_ratio_error))
+        logging.info('Ratio Error: {}'.format(ratio_error))
         logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
         logging.info('Accumulated Ratio Error: {}'.format(accumulated_percentage_error))
 
@@ -197,20 +203,21 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input',
+    aparser.add_argument('--input_path', default='global_runner_input_40_40',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results',
+    aparser.add_argument('--model_results_path', default='global_model_results_40_40',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
-    aparser.add_argument('--mini_model_file', default='trained_nogen_model/mini_model_map.pickle',
+    aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
                          help='File of the saved mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["nn"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
-    aparser.add_argument('--impact_model_ratio', type=float, default=1,
+    aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
-    aparser.add_argument('--warmup_period', type=float, default=1, help='OLTPBench warmup period')
+    aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
     aparser.add_argument('--simulate_cache', default=False, help='Should simulate cache at 0.4')
+    aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -221,7 +228,7 @@ if __name__ == '__main__':
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                            args.impact_model_ratio, model_map, args.warmup_period, args.simulate_cache)
+                            args.impact_model_ratio, model_map, args.warmup_period, args.simulate_cache, args.tpcc_hack)
     resource_model, impact_model, direct_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)
