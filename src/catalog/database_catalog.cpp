@@ -2083,16 +2083,19 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   SetProcCtxPtr(txn, postgres::SPLIT_PART_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
+  // chr
   func_context = new execution::functions::FunctionContext("chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
                                                            execution::ast::Builtin::Chr, true);
   SetProcCtxPtr(txn, postgres::CHR_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
+  // char_length
   func_context = new execution::functions::FunctionContext(
       "char_length", type::TypeId::INTEGER, {type::TypeId::VARCHAR}, execution::ast::Builtin::CharLength, true);
   SetProcCtxPtr(txn, postgres::CHARLENGTH_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
+  // position
   func_context = new execution::functions::FunctionContext("position", type::TypeId::INTEGER,
                                                            {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
                                                            execution::ast::Builtin::Position, true);
@@ -2105,11 +2108,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   SetProcCtxPtr(txn, postgres::LENGTH_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
-  func_context = new execution::functions::FunctionContext("upper", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
-                                                           execution::ast::Builtin::Upper, true);
-  SetProcCtxPtr(txn, postgres::UPPER_PRO_OID, func_context);
-  txn->RegisterAbortAction([=]() { delete func_context; });
-
+  // upper
   func_context = new execution::functions::FunctionContext("upper", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
                                                            execution::ast::Builtin::Upper, true);
   SetProcCtxPtr(txn, postgres::UPPER_PRO_OID, func_context);

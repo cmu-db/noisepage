@@ -1715,7 +1715,8 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       break;
     }
     case ast::Builtin::Round2: {
-      GetEmitter()->Emit(Bytecode::Round2, dest, src, VisitExpressionForRValue(call->Arguments()[1]));
+      LocalVar src2 = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Round2, dest, src, src2);
       break;
     }
     case ast::Builtin::Pow: {
