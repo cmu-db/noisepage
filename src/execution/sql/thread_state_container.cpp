@@ -48,7 +48,6 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
-  // tbb::enumerable_thread_specific<TLSHandle> states_;
   tbb::mutex states_mutex_;
   std::map<tbb::tbb_thread::id, std::shared_ptr<TLSHandle>> states_;
 };
@@ -65,9 +64,7 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       init_fn_(nullptr),
       destroy_fn_(nullptr),
       ctx_(nullptr),
-      impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  // impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
-}
+      impl_(std::make_unique<ThreadStateContainer::Impl>()) {}
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }
 
@@ -86,8 +83,6 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 }
 
 byte *ThreadStateContainer::AccessCurrentThreadState() {
-  // auto &tls_handle = impl_->states_.local();
-  // return tls_handle.State();
   tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   if (impl_->states_.find(tbb::this_tbb_thread::get_id()) == impl_->states_.end()) {
     std::shared_ptr<TLSHandle> tls_handle(new TLSHandle(this));
