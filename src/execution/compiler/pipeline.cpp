@@ -243,7 +243,6 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       // TODO(wz2): When can track parallel work, insert trackers
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
-
       // var pipelineState = @tlsGetCurrentThreadState(...)
       auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
       auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
