@@ -14,7 +14,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
-      build_pipeline_(this, Pipeline::Parallelism::Parallel) {
+      build_pipeline_(this, Pipeline::Parallelism::Serial) {
   auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
   cte_scan_val_entry_ =
       compilation_context->GetQueryState()->DeclareStateEntry(GetCodeGen(), plan.GetCTETableName() + "val", cte_type);
@@ -22,6 +22,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
       GetCodeGen(), plan.GetCTETableName() + "ptr", GetCodeGen()->PointerType(cte_type));
 
   pipeline->LinkSourcePipeline(&build_pipeline_);
+  pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   compilation_context->Prepare(*(plan.GetChild(0)), &build_pipeline_);
 
   std::vector<uint16_t> attr_sizes;

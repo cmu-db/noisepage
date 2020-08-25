@@ -16,8 +16,8 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
       col_types_(GetCodeGen()->MakeFreshIdentifier("col_types")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       insert_pr_(GetCodeGen()->MakeFreshIdentifier("insert_pr")),
-      base_pipeline_(this, Pipeline::Parallelism::Parallel),
-      build_pipeline_(this, Pipeline::Parallelism::Parallel) {
+      base_pipeline_(this, Pipeline::Parallelism::Serial),
+      build_pipeline_(this, Pipeline::Parallelism::Serial) {
   auto iter_cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::IndCteScanIterator);
   auto cte_type = GetCodeGen()->BuiltinType(ast::BuiltinType::Kind::CteScanIterator);
   cte_scan_val_entry_ = compilation_context->GetQueryState()->DeclareStateEntry(
@@ -27,6 +27,7 @@ IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPla
 
   pipeline->LinkNestedPipeline(&build_pipeline_);
   pipeline->LinkNestedPipeline(&base_pipeline_);
+  pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   compilation_context->Prepare(*(plan.GetChild(1)), &base_pipeline_);
   compilation_context->Prepare(*(plan.GetChild(0)), &build_pipeline_);
 }
