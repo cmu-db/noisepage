@@ -38,7 +38,7 @@ common::hash_t AbstractExpression::Hash() const {
   }
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expression_name_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
+  hash = common::HashUtil::CombineHashes(hash, parser::AliasType::HashKey()(alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(depth_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(has_subquery_)));
 

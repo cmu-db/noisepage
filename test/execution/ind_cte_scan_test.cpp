@@ -27,7 +27,7 @@ class IndCteScanTest : public SqlBasedTest {
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
-TEST_F(IndCteScanTest, IterCTEEmptyAccumulateTest) {
+TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
   // Test that Accumulate() returns false on empty
 
   // Create cte_table
@@ -59,7 +59,7 @@ TEST_F(IndCteScanTest, IterCTEEmptyAccumulateTest) {
   EXPECT_EQ(count, 0);
 }
 
-TEST_F(IndCteScanTest, IterCTESingleInsertTest) {
+TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
   // Simple insert into cte_table
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 1 and 20.
 
@@ -127,7 +127,7 @@ TEST_F(IndCteScanTest, IterCTESingleInsertTest) {
   }
   EXPECT_EQ(count, inserted_vals.size());
 }
-TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
+TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
   // Simple insert into cte_table
   // INSERT INTO cte_table SELECT colA FROM test_1 WHERE colA BETWEEN 1 and 20.
 
@@ -136,7 +136,7 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
 
   // Just one column
-  std::array<uint32_t, 1> col_oids{exec_ctx_->GetAccessor()->GetNewTempOid()};
+  std::array<uint32_t, 1> col_oids{!exec_ctx_->GetAccessor()->GetSchema(table_oid).GetColumns()[0].Oid()};
 
   // The index iterator gives us the slots to update.
   IndexIterator index_iter{
@@ -145,12 +145,13 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
 
   // Create cte_table
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
+  uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
   // auto cte_scan = new terrier::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   terrier::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
       TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
-      col_oids.data(),
+      cte_table_col_ids,
       cte_table_col_type,
       1,
       false};
@@ -177,7 +178,7 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
     cte_scan.TableInsert();
   }
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
+  TableVectorIterator seq_iter{exec_ctx_.get(), !cte_scan.GetReadTableOid(), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
@@ -195,7 +196,7 @@ TEST_F(IndCteScanTest, IterCTEWriteTableTest) {
   EXPECT_EQ(count, inserted_vals.size());
 }
 
-TEST_F(IndCteScanTest, IterCTEDoubleAccumulateTest) {
+TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
   // Same insertion as the previous test, but accumulate TWICE instead of once.
   // Since there are no insertions between the two accumulates, tne second accumulate should do nothing.
 
@@ -265,7 +266,7 @@ TEST_F(IndCteScanTest, IterCTEDoubleAccumulateTest) {
   EXPECT_EQ(count, inserted_vals.size());
 }
 
-TEST_F(IndCteScanTest, IterCTEMultipleInsertTest) {
+TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
   // Multiple iteration insert into cte_table
   //
   // SELECT colA FROM test_1 where colA BETWEEN 1 AND 20

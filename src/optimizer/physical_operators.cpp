@@ -209,7 +209,7 @@ common::hash_t QueryDerivedScan::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   for (auto &iter : alias_to_expr_map_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.first));
+    hash = common::HashUtil::CombineHashes(hash, parser::AliasType::HashKey()(iter.first));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(iter.second));
   }
   return hash;

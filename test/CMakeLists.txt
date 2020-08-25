@@ -4,7 +4,7 @@ file(GLOB_RECURSE TEST_UTIL_SRCS ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp ${PR
 # Test library
 ###############################################
 if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
-    add_library(test_util STATIC ${TEST_UTIL_SRCS} execution/cte_scan_test.cpp execution/iter_cte_scan_test.cpp)
+    add_library(test_util STATIC ${TEST_UTIL_SRCS} execution/cte_scan_test.cpp execution/ind_cte_scan_test.cpp)
     target_link_libraries(test_util terrier_static util_static ${TERRIER_LINK_LIBS})
     add_dependencies(test_util terrier_static util_static gtest gmock_main)
 endif ()
