@@ -277,14 +277,6 @@ void HashJoinTranslator::CheckRightMark(WorkContext *ctx, FunctionBuilder *funct
 void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 
-  // var pipelineState = @tlsGetCurrentThreadState(...)
-  auto exec_ctx = GetCompilationContext()->GetExecutionContextPtrFromQueryState();
-  auto tls = codegen->ExecCtxGetTLS(exec_ctx);
-  auto pipeline_state_type = GetPipeline()->GetPipelineState()->GetTypeName();
-  auto pipeline_state = codegen->TLSAccessCurrentThreadState(tls, pipeline_state_type);
-  auto pipeline_state_var = GetPipeline()->GetPipelineStateVar();
-  function->Append(codegen->DeclareVarWithInit(pipeline_state_var, pipeline_state));
-
   // var joinHTIterBase: JoinHashTableIterator
   auto jht_iter_base = codegen->MakeFreshIdentifier("joinHTIterBase");
   auto jht_iter_type = codegen->BuiltinType(ast::BuiltinType::JoinHashTableIterator);
