@@ -136,6 +136,17 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
   return {nullptr, left, right};
 }
 
+Sema::CheckResult Sema::CheckStringOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
+                                            ast::Expr *right, ast::Expr *exec_ctx) {
+  // If neither inputs are string, fail early
+  if (!left->GetType()->IsSqlStringType() || !right->GetType()->IsSqlStringType()) {
+    GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
+    return {nullptr, left, right};
+  }
+
+  return {left->GetType(), left, right};
+}
+
 Sema::CheckResult Sema::CheckSqlComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                                    ast::Expr *right) {
   TERRIER_ASSERT(left->GetType()->IsSqlValueType() || right->GetType()->IsSqlValueType(),

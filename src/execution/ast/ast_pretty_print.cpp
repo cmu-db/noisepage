@@ -197,6 +197,12 @@ void AstPrettyPrintImpl::VisitBinaryOpExpr(BinaryOpExpr *node) {
   Visit(node->Right());
 }
 
+void AstPrettyPrintImpl::VisitStringBinaryOpExpr(StringBinaryOpExpr *node) {
+  Visit(node->Left());
+  os_ << " " << parsing::Token::GetString(node->Op()) << " ";
+  Visit(node->Right());
+}
+
 void AstPrettyPrintImpl::VisitMapTypeRepr(MapTypeRepr *node) {
   os_ << "map[";
   Visit(node->KeyType());

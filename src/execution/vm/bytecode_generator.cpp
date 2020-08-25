@@ -3003,6 +3003,34 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   }
 }
 
+void BytecodeGenerator::VisitStringBinaryOpExpr(ast::StringBinaryOpExpr *node) {
+  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Binary expressions must be R-Values!");
+  TERRIER_ASSERT(node->GetType()->IsSqlStringType(), "String binary operation must be of type string");
+
+  LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
+  LocalVar left = VisitExpressionForRValue(node->Left());
+  LocalVar right = VisitExpressionForRValue(node->Right());
+  LocalVar exec_ctx = VisitExpressionForRValue(node->ExecutionContext());
+
+  Bytecode bytecode;
+
+  switch (node->Op()) {
+    case parsing::Token::Type::CONCAT: {
+      bytecode = Bytecode::Concat;
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible string operation type");
+    }
+  }
+
+  // Emit
+  GetEmitter()->EmitStringBinaryOp(bytecode, dest, exec_ctx, left, right);
+
+  // Mark where the result is
+  GetExecutionResult()->SetDestination(dest.ValueOf());
+}
+
 #define SQL_COMPARISON_BYTECODE(CODE_RESULT, COMPARISON_TYPE, ARG_KIND) \
   switch (ARG_KIND) {                                                   \
     case ast::BuiltinType::Kind::Boolean:                               \

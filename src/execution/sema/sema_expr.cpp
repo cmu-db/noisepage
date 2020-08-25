@@ -47,6 +47,31 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   }
 }
 
+void Sema::VisitStringBinaryOpExpr(ast::StringBinaryOpExpr *node) {
+  ast::Type *left_type = Resolve(node->Left());
+  ast::Type *right_type = Resolve(node->Right());
+  ast::Type *exec_ctx_type = Resolve(node->ExecutionContext());
+
+  if (left_type == nullptr || right_type == nullptr || exec_ctx_type == nullptr) {
+    // Some error occurred
+    return;
+  }
+
+  switch (node->Op()) {
+    case parsing::Token::Type::CONCAT: {
+      auto [result_type, left, right] =
+          CheckStringOperands(node->Op(), node->Position(), node->Left(), node->Right(), node->ExecutionContext());
+      node->SetType(result_type);
+      if (node->Left() != left) node->SetLeft(left);
+      if (node->Right() != right) node->SetRight(right);
+      break;
+    }
+    default: {
+      EXECUTION_LOG_ERROR("{} is not a binary operation!", parsing::Token::GetString(node->Op()));
+    }
+  }
+}
+
 void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
   ast::Type *left_type = Resolve(node->Left());
   ast::Type *right_type = Resolve(node->Right());

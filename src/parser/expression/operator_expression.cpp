@@ -33,7 +33,11 @@ void OperatorExpression::DeriveReturnValueType() {
     return t1->GetReturnValueType() < t2->GetReturnValueType();
   });
   const auto &type = (*max_type_child)->GetReturnValueType();
-  TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
+  if (this->GetExpressionType() == ExpressionType::OPERATOR_CONCAT) {
+    TERRIER_ASSERT(type == type::TypeId::VARCHAR, "Invalid operand type in Operator Expression.");
+  } else {
+    TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
+  }
   this->SetReturnValueType(type);
 }
 

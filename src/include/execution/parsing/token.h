@@ -41,6 +41,7 @@ namespace terrier::execution::parsing {
   T(STAR, "*", 10)                                 \
   T(SLASH, "/", 10)                                \
   T(PERCENT, "%", 10)                              \
+  T(CONCAT, "||", 11)                              \
                                                    \
   /* Comparison operators, sorted by precedence */ \
   T(BANG_EQUAL, "!=", 5)                           \
@@ -129,6 +130,11 @@ class Token {
     return (static_cast<uint8_t>(Type::COMMA) <= static_cast<uint8_t>(op) &&
             static_cast<uint8_t>(op) <= static_cast<uint8_t>(Type::PERCENT));
   }
+
+  /**
+   * @return True if the given operator represents a binary operation; false otherwise.
+   */
+  static bool IsStringBinaryOp(Type op) { return Type::CONCAT == op; }
 
   /**
    * @return True if the given token represents a comparison operator; false otherwise.

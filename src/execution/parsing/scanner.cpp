@@ -95,7 +95,11 @@ void Scanner::Scan() {
       }
       case '|': {
         Advance();
-        type = Token::Type::BIT_OR;
+        if (Matches('|')) {
+          type = Token::Type::CONCAT;
+        } else {
+          type = Token::Type::BIT_OR;
+        }
         break;
       }
       case '^': {

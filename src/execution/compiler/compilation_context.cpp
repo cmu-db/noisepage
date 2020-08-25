@@ -21,6 +21,7 @@
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/param_value_translator.h"
 #include "execution/compiler/expression/star_translator.h"
+#include "execution/compiler/expression/string_operator_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
@@ -333,6 +334,11 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::OPERATOR_IS_NOT_NULL: {
       const auto &operator_expr = dynamic_cast<const parser::OperatorExpression &>(expression);
       translator = std::make_unique<NullCheckTranslator>(operator_expr, this);
+      break;
+    }
+    case parser::ExpressionType::OPERATOR_CONCAT: {
+      const auto &operator_expr = dynamic_cast<const parser::OperatorExpression &>(expression);
+      translator = std::make_unique<StringOperatorTranslator>(operator_expr, this);
       break;
     }
     case parser::ExpressionType::VALUE_CONSTANT: {

@@ -226,6 +226,13 @@ inline void AstTraversalVisitor<Subclass>::VisitBinaryOpExpr(BinaryOpExpr *node)
 }
 
 template <typename Subclass>
+inline void AstTraversalVisitor<Subclass>::VisitStringBinaryOpExpr(StringBinaryOpExpr *node) {
+  PROCESS_NODE(node);
+  RECURSE(Visit(node->Left()));
+  RECURSE(Visit(node->Right()));
+}
+
+template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitMapTypeRepr(MapTypeRepr *node) {
   PROCESS_NODE(node);
   RECURSE(Visit(node->KeyType()));

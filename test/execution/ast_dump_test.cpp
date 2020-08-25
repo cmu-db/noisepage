@@ -60,6 +60,7 @@ class ExtractKindNames : public AstTraversalVisitor<ExtractKindNames<FindInfinit
   EXTRACT_KINDNAME_METHOD(ForStmt);
   EXTRACT_KINDNAME_METHOD(ForInStmt);
   EXTRACT_KINDNAME_METHOD(BinaryOpExpr);
+  EXTRACT_KINDNAME_METHOD(StringBinaryOpExpr);
   EXTRACT_KINDNAME_METHOD(LitExpr);
   EXTRACT_KINDNAME_METHOD(StructTypeRepr);
   EXTRACT_KINDNAME_METHOD(PointerTypeRepr);

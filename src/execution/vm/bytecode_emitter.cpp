@@ -43,6 +43,11 @@ void BytecodeEmitter::EmitBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar lh
   EmitAll(bytecode, dest, lhs, rhs);
 }
 
+void BytecodeEmitter::EmitStringBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar exec_ctx, LocalVar lhs,
+                                         LocalVar rhs) {
+  EmitAll(bytecode, dest, exec_ctx, lhs, rhs);
+}
+
 void BytecodeEmitter::EmitLea(LocalVar dest, LocalVar src, uint32_t offset) {
   EmitAll(Bytecode::Lea, dest, src, offset);
 }

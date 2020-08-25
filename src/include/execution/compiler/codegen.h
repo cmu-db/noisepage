@@ -356,6 +356,18 @@ class CodeGen {
   [[nodiscard]] ast::Expr *BinaryOp(parsing::Token::Type op, ast::Expr *left, ast::Expr *right) const;
 
   /**
+   * Generate a string binary operation of the provided operation type (<b>op</b>) between the
+   * provided left and right operands, returning its result.
+   * @param op The binary operation.
+   * @param left The left input.
+   * @param right The right input.
+   * @param exec_ctx The execution context that we are running with.
+   * @return The result of the binary operation.
+   */
+  [[nodiscard]] ast::Expr *StringBinaryOp(parsing::Token::Type op, ast::Expr *left, ast::Expr *right,
+                                          ast::Expr *exec_ctx) const;
+
+  /**
    * Generate a comparison operation of the provided type between the provided left and right
    * operands, returning its result.
    * @param op The binary operation.

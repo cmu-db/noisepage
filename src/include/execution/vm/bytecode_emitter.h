@@ -193,6 +193,16 @@ class BytecodeEmitter {
    */
   void EmitBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar lhs, LocalVar rhs);
 
+  /**
+   * Emit binary operator code
+   * @param bytecode bytecode of the binary operation
+   * @param dest destination variable
+   * @param lhs lhs of the operator
+   * @param rhs rhs of the operator
+   * @param exec_ctx execution context of the operator
+   */
+  void EmitStringBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar exec_ctx, LocalVar lhs, LocalVar rhs);
+
   // -------------------------------------------------------
   // Generic emissions
   // -------------------------------------------------------

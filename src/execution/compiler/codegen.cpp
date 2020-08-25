@@ -277,6 +277,12 @@ ast::Expr *CodeGen::BinaryOp(parsing::Token::Type op, ast::Expr *left, ast::Expr
   return context_->GetNodeFactory()->NewBinaryOpExpr(position_, op, left, right);
 }
 
+ast::Expr *CodeGen::StringBinaryOp(parsing::Token::Type op, ast::Expr *left, ast::Expr *right,
+                                   ast::Expr *exec_ctx) const {
+  TERRIER_ASSERT(parsing::Token::IsStringBinaryOp(op), "Provided operation isn't string binary");
+  return context_->GetNodeFactory()->NewStringBinaryOpExpr(position_, op, left, right, exec_ctx);
+}
+
 ast::Expr *CodeGen::Compare(parsing::Token::Type op, ast::Expr *left, ast::Expr *right) const {
   return context_->GetNodeFactory()->NewComparisonOpExpr(position_, op, left, right);
 }

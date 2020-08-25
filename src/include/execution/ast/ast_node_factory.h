@@ -159,6 +159,19 @@ class AstNodeFactory {
 
   /**
    * @param pos source position
+   * @param op binary operator
+   * @param left lhs of the operator
+   * @param right rhs of the operator
+   * @param exec_ctx the execution context that we are running with
+   * @return created StringBinaryOpExpr node
+   */
+  StringBinaryOpExpr *NewStringBinaryOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right,
+                                            Expr *exec_ctx) {
+    return new (region_) StringBinaryOpExpr(pos, op, left, right, exec_ctx);
+  }
+
+  /**
+   * @param pos source position
    * @param op comparision operator
    * @param left lhs of the operator
    * @param right rhs of the operator

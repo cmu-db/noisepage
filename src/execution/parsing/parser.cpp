@@ -390,6 +390,9 @@ ast::Expr *Parser::ParseBinaryOpExpr(uint32_t min_prec) {
       const SourcePosition &position = scanner_->CurrentPosition();
       ast::Expr *right = ParseBinaryOpExpr(prec);
 
+      // TODO(jkosh44): To properly parse string binary ops we would need to also check Token::IsStringBinaryOp(op)
+      // and then set left = node_factory_->NewStringBinaryOpExpr(position, op, left, right, exec_ctx). However
+      // I can't figure out how to get exec_ctx here.
       if (Token::IsCompareOp(op)) {
         left = node_factory_->NewComparisonOpExpr(position, op, left, right);
       } else {

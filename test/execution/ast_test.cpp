@@ -61,6 +61,7 @@ TEST_F(AstTest, HierarchyTest) {
   {
     AstNode *all_exprs[] = {
         factory.NewBinaryOpExpr(EmptyPos(), parsing::Token::Type::PLUS, nullptr, nullptr),
+        factory.NewStringBinaryOpExpr(EmptyPos(), parsing::Token::Type::CONCAT, nullptr, nullptr, nullptr),
         factory.NewCallExpr(factory.NewNilLiteral(EmptyPos()), util::RegionVector<Expr *>(Region())),
         factory.NewFunctionLitExpr(
             factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr),

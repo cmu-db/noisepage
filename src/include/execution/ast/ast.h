@@ -60,6 +60,7 @@ namespace ast {
 #define EXPRESSION_NODES(T)             \
   T(BadExpr)                            \
   T(BinaryOpExpr)                       \
+  T(StringBinaryOpExpr)                 \
   T(CallExpr)                           \
   T(ComparisonOpExpr)                   \
   T(FunctionLitExpr)                    \
@@ -1037,6 +1038,77 @@ class BinaryOpExpr : public Expr {
   parsing::Token::Type op_;
   Expr *left_;
   Expr *right_;
+};
+
+/**
+ * A Stringbinary expression with non-null left and right children, an operator, and a reference to the execution
+ * context.
+ */
+class StringBinaryOpExpr : public Expr {
+ public:
+  /**
+   * Constructor
+   * @param pos source position
+   * @param op binary operator
+   * @param left lhs
+   * @param right rhs
+   * @param exec_ctx execution context
+   */
+  StringBinaryOpExpr(const SourcePosition &pos, parsing::Token::Type op, Expr *left, Expr *right, Expr *exec_ctx)
+      : Expr(Kind::StringBinaryOpExpr, pos), op_(op), left_(left), right_(right), exec_ctx_(exec_ctx) {}
+
+  /**
+   * @return The parsing token representing the kind of binary operation. +, -, etc.
+   */
+  parsing::Token::Type Op() const { return op_; }
+
+  /**
+   * @return The left input to the binary expression.
+   */
+  Expr *Left() const { return left_; }
+
+  /**
+   * @return The right input to the binary expression.
+   */
+  Expr *Right() const { return right_; }
+
+  /**
+   * Is the given node a binary expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a binary expression; false otherwise.
+   */
+  static bool classof(const AstNode *node) {  // NOLINT
+    return node->GetKind() == Kind::StringBinaryOpExpr;
+  }
+
+  /**
+   * @return The Execution Context
+   */
+  Expr *ExecutionContext() const { return exec_ctx_; }
+
+ private:
+  friend class sema::Sema;
+
+  void SetLeft(Expr *left) {
+    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
+    left_ = left;
+  }
+
+  void SetRight(Expr *right) {
+    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
+    right_ = right;
+  }
+
+  void SetExecCtx(Expr *exec_ctx) {
+    TERRIER_ASSERT(exec_ctx != nullptr, "Execution Context cannot be null!");
+    exec_ctx_ = exec_ctx;
+  }
+
+ private:
+  parsing::Token::Type op_;
+  Expr *left_;
+  Expr *right_;
+  Expr *exec_ctx_;
 };
 
 /**

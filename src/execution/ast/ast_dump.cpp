@@ -275,6 +275,13 @@ void AstDumperImpl::VisitBinaryOpExpr(BinaryOpExpr *node) {
   DumpExpr(node->Right());
 }
 
+void AstDumperImpl::VisitStringBinaryOpExpr(StringBinaryOpExpr *node) {
+  DumpExpressionCommon(node);
+  DumpToken(node->Op());
+  DumpExpr(node->Left());
+  DumpExpr(node->Right());
+}
+
 void AstDumperImpl::VisitComparisonOpExpr(ComparisonOpExpr *node) {
   DumpExpressionCommon(node);
   DumpToken(node->Op());

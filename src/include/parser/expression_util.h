@@ -146,7 +146,6 @@ class ExpressionUtil {
       case ExpressionType::OPERATOR_MINUS:
       case ExpressionType::OPERATOR_MULTIPLY:
       case ExpressionType::OPERATOR_DIVIDE:
-      case ExpressionType::OPERATOR_CONCAT:
       case ExpressionType::OPERATOR_MOD:
         return true;
       default:

@@ -100,6 +100,10 @@ class Sema : public ast::AstVisitor<Sema> {
   CheckResult CheckArithmeticOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                       ast::Expr *right);
 
+  // Check operands to an string operation: ||, etc.
+  CheckResult CheckStringOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left, ast::Expr *right,
+                                  ast::Expr *exec_ctx);
+
   CheckResult CheckComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                       ast::Expr *right);
 
