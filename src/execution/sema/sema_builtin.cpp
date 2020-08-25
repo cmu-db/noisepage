@@ -2700,8 +2700,8 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the third argument is an integer
-      if (!call->Arguments()[2]->GetType()->IsIntegerType()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Kind::Uint32));
+      if (call->Arguments()[2]->GetType() != GetBuiltinType(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Integer));
         return;
       }
 
