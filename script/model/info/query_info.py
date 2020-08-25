@@ -13,7 +13,7 @@ _Q1_P2 = [(OpUnit.AGG_ITERATE, [4, 92, 10, 4]),
           ]
 
 _Q1_Q3 = [(OpUnit.SORT_ITERATE, [4, 92, 10, 4]),
-          (OpUnit.OUTPUT, [4, 92, 10, 4]),
+          (OpUnit.OUTPUT, [4, 92, 10, 0]),
           ]
 
 _Q4_P1 = [(OpUnit.SEQ_SCAN, [150000, 24, 3, 100]),
@@ -33,7 +33,7 @@ _Q4_P3 = [(OpUnit.AGG_ITERATE, [5, 20, 2,  5]),
           ]
 
 _Q4_P4 = [(OpUnit.SORT_ITERATE, [5, 20, 2, 5]),
-          (OpUnit.OUTPUT, [5, 20, 2, 5]),
+          (OpUnit.OUTPUT, [5, 20, 2, 0]),
           ]
 
 _Q5_P1 = [(OpUnit.SEQ_SCAN, [5, 16, 2, 5]),
@@ -63,10 +63,10 @@ _Q5_P5 = [(OpUnit.SEQ_SCAN, [1000, 8, 2, 1000]),
 
 _Q5_P6 = [(OpUnit.SEQ_SCAN, [600000, 24, 4, 600000]),
           (OpUnit.HASHJOIN_PROBE, [600000, 4, 1, 120000]),
-          (OpUnit.HASHJOIN_PROBE, [120000, 4, 1, 6000]),
-          (OpUnit.AGG_BUILD, [6000, 16, 1, 5]),
-          (OpUnit.OP_DECIMAL_MULTIPLY, [6000, 4, 1, 6000]),
-          (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [12000, 4, 1, 12000]),
+          (OpUnit.HASHJOIN_PROBE, [120000, 4, 1, 5000]),
+          (OpUnit.AGG_BUILD, [5000, 16, 1, 5]),
+          (OpUnit.OP_DECIMAL_MULTIPLY, [5000, 4, 1, 5000]),
+          (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [10000, 4, 1, 10000]),
           ]
 
 _Q5_P7 = [(OpUnit.AGG_ITERATE, [5, 20, 2, 5]),
@@ -74,7 +74,7 @@ _Q5_P7 = [(OpUnit.AGG_ITERATE, [5, 20, 2, 5]),
           ]
 
 _Q5_P8 = [(OpUnit.SORT_ITERATE, [5, 20, 2, 5]),
-          (OpUnit.OUTPUT, [5, 20, 2, 5]),
+          (OpUnit.OUTPUT, [5, 20, 2, 0]),
           ]
 
 _Q6_P1 = [(OpUnit.SEQ_SCAN, [600000, 24, 4, 600000]),
@@ -82,7 +82,7 @@ _Q6_P1 = [(OpUnit.SEQ_SCAN, [600000, 24, 4, 600000]),
           (OpUnit.OP_INTEGER_COMPARE, [1200000, 4, 1, 1200000]),
           (OpUnit.OP_DECIMAL_MULTIPLY, [4285, 4, 1, 4285]),
           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [4285, 4, 1, 4285]),
-          (OpUnit.OUTPUT, [1, 8, 1, 1]),
+          (OpUnit.OUTPUT, [1, 8, 1, 0]),
           ]
 
 _Q7_P1 = [(OpUnit.SEQ_SCAN, [25, 20, 2, 25]),
@@ -120,7 +120,7 @@ _Q7_P6 = [(OpUnit.AGG_ITERATE, [4, 44, 4, 4]),
           ]
 
 _Q7_P7 = [(OpUnit.SORT_ITERATE, [4, 44, 4, 4]),
-          (OpUnit.OUTPUT, [4, 44, 4, 4]),
+          (OpUnit.OUTPUT, [4, 44, 4, 0]),
           ]
 
 
@@ -141,29 +141,29 @@ _Q11_P3 = [(OpUnit.SEQ_SCAN, [80000, 16, 3, 80000]),
            ]
 
 _Q11_P4 = [(OpUnit.SEQ_SCAN, [80000, 20, 4, 80000]),
-           (OpUnit.HASHJOIN_PROBE, [80000, 4, 1, 4000]),
-           (OpUnit.OP_DECIMAL_MULTIPLY, [4000, 4, 1, 4000]),
-           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [4000, 4, 1, 4000]),
-           (OpUnit.AGG_BUILD, [4000, 4, 1, 4000]),
+           (OpUnit.HASHJOIN_PROBE, [80000, 4, 1, 6000]),
+           (OpUnit.OP_DECIMAL_MULTIPLY, [6000, 4, 1, 6000]),
+           (OpUnit.OP_DECIMAL_PLUS_OR_MINUS, [6000, 4, 1, 6000]),
+           (OpUnit.AGG_BUILD, [6000, 4, 1, 6000]),
            ]
 
-_Q11_P5 = [(OpUnit.AGG_ITERATE, [4000, 12, 2, 4000]),
-           (OpUnit.OP_DECIMAL_MULTIPLY, [4000, 4, 1, 4000]),
-           (OpUnit.OP_DECIMAL_COMPARE, [4000, 4, 1, 4000]),
-           (OpUnit.SORT_BUILD, [2500, 8, 1, 2500]),
+_Q11_P5 = [(OpUnit.AGG_ITERATE, [6000, 12, 2, 6000]),
+           (OpUnit.OP_DECIMAL_MULTIPLY, [6000, 4, 1, 6000]),
+           (OpUnit.OP_DECIMAL_COMPARE, [6000, 4, 1, 6000]),
+           (OpUnit.SORT_BUILD, [5000, 8, 1, 5000]),
            ]
 
-_Q11_P6 = [(OpUnit.SORT_ITERATE, [2500, 12, 2, 2500]),
-           (OpUnit.OUTPUT, [2500, 12, 2, 2500]),
+_Q11_P6 = [(OpUnit.SORT_ITERATE, [5000, 12, 2, 5000]),
+           (OpUnit.OUTPUT, [5000, 12, 2, 0]),
            ]
 
 
 _SCAN_LINEITEM_P1 = [(OpUnit.SEQ_SCAN, [600000, 64, 10, 600000]),
-                     (OpUnit.OUTPUT, [600000, 64, 10, 600000])
+                     (OpUnit.OUTPUT, [600000, 64, 10, 0])
                      ]
 
 _SCAN_ORDERS_P1 = [(OpUnit.SEQ_SCAN, [150000, 4, 1, 150000]),
-                   (OpUnit.OUTPUT, [150000, 4, 1, 150000])
+                   (OpUnit.OUTPUT, [150000, 4, 1, 0])
                    ]
 
 # Map from the query pipeline identifier to the their opunit features

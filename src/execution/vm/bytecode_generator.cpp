@@ -965,6 +965,14 @@ void BytecodeGenerator::VisitBuiltinVectorFilterCall(ast::CallExpr *call, ast::B
       GEN_CASE(Bytecode::VectorFilterNotEqual);
       break;
     }
+    case ast::Builtin::VectorFilterLike: {
+      GEN_CASE(Bytecode::VectorFilterLike);
+      break;
+    }
+    case ast::Builtin::VectorFilterNotLike: {
+      GEN_CASE(Bytecode::VectorFilterNotLike);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible vector filter executor call");
     }
@@ -1689,11 +1697,29 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       GetEmitter()->Emit(Bytecode::Log2, dest, src);
       break;
     }
+    case ast::Builtin::Exp: {
+      src = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Exp, dest, src);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
     }
   }
 
+  GetExecutionResult()->SetDestination(dest.ValueOf());
+}
+
+void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar dest, src;
+  auto dest_type = call->GetType();
+  dest = GetExecutionResult()->GetOrCreateDestination(dest_type);
+  src = VisitExpressionForRValue(call->Arguments()[0]);
+  Bytecode abs_bytecode = call->Arguments()[0]->GetType()->IsIntegerType() ||
+                                  call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)
+                              ? Bytecode::AbsInteger
+                              : Bytecode::AbsReal;
+  GetEmitter()->Emit(abs_bytecode, dest, src);
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
@@ -2128,13 +2154,87 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
+    case ast::Builtin::Chr: {
+      // input_string here is a integer type number
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Chr, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::CharLength: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::CharLength, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::ASCII: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ASCII, ret, exec_ctx, input_string);
+      break;
+    }
     case ast::Builtin::Lower: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::Lower, ret, exec_ctx, input_string);
       break;
     }
+    case ast::Builtin::Upper: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Upper, ret, exec_ctx, input_string);
+      break;
+    }
     case ast::Builtin::Version: {
       GetEmitter()->Emit(Bytecode::Version, ret, exec_ctx);
+      break;
+    }
+    case ast::Builtin::StartsWith: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar start_str = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::StartsWith, ret, exec_ctx, input_string, start_str);
+      break;
+    }
+    case ast::Builtin::Substring: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar start_ind = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar length = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::Substring, ret, exec_ctx, input_string, start_ind, length);
+      break;
+    }
+    case ast::Builtin::Reverse: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Reverse, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::Left: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Left, ret, exec_ctx, input_string, len);
+      break;
+    }
+    case ast::Builtin::Right: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Right, ret, exec_ctx, input_string, len);
+      break;
+    }
+    case ast::Builtin::Repeat: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar num_repeat = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Repeat, ret, exec_ctx, input_string, num_repeat);
+      break;
+    }
+    case ast::Builtin::Trim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Trim, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::Trim2: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar trim_str = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Trim2, ret, exec_ctx, input_string, trim_str);
+      break;
+    }
+    case ast::Builtin::Position: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar sub_string = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Position, ret, exec_ctx, input_string, sub_string);
       break;
     }
     default:
@@ -2283,7 +2383,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::VectorFilterGreaterThanEqual:
     case ast::Builtin::VectorFilterLessThan:
     case ast::Builtin::VectorFilterLessThanEqual:
-    case ast::Builtin::VectorFilterNotEqual: {
+    case ast::Builtin::VectorFilterNotEqual:
+    case ast::Builtin::VectorFilterLike:
+    case ast::Builtin::VectorFilterNotLike: {
       VisitBuiltinVectorFilterCall(call, builtin);
       break;
     }
@@ -2385,6 +2487,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorGetSlot:
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;
+    case ast::Builtin::Exp:
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
     case ast::Builtin::ATan:
@@ -2402,6 +2505,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Log10:
     case ast::Builtin::Log2: {
       VisitBuiltinTrigCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::Abs: {
+      VisitBuiltinArithmeticCall(call, builtin);
       break;
     }
     case ast::Builtin::PRSetBool:
@@ -2489,8 +2596,21 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinParamCall(call, builtin);
       break;
     }
+    case ast::Builtin::Chr:
+    case ast::Builtin::CharLength:
+    case ast::Builtin::ASCII:
     case ast::Builtin::Lower:
-    case ast::Builtin::Version: {
+    case ast::Builtin::Upper:
+    case ast::Builtin::Version:
+    case ast::Builtin::StartsWith:
+    case ast::Builtin::Substring:
+    case ast::Builtin::Left:
+    case ast::Builtin::Right:
+    case ast::Builtin::Reverse:
+    case ast::Builtin::Repeat:
+    case ast::Builtin::Trim:
+    case ast::Builtin::Trim2:
+    case ast::Builtin::Position: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }

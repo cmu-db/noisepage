@@ -109,6 +109,46 @@ TEST_F(StringFunctionsTests, Substring) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, StartsWith) {
+  // Nulls
+  {
+    auto x = StringVal::Null();
+    auto y = StringVal("a");
+    auto result = BoolVal::Null();
+
+    StringFunctions::StartsWith(&result, Ctx(), x, y);
+    EXPECT_TRUE(result.is_null_);
+
+    StringFunctions::StartsWith(&result, Ctx(), y, x);
+    EXPECT_TRUE(result.is_null_);
+
+    StringFunctions::StartsWith(&result, Ctx(), x, x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Generic tests
+  {
+    auto x = StringVal("abCD");
+    auto y = StringVal("a");
+    auto z = StringVal("A");
+    auto w = StringVal("abCDE");
+    auto result = BoolVal::Null();
+
+    StringFunctions::StartsWith(&result, Ctx(), x, y);
+    EXPECT_TRUE(result.val_);
+
+    StringFunctions::StartsWith(&result, Ctx(), y, z);
+    EXPECT_FALSE(result.val_);
+
+    StringFunctions::StartsWith(&result, Ctx(), x, x);
+    EXPECT_TRUE(result.val_);
+
+    StringFunctions::StartsWith(&result, Ctx(), x, w);
+    EXPECT_FALSE(result.val_);
+  }
+}
+
+// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, SplitPart) {
   // Nulls
   {
@@ -538,6 +578,96 @@ TEST_F(StringFunctionsTests, Trim) {
   x = StringVal("   test   ");
   StringFunctions::Trim(&result, Ctx(), x);
   EXPECT_TRUE(StringVal("test") == result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, ASCII) {
+  // Null StringVal returns a null integer
+  {
+    auto x = StringVal::Null();
+    auto result = Integer(-1);
+
+    StringFunctions::ASCII(&result, Ctx(), x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Empty string returns a null integer
+  {
+    auto x = StringVal("");
+    auto result = Integer(-1);
+
+    StringFunctions::ASCII(&result, Ctx(), x);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(0, result.val_);
+  }
+
+  // Single lowercase character string (ex: "a") returns ASCII value of the lowercase character (ex: 97)
+  {
+    auto x = StringVal("a");
+    auto result = Integer(-1);
+    StringFunctions::ASCII(&result, Ctx(), x);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(97, result.val_);
+  }
+
+  // String starting with a space (ex: " a") returns ASCII value of space (ex: 32)
+  {
+    auto x = StringVal(" a");
+    auto result = Integer(-1);
+    StringFunctions::ASCII(&result, Ctx(), x);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(32, result.val_);
+  }
+
+  // String starting with an uppercase character, more than 1 in length (ex: "ALPHA") returns value of the ASCII
+  // value of the first uppercase character (ex: 65)
+  {
+    auto x = StringVal("ALPHA");
+    auto result = Integer(-1);
+    StringFunctions::ASCII(&result, Ctx(), x);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(65, result.val_);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, Chr) {
+  // Nulls
+  {
+    auto result = StringVal("");
+    StringFunctions::Chr(&result, Ctx(), Integer(0));
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Simple ascii
+  auto result = StringVal("");
+  StringFunctions::Chr(&result, Ctx(), Integer(65));
+  EXPECT_TRUE(StringVal("A", 1) == result);
+
+  // More than ascii 127
+  result = StringVal("");
+  StringFunctions::Chr(&result, Ctx(), Integer(352));
+  EXPECT_TRUE(StringVal("Š", 2) == result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, CharLength) {
+  // Nulls
+  {
+    auto result = Integer(0);
+    StringFunctions::CharLength(&result, Ctx(), StringVal::Null());
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Simple char
+  auto result = Integer(0);
+  StringFunctions::CharLength(&result, Ctx(), StringVal("H"));
+  EXPECT_EQ(1, result.val_);
+
+  // Simple multi char
+  result = Integer(0);
+  StringFunctions::CharLength(&result, Ctx(), StringVal("Has a beg"));
+  EXPECT_EQ(9, result.val_);
 }
 
 }  // namespace terrier::execution::sql::test
