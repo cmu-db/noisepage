@@ -17,6 +17,10 @@ namespace terrier::execution::exec {
 class ExecutionSettings;
 }  // namespace terrier::execution::exec
 
+namespace terrier::brain {
+class OperatingUnitRecorder;
+}  // namespace terrier::brain
+
 namespace terrier::execution::compiler {
 
 class CodeGen;
@@ -211,6 +215,7 @@ class Pipeline {
  private:
   // Internals which are exposed for minirunners.
   friend class compiler::CompilationContext;
+  friend class brain::OperatingUnitRecorder;
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }

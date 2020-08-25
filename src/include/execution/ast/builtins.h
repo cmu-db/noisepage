@@ -303,13 +303,25 @@ namespace terrier::execution::ast {
                                                                         \
   /* String functions */                                                \
   F(Lower, lower)                                                       \
+  F(Upper, upper)                                                       \
   F(Version, version)                                                   \
+  F(StartsWith, startsWith)                                             \
+  F(Substring, substring)                                               \
+  F(Left, left)                                                         \
+  F(Right, right)                                                       \
+  F(Reverse, reverse)                                                   \
+  F(Repeat, repeat)                                                     \
+  F(Trim, trim)                                                         \
+  F(Trim2, trim2)                                                       \
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \
   F(CharLength, charLength)                                             \
+                                                                        \
+  /* Arithmetic functions */                                            \
+  F(Abs, abs)                                                           \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
