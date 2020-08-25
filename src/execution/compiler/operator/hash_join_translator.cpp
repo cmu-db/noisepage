@@ -294,8 +294,9 @@ void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *
 }
 
 void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+
   if (IsLeftPipeline(pipeline)) {
-    auto *codegen = GetCodeGen();
     ast::Expr *jht = global_join_ht_.GetPtr(codegen);
 
     ast::Expr *jht_get_tuple_count = nullptr;
@@ -312,31 +313,29 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     }
 
     if (IsCountersEnabled()) {
-      pipeline_id_t pipeline_id = pipeline.GetPipelineId();
+      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
+      // var tuple_count = @joinHTGetTupleCount(jht)
+      ast::Identifier tuple_count = codegen->MakeFreshIdentifier("num_tuples_inserted");
+      function->Append(codegen->DeclareVarWithInit(tuple_count, jht_get_tuple_count));
 
-      {
-        // var tuple_count = @joinHTGetTupleCount(jht)
-        ast::Identifier tuple_count = codegen->MakeFreshIdentifier("num_tuples_inserted");
-        function->Append(codegen->DeclareVarWithInit(tuple_count, jht_get_tuple_count));
-
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, tuple_count)
-        const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-        const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                   brain::ExecutionOperatingUnitType::HASHJOIN_BUILD);
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       codegen->MakeExpr(tuple_count)));
-      }
-
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_probes)
-        const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-        const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                   brain::ExecutionOperatingUnitType::HASHJOIN_BUILD);
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_probes_.Get(codegen)));
-      }
+      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, tuple_count)
+      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
+                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_BUILD);
+      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                     codegen->MakeExpr(tuple_count)));
+    }
+  } else {
+    if (IsCountersEnabled()) {
+      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
+      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_probes)
+      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
+                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_PROBE);
+      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                     brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                     num_probes_.Get(codegen)));
     }
   }
 }
