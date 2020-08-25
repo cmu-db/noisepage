@@ -599,7 +599,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(CteScanInit) : {
     auto iter = frame->LocalAt<sql::CteScanIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
+    auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto schema_cols_ids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
@@ -643,7 +643,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(IndCteScanInit) : {
     auto iter = frame->LocalAt<sql::IndCteScanIterator *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
+    auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto schema_cols_ids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto schema_cols_type = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();

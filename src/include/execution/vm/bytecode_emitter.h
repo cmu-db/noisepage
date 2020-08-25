@@ -371,7 +371,7 @@ class BytecodeEmitter {
    * @param col_types an array of types of the columns
    * @param num_oids number of columns in the cte table
    */
-  void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+  void EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid,
                                LocalVar col_oids, LocalVar col_types, uint32_t num_oids);
 
   /**
@@ -385,7 +385,7 @@ class BytecodeEmitter {
    * @param num_oids length of the array
    * @param is_recursive whether the inductive CTE is recursive
    */
-  void EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+  void EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid,
                                   LocalVar col_oids, LocalVar col_types, uint32_t num_oids, bool is_recursive);
 
   /** ONLY FOR TESTING! */

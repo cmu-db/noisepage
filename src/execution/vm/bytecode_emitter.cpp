@@ -354,13 +354,13 @@ void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, Lo
   EmitAll(bytecode, iter, exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
 }
 
-void BytecodeEmitter::EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+void BytecodeEmitter::EmitCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid,
                                               LocalVar col_oids, LocalVar col_types, uint32_t num_oids) {
   EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, col_types, num_oids);
 }
 
 void BytecodeEmitter::EmitIndCteScanIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx,
-                                                 uint32_t table_oid, LocalVar col_oids, LocalVar col_types,
+                                                 LocalVar table_oid, LocalVar col_oids, LocalVar col_types,
                                                  uint32_t num_oids, bool is_recursive) {
   EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, col_types, num_oids, is_recursive);
 }

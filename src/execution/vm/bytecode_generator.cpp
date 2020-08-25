@@ -3442,7 +3442,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::CteScanInit: {
       // Execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      uint32_t table_oid = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val();
+      LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[2]);
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       LocalVar col_types = VisitExpressionForLValue(call->Arguments()[4]);
@@ -3478,7 +3478,7 @@ void BytecodeGenerator::VisitBuiltinCteScanCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::IndCteScanInit: {
       // Execution context
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      uint32_t table_oid = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val();
+      LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[2]);
       auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
       LocalVar col_types = VisitExpressionForLValue(call->Arguments()[4]);

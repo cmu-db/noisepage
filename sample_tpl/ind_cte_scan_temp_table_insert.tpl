@@ -1,7 +1,7 @@
 // Test that Accumulate() returns false on empty
 // Returns the number of tuples returned (should be 0)
 
-fun main(exec_ctx: *ExecutionContext) -> int64 {
+fun main(exec_ctx: *ExecutionContext) -> int32 {
   // Initialize CTE Scan Iterator
 
   var col_oids: [1]uint32
@@ -9,12 +9,19 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
   var col_types: [1]uint32
   col_types[0] = 4
 
-  var cte_scan: IterCteScanIterator
-  @indCteScanInit(&cte_scan, exec_ctx, col_types, false)
+  var temp_col_oids: [1]uint32
+  temp_col_oids[0] = -2147483647 // colA
+
+  var cte_scan: IndCteScanIterator
+  @indCteScanInit(&cte_scan, exec_ctx, -2147483648, temp_col_oids, col_types, false)
 
   // Iterate from 1 -> 20
-  var index_iter: IndexIterator
-  @indexIteratorInitBind(&index_iter, exec_ctx, 1, "test_1", "index_1", col_oids)
+  var index_iter : IndexIterator
+  var index_oid : int32
+  var test_oid : int32
+  test_oid = @testCatalogLookup(exec_ctx, "test_1", "")
+  index_oid = @testCatalogIndexLookup(exec_ctx, "index_1")
+  @indexIteratorInit(&index_iter, exec_ctx, 1, test_oid, index_oid, col_oids)
   var lo_pr = @indexIteratorGetLoPR(&index_iter)
   var hi_pr = @indexIteratorGetHiPR(&index_iter)
   @prSetInt(lo_pr, 0, @intToSql(1))
@@ -36,26 +43,20 @@ fun main(exec_ctx: *ExecutionContext) -> int64 {
   // Test accumulate on empty WriteTable
   acc_bool = @indCteScanAccumulate(&cte_scan)
   @indexIteratorFree(&index_iter)
+  var cte = @indCteScanGetReadCte(&cte_scan)
 
-  var count = 0
-  var oids: [1]uint32
-  oids[0] = 1
-
-  var seq_iter : TableVectorIterator
-  var read_cte_scan = @indCteScanGetResult(&cte_scan)
-
-  // Count entries in temp table
-  @tempTableIterInitBind(&seq_iter, exec_ctx, oids, read_cte_scan)
-  for (@tableIterAdvance(&seq_iter)) {
-    var pci = @tableIterGetPCI(&seq_iter)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var entry = @pciGetInt(pci, 0)
-      count = count + 1
+  var ret = 0
+  var tvi: TableVectorIterator
+  @tableIterInit(&tvi, exec_ctx, -2147483648, temp_col_oids)
+  for (@tableIterAdvance(&tvi)) {
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      var cola = @vpiGetInt(vpi, 0)
+        ret = ret + 1
     }
-    @pciReset(pci)
+    @vpiReset(vpi)
   }
-  @tableIterClose(&seq_iter)
+  @tableIterClose(&tvi)
   @indCteScanFree(&cte_scan)
-
-  return count
+  return ret
 }

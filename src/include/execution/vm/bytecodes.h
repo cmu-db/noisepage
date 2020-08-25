@@ -122,7 +122,7 @@ namespace terrier::execution::vm {
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
-  F(CteScanInit, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::Local, OperandType::Local,  \
+  F(CteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,  \
     OperandType::UImm4)                                                                                               \
   F(CteScanGetTable, OperandType::Local, OperandType::Local)                                                          \
   F(CteScanGetTableOid, OperandType::Local, OperandType::Local)                                                       \
@@ -130,8 +130,8 @@ namespace terrier::execution::vm {
   F(CteScanTableInsert, OperandType::Local, OperandType::Local)                                                       \
   F(CteScanFree, OperandType::Local)                                                                                  \
                                                                                                                       \
-  F(IndCteScanInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                   \
-    OperandType::Local, OperandType::UImm4, OperandType::Local)                                                       \
+  F(IndCteScanInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                   \
+    OperandType::Local, OperandType::UImm4, OperandType::Imm1)                                                        \
   F(IndCteScanGetResult, OperandType::Local, OperandType::Local)                                                      \
   F(IndCteScanGetReadCte, OperandType::Local, OperandType::Local)                                                     \
   F(IndCteScanGetWriteCte, OperandType::Local, OperandType::Local)                                                    \
