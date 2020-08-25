@@ -2241,33 +2241,33 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
-      Emitter()->Emit(Bytecode::LPad, exec_ctx, ret, input_string, len, pad);
+      GetEmitter()->Emit(Bytecode::LPad, ret, exec_ctx, input_string, len, pad);
       break;
     }
     case ast::Builtin::Rpad: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
-      Emitter()->Emit(Bytecode::RPad, exec_ctx, ret, input_string, len, pad);
+      GetEmitter()->Emit(Bytecode::RPad, ret, exec_ctx, input_string, len, pad);
       break;
     }
     case ast::Builtin::Ltrim: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       if (call->NumArgs() == 2) {
-        Emitter()->Emit(Bytecode::LTrim1Arg, exec_ctx, ret, input_string);
+        GetEmitter()->Emit(Bytecode::LTrim1Arg, ret, exec_ctx, input_string);
       } else {
         LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
-        Emitter()->Emit(Bytecode::LTrim2Arg, exec_ctx, ret, input_string, chars);
+        GetEmitter()->Emit(Bytecode::LTrim2Arg, ret, exec_ctx, input_string, chars);
       }
       break;
     }
     case ast::Builtin::Rtrim: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       if (call->NumArgs() == 2) {
-        Emitter()->Emit(Bytecode::RTrim1Arg, exec_ctx, ret, input_string);
+        GetEmitter()->Emit(Bytecode::RTrim1Arg, ret, exec_ctx, input_string);
       } else {
         LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
-        Emitter()->Emit(Bytecode::RTrim2Arg, exec_ctx, ret, input_string, chars);
+        GetEmitter()->Emit(Bytecode::RTrim2Arg, ret, exec_ctx, input_string, chars);
       }
       break;
     }
