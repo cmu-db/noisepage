@@ -1,17 +1,21 @@
 #include "execution/sql/thread_state_container.h"
 
-#include <tbb/tbb.h>
+#include <tbb/enumerable_thread_specific.h>
+#include <tbb/parallel_for_each.h>
 
 #include <memory>
 #include <vector>
 
 #include "common/constants.h"
+#include "execution/exec/execution_settings.h"
 
 namespace terrier::execution::sql {
 
-// ---------------------------------------------------------
+//===----------------------------------------------------------------------===//
+//
 // Thread Local State Handle
-// ---------------------------------------------------------
+//
+//===----------------------------------------------------------------------===//
 
 ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullptr) {}
 
@@ -35,20 +39,22 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
   container_->memory_->Deallocate(state_, state_size);
 }
 
-// ---------------------------------------------------------
+//===----------------------------------------------------------------------===//
+//
 // Actual container of all thread state
-// ---------------------------------------------------------
+//
+//===----------------------------------------------------------------------===//
 
-/**
- * The actual container for all thread-local state for participating threads
- */
+// The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   tbb::enumerable_thread_specific<TLSHandle> states_;
 };
 
-// ---------------------------------------------------------
+//===----------------------------------------------------------------------===//
+//
 // Thread State Container
-// ---------------------------------------------------------
+//
+//===----------------------------------------------------------------------===//
 
 ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
     : memory_(memory),
@@ -60,12 +66,13 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
   impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
 }
 
-ThreadStateContainer::~ThreadStateContainer() = default;
+ThreadStateContainer::~ThreadStateContainer() { Clear(); }
 
 void ThreadStateContainer::Clear() { impl_->states_.clear(); }
 
-void ThreadStateContainer::Reset(const std::size_t state_size, InitFn init_fn, DestroyFn destroy_fn, void *ctx) {
-  // Ensure we clean before resetting sizes_, functions, context
+void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadStateContainer::InitFn init_fn,
+                                 const ThreadStateContainer::DestroyFn destroy_fn, void *const ctx) {
+  // Ensure we clean before resetting sizes, functions, context
   Clear();
 
   // Now we can set these fields since all thread-local state has been cleaned
@@ -75,7 +82,7 @@ void ThreadStateContainer::Reset(const std::size_t state_size, InitFn init_fn, D
   ctx_ = ctx;
 }
 
-byte *ThreadStateContainer::AccessThreadStateOfCurrentThread() {
+byte *ThreadStateContainer::AccessCurrentThreadState() {
   auto &tls_handle = impl_->states_.local();
   return tls_handle.State();
 }
@@ -89,7 +96,7 @@ void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *contain
 }
 
 void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *container,
-                                                           std::size_t element_offset) const {
+                                                           const std::size_t element_offset) const {
   container->clear();
   container->reserve(impl_->states_.size());
   for (auto &tls_handle : impl_->states_) {
@@ -102,5 +109,11 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
     iterate_fn(ctx, tls_handle.State());
   }
 }
+
+void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
+  tbb::parallel_for_each(impl_->states_, [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.State()); });
+}
+
+uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
 
 }  // namespace terrier::execution::sql

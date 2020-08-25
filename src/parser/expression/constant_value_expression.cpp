@@ -7,9 +7,11 @@
 
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::parser {
 
@@ -45,11 +47,12 @@ void ConstantValueExpression::Validate() const {
   } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
     TERRIER_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
                    "Invalid TypeId for Val type.");
-    TERRIER_ASSERT(GetStringVal().is_null_ ||
-                       (buffer_ == nullptr && GetStringVal().len_ <= execution::sql::StringVal::InlineThreshold()) ||
-                       (buffer_ != nullptr && GetStringVal().len_ > execution::sql::StringVal::InlineThreshold()),
-                   "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
-                   "InlineThreshold with a provided buffer.");
+    TERRIER_ASSERT(
+        GetStringVal().is_null_ ||
+            (buffer_ == nullptr && GetStringVal().GetLength() <= execution::sql::StringVal::InlineThreshold()) ||
+            (buffer_ != nullptr && GetStringVal().GetLength() > execution::sql::StringVal::InlineThreshold()),
+        "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
+        "InlineThreshold with a provided buffer.");
   } else {
     UNREACHABLE("Unknown Val type!");
   }
@@ -217,6 +220,35 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
   }
 }
 
+std::string ConstantValueExpression::ToString() const {
+  switch (GetReturnValueType()) {
+    case type::TypeId::BOOLEAN: {
+      return fmt::format("{}", GetBoolVal().val_);
+    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT: {
+      return fmt::format("{}", GetInteger().val_);
+    }
+    case type::TypeId::DECIMAL: {
+      return fmt::format("{}", GetReal().val_);
+    }
+    case type::TypeId::TIMESTAMP: {
+      return fmt::format("{}", GetTimestampVal().val_.ToString());
+    }
+    case type::TypeId::DATE: {
+      return fmt::format("{}", GetDateVal().val_.ToString());
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      return fmt::format("{}", GetStringVal().val_.StringView());
+    }
+    default:
+      UNREACHABLE("Invalid TypeId.");
+  }
+}
+
 nlohmann::json ConstantValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
 
@@ -316,7 +348,8 @@ template ConstantValueExpression::ConstantValueExpression(const type::TypeId typ
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::DecimalVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
                                                           const execution::sql::StringVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
@@ -327,7 +360,7 @@ template void ConstantValueExpression::SetValue(const type::TypeId type, const e
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
-template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DecimalVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::TimestampVal value);

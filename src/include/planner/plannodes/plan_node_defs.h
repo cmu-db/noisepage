@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -91,9 +92,22 @@ enum class LogicalJoinType {
   RIGHT = 2,                  // right
   INNER = 3,                  // inner
   OUTER = 4,                  // outer
-  SEMI = 5,                   // IN+Subquery is SEMI
-  LEFT_SEMI = 6               // LEFT SEMI join
+  SEMI = 5,                   // returns a row ONLY if it has a join partner, no duplicates
+  ANTI = 6,                   // returns a row ONLY if it has NO join partner, no duplicates
+  LEFT_SEMI = 7,              // Left semi join
+  RIGHT_SEMI = 8,             // Right semi join
+  RIGHT_ANTI = 9              // Right anti join
 };
+
+/**
+ * @return A string representation for the provided node type.
+ */
+std::string PlanNodeTypeToString(PlanNodeType type);
+
+/**
+ * @return A string representation for the provided join type.
+ */
+std::string JoinTypeToString(LogicalJoinType type);
 
 //===--------------------------------------------------------------------===//
 // Set Operation Types

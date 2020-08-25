@@ -18,6 +18,15 @@ FunctionDecl::FunctionDecl(const SourcePosition &pos, Identifier name, FunctionL
 StructDecl::StructDecl(const SourcePosition &pos, Identifier name, StructTypeRepr *type_repr)
     : Decl(Kind::StructDecl, pos, name, type_repr) {}
 
+uint32_t StructDecl::NumFields() const {
+  const auto &fields = TypeRepr()->As<ast::StructTypeRepr>()->Fields();
+  return fields.size();
+}
+
+ast::FieldDecl *StructDecl::GetFieldAt(uint32_t field_idx) const {
+  return TypeRepr()->As<ast::StructTypeRepr>()->GetFieldAt(field_idx);
+}
+
 // ---------------------------------------------------------
 // Expression Statement
 // ---------------------------------------------------------
@@ -30,28 +39,28 @@ ExpressionStmt::ExpressionStmt(Expr *expr) : Stmt(Kind::ExpressionStmt, expr->Po
 
 bool Expr::IsNilLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Nil;
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::Nil;
+  }
+  return false;
+}
+
+bool Expr::IsBoolLiteral() const {
+  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::Boolean;
   }
   return false;
 }
 
 bool Expr::IsStringLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::String;
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::String;
   }
   return false;
 }
 
 bool Expr::IsIntegerLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Int;
-  }
-  return false;
-}
-
-bool Expr::IsBooleanLiteral() const {
-  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Boolean;
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::Int;
   }
   return false;
 }
@@ -134,6 +143,33 @@ bool Stmt::IsTerminating(Stmt *stmt) {
     default: {
       return false;
     }
+  }
+}
+
+std::string CastKindToString(const CastKind cast_kind) {
+  switch (cast_kind) {
+    case CastKind::IntToSqlInt:
+      return "IntToSqlInt";
+    case CastKind::IntToSqlDecimal:
+      return "IntToSqlDecimal";
+    case CastKind::SqlBoolToBool:
+      return "SqlBoolToBool";
+    case CastKind::BoolToSqlBool:
+      return "BoolToSqlBool";
+    case CastKind::IntegralCast:
+      return "IntegralCast";
+    case CastKind::IntToFloat:
+      return "IntToFloat";
+    case CastKind::FloatToInt:
+      return "FloatToInt";
+    case CastKind::BitCast:
+      return "BitCast";
+    case CastKind::FloatToSqlReal:
+      return "FloatToSqlReal";
+    case CastKind::SqlIntToSqlReal:
+      return "SqlIntToSqlReal";
+    default:
+      UNREACHABLE("Impossible cast kind");
   }
 }
 

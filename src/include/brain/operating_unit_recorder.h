@@ -1,18 +1,38 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "brain/operating_unit.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "execution/ast/ast.h"
-#include "execution/ast/context.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/plan_visitor.h"
+#include "type/type_id.h"
+
+namespace terrier::catalog {
+class CatalogAccessor;
+}  // namespace terrier::catalog
+
+namespace terrier::execution {
+namespace ast {
+class Context;
+class StructDecl;
+}  // namespace ast
+namespace compiler {
+class OperatorTranslator;
+class Pipeline;
+}  // namespace compiler
+}  // namespace terrier::execution
+
+namespace terrier::parser {
+class AbstractExpression;
+}
 
 namespace terrier::planner {
+class AbstractPlanNode;
 class AbstractJoinPlanNode;
 class AbstractScanPlanNode;
 }  // namespace terrier::planner
@@ -29,10 +49,14 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * Constructor
    * @param accessor CatalogAccessor
    * @param ast_ctx AstContext
+   * @param pipeline Current pipeline, used to figure out if a given translator is Build or Probe.
+   * @param query_text The SQL query string
    */
   explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                                 common::ManagedPointer<execution::ast::Context> ast_ctx)
-      : accessor_(accessor), ast_ctx_(ast_ctx) {}
+                                 common::ManagedPointer<execution::ast::Context> ast_ctx,
+                                 common::ManagedPointer<execution::compiler::Pipeline> pipeline,
+                                 common::ManagedPointer<const std::string> query_text)
+      : accessor_(accessor), ast_ctx_(ast_ctx), current_pipeline_(pipeline), query_text_(query_text) {}
 
   /**
    * Extracts features from OperatorTranslators
@@ -40,7 +64,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
    */
   ExecutionOperatingUnitFeatureVector RecordTranslators(
-      const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators);
+      const std::vector<execution::compiler::OperatorTranslator *> &translators);
 
  private:
   /**
@@ -74,6 +98,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::ProjectionPlanNode *plan) override;
   void Visit(const planner::AggregatePlanNode *plan) override;
 
+  template <typename Translator>
+  void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
+
   /**
    * Accumulate Feature Information
    * @param type Type
@@ -98,40 +125,56 @@ class OperatingUnitRecorder : planner::PlanVisitor {
                                   size_t ref_offset);
 
   /**
+   * Adjust key_size and num_key based on type
+   *
+   * @param type Type
+   * @param key_size
+   * @param num_key
+   */
+  void AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key);
+
+  /**
    * Compute key size from vector of expressions
    * @param exprs Expressions
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs);
+  size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs, size_t *num_key);
 
   /**
    * Compute key size from output schema
    * @param plan Plan
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan);
+  size_t ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan, size_t *num_key);
 
   /**
    * Compute key size from output schema
    * @param tbl_oid Table OID
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(catalog::table_oid_t tbl_oid);
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, size_t *num_key);
 
   /**
    * Compute key size from vector of column oids
    * @param tbl_oid Table OID
    * @param cols vector of column oids
+   * @param num_key Number of keys
+   * @returns key size
    */
-  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols);
+  size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols, size_t *num_key);
 
   /**
    * Compute key size from vector of index oids
    * @param idx_oid Index OID
    * @param cols index column oids
+   * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols);
+  size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols,
+                        size_t *num_key);
 
   /**
    * Record arithmetic features
@@ -139,6 +182,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param scaling Scaling Factor
    */
   void RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
+
+  void FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, const size_t *num_keys,
+                      size_t *cardinality, size_t *num_loops);
 
   /**
    * Current Translator Feature Type
@@ -169,6 +215,15 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * AstContext
    */
   common::ManagedPointer<execution::ast::Context> ast_ctx_;
+
+  /** Pipeline, used to figure out if current translator is Build or Probe. */
+  common::ManagedPointer<execution::compiler::Pipeline> current_pipeline_;
+
+  common::ManagedPointer<const std::string> query_text_;
+
+  // Flag to indicate whether to fix the cardinality for TPCC.
+  // TODO(Lin): Remove after we have the counters
+  bool tpcc_feature_fix_ = false;
 };
 
 }  // namespace terrier::brain
