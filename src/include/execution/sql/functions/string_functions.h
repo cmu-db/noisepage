@@ -83,6 +83,9 @@ class StringFunctions {
     Substring(result, ctx, str, pos, Integer(std::numeric_limits<int64_t>::max()));
   }
 
+  /** Compute STARTS_WITH(str, start). */
+  static void StartsWith(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &start);
+
   /** Compute TRIM(str, chars). */
   static void Trim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -49,11 +50,13 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param accessor CatalogAccessor
    * @param ast_ctx AstContext
    * @param pipeline Current pipeline, used to figure out if a given translator is Build or Probe.
+   * @param query_text The SQL query string
    */
   explicit OperatingUnitRecorder(common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                  common::ManagedPointer<execution::ast::Context> ast_ctx,
-                                 common::ManagedPointer<execution::compiler::Pipeline> pipeline)
-      : accessor_(accessor), ast_ctx_(ast_ctx), current_pipeline_(pipeline) {}
+                                 common::ManagedPointer<execution::compiler::Pipeline> pipeline,
+                                 common::ManagedPointer<const std::string> query_text)
+      : accessor_(accessor), ast_ctx_(ast_ctx), current_pipeline_(pipeline), query_text_(query_text) {}
 
   /**
    * Extracts features from OperatorTranslators
@@ -180,6 +183,9 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    */
   void RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling);
 
+  void FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows, const size_t *num_keys,
+                      size_t *cardinality, size_t *num_loops);
+
   /**
    * Current Translator Feature Type
    */
@@ -212,6 +218,12 @@ class OperatingUnitRecorder : planner::PlanVisitor {
 
   /** Pipeline, used to figure out if current translator is Build or Probe. */
   common::ManagedPointer<execution::compiler::Pipeline> current_pipeline_;
+
+  common::ManagedPointer<const std::string> query_text_;
+
+  // Flag to indicate whether to fix the cardinality for TPCC.
+  // TODO(Lin): Remove after we have the counters
+  bool tpcc_feature_fix_ = false;
 };
 
 }  // namespace terrier::brain
