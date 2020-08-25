@@ -177,6 +177,11 @@ class Pipeline {
    */
   ast::Identifier GetPipelineStateVar() { return state_var_; }
 
+  /**
+   * @return Pipeline state
+   */
+  StateDescriptor *GetPipelineState() { return &state_; }
+
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization

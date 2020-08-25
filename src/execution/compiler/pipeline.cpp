@@ -238,17 +238,18 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       op->BeginPipelineWork(*this, &builder);
     }
 
-    // var pipelineState = @tlsGetCurrentThreadState(...)
-    auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-    auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
-    auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
-    builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
-
     // Launch pipeline work.
     if (IsParallel()) {
       // TODO(wz2): When can track parallel work, insert trackers
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
+
+      // var pipelineState = @tlsGetCurrentThreadState(...)
+      auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
+      auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
+      auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
+      builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
+
       InjectStartResourceTracker(&builder);
       started_tracker = true;
 
