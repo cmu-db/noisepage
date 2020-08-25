@@ -312,10 +312,9 @@ void BinderContext::GenerateAllColumnExpressions(
       // SELECT table_name.* FROM ..., where the from clause does not contain table_name
       throw BINDER_EXCEPTION(fmt::format("missing FROM-clause entry for table \"{}\"", table_name),
                              common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
-    } else {
-      constituent_table_aliases.clear();
-      constituent_table_aliases.push_back(table_name);
     }
+    constituent_table_aliases.clear();
+    constituent_table_aliases.push_back(table_name);
   }
 
   for (auto &table_alias : constituent_table_aliases) {
@@ -344,7 +343,7 @@ void BinderContext::GenerateAllColumnExpressions(
       std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector(cols.begin(), cols.end());
       std::sort(
           cols_vector.begin(), cols_vector.end(),
-          [](const std::pair<parser::AliasType, type::TypeId> A, const std::pair<parser::AliasType, type::TypeId> B) {
+          [](const std::pair<parser::AliasType, type::TypeId> &A, const std::pair<parser::AliasType, type::TypeId> &B) {
             return A.first.GetSerialNo() < B.first.GetSerialNo();
           });
       for (auto &col_entry : cols_vector) {
