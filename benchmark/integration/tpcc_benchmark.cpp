@@ -32,8 +32,8 @@ class TPCCBenchmark : public benchmark::Fixture {
    */
   const uint64_t blockstore_size_limit_ = 40000;
   const uint64_t blockstore_reuse_limit_ = 40000;
-  const uint64_t buffersegment_size_limit_ = 40000000;
-  const uint64_t buffersegment_reuse_limit_ = 40000000;
+  const uint64_t buffersegment_size_limit_ = 10000000;
+  const uint64_t buffersegment_reuse_limit_ = 10000000;
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
