@@ -69,16 +69,17 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
   // Create a WorkContext and make the state identical to the WorkContext generated inside
   // of PerformPipelineWork
   WorkContext ctx(cc, *pipeline);
-  while (ctx.CurrentOp() != this) {
-    ctx.AdvancePipelineIterator();
-  }
+  ctx.SetSource(this);
   auto *codegen = GetCodeGen();
   util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
   // Set flag here, so GetChildOutput outputs NULL's for left outer join correctly
   left_outer_join_flag_ = true;
   FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
-  { ctx.Push(&function); }
+  {
+    // Push to parent
+    ctx.Push(&function);
+  }
   left_outer_join_flag_ = false;
   decls->push_back(function.Finish());
 }
