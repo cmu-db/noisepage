@@ -46,17 +46,17 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
       [](UNUSED_ATTRIBUTE auto *_, auto *s) {
         // Set some stuff to indicate object is initialized
         auto obj = new (s) Object();
-        obj->x = 10;
-        obj->initialized = true;
+        obj->x_ = 10;
+        obj->initialized_ = true;
       },
       nullptr, nullptr);
   ForceCreationOfThreadStates(&container, 4);
 
   // Check
   container.ForEach<Object>([](Object *obj) {
-    EXPECT_EQ(10u, obj->x);
-    EXPECT_EQ(nullptr, obj->next);
-    EXPECT_EQ(true, obj->initialized);
+    EXPECT_EQ(10u, obj->x_);
+    EXPECT_EQ(nullptr, obj->next_);
+    EXPECT_EQ(true, obj->initialized_);
   });
   EXECUTION_LOG_TRACE("{} thread states", container.GetThreadStateCount());
 }

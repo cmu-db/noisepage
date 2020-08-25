@@ -73,7 +73,7 @@ void CheckEquality(uint32_t test_idx, const std::vector<Token::Type> &expected,
 void RunTests(const std::vector<TestCase> &tests) {
   for (unsigned test_idx = 0; test_idx < tests.size(); test_idx++) {
     const auto &test = tests[test_idx];
-    Scanner scanner(test.source.data(), test.source.length());
+    Scanner scanner(test.source_.data(), test.source_.length());
 
     std::vector<Token::Type> actual;
 
@@ -81,13 +81,13 @@ void RunTests(const std::vector<TestCase> &tests) {
     for (auto token = scanner.Next(); token != Token::Type::EOS; token = scanner.Next(), token_idx++) {
       actual.push_back(token);
 
-      if (test.check != nullptr) {
-        test.check(&scanner, token_idx);
+      if (test.check_ != nullptr) {
+        test.check_(&scanner, token_idx);
       }
     }
 
     // Expect final sizes should be the same
-    CheckEquality(test_idx, test.expected_tokens, actual);
+    CheckEquality(test_idx, test.expected_tokens_, actual);
   }
 }
 

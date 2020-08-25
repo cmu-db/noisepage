@@ -1062,9 +1062,9 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
 
           if (col > 1) {
             query_ss << ",";
-            for (int i = 1; i < col; i++) {
+            for (int j = 1; j < col; j++) {
               query_ss << "nprunnersdummy" << type_s << "()";
-              if (i != col - 1) {
+              if (j != col - 1) {
                 query_ss << ",";
               }
             }
@@ -1074,9 +1074,9 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
           pqxx::result r{txn->exec(query_ss.str())};
 
           // Get all the results
-          for (const auto &row : r) {
-            for (auto i = 0; i < col; i++) {
-              null << row[i];
+          for (const auto &result_row : r) {
+            for (auto j = 0; j < col; j++) {
+              null << result_row[j];
             }
           }
         }
@@ -2182,31 +2182,32 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
-      if (strstr(argv[i], arg->match) != nullptr) {
-        arg->found = true;
-        arg->value = strstr(argv[i], "=") + 1;
-        arg->intValue = atoi(arg->value);
+      if (strstr(argv[i], arg->match_) != nullptr) {
+        arg->found_ = true;
+        arg->value_ = strstr(argv[i], "=") + 1;
+        arg->int_value_ = atoi(arg->value_);
       }
     }
   }
 
-  if (port_info.found) terrier::runner::port = port_info.intValue;
-  if (skip_large_rows_runs_info.found) terrier::runner::skip_large_rows_runs = true;
-  if (warm_num_info.found) terrier::runner::warmup_iterations_num = warm_num_info.intValue;
-  if (rerun_info.found) terrier::runner::rerun_iterations = rerun_info.intValue;
-  if (updel_info.found) terrier::runner::updel_limit = updel_info.intValue;
-  if (warm_limit_info.found) terrier::runner::warmup_rows_limit = warm_limit_info.intValue;
+  if (port_info.found_) terrier::runner::port = port_info.int_value_;
+  if (skip_large_rows_runs_info.found_) terrier::runner::skip_large_rows_runs = true;
+  if (warm_num_info.found_) terrier::runner::warmup_iterations_num = warm_num_info.int_value_;
+  if (rerun_info.found_) terrier::runner::rerun_iterations = rerun_info.int_value_;
+  if (updel_info.found_) terrier::runner::updel_limit = updel_info.int_value_;
+  if (warm_limit_info.found_) terrier::runner::warmup_rows_limit = warm_limit_info.int_value_;
 
   terrier::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
-  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match, terrier::runner::port);
-  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match, terrier::runner::skip_large_rows_runs);
-  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match, terrier::runner::warmup_iterations_num);
-  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match, terrier::runner::rerun_iterations);
-  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match, terrier::runner::updel_limit);
-  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match, terrier::runner::warmup_rows_limit);
-  SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match, filter_info.value);
-  SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match, compiled_info.found);
+  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, terrier::runner::port);
+  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_,
+                    terrier::runner::skip_large_rows_runs);
+  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, terrier::runner::warmup_iterations_num);
+  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match_, terrier::runner::rerun_iterations);
+  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match_, terrier::runner::updel_limit);
+  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, terrier::runner::warmup_rows_limit);
+  SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
+  SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match_, compiled_info.found_);
 
   // Benchmark Config Environment Variables
   // Check whether we are being passed environment variables to override configuration parameter
@@ -2219,8 +2220,8 @@ int main(int argc, char **argv) {
 
   terrier::runner::InitializeRunnersState();
 
-  if (filter_info.found) {
-    if (compiled_info.found) {
+  if (filter_info.found_) {
+    if (compiled_info.found_) {
       terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
     }
 
