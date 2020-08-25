@@ -1555,12 +1555,12 @@ VM_OP_WARM void OpRPad(terrier::execution::sql::StringVal *result, terrier::exec
 VM_OP_WARM void OpRTrim2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                             const terrier::execution::sql::StringVal *str,
                             const terrier::execution::sql::StringVal *chars) {
-  terrier::execution::sql::StringFunctions::Ltrim(result, ctx, *str, *chars);
+  terrier::execution::sql::StringFunctions::Rtrim(result, ctx, *str, *chars);
 }
 
 VM_OP_WARM void OpRTrim1Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                             const terrier::execution::sql::StringVal *str) {
-  terrier::execution::sql::StringFunctions::Ltrim(result, ctx, *str);
+  terrier::execution::sql::StringFunctions::Rtrim(result, ctx, *str);
 }
 
 VM_OP_WARM void OpSplitPart(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
