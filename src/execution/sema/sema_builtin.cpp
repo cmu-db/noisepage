@@ -3216,7 +3216,11 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Right:
     case ast::Builtin::Left:
     case ast::Builtin::Repeat:
-    case ast::Builtin::Position: {
+    case ast::Builtin::Position:
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Rpad:
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rtrim: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
