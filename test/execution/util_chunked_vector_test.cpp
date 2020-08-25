@@ -147,7 +147,7 @@ class Simple {
 
   ~Simple() { count--; }
 
-  uint32_t id() const noexcept { return id_; }
+  uint32_t Id() const noexcept { return id_; }
 
  private:
   uint32_t id_;

@@ -31,11 +31,11 @@ TEST_F(ThreadStateContainerTest, EmptyStateTest) {
 // NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   struct Object {
-    uint64_t x{0};
-    uint32_t arr[10] = {0};
-    uint32_t arr_2[2] = {44, 23};
-    Object *next{nullptr};
-    bool initialized{false};
+    uint64_t x_{0};
+    uint32_t arr_[10] = {0};
+    uint32_t arr_2_[2] = {44, 23};
+    Object *next_{nullptr};
+    bool initialized_{false};
   };
 
   MemoryPool memory(nullptr);

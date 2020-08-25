@@ -51,9 +51,9 @@ TEST_F(ScannerTest, SimpleSourceTest) {
 namespace {
 
 struct TestCase {
-  const std::string source;
-  std::vector<Token::Type> expected_tokens;
-  std::function<void(Scanner *scanner, uint32_t token_idx)> check;
+  const std::string source_;
+  std::vector<Token::Type> expected_tokens_;
+  std::function<void(Scanner *scanner, uint32_t token_idx)> check_;
 };
 
 }  // namespace

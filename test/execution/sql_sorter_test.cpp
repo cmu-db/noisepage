@@ -158,8 +158,8 @@ TEST_F(SorterTest, TopKTest) {
 
 template <uint32_t N>
 struct TestTuple {
-  uint32_t key;
-  uint32_t data[N];
+  uint32_t key_;
+  uint32_t data_[N];
 
   int32_t Compare(const TestTuple<N> &other) const { return key - other.key; }
 };
