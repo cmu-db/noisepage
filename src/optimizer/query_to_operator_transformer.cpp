@@ -123,7 +123,8 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
       auto cte_scan_expr = std::make_unique<OperatorNode>(
           LogicalCteScan::Make(with->GetAlias(), with->GetTableName(), oid, catalog::Schema(std::move(columns)), {},
-                               with->GetCteType(), {}),
+                               with->GetCteType(), {})
+              .RegisterWithTxnContext(txn_context),
           std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       cte_scan_expr->PushChild(std::move(output_expr_));
       output_expr_ = std::move(cte_scan_expr);
