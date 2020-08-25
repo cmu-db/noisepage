@@ -23,6 +23,13 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
   TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
   build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
+  // TODO(kunal&ricky): set up the distinct hashtable for filtering
+  // 1. Declare the global hash table for distinct filtering
+  // 2. Record which aggregates would need to be distinct
+
+  // TODO(kunal&ricky): what if we have multiple distinct?
+  // Like SELECT COUNT(DISTINCT a), COUNT(DISTINCT b)
+  // A: We could have the hastable's key to be (agg_term_id, tuple_val).
 
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -37,6 +44,7 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
   for (const auto agg_term : plan.GetAggregateTerms()) {
     compilation_context->Prepare(*agg_term->GetChild(0));
   }
+
 
   // If there's a having clause, prepare it, too.
   if (const auto having_clause = plan.GetHavingClausePredicate(); having_clause != nullptr) {
@@ -80,6 +88,7 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
+
   return codegen->DeclareStruct(agg_values_type_, std::move(fields));
 }
 
@@ -104,6 +113,11 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
     decls->push_back(function.Finish());
   }
 }
+
+// TODO(kunal&ricky): We need a key comparison function for the hash table
+//ast::FunctionDecl *StaticAggregationTranslator::GenerateKeyCheckFunction() {
+//
+//}
 
 ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const {
   auto *codegen = GetCodeGen();
@@ -152,6 +166,16 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
     auto rhs = ctx->DeriveValue(*term->GetChild(0), this);
     function->Append(codegen->Assign(lhs, rhs));
   }
+
+  // TODO(kunal&ricky)
+  // For each aggregate terms
+  //  IF it has a distinct predicate:
+  //    1.a hash aggregate term values
+  //    1.b check if value exists
+  //        1.b.i (Exists) do not advance aggregate
+  //        1.b.ii (Not exists) ConstructNewAggregate + AggregatorAdvance
+  //  ELSE it does not have a distinct predict:
+  //    AggregatorAdvance
 
   // Update aggregate.
   for (term_idx = 0; term_idx < GetAggPlan().GetAggregateTerms().size(); term_idx++) {

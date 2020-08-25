@@ -29,6 +29,19 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   TERRIER_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
                  "Expected hash-based aggregation plan node");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
+  // TODO(kunal&ricky):
+  // We need to modify many of the setup/initialize/teardown logic to add the additional agg_distinct_ht.
+  // A agg_distinct_ht will be a global mapping [distinct aggregate value -> dummy payload],
+  // for each aggregate term that has a distinct predicate.
+  // The agg_distinc_ht should have the same setup/teardown logic like the current global_agg_ht_. But we need to
+  // keep track of multiple hash tables, or we need to have a complex key (aggregate_term_id, tuple_val) to
+  // accomondate multiple columns with DISTINCT
+  // A couple of things I can think of now:
+  // 1. Declare the hash payload
+  // 2. Setup/Teardown of the Table
+  // 3. HashFunction for (aggregate_term_id, tuple_val)
+
+
   // The produce pipeline begins after the build.
   pipeline->LinkSourcePipeline(&build_pipeline_);
 
@@ -373,7 +386,16 @@ void HashAggregationTranslator::UpdateAggregates(WorkContext *context, FunctionB
 
   auto agg_values = FillInputValues(function, context);
   auto hash_val = HashInputKeys(function, agg_values);
+  // TODO(kunal&ricky):
+  // 1. IF distinct: first check if the agg_values(groupby + aggregate value) has existed in the filter table
+  //  1.a If already exists -> skip
+  //  1.b If not exist yet -> construct new aggregate + advance aggregate (like the current logic)
+  //
+  // We need to have our own agg_values generation that include both GroupBy values and distinct Aggregate values
+  // the current hash_vals are only based on the group by columns
+
   auto agg_payload = PerformLookup(function, agg_ht, hash_val, agg_values);
+
 
   If check_new_agg(function, codegen->IsNilPointer(codegen->MakeExpr(agg_payload)));
   ConstructNewAggregate(function, agg_ht, agg_payload, agg_values, hash_val);
