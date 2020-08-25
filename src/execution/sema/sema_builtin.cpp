@@ -2721,7 +2721,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::Ltrim:
     case ast::Builtin::Rtrim: {
-      if (!CheckArgCount(call, 2) || !CheckArgCount(call, 3)) {
+      if (!CheckArgCountBetween(call, 2, 3)) {
         return;
       }
 
