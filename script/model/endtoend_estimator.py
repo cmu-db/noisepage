@@ -6,6 +6,7 @@ import pickle
 import logging
 import tqdm
 
+import global_model_config
 from util import io_util, logging_util
 from training_util import global_data_constructing_util, result_writing_util
 from info import data_info
@@ -22,13 +23,15 @@ class EndtoendEstimator:
     """
 
     def __init__(self, input_path, model_results_path, mini_model_map, global_resource_model,
-                 global_impact_model, global_direct_model):
+                 global_impact_model, global_direct_model, ee_sample_interval, txn_sample_interval):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.mini_model_map = mini_model_map
         self.global_resource_model = global_resource_model
         self.global_impact_model = global_impact_model
         self.global_direct_model = global_direct_model
+        self.ee_sample_interval = ee_sample_interval
+        self.txn_sample_interval = txn_sample_interval
 
     def estimate(self):
         """Train the mini-models
@@ -37,7 +40,10 @@ class EndtoendEstimator:
         """
         resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
                                                                                       self.mini_model_map,
-                                                                                      self.model_results_path)
+                                                                                      self.model_results_path,
+                                                                                      0, False, False,
+                                                                                      self.ee_sample_interval,
+                                                                                      self.txn_sample_interval)
         return self._global_model_prediction(resource_data_list, impact_data_list)
 
     def _global_model_prediction(self, resource_data_list, impact_data_list):
@@ -82,6 +88,8 @@ class EndtoendEstimator:
                 predicted_resource_util = d.resource_data.y_pred
             if model_name == "direct":
                 predicted_resource_util = d.resource_data.x
+            # Remove the OU group itself from the total resource data
+            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= mini_model_y_pred[-1] / global_model_config.INTERVAL_SIZE
             x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
@@ -156,6 +164,10 @@ if __name__ == '__main__':
                          help='File of the saved global impact model')
     aparser.add_argument('--global_direct_model_file', default='trained_model/global_direct_model.pickle',
                          help='File of the saved global impact model')
+    aparser.add_argument('--ee_sample_interval', type=int, default=9,
+                         help='Sampling interval for the execution engine OUs')
+    aparser.add_argument('--txn_sample_interval', type=int, default=0,
+                         help='Sampling interval for the transaction OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -170,5 +182,5 @@ if __name__ == '__main__':
     with open(args.global_direct_model_file, 'rb') as pickle_file:
         direct_model = pickle.load(pickle_file)
     estimator = EndtoendEstimator(args.input_path, args.model_results_path, model_map, resource_model, impact_model,
-                                  direct_model)
+                                  direct_model, args.ee_sample_interval, args.txn_sample_interval)
     estimator.estimate()
