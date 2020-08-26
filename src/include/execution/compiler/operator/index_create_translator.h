@@ -64,7 +64,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override {
     UNREACHABLE("index create doesn't have child");
   };
-  ;
 
   /**
    * @return An expression representing the value of the column with the given OID.

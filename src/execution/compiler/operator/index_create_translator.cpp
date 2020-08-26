@@ -70,7 +70,8 @@ void IndexCreateTranslator::DeclareInserter(FunctionBuilder *function) const {
   function->Append(codegen_->DeclareVar(inserter_, storage_interface_type, nullptr));
   // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids_var_, true)
   ast::Expr *inserter_setup = codegen_->StorageInterfaceInit(
-      inserter_, GetExecutionContext(), uint32_t(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()), col_oids_var_, false);
+      inserter_, GetExecutionContext(), uint32_t(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()),
+      col_oids_var_, false);
   function->Append(codegen_->MakeStmt(inserter_setup));
 }
 

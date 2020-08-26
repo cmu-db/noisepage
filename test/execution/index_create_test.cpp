@@ -16,7 +16,6 @@ class IndexCreateTest : public SqlBasedTest {
  protected:
   void CreateIndex(catalog::table_oid_t table_oid, const std::string &index_name,
                    std::unique_ptr<catalog::IndexSchema> schema) {
-    const clock_t begin_time = clock();
     planner::CreateIndexPlanNode::Builder builder;
     auto plan_node = builder.SetNamespaceOid(NSOid())
                          .SetTableOid(table_oid)
@@ -30,7 +29,6 @@ class IndexCreateTest : public SqlBasedTest {
 
     query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx_.get()),
                execution::vm::ExecutionMode::Interpret);
-    std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC;
   }
 
   void VerifyIndexResult(catalog::table_oid_t table_oid, const std::string &index_name, std::vector<uint32_t> col_oids,
@@ -39,8 +37,9 @@ class IndexCreateTest : public SqlBasedTest {
     auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), index_name);
     TableVectorIterator table_iter(exec_ctx_.get(), uint32_t(table_oid), col_oids.data(),
                                    static_cast<uint32_t>(col_oids.size()));
-    IndexIterator index_iter{
-        exec_ctx_.get(), 1, uint32_t(table_oid), uint32_t(index_oid), col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+    IndexIterator index_iter{exec_ctx_.get(),     1,
+                             uint32_t(table_oid), uint32_t(index_oid),
+                             col_oids.data(),     static_cast<uint32_t>(col_oids.size())};
     table_iter.Init();
     index_iter.Init();
     VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
@@ -103,7 +102,7 @@ TEST_F(IndexCreateTest, SimpleIndexCreate) {
   CreateIndex(table_oid, "indexA", std::make_unique<catalog::IndexSchema>(tmp_index_schema));
 
   // verify index population
-  // VerifyIndexResult(table_oid, "indexA", {1}, 1);
+  VerifyIndexResult(table_oid, "indexA", {1}, 1);
 }
 
 // NOLINTNEXTLINE
