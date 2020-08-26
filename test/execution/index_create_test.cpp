@@ -16,6 +16,7 @@ class IndexCreateTest : public SqlBasedTest {
  protected:
   void CreateIndex(catalog::table_oid_t table_oid, const std::string &index_name,
                    std::unique_ptr<catalog::IndexSchema> schema) {
+    const clock_t begin_time = clock();
     planner::CreateIndexPlanNode::Builder builder;
     auto plan_node = builder.SetNamespaceOid(NSOid())
                          .SetTableOid(table_oid)
@@ -29,6 +30,7 @@ class IndexCreateTest : public SqlBasedTest {
 
     query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx_.get()),
                execution::vm::ExecutionMode::Interpret);
+    std::cout << float( clock () - begin_time ) /  CLOCKS_PER_SEC;
   }
 
   void VerifyIndexResult(catalog::table_oid_t table_oid, const std::string &index_name, std::vector<uint32_t> col_oids,
