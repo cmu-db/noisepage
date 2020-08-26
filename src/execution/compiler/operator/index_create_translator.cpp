@@ -68,7 +68,7 @@ void IndexCreateTranslator::DeclareInserter(FunctionBuilder *function) const {
   function->Append(codegen_->DeclareVar(inserter_, storage_interface_type, nullptr));
   // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids_var_, true)
   ast::Expr *inserter_setup = codegen_->StorageInterfaceInit(
-      inserter_, GetExecutionContext(), !GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid(), col_oids_var_, false);
+      inserter_, GetExecutionContext(), uint32_t(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()), col_oids_var_, false);
   function->Append(codegen_->MakeStmt(inserter_setup));
 }
 
@@ -80,7 +80,7 @@ void IndexCreateTranslator::SetOids(FunctionBuilder *function) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids_var_[i] = col_oid
     ast::Expr *lhs = codegen_->ArrayAccess(col_oids_var_, i);
-    ast::Expr *rhs = codegen_->Const32(!all_oids_[i]);
+    ast::Expr *rhs = codegen_->Const32(uint32_t(all_oids_[i]));
     function->Append(codegen_->Assign(lhs, rhs));
   }
 }
@@ -98,7 +98,7 @@ void IndexCreateTranslator::CreateIndex(FunctionBuilder *function) const {
 
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
   // var index_pr = @getIndexPR(&inserter, oid)
-  std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_), codegen_->Const32(!index_oid_)};
+  std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_), codegen_->Const32(uint32_t(index_oid_))};
   auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, std::move(pr_call_args));
   function->Append(codegen_->DeclareVar(index_pr_, nullptr, get_index_pr_call));
 }
