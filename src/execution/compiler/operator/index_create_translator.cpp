@@ -47,6 +47,8 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 
   // Close TVI, if need be.
   function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
+
+  FreeInserter(function);
 }
 
 void IndexCreateTranslator::InitScan(FunctionBuilder *function) const {
@@ -205,6 +207,13 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *build
   If success(builder, cond);
   { builder->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
+}
+
+void IndexCreateTranslator::FreeInserter(FunctionBuilder *function) const {
+  // Call @storageInterfaceFree
+  ast::Expr *inserter_free =
+      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(inserter_)});
+  function->Append(GetCodeGen()->MakeStmt(inserter_free));
 }
 
 ast::Expr *IndexCreateTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

@@ -97,6 +97,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void DeclareSlot(FunctionBuilder *function) const;
   void FillTablePR(FunctionBuilder *function) const;
   void IndexInsert(WorkContext *ctx, FunctionBuilder *function) const;
+  void FreeInserter(FunctionBuilder *function) const;
 
   void SetOids(FunctionBuilder *function) const;
   std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema) const;
