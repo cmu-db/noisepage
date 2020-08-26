@@ -41,7 +41,6 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   // 2. Setup/Teardown of the Table
   // 3. HashFunction for (aggregate_term_id, tuple_val)
 
-
   // The produce pipeline begins after the build.
   pipeline->LinkSourcePipeline(&build_pipeline_);
 
@@ -395,7 +394,6 @@ void HashAggregationTranslator::UpdateAggregates(WorkContext *context, FunctionB
   // the current hash_vals are only based on the group by columns
 
   auto agg_payload = PerformLookup(function, agg_ht, hash_val, agg_values);
-
 
   If check_new_agg(function, codegen->IsNilPointer(codegen->MakeExpr(agg_payload)));
   ConstructNewAggregate(function, agg_ht, agg_payload, agg_values, hash_val);
