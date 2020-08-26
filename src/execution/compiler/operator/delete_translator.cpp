@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -27,6 +28,12 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
       compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
+
+  if (IsCountersEnabled()) {
+    auto *codegen = GetCodeGen();
+    ast::Expr *num_deletes_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+    num_deletes_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_deletes", num_deletes_type);
+  }
 }
 
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -41,6 +48,23 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   for (const auto &index_oid : indexes) {
     GenIndexDelete(function, context, index_oid);
   }
+
+  if (IsCountersEnabled()) {
+    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_deletes)
+    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_deletes)
+    auto *codegen = GetCodeGen();
+    const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
+    const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+    const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
+                                                               brain::ExecutionOperatingUnitType::DELETE);
+    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                   num_deletes_.Get(codegen)));
+    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                   num_deletes_.Get(codegen)));
+  }
+
   GenDeleterFree(function);
 }
 
@@ -55,6 +79,13 @@ void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   ast::Expr *deleter_setup =
       GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(), !op.GetTableOid(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(deleter_setup));
+
+  if (IsCountersEnabled()) {
+    // queryState.num_deletes = 0
+    auto *codegen = GetCodeGen();
+    auto assignment = codegen->Assign(num_deletes_.Get(codegen), codegen->Const32(0));
+    builder->Append(assignment);
+  }
 }
 
 void DeleteTranslator::GenDeleterFree(FunctionBuilder *builder) const {
@@ -77,6 +108,16 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
   {
     // The delete was not successful; abort the transaction.
     builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
+  }
+  check.Else();
+  {
+    if (IsCountersEnabled()) {
+      // queryState.num_deletes = queryState.num_deletes + 1
+      auto *codegen = GetCodeGen();
+      ast::Expr *plus_op = codegen->BinaryOp(parsing::Token::Type::PLUS, num_deletes_.Get(codegen), codegen->Const32(1));
+      ast::Stmt *num_deletes_increment = codegen->Assign(num_deletes_.Get(codegen), plus_op);
+      builder->Append(num_deletes_increment);
+    }
   }
   check.EndIf();
 }

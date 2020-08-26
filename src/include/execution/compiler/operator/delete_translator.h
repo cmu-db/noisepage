@@ -5,6 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::catalog {
 class Schema;
@@ -88,6 +89,9 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
 
   // Column oids of the table we are deleting from.
   ast::Identifier col_oids_;
+
+  // The number of deletes that are performed.
+  StateDescriptor::Entry num_deletes_;
 };
 
 }  // namespace terrier::execution::compiler
