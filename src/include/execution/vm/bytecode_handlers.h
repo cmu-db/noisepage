@@ -1885,10 +1885,10 @@ VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, terrier::execution::exec:
 
   uint32_t out_oid;
   if (col_name.GetLength() == 0) {
-    out_oid = !table_oid;
+    out_oid = table_oid.UnderlyingValue();
   } else {
     const auto &schema = exec_ctx->GetAccessor()->GetSchema(table_oid);
-    out_oid = !schema.GetColumn(std::string(col_name.StringView())).Oid();
+    out_oid = schema.GetColumn(std::string(col_name.StringView())).Oid().UnderlyingValue();
   }
 
   *oid_var = out_oid;
@@ -1899,7 +1899,7 @@ VM_OP_WARM void OpTestCatalogIndexLookup(uint32_t *oid_var, terrier::execution::
   // TODO(WAN): wasteful std::string
   terrier::execution::sql::StringVal table_name{reinterpret_cast<const char *>(index_name_str), index_name_length};
   terrier::catalog::index_oid_t index_oid = exec_ctx->GetAccessor()->GetIndexOid(std::string(table_name.StringView()));
-  *oid_var = !index_oid;
+  *oid_var = index_oid.UnderlyingValue();
 }
 
 // Macro hygiene
