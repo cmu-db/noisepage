@@ -1,4 +1,5 @@
 #include "optimizer/group.h"
+
 #include "loggers/optimizer_logger.h"
 
 namespace terrier::optimizer {
@@ -38,8 +39,8 @@ void Group::AddExpression(GroupExpression *expr, bool enforced) {
 }
 
 bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet *properties) {
-  OPTIMIZER_LOG_TRACE("Adding expression cost on group {0} with op {1}", expr->GetGroupID(),
-                      expr->Contents()->GetName().c_str())
+  OPTIMIZER_LOG_TRACE("Adding expression cost on group " + std::to_string(expr->GetGroupID().UnderlyingValue()) +
+                      " with op {1}" + expr->Contents()->GetName())
 
   auto it = lowest_cost_expressions_.find(properties);
   if (it == lowest_cost_expressions_.end()) {

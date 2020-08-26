@@ -528,8 +528,8 @@ catalog::CatalogAccessor *CodeGen::GetCatalogAccessor() const { return accessor_
 
 ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, catalog::table_oid_t table_oid,
                                   ast::Identifier col_oids) {
-  ast::Expr *call =
-      CallBuiltin(ast::Builtin::TableIterInit, {table_iter, exec_ctx, Const32(!table_oid), MakeExpr(col_oids)});
+  ast::Expr *call = CallBuiltin(ast::Builtin::TableIterInit,
+                                {table_iter, exec_ctx, Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -554,8 +554,9 @@ ast::Expr *CodeGen::TableIterClose(ast::Expr *table_iter) {
 
 ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
                                          ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::TableIterParallel, {Const32(!table_oid), MakeExpr(col_oids), query_state,
-                                                                  exec_ctx, MakeExpr(worker_name)});
+  ast::Expr *call = CallBuiltin(
+      ast::Builtin::TableIterParallel,
+      {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx, MakeExpr(worker_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -679,6 +680,12 @@ ast::Expr *CodeGen::VPIFilter(ast::Expr *exec_ctx, ast::Expr *vp, parser::Expres
       break;
     case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
       builtin = ast::Builtin::VectorFilterGreaterThanEqual;
+      break;
+    case parser::ExpressionType::COMPARE_LIKE:
+      builtin = ast::Builtin::VectorFilterLike;
+      break;
+    case parser::ExpressionType::COMPARE_NOT_LIKE:
+      builtin = ast::Builtin::VectorFilterNotLike;
       break;
     default:
       throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("CodeGen: Vector filter type {} from VPI not supported.",

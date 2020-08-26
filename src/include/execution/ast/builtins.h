@@ -33,7 +33,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* SQL Functions */                                                   \
   F(Like, like)                                                         \
-  F(ExtractYear, extractYear)                                           \
+  F(DatePart, datePart)                                                 \
                                                                         \
   /* Thread State Container */                                          \
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
@@ -124,6 +124,8 @@ namespace terrier::execution::ast {
   F(VectorFilterLessThan, filterLt)                                     \
   F(VectorFilterLessThanEqual, filterLe)                                \
   F(VectorFilterNotEqual, filterNe)                                     \
+  F(VectorFilterLike, filterLike)                                       \
+  F(VectorFilterNotLike, filterNotLike)                                 \
                                                                         \
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
@@ -260,10 +262,21 @@ namespace terrier::execution::ast {
   F(ASin, asin)                                                         \
   F(ATan, atan)                                                         \
   F(ATan2, atan2)                                                       \
+  F(Cosh, cosh)                                                         \
+  F(Sinh, sinh)                                                         \
+  F(Tanh, tanh)                                                         \
   F(Cos, cos)                                                           \
   F(Cot, cot)                                                           \
   F(Sin, sin)                                                           \
   F(Tan, tan)                                                           \
+  F(Ceil, ceil)                                                         \
+  F(Floor, floor)                                                       \
+  F(Truncate, truncate)                                                 \
+  F(Log10, log10)                                                       \
+  F(Log2, log2)                                                         \
+                                                                        \
+  /* EXP */                                                             \
+  F(Exp, exp)                                                           \
                                                                         \
   /* Generic */                                                         \
   F(SizeOf, sizeOf)                                                     \
@@ -284,7 +297,25 @@ namespace terrier::execution::ast {
                                                                         \
   /* String functions */                                                \
   F(Lower, lower)                                                       \
+  F(Upper, upper)                                                       \
   F(Version, version)                                                   \
+  F(StartsWith, startsWith)                                             \
+  F(Substring, substring)                                               \
+  F(Left, left)                                                         \
+  F(Right, right)                                                       \
+  F(Reverse, reverse)                                                   \
+  F(Repeat, repeat)                                                     \
+  F(Trim, trim)                                                         \
+  F(Trim2, trim2)                                                       \
+  F(Position, position)                                                 \
+  F(ASCII, ascii)                                                       \
+                                                                        \
+  /* Char function */                                                   \
+  F(Chr, chr)                                                           \
+  F(CharLength, charLength)                                             \
+                                                                        \
+  /* Arithmetic functions */                                            \
+  F(Abs, abs)                                                           \
                                                                         \
   /* Mini runners functions */                                          \
   F(NpRunnersEmitInt, NpRunnersEmitInt)                                 \
@@ -305,7 +336,7 @@ namespace terrier::execution::ast {
 /**
  * An enumeration of all TPL builtin functions.
  */
-enum class Builtin : uint8_t {
+enum class Builtin : uint16_t {
 #define ENTRY(Name, ...) Name,
   BUILTINS_LIST(ENTRY)
 #undef ENTRY
@@ -336,7 +367,9 @@ class Builtins {
   /**
    * @return The name of the function associated with the given builtin enumeration.
    */
-  static const char *GetFunctionName(Builtin builtin) { return builtin_function_names[static_cast<uint8_t>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) {
+    return builtin_function_names[static_cast<std::underlying_type<Builtin>::type>(builtin)];
+  }
 
  private:
   static const char *builtin_function_names[];

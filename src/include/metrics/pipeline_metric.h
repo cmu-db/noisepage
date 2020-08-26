@@ -49,8 +49,8 @@ class PipelineMetricRawData : public AbstractRawData {
     auto &outfile = (*outfiles)[0];
 
     for (auto &data : pipeline_data_) {
-      outfile << (!data.query_id_) << ", ";
-      outfile << (!data.pipeline_id_) << ", ";
+      outfile << data.query_id_.UnderlyingValue() << ", ";
+      outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
@@ -59,6 +59,7 @@ class PipelineMetricRawData : public AbstractRawData {
       outfile << data.GetNumKeysVectorString() << ", ";
       outfile << data.GetCardinalityVectorString() << ", ";
       outfile << data.GetMemFactorsVectorString() << ", ";
+      outfile << data.GetNumLoopsVectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
@@ -77,7 +78,7 @@ class PipelineMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
       "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
-      "est_cardinalities, mem_factor"};
+      "est_cardinalities, mem_factor, num_loops"};
 
  private:
   friend class PipelineMetric;
@@ -158,6 +159,14 @@ class PipelineMetricRawData : public AbstractRawData {
         factors.emplace_back(feature.GetMemFactor());
       }
       return ConcatVectorToString<double>(factors);
+    }
+
+    std::string GetNumLoopsVectorString() {
+      std::vector<size_t> num_loops;
+      for (auto &feature : features_) {
+        num_loops.emplace_back(feature.GetNumLoops());
+      }
+      return ConcatVectorToString<size_t>(num_loops);
     }
 
     const execution::query_id_t query_id_;

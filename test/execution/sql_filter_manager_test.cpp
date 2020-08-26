@@ -135,12 +135,7 @@ TEST_F(FilterManagerTest, MixedTaatVaatFilterTest) {
 }
 
 // NOLINTNEXTLINE
-#if __APPLE__
-TEST_F(FilterManagerTest, DISABLED_AdaptiveCheckTest) {
-  // TODO(WAN): For some reason, the adaptivity fails for AppleClang-1001.0.46.4 sometimes.
-#else
 TEST_F(FilterManagerTest, AdaptiveCheckTest) {
-#endif
   auto exec_ctx = MakeExecCtx();
   uint32_t iter = 0;
 
