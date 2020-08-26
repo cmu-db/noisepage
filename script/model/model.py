@@ -52,25 +52,30 @@ class Model:
     With the implementation for different normalization handlings
     """
 
-    def __init__(self, method, normalize=True, log_transform=True, modeling_transformer=None):
+    def __init__(self, method, normalize=True, log_transform=True, y_transformer=None, x_transformer=None):
         """
 
         :param method: which ML method to use
         :param normalize: whether to perform standard normalization on data (both x and y)
         :param log_transform: whether to perform log transformation on data (both x and y)
-        :param modeling_transformer: the customized data transformer (a pair of functions with the first for training
-               and second for predict)
+        :param y_transformer: the customized data transformer for output (a pair of functions with the first for
+               training and second for predict)
+        :param x_transformer: the customized data transformer for input
         """
         self._base_model = _get_base_ml_model(method)
         self._normalize = normalize
         self._log_transform = log_transform
         self._xscaler = preprocessing.StandardScaler()
         self._yscaler = preprocessing.StandardScaler()
-        self._modeling_transformer = modeling_transformer
+        self._y_transformer = y_transformer
+        self._x_transformer = x_transformer
 
     def train(self, x, y):
-        if self._modeling_transformer is not None:
-            y = self._modeling_transformer[0](x, y)
+        if self._y_transformer is not None:
+            y = self._y_transformer[0](x, y)
+
+        if self._x_transformer is not None:
+            x = self._x_transformer(x)
 
         if self._log_transform:
             x = np.log(x + _LOGTRANS_EPS)
@@ -84,6 +89,9 @@ class Model:
 
     def predict(self, x):
         original_x = x
+
+        if self._x_transformer is not None:
+            x = self._x_transformer(x)
 
         # transform the features
         if self._log_transform:
@@ -101,7 +109,7 @@ class Model:
             y = np.exp(y) - _LOGTRANS_EPS
             y = np.clip(y, 0, None)
 
-        if self._modeling_transformer is not None:
-            y = self._modeling_transformer[1](original_x, y)
+        if self._y_transformer is not None:
+            y = self._y_transformer[1](original_x, y)
 
         return y

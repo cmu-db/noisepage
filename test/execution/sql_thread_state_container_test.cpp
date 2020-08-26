@@ -31,11 +31,11 @@ TEST_F(ThreadStateContainerTest, EmptyStateTest) {
 // NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   struct Object {
-    uint64_t x{0};
-    uint32_t arr[10] = {0};
-    uint32_t arr_2[2] = {44, 23};
-    Object *next{nullptr};
-    bool initialized{false};
+    uint64_t x_{0};
+    uint32_t arr_[10] = {0};
+    uint32_t arr_2_[2] = {44, 23};
+    Object *next_{nullptr};
+    bool initialized_{false};
   };
 
   MemoryPool memory(nullptr);
@@ -46,17 +46,17 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
       [](UNUSED_ATTRIBUTE auto *_, auto *s) {
         // Set some stuff to indicate object is initialized
         auto obj = new (s) Object();
-        obj->x = 10;
-        obj->initialized = true;
+        obj->x_ = 10;
+        obj->initialized_ = true;
       },
       nullptr, nullptr);
   ForceCreationOfThreadStates(&container, 4);
 
   // Check
   container.ForEach<Object>([](Object *obj) {
-    EXPECT_EQ(10u, obj->x);
-    EXPECT_EQ(nullptr, obj->next);
-    EXPECT_EQ(true, obj->initialized);
+    EXPECT_EQ(10u, obj->x_);
+    EXPECT_EQ(nullptr, obj->next_);
+    EXPECT_EQ(true, obj->initialized_);
   });
   EXECUTION_LOG_TRACE("{} thread states", container.GetThreadStateCount());
 }

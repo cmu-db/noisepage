@@ -157,7 +157,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Extract and record the translators.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
-                                          common::ManagedPointer(pipeline));
+                                          common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
   }
@@ -177,9 +177,12 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
                                                              const exec::ExecutionSettings &exec_settings,
                                                              catalog::CatalogAccessor *accessor,
-                                                             const CompilationMode mode) {
+                                                             const CompilationMode mode,
+                                                             common::ManagedPointer<const std::string> query_text) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
+  // TODO(Lin): Hacking... remove this after getting the counters in
+  query->SetQueryText(query_text);
 
   // Generate the plan for the query
   CompilationContext ctx(query.get(), accessor, mode);

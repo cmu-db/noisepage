@@ -579,5 +579,3 @@ SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NU
 
 statement ok
 DROP TABLE like_tbl;
-
-

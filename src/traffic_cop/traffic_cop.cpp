@@ -351,8 +351,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
-  auto exec_query =
-      execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
+  auto exec_query = execution::compiler::CompilationContext::Compile(
+      *physical_plan, exec_settings, connection_ctx->Accessor().Get(),
+      execution::compiler::CompilationMode::Interleaved,
+      common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -415,7 +417,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
 
   const auto ns_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED)
-          ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(static_cast<uint16_t>(connection_id)));
+          ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(connection_id.UnderlyingValue()));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
     txn_manager_->Abort(txn);

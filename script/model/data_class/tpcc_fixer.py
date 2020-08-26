@@ -15,7 +15,8 @@ update_orderline = 33
 # AND OL_D_ID = $2 AND OL_W_ID = $3
 keyless_aggregate = 34
 
-def transformFeature(feature, q_id, p_id, x_loc):
+
+def transform_feature(feature, q_id, p_id, x_loc):
     # Hack to tweak the feature based on the query
     if q_id == select_limit_1 and p_id == 2:
         if feature == 'SORT_BUILD':
