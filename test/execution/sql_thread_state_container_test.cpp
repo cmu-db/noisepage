@@ -61,7 +61,7 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   EXECUTION_LOG_TRACE("{} thread states", container.GetThreadStateCount());
 }
 
-//// NOLINTNEXTLINE
+// NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   // The container
   MemoryPool memory(nullptr);
