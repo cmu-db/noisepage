@@ -5,6 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {
@@ -42,7 +43,7 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement insertion logic where it fills in the insert PR obtained from the StorageInterface struct
@@ -116,6 +117,9 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   // Projection map of the table that we are inserting into.
   // This maps column oids to offsets in a projected row.
   storage::ProjectionMap table_pm_;
+
+  // The number of inserts that are performed.
+  StateDescriptor::Entry num_inserts_;
 };
 
 }  // namespace terrier::execution::compiler
