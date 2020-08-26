@@ -35,10 +35,10 @@ class IndexCreateTest : public SqlBasedTest {
                          uint32_t key_num) {
     auto sql_table = exec_ctx_->GetAccessor()->GetTable(table_oid);
     auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), index_name);
-    TableVectorIterator table_iter(exec_ctx_.get(), !table_oid, col_oids.data(),
+    TableVectorIterator table_iter(exec_ctx_.get(), uint32_t(table_oid), col_oids.data(),
                                    static_cast<uint32_t>(col_oids.size()));
     IndexIterator index_iter{
-        exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+        exec_ctx_.get(), 1, uint32_t(table_oid), uint32_t(index_oid), col_oids.data(), static_cast<uint32_t>(col_oids.size())};
     table_iter.Init();
     index_iter.Init();
     VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
@@ -48,7 +48,7 @@ class IndexCreateTest : public SqlBasedTest {
     while (table_iter.Advance()) {
       for (; vpi->HasNext(); vpi->Advance()) {
         auto *const index_pr(index_iter.PR());
-        for (auto i = 0; i < key_num; ++i) {
+        for (uint32_t i = 0; i < key_num; ++i) {
           auto *key = vpi->GetValue<int32_t, false>(i, nullptr);
           index_pr->Set<int32_t, false>(i, *key, false);
         }
@@ -58,7 +58,7 @@ class IndexCreateTest : public SqlBasedTest {
         ASSERT_TRUE(index_iter.Advance());
         // Get directly from iterator
         auto *const table_pr(index_iter.TablePR());
-        for (auto i = 0; i < result_num; ++i) {
+        for (uint32_t i = 0; i < result_num; ++i) {
           auto table_val UNUSED_ATTRIBUTE = vpi->GetValue<int32_t, false>(i, nullptr);
           auto indexed_val UNUSED_ATTRIBUTE = table_pr->Get<int32_t, false>(i, nullptr);
           ASSERT_EQ(*table_val, *indexed_val);
@@ -66,7 +66,7 @@ class IndexCreateTest : public SqlBasedTest {
         // Get indirectly from tuple slot
         storage::TupleSlot slot(index_iter.CurrentSlot());
         ASSERT_TRUE(sql_table->Select(exec_ctx_->GetTxn(), slot, index_iter.TablePR()));
-        for (auto i = 0; i < result_num; ++i) {
+        for (uint32_t i = 0; i < result_num; ++i) {
           auto table_val UNUSED_ATTRIBUTE = vpi->GetValue<int32_t, false>(i, nullptr);
           auto tuple_val UNUSED_ATTRIBUTE = table_pr->Get<int32_t, false>(i, nullptr);
           ASSERT_EQ(*table_val, *tuple_val);
