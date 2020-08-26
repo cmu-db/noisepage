@@ -2225,6 +2225,27 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::InitTablePR: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::FillTablePR: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      // Second argument is a tuple slot
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      break;
+    }
     case ast::Builtin::GetTablePR: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2823,6 +2844,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::StorageInterfaceInit:
+    case ast::Builtin::InitTablePR:
+    case ast::Builtin::FillTablePR:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:

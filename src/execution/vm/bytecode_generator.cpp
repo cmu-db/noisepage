@@ -2033,6 +2033,16 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
                                              col_oids, num_oids, is_index_key_update);
       break;
     }
+    case ast::Builtin::InitTablePR: {
+      GetEmitter()->Emit(Bytecode::StorageInterfaceInitTablePR, storage_interface);
+      break;
+    }
+    case ast::Builtin::FillTablePR: {
+      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceFillTablePR, pr, storage_interface, tuple_slot);
+      break;
+    }
     case ast::Builtin::GetTablePR: {
       LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::StorageInterfaceGetTablePR, pr, storage_interface);
@@ -2458,6 +2468,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::StorageInterfaceInit:
+    case ast::Builtin::InitTablePR:
+    case ast::Builtin::FillTablePR:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:

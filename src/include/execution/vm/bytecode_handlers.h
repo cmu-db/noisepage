@@ -1775,6 +1775,12 @@ VM_OP void OpStorageInterfaceInit(terrier::execution::sql::StorageInterface *sto
                                   terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                                   uint32_t *col_oids, uint32_t num_oids, bool need_indexes);
 
+VM_OP void OpStorageInterfaceInitTablePR(terrier::execution::sql::StorageInterface *storage_interface);
+
+VM_OP void OpStorageInterfaceFillTablePR(terrier::storage::ProjectedRow **pr_result,
+                                         terrier::execution::sql::StorageInterface *storage_interface,
+                                         terrier::storage::TupleSlot *tuple_slot);
+
 VM_OP void OpStorageInterfaceGetTablePR(terrier::storage::ProjectedRow **pr_result,
                                         terrier::execution::sql::StorageInterface *storage_interface);
 

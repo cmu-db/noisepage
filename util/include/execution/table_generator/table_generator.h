@@ -30,6 +30,11 @@ constexpr uint32_t TEST2_SIZE = 1000;
 constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
 
 /**
+ * Size of the index test table
+ */
+constexpr uint32_t INDEX_TEST_SIZE = 1000000;
+
+/**
  * Helper class to generate test tables and their indexes.
  */
 class TableGenerator {

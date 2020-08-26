@@ -18,6 +18,7 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
       exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
       need_indexes_(need_indexes),
+      has_table_pr_(false),
       pri_(num_oids > 0 ? table_->InitializerForProjectedRow(col_oids_) : storage::ProjectedRowInitializer()) {
   // Initialize the index projected row if needed.
   if (need_indexes_) {
@@ -35,6 +36,7 @@ StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::ta
 
 StorageInterface::~StorageInterface() {
   if (need_indexes_) exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_);
+  if (has_table_pr_) exec_ctx_->GetMemoryPool()->Deallocate(table_pr_buffer_, table_pr_size_);
 }
 
 storage::ProjectedRow *StorageInterface::GetTablePR() {
@@ -45,6 +47,12 @@ storage::ProjectedRow *StorageInterface::GetTablePR() {
 
 storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_oid) {
   curr_index_ = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+  // index is created after the initialization of storage interface
+  if (curr_index_ != nullptr && !need_indexes_) {
+    index_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(
+        curr_index_->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
+    need_indexes_ = true;
+  }
   index_pr_ = curr_index_->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
   return index_pr_;
 }
@@ -64,17 +72,37 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
 
 bool StorageInterface::IndexInsert() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+  if (has_table_pr_) {
+    return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
+  }
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
 bool StorageInterface::IndexInsertUnique() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+  if (has_table_pr_) {
+    return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
+  }
   return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
 void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
+}
+
+void StorageInterface::InitTablePR() {
+  table_pr_size_ = pri_.ProjectedRowSize();
+  table_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pr_size_, alignof(uint64_t), false);
+  table_pr_ = pri_.InitializeRow(table_pr_buffer_);
+  has_table_pr_ = true;
+}
+
+storage::ProjectedRow *StorageInterface::FillTablePR(storage::TupleSlot table_tuple_slot) {
+  table_tuple_slot_ = table_tuple_slot;
+  auto result UNUSED_ATTRIBUTE = table_->Select(exec_ctx_->GetTxn(), table_tuple_slot, table_pr_);
+  TERRIER_ASSERT(result, "Select should not fail");
+  return table_pr_;
 }
 
 }  // namespace terrier::execution::sql
