@@ -3,6 +3,10 @@
 
 namespace terrier {
 
+/**
+ * These benchmarks exist to verify the performance difference between grouped and ungrouped perf counters. We do not
+ * include them in our CI regression checks since their behavior is determined more by the OS than our wrapper.
+ */
 class PerfMonitorBenchmark : public benchmark::Fixture {};
 
 /**

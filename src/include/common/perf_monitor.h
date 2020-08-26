@@ -19,6 +19,9 @@ namespace terrier::common {
  * Wrapper around hw perf events provided by the Linux kernel. Instantiating and destroying PerfMonitors are a bit
  * expensive because they open multiple file descriptors (read: syscalls). Ideally you want to keep a PerfMonitor object
  * around for a portion of code you want to profile, and then just rely on Start() and Stop().
+ * @tparam inherit true means that any threads spawned from this thread after the perf counter instantiation will be
+ * accumulated into the parents' counters. This has performance implications. false otherwise (only count this thread's
+ * counters, regardless of spawned threads)
  */
 template <bool inherit>
 class PerfMonitor {
@@ -29,7 +32,7 @@ class PerfMonitor {
    */
   struct PerfCounters {
     /**
-     * Should always be 6 after a read since that's how many counters we have.
+     * Should always be NUM_HW_EVENTS after a read since that's how many counters we have.
      */
     uint64_t num_counters_;
 
@@ -113,18 +116,22 @@ class PerfMonitor {
     pe.exclude_kernel = 1;
     pe.exclude_hv = 1;
     if constexpr (inherit) {
+      // Count your children's counters
       pe.inherit = 1;
       pe.inherit_stat = 1;
     } else {
+      // Don't read children thread counters, can optimize to read this thread's counters in group fashion
       pe.read_format = PERF_FORMAT_GROUP;
     }
 
-    // Open file descriptors for each perf_event that we want. We reuse the first entry of the array as the group fd.
+    // Open file descriptors for each perf_event that we want.
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
       pe.config = HW_EVENTS[i];
       if constexpr (inherit) {
+        // Each counter is its own group (-1 group fd)
         event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, -1, 0);
       } else {
+        //  We reuse the first entry of the array as the group fd.
         event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
       }
       valid_ = valid_ && event_files_[i] > 2;  // 0, 1, 2 are reserved for stdin, stdout, stderr respectively
@@ -161,8 +168,10 @@ class PerfMonitor {
           TERRIER_ASSERT(result >= 0, "Failed to enable events.");
         }
       } else {
+        // Reset all of the counters out with a single syscall.
         auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
         TERRIER_ASSERT(result >= 0, "Failed to reset events.");
+        // Start all of the counters out with a single syscall.
         result = ioctl(event_files_[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
         TERRIER_ASSERT(result >= 0, "Failed to enable events.");
       }
@@ -187,6 +196,7 @@ class PerfMonitor {
           TERRIER_ASSERT(result >= 0, "Failed to disable events.");
         }
       } else {
+        // Stop all of the counters out with a single syscall.
         auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
         TERRIER_ASSERT(result >= 0, "Failed to disable events.");
       }
@@ -197,7 +207,7 @@ class PerfMonitor {
 
   /**
    * Read out counters for the profiled period
-   * @return
+   * @return struct representing the counters
    */
   PerfCounters Counters() const {
     PerfCounters counters{};  // zero initialization
@@ -223,6 +233,7 @@ class PerfMonitor {
         bytes_read = read(event_files_[5], &counters.ref_cpu_cycles_, sizeof(uint64_t));
         TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
       } else {
+        // Read all of the counters out with a single syscall.
         auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));
         TERRIER_ASSERT(bytes_read == sizeof(PerfCounters), "Failed to read the counters.");
         TERRIER_ASSERT(counters.num_counters_ == NUM_HW_EVENTS, "Failed to read the counters.");
@@ -239,7 +250,7 @@ class PerfMonitor {
  private:
   // set the first file descriptor to -1. Since event_files[0] is always passed into group_fd on
   // perf_event_open, this has the effect of making the first event the group leader. All subsequent syscalls can use
-  // that fd.
+  // that fd if we are not inheriting child counters.
   std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
   bool valid_ = true;
 

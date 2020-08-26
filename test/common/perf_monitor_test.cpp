@@ -8,8 +8,13 @@
 
 namespace terrier {
 
-class PerfMonitorTests : public TerrierTest {
-};
+/**
+ * These tests mostly exist to make sure we can compile and use the API of perf counters. It's difficult to make any
+ * assertions about the counters' values due to OS behavior (unsupported on macOS, unsupported on Linux without changing
+ * kernel flags or possibly running the tests as root). I keep the test around as an easy sanity check via break points
+ * to make sure perf counters give us the data we want on a given system.
+ */
+class PerfMonitorTests : public TerrierTest {};
 
 template <bool inherit, typename perf_counters>
 static void CreateAndDestroyCatalog(perf_counters *const counters) {
