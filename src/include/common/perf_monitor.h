@@ -98,9 +98,7 @@ class PerfMonitor {
   };
 
   /**
-   * @param count_children_tasks true if spawned threads should inherit perf counters. Calling counters on parent will
-   * accumulate all.
-   * @warning a true arg seems to result in garbage counters if any are separately created in children tasks.
+   * Create a perf monitor and open all of the necessary file descriptors.
    */
   PerfMonitor() {
 #if __APPLE__
