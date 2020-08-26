@@ -2,11 +2,8 @@
 
 #include <thread>  //NOLINT
 
-#include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "common/scoped_timer.h"
 #include "main/db_main.h"
-#include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
 namespace terrier {
