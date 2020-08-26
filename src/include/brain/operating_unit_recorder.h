@@ -223,7 +223,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
 
   // Flag to indicate whether to fix the cardinality for TPCC.
   // TODO(Lin): Remove after we have the counters
-  bool tpcc_feature_fix_ = false;
+  bool tpcc_feature_fix_ = true;
 };
 
 }  // namespace terrier::brain
