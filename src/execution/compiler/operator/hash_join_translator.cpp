@@ -27,6 +27,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
 
   if (IsCountersEnabled()) {
+    // TODO(WAN): for now, enabling counters forces it to be serial
     left_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
     pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   }
@@ -53,7 +54,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
 
   if (IsCountersEnabled()) {
     ast::Expr *num_probes_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_probes_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "numProbes", num_probes_type);
+    num_probes_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_probes", num_probes_type);
     probing_pipeline_id_ = pipeline->GetPipelineId();
   }
 
