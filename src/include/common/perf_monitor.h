@@ -113,11 +113,11 @@ class PerfMonitor {
     pe.disabled = 1;
     pe.exclude_kernel = 1;
     pe.exclude_hv = 1;
-    if constexpr (inherit) {
+    if constexpr (inherit) {  // NOLINT
       // Count your children's counters
       pe.inherit = 1;
       pe.inherit_stat = 1;
-    } else {
+    } else {  // NOLINT
       // Don't read children thread counters, can optimize to read this thread's counters in group fashion
       pe.read_format = PERF_FORMAT_GROUP;
     }
@@ -125,10 +125,10 @@ class PerfMonitor {
     // Open file descriptors for each perf_event that we want.
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
       pe.config = HW_EVENTS[i];
-      if constexpr (inherit) {
+      if constexpr (inherit) {  // NOLINT
         // Each counter is its own group (-1 group fd)
         event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, -1, 0);
-      } else {
+      } else {  // NOLINT
         //  We reuse the first entry of the array as the group fd.
         event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
       }
@@ -157,7 +157,7 @@ class PerfMonitor {
     // do nothing
 #else
     if (valid_) {
-      if constexpr (inherit) {
+      if constexpr (inherit) {  // NOLINT
         // Iterate through all of the events' file descriptors resetting and starting them
         for (const auto i : event_files_) {
           auto result UNUSED_ATTRIBUTE = ioctl(i, PERF_EVENT_IOC_RESET);
@@ -165,7 +165,7 @@ class PerfMonitor {
           result = ioctl(i, PERF_EVENT_IOC_ENABLE);
           TERRIER_ASSERT(result >= 0, "Failed to enable events.");
         }
-      } else {
+      } else {  // NOLINT
         // Reset all of the counters out with a single syscall.
         auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
         TERRIER_ASSERT(result >= 0, "Failed to reset events.");
@@ -187,13 +187,13 @@ class PerfMonitor {
 #else
     if (valid_) {
       TERRIER_ASSERT(running_, "StopEvents() called without StartEvents() first.");
-      if constexpr (inherit) {
+      if constexpr (inherit) {  // NOLINT
         // Iterate through all of the events' file descriptors stopping them
         for (const auto i : event_files_) {
           auto result UNUSED_ATTRIBUTE = ioctl(i, PERF_EVENT_IOC_DISABLE);
           TERRIER_ASSERT(result >= 0, "Failed to disable events.");
         }
-      } else {
+      } else {  // NOLINT
         // Stop all of the counters out with a single syscall.
         auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
         TERRIER_ASSERT(result >= 0, "Failed to disable events.");
@@ -210,7 +210,7 @@ class PerfMonitor {
   PerfCounters Counters() const {
     PerfCounters counters{};  // zero initialization
     if (valid_) {
-      if constexpr (inherit) {
+      if constexpr (inherit) {  // NOLINT
         // Iterate through all of the events' file descriptors reading them
 
         auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters.cpu_cycles_, sizeof(uint64_t));
@@ -230,7 +230,7 @@ class PerfMonitor {
 
         bytes_read = read(event_files_[5], &counters.ref_cpu_cycles_, sizeof(uint64_t));
         TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-      } else {
+      } else {  // NOLINT
         // Read all of the counters out with a single syscall.
         auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));
         TERRIER_ASSERT(bytes_read == sizeof(PerfCounters), "Failed to read the counters.");
