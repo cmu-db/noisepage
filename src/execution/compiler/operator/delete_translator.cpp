@@ -36,6 +36,15 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
   }
 }
 
+void DeleteTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsCountersEnabled()) {
+    // queryState.num_deletes = 0
+    auto *codegen = GetCodeGen();
+    auto assignment = codegen->Assign(num_deletes_.Get(codegen), codegen->Const32(0));
+    function->Append(assignment);
+  }
+}
+
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
   DeclareDeleter(function);
@@ -79,13 +88,6 @@ void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   ast::Expr *deleter_setup =
       GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(), !op.GetTableOid(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(deleter_setup));
-
-  if (IsCountersEnabled()) {
-    // queryState.num_deletes = 0
-    auto *codegen = GetCodeGen();
-    auto assignment = codegen->Assign(num_deletes_.Get(codegen), codegen->Const32(0));
-    builder->Append(assignment);
-  }
 }
 
 void DeleteTranslator::GenDeleterFree(FunctionBuilder *builder) const {

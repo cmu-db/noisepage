@@ -42,7 +42,7 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct
