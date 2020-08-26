@@ -133,13 +133,13 @@ TEST_F(IndexCreateTest, MultiColumnIndexCreate) {
   auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   // Create Index Schema
   std::vector<catalog::IndexSchema::Column> index_cols;
-  const auto &table_col_A = table_schema.GetColumn("colA");
-  parser::ColumnValueExpression col_expr(table_oid, table_col_A.Oid(), table_col_A.Type());
-  index_cols.emplace_back("index_colA", type::TypeId::INTEGER, false, col_expr);
+  const auto &table_col_a = table_schema.GetColumn("colA");
+  parser::ColumnValueExpression col_expr_a(table_oid, table_col_a.Oid(), table_col_a.Type());
+  index_cols.emplace_back("index_colA", type::TypeId::INTEGER, false, col_expr_a);
 
-  const auto &table_col_B = table_schema.GetColumn("colB");
-  parser::ColumnValueExpression col_exprB(table_oid, table_col_B.Oid(), table_col_B.Type());
-  index_cols.emplace_back("index_colB", type::TypeId::INTEGER, false, col_exprB);
+  const auto &table_col_b = table_schema.GetColumn("colB");
+  parser::ColumnValueExpression col_expr_b(table_oid, table_col_b.Oid(), table_col_b.Type());
+  index_cols.emplace_back("index_colB", type::TypeId::INTEGER, false, col_expr_b);
 
   catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false, false};
 
