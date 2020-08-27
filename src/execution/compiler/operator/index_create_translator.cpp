@@ -102,14 +102,14 @@ void IndexCreateTranslator::CreateIndex(FunctionBuilder *function) const {
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
   // var index_pr = @getIndexPR(&inserter, oid)
   std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_), codegen_->Const32(uint32_t(index_oid_))};
-  auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, std::move(pr_call_args));
+  auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   function->Append(codegen_->DeclareVar(index_pr_, nullptr, get_index_pr_call));
 }
 
 void IndexCreateTranslator::DeclareTablePR(FunctionBuilder *function) const {
   // var table_pr = @InitTablePR()
   std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_)};
-  auto init_table_pr_call = codegen_->CallBuiltin(ast::Builtin::InitTablePR, std::move(pr_call_args));
+  auto init_table_pr_call = codegen_->CallBuiltin(ast::Builtin::InitTablePR, pr_call_args);
   function->Append(codegen_->MakeStmt(init_table_pr_call));
 }
 
@@ -181,11 +181,11 @@ void IndexCreateTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function,
 
 void IndexCreateTranslator::FillTablePR(FunctionBuilder *function) const {
   std::vector<ast::Expr *> insert_args{codegen_->AddressOf(inserter_), codegen_->AddressOf(slot_var_)};
-  auto fill_pr_call = codegen_->CallBuiltin(ast::Builtin::FillTablePR, std::move(insert_args));
+  auto fill_pr_call = codegen_->CallBuiltin(ast::Builtin::FillTablePR, insert_args);
   function->Append(codegen_->DeclareVar(table_pr_, nullptr, fill_pr_call));
 }
 
-void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *builder) const {
+void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *function) const {
   const auto &index = codegen_->GetCatalogAccessor()->GetIndex(index_oid_);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = codegen_->GetCatalogAccessor()->GetIndexSchema(index_oid_);
@@ -198,15 +198,15 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *build
     type::TypeId attr_type = index_col.Type();
     bool nullable = index_col.Nullable();
     auto *set_key_call = codegen_->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false);
-    builder->Append(codegen_->MakeStmt(set_key_call));
+    function->Append(codegen_->MakeStmt(set_key_call));
   }
 
   // if (!@indexInsert(&inserter)) { Abort(); }
   const auto &builtin = index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert;
   auto *index_insert_call = codegen_->CallBuiltin(builtin, {codegen_->AddressOf(inserter_)});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
-  If success(builder, cond);
-  { builder->Append(codegen_->AbortTxn(GetExecutionContext())); }
+  If success(function, cond);
+  { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
 }
 
