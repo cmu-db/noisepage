@@ -2,8 +2,7 @@
     "type": "oltpbenchmark",
     "server_args":{
         "connection_thread_count": 32,
-        "wal_enable": false,
-        "record_buffer_segment_size": 1000000
+        "wal_enable": false
     },
     "testcases": [
         {

@@ -1,8 +1,7 @@
 {
     "type": "oltpbenchmark",
     "server_args":{
-        "connection_thread_count": 32,
-        "record_buffer_segment_size": 1000000
+        "connection_thread_count": 32
     },
     "env":{
         "wal_device":"HDD"
