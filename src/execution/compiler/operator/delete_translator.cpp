@@ -64,8 +64,8 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     auto *codegen = GetCodeGen();
     const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
     const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-    const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                               brain::ExecutionOperatingUnitType::DELETE);
+    const auto &feature =
+        brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::DELETE);
     function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
                                                    brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                                    num_deletes_.Get(codegen)));
@@ -116,7 +116,8 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
     if (IsCountersEnabled()) {
       // queryState.num_deletes = queryState.num_deletes + 1
       auto *codegen = GetCodeGen();
-      ast::Expr *plus_op = codegen->BinaryOp(parsing::Token::Type::PLUS, num_deletes_.Get(codegen), codegen->Const32(1));
+      ast::Expr *plus_op =
+          codegen->BinaryOp(parsing::Token::Type::PLUS, num_deletes_.Get(codegen), codegen->Const32(1));
       ast::Stmt *num_deletes_increment = codegen->Assign(num_deletes_.Get(codegen), plus_op);
       builder->Append(num_deletes_increment);
     }
