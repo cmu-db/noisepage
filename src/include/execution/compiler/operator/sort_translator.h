@@ -5,6 +5,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::planner {
 class OrderByPlanNode;
@@ -156,6 +157,11 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
 
   // For minirunners.
   ast::StructDecl *struct_decl_;
+
+  // The number of rows that are inserted into the sorter.
+  StateDescriptor::Entry num_sort_build_rows_;
+  // The number of rows that are iterated over by the sorter.
+  StateDescriptor::Entry num_sort_iterate_rows_;
 };
 
 }  // namespace terrier::execution::compiler
