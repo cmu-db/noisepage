@@ -6,6 +6,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::catalog {
 class Schema;
@@ -46,6 +47,11 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
+   * Initialize the counters.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
 
   /**
    * Initialize the FilterManager if required.
@@ -143,6 +149,9 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
 
   // The version of col_oids that we use for translation. See MakeInputOids for justification.
   std::vector<catalog::col_oid_t> col_oids_;
+
+  // The number of rows that are scanned.
+  StateDescriptor::Entry num_scans_;
 };
 
 }  // namespace terrier::execution::compiler

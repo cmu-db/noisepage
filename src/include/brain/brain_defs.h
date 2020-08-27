@@ -56,7 +56,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   /**
    * SEQ_SCAN
    * num_rows: # tuples output (uncertain whether it's # accessed vs # after applying the filters)
-   * cardinality: # unique values
+   * cardinality: # unique values // TODO(WAN): this should be the same right?
    */
   SEQ_SCAN,
   /**

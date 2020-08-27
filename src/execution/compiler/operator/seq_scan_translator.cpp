@@ -1,5 +1,6 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
+#include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
@@ -33,6 +34,12 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
 
     ast::Expr *fm_type = GetCodeGen()->BuiltinType(ast::BuiltinType::FilterManager);
     local_filter_manager_ = pipeline->DeclarePipelineStateEntry("filterManager", fm_type);
+  }
+
+  if (IsCountersEnabled()) {
+    auto *codegen = GetCodeGen();
+    ast::Expr *num_scans_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+    num_scans_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_scans", num_scans_type);
   }
 }
 
@@ -215,6 +222,14 @@ void SeqScanTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast
       function->Append(assign);
       // Push to parent.
       ctx->Push(function);
+
+      if (IsCountersEnabled()) {
+        // queryState.num_scans = queryState.num_scans + 1
+        ast::Expr *plus_op =
+            codegen->BinaryOp(parsing::Token::Type::PLUS, num_scans_.Get(codegen), codegen->Const32(1));
+        ast::Stmt *num_scans_increment = codegen->Assign(num_scans_.Get(codegen), plus_op);
+        function->Append(num_scans_increment);
+      }
     }
     vpi_loop.EndLoop();
   };
@@ -242,6 +257,15 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
     }
   }
   tvi_loop.EndLoop();
+}
+
+void SeqScanTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  if (IsCountersEnabled()) {
+    // queryState.num_scans_ = 0
+    auto *codegen = GetCodeGen();
+    auto assignment = codegen->Assign(num_scans_.Get(codegen), codegen->Const32(0));
+    function->Append(assignment);
+  }
 }
 
 void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -287,6 +311,21 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   // Close TVI, if need be.
   if (declare_local_tvi) {
     function->Append(codegen->TableIterClose(codegen->MakeExpr(tvi_var_)));
+  }
+
+  if (IsCountersEnabled()) {
+    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_scans)
+    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_scans)
+    const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
+    const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+    const auto &feature =
+        brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::SEQ_SCAN);
+    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                   num_scans_.Get(codegen)));
+    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                   num_scans_.Get(codegen)));
   }
 }
 
