@@ -1407,6 +1407,12 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, memory, LookupFuncIdByName(cmp_func_name), entry_size);
       break;
     }
+    case ast::Builtin::SorterGetTupleCount: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::SorterGetTupleCount, dest, sorter);
+      break;
+    }
     case ast::Builtin::SorterInsert: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
@@ -2414,6 +2420,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::SorterInit:
+    case ast::Builtin::SorterGetTupleCount:
     case ast::Builtin::SorterInsert:
     case ast::Builtin::SorterInsertTopK:
     case ast::Builtin::SorterInsertTopKFinish:

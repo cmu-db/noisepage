@@ -448,6 +448,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \
+  F(SorterGetTupleCount, OperandType::Local, OperandType::Local)                                                      \
   F(SorterAllocTuple, OperandType::Local, OperandType::Local)                                                         \
   F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \

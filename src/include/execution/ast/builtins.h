@@ -167,6 +167,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Sorting */                                                         \
   F(SorterInit, sorterInit)                                             \
+  F(SorterGetTupleCount, sorterGetTupleCount)                           \
   F(SorterInsert, sorterInsert)                                         \
   F(SorterInsertTopK, sorterInsertTopK)                                 \
   F(SorterInsertTopKFinish, sorterInsertTopKFinish)                     \

@@ -43,13 +43,13 @@ enum class ExecutionOperatingUnitType : uint32_t {
   /**
    * SORT_BUILD
    * num_rows: # input tuples
-   * cardinality: # unique values  // TODO(WAN): ?
+   * cardinality: # unique values
    */
   SORT_BUILD,
   /**
    * SORT_ITERATE
    * num_rows: # tuples output
-   * cardinality: # unique values  // TODO(WAN): ?
+   * cardinality: # unique values
    */
   SORT_ITERATE,
 

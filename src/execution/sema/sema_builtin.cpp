@@ -1794,6 +1794,23 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
+void Sema::CheckBuiltinSorterGetTupleCount(ast::CallExpr *call) {
+  if (!CheckArgCount(call, 1)) {
+    return;
+  }
+
+  const auto &args = call->Arguments();
+
+  // First argument must be a pointer to a Sorter
+  const auto sorter_kind = ast::BuiltinType::Sorter;
+  if (!IsPointerToSpecificBuiltin(args[0]->GetType(), sorter_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(sorter_kind)->PointerTo());
+    return;
+  }
+
+  call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+}
+
 void Sema::CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -2920,6 +2937,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::SorterInit: {
       CheckBuiltinSorterInit(call);
+      break;
+    }
+    case ast::Builtin::SorterGetTupleCount: {
+      CheckBuiltinSorterGetTupleCount(call);
       break;
     }
     case ast::Builtin::SorterInsert:

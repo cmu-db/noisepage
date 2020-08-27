@@ -264,9 +264,9 @@ void SortTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *func
 
 void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
+  ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
 
   if (IsBuildPipeline(pipeline)) {
-    ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
     if (build_pipeline_.IsParallel()) {
       // Build pipeline is parallel, so we need to issue a parallel sort. Issue
       // a SortParallel() or a SortParallelTopK() depending on whether a limit
@@ -283,33 +283,49 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     }
 
     if (IsCountersEnabled()) {
-      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_sort_build_rows)
-      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_sort_build_rows)
       const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
       const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
       const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
                                                                  brain::ExecutionOperatingUnitType::SORT_BUILD);
-      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                     brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                     num_sort_build_rows_.Get(codegen)));
-      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                     num_sort_build_rows_.Get(codegen)));
+      {
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_sort_build_rows)
+        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                       num_sort_build_rows_.Get(codegen)));
+      }
+      {
+        // var sorter_cardinality = @sorterGetTupleCount(&sorter)
+        ast::Identifier sorter_cardinality = codegen->MakeFreshIdentifier("sorter_cardinality");
+        ast::Expr *sorter_get_tuple_count = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr});
+        function->Append(codegen->DeclareVarWithInit(sorter_cardinality, sorter_get_tuple_count));
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_sort_build_rows)
+        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                       codegen->MakeExpr(sorter_cardinality)));
+      }
     }
   } else {
     if (IsCountersEnabled()) {
-      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_sort_iterate_rows)
-      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_sort_iterate_rows)
       const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
       const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
       const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
                                                                  brain::ExecutionOperatingUnitType::SORT_ITERATE);
-      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                     brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                     num_sort_iterate_rows_.Get(codegen)));
-      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                     num_sort_iterate_rows_.Get(codegen)));
+      {
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_sort_iterate_rows)
+        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                       num_sort_iterate_rows_.Get(codegen)));
+      }
+      {
+        // var sorter_cardinality = @sorterGetTupleCount(&sorter)
+        ast::Identifier sorter_cardinality = codegen->MakeFreshIdentifier("sorter_cardinality");
+        ast::Expr *sorter_get_tuple_count = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr});
+        function->Append(codegen->DeclareVarWithInit(sorter_cardinality, sorter_get_tuple_count));
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_sort_build_rows)
+        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                       codegen->MakeExpr(sorter_cardinality)));
+      }
     }
   }
 }

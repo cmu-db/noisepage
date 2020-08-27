@@ -1250,6 +1250,10 @@ VM_OP_HOT void OpHashTableEntryIteratorGetRow(const terrier::byte **row,
 VM_OP void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::MemoryPool *memory,
                         terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, uint32_t tuple_size);
 
+VM_OP_HOT void OpSorterGetTupleCount(uint32_t *result, terrier::execution::sql::Sorter *sorter) {
+  *result = sorter->GetTupleCount();
+}
+
 VM_OP_HOT void OpSorterAllocTuple(terrier::byte **result, terrier::execution::sql::Sorter *sorter) {
   *result = sorter->AllocInputTuple();
 }

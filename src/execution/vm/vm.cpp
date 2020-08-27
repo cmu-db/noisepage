@@ -1546,6 +1546,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(SorterGetTupleCount) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
+    OpSorterGetTupleCount(result, sorter);
+    DISPATCH_NEXT();
+  }
+
   OP(SorterAllocTuple) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
