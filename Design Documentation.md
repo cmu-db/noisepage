@@ -14,7 +14,7 @@ The components we added are as follows:
 - RewritePushExplicitFilterThroughJoin in rewrite_rules.cpp, a logical-level rewriting rule belonging to the PREDICATE_PUSH_DOWN rule set. It is used in the TopDownRewrite stage of OptimizerLoop.
 - LeftSemiHashJoin in physical_operators.cpp, which is a new physical operator for executing SemiJoin. 
 - LogicalSemiJoinToPhysicalSemiLeftHashJoin in implementation_rules.cpp. It is utilized by OptimizeExpression::Execute(). 
-- SingleJoinGetToInnerJoin and DependentSingleJoinToInnerJoin Unnesting rules in unnesting_rules.cpp. They are called in the BottomUpRewrite stage of OptimizerLoop.
+- UnnestSingleJoinToInnerJoin and DependentSingleJoinToInnerJoin Unnesting rules in unnesting_rules.cpp. They are called in the BottomUpRewrite stage of OptimizerLoop.
 
 
 

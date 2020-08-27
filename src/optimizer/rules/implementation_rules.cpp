@@ -646,23 +646,23 @@ LogicalSemiJoinToPhysicalSemiLeftHashJoin::LogicalSemiJoinToPhysicalSemiLeftHash
   match_pattern_->AddChild(right_child);
 }
 
-bool LogicalSemiJoinToPhysicalSemiLeftHashJoin::Check(common::ManagedPointer<OperatorNode> plan,
+bool LogicalSemiJoinToPhysicalSemiLeftHashJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                                       OptimizationContext *context) const {
   (void)context;
   (void)plan;
   return true;
 }
 
-void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(common::ManagedPointer<OperatorNode> input,
-                                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
+void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                                          std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
-  const auto semi_join = input->GetOp().As<LogicalSemiJoin>();
+  const auto semi_join = input->Contents()->GetContentsAs<LogicalSemiJoin>();
 
   auto children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Left Semi Join should have two child");
-  auto left_group_id = children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
-  auto right_group_id = children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
+  auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
   auto &right_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
   std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
@@ -672,12 +672,14 @@ void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(common::ManagedPointer
   OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
-  std::vector<std::unique_ptr<OperatorNode>> child;
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
   child.emplace_back(children[0]->Copy());
   child.emplace_back(children[1]->Copy());
   if (!left_keys.empty()) {
     auto result = std::make_unique<OperatorNode>(
-        LeftSemiHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
+        LeftSemiHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
+            .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+        std::move(child), context->GetOptimizerContext()->GetTxn());
     transformed->emplace_back(std::move(result));
   }
 }

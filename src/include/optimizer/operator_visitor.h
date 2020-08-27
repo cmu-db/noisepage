@@ -17,6 +17,7 @@ class RightNLJoin;
 class OuterNLJoin;
 class InnerHashJoin;
 class LeftHashJoin;
+class LeftSemiHashJoin;
 class RightHashJoin;
 class OuterHashJoin;
 class Insert;
@@ -186,7 +187,7 @@ class OperatorVisitor {
   virtual void Visit(const OuterHashJoin *outer_hash_join) {}
 
   /**
-   * Visit a LeftSemiHashJoin operator
+   * Visit a LeftHashJoin operator
    * @param left_semi_hash_join operator
    */
   virtual void Visit(const LeftSemiHashJoin *left_semi_hash_join) {}

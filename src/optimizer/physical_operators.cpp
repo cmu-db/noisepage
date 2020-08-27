@@ -500,11 +500,11 @@ BaseOperatorNodeContents *LeftSemiHashJoin::Copy() const { return new LeftSemiHa
 Operator LeftSemiHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                                 std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                                 std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
-  auto join = std::make_unique<LeftSemiHashJoin>();
+  auto *join = new LeftSemiHashJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
   join->right_keys_ = std::move(right_keys);
-  return Operator(std::move(join));
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LeftSemiHashJoin::Hash() const {
@@ -522,7 +522,7 @@ common::hash_t LeftSemiHashJoin::Hash() const {
 }
 
 bool LeftSemiHashJoin::operator==(const BaseOperatorNodeContents &r) {
-  if (r.GetType() != OpType::LEFTSEMIHASHJOIN) return false;
+  if (r.GetOpType() != OpType::LEFTSEMIHASHJOIN) return false;
   const LeftSemiHashJoin &node = *dynamic_cast<const LeftSemiHashJoin *>(&r);
   if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
       join_predicates_.size() != node.join_predicates_.size())

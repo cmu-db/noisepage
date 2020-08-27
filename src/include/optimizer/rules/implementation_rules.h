@@ -388,7 +388,7 @@ class LogicalSemiJoinToPhysicalSemiLeftHashJoin : public Rule {
    * @param context Current OptimizationContext executing under
    * @returns Whether the input OperatorNode passes the check
    */
-  bool Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const override;
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -396,7 +396,8 @@ class LogicalSemiJoinToPhysicalSemiLeftHashJoin : public Rule {
    * @param transformed Vector of transformed OperatorNodes
    * @param context Current OptimizationContext executing under
    */
-  void Transform(common::ManagedPointer<OperatorNode> input, std::vector<std::unique_ptr<OperatorNode>> *transformed,
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                  OptimizationContext *context) const override;
 };
 

@@ -229,9 +229,13 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
   }
   std::unique_ptr<OperatorNode> output;
   if (semi_join) {
-    output = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(semi_join_predicates)), std::move(c));
+    output = std::make_unique<OperatorNode>(LogicalSemiJoin::Make(std::move(semi_join_predicates))
+                                                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                            std::move(c), context->GetOptimizerContext()->GetTxn());
   } else {
-    output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+    output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(std::move(join_predicates))
+                                                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                            std::move(c), context->GetOptimizerContext()->GetTxn());
   }
 
   transformed->emplace_back(std::move(output));
