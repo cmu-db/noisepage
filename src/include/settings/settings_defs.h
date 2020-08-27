@@ -28,7 +28,7 @@ SETTING_int(
     "The maximum number of record buffer segments in the system. (default: 100000)",
     100000,
     1,
-    1000000,
+    10000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolSizeLimit
 )
