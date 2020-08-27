@@ -50,7 +50,7 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
   }
 }
 
-void InsertTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const {
   if (IsCountersEnabled()) {
     // queryState.num_inserts = 0
     auto *codegen = GetCodeGen();

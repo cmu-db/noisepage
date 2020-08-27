@@ -39,11 +39,9 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Does nothing.
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
+   * Initialize the counters.
    */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void InitializeQueryState(FunctionBuilder *function) const override;
 
   /**
    * Implement insertion logic where it fills in the insert PR obtained from the StorageInterface struct
