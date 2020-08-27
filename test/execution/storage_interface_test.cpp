@@ -104,8 +104,12 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{
-      exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{exec_ctx_.get(),
+                            1,
+                            table_oid1.UnderlyingValue(),
+                            index_oid1.UnderlyingValue(),
+                            col_oids.data(),
+                            static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
   auto cte_table_oid = static_cast<catalog::table_oid_t>(100003);
@@ -140,7 +144,7 @@ TEST_F(StorageInterfaceTest, NonCatalogTableTest) {
   }
 
   // Try to fetch the inserted values.
-  TableVectorIterator table_iter(exec_ctx_.get(), !cte_table_oid, col_oids.data(),
+  TableVectorIterator table_iter(exec_ctx_.get(), cte_table_oid.UnderlyingValue(), col_oids.data(),
                                  static_cast<uint32_t>(col_oids.size()));
   table_iter.InitTempTable(common::ManagedPointer(cte_table));
   VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
