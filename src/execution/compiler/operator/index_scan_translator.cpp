@@ -131,23 +131,27 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   if (IsCountersEnabled()) {
     auto *codegen = GetCodeGen();
 
-    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, index_size)
-    ast::Identifier index_size = codegen->MakeFreshIdentifier("index_size");
-    ast::Expr *index_iter_get_size =
-        codegen->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)});
-    function->Append(codegen->DeclareVarWithInit(index_size, index_iter_get_size));
-
-    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_scans_index)
     const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
     const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     const auto &feature =
         brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::IDX_SCAN);
-    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                   num_scans_index_.Get(codegen)));
-    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                   num_scans_index_.Get(codegen)));
+    {
+      // var index_size = @indexIteratorGetSize(&index_iter)
+      ast::Identifier index_size = codegen->MakeFreshIdentifier("index_size");
+      ast::Expr *index_iter_get_size =
+          codegen->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)});
+      function->Append(codegen->DeclareVarWithInit(index_size, index_iter_get_size));
+      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, index_size)
+      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                     brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                     num_scans_index_.Get(codegen)));
+    }
+    {
+      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_scans_index)
+      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                     num_scans_index_.Get(codegen)));
+    }
   }
 }
 
