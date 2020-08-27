@@ -95,7 +95,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   /**
    * OUTPUT
    * num_rows: # rows being output
-   * cardinality: 1 for network output
+   * cardinality: 1 for network output TODO(WAN): will when is this not 1?
    */
   OUTPUT,
   /**

@@ -5,6 +5,7 @@
 
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
+#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::parser {
 class AbstractExpression;
@@ -38,6 +39,12 @@ class OutputTranslator : public OperatorTranslator {
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
   /**
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
    * Perform the main work of the translator.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
@@ -57,6 +64,9 @@ class OutputTranslator : public OperatorTranslator {
  private:
   ast::Identifier output_var_;
   ast::Identifier output_struct_;
+
+  // The number of rows that are output.
+  StateDescriptor::Entry num_output_;
 };
 
 }  // namespace terrier::execution::compiler
