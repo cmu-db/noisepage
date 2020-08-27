@@ -62,10 +62,10 @@ class MetricsStore {
    * @param daf_id type of the deferred action
    * @param resource_metrics second entry of metrics datapoint
    */
-  void RecordActionData(const transaction::DafId daf_id, const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordActionData(const transaction::DafId daf_id) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
     TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordActionData(daf_id, resource_metrics);
+    gc_metric_->RecordActionData(daf_id);
   }
 
   void RecordQueueSize(const uint32_t queue_size) {

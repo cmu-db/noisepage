@@ -94,14 +94,10 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
 
     // process a batch of actions
     while (!temp_action_queue.empty()) {
-      if (metrics_enabled) common::thread_context.resource_tracker_.Start();
-
       temp_action_queue.front().second.first(oldest_txn);
 
       if (metrics_enabled) {
-        common::thread_context.resource_tracker_.Stop();
-        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-        common::thread_context.metrics_store_->RecordActionData(temp_action_queue.front().second.second, resource_metrics);
+        common::thread_context.metrics_store_->RecordActionData(temp_action_queue.front().second.second);
       }
       processed++;
       temp_action_queue.pop();
