@@ -146,8 +146,8 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
-  // If target length equals input length or padding is empty string, nothing to do
-  if (static_cast<std::size_t>(len.val_) == str.GetLength() || pad.GetLength() == 0) {
+  // If target length equals input length, nothing to do
+  if (static_cast<std::size_t>(len.val_) == str.GetLength()) {
     *result = str;
     return;
   }
@@ -155,6 +155,12 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
   // If target length is less than input length, truncate.
   if (static_cast<std::size_t>(len.val_) < str.GetLength()) {
     *result = StringVal(str.GetContent(), len.val_);
+    return;
+  }
+
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
     return;
   }
 
@@ -184,8 +190,8 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
-  // If target length equals input length or padding is empty string, nothing to do
-  if (static_cast<std::size_t>(len.val_) == str.GetLength() || pad.GetLength() == 0) {
+  // If target length equals input length, nothing to do
+  if (static_cast<std::size_t>(len.val_) == str.GetLength()) {
     *result = str;
     return;
   }
@@ -193,6 +199,12 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
   // If target length is less than input length, truncate.
   if (static_cast<std::size_t>(len.val_) < str.GetLength()) {
     *result = StringVal(str.GetContent(), len.val_);
+    return;
+  }
+
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
     return;
   }
 
