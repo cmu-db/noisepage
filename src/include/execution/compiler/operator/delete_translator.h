@@ -38,11 +38,9 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Does nothing.
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
+   * Initialize the counters.
    */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void InitializeQueryState(FunctionBuilder *function) const override;
 
   /**
    * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct

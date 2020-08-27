@@ -36,7 +36,7 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
   }
 }
 
-void DeleteTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+void DeleteTranslator::InitializeQueryState(FunctionBuilder *function) const {
   if (IsCountersEnabled()) {
     // queryState.num_deletes = 0
     auto *codegen = GetCodeGen();
