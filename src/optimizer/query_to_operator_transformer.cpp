@@ -147,7 +147,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
     op->GetSelectTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   } else {
     // SELECT without FROM
-    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make(),
+    output_expr_ = std::make_unique<OperatorNode>(LogicalGet::Make().RegisterWithTxnContext(txn_context),
                                                   std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
 

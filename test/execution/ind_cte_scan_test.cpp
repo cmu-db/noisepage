@@ -44,7 +44,7 @@ TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
       false};
   EXPECT_FALSE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids, 1};
+  TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(), col_oids, 1};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;  // The number of records found
@@ -71,8 +71,12 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Create cte_table
@@ -110,8 +114,8 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
   }
   EXPECT_TRUE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
-                               static_cast<uint32_t>(col_oids.size())};
+  TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
+                               col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
@@ -136,11 +140,16 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
 
   // Just one column
-  std::array<uint32_t, 1> col_oids{!exec_ctx_->GetAccessor()->GetSchema(table_oid).GetColumns()[0].Oid()};
+  std::array<uint32_t, 1> col_oids{
+      exec_ctx_->GetAccessor()->GetSchema(table_oid).GetColumns()[0].Oid().UnderlyingValue()};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Create cte_table
@@ -178,7 +187,7 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
     cte_scan.TableInsert();
   }
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !cte_scan.GetReadTableOid(), cte_table_col_ids,
+  TableVectorIterator seq_iter{exec_ctx_.get(), cte_scan.GetReadTableOid().UnderlyingValue(), cte_table_col_ids,
                                static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetWriteCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
@@ -208,8 +217,12 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Create cte_table
@@ -248,8 +261,8 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
   EXPECT_TRUE(cte_scan.Accumulate());
   EXPECT_FALSE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
-                               static_cast<uint32_t>(col_oids.size())};
+  TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
+                               col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;
@@ -283,8 +296,12 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Create cte_table
@@ -343,8 +360,8 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
   }
   EXPECT_TRUE(cte_scan.Accumulate());
 
-  TableVectorIterator seq_iter{exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), col_oids.data(),
-                               static_cast<uint32_t>(col_oids.size())};
+  TableVectorIterator seq_iter{exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
+                               col_oids.data(), static_cast<uint32_t>(col_oids.size())};
   seq_iter.InitTempTable(common::ManagedPointer(cte_scan.GetReadCte()->GetTable()));
   auto *vpi = seq_iter.GetVectorProjectionIterator();
   auto count = 0;

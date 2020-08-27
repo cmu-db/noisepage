@@ -173,7 +173,7 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     // TODO(Rohan): Figure how to get the general schema of a child node in case the field is Nullablef
     // Right now it is only Non Null
     auto pr_set_call = codegen->PRSet(codegen->MakeExpr(insert_pr_), table_col->GetReturnValueType(), false,
-                                      !table_pm_.find(table_col_oid)->second.col_id_, val, true);
+                                      table_pm_.find(table_col_oid)->second.col_id_.UnderlyingValue(), val, true);
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }

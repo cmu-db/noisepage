@@ -77,8 +77,12 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{
-      exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{exec_ctx_.get(),
+                            1,
+                            table_oid1.UnderlyingValue(),
+                            index_oid1.UnderlyingValue(),
+                            col_oids.data(),
+                            static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
   // Create cte_table
@@ -113,8 +117,8 @@ TEST_F(CTEScanTest, CTEInsertTest) {
 
   // Try to fetch the inserted values.
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
-  TableVectorIterator table_iter(exec_ctx_.get(), !static_cast<catalog::table_oid_t>(999), cte_table_col_ids,
-                                 static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator table_iter(exec_ctx_.get(), static_cast<catalog::table_oid_t>(999).UnderlyingValue(),
+                                 cte_table_col_ids, static_cast<uint32_t>(col_oids.size()));
   table_iter.InitTempTable(common::ManagedPointer(cte_table));
   VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
@@ -141,8 +145,12 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{
-      exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{exec_ctx_.get(),
+                            1,
+                            table_oid1.UnderlyingValue(),
+                            index_oid1.UnderlyingValue(),
+                            col_oids.data(),
+                            static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
   // Create cte_table
@@ -177,8 +185,8 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
 
   // Try to fetch the inserted values.
   // TODO(Gautam): Create our own TableVectorIterator that does not check in the catalog
-  auto table_iter = new TableVectorIterator(exec_ctx_.get(), !(cte_scan->GetTableOid()), cte_table_col_ids,
-                                            static_cast<uint32_t>(col_oids.size()));
+  auto table_iter = new TableVectorIterator(exec_ctx_.get(), (cte_scan->GetTableOid()).UnderlyingValue(),
+                                            cte_table_col_ids, static_cast<uint32_t>(col_oids.size()));
   table_iter->InitTempTable(common::ManagedPointer(cte_table));
   VectorProjectionIterator *vpi = table_iter->GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
