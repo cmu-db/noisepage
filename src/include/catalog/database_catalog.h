@@ -119,8 +119,8 @@ class DatabaseCatalog {
    * @param txn
    * @return true if any foreign keys reference this table
    */
-  bool ExistingFKReference(const table_oid_t table_oid,
-                                            const common::ManagedPointer<transaction::TransactionContext> txn);
+  bool ExistingFKReference(table_oid_t table_oid,
+                           common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
    * Resolve a table name to its OID
