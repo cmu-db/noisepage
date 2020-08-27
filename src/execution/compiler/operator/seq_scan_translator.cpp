@@ -345,7 +345,7 @@ void SeqScanTranslator::DeclareColOids(FunctionBuilder *function) const {
   // For each oid, set col_oids[i] = col_oid
   for (uint16_t i = 0; i < col_oids.size(); i++) {
     ast::Expr *lhs = codegen->ArrayAccess(col_oids_var_, i);
-    ast::Expr *rhs = codegen->Const32(!col_oids[i]);
+    ast::Expr *rhs = codegen->Const32(col_oids[i].UnderlyingValue());
     function->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -358,7 +358,7 @@ uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
       return i;
     }
   }
-  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", !col_oid));
+  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", col_oid.UnderlyingValue()));
 }
 
 std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(catalog::CatalogAccessor *accessor,
