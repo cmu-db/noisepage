@@ -207,6 +207,11 @@ void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
   *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
 }
 
+// TODO(WAN): this should be uint64_t, but see #1049
+void OpStorageInterfaceIndexGetSize(uint32_t *result, terrier::execution::sql::StorageInterface *storage_interface) {
+  *result = storage_interface->IndexGetSize();
+}
+
 void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsert();
 }
@@ -231,6 +236,11 @@ void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
                          uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids) {
   new (iter) terrier::execution::sql::IndexIterator(exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
+}
+
+// TODO(WAN): this should be uint64_t, but see #1049
+void OpIndexIteratorGetSize(uint32_t *index_size, terrier::execution::sql::IndexIterator *iter) {
+  *index_size = iter->GetIndexSize();
 }
 
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }

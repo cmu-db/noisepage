@@ -2028,6 +2028,16 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
+void Sema::CheckBuiltinIndexIteratorGetSize(execution::ast::CallExpr *call) {
+  // First argument must be a pointer to an IndexIterator
+  const auto index_kind = ast::BuiltinType::IndexIterator;
+  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), index_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(index_kind)->PointerTo());
+    return;
+  }
+  call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+}
+
 void Sema::CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -2366,6 +2376,13 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       }
 
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      break;
+    }
+    case ast::Builtin::IndexGetSize: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
       break;
     }
     case ast::Builtin::IndexInsert: {
@@ -2939,6 +2956,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinIndexIteratorInit(call, builtin);
       break;
     }
+    case ast::Builtin::IndexIteratorGetSize: {
+      CheckBuiltinIndexIteratorGetSize(call);
+      break;
+    }
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:
@@ -3021,6 +3042,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:
+    case ast::Builtin::IndexGetSize:
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:

@@ -1722,6 +1722,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(IndexIteratorGetSize) : {
+    auto *index_size = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetSize(index_size, iter);
+    DISPATCH_NEXT();
+  }
+
   OP(IndexIteratorScanKey) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorScanKey(iter);
@@ -1934,6 +1941,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     OpStorageInterfaceGetIndexPR(pr_result, storage_interface, index_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(StorageInterfaceIndexGetSize) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexGetSize(result, storage_interface);
     DISPATCH_NEXT();
   }
 

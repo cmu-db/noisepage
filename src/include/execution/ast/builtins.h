@@ -187,6 +187,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
+  F(IndexIteratorGetSize, indexIteratorGetSize)                         \
   F(IndexIteratorScanKey, indexIteratorScanKey)                         \
   F(IndexIteratorScanAscending, indexIteratorScanAscending)             \
   F(IndexIteratorScanDescending, indexIteratorScanDescending)           \
@@ -254,6 +255,7 @@ namespace terrier::execution::ast {
   F(TableDelete, tableDelete)                                           \
   F(TableUpdate, tableUpdate)                                           \
   F(GetIndexPR, getIndexPR)                                             \
+  F(IndexGetSize, indexGetSize)                                         \
   F(IndexInsert, indexInsert)                                           \
   F(IndexInsertUnique, indexInsertUnique)                               \
   F(IndexDelete, indexDelete)                                           \

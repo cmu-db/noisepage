@@ -2099,6 +2099,13 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
                                                    index_oid);
       break;
     }
+    case ast::Builtin::IndexGetSize: {
+      LocalVar index_size =
+          GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Uint32));
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexGetSize, index_size, storage_interface);
+      GetExecutionResult()->SetDestination(index_size.ValueOf());
+      break;
+    }
     case ast::Builtin::IndexInsert: {
       LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsert, cond, storage_interface);
@@ -2442,6 +2449,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
 #endif
     case ast::Builtin::IndexIteratorInit:
+    case ast::Builtin::IndexIteratorGetSize:
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorScanAscending:
     case ast::Builtin::IndexIteratorScanDescending:
@@ -2452,9 +2460,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorGetLoPR:
     case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetTablePR:
-    case ast::Builtin::IndexIteratorGetSlot:
+    case ast::Builtin::IndexIteratorGetSlot: {
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;
+    }
     case ast::Builtin::Exp:
     case ast::Builtin::ACos:
     case ast::Builtin::ASin:
@@ -2524,6 +2533,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:
+    case ast::Builtin::IndexGetSize:
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexDelete:
@@ -2629,6 +2639,10 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       GetEmitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, num_attrs, table_oid,
                                           index_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()));
       GetEmitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetSize: {
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetSize, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorScanKey: {

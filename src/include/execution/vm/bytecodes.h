@@ -469,6 +469,7 @@ namespace terrier::execution::vm {
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::Local, OperandType::UImm4)                                                       \
+  F(IndexIteratorGetSize, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
   F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
@@ -542,6 +543,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(StorageInterfaceIndexGetSize, OperandType::Local, OperandType::Local)                                             \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \

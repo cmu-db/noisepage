@@ -94,6 +94,9 @@ class EXPORT IndexIterator {
    */
   storage::TupleSlot CurrentSlot() { return tuples_[curr_index_ - 1]; }
 
+  /** @return The size of the index. */
+  uint32_t GetIndexSize() const { return index_->GetSize(); }
+
  private:
   exec::ExecutionContext *exec_ctx_;
   uint32_t num_attrs_;

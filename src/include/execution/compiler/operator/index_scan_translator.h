@@ -7,6 +7,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "storage/storage_defs.h"
 
@@ -34,6 +35,11 @@ class IndexScanTranslator : public OperatorTranslator, public PipelineDriver {
   DISALLOW_COPY_AND_MOVE(IndexScanTranslator);
 
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
+
+  /**
+   * Initialize the counters.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
 
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
 
@@ -82,5 +88,9 @@ class IndexScanTranslator : public OperatorTranslator, public PipelineDriver {
   ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;
   ast::Identifier slot_;
+
+  // The number of scans on the index that are performed.
+  // TODO(WAN): check if range scans are supported, or if it is only point queries right now.
+  StateDescriptor::Entry num_scans_index_;
 };
 }  // namespace terrier::execution::compiler

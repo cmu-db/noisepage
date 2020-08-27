@@ -1613,6 +1613,8 @@ VM_OP void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
                                uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
 VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
+VM_OP void OpIndexIteratorGetSize(uint32_t *index_size, terrier::execution::sql::IndexIterator *iter);
+
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP_WARM void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
@@ -1830,6 +1832,9 @@ VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot
 VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                         terrier::execution::sql::StorageInterface *storage_interface,
                                         uint32_t index_oid);
+
+VM_OP void OpStorageInterfaceIndexGetSize(uint32_t *result,
+                                          terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 
