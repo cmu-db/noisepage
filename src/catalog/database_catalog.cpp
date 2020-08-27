@@ -797,7 +797,7 @@ bool DatabaseCatalog::ExistingFKReference(const table_oid_t table_oid,
 bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const table_oid_t table) {
   if (!TryLock(txn)) return false;
-  //If there's an existing fk reference, table cannot be dropped
+  // If there's an existing fk reference, table cannot be dropped
   if (ExistingFKReference(table, txn)) {
     return false;
   }
