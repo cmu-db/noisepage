@@ -187,8 +187,8 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
 }
 
 void InsertTranslator::GenConstraintVerify(FunctionBuilder *builder) const {
-  auto* verify_constraint_call = GetCodeGen()->CallBuiltin(ast::Builtin::VerifyTableInsertConstraint,
-                                                             {GetCodeGen()->AddressOf(inserter_)});
+  auto *verify_constraint_call =
+      GetCodeGen()->CallBuiltin(ast::Builtin::VerifyTableInsertConstraint, {GetCodeGen()->AddressOf(inserter_)});
   auto *cond = GetCodeGen()->UnaryOp(parsing::Token::Type::BANG, verify_constraint_call);
   If success(builder, cond);
   { builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext())); }

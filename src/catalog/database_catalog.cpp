@@ -770,36 +770,37 @@ bool DatabaseCatalog::DeleteIndexes(const common::ManagedPointer<transaction::Tr
   return true;
 }
 
-bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
-                                  const table_oid_t table) {
+bool DatabaseCatalog::ExistingFKReference(const table_oid_t table_oid,
+                                          const common::ManagedPointer<transaction::TransactionContext> txn) {
   if (!TryLock(txn)) return false;
 
-  // If the table is the parent table in a foreign key relation that doesn't
-  // have a cascade constraint specified, it should not be dropped
   auto *const constraint_buffer =
       common::AllocationUtil::AllocateAligned(pg_constraints_all_cols_pri_.ProjectedRowSize());
   auto con_pri = constraints_foreigntable_index_->GetProjectedRowInitializer();
   auto *key_pr = con_pri.InitializeRow(constraint_buffer);
   auto *const con_table_oid_ptr = key_pr->AccessForceNotNull(0);
-  *(reinterpret_cast<table_oid_t *>(con_table_oid_ptr)) = table;
+  *(reinterpret_cast<table_oid_t *>(con_table_oid_ptr)) = table_oid;
   std::vector<storage::TupleSlot> constraint_scan_results;
   constraints_foreigntable_index_->ScanKey(*txn, *key_pr, &constraint_scan_results);
 
-  auto *select_pr = pg_constraints_all_cols_pri_.InitializeRow(constraint_buffer);
   std::vector<PGConstraint> constraints;
   constraints.reserve(constraint_scan_results.size());
   // for every child
-  for (auto &slot : constraint_scan_results) {
-    const auto select_result UNUSED_ATTRIBUTE = constraints_->Select(txn, slot, select_pr);
-    TERRIER_ASSERT(select_result, "Index already verified visibility. This shouldn't fail.");
-    PGConstraint child_con_obj = PGConstraintPRToObj(select_pr);
-    if(child_con_obj.fk_metadata_.delete_action_ != postgres::FKActionType::CASCADE &&
-        child_con_obj.fk_metadata_.update_action_ != postgres::FKActionType::CASCADE){
-      return false;
-    }
+  if (constraint_scan_results.size() > 0) {
+    delete[] constraint_buffer;
+    return true;
   }
   delete[] constraint_buffer;
+  return false;
+}
 
+bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                  const table_oid_t table) {
+  if (!TryLock(txn)) return false;
+  //If there's an existing fk reference, table cannot be dropped
+  if (ExistingFKReference(table, txn)) {
+    return false;
+  }
   // We should respect foreign key relations and attempt to delete the table's columns first
   auto result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
   if (!result) return false;
@@ -809,7 +810,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   TERRIER_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
-  key_pr = oid_pri.InitializeRow(buffer);
+  auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
@@ -1044,26 +1045,26 @@ bool DatabaseCatalog::VerifyFKRefCol(common::ManagedPointer<transaction::Transac
 
   for (auto &con : con_vec) {
     if (con.contype_ == postgres::ConstraintType::PRIMARY_KEY || con.contype_ == postgres::ConstraintType::UNIQUE) {
-        std::unordered_set<col_oid_t> covered_set;
-        std::vector<col_oid_t> cols = con.concol_;
-        std::vector<col_oid_t> extend_set;
-        bool valid = true;
-        for (auto col : cols) {
-          if (covered_set.count(col) > 0 || sink_set.count(col) == 0){
-            valid = false;
-            break;
-          }
-          TERRIER_ASSERT(sink_set.count(col) == 1, "conditional for validity does not work");
-          extend_set.emplace_back(col);
+      std::unordered_set<col_oid_t> covered_set;
+      std::vector<col_oid_t> cols = con.concol_;
+      std::vector<col_oid_t> extend_set;
+      bool valid = true;
+      for (auto col : cols) {
+        if (covered_set.count(col) > 0 || sink_set.count(col) == 0) {
+          valid = false;
+          break;
         }
-        if(valid) {
-          for (auto c : extend_set) {
-            covered_set.emplace(c);
-          }
+        TERRIER_ASSERT(sink_set.count(col) == 1, "conditional for validity does not work");
+        extend_set.emplace_back(col);
+      }
+      if (valid) {
+        for (auto c : extend_set) {
+          covered_set.emplace(c);
         }
-        if (covered_set.size() == sink_set.size()) {
-          return true;
-        }
+      }
+      if (covered_set.size() == sink_set.size()) {
+        return true;
+      }
     }
   }
   return false;

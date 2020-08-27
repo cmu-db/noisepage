@@ -114,6 +114,15 @@ class DatabaseCatalog {
   bool DeleteTable(common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table);
 
   /**
+   * Checks if there are any existing foreign key references to the given table
+   * @param table_oid
+   * @param txn
+   * @return true if any foreign keys reference this table
+   */
+  bool ExistingFKReference(const table_oid_t table_oid,
+                                            const common::ManagedPointer<transaction::TransactionContext> txn);
+
+  /**
    * Resolve a table name to its OID
    * @param txn for the operation
    * @param ns OID of the namespace the table belongs to
