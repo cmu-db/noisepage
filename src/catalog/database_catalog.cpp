@@ -785,8 +785,8 @@ bool DatabaseCatalog::ExistingFKReference(const table_oid_t table_oid,
 
   std::vector<PGConstraint> constraints;
   constraints.reserve(constraint_scan_results.size());
-  // for every child
-  if (constraint_scan_results.size() > 0) {
+  // check if fk reference exists
+  if (!constraint_scan_results.empty()) {
     delete[] constraint_buffer;
     return true;
   }
