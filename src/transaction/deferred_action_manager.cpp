@@ -19,30 +19,29 @@ timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, tr
 }
 
 uint32_t DeferredActionManager::Process(bool process_index) {
+  bool daf_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+
+  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(queue_size_);
   // TODO(John, Ling): this is now more conservative than it needs and can artificially delay garbage collection.
   //  We should be able to query the cached oldest transaction (should be cheap) in between each event
   //  and more aggressively clear the backlog abd the deferred event queue
   //  the point of taking oldest txn affect gc test.
   //  We could potentially more aggressively process the backlog and the deferred action queue
   //  by taking timestamp after processing each event
-  timestamp_manager_->CheckOutTimestamp();
   auto begin = timestamp_manager_->BeginTransaction();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   // Check out a timestamp from the transaction manager to determine the progress of
   // running transactions in the system.
 
-  bool daf_metrics_enabled =
-      common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
-
-  if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(queue_size_);
   uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled);
+  timestamp_manager_->RemoveTransaction(begin);
 
   if (process_index) ProcessIndexes();
   auto previous_size = common::thread_context.visited_slots_.size();
   common::thread_context.visited_slots_.clear();
   common::thread_context.visited_slots_.reserve(previous_size);
-  timestamp_manager_->RemoveTransaction(begin);
   return processed;
 }
 
@@ -76,7 +75,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
   uint32_t processed = 0;
   std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> temp_action_queue;
   bool break_loop = false;
-  while (true) {
+  for (size_t iter = 0; iter < 1000; iter++) {
     // pop a batch of actions
     queue_latch_.Lock();
     for (size_t i = 0; i < BATCH_SIZE; i++) {
