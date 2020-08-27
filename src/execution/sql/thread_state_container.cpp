@@ -4,11 +4,12 @@
 #include <tbb/mutex.h>
 #include <tbb/parallel_for_each.h>
 
+#include <thread>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "common/constants.h"
-#include "execution/exec/execution_settings.h"
 
 namespace terrier::execution::sql {
 
@@ -49,7 +50,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   tbb::mutex states_mutex_;
-  std::map<tbb::tbb_thread::id, std::unique_ptr<TLSHandle>> states_;
+  std::unordered_map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -84,11 +85,11 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 
 byte *ThreadStateContainer::AccessCurrentThreadState() {
   tbb::mutex::scoped_lock lock(impl_->states_mutex_);
-  if (impl_->states_.find(tbb::this_tbb_thread::get_id()) == impl_->states_.end()) {
+  if (impl_->states_.find(std::this_thread::get_id()) == impl_->states_.end()) {
     std::unique_ptr<TLSHandle> tls_handle(new TLSHandle(this));
-    impl_->states_.insert(std::make_pair(tbb::this_tbb_thread::get_id(), move(tls_handle)));
+    impl_->states_.insert(std::make_pair(std::this_thread::get_id(), move(tls_handle)));
   }
-  return impl_->states_.find(tbb::this_tbb_thread::get_id())->second->State();
+  return impl_->states_.find(std::this_thread::get_id())->second->State();
 }
 
 void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *container) const {
