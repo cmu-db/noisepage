@@ -316,7 +316,7 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     if (IsCountersEnabled()) {
       const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
       // var tuple_count = @joinHTGetTupleCount(jht)
-      ast::Identifier tuple_count = codegen->MakeFreshIdentifier("num_tuples_inserted");
+      ast::Identifier tuple_count = codegen->MakeFreshIdentifier("tuple_count");
       function->Append(codegen->DeclareVarWithInit(tuple_count, jht_get_tuple_count));
 
       // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, tuple_count)
