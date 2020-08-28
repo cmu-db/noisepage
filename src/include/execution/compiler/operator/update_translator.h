@@ -5,6 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "execution/compiler/state_descriptor.h"
 #include "storage/storage_defs.h"
 
 namespace terrier::catalog {
@@ -36,6 +37,11 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
+
+  /**
+   * Initialize the counters.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
 
   /**
    * Does nothing.
@@ -127,6 +133,9 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
   // Projection map of the table that we are updating.
   // This maps column oids to offsets in a projected row.
   storage::ProjectionMap table_pm_;
+
+  // The number of updates that are performed.
+  StateDescriptor::Entry num_updates_;
 };
 
 }  // namespace terrier::execution::compiler

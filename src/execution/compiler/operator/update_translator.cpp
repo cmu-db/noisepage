@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -35,6 +36,21 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
     for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression());
     }
+  }
+
+  if (IsCountersEnabled()) {
+    auto *codegen = GetCodeGen();
+    ast::Expr *num_updates_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+    num_updates_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_updates", num_updates_type);
+  }
+}
+
+void UpdateTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  if (IsCountersEnabled()) {
+    // queryState.num_updates = 0
+    auto *codegen = GetCodeGen();
+    auto assignment = codegen->Assign(num_updates_.Get(codegen), codegen->Const32(0));
+    function->Append(assignment);
   }
 }
 
@@ -76,6 +92,30 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     GenTableUpdate(function);
   }
   function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
+
+  if (IsCountersEnabled()) {
+    // queryState.num_inserts = queryState.num_inserts + 1
+    auto *codegen = GetCodeGen();
+    ast::Expr *plus_op = codegen->BinaryOp(parsing::Token::Type::PLUS, num_updates_.Get(codegen), codegen->Const32(1));
+    ast::Stmt *increment = codegen->Assign(num_updates_.Get(codegen), plus_op);
+    function->Append(increment);
+  }
+
+  if (IsCountersEnabled()) {
+    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_updates)
+    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_updates)
+    auto *codegen = GetCodeGen();
+    const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
+    const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+    const auto &feature =
+        brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::UPDATE);
+    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                                   num_updates_.Get(codegen)));
+    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
+                                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                   num_updates_.Get(codegen)));
+  }
 
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);
