@@ -4,6 +4,7 @@
         "wal_file_path": "/mnt/ramdisk/wal.log",
         "connection_thread_count": 32
     },
+    "continue_on_error": true,
     "env":{
         "wal_device":"RAM disk"
     },

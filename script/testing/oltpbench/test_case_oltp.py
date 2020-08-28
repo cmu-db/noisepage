@@ -46,6 +46,7 @@ class TestCaseOLTPBench(TestCase):
         self.db_execute = args.get("db_execute",constants.OLTPBENCH_DEFAULT_DATABASE_EXECUTE)
         self.buckets = args.get("buckets",constants.OLTPBENCH_DEFAULT_BUCKETS)
 
+        self.continue_on_error = args.get("continue_on_error")
         self.server_data = args.get("server_data")
 
         self.publish_results = args.get("publish_results",constants.OLTPBENCH_DEFAULT_REPORT_SERVER)
@@ -123,8 +124,11 @@ class TestCaseOLTPBench(TestCase):
                 report(self.publish_results, self.server_data,os.path.join(
                     os.getcwd(), "oltp_result",self.filename_suffix),self.publish_username,self.publish_password,self.query_mode)
         except:
-            traceback.print_exc(file=sys.stdout)
-            return ErrorCode.ERROR
+            if self.continue_on_error:
+                traceback.print_exc(file=sys.stdout)
+                return ErrorCode.ERROR
+            else:
+                raise
 
     def create_result_dir(self):
         if not os.path.exists(self.test_result_dir):

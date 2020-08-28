@@ -73,6 +73,9 @@ def generate_test_suite(args):
     if not wal_enable:
         server_data["wal_device"] ="None"
 
+    # if one of test cases failed, whether the script should stop the whole testing or continue
+    continue_on_error = oltp_test_suite_json.get("continue_on_error", constants.OLTPBENCH_DEFAULT_CONTINUE_ON_ERROR)
+
     # publish test results to the server
     oltp_report_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get("publish_results")]
     oltp_report_username = args.get("publish_username")
@@ -80,7 +83,8 @@ def generate_test_suite(args):
 
     for oltp_testcase in oltp_test_suite_json.get("testcases", []):
         oltp_testcase_base = oltp_testcase.get("base")
-
+        
+        oltp_testcase_base["continue_on_error"] = continue_on_error
         oltp_testcase_base["server_data"] = server_data
 
         oltp_testcase_base["publish_results"] = oltp_report_server
