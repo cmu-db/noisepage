@@ -2,7 +2,7 @@
     "type": "oltpbenchmark",
     "server_args":{
         "connection_thread_count": 32,
-        "wal_enable": false    
+        "wal_enable": false
     },
     "testcases": [
         {
