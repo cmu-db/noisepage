@@ -1517,8 +1517,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 0, GetBuiltinType(real_kind));
         return;
       }
-      if (call->Arguments()[0]->GetType()->IsIntegerType() ||
-          call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+      if (call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
         return_kind = ast::BuiltinType::Integer;
       }
       break;
@@ -1568,8 +1567,8 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // If both operands are ints then we return an int, otherwise we return a real
-      if ((first_operand_type->IsIntegerType() || first_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer)) &&
-          (second_operand_type->IsIntegerType() || second_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer))) {
+      if (first_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer) &&
+          second_operand_type->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
         return_kind = int_kind;
       }
 
