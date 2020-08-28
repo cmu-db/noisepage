@@ -1218,7 +1218,7 @@ VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
   *result = join_hash_table->AllocInputTuple(hash);
 }
 
-VM_OP_HOT void OpJoinHashTableGetTupleCount(uint64_t *result, terrier::execution::sql::JoinHashTable *join_hash_table) {
+VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result, terrier::execution::sql::JoinHashTable *join_hash_table) {
   *result = join_hash_table->GetTupleCount();
 }
 
