@@ -76,6 +76,12 @@ else ()
     set(GBENCHMARK_SOURCE_URL "https://github.com/google/benchmark/archive/v${GBENCHMARK_VERSION}.tar.gz")
 endif ()
 
+if (DEFINED ENV{TERRIER_SPDLOG_URL})
+    set(SPDLOG_SOURCE_URL "$ENV{TERRIER_SPDLOG_URL}")
+else ()
+    set(SPDLOG_SOURCE_URL "https://github.com/gabime/spdlog/archive/v${SPDLOG_VERSION}.tar.gz")
+endif ()
+
 # ----------------------------------------------------------------------
 # ExternalProject options
 
@@ -236,6 +242,23 @@ if (TERRIER_BUILD_BENCHMARKS)
     endif ()
 endif ()
 
+# spdlog
+add_definitions(-DSPDLOG_COMPILED_LIB)
+if ("${SPDLOG_HOME}" STREQUAL "")
+    FetchContent_Declare(SPDLOG URL ${SPDLOG_SOURCE_URL})
+    FetchContent_MakeAvailable(SPDLOG)
+    include_directories(SYSTEM "${spdlog_SOURCE_DIR}/include")
+    set_property(TARGET spdlog PROPERTY POSITION_INDEPENDENT_CODE ON)
+    if (APPLE)
+        set_property(TARGET spdlog PROPERTY CXX_VISIBILITY_PRESET hidden)
+    endif ()
+else ()
+    set(SPDLOG_VENDORED 0)
+    find_package(spdlog REQUIRED)
+endif ()
+list(APPEND TERRIER_LINK_LIBS spdlog::spdlog)
+list(APPEND TERRIER_STATIC_LINK_LIBS spdlog::spdlog)
+
 #----------------------------------------------------------------------
 
 set(TERRIER_LINK_LIBS "")
@@ -278,5 +301,5 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native i
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
 
-#flatbuffers
+# flatbuffers
 include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include")

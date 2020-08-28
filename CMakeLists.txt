@@ -55,6 +55,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 include(CMakeParseArguments)
 include(ExternalProject)
+include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -383,7 +384,8 @@ set(TERRIER_LINK_LIBS
         pg_query)
 
 set(TERRIER_DEPENDENCIES
-        gflags)
+        gflags
+        spdlog::spdlog)
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
@@ -395,8 +397,7 @@ set(TERRIER_TEST_LINK_LIBS
 
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
-        test_util
-        terrier_static
+        test_util_benchmark
         benchmark
         gtest
         gmock_main

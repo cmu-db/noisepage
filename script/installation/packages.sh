@@ -38,7 +38,6 @@ LINUX_BUILD_PACKAGES=(\
   "clang-8" \
   "clang-format-8" \
   "clang-tidy-8" \
-  "cmake" \
   "doxygen" \
   "git" \
   "g++-7" \
@@ -64,10 +63,12 @@ LINUX_TEST_PACKAGES=(\
 
 # These are the packages that we will install with pip3
 # We will install these for both build and test.
+# CMake is installed to /usr/local/bin, which should be in PATH.
 PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
   "requests" \
+  "cmake" \
 )
 
 
