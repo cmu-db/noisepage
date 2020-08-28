@@ -35,13 +35,6 @@ file(GLOB_RECURSE MADOKA_SOURCES
 )
 list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
 
-# md5
-file(GLOB_RECURSE MD5_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/md5/*.cpp
-        ${PROJECT_SOURCE_DIR}/third_party/md5/*.h
-)
-list(APPEND TERRIER_SRCS ${MD5_SOURCES})
-
 # libcount
 file(GLOB_RECURSE LIBCOUNT_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc
@@ -64,7 +57,6 @@ list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 # libcuckoo
 file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
 list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
-
 
 ###############################################
 # Terrier library

@@ -2285,11 +2285,6 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::Length, ret, exec_ctx, input_string);
       break;
     }
-    case ast::Builtin::Md5: {
-      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::Md5, ret, exec_ctx, input_string);
-      break;
-    }
     case ast::Builtin::InitCap: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
@@ -2669,7 +2664,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Version:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::Md5:
     case ast::Builtin::InitCap:
     case ast::Builtin::StartsWith:
     case ast::Builtin::Substring:

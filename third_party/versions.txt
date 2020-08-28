@@ -48,12 +48,6 @@ GBENCHMARK_VERSION=1.4.1
 # commit hash: e2f4695899e831171ecd2e780078474712ea61d3
 # commit hash date: 8 Oct 2019
 
-# md5
-# url: https://github.com/66neko/md5
-# release: master
-# commit hash: 5ea76db83bf2b3b6f00f9fc1cc070cc596da9e8f
-# commit hash date: 30 Mar 2017
-
 # libcuckoo
 # url: https://github.com/efficient/libcuckoo.git
 # branch: master

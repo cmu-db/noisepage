@@ -105,9 +105,6 @@ class StringFunctions {
   /** Compute CHR(code). */
   static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
 
-  /** Compute MD5(str). */
-  static void Md5(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
-
   /** Compute INITCAP(str). */
   static void InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 };

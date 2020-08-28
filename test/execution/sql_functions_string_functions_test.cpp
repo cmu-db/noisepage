@@ -423,22 +423,6 @@ TEST_F(StringFunctionsTests, Lower) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(StringFunctionsTests, Md5) {
-  // Nulls
-  {
-    auto x = StringVal::Null();
-    auto result = StringVal("");
-
-    StringFunctions::Md5(&result, Ctx(), x);
-    EXPECT_TRUE(result.is_null_);
-  }
-
-  auto x = StringVal("PostgreSQL MD5");
-  auto result = StringVal("");
-  StringFunctions::Md5(&result, Ctx(), x);
-  EXPECT_TRUE(StringVal("f78fdb18bf39b23d42313edfaf7e0a44") == result);
-}
-// NOLINTNEXTLINE
 TEST_F(StringFunctionsTests, Upper) {
   // Nulls
   {

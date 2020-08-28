@@ -1592,11 +1592,6 @@ VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terri
   terrier::execution::sql::SystemFunctions::Version(ctx, result);
 }
 
-VM_OP_WARM void OpMd5(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                      const terrier::execution::sql::StringVal *str) {
-  terrier::execution::sql::StringFunctions::Md5(result, ctx, *str);
-}
-
 VM_OP_WARM void OpInitCap(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                           const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::InitCap(result, ctx, *str);

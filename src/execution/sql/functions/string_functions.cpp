@@ -1,18 +1,11 @@
 #include "execution/sql/functions/string_functions.h"
 
-#include <cstring>
-
 #include <algorithm>
 #include <bitset>
-#include <iomanip>
-#include <iostream>
 #include <string>
 
 #include "execution/exec/execution_context.h"
 #include "execution/sql/operators/like_operators.h"
-#include "execution/sql/value_util.h"
-#include "execution/util/bit_util.h"
-#include "md5/md5.h"
 
 namespace terrier::execution::sql {
 
@@ -453,30 +446,6 @@ void StringFunctions::Chr(StringVal *result, exec::ExecutionContext *ctx, const 
       *result = StringVal(res, 4);
     }
   }
-}
-
-void StringFunctions::Md5(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
-  if (str.is_null_) {
-    *result = StringVal::Null();
-    return;
-  }
-  char new_str[str.GetLength()];
-  memcpy(new_str, str.GetContent(), str.GetLength());
-  MD5_CTX md5ctx;
-  MD5Init(&md5ctx);
-  MD5Update(&md5ctx, reinterpret_cast<unsigned char *>(new_str), str.GetLength());
-  unsigned char md5sum[16];
-  MD5Final(&md5ctx, md5sum);
-  std::ostringstream sout;
-  sout << std::hex << std::setfill('0');
-  for (auto c : md5sum) sout << std::setw(2) << static_cast<int>(c);
-  auto src = sout.str();
-  char *ptr = ctx->GetStringAllocator()->PreAllocate(src.size());
-  auto source = src.c_str();
-  for (unsigned int i = 0; i < src.size(); i++) {
-    ptr[i] = source[i];
-  }
-  *result = StringVal(ptr, src.size());
 }
 
 void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {

@@ -104,11 +104,10 @@ constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(121);
 constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(122);
 constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(123);
 constexpr proc_oid_t LENGTH_PRO_OID = proc_oid_t(124);
-constexpr proc_oid_t MD5_PRO_OID = proc_oid_t(125);
-constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(126);
-constexpr proc_oid_t SPLIT_PART_PRO_OID = proc_oid_t(127);
-constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(128);
-constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(129);
+constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(125);
+constexpr proc_oid_t SPLIT_PART_PRO_OID = proc_oid_t(126);
+constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(127);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(128);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
 constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);

@@ -314,7 +314,6 @@ namespace terrier::execution::ast {
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
   F(Length, length)                                                     \
-  F(Md5, md5)                                                           \
   F(InitCap, initCap)                                                   \
   F(SplitPart, splitPart)                                               \
                                                                         \
