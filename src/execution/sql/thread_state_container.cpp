@@ -1,13 +1,11 @@
 #include "execution/sql/thread_state_container.h"
 
-#include <tbb/enumerable_thread_specific.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for_each.h>
 
-#include <thread>
 #include <memory>
+#include <thread>  //NOLINT
 #include <unordered_map>
-#include <vector>
 
 #include "common/constants.h"
 
@@ -87,7 +85,7 @@ byte *ThreadStateContainer::AccessCurrentThreadState() {
   tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   if (impl_->states_.find(std::this_thread::get_id()) == impl_->states_.end()) {
     std::unique_ptr<TLSHandle> tls_handle(new TLSHandle(this));
-    impl_->states_.insert(std::make_pair(std::this_thread::get_id(), move(tls_handle)));
+    impl_->states_.insert(std::make_pair(std::this_thread::get_id(), std::move(tls_handle)));
   }
   return impl_->states_.find(std::this_thread::get_id())->second->State();
 }
