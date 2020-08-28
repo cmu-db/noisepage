@@ -298,6 +298,16 @@ TEST_F(StringFunctionsTests, Lpad) {
     EXPECT_TRUE(StringVal("te") == result);
   }
 
+  // Default pad
+  {
+    auto x = StringVal("test");
+    auto result = StringVal("");
+    auto len = Integer(6);
+
+    StringFunctions::Lpad(&result, Ctx(), x, len);
+    EXPECT_EQ(StringVal("  test"), result);
+  }
+
   auto x = StringVal("hi");
   auto result = StringVal("");
   auto len = Integer(5);
@@ -316,7 +326,7 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(0);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(result.is_null_);
   }
 
@@ -327,7 +337,7 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(4);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(x == result);
   }
 
@@ -338,8 +348,18 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(2);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(StringVal("te") == result);
+  }
+
+  // Default pad
+  {
+    auto x = StringVal("test");
+    auto result = StringVal("");
+    auto len = Integer(6);
+
+    StringFunctions::Rpad(&result, Ctx(), x, len);
+    EXPECT_EQ(StringVal("test  "), result);
   }
 
   auto x = StringVal("hi");

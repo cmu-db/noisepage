@@ -183,6 +183,10 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
   *result = StringVal(target, len.val_);
 }
 
+void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Lpad(result, ctx, str, len, StringVal(" "));
+}
+
 void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                            const StringVal &pad) {
   if (str.is_null_ || len.is_null_ || pad.is_null_ || len.val_ < 0) {
@@ -226,6 +230,10 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Rpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Length(Integer *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {

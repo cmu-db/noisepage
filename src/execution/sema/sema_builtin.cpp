@@ -2678,7 +2678,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::Lpad:
     case ast::Builtin::Rpad: {
-      if (!CheckArgCount(call, 4)) {
+      if (!CheckArgCountBetween(call, 3, 4)) {
         return;
       }
 
@@ -2702,11 +2702,13 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      // checking to see if the fourth argument is a string
-      resolved_type = call->Arguments()[3]->GetType();
-      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-        ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
-        return;
+      if(call->NumArgs() == 4) {
+        // checking to see if the fourth argument is a string
+        resolved_type = call->Arguments()[3]->GetType();
+        if (call->NumArgs() == 4 && !resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+          ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
+          return;
+        }
       }
 
       // this function returns a string

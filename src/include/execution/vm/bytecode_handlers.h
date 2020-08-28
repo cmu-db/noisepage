@@ -1514,10 +1514,15 @@ VM_OP_WARM void OpPosition(terrier::execution::sql::Integer *result, terrier::ex
   terrier::execution::sql::StringFunctions::Position(result, ctx, *search_str, *search_sub_str);
 }
 
-VM_OP_WARM void OpLPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpLPad3Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
                        const terrier::execution::sql::StringVal *pad) {
   terrier::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len, *pad);
+}
+
+VM_OP_WARM void OpLPad2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
+  terrier::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len);
 }
 
 VM_OP_WARM void OpLTrim2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
@@ -1546,10 +1551,15 @@ VM_OP_WARM void OpRight(terrier::execution::sql::StringVal *result, terrier::exe
   terrier::execution::sql::StringFunctions::Right(result, ctx, *str, *n);
 }
 
-VM_OP_WARM void OpRPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *n,
+VM_OP_WARM void OpRPad3Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
                        const terrier::execution::sql::StringVal *pad) {
-  terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *n, *pad);
+  terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len, *pad);
+}
+
+VM_OP_WARM void OpRPad2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
+  terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len);
 }
 
 VM_OP_WARM void OpRTrim2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,

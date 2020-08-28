@@ -2240,15 +2240,23 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     case ast::Builtin::Lpad: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::LPad, ret, exec_ctx, input_string, len, pad);
+      if (call->NumArgs() == 4) {
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+        GetEmitter()->Emit(Bytecode::LPad3Arg, ret, exec_ctx, input_string, len, pad);
+      } else {
+        GetEmitter()->Emit(Bytecode::LPad2Arg, ret, exec_ctx, input_string, len);
+      }
       break;
     }
     case ast::Builtin::Rpad: {
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::RPad, ret, exec_ctx, input_string, len, pad);
+      if (call->NumArgs() == 4) {
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+        GetEmitter()->Emit(Bytecode::RPad3Arg, ret, exec_ctx, input_string, len, pad);
+      } else {
+        GetEmitter()->Emit(Bytecode::RPad2Arg, ret, exec_ctx, input_string, len);
+      }
       break;
     }
     case ast::Builtin::Ltrim: {

@@ -2137,13 +2137,22 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(LPad) : {
+  OP(LPad3Arg) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpLPad(result, exec_ctx, input, n, chars);
+    OpLPad3Arg(result, exec_ctx, input, n, chars);
+    DISPATCH_NEXT();
+  }
+
+  OP(LPad2Arg) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpLPad2Arg(result, exec_ctx, input, n);
     DISPATCH_NEXT();
   }
 
@@ -2190,13 +2199,22 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(RPad) : {
+  OP(RPad3Arg) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpRPad(result, exec_ctx, input, n, chars);
+    OpRPad3Arg(result, exec_ctx, input, n, chars);
+    DISPATCH_NEXT();
+  }
+
+  OP(RPad2Arg) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpRPad2Arg(result, exec_ctx, input, n);
     DISPATCH_NEXT();
   }
 
