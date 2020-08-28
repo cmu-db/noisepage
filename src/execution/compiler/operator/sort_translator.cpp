@@ -321,7 +321,7 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
         ast::Identifier sorter_cardinality = codegen->MakeFreshIdentifier("sorter_cardinality");
         ast::Expr *sorter_get_tuple_count = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr});
         function->Append(codegen->DeclareVarWithInit(sorter_cardinality, sorter_get_tuple_count));
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_sort_build_rows)
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, sorter_cardinality)
         function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
                                                        brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
                                                        codegen->MakeExpr(sorter_cardinality)));
