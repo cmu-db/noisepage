@@ -212,11 +212,11 @@ TEST_F(StringFunctionsTests, SplitPart) {
       StringFunctions::SplitPart(&result, Ctx(), x, StringVal(delim), Integer(i + 1));
       auto split = splits[i].str();
       if (i <= 4) {
-        // Withhin the length of x
-        EXPECT_TRUE(StringVal(split.c_str()) == result);
+        // Within the length of x
+        EXPECT_EQ(StringVal(split.c_str()), result);
       } else {
         // Outside the length of x
-        EXPECT_TRUE(result.GetLength() == 0);
+        EXPECT_EQ(0, result.GetLength());
       }
     }
   }
