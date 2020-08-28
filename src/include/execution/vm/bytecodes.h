@@ -324,6 +324,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Aggregation Hash Table */                                                                                        \
   F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(AggregationHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                        \
   F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   F(AggregationHashTableAllocTuplePartitioned, OperandType::Local, OperandType::Local, OperandType::Local)            \
   F(AggregationHashTableLinkHashTableEntry, OperandType::Local, OperandType::Local)                                   \

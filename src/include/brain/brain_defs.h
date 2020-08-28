@@ -13,7 +13,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   AGGREGATE_BUILD,
   /**
    * AGGREGATE_ITERATE
-   * num_rows: # rows output by aggregation
+   * num_rows: # rows output by aggregation  // TODO(WAN): when is this not 1?
    * cardinality: # unique values output (either 1 for non-group by or # unique values based on group by)
    */
   AGGREGATE_ITERATE,

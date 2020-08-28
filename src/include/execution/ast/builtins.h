@@ -129,6 +129,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
+  F(AggHashTableGetTupleCount, aggHTGetTupleCount)                      \
   F(AggHashTableInsert, aggHTInsert)                                    \
   F(AggHashTableLinkEntry, aggHTLink)                                   \
   F(AggHashTableLookup, aggHTLookup)                                    \
