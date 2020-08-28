@@ -352,9 +352,9 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
                                                                  brain::ExecutionOperatingUnitType::HASHJOIN_BUILD);
       {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_build_rows)
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_build_rows)
         function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
+                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                                        num_build_rows_.Get(codegen)));
       }
       {
@@ -380,7 +380,7 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
                                                        num_probe_rows_.Get(codegen)));
       }
       {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_match_rows)
+        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_match_rows)
         function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
                                                        brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
                                                        num_match_rows_.Get(codegen)));
