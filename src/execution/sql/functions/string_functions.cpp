@@ -1,6 +1,5 @@
 #include "execution/sql/functions/string_functions.h"
 
-#include <execution/sql/value_util.h>
 #include <cstring>
 
 #include <algorithm>
@@ -11,6 +10,7 @@
 
 #include "execution/exec/execution_context.h"
 #include "execution/sql/operators/like_operators.h"
+#include "execution/sql/value_util.h"
 #include "execution/util/bit_util.h"
 #include "md5/md5.h"
 
