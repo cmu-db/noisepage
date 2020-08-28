@@ -187,8 +187,8 @@ void InsertTranslator::GenTableInsert(FunctionBuilder *builder) const {
     // queryState.num_inserts = queryState.num_inserts + 1
     auto *codegen = GetCodeGen();
     ast::Expr *plus_op = codegen->BinaryOp(parsing::Token::Type::PLUS, num_inserts_.Get(codegen), codegen->Const32(1));
-    ast::Stmt *num_inserts_increment = codegen->Assign(num_inserts_.Get(codegen), plus_op);
-    builder->Append(num_inserts_increment);
+    ast::Stmt *increment = codegen->Assign(num_inserts_.Get(codegen), plus_op);
+    builder->Append(increment);
   }
 }
 
