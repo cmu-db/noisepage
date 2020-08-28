@@ -195,6 +195,32 @@ TEST_F(StringFunctionsTests, SplitPart) {
     EXPECT_TRUE(x == result);
   }
 
+  // String continues beyond length
+  {
+    std::string sub = "I only love my bed";
+    // We create a StringVal that only uses a portion of the underlying string
+    auto x = StringVal(test_string_1_, sub.length());
+    auto result = StringVal("");
+
+    const char *delim = " ";
+    auto s = llvm::StringRef(test_string_1_);
+
+    llvm::SmallVector<llvm::StringRef, 4> splits;
+    s.split(splits, delim);
+
+    for (uint32_t i = 0; i < splits.size(); i++) {
+      StringFunctions::SplitPart(&result, Ctx(), x, StringVal(delim), Integer(i + 1));
+      auto split = splits[i].str();
+      if (i <= 4) {
+        // Withhin the length of x
+        EXPECT_TRUE(StringVal(split.c_str()) == result);
+      } else {
+        // Outside the length of x
+        EXPECT_TRUE(result.GetLength() == 0);
+      }
+    }
+  }
+
   auto x = StringVal(test_string_1_);
   auto result = StringVal("");
 
