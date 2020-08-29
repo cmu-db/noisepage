@@ -167,7 +167,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
       new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
       txn_manager_->Abort(txn);
     } while (new_namespace_oid == catalog::INVALID_NAMESPACE_OID);
-    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
+    EXPECT_GT(new_namespace_oid.UnderlyingValue(), catalog::START_OID);
     txn1.commit();
   } catch (const std::exception &e) {
     EXPECT_TRUE(false);

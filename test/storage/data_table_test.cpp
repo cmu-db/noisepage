@@ -213,7 +213,7 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
       tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
 
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
-    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
+    EXPECT_NE(all_cols[all_cols.size() - 1].UnderlyingValue(), -1);
     storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
@@ -248,7 +248,7 @@ TEST_F(DataTableTests, SimpleSequentialScanBlocks) {
       tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
 
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
-    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
+    EXPECT_NE(all_cols[all_cols.size() - 1].UnderlyingValue(), -1);
     storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
 
     auto *buffer1 = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
