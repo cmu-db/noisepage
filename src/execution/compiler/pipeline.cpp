@@ -92,7 +92,7 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
 void Pipeline::InjectStartPipelineTracker(FunctionBuilder *builder) const {
   // Inject StartPipelineTracker()
   std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
-                                codegen_->Const64(!GetPipelineId())};
+                                codegen_->Const64(GetPipelineId().UnderlyingValue())};
   auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartPipelineTracker, args);
   builder->Append(codegen_->MakeStmt(start_call));
 }
