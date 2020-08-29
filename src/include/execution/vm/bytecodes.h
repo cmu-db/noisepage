@@ -52,7 +52,7 @@ namespace terrier::execution::vm {
   CREATE_FOR_NUMERIC_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_NUMERIC_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_NUMERIC_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                        \
-  CREATE_FOR_NUMERIC_TYPES(F, Rem, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  CREATE_FOR_NUMERIC_TYPES(F, Mod, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_INT_TYPES(F, BitAnd, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitOr, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   CREATE_FOR_INT_TYPES(F, BitXor, OperandType::Local, OperandType::Local, OperandType::Local)                         \
@@ -303,12 +303,12 @@ namespace terrier::execution::vm {
   F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(ModInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(RemReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
@@ -571,7 +571,7 @@ namespace terrier::execution::vm {
   F(Radians, OperandType::Local, OperandType::Local)                                                                  \
   F(Degrees, OperandType::Local, OperandType::Local)                                                                  \
   F(Round, OperandType::Local, OperandType::Local)                                                                    \
-  F(RoundUpTo, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(Round2, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Log, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
                                                                                                                       \
@@ -598,6 +598,7 @@ namespace terrier::execution::vm {
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
   F(StartsWith, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(InitCap, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Date Functions */                                                                                                \
   F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \
