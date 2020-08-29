@@ -49,7 +49,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 }
 
 void IndexCreateTranslator::InitScan(FunctionBuilder *function) const {
-  // Init inserter, index pr, table pr, create index, and init tvi
+  // Init inserter, index pr, create index, and init tvi
   DeclareInserter(function);
   DeclareIndexPR(function);
   DeclareTVI(function);
@@ -162,7 +162,8 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   auto *index_pr_expr = codegen_->MakeExpr(index_pr_);
 
   for (const auto &index_col : index_schema.GetColumns()) {
-    // @prSet(insert_index_pr, attr_idx, @VPIGet(vpi_var_, attr_sql_type, true, oid), true)
+    // col_expr = @VPIGet(vpi_var_, attr_sql_type, true, oid)
+    // @prSet(insert_index_pr, attr_type, attr_idx, nullable, attr_index, col_expr, false)
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
     auto attr_sql_type = sql::GetTypeId(index_col.Type());
