@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include "brain/operating_unit_util.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
@@ -35,7 +34,7 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
   pipeline->LinkSourcePipeline(&build_pipeline_);
 
   if (IsCountersEnabled()) {
-    // TODO(WAN): for now, enabling counters forces it to be serial
+    // TODO(WAN): for now, enabling counters forces it to be serial.
     build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
     pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   }
@@ -60,14 +59,8 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
     local_sorter_ = build_pipeline_.DeclarePipelineStateEntry("sorter", sorter_type);
   }
 
-  if (IsCountersEnabled()) {
-    ast::Expr *num_sort_build_rows_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_sort_build_rows_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_sort_build_rows",
-                                                                                   num_sort_build_rows_type);
-    ast::Expr *num_sort_iterate_rows_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_sort_iterate_rows_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_sort_iterate_rows",
-                                                                                     num_sort_iterate_rows_type);
-  }
+  num_sort_build_rows_ = CounterDeclare("num_sort_build_rows");
+  num_sort_iterate_rows_ = CounterDeclare("num_sort_iterate_rows");
 }
 
 void SortTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -133,19 +126,8 @@ void SortTranslator::TearDownSorter(FunctionBuilder *function, ast::Expr *sorter
 void SortTranslator::InitializeQueryState(FunctionBuilder *function) const {
   InitializeSorter(function, global_sorter_.GetPtr(GetCodeGen()));
 
-  if (IsCountersEnabled()) {
-    auto *codegen = GetCodeGen();
-    {
-      // queryState.num_sort_build_rows = 0
-      auto assignment = codegen->Assign(num_sort_build_rows_.Get(codegen), codegen->Const32(0));
-      function->Append(assignment);
-    }
-    {
-      // queryState.num_sort_iterate_rows = 0
-      auto assignment = codegen->Assign(num_sort_iterate_rows_.Get(codegen), codegen->Const32(0));
-      function->Append(assignment);
-    }
-  }
+  CounterSet(function, num_sort_build_rows_, 0);
+  CounterSet(function, num_sort_iterate_rows_, 0);
 }
 
 void SortTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -230,13 +212,7 @@ void SortTranslator::ScanSorter(WorkContext *ctx, FunctionBuilder *function) con
     // Move along
     ctx->Push(function);
 
-    if (IsCountersEnabled()) {
-      // queryState.num_sort_iterate_rows = queryState.num_sort_iterate_rows + 1
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_sort_iterate_rows_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *increment = codegen->Assign(num_sort_iterate_rows_.Get(codegen), plus_op);
-      function->Append(increment);
-    }
+    CounterAdd(function, num_sort_iterate_rows_, 1);
   }
   loop.EndLoop();
 
@@ -245,20 +221,12 @@ void SortTranslator::ScanSorter(WorkContext *ctx, FunctionBuilder *function) con
 }
 
 void SortTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
-
   if (IsScanPipeline(ctx->GetPipeline())) {
     ScanSorter(ctx, function);
   } else {
     TERRIER_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
     InsertIntoSorter(ctx, function);
-    if (IsCountersEnabled()) {
-      // queryState.num_sort_build_rows = queryState.num_sort_build_rows + 1
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_sort_build_rows_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *increment = codegen->Assign(num_sort_build_rows_.Get(codegen), plus_op);
-      function->Append(increment);
-    }
+    CounterAdd(function, num_sort_build_rows_, 1);
   }
 }
 
@@ -282,51 +250,19 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
       function->Append(codegen->SorterSort(sorter_ptr));
     }
 
-    if (IsCountersEnabled()) {
-      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                 brain::ExecutionOperatingUnitType::SORT_BUILD);
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_sort_build_rows)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_sort_build_rows_.Get(codegen)));
-      }
-      {
-        // var sorter_cardinality = @sorterGetTupleCount(&sorter)
-        ast::Identifier sorter_cardinality = codegen->MakeFreshIdentifier("sorter_cardinality");
-        ast::Expr *sorter_get_tuple_count = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr});
-        function->Append(codegen->DeclareVarWithInit(sorter_cardinality, sorter_get_tuple_count));
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_sort_build_rows)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       codegen->MakeExpr(sorter_cardinality)));
-      }
-    }
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  num_sort_build_rows_.Get(GetCodeGen()));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
   } else {
-    if (IsCountersEnabled()) {
-      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                 brain::ExecutionOperatingUnitType::SORT_ITERATE);
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_sort_iterate_rows)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_sort_iterate_rows_.Get(codegen)));
-      }
-      {
-        // var sorter_cardinality = @sorterGetTupleCount(&sorter)
-        ast::Identifier sorter_cardinality = codegen->MakeFreshIdentifier("sorter_cardinality");
-        ast::Expr *sorter_get_tuple_count = codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr});
-        function->Append(codegen->DeclareVarWithInit(sorter_cardinality, sorter_get_tuple_count));
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, sorter_cardinality)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       codegen->MakeExpr(sorter_cardinality)));
-      }
-    }
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  num_sort_iterate_rows_.Get(GetCodeGen()));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
   }
 }
 

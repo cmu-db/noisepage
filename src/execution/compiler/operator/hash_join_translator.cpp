@@ -1,6 +1,5 @@
 #include "execution/compiler/operator/hash_join_translator.h"
 
-#include "brain/operating_unit_util.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -27,7 +26,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
 
   if (IsCountersEnabled()) {
-    // TODO(WAN): for now, enabling counters forces it to be serial
+    // TODO(WAN): for now, enabling counters forces it to be serial.
     left_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
     pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   }
@@ -56,17 +55,9 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
     local_join_ht_ = left_pipeline_.DeclarePipelineStateEntry("joinHashTable", join_ht_type);
   }
 
-  if (IsCountersEnabled()) {
-    ast::Expr *num_probes_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_probe_rows_ =
-        compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_probe_rows", num_probes_type);
-    ast::Expr *num_builds_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_build_rows_ =
-        compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_build_rows", num_builds_type);
-    ast::Expr *num_matches_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_match_rows_ =
-        compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_match_rows", num_matches_type);
-  }
+  num_build_rows_ = CounterDeclare("num_build_rows");
+  num_probe_rows_ = CounterDeclare("num_probe_rows");
+  num_match_rows_ = CounterDeclare("num_match_rows");
 }
 
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -93,14 +84,9 @@ void HashJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   InitializeJoinHashTable(function, global_join_ht_.GetPtr(codegen));
 
-  if (IsCountersEnabled()) {
-    // queryState.num_build_rows = 0
-    function->Append(codegen->Assign(num_build_rows_.Get(codegen), codegen->Const32(0)));
-    // queryState.num_probe_rows = 0
-    function->Append(codegen->Assign(num_probe_rows_.Get(codegen), codegen->Const32(0)));
-    // queryState.num_match_rows = 0
-    function->Append(codegen->Assign(num_match_rows_.Get(codegen), codegen->Const32(0)));
-  }
+  CounterSet(function, num_build_rows_, 0);
+  CounterSet(function, num_probe_rows_, 0);
+  CounterSet(function, num_match_rows_, 0);
 }
 
 void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -173,13 +159,7 @@ void HashJoinTranslator::InsertIntoJoinHashTable(WorkContext *ctx, FunctionBuild
   // Fill row.
   FillBuildRow(ctx, function, codegen->MakeExpr(build_row_var_));
 
-  if (IsCountersEnabled()) {
-    // queryState.num_build_rows = queryState.num_build_rows + 1
-    ast::Expr *plus_op =
-        codegen->BinaryOp(parsing::Token::Type::PLUS, num_build_rows_.Get(codegen), codegen->Const32(1));
-    ast::Stmt *increment = codegen->Assign(num_build_rows_.Get(codegen), plus_op);
-    function->Append(increment);
-  }
+  CounterAdd(function, num_build_rows_, 1);
 }
 
 void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *function) const {
@@ -202,23 +182,7 @@ void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *f
       codegen->MakeStmt(codegen->JoinHashTableLookup(global_join_ht_.GetPtr(codegen), entry_iter, hash_val));
   auto has_next_call = codegen->HTEntryIterHasNext(entry_iter);
 
-  if (IsCountersEnabled()) {
-    // queryState.num_probe_rows = queryState.num_probe_rows + 1
-    ast::Expr *plus_op =
-        codegen->BinaryOp(parsing::Token::Type::PLUS, num_probe_rows_.Get(codegen), codegen->Const32(1));
-    ast::Stmt *increment = codegen->Assign(num_probe_rows_.Get(codegen), plus_op);
-    function->Append(increment);
-  }
-
-  auto increment_num_matched = [&]() {
-    if (IsCountersEnabled()) {
-      // queryState.num_match_rows = queryState.num_match_rows + 1
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_match_rows_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *increment = codegen->Assign(num_match_rows_.Get(codegen), plus_op);
-      function->Append(increment);
-    }
-  };
+  CounterAdd(function, num_probe_rows_, 1);
 
   // The probe depends on the join type
   if (join_plan.RequiresRightMark()) {
@@ -245,7 +209,7 @@ void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *f
       // if (right_mark)
       If right_anti_check(function, codegen->MakeExpr(right_mark_var));
       ctx->Push(function);
-      increment_num_matched();
+      CounterAdd(function, num_match_rows_, 1);
       right_anti_check.EndIf();
     } else if (join_plan.GetLogicalJoinType() == planner::LogicalJoinType::RIGHT_SEMI) {
       // If the right mark is unset, then there is at least one match.
@@ -253,7 +217,7 @@ void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *f
       auto cond = codegen->UnaryOp(parsing::Token::Type::BANG, codegen->MakeExpr(right_mark_var));
       If right_semi_check(function, cond);
       ctx->Push(function);
-      increment_num_matched();
+      CounterAdd(function, num_match_rows_, 1);
       right_semi_check.EndIf();
     }
   } else {
@@ -292,13 +256,7 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
     // Move along.
     ctx->Push(function);
 
-    if (IsCountersEnabled()) {
-      // queryState.num_match_rows = queryState.num_match_rows + 1
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_match_rows_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *increment = codegen->Assign(num_match_rows_.Get(codegen), plus_op);
-      function->Append(increment);
-    }
+    CounterAdd(function, num_match_rows_, 1);
   }
   check_condition.EndIf();
 }
@@ -333,11 +291,6 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
   if (IsLeftPipeline(pipeline)) {
     ast::Expr *jht = global_join_ht_.GetPtr(codegen);
 
-    ast::Expr *jht_get_tuple_count = nullptr;
-    if (IsCountersEnabled()) {
-      jht_get_tuple_count = codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht});
-    }
-
     if (left_pipeline_.IsParallel()) {
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
@@ -346,46 +299,16 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       function->Append(codegen->JoinHashTableBuild(jht));
     }
 
-    if (IsCountersEnabled()) {
-      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_BUILD);
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_build_rows)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_build_rows_.Get(codegen)));
-      }
-      {
-        // var tuple_count = @joinHTGetTupleCount(jht)
-        ast::Identifier tuple_count = codegen->MakeFreshIdentifier("tuple_count");
-        function->Append(codegen->DeclareVarWithInit(tuple_count, jht_get_tuple_count));
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, tuple_count)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       codegen->MakeExpr(tuple_count)));
-      }
-    }
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_build_rows_.Get(codegen));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
   } else {
-    if (IsCountersEnabled()) {
-      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_PROBE);
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_probe_rows)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_probe_rows_.Get(codegen)));
-      }
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_match_rows)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       num_match_rows_.Get(codegen)));
-      }
-    }
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_probe_rows_.Get(codegen));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, num_match_rows_.Get(codegen));
   }
 }
 

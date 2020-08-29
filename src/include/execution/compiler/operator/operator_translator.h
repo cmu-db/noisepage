@@ -7,6 +7,7 @@
 #include "common/macros.h"
 #include "execution/ast/ast_fwd.h"
 #include "execution/compiler/expression/column_value_provider.h"
+#include "execution/compiler/state_descriptor.h"
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
 
@@ -250,6 +251,17 @@ class OperatorTranslator : public ColumnValueProvider {
 
   /** @return True if we should collect counters in TPL, used for Lin's models. */
   bool IsCountersEnabled() const;
+
+  /** Declare a counter for Lin's models. */
+  StateDescriptor::Entry CounterDeclare(const std::string &counter_name) const;
+  /** Set the value of a counter for Lin's models. */
+  void CounterSet(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
+  /** Add to the value of a counter for Lin's models. */
+  void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
+  /** Record a specified feature's value. */
+  void FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
+                     brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
+                     ast::Expr *val) const;
 
  private:
   // For mini-runner stuff.

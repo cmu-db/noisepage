@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -49,21 +48,11 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
     }
   }
 
-  if (IsCountersEnabled()) {
-    auto *codegen = GetCodeGen();
-    ast::Expr *num_scans_index_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_scans_index_ =
-        compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_scans_index", num_scans_index_type);
-  }
+  num_scans_index_ = CounterDeclare("num_scans_index");
 }
 
 void IndexScanTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  if (IsCountersEnabled()) {
-    // queryState.num_scans_index = 0
-    auto *codegen = GetCodeGen();
-    auto assignment = codegen->Assign(num_scans_index_.Get(codegen), codegen->Const32(0));
-    function->Append(assignment);
-  }
+  CounterSet(function, num_scans_index_, 0);
 }
 
 void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -114,45 +103,19 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
       context->Push(function);
     }
 
-    if (IsCountersEnabled()) {
-      // queryState.num_scans_index = queryState.num_scans_index + 1
-      auto *codegen = GetCodeGen();
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_scans_index_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *num_scans_index_increment = codegen->Assign(num_scans_index_.Get(codegen), plus_op);
-      function->Append(num_scans_index_increment);
-    }
+    CounterAdd(function, num_scans_index_, 1);
   }
   loop.EndLoop();
 
   // @indexIteratorFree(&index_iter_)
   FreeIterator(function);
 
-  if (IsCountersEnabled()) {
-    auto *codegen = GetCodeGen();
-
-    const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
-    const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-    const auto &feature =
-        brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::IDX_SCAN);
-    {
-      // var index_size = @indexIteratorGetSize(&index_iter)
-      ast::Identifier index_size = codegen->MakeFreshIdentifier("index_size");
-      ast::Expr *index_iter_get_size =
-          codegen->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)});
-      function->Append(codegen->DeclareVarWithInit(index_size, index_iter_get_size));
-      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, index_size)
-      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                     brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                     num_scans_index_.Get(codegen)));
-    }
-    {
-      // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_scans_index)
-      function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                     num_scans_index_.Get(codegen)));
-    }
-  }
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+                GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+                num_scans_index_.Get(GetCodeGen()));
 }
 
 ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

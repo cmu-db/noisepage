@@ -713,7 +713,7 @@ void Sema::CheckBuiltinJoinHashTableGetTupleCount(ast::CallExpr *call) {
   }
 
   // This call returns the tuple count.
-  call->SetType(GetBuiltinType(ast::BuiltinType::Uint64));
+  call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
 }
 
 void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin) {
@@ -958,8 +958,8 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
         ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
-      // Features are 64-bit integers.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Uint64));
+      // Features are 32-bit integers.
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
       break;
     }
     case ast::Builtin::ExecutionContextRecordFeature: {

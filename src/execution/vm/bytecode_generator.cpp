@@ -2113,8 +2113,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       break;
     }
     case ast::Builtin::IndexGetSize: {
-      LocalVar index_size =
-          GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Uint32));
+      LocalVar index_size = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexGetSize, index_size, storage_interface);
       GetExecutionResult()->SetDestination(index_size.ValueOf());
       break;

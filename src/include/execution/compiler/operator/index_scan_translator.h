@@ -7,7 +7,6 @@
 #include "execution/ast/identifier.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
-#include "execution/compiler/state_descriptor.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "storage/storage_defs.h"
 

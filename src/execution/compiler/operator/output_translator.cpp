@@ -1,6 +1,5 @@
 #include "execution/compiler/operator/output_translator.h"
 
-#include "brain/operating_unit_util.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -22,20 +21,11 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
   // Prepare the child.
   compilation_context->Prepare(plan, pipeline);
 
-  if (IsCountersEnabled()) {
-    auto *codegen = GetCodeGen();
-    ast::Expr *num_output_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_output_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_output", num_output_type);
-  }
+  num_output_ = CounterDeclare("num_output");
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsCountersEnabled()) {
-    // queryState.num_output = 0
-    auto *codegen = GetCodeGen();
-    auto assignment = codegen->Assign(num_output_.Get(codegen), codegen->Const32(0));
-    function->Append(assignment);
-  }
+  CounterSet(function, num_output_, 0);
 }
 
 void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
@@ -56,34 +46,17 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
     function->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 
-  if (IsCountersEnabled()) {
-    // queryState.num_output = queryState.num_output + 1
-    auto *codegen = GetCodeGen();
-    ast::Expr *plus_op = codegen->BinaryOp(parsing::Token::Type::PLUS, num_output_.Get(codegen), codegen->Const32(1));
-    ast::Stmt *num_output_increment = codegen->Assign(num_output_.Get(codegen), plus_op);
-    function->Append(num_output_increment);
-  }
+  CounterAdd(function, num_output_, 1);
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto exec_ctx = GetExecutionContext();
   function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
 
-  if (IsCountersEnabled()) {
-    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_output)
-    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_output)
-    auto *codegen = GetCodeGen();
-    const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-    const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-    const auto &feature =
-        brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::OUTPUT);
-    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                   num_output_.Get(codegen)));
-    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                   codegen->Const32(1)));
-  }
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_output_.Get(GetCodeGen()));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

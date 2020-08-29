@@ -149,8 +149,9 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
-    // Extract and record the translators. This must be done before generating the pipelines
-    // as the pipelines may rely on obtaining feature IDs, which will be generated while recording translators.
+    // Extract and record the translators.
+    // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
+    // Therefore translator extraction must happen before pipelines are generated.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
                                           common::ManagedPointer(pipeline), query_->GetQueryText());

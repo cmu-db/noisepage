@@ -89,7 +89,7 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
 }
 
-void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
+void Pipeline::InjectStartPipelineTracker(FunctionBuilder *builder) const {
   // Inject StartPipelineTracker()
   std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
                                 codegen_->Const64(!GetPipelineId())};
@@ -237,7 +237,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       op->BeginPipelineWork(*this, &builder);
     }
 
-    InjectStartResourceTracker(&builder);
+    InjectStartPipelineTracker(&builder);
 
     // Launch pipeline work.
     if (IsParallel()) {

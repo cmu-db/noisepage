@@ -213,7 +213,7 @@ class Pipeline {
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
 
-  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
 
   void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 

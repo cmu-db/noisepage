@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "brain/operating_unit_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/schema.h"
 #include "execution/ast/builtins.h"
@@ -43,21 +42,10 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
     }
   }
 
-  if (IsCountersEnabled()) {
-    auto *codegen = GetCodeGen();
-    ast::Expr *num_inserts_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_inserts_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_inserts", num_inserts_type);
-  }
+  num_inserts_ = CounterDeclare("num_inserts");
 }
 
-void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  if (IsCountersEnabled()) {
-    // queryState.num_inserts = 0
-    auto *codegen = GetCodeGen();
-    auto assignment = codegen->Assign(num_inserts_.Get(codegen), codegen->Const32(0));
-    function->Append(assignment);
-  }
-}
+void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_inserts_, 0); }
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
@@ -83,21 +71,12 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     }
   }
 
-  if (IsCountersEnabled()) {
-    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_inserts)
-    // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, queryState.num_inserts)
-    auto *codegen = GetCodeGen();
-    const pipeline_id_t pipeline_id = context->GetPipeline().GetPipelineId();
-    const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-    const auto &feature =
-        brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, brain::ExecutionOperatingUnitType::INSERT);
-    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                   num_inserts_.Get(codegen)));
-    function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                   num_inserts_.Get(codegen)));
-  }
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+                num_inserts_.Get(GetCodeGen()));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+                num_inserts_.Get(GetCodeGen()));
 
   GenInserterFree(function);
 }
@@ -183,13 +162,7 @@ void InsertTranslator::GenTableInsert(FunctionBuilder *builder) const {
   auto *insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert, {GetCodeGen()->AddressOf(inserter_)});
   builder->Append(GetCodeGen()->DeclareVar(insert_slot, nullptr, insert_call));
 
-  if (IsCountersEnabled()) {
-    // queryState.num_inserts = queryState.num_inserts + 1
-    auto *codegen = GetCodeGen();
-    ast::Expr *plus_op = codegen->BinaryOp(parsing::Token::Type::PLUS, num_inserts_.Get(codegen), codegen->Const32(1));
-    ast::Stmt *increment = codegen->Assign(num_inserts_.Get(codegen), plus_op);
-    builder->Append(increment);
-  }
+  CounterAdd(builder, num_inserts_, 1);
 }
 
 void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *builder,

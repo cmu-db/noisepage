@@ -1,5 +1,6 @@
 #include "execution/compiler/operator/operator_translator.h"
 
+#include "brain/operating_unit_util.h"
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "execution/compiler/compilation_context.h"
@@ -9,7 +10,7 @@
 
 namespace terrier::execution::compiler {
 
-std::atomic<execution::translator_id_t> OperatorTranslator::translator_id_counter{20000};
+std::atomic<execution::translator_id_t> OperatorTranslator::translator_id_counter{20000};  // arbitrary number
 
 OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline, brain::ExecutionOperatingUnitType feature_type)
@@ -89,5 +90,56 @@ void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, con
 }
 
 bool OperatorTranslator::IsCountersEnabled() const { return compilation_context_->IsCountersEnabled(); }
+
+StateDescriptor::Entry OperatorTranslator::CounterDeclare(const std::string &counter_name) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // Declare a new counter in the query state.
+    ast::Expr *counter_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+    return compilation_context_->GetQueryState()->DeclareStateEntry(codegen, counter_name, counter_type);
+  }
+
+  return StateDescriptor::Entry();
+}
+
+void OperatorTranslator::CounterSet(FunctionBuilder *function, const StateDescriptor::Entry &counter,
+                                    int64_t val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // counter = val
+    ast::Stmt *set = codegen->Assign(counter.Get(codegen), codegen->Const32(val));
+    function->Append(set);
+  }
+}
+
+void OperatorTranslator::CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter,
+                                    int64_t val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // counter = counter + val
+    ast::Expr *plus = codegen->BinaryOp(parsing::Token::Type::PLUS, counter.Get(codegen), codegen->Const32(val));
+    ast::Stmt *increment = codegen->Assign(counter.Get(codegen), plus);
+    function->Append(increment);
+  }
+}
+
+void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
+                                       brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
+                                       ast::Expr *val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
+    const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
+    const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+    const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
+    ast::Expr *record =
+        codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, val);
+    function->Append(record);
+  }
+}
 
 }  // namespace terrier::execution::compiler

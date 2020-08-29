@@ -5,7 +5,6 @@
 
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/compiler/state_descriptor.h"
 
 namespace terrier::parser {
 class AbstractExpression;

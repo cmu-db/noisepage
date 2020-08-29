@@ -1,6 +1,5 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 
-#include "brain/operating_unit_util.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
@@ -52,14 +51,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
     local_aggs_ = build_pipeline_.DeclarePipelineStateEntry("aggs", payload_type);
   }
 
-  if (IsCountersEnabled()) {
-    ast::Expr *num_agg_inputs_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_agg_inputs_ =
-        compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_agg_inputs", num_agg_inputs_type);
-    ast::Expr *num_agg_outputs_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    num_agg_outputs_ =
-        compilation_context->GetQueryState()->DeclareStateEntry(codegen, "num_agg_outputs", num_agg_outputs_type);
-  }
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
 }
 
 ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
@@ -116,19 +109,8 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
 }
 
 void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  if (IsCountersEnabled()) {
-    auto *codegen = GetCodeGen();
-    {
-      // queryState.num_agg_inputs = 0
-      auto assignment = codegen->Assign(num_agg_inputs_.Get(codegen), codegen->Const32(0));
-      function->Append(assignment);
-    }
-    {
-      // queryState.num_agg_outputs = 0
-      auto assignment = codegen->Assign(num_agg_outputs_.Get(codegen), codegen->Const32(0));
-      function->Append(assignment);
-    }
-  }
+  CounterSet(function, num_agg_inputs_, 0);
+  CounterSet(function, num_agg_outputs_, 0);
 }
 
 ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const {
@@ -200,24 +182,10 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
     } else {
       context->Push(function);
     }
-
-    if (IsCountersEnabled()) {
-      // queryState.num_agg_outputs = queryState.num_agg_outputs + 1
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_agg_outputs_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *increment = codegen->Assign(num_agg_outputs_.Get(codegen), plus_op);
-      function->Append(increment);
-    }
+    CounterAdd(function, num_agg_outputs_, 1);
   } else {
     UpdateGlobalAggregate(context, function);
-
-    if (IsCountersEnabled()) {
-      // queryState.num_agg_inputs = queryState.num_agg_inputs + 1
-      ast::Expr *plus_op =
-          codegen->BinaryOp(parsing::Token::Type::PLUS, num_agg_inputs_.Get(codegen), codegen->Const32(1));
-      ast::Stmt *increment = codegen->Assign(num_agg_inputs_.Get(codegen), plus_op);
-      function->Append(increment);
-    }
+    CounterAdd(function, num_agg_inputs_, 1);
   }
 }
 
@@ -232,43 +200,16 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
       function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
     }
 
-    if (IsCountersEnabled()) {
-      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                 brain::ExecutionOperatingUnitType::AGGREGATE_BUILD);
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_agg_inputs)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_agg_outputs_.Get(codegen)));
-      }
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, 1)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       codegen->Const32(1)));
-      }
-    }
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_agg_inputs_.Get(codegen));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
   } else {
-    if (IsCountersEnabled()) {
-      const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
-      const auto &features = this->GetCodeGen()->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
-      const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features,
-                                                                 brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE);
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, NUM_ROWS, queryState.num_agg_inputs)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
-                                                       num_agg_outputs_.Get(codegen)));
-      }
-      {
-        // @execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, CARDINALITY, 1)
-        function->Append(codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(),
-                                                       brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY,
-                                                       codegen->Const32(1)));
-      }
-    }
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  num_agg_outputs_.Get(GetCodeGen()));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
   }
 }
 
