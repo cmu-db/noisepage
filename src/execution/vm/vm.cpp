@@ -504,29 +504,44 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto query_id = execution::query_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id);
+    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id, ouvec);
     DISPATCH_NEXT();
   }
 
-  OP(ExecutionContextGetFeature) : {
-    auto *value = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    auto feature_attribute =
-        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
-    OpExecutionContextGetFeature(value, exec_ctx, pipeline_id, feature_id, feature_attribute);
-    DISPATCH_NEXT();
-  }
-
-  OP(ExecutionContextRecordFeature) : {
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+  OP(ExecOUFeatureVectorRecordFeature) : {
+    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_attribute =
         static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
     auto value = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpExecutionContextRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value);
+    OpExecOUFeatureVectorRecordFeature(ouvec, pipeline_id, feature_id, feature_attribute, value);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecOUFeatureVectorInitialize) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
+  OP(RegisterMetricsThread) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpRegisterMetricsThread(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(CheckTrackersStopped) : {
+    OpCheckTrackersStopped();
+    DISPATCH_NEXT();
+  }
+
+  OP(AggregateMetricsThread) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpAggregateMetricsThread(exec_ctx);
     DISPATCH_NEXT();
   }
 

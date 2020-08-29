@@ -45,6 +45,7 @@ class IdxJoinTest_SimpleIdxJoinTest_Test;
 
 namespace terrier::brain {
 
+class ExecOUFeatureVector;
 class OperatingUnitRecorder;
 
 /**
@@ -63,6 +64,7 @@ class OperatingUnitRecorder;
 class ExecutionOperatingUnitFeature {
   friend class execution::exec::ExecutionContext;
   friend class OperatingUnitRecorder;
+  friend class ExecOUFeatureVector;
   friend class PipelineOperatingUnits;
 
  public:
@@ -79,7 +81,7 @@ class ExecutionOperatingUnitFeature {
    */
   ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
                                 size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,
-                                double mem_factor, size_t num_loops)
+                                double mem_factor, size_t num_loops, size_t num_concurrent)
       : translator_id_(translator_id),
         feature_id_(feature_id_counter++),
         feature_(feature),
@@ -88,7 +90,8 @@ class ExecutionOperatingUnitFeature {
         num_keys_(num_keys),
         cardinality_(cardinality),
         mem_factors_({mem_factor}),
-        num_loops_(num_loops) {}
+        num_loops_(num_loops),
+        num_concurrent_(num_concurrent) {}
 
   /** @return The ID of the translator for this ExecutionOperatingUnitFeature. */
   execution::translator_id_t GetTranslatorId() const { return translator_id_; }
@@ -120,6 +123,8 @@ class ExecutionOperatingUnitFeature {
    * @returns estimated cardinality
    */
   size_t GetCardinality() const { return cardinality_; }
+
+  size_t GetNumConcurrent() const { return num_concurrent_; }
 
   /**
    * @returns memory adjustment factor
@@ -155,6 +160,8 @@ class ExecutionOperatingUnitFeature {
    */
   void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
 
+  void SetNumConcurrent(size_t num_concurrent) { num_concurrent_ = num_concurrent; }
+
   /**
    * Set the mem factor
    * @note only should be invoked by OperatingUnitRecorder
@@ -173,12 +180,47 @@ class ExecutionOperatingUnitFeature {
   size_t cardinality_;
   std::vector<double> mem_factors_;
   size_t num_loops_;
+  size_t num_concurrent_;
 };
 
 /**
  * Convenience typedef for a vector of features
  */
 using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFeature>;
+
+class ExecOUFeatureVector {
+ public:
+  execution::pipeline_id_t pipeline_id_;
+  ExecutionOperatingUnitFeatureVector pipeline_features_;
+
+  void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
+                     ExecutionOperatingUnitFeatureAttribute modifier, uint32_t value) {
+    TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
+    for (auto &feature : pipeline_features_) {
+      if (feature.GetFeatureId() == feature_id) {
+        switch (modifier) {
+          case brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS: {
+            feature.SetNumRows(value);
+            break;
+          }
+          case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
+            feature.SetCardinality(value);
+            break;
+          }
+          case brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT: {
+            feature.SetNumConcurrent(value);
+            break;
+          }
+          default:
+            TERRIER_ASSERT(false, "Invalid feature attribute.");
+        }
+        return;
+      }
+    }
+
+    TERRIER_ASSERT(false, "feature_id could not be found");
+  }
+};
 
 /**
  * PipelineOperatingUnits manages the storage/association of specific pipeline

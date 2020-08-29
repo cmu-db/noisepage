@@ -1597,25 +1597,14 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       LocalVar query_id = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
+      LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id, ouvec);
       break;
     }
-    case ast::Builtin::ExecutionContextGetFeature: {
-      LocalVar value = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextGetFeature, value, exec_ctx, pipeline_id, feature_id,
-                         feature_attribute);
-      break;
-    }
-    case ast::Builtin::ExecutionContextRecordFeature: {
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar value = VisitExpressionForRValue(call->Arguments()[4]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextRecordFeature, exec_ctx, pipeline_id, feature_id, feature_attribute,
-                         value);
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id);
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
@@ -2329,6 +2318,20 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
+    case ast::Builtin::RegisterMetricsThread: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::RegisterMetricsThread, exec_ctx);
+      break;
+    }
+    case ast::Builtin::CheckTrackersStopped: {
+      GetEmitter()->Emit(Bytecode::CheckTrackersStopped);
+      break;
+    }
+    case ast::Builtin::AggregateMetricsThread: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::AggregateMetricsThread, exec_ctx);
+      break;
+    }
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -2336,9 +2339,18 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
-    case ast::Builtin::ExecutionContextGetFeature:
-    case ast::Builtin::ExecutionContextRecordFeature: {
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
       VisitExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
+      LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar value = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorRecordFeature, ouvec, pipeline_id, feature_id, feature_attribute,
+                         value);
       break;
     }
     case ast::Builtin::ThreadStateContainerIterate:

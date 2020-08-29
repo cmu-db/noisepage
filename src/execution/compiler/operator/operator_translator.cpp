@@ -28,6 +28,18 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, Co
   }
 }
 
+bool OperatorTranslator::NeedPerTaskTracker() const { return GetPipeline()->IsParallel(); }
+
+void OperatorTranslator::InjectStartTracker(FunctionBuilder *function) const {
+  TERRIER_ASSERT(NeedPerTaskTracker(), "Cannot inject when task not requires");
+  GetPipeline()->InjectStartResourceTracker(function);
+}
+
+void OperatorTranslator::InjectEndTracker(FunctionBuilder *function) const {
+  TERRIER_ASSERT(NeedPerTaskTracker(), "Cannot inject when task not requires");
+  GetPipeline()->InjectEndResourceTracker(function, GetPipeline()->GetQueryId());
+}
+
 ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx) const {
   // Check valid output column.
   const auto output_schema = plan_.GetOutputSchema();
@@ -137,7 +149,7 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::Executi
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
     ast::Expr *record =
-        codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, val);
+        codegen->ExecOUFeatureVectorRecordFeature(pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib, val);
     function->Append(record);
   }
 }

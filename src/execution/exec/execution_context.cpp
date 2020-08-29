@@ -47,79 +47,30 @@ void ExecutionContext::StartPipelineTracker(pipeline_id_t pipeline_id) {
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(component)) {
     // Start the resource tracker.
+    TERRIER_ASSERT(!common::thread_context.resource_tracker_.IsRunning(), "ResourceTrackers cannot be nested");
     common::thread_context.resource_tracker_.Start();
     mem_tracker_->Reset();
-    // Save a copy of the pipeline's features as the features will be updated in-place later.
+
     TERRIER_ASSERT(pipeline_operating_units_ != nullptr, "PipelineOperatingUnits should not be null");
-    current_pipeline_features_id_ = pipeline_id;
-    current_pipeline_features_ = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
   }
 }
 
-void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id) {
+void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id,
+                                          brain::ExecOUFeatureVector *ouvec) {
   if (common::thread_context.metrics_store_ != nullptr && common::thread_context.resource_tracker_.IsRunning()) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
+    TERRIER_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
-                                                              std::move(current_pipeline_features_), resource_metrics);
+                                                              std::move(ouvec->pipeline_features_), resource_metrics);
   }
 }
 
-void ExecutionContext::GetFeature(uint32_t *value, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                  brain::ExecutionOperatingUnitFeatureAttribute feature_attribute) {
-  if (common::thread_context.metrics_store_ != nullptr && common::thread_context.resource_tracker_.IsRunning()) {
-    TERRIER_ASSERT(pipeline_id == current_pipeline_features_id_, "That's not the current pipeline.");
-    auto &features = current_pipeline_features_;
-    for (auto &feature : features) {
-      if (feature_id == feature.GetFeatureId()) {
-        uint64_t val;
-        switch (feature_attribute) {
-          case brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS: {
-            val = feature.GetNumRows();
-            break;
-          }
-          case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
-            val = feature.GetCardinality();
-            break;
-          }
-          default:
-            UNREACHABLE("Invalid feature attribute.");
-        }
-        *value = val;
-        break;
-      }
-    }
-  }
-}
-
-void ExecutionContext::RecordFeature(pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, uint32_t value) {
-  constexpr metrics::MetricsComponent component = metrics::MetricsComponent::EXECUTION_PIPELINE;
-
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentEnabled(component)) {
-    TERRIER_ASSERT(pipeline_id == current_pipeline_features_id_, "That's not the current pipeline.");
-    auto &features = current_pipeline_features_;
-    for (auto &feature : features) {
-      if (feature_id == feature.GetFeatureId()) {
-        switch (feature_attribute) {
-          case brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS: {
-            feature.SetNumRows(value);
-            break;
-          }
-          case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
-            feature.SetCardinality(value);
-            break;
-          }
-          default:
-            UNREACHABLE("Invalid feature attribute.");
-        }
-        break;
-      }
-    }
-  }
+void ExecutionContext::InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
+  ouvec->pipeline_id_ = pipeline_id;
+  ouvec->pipeline_features_ = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
 }
 
 const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t param_idx) const {

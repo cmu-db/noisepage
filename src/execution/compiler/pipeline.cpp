@@ -89,7 +89,7 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
 }
 
-void Pipeline::InjectStartPipelineTracker(FunctionBuilder *builder) const {
+void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
   // Inject StartPipelineTracker()
   std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
                                 codegen_->Const64(GetPipelineId().UnderlyingValue())};
@@ -102,8 +102,16 @@ void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t que
   std::vector<ast::Expr *> args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
   args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
   args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
+  args.push_back(oufeatures_.GetPtr(codegen_));
   auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
   builder->Append(codegen_->MakeStmt(end_call));
+
+  // Aggregate
+  {
+    std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState()};
+    auto call = codegen_->CallBuiltin(ast::Builtin::AggregateMetricsThread, args);
+    builder->Append(codegen_->MakeStmt(call));
+  }
 }
 
 util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
@@ -129,6 +137,8 @@ void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
 
 void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   // Finalize the pipeline state.
+  ast::Expr *type = codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector);
+  oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
   state_.ConstructFinalType(codegen_);
 
   // Finalize the execution mode. We choose serial execution if ANY of the below
@@ -169,6 +179,21 @@ ast::FunctionDecl *Pipeline::GenerateSetupPipelineStateFunction() const {
     CodeGen::CodeScope code_scope(codegen_);
     for (auto *op : steps_) {
       op->InitializePipelineState(*this, &builder);
+    }
+
+    // Initialize the feature vector
+    {
+      std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
+                                    oufeatures_.GetPtr(codegen_), codegen_->Const64(GetPipelineId().UnderlyingValue())};
+      auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorInitialize, args);
+      builder.Append(codegen_->MakeStmt(call));
+    }
+
+    // Register
+    {
+      std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState()};
+      auto call = codegen_->CallBuiltin(ast::Builtin::RegisterMetricsThread, args);
+      builder.Append(codegen_->MakeStmt(call));
     }
   }
   return builder.Finish();
@@ -225,7 +250,7 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
   return builder.Finish();
 }
 
-ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) const {
+ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) {
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
@@ -237,13 +262,14 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       op->BeginPipelineWork(*this, &builder);
     }
 
-    InjectStartPipelineTracker(&builder);
-
     // Launch pipeline work.
+    bool did_start = false;
     if (IsParallel()) {
-      // TODO(wz2): When can track parallel work, insert trackers
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
+      InjectStartResourceTracker(&builder);
+      did_start = true;
+
       auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
       auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
       auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
@@ -260,8 +286,11 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       op->FinishPipelineWork(*this, &builder);
     }
 
-    InjectEndResourceTracker(&builder, query_id);
+    if (did_start) {
+      InjectEndResourceTracker(&builder, query_id);
+    }
   }
+
   return builder.Finish();
 }
 
@@ -274,11 +303,17 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
     // Tear down thread local state if parallel pipeline.
     ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
     builder.Append(codegen_->TLSClear(codegen_->ExecCtxGetTLS(exec_ctx)));
+
+    auto call = codegen_->CallBuiltin(ast::Builtin::CheckTrackersStopped, {});
+    builder.Append(codegen_->MakeStmt(call));
   }
   return builder.Finish();
 }
 
-void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) const {
+void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) {
+  TERRIER_ASSERT(query_id_ == query_id_t(0), "GenerateRunPipelineFunction re-entrant");
+  query_id_ = query_id;
+
   // Declare the pipeline state.
   builder->DeclareStruct(state_.GetType());
 
@@ -295,6 +330,8 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
   auto teardown = GenerateTearDownPipelineFunction();
   builder->RegisterStep(teardown);
   builder->AddTeardownFn(teardown);
+
+  query_id_ = query_id_t(0);
 }
 
 }  // namespace terrier::execution::compiler

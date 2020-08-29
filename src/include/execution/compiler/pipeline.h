@@ -134,7 +134,7 @@ class Pipeline {
    * @param builder The builder for the executable query container.
    * @param query_id The ID of the query that generates this pipeline.
    */
-  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) const;
+  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id);
 
   /**
    * @return True if the pipeline is parallel; false otherwise.
@@ -179,6 +179,14 @@ class Pipeline {
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
+  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+
+  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
+
+  query_id_t GetQueryId() { return query_id_; }
+
+  ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
+
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization
@@ -200,7 +208,7 @@ class Pipeline {
   ast::FunctionDecl *GeneratePipelineWorkFunction() const;
 
   // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id) const;
+  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id);
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
@@ -212,10 +220,6 @@ class Pipeline {
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
-
-  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
-
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
  private:
   // A unique pipeline ID.
@@ -240,6 +244,9 @@ class Pipeline {
   ast::Identifier state_var_;
   // The pipeline state.
   StateDescriptor state_;
+  // Query Identifier
+  query_id_t query_id_ = query_id_t(0);
+  StateDescriptor::Entry oufeatures_;
 };
 
 }  // namespace terrier::execution::compiler

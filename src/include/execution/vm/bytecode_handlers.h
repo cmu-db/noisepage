@@ -25,6 +25,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
+#include "metrics/metrics_manager.h"
 #include "parser/expression/constant_value_expression.h"
 
 // #include "execution/util/csv_reader.h" Fix later.
@@ -227,23 +228,22 @@ VM_OP_HOT void OpExecutionContextStartPipelineTracker(terrier::execution::exec::
 
 VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     terrier::execution::query_id_t query_id,
-                                                    terrier::execution::pipeline_id_t pipeline_id) {
-  exec_ctx->EndPipelineTracker(query_id, pipeline_id);
+                                                    terrier::execution::pipeline_id_t pipeline_id,
+                                                    terrier::brain::ExecOUFeatureVector *const ouvec) {
+  exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
 }
 
-VM_OP_HOT void OpExecutionContextGetFeature(uint32_t *value, terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                            terrier::execution::pipeline_id_t pipeline_id,
-                                            terrier::execution::feature_id_t feature_id,
-                                            terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute) {
-  exec_ctx->GetFeature(value, pipeline_id, feature_id, feature_attribute);
+VM_OP_HOT void OpExecOUFeatureVectorRecordFeature(
+    terrier::brain::ExecOUFeatureVector *ouvec, terrier::execution::pipeline_id_t pipeline_id,
+    terrier::execution::feature_id_t feature_id,
+    terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, uint32_t value) {
+  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, value);
 }
 
-VM_OP_HOT void OpExecutionContextRecordFeature(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                               terrier::execution::pipeline_id_t pipeline_id,
-                                               terrier::execution::feature_id_t feature_id,
-                                               terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                               uint32_t value) {
-  exec_ctx->RecordFeature(pipeline_id, feature_id, feature_attribute, value);
+VM_OP_HOT void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                               terrier::brain::ExecOUFeatureVector *const ouvec,
+                                               terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->InitializeExecOUFeatureVector(ouvec, pipeline_id);
 }
 
 VM_OP_WARM
@@ -273,6 +273,22 @@ VM_OP_WARM void OpThreadStateContainerIterate(terrier::execution::sql::ThreadSta
 
 VM_OP_WARM void OpThreadStateContainerClear(terrier::execution::sql::ThreadStateContainer *thread_state_container) {
   thread_state_container->Clear();
+}
+
+VM_OP_WARM void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  if (terrier::common::thread_context.metrics_store_ == nullptr && exec_ctx->GetMetricsManager()) {
+    exec_ctx->GetMetricsManager()->RegisterThread();
+  }
+}
+
+VM_OP_WARM void OpCheckTrackersStopped() {
+  if (terrier::common::thread_context.metrics_store_ != nullptr && terrier::common::thread_context.resource_tracker_.IsRunning()) {
+    UNREACHABLE("Resource Trackers should have stopped");
+  }
+}
+
+VM_OP_WARM void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->GetMetricsManager()->Aggregate();
 }
 
 // ---------------------------------------------------------

@@ -10,6 +10,7 @@
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
+#include "metrics/metrics_manager.h"
 
 namespace terrier::execution::ast {
 
@@ -61,6 +62,7 @@ class Context;
   NON_PRIM(AHTOverflowPartitionIterator, terrier::execution::sql::AHTOverflowPartitionIterator) \
   /* NON_PRIM(CSVReader, terrier::execution::util::CSVReader)                                */ \
   NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                        \
+  NON_PRIM(ExecOUFeatureVector, terrier::brain::ExecOUFeatureVector)                            \
   NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                               \
   NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                             \
   NON_PRIM(HashTableEntryIterator, terrier::execution::sql::HashTableEntryIterator)             \

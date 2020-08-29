@@ -104,10 +104,15 @@ namespace terrier::execution::vm {
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
   F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
-  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
-  F(ExecutionContextGetFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)       \
-  F(ExecutionContextRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,    \
+  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local,                   \
     OperandType::Local)                                                                                               \
+  F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
+    OperandType::Local)                                                                                               \
+  F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+                                                                                                                      \
+  F(RegisterMetricsThread, OperandType::Local)                                                                        \
+  F(CheckTrackersStopped)                                                                                             \
+  F(AggregateMetricsThread, OperandType::Local)                                                                       \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \

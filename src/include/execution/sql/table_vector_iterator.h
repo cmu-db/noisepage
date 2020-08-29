@@ -91,7 +91,7 @@ class EXPORT TableVectorIterator {
    *             The first two arguments are void because their types are only known at runtime
    *             (i.e., defined in generated code).
    */
-  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
+  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter, uint32_t concurrent);
 
   /**
    * Perform a parallel scan over the table with ID @em table_id using the callback function

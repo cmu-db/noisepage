@@ -138,6 +138,13 @@ void SortTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionB
   if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
     InitializeSorter(function, local_sorter_.GetPtr(GetCodeGen()));
   }
+
+  if (IsBuildPipeline(pipeline) && IsCountersEnabled()) {
+    // queryState.num_sort_build_rows = 0
+    auto *codegen = GetCodeGen();
+    auto assignment = codegen->Assign(num_sort_build_rows_.Get(codegen), codegen->Const32(0));
+    function->Append(assignment);
+  }
 }
 
 void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {

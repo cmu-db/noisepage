@@ -43,6 +43,8 @@ namespace terrier::execution::ast {
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
   F(ThreadStateContainerClear, tlsClear)                                \
+  F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
+  F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
@@ -332,8 +334,10 @@ namespace terrier::execution::ast {
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
-  F(ExecutionContextGetFeature, execCtxGetFeature)                      \
-  F(ExecutionContextRecordFeature, execCtxRecordFeature)                \
+                                                                        \
+  F(RegisterMetricsThread, registerMetricsThread)                       \
+  F(CheckTrackersStopped, checkTrackersStopped)                         \
+  F(AggregateMetricsThread, unregisterMetricsThread)                    \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \

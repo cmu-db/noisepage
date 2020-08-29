@@ -851,13 +851,10 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       expected_arg_count = 2;
       break;
     case ast::Builtin::ExecutionContextEndPipelineTracker:
-      expected_arg_count = 3;
-      break;
-    case ast::Builtin::ExecutionContextGetFeature:
       expected_arg_count = 4;
       break;
-    case ast::Builtin::ExecutionContextRecordFeature:
-      expected_arg_count = 5;
+    case ast::Builtin::ExecOUFeatureVectorInitialize:
+      expected_arg_count = 3;
       break;
     default:
       UNREACHABLE("Impossible execution context call");
@@ -919,6 +916,11 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
         return;
       }
+      auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
+      if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), ou_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ou_kind)->PointerTo());
+        return;
+      }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -942,44 +944,17 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::ExecutionContextGetFeature: {
-      // Pipeline ID.
-      if (!call_args[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
+      auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), ou_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ou_kind)->PointerTo());
         return;
       }
-      // Feature ID.
+      // Pipeline ID.
       if (!call_args[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
-      // Feature attribute.
-      if (!call_args[3]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
-        return;
-      }
-      // Features are 32-bit integers.
-      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
-      break;
-    }
-    case ast::Builtin::ExecutionContextRecordFeature: {
-      // Pipeline ID.
-      if (!call_args[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
-        return;
-      }
-      // Feature ID.
-      if (!call_args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
-        return;
-      }
-      // Feature attribute.
-      if (!call_args[3]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
-        return;
-      }
-      // call_args[4] is the value to be recorded, currently unchecked.
-      // Doesn't return anything.
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -1164,11 +1139,11 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   // Check the type of the scanner function parameters. See TableVectorIterator::ScanFn.
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
   const auto &params = scan_fn_type->GetParams();
-  if (params.size() != 3                                         // Scan function has 3 arguments.
+  if (params.size() != 4                                         // Scan function has 4 arguments.
       || !params[0].type_->IsPointerType()                       // QueryState, must contain execCtx.
       || !params[1].type_->IsPointerType()                       // Thread state.
       || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)  // TableVectorIterator.
-  ) {
+      || !params[3].type_->IsIntegerType()) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
     return;
   }
@@ -2889,6 +2864,42 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }
+    case ast::Builtin::RegisterMetricsThread: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::CheckTrackersStopped: {
+      if (!CheckArgCount(call, 0)) {
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::AggregateMetricsThread: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -2896,9 +2907,35 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
-    case ast::Builtin::ExecutionContextGetFeature:
-    case ast::Builtin::ExecutionContextRecordFeature: {
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
       CheckBuiltinExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
+      // ExecOperatingUnitFeatureVector
+      const auto &args = call->Arguments();
+      const auto kind = ast::BuiltinType::ExecOUFeatureVector;
+      if (!IsPointerToSpecificBuiltin(args[0]->GetType(), kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(kind));
+      }
+      // Pipeline ID.
+      if (!args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature ID.
+      if (!args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature attribute.
+      if (!args[3]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // call_args[4] is the value to be recorded, currently unchecked.
+      // Doesn't return anything.
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::ThreadStateContainerReset:

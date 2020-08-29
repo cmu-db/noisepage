@@ -129,6 +129,11 @@ void BytecodeEmitter::EmitConditionalJump(Bytecode bytecode, LocalVar cond, Byte
   EmitJump(label);
 }
 
+void BytecodeEmitter::Emit(Bytecode bytecode) {
+  TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 0, "Incorrect operand count for bytecode");
+  EmitAll(bytecode);
+}
+
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 1, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,

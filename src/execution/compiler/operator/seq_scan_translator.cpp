@@ -20,6 +20,7 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
                                      Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SEQ_SCAN),
       tvi_var_(GetCodeGen()->MakeFreshIdentifier("tvi")),
+      concurrent_var_(GetCodeGen()->MakeFreshIdentifier("concurrent")),
       vpi_var_(GetCodeGen()->MakeFreshIdentifier("vpi")),
       col_oids_var_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
       slot_var_(GetCodeGen()->MakeFreshIdentifier("slot")),
@@ -251,8 +252,8 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
 void SeqScanTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_scans_, 0); }
 
 void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
   if (HasPredicate()) {
-    auto *codegen = GetCodeGen();
     function->Append(codegen->FilterManagerInit(local_filter_manager_.GetPtr(codegen), GetExecutionContext()));
     for (const auto &clause : filters_) {
       function->Append(codegen->FilterManagerInsert(local_filter_manager_.GetPtr(codegen), clause));
@@ -269,6 +270,7 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
 
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
+  if (NeedPerTaskTracker()) InjectStartTracker(function);
 
   const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
   if (declare_local_tvi) {
@@ -301,12 +303,22 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 num_scans_.Get(GetCodeGen()));
+
+  if (NeedPerTaskTracker()) {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, context->GetPipeline(),
+                  codegen->MakeExpr(concurrent_var_));
+
+    InjectEndTracker(function);
+  }
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {
   auto *codegen = GetCodeGen();
   auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
-  return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
+  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  return codegen->MakeFieldList(
+      {codegen->MakeField(tvi_var_, tvi_type), codegen->MakeField(concurrent_var_, uint32_type)});
 }
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {

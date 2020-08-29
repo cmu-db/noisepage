@@ -358,9 +358,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
   auto exec_query = execution::compiler::CompilationContext::Compile(
-      *physical_plan, exec_settings, connection_ctx->Accessor().Get(),
-      execution::compiler::CompilationMode::Interleaved,
+      *physical_plan, exec_settings, connection_ctx->Accessor().Get(), execution::compiler::CompilationMode::OneShot,
       common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
+
+  std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
 
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -381,9 +382,14 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   execution::exec::ExecutionSettings exec_settings{};
+  common::ManagedPointer<metrics::MetricsManager> metrics;
+  if (common::thread_context.metrics_store_ != nullptr) {
+    metrics = common::thread_context.metrics_store_->MetricsManager();
+  }
+
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings);
+      connection_ctx->Accessor(), exec_settings, metrics);
 
   exec_ctx->SetParams(portal->Parameters());
 

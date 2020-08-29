@@ -229,6 +229,10 @@ class OperatorTranslator : public ColumnValueProvider {
   /** The pipeline this translator is a part of. */
   Pipeline *GetPipeline() const { return pipeline_; }
 
+  bool NeedPerTaskTracker() const;
+  void InjectStartTracker(FunctionBuilder *function) const;
+  void InjectEndTracker(FunctionBuilder *function) const;
+
   /** The plan node for this translator as its concrete type. */
   template <typename T>
   const T &GetPlanAs() const {

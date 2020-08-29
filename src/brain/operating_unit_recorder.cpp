@@ -159,6 +159,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   size_t num_rows = 1;
   size_t cardinality = 1;
   size_t num_loops = 0;
+  size_t num_concurrent = 0;  // Will concurrent data be baked into plan nodes?
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     // Uses the network result consumer
     cardinality = 1;
@@ -223,7 +224,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   }
 
   auto feature = ExecutionOperatingUnitFeature(current_translator_->translator_id_, type, num_rows, key_size, num_keys,
-                                               cardinality, mem_factor, num_loops);
+                                               cardinality, mem_factor, num_loops, num_concurrent);
   pipeline_features_.emplace(type, std::move(feature));
 }
 

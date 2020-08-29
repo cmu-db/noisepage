@@ -759,9 +759,9 @@ class CodeGen {
    * @param value The value to be recorded.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                                brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                                ast::Expr *value);
+  [[nodiscard]] ast::Expr *ExecOUFeatureVectorRecordFeature(
+      ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
+      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, ast::Expr *value);
 
   /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.

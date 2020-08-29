@@ -14,6 +14,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
+#include "metrics/metrics_manager.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::brain {
@@ -44,7 +45,8 @@ class EXPORT ExecutionContext {
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
-                   const exec::ExecutionSettings &exec_settings)
+                   const exec::ExecutionSettings &exec_settings,
+                   common::ManagedPointer<metrics::MetricsManager> metrics_manager)
       : exec_settings_(exec_settings),
         db_oid_(db_oid),
         txn_(txn),
@@ -54,7 +56,8 @@ class EXPORT ExecutionContext {
                                   : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
                                                                    ComputeTupleSize(schema), callback)),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
-        accessor_(accessor) {}
+        accessor_(accessor),
+        metrics_manager_(metrics_manager) {}
 
   /**
    * @return the transaction used by this query
@@ -118,7 +121,7 @@ class EXPORT ExecutionContext {
    * @param query_id query identifier
    * @param pipeline_id id of the pipeline
    */
-  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id);
+  void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, brain::ExecOUFeatureVector *ouvec);
 
   /**
    * Get the specified feature.
@@ -130,15 +133,7 @@ class EXPORT ExecutionContext {
   void GetFeature(uint32_t *value, pipeline_id_t pipeline_id, feature_id_t feature_id,
                   brain::ExecutionOperatingUnitFeatureAttribute feature_attribute);
 
-  /**
-   * Record the specified feature.
-   * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
-   * @param feature_id The ID of the feature to be recorded.
-   * @param feature_attribute The attribute of the feature to record.
-   * @param value The value for the feature's attribute.
-   */
-  void RecordFeature(pipeline_id_t pipeline_id, feature_id_t feature_id,
-                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, uint32_t value);
+  void InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
    * @return the db oid
@@ -190,6 +185,8 @@ class EXPORT ExecutionContext {
   /** Increment or decrement the number of rows affected. */
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
+  common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
+
  private:
   const exec::ExecutionSettings &exec_settings_;
   catalog::db_oid_t db_oid_;
@@ -204,10 +201,8 @@ class EXPORT ExecutionContext {
   sql::VarlenHeap string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
 
-  pipeline_id_t current_pipeline_features_id_;
-  std::vector<brain::ExecutionOperatingUnitFeature> current_pipeline_features_;
-
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
+  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;

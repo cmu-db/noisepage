@@ -85,14 +85,15 @@ namespace {
 class ScanTask {
  public:
   ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner)
+           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner, size_t concurrent_estimate)
       : exec_ctx_(exec_ctx),
         table_oid_(table_oid),
         col_oids_(col_oids),
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanner_(scanner) {}
+        scanner_(scanner),
+        concurrent_estimate_(concurrent_estimate) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
@@ -107,7 +108,7 @@ class ScanTask {
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
 
     // Call scanning function
-    scanner_(query_state_, thread_state, &iter);
+    scanner_(query_state_, thread_state, &iter, concurrent_estimate_);
   }
 
  private:
@@ -118,6 +119,7 @@ class ScanTask {
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_;
+  uint32_t concurrent_estimate_;
 };
 
 }  // namespace
@@ -137,10 +139,17 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
+  size_t num_threads = tbb::task_scheduler_init::default_num_threads();
+  size_t num_tasks = (table->table_.data_table_->GetNumBlocks() / min_grain_size) + 1;
+  size_t concurrent_estimate = std::min(num_threads, num_tasks) > 0 ? (std::min(num_threads, num_tasks) - 1) : 0;
+
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
+  tbb::parallel_for(block_range,
+                    ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, concurrent_estimate));
 
   timer.Stop();
+
+  TERRIER_ASSERT(common::thread_context.metrics_store_ != nullptr, "non-null metrics store");
 
   double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),
