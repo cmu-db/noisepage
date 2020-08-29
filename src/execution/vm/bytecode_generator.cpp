@@ -2734,7 +2734,9 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::IndexIteratorGetSize: {
-      GetEmitter()->Emit(Bytecode::IndexIteratorGetSize, iterator);
+      LocalVar index_size = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::IndexIteratorGetSize, index_size, iterator);
+      GetExecutionResult()->SetDestination(index_size.ValueOf());
       break;
     }
     case ast::Builtin::IndexIteratorScanKey: {
