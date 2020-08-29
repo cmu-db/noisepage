@@ -143,8 +143,7 @@ void IndexCreateTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function,
       auto assign = codegen_->Assign(codegen_->MakeExpr(slot_var_), make_slot);
       function->Append(assign);
       IndexInsert(ctx, function);
-      // Push to parent.
-      // ctx->Push(function);
+      // We expect create index to be the end of a pipeline, so no need to push to parent
     }
     vpi_loop.EndLoop();
   };
