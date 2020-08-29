@@ -79,20 +79,20 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   };
 
  private:
+  void InitScan(FunctionBuilder *function) const;
+  void DeclareInserter(FunctionBuilder *function) const;
+  void DeclareIndexPR(FunctionBuilder *function) const;
+  void DeclareTVI(FunctionBuilder *function) const;
+  void DeclareSlot(FunctionBuilder *function) const;
+
+  void PrepareContext(WorkContext *context, FunctionBuilder *function) const;
   // Perform a table scan using the provided table vector iterator pointer.
   void ScanTable(WorkContext *ctx, FunctionBuilder *function) const;
 
   // Generate a scan over the VPI.
   void ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast::Expr *vpi) const;
-
-  void InitScan(FunctionBuilder *function) const;
-  void PrepareContext(WorkContext *context, FunctionBuilder *function) const;
-
-  void DeclareInserter(FunctionBuilder *function) const;
-  void DeclareIndexPR(FunctionBuilder *function) const;
-  void DeclareTVI(FunctionBuilder *function) const;
-  void DeclareSlot(FunctionBuilder *function) const;
   void IndexInsert(WorkContext *ctx, FunctionBuilder *function) const;
+
   void FreeInserter(FunctionBuilder *function) const;
 
   void SetOids(FunctionBuilder *function) const;
@@ -101,12 +101,13 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   CodeGen *codegen_;
   ast::Identifier inserter_;
   ast::Identifier index_pr_;
+
   // The name of the declared TVI and VPI.
   ast::Identifier tvi_var_;
   ast::Identifier vpi_var_;
   // The name of the col_oids that the plan wants to scan over.
   ast::Identifier col_oids_var_;
-
+  // The name of the declared slot.
   ast::Identifier slot_var_;
 
   // Schema of the table that we are inserting on.
@@ -115,6 +116,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   // All the oids that we are inserting on.
   std::vector<catalog::col_oid_t> all_oids_;
 
-  mutable catalog::index_oid_t index_oid_;
+  catalog::index_oid_t index_oid_;
 };
 }  // namespace terrier::execution::compiler

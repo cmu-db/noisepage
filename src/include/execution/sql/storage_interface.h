@@ -144,9 +144,11 @@ class EXPORT StorageInterface {
    * The index PR.
    */
   storage::ProjectedRow *index_pr_{nullptr};
+
   /**
    * Reusable ProjectedRowInitializer for this table access
    */
+
   storage::ProjectedRowInitializer pri_;
   /**
    * Current index being accessed.
