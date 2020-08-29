@@ -33,7 +33,7 @@ size_t HashIndex<KeyType>::EstimateHeapUsage() const {
 }
 
 template <typename KeyType>
-size_t HashIndex<KeyType>::GetSize() const {
+uint64_t HashIndex<KeyType>::GetSize() const {
   return hash_map_->size();
 }
 
