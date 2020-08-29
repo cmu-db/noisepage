@@ -173,7 +173,7 @@ struct Radians {
 template <typename T>
 struct Round {
   /** @return Round(input). */
-  constexpr T operator()(T input) const { return input + ((input < 0) ? -0.5 : 0.5); }
+  constexpr T operator()(T input) const { return std::round(input); }
 };
 
 /** Compute the function RoundUpTo. */
@@ -185,7 +185,7 @@ struct RoundUpTo {
       scale = 0;
     }
     T modifier = std::pow(10U, scale);
-    return (static_cast<int64_t>(input * modifier)) / modifier;
+    return (std::round(input * modifier)) / modifier;
   }
 };
 
