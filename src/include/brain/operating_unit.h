@@ -68,6 +68,7 @@ class ExecutionOperatingUnitFeature {
  public:
   /**
    * Constructor for ExecutionOperatingUnitFeature
+   * @param translator_id The ID of the translator
    * @param feature Type
    * @param num_rows Estimated number of output tuples
    * @param key_size Total Key Size

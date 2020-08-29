@@ -122,7 +122,7 @@ class EXPORT ExecutionContext {
 
   /**
    * Get the specified feature.
-   * @param value[out] The destination for the value of the feature's attribute.
+   * @param value The destination for the value of the feature's attribute.
    * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
    * @param feature_id The ID of the feature to be recorded.
    * @param feature_attribute The attribute of the feature to record.
