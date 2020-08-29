@@ -64,8 +64,8 @@ void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->DeclareVarNoInit(deleter_, storage_interface_type));
   // @storageInterfaceInit(&deleter, execCtx, table_oid, col_oids, true)
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
-  ast::Expr *deleter_setup =
-      GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(), !op.GetTableOid(), col_oids_, true);
+  ast::Expr *deleter_setup = GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(),
+                                                                op.GetTableOid().UnderlyingValue(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(deleter_setup));
 }
 
@@ -99,7 +99,8 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
                                       const catalog::index_oid_t &index_oid) const {
   // var delete_index_pr = @getIndexPR(&deleter, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_), GetCodeGen()->Const32(!index_oid)};
+  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_),
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 
