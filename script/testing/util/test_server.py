@@ -34,6 +34,9 @@ class TestServer:
         self.db_host = self.args.get("db_host", constants.DEFAULT_DB_HOST)
         self.db_port = self.args.get("db_port", constants.DEFAULT_DB_PORT)
 
+        # whether the server should stop the whole test if one of test cases failed
+        self.continue_on_error = self.args.get("continue_on_error", constants.DEFAULT_CONTINUE_ON_ERROR)
+
         return
 
     def run_pre_suite(self):
@@ -230,11 +233,15 @@ class TestServer:
                     # if there is no running db, we create one
                     self.run_db()
 
-                ret_val = self.run_test(test_case)
-
-                self.print_output(test_case.test_output_file)
-
-                ret_val_list_test_case[test_case] = ret_val
+                try:
+                    ret_val = self.run_test(test_case)
+                    self.print_output(test_case.test_output_file)
+                    ret_val_list_test_case[test_case] = ret_val
+                except:
+                    if not self.continue_on_error:
+                        raise
+                    else:
+                       ret_val_list_test_case[test_case] = constants.ErrorCode.ERROR
 
             # parse all test cases result
             # currently, we only want to know if there is an error one
