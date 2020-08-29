@@ -1515,13 +1515,13 @@ VM_OP_WARM void OpPosition(terrier::execution::sql::Integer *result, terrier::ex
 }
 
 VM_OP_WARM void OpLPad3Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
-                       const terrier::execution::sql::StringVal *pad) {
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
+                           const terrier::execution::sql::StringVal *pad) {
   terrier::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len, *pad);
 }
 
 VM_OP_WARM void OpLPad2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
   terrier::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len);
 }
 
@@ -1552,13 +1552,13 @@ VM_OP_WARM void OpRight(terrier::execution::sql::StringVal *result, terrier::exe
 }
 
 VM_OP_WARM void OpRPad3Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
-                       const terrier::execution::sql::StringVal *pad) {
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
+                           const terrier::execution::sql::StringVal *pad) {
   terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len, *pad);
 }
 
 VM_OP_WARM void OpRPad2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
   terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len);
 }
 
