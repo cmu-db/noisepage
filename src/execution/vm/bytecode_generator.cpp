@@ -2051,16 +2051,6 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
                                              col_oids, num_oids, is_index_key_update);
       break;
     }
-    case ast::Builtin::InitTablePR: {
-      GetEmitter()->Emit(Bytecode::StorageInterfaceInitTablePR, storage_interface);
-      break;
-    }
-    case ast::Builtin::FillTablePR: {
-      LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      GetEmitter()->Emit(Bytecode::StorageInterfaceFillTablePR, pr, storage_interface, tuple_slot);
-      break;
-    }
     case ast::Builtin::GetTablePR: {
       LocalVar pr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::StorageInterfaceGetTablePR, pr, storage_interface);
@@ -2103,6 +2093,13 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertUnique, cond, storage_interface);
       GetExecutionResult()->SetDestination(cond.ValueOf());
+      break;
+    }
+    case ast::Builtin::IndexInsertWithSlot: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar unique = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, tuple_slot, unique);
       break;
     }
     case ast::Builtin::IndexDelete: {
@@ -2565,8 +2562,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::StorageInterfaceInit:
-    case ast::Builtin::InitTablePR:
-    case ast::Builtin::FillTablePR:
     case ast::Builtin::GetTablePR:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:
@@ -2574,6 +2569,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::GetIndexPR:
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
+    case ast::Builtin::IndexInsertWithSlot:
     case ast::Builtin::IndexDelete:
     case ast::Builtin::StorageInterfaceFree: {
       VisitBuiltinStorageInterfaceCall(call, builtin);

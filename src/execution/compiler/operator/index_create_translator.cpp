@@ -24,17 +24,14 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
       codegen_(compilation_context->GetCodeGen()),
       inserter_(codegen_->MakeFreshIdentifier("inserter")),
       index_pr_(codegen_->MakeFreshIdentifier("index_pr")),
-      table_pr_(codegen_->MakeFreshIdentifier("table_pr")),
       tvi_var_(codegen_->MakeFreshIdentifier("tvi")),
       vpi_var_(codegen_->MakeFreshIdentifier("vpi")),
       col_oids_var_(codegen_->MakeFreshIdentifier("col_oids")),
       slot_var_(codegen_->MakeFreshIdentifier("slot")),
       table_schema_(codegen_->GetCatalogAccessor()->GetSchema(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid())),
       all_oids_(AllColOids(table_schema_)),
-      table_pm_(codegen_->GetCatalogAccessor()
-                    ->GetTable(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid())
-                    ->ProjectionMapForOids(all_oids_)),
-      index_oid_() {
+      index_oid_(
+          codegen_->GetCatalogAccessor()->GetIndexOid(GetPlanAs<planner::CreateIndexPlanNode>().GetIndexName())) {
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 }
 
@@ -54,9 +51,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 void IndexCreateTranslator::InitScan(FunctionBuilder *function) const {
   // Init inserter, index pr, table pr, create index, and init tvi
   DeclareInserter(function);
-  CreateIndex(function);
   DeclareIndexPR(function);
-  DeclareTablePR(function);
   DeclareTVI(function);
   DeclareSlot(function);
 }
@@ -68,7 +63,7 @@ void IndexCreateTranslator::DeclareInserter(FunctionBuilder *function) const {
   // var inserter : StorageInterface
   auto *storage_interface_type = codegen_->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
   function->Append(codegen_->DeclareVar(inserter_, storage_interface_type, nullptr));
-  // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids_var_, true)
+  // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids_var_, false)
   ast::Expr *inserter_setup = codegen_->StorageInterfaceInit(
       inserter_, GetExecutionContext(), uint32_t(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()),
       col_oids_var_, false);
@@ -88,29 +83,11 @@ void IndexCreateTranslator::SetOids(FunctionBuilder *function) const {
   }
 }
 
-void IndexCreateTranslator::CreateIndex(FunctionBuilder *function) const {
-  auto plan_node = common::ManagedPointer<const planner::CreateIndexPlanNode>(
-      dynamic_cast<const planner::CreateIndexPlanNode *>(Op()));
-  auto result = sql::DDLExecutors::CreateIndexExecutor(
-      plan_node, common::ManagedPointer<catalog::CatalogAccessor>(codegen_->GetCatalogAccessor()));
-  if (!result) {
-    function->Append(codegen_->AbortTxn(GetExecutionContext()));
-  }
-  index_oid_ = codegen_->GetCatalogAccessor()->GetIndexOid(plan_node->GetIndexName());
-}
-
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
   // var index_pr = @getIndexPR(&inserter, oid)
   std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_), codegen_->Const32(uint32_t(index_oid_))};
   auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   function->Append(codegen_->DeclareVar(index_pr_, nullptr, get_index_pr_call));
-}
-
-void IndexCreateTranslator::DeclareTablePR(FunctionBuilder *function) const {
-  // var table_pr = @InitTablePR()
-  std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_)};
-  auto init_table_pr_call = codegen_->CallBuiltin(ast::Builtin::InitTablePR, pr_call_args);
-  function->Append(codegen_->MakeStmt(init_table_pr_call));
 }
 
 void IndexCreateTranslator::DeclareTVI(FunctionBuilder *function) const {
@@ -169,7 +146,6 @@ void IndexCreateTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function,
       auto make_slot = codegen_->CallBuiltin(ast::Builtin::VPIGetSlot, {codegen_->MakeExpr(vpi_var_)});
       auto assign = codegen_->Assign(codegen_->MakeExpr(slot_var_), make_slot);
       function->Append(assign);
-      FillTablePR(function);
       IndexInsert(ctx, function);
       // Push to parent.
       // ctx->Push(function);
@@ -179,12 +155,6 @@ void IndexCreateTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function,
   gen_vpi_loop(false);
 }
 
-void IndexCreateTranslator::FillTablePR(FunctionBuilder *function) const {
-  std::vector<ast::Expr *> insert_args{codegen_->AddressOf(inserter_), codegen_->AddressOf(slot_var_)};
-  auto fill_pr_call = codegen_->CallBuiltin(ast::Builtin::FillTablePR, insert_args);
-  function->Append(codegen_->DeclareVar(table_pr_, nullptr, fill_pr_call));
-}
-
 void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *function) const {
   const auto &index = codegen_->GetCatalogAccessor()->GetIndex(index_oid_);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
@@ -192,18 +162,20 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   auto *index_pr_expr = codegen_->MakeExpr(index_pr_);
 
   for (const auto &index_col : index_schema.GetColumns()) {
-    // @prSet(insert_index_pr, attr_idx, val, true)
-    const auto &col_expr = ctx->DeriveValue(*index_col.StoredExpression().Get(), this);
+    // @prSet(insert_index_pr, attr_idx, @VPIGet(vpi_var_, attr_sql_type, true, oid), true)
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
+    auto attr_sql_type = sql::GetTypeId(index_col.Type());
     bool nullable = index_col.Nullable();
+    const auto &col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), attr_sql_type, nullable, attr_offset);
     auto *set_key_call = codegen_->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false);
     function->Append(codegen_->MakeStmt(set_key_call));
   }
 
-  // if (!@indexInsert(&inserter)) { Abort(); }
-  const auto &builtin = index_schema.Unique() ? ast::Builtin::IndexInsertUnique : ast::Builtin::IndexInsert;
-  auto *index_insert_call = codegen_->CallBuiltin(builtin, {codegen_->AddressOf(inserter_)});
+  // if (!@IndexInsertWithSlot(&inserter, &slot_var_, unique)) { Abort(); }
+  auto *index_insert_call = codegen_->CallBuiltin(
+      ast::Builtin::IndexInsertWithSlot,
+      {codegen_->AddressOf(inserter_), codegen_->AddressOf(slot_var_), codegen_->ConstBool(index_schema.Unique())});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
@@ -215,14 +187,6 @@ void IndexCreateTranslator::FreeInserter(FunctionBuilder *function) const {
   ast::Expr *inserter_free =
       GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(inserter_)});
   function->Append(GetCodeGen()->MakeStmt(inserter_free));
-}
-
-ast::Expr *IndexCreateTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
-  auto column = table_schema_.GetColumn(col_oid);
-  auto type = column.Type();
-  auto nullable = column.Nullable();
-  auto attr_index = table_pm_.find(col_oid)->second;
-  return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_index);
 }
 
 }  // namespace terrier::execution::compiler

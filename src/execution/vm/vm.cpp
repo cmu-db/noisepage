@@ -1858,20 +1858,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(StorageInterfaceInitTablePR) : {
-    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-    OpStorageInterfaceInitTablePR(storage_interface);
-    DISPATCH_NEXT();
-  }
-
-  OP(StorageInterfaceFillTablePR) : {
-    auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
-    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    OpStorageInterfaceFillTablePR(pr_result, storage_interface, tuple_slot);
-    DISPATCH_NEXT();
-  }
-
   OP(StorageInterfaceGetTablePR) : {
     auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
@@ -1926,6 +1912,15 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     OpStorageInterfaceIndexInsertUnique(result, storage_interface);
+    DISPATCH_NEXT();
+  }
+
+  OP(StorageInterfaceIndexInsertWithSlot) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto unique = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexInsertWithSlot(result, storage_interface, tuple_slot, unique);
     DISPATCH_NEXT();
   }
 

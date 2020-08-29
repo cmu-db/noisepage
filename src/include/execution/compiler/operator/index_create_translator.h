@@ -68,7 +68,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * @return An expression representing the value of the column with the given OID.
    */
-  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Not implemented"); };
 
   /** @return Throw an error, this is serial for now. */
   util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("index create is serial."); };
@@ -88,13 +88,10 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void InitScan(FunctionBuilder *function) const;
   void PrepareContext(WorkContext *context, FunctionBuilder *function) const;
 
-  void CreateIndex(FunctionBuilder *function) const;
   void DeclareInserter(FunctionBuilder *function) const;
   void DeclareIndexPR(FunctionBuilder *function) const;
-  void DeclareTablePR(FunctionBuilder *function) const;
   void DeclareTVI(FunctionBuilder *function) const;
   void DeclareSlot(FunctionBuilder *function) const;
-  void FillTablePR(FunctionBuilder *function) const;
   void IndexInsert(WorkContext *ctx, FunctionBuilder *function) const;
   void FreeInserter(FunctionBuilder *function) const;
 
@@ -104,7 +101,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   CodeGen *codegen_;
   ast::Identifier inserter_;
   ast::Identifier index_pr_;
-  ast::Identifier table_pr_;
   // The name of the declared TVI and VPI.
   ast::Identifier tvi_var_;
   ast::Identifier vpi_var_;
@@ -118,10 +114,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   // All the oids that we are inserting on.
   std::vector<catalog::col_oid_t> all_oids_;
-
-  // Projection map of the table that we are inserting into.
-  // This maps column oids to offsets in a projected row.
-  storage::ProjectionMap table_pm_;
 
   mutable catalog::index_oid_t index_oid_;
 };

@@ -532,8 +532,6 @@ namespace terrier::execution::vm {
   /* StorageInterface */                                                                                              \
   F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
     OperandType::UImm4, OperandType::Local)                                                                           \
-  F(StorageInterfaceInitTablePR, OperandType::Local)                                                                  \
-  F(StorageInterfaceFillTablePR, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
@@ -541,6 +539,8 @@ namespace terrier::execution::vm {
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
+  F(StorageInterfaceIndexInsertWithSlot, OperandType::Local, OperandType::Local, OperandType::Local,                  \
+    OperandType::Local)                                                                                               \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \

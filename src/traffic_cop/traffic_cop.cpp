@@ -200,6 +200,13 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       }
       break;
     }
+    case network::QueryType::QUERY_CREATE_INDEX: {
+      if (execution::sql::DDLExecutors::CreateIndexExecutor(
+              physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
+        return {ResultType::COMPLETE, 0};
+      }
+      break;
+    }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {

@@ -45,6 +45,7 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
       return;
     }
     if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
+      result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
       result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
       result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
     } else {

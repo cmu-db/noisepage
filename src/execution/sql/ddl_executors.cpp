@@ -106,12 +106,6 @@ bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<planner::Cre
                      *(node->GetSchema()));
 }
 
-bool DDLExecutors::CreateIndexExecutor(const common::ManagedPointer<const planner::CreateIndexPlanNode> node,
-                                       const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-  return CreateIndex(accessor, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
-                     *(node->GetSchema()));
-}
-
 bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
                                         const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                         const catalog::db_oid_t connection_db) {

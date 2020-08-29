@@ -96,16 +96,12 @@ class EXPORT StorageInterface {
   bool IndexInsertUnique();
 
   /**
-   * Fill table pr using a given tuple slot
+   * Insert into the current index given a tuple
    * @param table_tuple_slot tuple slot
-   * @return table pr
+   * @param unique if this insertion is unique
+   * @return Whether insertion was successful.
    */
-  storage::ProjectedRow *FillTablePR(storage::TupleSlot table_tuple_slot);
-
-  /**
-   * Init table pr and stash necessary variables
-   */
-  void InitTablePR();
+  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
 
  protected:
   /**
@@ -148,23 +144,6 @@ class EXPORT StorageInterface {
    * The index PR.
    */
   storage::ProjectedRow *index_pr_{nullptr};
-
-  /**
-   * Whether table pr is initialized
-   */
-  bool has_table_pr_;
-  /**
-   * The size of table pr
-   */
-  uint32_t table_pr_size_;
-  /**
-   * The PR's buffer.
-   */
-  void *table_pr_buffer_;
-  /**
-   * The table PR.
-   */
-  storage::ProjectedRow *table_pr_{nullptr};
   /**
    * Reusable ProjectedRowInitializer for this table access
    */

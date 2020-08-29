@@ -1,4 +1,5 @@
 #include "execution/compiler/compilation_context.h"
+#include "execution/sql/ddl_executors.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
@@ -23,6 +24,14 @@ class IndexCreateTest : public SqlBasedTest {
                          .SetSchema(std::move(schema))
                          .SetOutputSchema(std::make_unique<planner::OutputSchema>(planner::OutputSchema()))
                          .Build();
+
+    EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
+        common::ManagedPointer<planner::CreateIndexPlanNode>(plan_node),
+        common::ManagedPointer<catalog::CatalogAccessor>(exec_ctx_->GetAccessor())));
+    auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), index_name);
+    EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
+    auto index_ptr = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+    EXPECT_NE(index_ptr, nullptr);
 
     auto query = execution::compiler::CompilationContext::Compile(*plan_node, exec_ctx_->GetExecutionSettings(),
                                                                   exec_ctx_->GetAccessor());
