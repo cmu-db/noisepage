@@ -158,10 +158,10 @@ TEST_F(SorterTest, TopKTest) {
 
 template <uint32_t N>
 struct TestTuple {
-  uint32_t key;
-  uint32_t data[N];
+  uint32_t key_;
+  uint32_t data_[N];
 
-  int32_t Compare(const TestTuple<N> &other) const { return key - other.key; }
+  int32_t Compare(const TestTuple<N> &other) const { return key_ - other.key_; }
 };
 
 // Generic function to perform a parallel sort. The input parameter indicates the sizes of each
@@ -199,7 +199,7 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
     auto *sorter = container.AccessCurrentThreadStateAs<Sorter>();
     for (uint32_t i = 0; i < sorter_sizes[tid]; i++) {
       auto *elem = reinterpret_cast<TestTuple<N> *>(sorter->AllocInputTuple());
-      elem->key = mt() % 3333;
+      elem->key_ = mt() % 3333;
     }
   });
 

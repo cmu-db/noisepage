@@ -274,6 +274,10 @@ namespace terrier::execution::ast {
   F(Truncate, truncate)                                                 \
   F(Log10, log10)                                                       \
   F(Log2, log2)                                                         \
+  F(Sqrt, sqrt)                                                         \
+  F(Cbrt, cbrt)                                                         \
+  F(Round, round)                                                       \
+  F(Round2, round2)                                                     \
                                                                         \
   /* EXP */                                                             \
   F(Exp, exp)                                                           \
@@ -309,6 +313,9 @@ namespace terrier::execution::ast {
   F(Trim2, trim2)                                                       \
   F(Position, position)                                                 \
   F(ASCII, ascii)                                                       \
+  F(Length, length)                                                     \
+  F(InitCap, initCap)                                                   \
+  F(SplitPart, splitPart)                                               \
   F(Lpad, lpad)                                                         \
   F(Ltrim, ltrim)                                                       \
   F(Rpad, rpad)                                                         \
@@ -319,6 +326,8 @@ namespace terrier::execution::ast {
   F(CharLength, charLength)                                             \
                                                                         \
   /* Arithmetic functions */                                            \
+  F(Mod, mod)                                                           \
+  F(Pow, pow)                                                           \
   F(Abs, abs)                                                           \
                                                                         \
   /* Mini runners functions */                                          \

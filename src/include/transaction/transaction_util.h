@@ -28,7 +28,7 @@ class TransactionUtil {
    * @param timestamp the timestamp of the transaction or tuple delta to verify
    * @return true if committed, false otherwise
    */
-  static bool Committed(const timestamp_t timestamp) { return static_cast<int64_t>(!timestamp) >= 0; }
+  static bool Committed(const timestamp_t timestamp) { return static_cast<int64_t>(timestamp.UnderlyingValue()) >= 0; }
 
   /**
    * Used for internal transactions and tests when a callback to the network layer isn't necessary.

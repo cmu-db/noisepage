@@ -1702,6 +1702,28 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
       GetEmitter()->Emit(Bytecode::Exp, dest, src);
       break;
     }
+    case ast::Builtin::Sqrt: {
+      GetEmitter()->Emit(Bytecode::Sqrt, dest, src);
+      break;
+    }
+    case ast::Builtin::Cbrt: {
+      GetEmitter()->Emit(Bytecode::Cbrt, dest, src);
+      break;
+    }
+    case ast::Builtin::Round: {
+      GetEmitter()->Emit(Bytecode::Round, dest, src);
+      break;
+    }
+    case ast::Builtin::Round2: {
+      LocalVar src2 = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Round2, dest, src, src2);
+      break;
+    }
+    case ast::Builtin::Pow: {
+      LocalVar src2 = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Pow, dest, src, src2);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible trigonometric bytecode");
     }
@@ -1711,15 +1733,29 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
 }
 
 void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar dest, src;
-  auto dest_type = call->GetType();
-  dest = GetExecutionResult()->GetOrCreateDestination(dest_type);
-  src = VisitExpressionForRValue(call->Arguments()[0]);
-  Bytecode abs_bytecode = call->Arguments()[0]->GetType()->IsIntegerType() ||
-                                  call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)
-                              ? Bytecode::AbsInteger
-                              : Bytecode::AbsReal;
-  GetEmitter()->Emit(abs_bytecode, dest, src);
+  LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+  const bool is_integer_math = call->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
+
+  switch (builtin) {
+    case ast::Builtin::Abs: {
+      LocalVar src = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(is_integer_math ? Bytecode::AbsInteger : Bytecode::AbsReal, dest, src);
+      break;
+    }
+    case ast::Builtin::Mod: {
+      LocalVar first_input = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar second_input = VisitExpressionForRValue(call->Arguments()[1]);
+      if (!is_integer_math) {
+        TERRIER_ASSERT(call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
+                           call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real),
+                       "Inputs must both be of type Real");
+      }
+      GetEmitter()->Emit(is_integer_math ? Bytecode::ModInteger : Bytecode::ModReal, dest, first_input, second_input);
+      break;
+    }
+    default:
+      UNREACHABLE("Unimplemented arithmetic function!");
+  }
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
@@ -2154,6 +2190,13 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
   LocalVar ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
   switch (builtin) {
+    case ast::Builtin::SplitPart: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar delim = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar field = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::SplitPart, ret, exec_ctx, input_string, delim, field);
+      break;
+    }
     case ast::Builtin::Chr: {
       // input_string here is a integer type number
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
@@ -2235,6 +2278,16 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar sub_string = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::Position, ret, exec_ctx, input_string, sub_string);
+      break;
+    }
+    case ast::Builtin::Length: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::Length, ret, exec_ctx, input_string);
+      break;
+    }
+    case ast::Builtin::InitCap: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
       break;
     }
     case ast::Builtin::Lpad: {
@@ -2545,11 +2598,17 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Floor:
     case ast::Builtin::Truncate:
     case ast::Builtin::Log10:
-    case ast::Builtin::Log2: {
+    case ast::Builtin::Log2:
+    case ast::Builtin::Sqrt:
+    case ast::Builtin::Cbrt:
+    case ast::Builtin::Round:
+    case ast::Builtin::Round2:
+    case ast::Builtin::Pow: {
       VisitBuiltinTrigCall(call, builtin);
       break;
     }
-    case ast::Builtin::Abs: {
+    case ast::Builtin::Abs:
+    case ast::Builtin::Mod: {
       VisitBuiltinArithmeticCall(call, builtin);
       break;
     }
@@ -2638,12 +2697,16 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinParamCall(call, builtin);
       break;
     }
+    case ast::Builtin::SplitPart:
     case ast::Builtin::Chr:
     case ast::Builtin::CharLength:
     case ast::Builtin::ASCII:
     case ast::Builtin::Lower:
     case ast::Builtin::Upper:
     case ast::Builtin::Version:
+    case ast::Builtin::Position:
+    case ast::Builtin::Length:
+    case ast::Builtin::InitCap:
     case ast::Builtin::StartsWith:
     case ast::Builtin::Substring:
     case ast::Builtin::Left:
@@ -2652,7 +2715,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Repeat:
     case ast::Builtin::Trim:
     case ast::Builtin::Trim2:
-    case ast::Builtin::Position:
     case ast::Builtin::Lpad:
     case ast::Builtin::Ltrim:
     case ast::Builtin::Rpad:
@@ -2957,7 +3019,7 @@ void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
       break;
     }
     case parsing::Token::Type::PERCENT: {
-      MATH_BYTECODE(bytecode, Rem, node->GetType());
+      MATH_BYTECODE(bytecode, Mod, node->GetType());
       break;
     }
     case parsing::Token::Type::AMPERSAND: {
@@ -3012,7 +3074,7 @@ void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
       break;
     }
     case parsing::Token::Type::PERCENT: {
-      bytecode = (is_integer_math ? Bytecode::RemInteger : Bytecode::RemReal);
+      bytecode = (is_integer_math ? Bytecode::ModInteger : Bytecode::ModReal);
       break;
     }
     default: {

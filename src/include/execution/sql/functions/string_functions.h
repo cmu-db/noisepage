@@ -110,5 +110,8 @@ class StringFunctions {
 
   /** Compute CHR(code). */
   static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
+
+  /** Compute INITCAP(str). */
+  static void InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 };
 }  // namespace terrier::execution::sql

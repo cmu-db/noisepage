@@ -101,14 +101,14 @@ ALL_NUMERIC_TYPES(ARITHMETIC);
 
 #define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+  VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = lhs % rhs;                                            \
   }
 
 #define FLOAT_MODULAR(type, ...)                                    \
   /* Primitive modulo-remainder (no zero-check) */                  \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+  VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = std::fmod(lhs, rhs);                                  \
   }
@@ -699,7 +699,7 @@ VM_OP_HOT void OpDivInteger(terrier::execution::sql::Integer *const result,
   terrier::execution::sql::ArithmeticFunctions::IntDiv(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemInteger(terrier::execution::sql::Integer *const result,
+VM_OP_HOT void OpModInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
@@ -727,7 +727,7 @@ VM_OP_HOT void OpDivReal(terrier::execution::sql::Real *const result, const terr
   terrier::execution::sql::ArithmeticFunctions::Div(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
+VM_OP_HOT void OpModReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
                          const terrier::execution::sql::Real *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::Mod(result, *left, *right, &div_by_zero);
@@ -1413,9 +1413,9 @@ VM_OP_WARM void OpRound(terrier::execution::sql::Real *result, const terrier::ex
   terrier::execution::sql::ArithmeticFunctions::Round(result, *v);
 }
 
-VM_OP_WARM void OpRoundUpTo(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
-                            const terrier::execution::sql::Integer *scale) {
-  terrier::execution::sql::ArithmeticFunctions::RoundUpTo(result, *v, *scale);
+VM_OP_WARM void OpRound2(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
+                         const terrier::execution::sql::Integer *precision) {
+  terrier::execution::sql::ArithmeticFunctions::Round2(result, *v, *precision);
 }
 
 VM_OP_WARM void OpLog(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base,
@@ -1610,6 +1610,11 @@ VM_OP_WARM void OpUpper(terrier::execution::sql::StringVal *result, terrier::exe
 
 VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result) {
   terrier::execution::sql::SystemFunctions::Version(ctx, result);
+}
+
+VM_OP_WARM void OpInitCap(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                          const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::InitCap(result, ctx, *str);
 }
 
 // ---------------------------------------------------------------
@@ -1905,10 +1910,10 @@ VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, terrier::execution::exec:
 
   uint32_t out_oid;
   if (col_name.GetLength() == 0) {
-    out_oid = !table_oid;
+    out_oid = table_oid.UnderlyingValue();
   } else {
     const auto &schema = exec_ctx->GetAccessor()->GetSchema(table_oid);
-    out_oid = !schema.GetColumn(std::string(col_name.StringView())).Oid();
+    out_oid = schema.GetColumn(std::string(col_name.StringView())).Oid().UnderlyingValue();
   }
 
   *oid_var = out_oid;
@@ -1919,7 +1924,7 @@ VM_OP_WARM void OpTestCatalogIndexLookup(uint32_t *oid_var, terrier::execution::
   // TODO(WAN): wasteful std::string
   terrier::execution::sql::StringVal table_name{reinterpret_cast<const char *>(index_name_str), index_name_length};
   terrier::catalog::index_oid_t index_oid = exec_ctx->GetAccessor()->GetIndexOid(std::string(table_name.StringView()));
-  *oid_var = !index_oid;
+  *oid_var = index_oid.UnderlyingValue();
 }
 
 // Macro hygiene
