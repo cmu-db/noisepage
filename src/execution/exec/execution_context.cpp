@@ -99,7 +99,7 @@ void ExecutionContext::RecordFeature(pipeline_id_t pipeline_id, feature_id_t fea
   constexpr metrics::MetricsComponent component = metrics::MetricsComponent::EXECUTION_PIPELINE;
 
   if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(component)) {
+      common::thread_context.metrics_store_->ComponentEnabled(component)) {
     TERRIER_ASSERT(pipeline_id == current_pipeline_features_id_, "That's not the current pipeline.");
     auto &features = current_pipeline_features_;
     for (auto &feature : features) {
