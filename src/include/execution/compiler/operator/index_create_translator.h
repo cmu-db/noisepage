@@ -39,19 +39,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   DISALLOW_COPY_AND_MOVE(IndexCreateTranslator);
 
   /**
-   * Does nothing.
-   * @param decls The top-level declarations.
-   */
-  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
-
-  /**
-   * Does nothing.
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
-   */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
-
-  /**
    * Implement create index logic where it fills in the scanned tuples obtained from the StorageInterface struct
    * @param context The context of the work.
    * @param function The pipeline generating function.
@@ -85,7 +72,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void DeclareTVI(FunctionBuilder *function) const;
   void DeclareSlot(FunctionBuilder *function) const;
 
-  void PrepareContext(WorkContext *context, FunctionBuilder *function) const;
   // Perform a table scan using the provided table vector iterator pointer.
   void ScanTable(WorkContext *ctx, FunctionBuilder *function) const;
 

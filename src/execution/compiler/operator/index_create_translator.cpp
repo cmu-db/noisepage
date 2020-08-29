@@ -32,13 +32,16 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
       all_oids_(AllColOids(table_schema_)),
       index_oid_(
           codegen_->GetCatalogAccessor()->GetIndexOid(GetPlanAs<planner::CreateIndexPlanNode>().GetIndexName())) {
+  const auto &index_schema = codegen_->GetCatalogAccessor()->GetIndexSchema(index_oid_);
+  for (const auto &index_col : index_schema.GetColumns()) {
+    compilation_context->Prepare(*index_col.StoredExpression());
+  }
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   InitScan(function);
 
-  PrepareContext(context, function);
   // Scan it.
   ScanTable(context, function);
 
@@ -113,13 +116,6 @@ std::vector<catalog::col_oid_t> IndexCreateTranslator::AllColOids(const catalog:
     oids.emplace_back(col.Oid());
   }
   return oids;
-}
-
-void IndexCreateTranslator::PrepareContext(WorkContext *context, FunctionBuilder *function) const {
-  const auto &index_schema = codegen_->GetCatalogAccessor()->GetIndexSchema(index_oid_);
-  for (const auto &index_col : index_schema.GetColumns()) {
-    context->GetCompilationContext()->Prepare(*index_col.StoredExpression());
-  }
 }
 
 void IndexCreateTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) const {
