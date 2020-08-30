@@ -20,7 +20,6 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
       merge_func_(GetCodeGen()->MakeFreshIdentifier("MergeAggregates")),
-      distinct_key_check_fn_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("KeyCheck"))),
       build_pipeline_(this, Pipeline::Parallelism::Serial) {
   TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
@@ -38,7 +37,6 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
   for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
     const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
     compilation_context->Prepare(*agg_term->GetChild(0));
-    // FIXME(ricky)
     if (agg_term->IsDistinct()) {
       distinct_filters_.emplace(std::make_pair(
           agg_term_idx,
@@ -53,9 +51,6 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
 
   // Declare global distinct hash table
   auto *codegen = GetCodeGen();
-  // FIXME(ricky)
-  // ast::Expr *agg_ht_type = codegen->BuiltinType(ast::BuiltinType::AggregationHashTable);
-  // distinct_ht_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "distinctHashTable", agg_ht_type);
 
   ast::Expr *payload_type = codegen->MakeExpr(agg_payload_type_);
   global_aggs_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "aggs", payload_type);
@@ -100,35 +95,10 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 void StaticAggregationTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   decls->push_back(GeneratePayloadStruct());
   decls->push_back(GenerateValuesStruct());
-  // FIXME(ricky)
   for (auto p : distinct_filters_) {
     auto agg_term = GetAggPlan().GetAggregateTerms()[p.first];
     decls->push_back(p.second.GenerateKeyStruct(GetCodeGen(), agg_term));
-    // decls->push_back(p.second.GenerateValuesStruct(agg_term));
   }
-}
-
-ast::FunctionDecl *StaticAggregationTranslator::GenerateDistinctCheckFunction() {
-  auto *codegen = GetCodeGen();
-  auto agg_payload = codegen->MakeIdentifier("aggPayload");
-  auto agg_values = codegen->MakeIdentifier("aggValues");
-  auto params = codegen->MakeFieldList({
-      codegen->MakeField(agg_payload, codegen->PointerType(agg_payload_type_)),
-      codegen->MakeField(agg_values, codegen->PointerType(agg_values_type_)),
-  });
-
-  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Bool);
-  FunctionBuilder builder(codegen, distinct_key_check_fn_, std::move(params), ret_type);
-  {
-    for (uint32_t term_idx = 0; term_idx < GetAggPlan().GetGroupByTerms().size(); term_idx++) {
-      auto lhs = GetAggregateTerm(codegen->MakeExpr(agg_values), term_idx);
-      auto rhs = GetAggregateTerm(codegen->MakeExpr(agg_payload), term_idx);
-      If check_match(&builder, codegen->Compare(parsing::Token::Type::BANG_EQUAL, lhs, rhs));
-      builder.Append(codegen->Return(codegen->ConstBool(false)));
-    }
-    builder.Append(codegen->Return(codegen->ConstBool(true)));
-  }
-  return builder.Finish();
 }
 
 void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
@@ -194,37 +164,6 @@ void StaticAggregationTranslator::BeginPipelineWork(const Pipeline &pipeline, Fu
   if (IsBuildPipeline(pipeline)) {
     InitializeAggregates(function, false);
   }
-}
-
-void StaticAggregationTranslator::SkipDuplicate(FunctionBuilder *function, ast::Expr *agg_ht,
-                                                ast::Identifier agg_values, StateDescriptor::Entry agg_payload,
-                                                uint32_t agg_term_idx) const {
-  auto *codegen = GetCodeGen();
-  // Hash the key
-  std::vector<ast::Expr *> keys;
-  keys.push_back(codegen->IntToSql(agg_term_idx));
-  keys.push_back(GetAggregateTerm(codegen->MakeExpr(agg_values), agg_term_idx));
-  auto hash_val = codegen->MakeFreshIdentifier("hashVal");
-  function->Append(codegen->DeclareVarWithInit(hash_val, codegen->Hash(keys)));
-
-  // Check for duplicates
-  auto lookup_call = codegen->AggHashTableLookup(agg_ht, codegen->MakeExpr(hash_val), distinct_key_check_fn_,
-                                                 codegen->AddressOf(codegen->MakeExpr(agg_values)), agg_payload_type_);
-  auto lookup_payload = codegen->MakeFreshIdentifier("lookupPayload");
-  function->Append(codegen->DeclareVarWithInit(lookup_payload, lookup_call));
-
-  If check_new_agg(function, codegen->IsNilPointer(codegen->MakeExpr(lookup_payload)));
-  {
-    // Insert new entry
-    auto insert_call = codegen->AggHashTableInsert(agg_ht, codegen->MakeExpr(hash_val), false, agg_payload_type_);
-    function->Append(codegen->Assign(codegen->MakeExpr(lookup_payload), insert_call));
-
-    // Perform aggregate
-    auto agg = GetAggregateTermPtr(agg_payload.Get(codegen), agg_term_idx);
-    auto val = GetAggregateTermPtr(codegen->MakeExpr(agg_values), agg_term_idx);
-    function->Append(codegen->AggregatorAdvance(agg, val));
-  }
-  check_new_agg.EndIf();
 }
 
 void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, FunctionBuilder *function) const {

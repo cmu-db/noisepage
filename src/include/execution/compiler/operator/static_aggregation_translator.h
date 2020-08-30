@@ -117,13 +117,6 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
 
   void UpdateGlobalAggregate(WorkContext *ctx, FunctionBuilder *function) const;
 
-  // For distinct aggregates;
-  // Skip duplicate aggregate values if distinct required and entry found.
-  // Create an entry if no entry found in the hash table.
-  void SkipDuplicate(FunctionBuilder *function, ast::Expr *agg_ht, ast::Identifier agg_values,
-                     StateDescriptor::Entry agg_payload, uint32_t agg_term_idx) const;
-  ast::FunctionDecl *GenerateDistinctCheckFunction();
-
   // For minirunners.
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
@@ -136,10 +129,6 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
 
   // The name of the merging function.
   ast::Identifier merge_func_;
-
-  // For disintct aggregate
-  ast::Identifier distinct_key_check_fn_;
-  StateDescriptor::Entry distinct_ht_;
 
   // The build pipeline.
   Pipeline build_pipeline_;
