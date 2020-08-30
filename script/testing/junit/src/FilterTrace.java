@@ -43,7 +43,7 @@ public class FilterTrace {
         while (mog.next()) {
             String cur_sql = mog.sql.trim();
             for(int i=0; i<mog.comments.size();i++){
-                if(mog.comments.get(i).contains("skipif")||mog.comments.get(i).contains("onlyif")){
+                if(mog.comments.get(i).contains(Constants.SKIPIF)||mog.comments.get(i).contains(Constants.ONLYIF)){
                     skip_flag = true;
                     break;
                 }
@@ -104,8 +104,6 @@ public class FilterTrace {
                     Statement statement = conn.createStatement();
                     statement.execute(cur_sql);
                 }catch(Throwable e){
-                    System.out.println(cur_sql);
-                    System.out.println(mog.lineNum);
                     throw new Throwable(e.getMessage() + ": " + cur_sql);
                 }
             }
