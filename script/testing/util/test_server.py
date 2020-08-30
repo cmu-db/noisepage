@@ -241,6 +241,7 @@ class TestServer:
                     if not self.continue_on_error:
                         raise
                     else:
+                       traceback.print_exc(file=sys.stdout) 
                        ret_val_list_test_case[test_case] = constants.ErrorCode.ERROR
 
             # parse all test cases result
