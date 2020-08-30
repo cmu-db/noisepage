@@ -229,7 +229,6 @@ class OperatorTranslator : public ColumnValueProvider {
   /** The pipeline this translator is a part of. */
   Pipeline *GetPipeline() const { return pipeline_; }
 
-  bool NeedPerTaskTracker() const;
   void InjectStartTracker(FunctionBuilder *function) const;
   void InjectEndTracker(FunctionBuilder *function) const;
 
@@ -257,9 +256,10 @@ class OperatorTranslator : public ColumnValueProvider {
   bool IsCountersEnabled() const;
 
   /** Declare a counter for Lin's models. */
-  StateDescriptor::Entry CounterDeclare(const std::string &counter_name) const;
+  StateDescriptor::Entry CounterDeclare(const std::string &counter_name, Pipeline *pipeline) const;
   /** Set the value of a counter for Lin's models. */
   void CounterSet(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
+  void CounterSetExpr(FunctionBuilder *function, const StateDescriptor::Entry &counter, ast::Expr *val) const;
   /** Add to the value of a counter for Lin's models. */
   void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
   /** Record a specified feature's value. */

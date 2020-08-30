@@ -33,6 +33,13 @@ class OutputTranslator : public OperatorTranslator {
   DISALLOW_COPY_AND_MOVE(OutputTranslator);
 
   /**
+   * Tear-down the FilterManager if required.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
    * Define the output struct.
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;

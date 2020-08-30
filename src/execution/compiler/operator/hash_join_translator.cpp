@@ -55,9 +55,9 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
     local_join_ht_ = left_pipeline_.DeclarePipelineStateEntry("joinHashTable", join_ht_type);
   }
 
-  num_build_rows_ = CounterDeclare("num_build_rows");
-  num_probe_rows_ = CounterDeclare("num_probe_rows");
-  num_match_rows_ = CounterDeclare("num_match_rows");
+  num_build_rows_ = CounterDeclare("num_build_rows", &left_pipeline_);
+  num_probe_rows_ = CounterDeclare("num_probe_rows", pipeline);
+  num_match_rows_ = CounterDeclare("num_match_rows", pipeline);
 }
 
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

@@ -21,7 +21,7 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
   // Prepare the child.
   compilation_context->Prepare(plan, pipeline);
 
-  num_output_ = CounterDeclare("num_output");
+  num_output_ = CounterDeclare("num_output", pipeline);
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -49,14 +49,16 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
   CounterAdd(function, num_output_, 1);
 }
 
-void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto exec_ctx = GetExecutionContext();
-  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
-
+void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_output_.Get(GetCodeGen()));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
+}
+
+void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto exec_ctx = GetExecutionContext();
+  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

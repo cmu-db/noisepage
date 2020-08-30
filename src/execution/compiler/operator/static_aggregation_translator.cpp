@@ -51,8 +51,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
     local_aggs_ = build_pipeline_.DeclarePipelineStateEntry("aggs", payload_type);
   }
 
-  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
-  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
 }
 
 ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {

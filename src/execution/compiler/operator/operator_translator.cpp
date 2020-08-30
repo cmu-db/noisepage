@@ -28,15 +28,11 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, Co
   }
 }
 
-bool OperatorTranslator::NeedPerTaskTracker() const { return GetPipeline()->IsParallel(); }
-
 void OperatorTranslator::InjectStartTracker(FunctionBuilder *function) const {
-  TERRIER_ASSERT(NeedPerTaskTracker(), "Cannot inject when task not requires");
   GetPipeline()->InjectStartResourceTracker(function);
 }
 
 void OperatorTranslator::InjectEndTracker(FunctionBuilder *function) const {
-  TERRIER_ASSERT(NeedPerTaskTracker(), "Cannot inject when task not requires");
   GetPipeline()->InjectEndResourceTracker(function, GetPipeline()->GetQueryId());
 }
 
@@ -103,13 +99,13 @@ void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, con
 
 bool OperatorTranslator::IsCountersEnabled() const { return compilation_context_->IsCountersEnabled(); }
 
-StateDescriptor::Entry OperatorTranslator::CounterDeclare(const std::string &counter_name) const {
+StateDescriptor::Entry OperatorTranslator::CounterDeclare(const std::string &counter_name, Pipeline *pipeline) const {
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled()) {
-    // Declare a new counter in the query state.
+    // Declare a new counter in the pipeline state
     ast::Expr *counter_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    return compilation_context_->GetQueryState()->DeclareStateEntry(codegen, counter_name, counter_type);
+    return pipeline->DeclarePipelineStateEntry(counter_name, counter_type);
   }
 
   return StateDescriptor::Entry();
@@ -122,6 +118,17 @@ void OperatorTranslator::CounterSet(FunctionBuilder *function, const StateDescri
   if (IsCountersEnabled()) {
     // counter = val
     ast::Stmt *set = codegen->Assign(counter.Get(codegen), codegen->Const32(val));
+    function->Append(set);
+  }
+}
+
+void OperatorTranslator::CounterSetExpr(FunctionBuilder *function, const StateDescriptor::Entry &counter,
+                                        ast::Expr *val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // counter = val
+    ast::Stmt *set = codegen->Assign(counter.Get(codegen), val);
     function->Append(set);
   }
 }

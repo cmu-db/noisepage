@@ -139,6 +139,7 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   // Finalize the pipeline state.
   ast::Expr *type = codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector);
   oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
+  concurrent_state_ = DeclarePipelineStateEntry("concurrent", codegen_->BuiltinType(ast::BuiltinType::Uint32));
   state_.ConstructFinalType(codegen_);
 
   // Finalize the execution mode. We choose serial execution if ANY of the below
@@ -195,6 +196,8 @@ ast::FunctionDecl *Pipeline::GenerateSetupPipelineStateFunction() const {
       auto call = codegen_->CallBuiltin(ast::Builtin::RegisterMetricsThread, args);
       builder.Append(codegen_->MakeStmt(call));
     }
+
+    InjectStartResourceTracker(&builder);
   }
   return builder.Finish();
 }
@@ -208,6 +211,8 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
     for (auto *op : steps_) {
       op->TearDownPipelineState(*this, &builder);
     }
+
+    InjectEndResourceTracker(&builder, query_id_);
   }
   return builder.Finish();
 }
@@ -250,7 +255,7 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
   return builder.Finish();
 }
 
-ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) {
+ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() {
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
@@ -263,13 +268,9 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) {
     }
 
     // Launch pipeline work.
-    bool did_start = false;
     if (IsParallel()) {
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
-      InjectStartResourceTracker(&builder);
-      did_start = true;
-
       auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
       auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
       auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
@@ -284,10 +285,6 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) {
     // Let the operators perform some completion work in this pipeline.
     for (auto op : steps_) {
       op->FinishPipelineWork(*this, &builder);
-    }
-
-    if (did_start) {
-      InjectEndResourceTracker(&builder, query_id);
     }
   }
 
@@ -326,7 +323,7 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
 
   // Register the main init, run, tear-down functions as steps, in that order.
   builder->RegisterStep(GenerateInitPipelineFunction());
-  builder->RegisterStep(GenerateRunPipelineFunction(query_id));
+  builder->RegisterStep(GenerateRunPipelineFunction());
   auto teardown = GenerateTearDownPipelineFunction();
   builder->RegisterStep(teardown);
   builder->AddTeardownFn(teardown);

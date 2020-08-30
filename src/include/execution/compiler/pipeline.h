@@ -186,6 +186,7 @@ class Pipeline {
   query_id_t GetQueryId() { return query_id_; }
 
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
+  ast::Expr *ConcurrentState() const { return concurrent_state_.Get(codegen_); }
 
  private:
   // Return the thread-local state initialization and tear-down function names.
@@ -208,7 +209,7 @@ class Pipeline {
   ast::FunctionDecl *GeneratePipelineWorkFunction() const;
 
   // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id);
+  ast::FunctionDecl *GenerateRunPipelineFunction();
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
@@ -247,6 +248,7 @@ class Pipeline {
   // Query Identifier
   query_id_t query_id_ = query_id_t(0);
   StateDescriptor::Entry oufeatures_;
+  StateDescriptor::Entry concurrent_state_;
 };
 
 }  // namespace terrier::execution::compiler

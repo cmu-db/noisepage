@@ -62,8 +62,8 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
     local_agg_ht_ = build_pipeline_.DeclarePipelineStateEntry("aggHashTable", agg_ht_type);
   }
 
-  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
-  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
 }
 
 ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
