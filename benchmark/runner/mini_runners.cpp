@@ -638,6 +638,41 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
   }
 }
 
+/**
+ * Arg <0, 1, 2, 3, 4, 5>
+ * 0 - # integers to scan
+ * 1 - # bigints to scan
+ * 2 - # integers in table
+ * 3 - # bigints in table
+ * 4 - row
+ * 5 - cardinality
+ */
+static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        int64_t car = 1;
+        while (car < row) {
+          if (type == type::TypeId::INTEGER)
+            b->Args({col, 0, 15, 0, row, car});
+          else if (type == type::TypeId::BIGINT)
+            b->Args({0, col, 0, 15, row, car});
+          car *= 2;
+        }
+
+        if (type == type::TypeId::INTEGER)
+          b->Args({col, 0, 15, 0, row, row});
+        else if (type == type::TypeId::BIGINT)
+          b->Args({0, col, 0, 15, row, row});
+      }
+    }
+  }
+}
+
 class MiniRunners : public benchmark::Fixture {
  public:
   static execution::query_id_t query_id;
@@ -1944,6 +1979,46 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenAggregateKeylessArguments);
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) {
+  auto num_integers = state->range(0);
+  auto num_bigints = state->range(1);
+  auto tbl_ints = state->range(2);
+  auto tbl_bigints = state->range(3);
+  auto row = state->range(4);
+  auto car = state->range(5);
+
+  if (rerun_start || row > warmup_rows_limit) {
+    return;
+  }
+
+  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
+  auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
+  auto num_col = num_integers + num_bigints;
+
+  auto units = std::make_unique<brain::PipelineOperatingUnits>();
+  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+  brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX, row, tuple_size, num_col, car, 1, 0);
+
+  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, 0, row, car);
+
+  std::stringstream query;
+  query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
+  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false);
+  InvokeGC();
+
+  state.SetItemsProcessed(row);
+}
+
+BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenCreateIndexArguments);
 
 void InitializeRunnersState() {
   auto db_main_builder = DBMain::Builder()
