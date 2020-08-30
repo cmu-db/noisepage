@@ -2297,6 +2297,12 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
       break;
     }
+    case ast::Builtin::Concat: {
+      LocalVar input_string1 = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar input_string2 = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::Concat, ret, exec_ctx, input_string1, input_string2);
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string function!");
   }
@@ -2680,7 +2686,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Reverse:
     case ast::Builtin::Repeat:
     case ast::Builtin::Trim:
-    case ast::Builtin::Trim2: {
+    case ast::Builtin::Trim2:
+    case ast::Builtin::Concat: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }

@@ -317,6 +317,7 @@ namespace terrier::execution::ast {
   F(Length, length)                                                     \
   F(InitCap, initCap)                                                   \
   F(SplitPart, splitPart)                                               \
+  F(Concat, concat)                                                     \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \

@@ -2568,7 +2568,8 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Integer;
       break;
     }
-    case ast::Builtin::Trim2: {
+    case ast::Builtin::Trim2:
+    case ast::Builtin::Concat: {
       // check to make sure this function has three arguments
       if (!CheckArgCount(call, 3)) {
         return;
@@ -3209,7 +3210,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Repeat:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::InitCap: {
+    case ast::Builtin::InitCap:
+    case ast::Builtin::Concat: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
