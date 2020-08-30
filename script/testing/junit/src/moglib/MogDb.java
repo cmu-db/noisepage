@@ -104,9 +104,9 @@ public class MogDb {
                 if (typeName.equals("int2") || typeName.equals("int4") || typeName.equals("int8")) {
                     return INTEGER;
                 } else if (typeName.equals("varchar") || typeName.equals("text")) {
-                    return TEXT;
-                } else if(typeName.equals("float8")){
-                    return FLOAT;
+                    return DbColumnType.TEXT;
+                } else if(typeName.equals("float8") || typeName.equals("numeric")){
+                    return DbColumnType.FLOAT;
                 }
             } else if (this.jdbc.startsWith("jdbc:sqlite")) {
                 /* SQLite types. */
