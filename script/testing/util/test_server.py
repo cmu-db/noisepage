@@ -263,4 +263,8 @@ class TestServer:
         if ret_val_test_suite is None or ret_val_test_suite != constants.ErrorCode.SUCCESS:
             # print the db log file, only if we had a failure
             self.print_output(self.db_output_file)
+        
+        if self.continue_on_error:
+            # let Jenkins stage to continue on failed test
+            return constants.ErrorCode.SUCCESS
         return ret_val_test_suite
