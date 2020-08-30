@@ -35,6 +35,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
   SORT,
   STATIC_AGGREGATE,
 
+  CREATE_INDEX,
+
   // Use to demarcate plan and operations
   PLAN_OPS_DELIMITER,
 
