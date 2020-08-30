@@ -10,4 +10,6 @@ public class Constants {
     public static final String SEPARATION = "----";
     public static final String DEST_DIR = "traces";
     public static final String VALUES = "value";
+    public static final String SKIPIF = "skipif";
+    public static final String ONLYIF = "onlyif";
 }

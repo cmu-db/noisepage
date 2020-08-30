@@ -1,0 +1,1454 @@
+# all possible aggregations (with and without GROUP BY) on all possible types
+statement ok
+DROP TABLE IF EXISTS region
+
+statement ok
+CREATE TABLE region(col0 INTEGER, col1 INTEGER, col2 varchar)
+
+statement ok
+INSERT INTO region VALUES(1,1,'A')
+
+statement ok
+INSERT INTO region VALUES(3,5,'B')
+
+statement ok
+INSERT INTO region VALUES(4,8,'C')
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT MAX(col0) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT MIN(col0) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to 27747fccf720e856ecc717593209cf28
+
+query I nosort
+SELECT MAX(col1) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT MIN(col1) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col1) FROM region
+----
+1 values hashing to 367764329430db34be92fd14a7a770ee
+
+query  nosort
+SELECT AVG(col1) FROM region
+----
+1 values hashing to bfa80630801a15f54d09a68085c2c03d
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+3 values hashing to d231801afbe9953b5c617cd04065435b
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+3 values hashing to d231801afbe9953b5c617cd04065435b
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+3 values hashing to d231801afbe9953b5c617cd04065435b
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+3 values hashing to ed2ae0b77c2a0704bdc997fb40b9357b
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+3 values hashing to d231801afbe9953b5c617cd04065435b
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+3 values hashing to d231801afbe9953b5c617cd04065435b
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+3 values hashing to d231801afbe9953b5c617cd04065435b
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+3 values hashing to ed2ae0b77c2a0704bdc997fb40b9357b
+
+statement ok
+INSERT INTO region VALUES(NULL,1,'A')
+
+statement ok
+INSERT INTO region VALUES(NULL,5,'B')
+
+statement ok
+INSERT INTO region VALUES(4,8,NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL,NULL,NULL)
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 84bc3da1b3e33a18e8d5e1bdd7a18d7a
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 9ae0ea9e3c9c6e1b9b6252c8395efdc1
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+query I nosort
+SELECT MAX(col0) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT MIN(col0) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to 2737b49252e2a4c0fe4c342e92b13285
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to 51ae4adf9592ad21d5e0ed2f4f0bac7e
+
+query I nosort
+SELECT MAX(col1) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT MIN(col1) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col1) FROM region
+----
+1 values hashing to 51a6d96331d5eaa300358c7a0faf168d
+
+query  nosort
+SELECT AVG(col1) FROM region
+----
+1 values hashing to bfa80630801a15f54d09a68085c2c03d
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+4 values hashing to b622ba84eb418bf3667dec540716e402
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+4 values hashing to b622ba84eb418bf3667dec540716e402
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+4 values hashing to 63ba8acd537e5e2e2190c458d75a9cdb
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+4 values hashing to 397a2a34b8675c1224e14c6e933f8e19
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+4 values hashing to d2f4ff353d77729f870b313a2b109a75
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+4 values hashing to d2f4ff353d77729f870b313a2b109a75
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+4 values hashing to d2f4ff353d77729f870b313a2b109a75
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+4 values hashing to d00b000dc6f0adc993d8c459785dc6a5
+
+query I nosort
+SELECT COUNT(*) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT COUNT(col0) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT COUNT(col1) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT COUNT(col2) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT MAX(col0) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT MIN(col0) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query  nosort
+SELECT AVG(col0) FROM region WHERE col0 = 1
+----
+1 values hashing to 24c06d17158abede829f32a56f73c950
+
+query I nosort
+SELECT MAX(col1) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT MIN(col1) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col1) FROM region WHERE col0 = 1
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query  nosort
+SELECT AVG(col1) FROM region WHERE col0 = 1
+----
+1 values hashing to 24c06d17158abede829f32a56f73c950
+
+statement ok
+INSERT INTO region VALUES(2,3,'B')
+
+statement ok
+INSERT INTO region VALUES(4,8,'C')
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 7c5aba41f53293b712fd86d08ed5b36e
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 9ae0ea9e3c9c6e1b9b6252c8395efdc1
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to 84bc3da1b3e33a18e8d5e1bdd7a18d7a
+
+query I nosort
+SELECT MAX(col0) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT MIN(col0) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to cf4278314ef8e4b996e1b798d8eb92cf
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to 51ae4adf9592ad21d5e0ed2f4f0bac7e
+
+query I nosort
+SELECT MAX(col1) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT MIN(col1) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col1) FROM region
+----
+1 values hashing to 59885ebc737617addaaf0cb8090203fc
+
+query  nosort
+SELECT AVG(col1) FROM region
+----
+1 values hashing to ba852aea63b3d3a77b68b3d106d564aa
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+5 values hashing to 53416deb4075d0e8935ebccc49637c3b
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+5 values hashing to 53416deb4075d0e8935ebccc49637c3b
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+5 values hashing to a7399e5ed0afd64527f394eb7d4cac4f
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+5 values hashing to d1139143992861fc8683d45ebaade6f9
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+4 values hashing to d2f4ff353d77729f870b313a2b109a75
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+4 values hashing to 8f1fb0239f65e48b799569abb687e350
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+4 values hashing to 69d2baf46e4c7fdc5b2879a6cbb35d7e
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+4 values hashing to e0f0f90cfcea2b21a9d58aac7d638c2e
+
+query I nosort
+SELECT COUNT(*) FROM region WHERE col0 = 4
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col0) FROM region WHERE col0 = 4
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col1) FROM region WHERE col0 = 4
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col2) FROM region WHERE col0 = 4
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT MAX(col0) FROM region WHERE col0 = 4
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT MIN(col0) FROM region WHERE col0 = 4
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT SUM(col0) FROM region WHERE col0 = 4
+----
+1 values hashing to 2737b49252e2a4c0fe4c342e92b13285
+
+query  nosort
+SELECT AVG(col0) FROM region WHERE col0 = 4
+----
+1 values hashing to f8322f980608a4fea0dfd0f6a21934c8
+
+query I nosort
+SELECT MAX(col1) FROM region WHERE col0 = 4
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT MIN(col1) FROM region WHERE col0 = 4
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT SUM(col1) FROM region WHERE col0 = 4
+----
+1 values hashing to 7c67493bd72ceff21059c3d924d17518
+
+query  nosort
+SELECT AVG(col1) FROM region WHERE col0 = 4
+----
+1 values hashing to 2cf35eddaae90cfda0d396f530917b94
+
+query I nosort
+SELECT MAX(col1), AVG(col0) FROM region GROUP BY col2
+----
+8 values hashing to 46ac5174617d1a924ace0cf7b3a333a0
+
+statement ok
+DROP TABLE region
+
+statement ok
+CREATE TABLE region(col0 int, col1 float, col2 INTEGER)
+
+statement ok
+INSERT INTO region VALUES(1,1.0,1)
+
+statement ok
+INSERT INTO region VALUES(3,3.0,3)
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT MAX(col0) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT MIN(col0) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to 1118c2de2a88bb90802375a088c6aebc
+
+query R nosort
+SELECT MAX(col1) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query R nosort
+SELECT MIN(col1) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query R nosort
+SELECT SUM(col1) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query R nosort
+SELECT AVG(col1) FROM region
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+2 values hashing to e367d6d18cd2d7496f4e3f1f600d77f5
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+2 values hashing to e367d6d18cd2d7496f4e3f1f600d77f5
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+2 values hashing to e367d6d18cd2d7496f4e3f1f600d77f5
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+2 values hashing to 091cd22bbac5652be922777d38d5a215
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+2 values hashing to e367d6d18cd2d7496f4e3f1f600d77f5
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+2 values hashing to e367d6d18cd2d7496f4e3f1f600d77f5
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+2 values hashing to e367d6d18cd2d7496f4e3f1f600d77f5
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+2 values hashing to 091cd22bbac5652be922777d38d5a215
+
+statement ok
+INSERT INTO region VALUES(3,1.0,1)
+
+statement ok
+INSERT INTO region VALUES(1,3.0,3)
+
+statement ok
+INSERT INTO region VALUES(1,4.0,1)
+
+statement ok
+INSERT INTO region VALUES(3,3.0,3)
+
+statement ok
+INSERT INTO region VALUES(NULL,3.0,3)
+
+statement ok
+INSERT INTO region VALUES(NULL,4.0,1)
+
+statement ok
+INSERT INTO region VALUES(3,NULL,NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL,4.0,NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL,NULL,NULL)
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 166d77ac1b46a1ec38aa35ab7e628ab5
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 84bc3da1b3e33a18e8d5e1bdd7a18d7a
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 7c5aba41f53293b712fd86d08ed5b36e
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT MAX(col0) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT MIN(col0) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to 8c9eb686bf3eb5bd83d9373eadf6504b
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to 6659cd67581d1e00660142720a6fd7c3
+
+query R nosort
+SELECT MAX(col1) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query R nosort
+SELECT MIN(col1) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query R nosort
+SELECT SUM(col1) FROM region
+----
+1 values hashing to b0771132ab2531a40c9941375ed8e290
+
+query R nosort
+SELECT AVG(col1) FROM region
+----
+1 values hashing to 175dbdf47f31aca4a7e6aeca49b107df
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+3 values hashing to c366e9ba62483bf7516d3922eb6f56b1
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+3 values hashing to c366e9ba62483bf7516d3922eb6f56b1
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+3 values hashing to f173c393816570e95d31ad93440b0419
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+3 values hashing to 2d5af9a9632f85438a5adec94b95e0a8
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col1
+----
+4 values hashing to ba243629a7979c7c3c8cd8a55afd88b8
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col1
+----
+4 values hashing to fea0f65b09d0dab86a06c63c574a1cd9
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col1
+----
+4 values hashing to c0480810420665e4bc636ca7e1186218
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col1
+----
+4 values hashing to a286351931571997097daeb07bd3f601
+
+query I nosort
+SELECT COUNT(*) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col0) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col1) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col2) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT MAX(col0) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT MIN(col0) FROM region WHERE col1 = 3.0
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col0) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 84bc3da1b3e33a18e8d5e1bdd7a18d7a
+
+query  nosort
+SELECT AVG(col0) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 2635a87544cb1b34dc39a59a61023ad0
+
+query R nosort
+SELECT MAX(col1) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query R nosort
+SELECT MIN(col1) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query R nosort
+SELECT SUM(col1) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 2737b49252e2a4c0fe4c342e92b13285
+
+query R nosort
+SELECT AVG(col1) FROM region WHERE col1 = 3.0
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+statement ok
+INSERT INTO region VALUES(10,5.0,1.0)
+
+statement ok
+INSERT INTO region VALUES(32,3.0,3.0)
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to aa6ed9e0f26a6eba784aae8267df1951
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 7c5aba41f53293b712fd86d08ed5b36e
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 166d77ac1b46a1ec38aa35ab7e628ab5
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to 31d30eea8d0968d6458e0ad0027c9f80
+
+query I nosort
+SELECT MAX(col2) FROM region
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT MIN(col2) FROM region
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT SUM(col2) FROM region
+----
+1 values hashing to dbbf8220893d497d403bb9cdf49db7a4
+
+query  nosort
+SELECT AVG(col2) FROM region
+----
+1 values hashing to 1118c2de2a88bb90802375a088c6aebc
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+5 values hashing to 6ffedd739e8a8a4e8eb9d1f2bc3248b5
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+5 values hashing to 6ffedd739e8a8a4e8eb9d1f2bc3248b5
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+5 values hashing to 9daa5b33fa1c90dc116231f9c29cda09
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+5 values hashing to 1a3073262ab6e88b40d15cb0ec763476
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+3 values hashing to 4b0873cdf1108418e654def72ea953c2
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+3 values hashing to 894533b361b6ce5d8dad63e26026c41c
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+3 values hashing to a30c7cbb56eb44611f19e7e287e7256c
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+3 values hashing to f76804547635cb4397e58da7534dcf40
+
+statement ok
+DROP TABLE region
+
+statement ok
+CREATE TABLE region(col0 bigint, col1 float, col2 timestamp)
+
+statement ok
+INSERT INTO region VALUES('123'::bigint,5.0,'2020-01-02 12:23:34.56789')
+
+statement ok
+INSERT INTO region VALUES('23'::bigint,5.0,'2020-01-03 12:23:34.56789')
+
+statement ok
+INSERT INTO region VALUES('234'::bigint,1.0,'2020-01-02 12:25:34.56789')
+
+statement ok
+INSERT INTO region VALUES('235'::bigint,3.0,'2020-01-03 12:23:34.56789')
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query  nosort
+SELECT MAX(col2) FROM region
+----
+1 values hashing to dff7b1a3e7cd146b456b5740ea263638
+
+query  nosort
+SELECT MIN(col2) FROM region
+----
+1 values hashing to 9067cff7dffd249099fea76cc1f3d5cb
+
+query  nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to 88461375a87f3afe508321526600eec7
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to cc73eb646e00777d61e51b68ebe7174c
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+4 values hashing to 11ed51e49fff67214a1d860ce6bed1e6
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+4 values hashing to 11ed51e49fff67214a1d860ce6bed1e6
+
+query  nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+4 values hashing to 11ed51e49fff67214a1d860ce6bed1e6
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+4 values hashing to 5a9e18c3505e3847a431758098b721f8
+
+query  nosort
+SELECT MAX(col2) FROM region GROUP BY col1
+----
+3 values hashing to d67c93c1c19860a86bd55998e5575306
+
+query  nosort
+SELECT MIN(col2) FROM region GROUP BY col1
+----
+3 values hashing to 0fdf98cbf9201ace831b8c4a36ee8870
+
+query  nosort
+SELECT SUM(col0) FROM region GROUP BY col1
+----
+3 values hashing to 31585d0e74741eab76f698c207f79237
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col1
+----
+3 values hashing to 54c53423121e1fb457b6e9b9820b864c
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+3 values hashing to 13207d4bbd90aba5c0350403955e0534
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+3 values hashing to 36aab0a21e2d48c48c5cfea5e70eeb4e
+
+query  nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+3 values hashing to d0841cbaf0946fd573930a6c8551731f
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+3 values hashing to a8634d644a57eee8e33ca6d4f63d4242
+
+statement ok
+INSERT INTO region VALUES('234'::bigint,6.0,'2020-01-02 12:25:34.56789')
+
+statement ok
+INSERT INTO region VALUES('235'::bigint,7.0,'2020-01-03 12:23:34.56789')
+
+statement ok
+INSERT INTO region VALUES(NULL,6.0,NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL,7.0,'2020-01-03 12:23:34.56789')
+
+statement ok
+INSERT INTO region VALUES(NULL,NULL,NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL,NULL,'2020-01-03 12:23:34.56789')
+
+query I nosort
+SELECT COUNT(*) FROM region WHERE col1 = 5.0
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT COUNT(col0) FROM region WHERE col1 = 5.0
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT COUNT(col1) FROM region WHERE col1 = 5.0
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT COUNT(col2) FROM region WHERE col1 = 5.0
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query  nosort
+SELECT MAX(col2) FROM region WHERE col1 = 5.0
+----
+1 values hashing to dff7b1a3e7cd146b456b5740ea263638
+
+query  nosort
+SELECT MIN(col2) FROM region WHERE col1 = 5.0
+----
+1 values hashing to 9067cff7dffd249099fea76cc1f3d5cb
+
+query  nosort
+SELECT SUM(col0) FROM region WHERE col1 = 5.0
+----
+1 values hashing to 9ae1400d5046b9667825b464e5b1ea86
+
+query  nosort
+SELECT AVG(col0) FROM region WHERE col1 = 5.0
+----
+1 values hashing to eb32363ccc3009c1acd18158cc44ddca
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 31d30eea8d0968d6458e0ad0027c9f80
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 9ae0ea9e3c9c6e1b9b6252c8395efdc1
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query  nosort
+SELECT MAX(col2) FROM region
+----
+1 values hashing to dff7b1a3e7cd146b456b5740ea263638
+
+query  nosort
+SELECT MIN(col2) FROM region
+----
+1 values hashing to 9067cff7dffd249099fea76cc1f3d5cb
+
+query  nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to 5f8a94d5cb8ea447bbbf68794044ff7d
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to e291023700a4a93b74ed15cb3b38fa32
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+5 values hashing to 0b8028201d497248121dfab345290eb8
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+5 values hashing to 0b8028201d497248121dfab345290eb8
+
+query  nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+5 values hashing to cae40b6e33e8603df4e8dd5ae81253cd
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+5 values hashing to 5b8832482b902f95858133169683d39c
+
+query  nosort
+SELECT MAX(col2) FROM region GROUP BY col1
+----
+6 values hashing to b672001307c273c2574730e4a64f1837
+
+query  nosort
+SELECT MIN(col2) FROM region GROUP BY col1
+----
+6 values hashing to 4cc925ff5587ae1e140f371539e7ba0c
+
+query  nosort
+SELECT SUM(col0) FROM region GROUP BY col1
+----
+6 values hashing to ee3ae4d568d7f9e4273f9308550e878b
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col1
+----
+6 values hashing to 8db680a569e08be10ae7fb4dccfec829
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+4 values hashing to c82dad543bc890e714130a7d4ce54046
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+4 values hashing to d376dd7b8e73d4539423bbf5e9932766
+
+query  nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+4 values hashing to ad9fbce0cb67e5e6cf489ce6cd38f71d
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+4 values hashing to 0cbf153e76ac351a97935902e86ce45f
+
+statement ok
+DROP TABLE region
+
+statement ok
+CREATE TABLE region(col0 integer, col1 float, col2 bigint DEFAULT 4398046511104)
+
+statement ok
+INSERT INTO region VALUES(1, 1.0)
+
+statement ok
+INSERT INTO region VALUES(5, 3.0)
+
+statement ok
+INSERT INTO region VALUES(5, 5.0)
+
+statement ok
+INSERT INTO region VALUES(7, 7.0, 439804651114)
+
+statement ok
+INSERT INTO region VALUES(9, 7.0, 439804651114)
+
+statement ok
+INSERT INTO region VALUES(11, 7.0, 43980465114)
+
+statement ok
+INSERT INTO region VALUES(14, 8.0, 439804651114)
+
+statement ok
+INSERT INTO region VALUES(7, 15.0, 439804651114)
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to c30f7472766d25af1dc80b3ffc9a58c7
+
+query I nosort
+SELECT MAX(col2) FROM region
+----
+1 values hashing to c913bdd4892f16d345edee393e867c0d
+
+query I nosort
+SELECT MIN(col2) FROM region
+----
+1 values hashing to 24db92ae6b8f7fcfbbd921c8e8d7f54f
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to 6ae2481905403d48e262774919e04927
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to cfed1827d13dfd42eb027df17f5c1b35
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+6 values hashing to 987323ca1852939044032dcb49f9e075
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+6 values hashing to 987323ca1852939044032dcb49f9e075
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+6 values hashing to 47d6f018aba66e169dbef0fae86a27cb
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+6 values hashing to b20ebf0faabf7043f48dee1913dc2e24
+
+query I nosort
+SELECT MAX(col2) FROM region GROUP BY col1
+----
+6 values hashing to 23698a02dcff9ebfbbb48aeecb5183b4
+
+query I nosort
+SELECT MIN(col2) FROM region GROUP BY col1
+----
+6 values hashing to 9fe9f1a6894861a5aa1a41c29ded5141
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col1
+----
+6 values hashing to ea2918e4a434e54b69e15013cddbb244
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col1
+----
+6 values hashing to 9679d7544590953237057ac10607eef0
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+3 values hashing to 1594d61498d0df33cc872b8bbc81334a
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+3 values hashing to a165e405d3331d9f6ae378721b292737
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+3 values hashing to bb6185ea26d3e301c92396a4ad8da7c4
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+3 values hashing to 042cd9491ec539838e66f1b66f493ac4
+
+query I nosort
+SELECT COUNT(*) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col0) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col1) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col2) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT MAX(col2) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to c913bdd4892f16d345edee393e867c0d
+
+query I nosort
+SELECT MIN(col2) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to c913bdd4892f16d345edee393e867c0d
+
+query I nosort
+SELECT SUM(col0) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 166d77ac1b46a1ec38aa35ab7e628ab5
+
+query  nosort
+SELECT AVG(col0) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to bb77cbb7a66768782d13da6c9841ffa7
+
+statement ok
+INSERT INTO region VALUES(NULL, 7.0, 43980465114)
+
+statement ok
+INSERT INTO region VALUES(14, NULL, 439804651114)
+
+statement ok
+INSERT INTO region VALUES(7, 15.0, NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL, NULL, 43980465114)
+
+statement ok
+INSERT INTO region VALUES(14, NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL, NULL, NULL)
+
+statement ok
+INSERT INTO region VALUES(NULL, NULL)
+
+query I nosort
+SELECT COUNT(*) FROM region
+----
+1 values hashing to 8c9eb686bf3eb5bd83d9373eadf6504b
+
+query I nosort
+SELECT COUNT(col0) FROM region
+----
+1 values hashing to 166d77ac1b46a1ec38aa35ab7e628ab5
+
+query I nosort
+SELECT COUNT(col1) FROM region
+----
+1 values hashing to 31d30eea8d0968d6458e0ad0027c9f80
+
+query I nosort
+SELECT COUNT(col2) FROM region
+----
+1 values hashing to aa6ed9e0f26a6eba784aae8267df1951
+
+query I nosort
+SELECT MAX(col2) FROM region
+----
+1 values hashing to c913bdd4892f16d345edee393e867c0d
+
+query I nosort
+SELECT MIN(col2) FROM region
+----
+1 values hashing to 24db92ae6b8f7fcfbbd921c8e8d7f54f
+
+query I nosort
+SELECT SUM(col0) FROM region
+----
+1 values hashing to c1cc2eeb27a86f85032b210ff5ef5d02
+
+query  nosort
+SELECT AVG(col0) FROM region
+----
+1 values hashing to 50768dce65ae3fcd60670fb3b77c518e
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col0
+----
+7 values hashing to f3b2cc9f42685ffed97ee2ec792e35db
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col0
+----
+7 values hashing to f3b2cc9f42685ffed97ee2ec792e35db
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col0
+----
+7 values hashing to 57396fa16a950f87aca17886af54d5da
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col0
+----
+7 values hashing to 3c3e9d126958288373e0bd7e10af8347
+
+query I nosort
+SELECT MAX(col2) FROM region GROUP BY col1
+----
+7 values hashing to 390bc6ec379e1a0c5fb7fd71971fd811
+
+query I nosort
+SELECT MIN(col2) FROM region GROUP BY col1
+----
+7 values hashing to ebfa1b24ec3cd526e04c5e2660d64a1b
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col1
+----
+7 values hashing to f623fefb3d10a58b78a049d4de0b61b4
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col1
+----
+7 values hashing to b1fe92ae553804b34bae761215073bdc
+
+query I nosort
+SELECT MAX(col0) FROM region GROUP BY col2
+----
+4 values hashing to 0594f7ff8bc7ac9df8d2011198fdc059
+
+query I nosort
+SELECT MIN(col0) FROM region GROUP BY col2
+----
+4 values hashing to ecff58e77dd2707c13cb34b35919814a
+
+query I nosort
+SELECT SUM(col0) FROM region GROUP BY col2
+----
+4 values hashing to 88055b35017ba86417e7499b5bce7249
+
+query  nosort
+SELECT AVG(col0) FROM region GROUP BY col2
+----
+4 values hashing to 7bb942b0149fe9620d099bfa79ce1437
+
+query I nosort
+SELECT COUNT(*) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+query I nosort
+SELECT COUNT(col0) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT COUNT(col1) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT COUNT(col2) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+query I nosort
+SELECT MAX(col2) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to c913bdd4892f16d345edee393e867c0d
+
+query I nosort
+SELECT MIN(col2) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to c913bdd4892f16d345edee393e867c0d
+
+query I nosort
+SELECT SUM(col0) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to 2a52a5e65fc3c43f409550dfad1f904f
+
+query  nosort
+SELECT AVG(col0) FROM region WHERE col2 = 4398046511104
+----
+1 values hashing to c5be9c6a43e6c23f5edef97e325910c3
+
+statement ok
+DROP TABLE region
+

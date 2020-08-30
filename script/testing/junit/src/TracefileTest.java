@@ -3,6 +3,7 @@ import org.junit.jupiter.api.function.Executable;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,7 +57,7 @@ public class TracefileTest {
             lineCounter++;
             String cur_sql = mog.sql.trim();
             int num = queryLine.get(lineCounter);
-            if (mog.queryFirstLine.equals(Constants.STATEMENT_ERROR) || mog.queryFirstLine.equals(Constants.STATEMENT_OK)) {
+            if (mog.queryFirstLine.contains(Constants.STATEMENT_ERROR) || mog.queryFirstLine.contains(Constants.STATEMENT_OK)) {
                 DynamicTest cur = executeNonSelectQuery(num, cur_sql);
                 dTest.add(cur);
             } else {
@@ -145,19 +146,34 @@ public class TracefileTest {
         try {
             statement = conn.createStatement();
             statement.execute(cur_sql);
-            if(mog.queryFirstLine.equals(Constants.STATEMENT_ERROR)){
+            if(mog.queryFirstLine.contains(Constants.STATEMENT_ERROR)){
                 String message = "Failure at Line " + num + ": Expected failure but success"  + "\n " + cur_sql;
                 exec = () -> checkAlwaysFail(message);
             }else{
                 exec = () -> assertEquals(true, true);
             }
         }
-        catch (Throwable e) {
-            if(mog.queryFirstLine.equals(Constants.STATEMENT_OK)){
+        catch (SQLException e) {
+            String code = e.getSQLState();
+            if(mog.queryFirstLine.contains(Constants.STATEMENT_OK)){
                 String message = "Failure at Line " + num + ": Expected success but failure"  + "\n " + cur_sql;
                 exec = () -> checkAlwaysFail(message);
             }else{
-                exec = () -> assertEquals(true, true);
+                // statement error case, with optional error code flag
+                String[] arr = mog.queryFirstLine.split(" ");
+                String parsed_code = arr[arr.length-1];
+                int code2 = -1;
+                try{
+                    code2 = Integer.parseInt(parsed_code);
+                    if(Integer.parseInt(code)!=code2){
+                        exec = () -> checkAlwaysFail("Error code mismatch");
+                    }else{
+                        exec = () -> assertEquals(true, true);
+                    }
+                }catch(Exception e1){
+                    System.out.println("No error code specified");
+                    exec = () -> assertEquals(true, true);
+                }
             }
         }
         DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
