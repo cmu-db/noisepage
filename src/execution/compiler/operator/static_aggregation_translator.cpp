@@ -1,4 +1,5 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
+#include <utility>
 
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -34,8 +35,15 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
   compilation_context->Prepare(*plan.GetChild(0), &build_pipeline_);
 
   // Prepare each of the aggregate expressions.
-  for (const auto agg_term : plan.GetAggregateTerms()) {
+  for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
+    const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
     compilation_context->Prepare(*agg_term->GetChild(0));
+    // FIXME(ricky)
+    if (agg_term->IsDistinct()) {
+      distinct_filters_.emplace(std::make_pair(
+          agg_term_idx,
+          DistinctAggregationFilter(agg_term_idx, agg_term, compilation_context, pipeline, GetCodeGen())));
+    }
   }
 
   // If there's a having clause, prepare it, too.
@@ -45,8 +53,9 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
 
   // Declare global distinct hash table
   auto *codegen = GetCodeGen();
-  ast::Expr *agg_ht_type = codegen->BuiltinType(ast::BuiltinType::AggregationHashTable);
-  distinct_ht_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "distinctHashTable", agg_ht_type);
+  // FIXME(ricky)
+  // ast::Expr *agg_ht_type = codegen->BuiltinType(ast::BuiltinType::AggregationHashTable);
+  // distinct_ht_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "distinctHashTable", agg_ht_type);
 
   ast::Expr *payload_type = codegen->MakeExpr(agg_payload_type_);
   global_aggs_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "aggs", payload_type);
@@ -90,8 +99,13 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
 void StaticAggregationTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   decls->push_back(GeneratePayloadStruct());
-
   decls->push_back(GenerateValuesStruct());
+  // FIXME(ricky)
+  for (auto p : distinct_filters_) {
+    auto agg_term = GetAggPlan().GetAggregateTerms()[p.first];
+    decls->push_back(p.second.GenerateKeyStruct(GetCodeGen(), agg_term));
+    // decls->push_back(p.second.GenerateValuesStruct(agg_term));
+  }
 }
 
 ast::FunctionDecl *StaticAggregationTranslator::GenerateDistinctCheckFunction() {
@@ -131,13 +145,12 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
     }
     decls->push_back(function.Finish());
   }
-  decls->push_back(GenerateDistinctCheckFunction());
-}
 
-// TODO(kunal&ricky): We need a key comparison function for the hash table
-// ast::FunctionDecl *StaticAggregationTranslator::GenerateKeyCheckFunction() {
-//
-//}
+  // Generate key check functions
+  for (auto &p : distinct_filters_) {
+    decls->push_back(p.second.GenerateDistinctCheckFunction(GetCodeGen()));
+  }
+}
 
 ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const {
   auto *codegen = GetCodeGen();
@@ -151,12 +164,15 @@ ast::Expr *StaticAggregationTranslator::GetAggregateTermPtr(ast::Expr *agg_row, 
 
 void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  function->Append(codegen->AggHashTableInit(distinct_ht_.GetPtr(codegen), GetExecutionContext(), GetMemoryPool(),
-                                             agg_payload_type_));
+  for (auto &p : distinct_filters_) {
+    p.second.Initialize(codegen, function, GetExecutionContext(), GetMemoryPool());
+  }
 }
 
 void StaticAggregationTranslator::TearDownQueryState(FunctionBuilder *function) const {
-  function->Append(GetCodeGen()->AggHashTableFree(distinct_ht_.GetPtr(GetCodeGen())));
+  for (auto &p : distinct_filters_) {
+    p.second.TearDown(GetCodeGen(), function);
+  }
 }
 
 void StaticAggregationTranslator::InitializeAggregates(FunctionBuilder *function, bool local) const {
@@ -228,26 +244,20 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
     function->Append(codegen->Assign(lhs, rhs));
   }
 
-  // TODO(kunal&ricky)
-  // For each aggregate terms
-  //  IF it has a distinct predicate:
-  //    1.a hash aggregate term values
-  //    1.b check if value exists
-  //        1.b.i (Exists) do not advance aggregate
-  //        1.b.ii (Not exists) ConstructNewAggregate + AggregatorAdvance
-  //  ELSE it does not have a distinct predict:
-  //    AggregatorAdvance
-
   // Update aggregate.
   for (term_idx = 0; term_idx < GetAggPlan().GetAggregateTerms().size(); term_idx++) {
     auto agg_term = GetAggPlan().GetAggregateTerms().at(term_idx);
+    auto agg_payload_ptr = GetAggregateTermPtr(agg_payload.Get(codegen), term_idx);
+    auto agg_val_ptr = GetAggregateTermPtr(codegen->MakeExpr(agg_values), term_idx);
+    auto agg_advance_call = codegen->AggregatorAdvance(agg_payload_ptr, agg_val_ptr);
+
     if (agg_term->IsDistinct()) {
-      // Check for distinct
-      SkipDuplicate(function, distinct_ht_.GetPtr(codegen), agg_values, agg_payload, term_idx);
+      // Get underlying key value
+      auto val = GetAggregateTerm(codegen->MakeExpr(agg_values), term_idx);
+      auto &filter = distinct_filters_.at(term_idx);
+      filter.AggregateDistinct(codegen, function, agg_advance_call, val);
     } else {
-      auto agg = GetAggregateTermPtr(agg_payload.Get(codegen), term_idx);
-      auto val = GetAggregateTermPtr(codegen->MakeExpr(agg_values), term_idx);
-      function->Append(codegen->AggregatorAdvance(agg, val));
+      function->Append(agg_advance_call);
     }
   }
 }
