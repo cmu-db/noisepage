@@ -566,6 +566,16 @@ SELECT rpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
 query T nosort
+SELECT rpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 169833924fd7174a20b97582f76b479f
+
+query T nosort
+SELECT rpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
 SELECT lpad(str_a_val, 0, str_i_val) AS result FROM functions1 WHERE is_null = 0
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
@@ -587,6 +597,16 @@ SELECT lpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 
 
 query T nosort
 SELECT lpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT lpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 643d9cbbb84f28a8da87255364afd0fe
+
+query T nosort
+SELECT lpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
