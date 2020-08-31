@@ -26,10 +26,8 @@ uint32_t DeferredActionManager::Process(bool process_index) {
   if (daf_metrics_enabled) common::thread_context.metrics_store_->RecordQueueSize(queue_size_);
   // TODO(John, Ling): this is now more conservative than it needs and can artificially delay garbage collection.
   //  We should be able to query the cached oldest transaction (should be cheap) in between each event
-  //  and more aggressively clear the backlog abd the deferred event queue
-  //  the point of taking oldest txn affect gc test.
-  //  We could potentially more aggressively process the backlog and the deferred action queue
-  //  by taking timestamp after processing each event
+  //  and more aggressively clear the deferred event queue.
+  //  The point of taking oldest txn affect gc test.
   auto begin = timestamp_manager_->BeginTransaction();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   // Check out a timestamp from the transaction manager to determine the progress of
@@ -64,8 +62,7 @@ void DeferredActionManager::UnregisterIndexForGC(const common::ManagedPointer<st
 // fact, keeping transaction processing regulare should be more important for throughput than calling this.  Also, this
 // potentially introduces a long pause in normal processing (could be bad) and could block (or be blocked by) DDL.
 //
-// @bug This should be exclusive because concurrent calls to PerformGarbageCollection for the same index may not be
-// thread safe (i.e. bwtrees...)
+
 void DeferredActionManager::ProcessIndexes() {
   common::SharedLatch::ScopedSharedLatch guard(&indexes_latch_);
   for (const auto &index : indexes_) index->PerformGarbageCollection();
@@ -75,7 +72,7 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
   uint32_t processed = 0;
   std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> temp_action_queue;
   bool break_loop = false;
-  for (size_t iter = 0; iter < 1000; iter++) {
+  while (true) {
     // pop a batch of actions
     queue_latch_.Lock();
     for (size_t i = 0; i < BATCH_SIZE; i++) {
