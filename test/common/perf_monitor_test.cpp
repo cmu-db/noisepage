@@ -15,6 +15,7 @@ class PerfMonitorTests : public TerrierTest {
  public:
   static void CreateAndDestroyCatalog(common::PerfMonitor::PerfCounters *const counters) {
     common::PerfMonitor monitor(false);
+    monitor.Start();
 
     auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     db_main.reset();
