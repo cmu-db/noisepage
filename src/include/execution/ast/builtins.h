@@ -317,6 +317,10 @@ namespace terrier::execution::ast {
   F(Length, length)                                                     \
   F(InitCap, initCap)                                                   \
   F(SplitPart, splitPart)                                               \
+  F(Lpad, lpad)                                                         \
+  F(Ltrim, ltrim)                                                       \
+  F(Rpad, rpad)                                                         \
+  F(Rtrim, rtrim)                                                       \
   F(Concat, concat)                                                     \
                                                                         \
   /* Char function */                                                   \

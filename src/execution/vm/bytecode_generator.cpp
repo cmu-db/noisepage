@@ -2297,6 +2297,48 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
       break;
     }
+    case ast::Builtin::Lpad: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      if (call->NumArgs() == 4) {
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+        GetEmitter()->Emit(Bytecode::LPad3Arg, ret, exec_ctx, input_string, len, pad);
+      } else {
+        GetEmitter()->Emit(Bytecode::LPad2Arg, ret, exec_ctx, input_string, len);
+      }
+      break;
+    }
+    case ast::Builtin::Rpad: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      if (call->NumArgs() == 4) {
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+        GetEmitter()->Emit(Bytecode::RPad3Arg, ret, exec_ctx, input_string, len, pad);
+      } else {
+        GetEmitter()->Emit(Bytecode::RPad2Arg, ret, exec_ctx, input_string, len);
+      }
+      break;
+    }
+    case ast::Builtin::Ltrim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      if (call->NumArgs() == 2) {
+        GetEmitter()->Emit(Bytecode::LTrim1Arg, ret, exec_ctx, input_string);
+      } else {
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
+        GetEmitter()->Emit(Bytecode::LTrim2Arg, ret, exec_ctx, input_string, chars);
+      }
+      break;
+    }
+    case ast::Builtin::Rtrim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      if (call->NumArgs() == 2) {
+        GetEmitter()->Emit(Bytecode::RTrim1Arg, ret, exec_ctx, input_string);
+      } else {
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
+        GetEmitter()->Emit(Bytecode::RTrim2Arg, ret, exec_ctx, input_string, chars);
+      }
+      break;
+    }
     case ast::Builtin::Concat: {
       LocalVar input_string1 = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar input_string2 = VisitExpressionForRValue(call->Arguments()[2]);
@@ -2687,6 +2729,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Repeat:
     case ast::Builtin::Trim:
     case ast::Builtin::Trim2:
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rpad:
+    case ast::Builtin::Rtrim:
     case ast::Builtin::Concat: {
       VisitBuiltinStringCall(call, builtin);
       break;
