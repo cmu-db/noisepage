@@ -255,6 +255,7 @@ namespace terrier::execution::ast {
   F(GetIndexPR, getIndexPR)                                             \
   F(IndexInsert, indexInsert)                                           \
   F(IndexInsertUnique, indexInsertUnique)                               \
+  F(IndexInsertWithSlot, indexInsertWithSlot)                           \
   F(IndexDelete, indexDelete)                                           \
   F(StorageInterfaceFree, storageInterfaceFree)                         \
   /* Trig */                                                            \

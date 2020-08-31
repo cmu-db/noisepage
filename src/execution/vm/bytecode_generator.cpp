@@ -2131,6 +2131,13 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       GetExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
+    case ast::Builtin::IndexInsertWithSlot: {
+      LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar unique = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, tuple_slot, unique);
+      break;
+    }
     case ast::Builtin::IndexDelete: {
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexDelete, storage_interface, tuple_slot);
@@ -2663,6 +2670,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::GetIndexPR:
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
+    case ast::Builtin::IndexInsertWithSlot:
     case ast::Builtin::IndexDelete:
     case ast::Builtin::StorageInterfaceFree: {
       VisitBuiltinStorageInterfaceCall(call, builtin);
