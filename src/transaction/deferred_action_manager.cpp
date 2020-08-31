@@ -59,12 +59,12 @@ void DeferredActionManager::UnregisterIndexForGC(const common::ManagedPointer<st
 
 // TODO(John:GC) What is the right way to invoke this?  Should it be a periodic task in the deferred action queue or
 // special cased (which feels dirty)?  Frequency of call should not affect index performance just memory usage.  In
-// fact, keeping transaction processing regulare should be more important for throughput than calling this.  Also, this
+// fact, keeping transaction processing regular should be more important for throughput than calling this.  Also, this
 // potentially introduces a long pause in normal processing (could be bad) and could block (or be blocked by) DDL.
 //
-
 void DeferredActionManager::ProcessIndexes() {
-  common::SharedLatch::ScopedSharedLatch guard(&indexes_latch_);
+  // TODO(Ling): Our current implementation only allows one thread to GC the index.
+  common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
   for (const auto &index : indexes_) index->PerformGarbageCollection();
 }
 
