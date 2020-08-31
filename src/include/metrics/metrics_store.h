@@ -58,7 +58,7 @@ class MetricsStore {
   }
 
   /**
-   * Record metrics from the deferred action processing
+   * Record metrics from the deferred action processed
    * @param daf_id type of the deferred action
    * @param resource_metrics second entry of metrics datapoint
    */
@@ -68,26 +68,14 @@ class MetricsStore {
     gc_metric_->RecordActionData(daf_id);
   }
 
+  /**
+   * Record current deferred action queue size
+   * @param queue_size Size of the deferred action queue
+   */
   void RecordQueueSize(const uint32_t queue_size) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
     TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
     gc_metric_->RecordQueueSize(queue_size);
-  }
-
-  void RecordAfterQueueSize(const uint32_t queue_size) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
-    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordAfterQueueSize(queue_size);
-  }
-
-  bool CheckWakeUp() {
-    return gc_metric_->CheckWakeUp();
-  }
-
-  void RecordDafWakeup() {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");
-    TERRIER_ASSERT(gc_metric_ != nullptr, "GarbageCollectionMetric not allocated. Check MetricsStore constructor.");
-    gc_metric_->RecordDafWakeup();
   }
 
   /**
