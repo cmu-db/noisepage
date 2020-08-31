@@ -26,6 +26,7 @@ namespace terrier {
 #define ABORT_EXCEPTION(msg) AbortException(msg, __FILE__, __LINE__)
 #define BINDER_EXCEPTION(msg, code) BinderException(msg, __FILE__, __LINE__, (code))
 #define SETTINGS_EXCEPTION(msg, code) SettingsException(msg, __FILE__, __LINE__, (code))
+#define ARITHMETIC_EXCEPTION(msg, code) ArithmeticException(msg, __FILE__, __LINE__, (code))
 
 /**
  * Exception types
@@ -41,7 +42,8 @@ enum class ExceptionType : uint8_t {
   SETTINGS,
   OPTIMIZER,
   SYNTAX,
-  EXECUTION
+  EXECUTION,
+  ARITHMETIC
 };
 
 /**
@@ -92,6 +94,8 @@ class Exception : public std::runtime_error {
         return "Optimizer";
       case ExceptionType::EXECUTION:
         return "Execution";
+      case ExceptionType::ARITHMETIC:
+        return "Arithmetic";
       default:
         return "Unknown exception type";
     }
@@ -157,6 +161,7 @@ DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
 DEFINE_EXCEPTION(ExecutionException, ExceptionType::EXECUTION);
 DEFINE_EXCEPTION(AbortException, ExceptionType::EXECUTION);
+DEFINE_EXCEPTION_WITH_ERRCODE(ArithmeticException, ExceptionType::ARITHMETIC);
 DEFINE_EXCEPTION_WITH_ERRCODE(BinderException, ExceptionType::BINDER);
 DEFINE_EXCEPTION_WITH_ERRCODE(SettingsException, ExceptionType::SETTINGS);
 
