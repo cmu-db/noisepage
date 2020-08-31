@@ -653,9 +653,10 @@ bool LogicalSemiJoinToPhysicalSemiLeftHashJoin::Check(common::ManagedPointer<Abs
   return true;
 }
 
-void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
-                                                          std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                                                          UNUSED_ATTRIBUTE OptimizationContext *context) const {
+void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(
+    common::ManagedPointer<AbstractOptimizerNode> input,
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
   // first build an expression representing hash join
   const auto semi_join = input->Contents()->GetContentsAs<LogicalSemiJoin>();
 

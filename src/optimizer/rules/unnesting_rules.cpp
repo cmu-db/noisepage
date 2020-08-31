@@ -180,7 +180,9 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   c.emplace_back(agg_expr->GetChildren()[0]->Copy());
   std::vector<AnnotatedExpression> new_having = aggregation->GetHaving();
   auto new_aggr = std::make_unique<OperatorNode>(
-      LogicalAggregateAndGroupBy::Make(std::move(new_groupby_cols), std::move(new_having)).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(c), context->GetOptimizerContext()->GetTxn());
+      LogicalAggregateAndGroupBy::Make(std::move(new_groupby_cols), std::move(new_having))
+          .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+      std::move(c), context->GetOptimizerContext()->GetTxn());
 
   // Create a new inner join node from single join
   std::vector<std::unique_ptr<AbstractOptimizerNode>> ci;
@@ -188,12 +190,16 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   if (!down_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
     cf.emplace_back(std::move(new_aggr));
-    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(down_predicates)).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(cf), context->GetOptimizerContext()->GetTxn());
+    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(down_predicates))
+                                                     .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                                 std::move(cf), context->GetOptimizerContext()->GetTxn());
     ci.emplace_back(std::move(filter));
   } else {
     ci.emplace_back(std::move(new_aggr));
   }
-  auto new_inner = std::make_unique<OperatorNode>(LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(ci), context->GetOptimizerContext()->GetTxn());
+  auto new_inner = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(ci),
+      context->GetOptimizerContext()->GetTxn());
 
   std::unique_ptr<OperatorNode> output;
   // Create new filter nodes
