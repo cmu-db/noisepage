@@ -21,9 +21,6 @@ class AbstractRawData {
  public:
   virtual ~AbstractRawData() = default;
 
-  virtual void SetGCMetricsWakeUpTime() {}
-  virtual void PrintNeeded() {}
-
   /**
    * Given another AbstractRawData classes, combine the other's content with the
    * content of this one. It is guaranteed that nobody will have access to the

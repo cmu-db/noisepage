@@ -28,13 +28,9 @@ class DeferredActionManager {
    * off.
    */
   explicit DeferredActionManager(const common::ManagedPointer<TimestampManager> timestamp_manager)
-      : timestamp_manager_(timestamp_manager), daf_tags_(DAF_TAG_COUNT) {
-    for (size_t i = 0; i < DAF_TAG_COUNT; i++)  // NOLINT
-      daf_tags_[i] = 0;
-  }
+      : timestamp_manager_(timestamp_manager) {}
 
   ~DeferredActionManager() {
-//    TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
     TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
   }
 
@@ -112,13 +108,13 @@ class DeferredActionManager {
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
-  std::vector<std::atomic<uint16_t>> daf_tags_;
   common::SpinLatch queue_latch_;
 
   // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
   //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
   //  and looks inefficient if there is not much to gc. Preferably make index gc action a deferred action that gets
   //  added to the deferred action queue either in a fixed interval or after a threshold number of tombstones
+  //  However, we can't simply remove the vector of index until we make the PerformGC method of Bwtree concurrent
   void ProcessIndexes();
 
   uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled);
