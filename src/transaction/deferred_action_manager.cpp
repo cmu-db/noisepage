@@ -28,6 +28,7 @@ uint32_t DeferredActionManager::Process(bool process_index) {
   //  We should be able to query the cached oldest transaction (should be cheap) in between each event
   //  and more aggressively clear the deferred event queue.
   //  The point of taking oldest txn affect gc test.
+  timestamp_manager_->CheckOutTimestamp();
   auto begin = timestamp_manager_->BeginTransaction();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   // Check out a timestamp from the transaction manager to determine the progress of
