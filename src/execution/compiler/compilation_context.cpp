@@ -299,7 +299,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       const auto &cte_scan = dynamic_cast<const planner::CteScanPlanNode &>(plan);
       translator = std::make_unique<CteScanTranslator>(cte_scan, this, pipeline);
       break;
-    }  
+    }
     case planner::PlanNodeType::CREATE_INDEX: {
       const auto &create_index = dynamic_cast<const planner::CreateIndexPlanNode &>(plan);
       translator = std::make_unique<IndexCreateTranslator>(create_index, this, pipeline);
