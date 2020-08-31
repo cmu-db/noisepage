@@ -128,71 +128,46 @@ class OptimizerContext {
   }
 
   /**
-   * Converts an OperatorNode into a GroupExpression.
+   * Converts an AbstractOptimizerNode into a GroupExpression.
    * The GroupExpression is internal tracking that is focused on the concept
-   * of groups rather than operators like OperatorNode.
+   * of groups rather than expressions/operators like AbstractOptimizerNode.
    *
-   * Subtrees of the OperatorNode are individually converted to
+   * Subtrees of the AbstractOptimizerNode are individually converted to
    * GroupExpressions and inserted into Memo, which allows for duplicate
    * detection. The root GroupExpression, however, is not automatically
    * inserted into Memo.
    *
-   * @param expr OperatorNode to convert
-   * @returns GroupExpression representing OperatorNode
+   * @param node AbstractOptimizerNode to convert
+   * @returns GroupExpression representing AbstractOptimizerNode
    */
-  GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorNode> expr) {
-    std::vector<group_id_t> child_groups;
-    for (auto &child : expr->GetChildren()) {
-      if (child->GetOp().GetType() == OpType::LEAF) {
-        // Special case for LEAF
-        const auto leaf = child->GetOp().As<LeafOperator>();
-        auto child_group = leaf->GetOriginGroup();
-        child_groups.push_back(child_group);
-      } else {
-        // Create a GroupExpression for the child
-        auto gexpr = MakeGroupExpression(child);
-
-        // Insert into the memo (this allows for duplicate detection)
-        auto mexpr = memo_.InsertExpression(gexpr, false);
-        if (mexpr == nullptr) {
-          // Delete if need to (see InsertExpression spec)
-          child_groups.push_back(gexpr->GetGroupID());
-          delete gexpr;
-        } else {
-          child_groups.push_back(mexpr->GetGroupID());
-        }
-      }
-    }
-
-    return new GroupExpression(expr->GetOp(), std::move(child_groups));
-  }
+  GroupExpression *MakeGroupExpression(common::ManagedPointer<AbstractOptimizerNode> node);
 
   /**
-   * A group contains all logical/physically equivalent OperatorNodes.
-   * Function try to add an equivalent OperatorNode by creating a new group.
+   * A group contains all logical/physically equivalent AbstractOptimizerNodes.
+   * Function try to add an equivalent AbstractOptimizerNode by creating a new group.
    *
-   * @param expr OperatorNode to add
+   * @param node AbstractOptimizerNode to add
    * @param gexpr Existing GroupExpression or new GroupExpression
-   * @returns Whether the OperatorNode has been added before
+   * @returns Whether the AbstractOptimizerNode has been added before
    */
-  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr) {
-    return RecordOperatorNodeIntoGroup(expr, gexpr, UNDEFINED_GROUP);
+  bool RecordOptimizerNodeIntoGroup(common::ManagedPointer<AbstractOptimizerNode> node, GroupExpression **gexpr) {
+    return RecordOptimizerNodeIntoGroup(node, gexpr, UNDEFINED_GROUP);
   }
 
   /**
-   * A group contains all logical/physically equivalent OperatorNodes.
-   * Function adds a logically/physically equivalent OperatorNode to the specified group.
+   * A group contains all logical/physically equivalent AbstractOptimizerNode.
+   * Function adds a logically/physically equivalent AbstractOptimizerNode to the specified group.
    * This function is invoked by tasks which explore the plan search space
    * through rules (recording all "equivalent" expressions for cost/selection later).
    *
-   * @param expr OperatorNode to record into the group
+   * @param node AbstractOptimizerNode to record into the group
    * @param gexpr Existing GroupExpression or new GroupExpression
-   * @param target_group ID of the Group that the OperatorNode belongs to
-   * @returns Whether the OperatorNode has been added before
+   * @param target_group ID of the Group that the AbstractOptimizerNode belongs to
+   * @returns Whether the AbstractOptimizerNode has been added before
    */
-  bool RecordOperatorNodeIntoGroup(common::ManagedPointer<OperatorNode> expr, GroupExpression **gexpr,
-                                   group_id_t target_group) {
-    auto new_gexpr = MakeGroupExpression(expr);
+  bool RecordOptimizerNodeIntoGroup(common::ManagedPointer<AbstractOptimizerNode> node, GroupExpression **gexpr,
+                                    group_id_t target_group) {
+    auto new_gexpr = MakeGroupExpression(node);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
 
@@ -201,16 +176,16 @@ class OptimizerContext {
   }
 
   /**
-   * Replaces the OperatorNode in a given group.
+   * Replaces the AbstractOptimizerNode in a given group.
    * This is used primarily for the rewrite stage of the Optimizer
    * (i.e predicate push-down, query unnesting)
    *
-   * @param expr OperatorNode to store into the group
+   * @param node AbstractOptimizerNode to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewriteExpression(common::ManagedPointer<OperatorNode> expr, group_id_t target_group) {
+  void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
     memo_.EraseExpression(target_group);
-    UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
+    UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
   }
 
@@ -219,9 +194,9 @@ class OptimizerContext {
   RuleSet rule_set_;
   common::ManagedPointer<AbstractCostModel> cost_model_;
   OptimizerTaskPool *task_pool_;
-  catalog::CatalogAccessor *accessor_;
-  StatsStorage *stats_storage_;
-  transaction::TransactionContext *txn_;
+  catalog::CatalogAccessor *accessor_{};
+  StatsStorage *stats_storage_{};
+  transaction::TransactionContext *txn_{};
   std::vector<OptimizationContext *> track_list_;
 };
 

@@ -68,10 +68,6 @@ int main(int argc, char *argv[]) {
   // Initialize debug loggers
   terrier::LoggersUtil::Initialize();
 
-  // initialize stat registry
-  auto main_stat_reg =
-      std::make_unique<terrier::common::StatisticsRegistry>();  // TODO(Matt): do we still want this thing?
-
   // Generate Settings Manager map
   std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
   terrier::settings::SettingsManager::ConstructParamMap(param_map);
@@ -79,9 +75,6 @@ int main(int argc, char *argv[]) {
   auto db_main = terrier::DBMain::Builder()
                      .SetSettingsParameterMap(std::move(param_map))
                      .SetUseSettingsManager(true)
-                     .SetUseMetrics(true)
-                     .SetUseMetricsThread(true)
-                     .SetUseLogging(true)
                      .SetUseGC(true)
                      .SetUseCatalog(true)
                      .SetUseGCThread(true)
@@ -96,6 +89,5 @@ int main(int argc, char *argv[]) {
   db_main->Run();
 
   terrier::LoggersUtil::ShutDown();
-  main_stat_reg->Shutdown(true);
   return 0;
 }

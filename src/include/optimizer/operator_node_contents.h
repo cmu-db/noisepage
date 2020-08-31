@@ -3,9 +3,15 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
+#include "optimizer/abstract_optimizer_node_contents.h"
 #include "optimizer/optimizer_defs.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+}  // namespace terrier::transaction
 
 namespace terrier::optimizer {
 
@@ -17,7 +23,7 @@ class OperatorVisitor;
 /**
  * Base class for operators
  */
-class BaseOperatorNodeContents {
+class BaseOperatorNodeContents : public AbstractOptimizerNodeContents {
  public:
   /**
    * Default constructor
@@ -27,7 +33,7 @@ class BaseOperatorNodeContents {
   /**
    * Default destructor
    */
-  virtual ~BaseOperatorNodeContents() = default;
+  ~BaseOperatorNodeContents() override = default;
 
   /**
    * Copy
@@ -39,42 +45,67 @@ class BaseOperatorNodeContents {
    * Utility method for visitor pattern
    * @param v operator visitor for visitor pattern
    */
-  virtual void Accept(common::ManagedPointer<OperatorVisitor> v) const = 0;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override = 0;
 
   /**
    * @return the string name of this operator
    */
-  virtual std::string GetName() const = 0;
+  std::string GetName() const override = 0;
 
   /**
    * @return the type of this operator
    */
-  virtual OpType GetType() const = 0;
+  OpType GetOpType() const override = 0;
+
+  /**
+   * @return the ExpressionType of this operator (invalid expression type)
+   */
+  parser::ExpressionType GetExpType() const override = 0;
 
   /**
    * @return whether this operator is logical
    */
-  virtual bool IsLogical() const = 0;
+  bool IsLogical() const override = 0;
 
   /**
    * @return whether this operator is physical
    */
-  virtual bool IsPhysical() const = 0;
+  bool IsPhysical() const override = 0;
 
   /**
    * @return the hashed value of this operator
    */
-  virtual common::hash_t Hash() const {
-    OpType t = GetType();
+  common::hash_t Hash() const override {
+    OpType t = GetOpType();
     return common::HashUtil::Hash(t);
   }
+
+  /**
+   * Equality check
+   * @param r The other (abstract) node contents
+   * @return true if this operator is logically equal to the other, false otherwise
+   */
+  bool operator==(const AbstractOptimizerNodeContents &r) override {
+    if (r.GetOpType() != OpType::UNDEFINED) {
+      const auto &contents = dynamic_cast<const BaseOperatorNodeContents &>(r);
+      return (*this == contents);
+    }
+    return false;
+  }
+
+  /**
+   * Inequality check
+   * @param r The other (abstract) node contents
+   * @return false if this operator is logically equal to the other, true otherwise
+   */
+  bool operator!=(const AbstractOptimizerNodeContents &r) { return !(operator==(r)); }
 
   /**
    * Equality check
    * @param r other
    * @return true if this operator is logically equal to other, false otherwise
    */
-  virtual bool operator==(const BaseOperatorNodeContents &r) { return GetType() == r.GetType(); }
+  virtual bool operator==(const BaseOperatorNodeContents &r) { return GetOpType() == r.GetOpType(); }
 
   /**
    * Inequality check
@@ -111,7 +142,12 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
   /**
    * @return type of the underlying operator
    */
-  OpType GetType() const override { return type; }
+  OpType GetOpType() const override { return type; }
+
+  /**
+   * @return ExpressionType of the operator (invalid expression type)
+   */
+  parser::ExpressionType GetExpType() const override { return parser::ExpressionType::INVALID; }
 
   /**
    * @return whether the underlying operator is logical
@@ -138,7 +174,7 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
 /**
  * Logical and physical operators
  */
-class Operator {
+class Operator : public AbstractOptimizerNodeContents {
  public:
   /**
    * Default constructor
@@ -149,7 +185,7 @@ class Operator {
    * Create a new operator from a BaseOperatorNodeContents
    * @param contents a BaseOperatorNodeContents that specifies basic info about the operator to be created
    */
-  explicit Operator(std::unique_ptr<BaseOperatorNodeContents> contents);
+  explicit Operator(common::ManagedPointer<BaseOperatorNodeContents> contents);
 
   /**
    * Move constructor
@@ -160,27 +196,37 @@ class Operator {
   /**
    * Copy constructor for Operator
    */
-  Operator(const Operator &op) : contents_(op.contents_->Copy()) {}
+  Operator(const Operator &op) : AbstractOptimizerNodeContents(op.contents_) {}
+
+  /**
+   * Default destructor
+   */
+  ~Operator() override = default;
 
   /**
    * Calls corresponding visitor to this operator node
    */
-  void Accept(common::ManagedPointer<OperatorVisitor> v) const;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
 
   /**
    * @return string name of this operator
    */
-  std::string GetName() const;
+  std::string GetName() const override;
 
   /**
    * @return type of this operator
    */
-  OpType GetType() const;
+  OpType GetOpType() const override;
+
+  /**
+   * @return ExpressionType for operator (Invalid expression type)
+   */
+  parser::ExpressionType GetExpType() const override;
 
   /**
    * @return hashed value of this operator
    */
-  common::hash_t Hash() const;
+  common::hash_t Hash() const override;
 
   /**
    * Logical equality check
@@ -199,39 +245,25 @@ class Operator {
   /**
    * @return true if the operator is defined, false otherwise
    */
-  bool IsDefined() const;
+  bool IsDefined() const override;
 
   /**
    * @return true if the operator is logical, false otherwise
    */
-  bool IsLogical() const;
+  bool IsLogical() const override;
 
   /**
    * @return true if the operator is physical, false otherwise
    */
-  bool IsPhysical() const;
+  bool IsPhysical() const override;
 
   /**
-   * Re-interpret the operator
-   * @tparam T the type of the operator to be re-interpreted as
-   * @return pointer to the re-interpreted operator, nullptr if the types mismatch
+   * Registers the operator with the provided transaction context, so that
+   *   its memory will be freed when the transaction commits or aborts.
+   * @param txn the transaction context it's registered to
+   * @return this operator (for easy chaining)
    */
-  template <typename T>
-  common::ManagedPointer<T> As() const {
-    if (contents_) {
-      auto &n = *contents_;
-      if (typeid(n) == typeid(T)) {
-        return common::ManagedPointer<T>(reinterpret_cast<T *>(contents_.get()));
-      }
-    }
-    return nullptr;
-  }
-
- private:
-  /**
-   * Pointer to the base operator
-   */
-  std::unique_ptr<BaseOperatorNodeContents> contents_;
+  Operator RegisterWithTxnContext(transaction::TransactionContext *txn);
 };
 }  // namespace terrier::optimizer
 

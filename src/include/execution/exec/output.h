@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-#include <iostream>
 #include <memory>
 #include <sstream>
 #include <unordered_map>
@@ -10,16 +8,18 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 #include "network/network_defs.h"
 #include "parser/parser_defs.h"
-#include "planner/plannodes/output_schema.h"
 
 namespace terrier::network {
 class PostgresPacketWriter;
-}
+}  // namespace terrier::network
+
+namespace terrier::planner {
+class OutputSchema;
+}  // namespace terrier::planner
 
 namespace terrier::execution::exec {
 
@@ -74,6 +74,11 @@ class EXPORT OutputBuffer {
    * Destructor
    */
   ~OutputBuffer();
+
+  /**
+   * @returns tuple size
+   */
+  uint32_t GetTupleSize() const { return tuple_size_; }
 
  private:
   sql::MemoryPool *memory_pool_;

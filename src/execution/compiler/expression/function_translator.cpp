@@ -1,35 +1,40 @@
 #include "execution/compiler/expression/function_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
-#include "execution/udf/udf_context.h"
 
+#include "catalog/catalog_accessor.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/work_context.h"
+#include "execution/functions/function_context.h"
 #include "parser/expression/function_expression.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::execution::compiler {
-FunctionTranslator::FunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen) {
-  for (auto child : expression->GetChildren()) {
-    params_.push_back(TranslatorFactory::CreateExpressionTranslator(child.Get(), codegen_));
+
+FunctionTranslator::FunctionTranslator(const parser::FunctionExpression &expr, CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {
+  for (const auto child : expr.GetChildren()) {
+    compilation_context->Prepare(*child);
   }
 }
 
-ast::Expr *FunctionTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  auto func_expr = GetExpressionAs<parser::FunctionExpression>();
-  auto proc_oid = func_expr->GetProcOid();
-  auto udf_ctx = codegen_->Accessor()->GetUDFContext(proc_oid);
-  if (!udf_ctx->IsBuiltin()) {
-    UNREACHABLE("We don't support non-builtin UDF's yet!");
+ast::Expr *FunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  auto *codegen = GetCodeGen();
+
+  const auto &func_expr = GetExpressionAs<parser::FunctionExpression>();
+  auto proc_oid = func_expr.GetProcOid();
+  auto func_context = codegen->GetCatalogAccessor()->GetFunctionContext(proc_oid);
+  if (!func_context->IsBuiltin()) {
+    UNREACHABLE("User-defined functions are not supported");
   }
 
   std::vector<ast::Expr *> params;
-  if (udf_ctx->IsExecCtxRequired()) {
-    params.push_back(codegen_->MakeExpr(codegen_->GetExecCtxVar()));
+  if (func_context->IsExecCtxRequired()) {
+    params.push_back(GetExecutionContextPtr());
   }
-  for (auto &param : params_) {
-    params.push_back(param->DeriveExpr(evaluator));
+  for (auto child : func_expr.GetChildren()) {
+    auto *derived_expr = ctx->DeriveValue(*child, provider);
+    params.push_back(derived_expr);
   }
 
-  return codegen_->BuiltinCall(udf_ctx->GetBuiltin(), std::move(params));
+  return codegen->CallBuiltin(func_context->GetBuiltin(), params);
 }
-};  // namespace terrier::execution::compiler
+
+}  // namespace terrier::execution::compiler

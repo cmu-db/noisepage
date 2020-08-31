@@ -2,13 +2,13 @@
 #include <atomic>
 #include <condition_variable>  // NOLINT
 #include <functional>
-#include <iostream>
 #include <mutex>  // NOLINT
 #include <queue>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
 #include <vector>
+
 #include "common/macros.h"
 
 namespace terrier::common {

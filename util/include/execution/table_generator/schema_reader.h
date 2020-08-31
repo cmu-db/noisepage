@@ -6,12 +6,13 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "loggers/execution_logger.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
@@ -123,7 +124,7 @@ class SchemaReader {
     // Read Table name and num_cols
     uint32_t num_cols;
     schema_file >> table_info->table_name_ >> num_cols;
-    EXECUTION_LOG_INFO("Reading table {} with {} columns", table_info->table_name_, num_cols);
+    EXECUTION_LOG_TRACE("Reading table {} with {} columns", table_info->table_name_, num_cols);
     // Read columns & create table schema
     table_info->cols_ = ReadColumns(&schema_file, num_cols);
     // Read num_indexes & create index information
@@ -179,7 +180,7 @@ class SchemaReader {
   }
 
   terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
+    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
  private:

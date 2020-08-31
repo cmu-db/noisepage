@@ -1,0 +1,1381 @@
+statement ok
+CREATE TABLE t1(a INTEGER, b INTEGER, c INTEGER, d INTEGER, e INTEGER)
+
+statement ok
+INSERT INTO t1(e,c,b,d,a) VALUES(103,102,100,101,104)
+
+statement ok
+INSERT INTO t1(a,c,d,e,b) VALUES(107,106,108,109,105)
+
+statement ok
+INSERT INTO t1(e,d,b,a,c) VALUES(110,114,112,111,113)
+
+statement ok
+INSERT INTO t1(d,c,e,a,b) VALUES(116,119,117,115,118)
+
+statement ok
+INSERT INTO t1(c,d,b,e,a) VALUES(123,122,124,120,121)
+
+statement ok
+INSERT INTO t1(a,d,b,e,c) VALUES(127,128,129,126,125)
+
+statement ok
+INSERT INTO t1(e,c,a,d,b) VALUES(132,134,131,133,130)
+
+statement ok
+INSERT INTO t1(a,d,b,e,c) VALUES(138,136,139,135,137)
+
+statement ok
+INSERT INTO t1(e,c,d,a,b) VALUES(144,141,140,142,143)
+
+statement ok
+INSERT INTO t1(b,a,e,d,c) VALUES(145,149,146,148,147)
+
+statement ok
+INSERT INTO t1(b,c,a,d,e) VALUES(151,150,153,154,152)
+
+statement ok
+INSERT INTO t1(c,e,a,d,b) VALUES(155,157,159,156,158)
+
+statement ok
+INSERT INTO t1(c,b,a,d,e) VALUES(161,160,163,164,162)
+
+statement ok
+INSERT INTO t1(b,d,a,e,c) VALUES(167,169,168,165,166)
+
+statement ok
+INSERT INTO t1(d,b,c,e,a) VALUES(171,170,172,173,174)
+
+statement ok
+INSERT INTO t1(e,c,a,d,b) VALUES(177,176,179,178,175)
+
+statement ok
+INSERT INTO t1(b,e,a,d,c) VALUES(181,180,182,183,184)
+
+statement ok
+INSERT INTO t1(c,a,b,e,d) VALUES(187,188,186,189,185)
+
+statement ok
+INSERT INTO t1(d,b,c,e,a) VALUES(190,194,193,192,191)
+
+statement ok
+INSERT INTO t1(a,e,b,d,c) VALUES(199,197,198,196,195)
+
+statement ok
+INSERT INTO t1(b,c,d,a,e) VALUES(200,202,203,201,204)
+
+statement ok
+INSERT INTO t1(c,e,a,b,d) VALUES(208,209,205,206,207)
+
+statement ok
+INSERT INTO t1(c,e,a,d,b) VALUES(214,210,213,212,211)
+
+statement ok
+INSERT INTO t1(b,c,a,d,e) VALUES(218,215,216,217,219)
+
+statement ok
+INSERT INTO t1(b,e,d,a,c) VALUES(223,221,222,220,224)
+
+statement ok
+INSERT INTO t1(d,e,b,a,c) VALUES(226,227,228,229,225)
+
+statement ok
+INSERT INTO t1(a,c,b,e,d) VALUES(234,231,232,230,233)
+
+statement ok
+INSERT INTO t1(e,b,a,c,d) VALUES(237,236,239,235,238)
+
+statement ok
+INSERT INTO t1(e,c,b,a,d) VALUES(242,244,240,243,241)
+
+statement ok
+INSERT INTO t1(e,d,c,b,a) VALUES(246,248,247,249,245)
+
+query II nosort
+SELECT a+b*2+c*3+d*4+e*5,
+(a+b+c+d+e)/5
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to 808146289313018fce25f1a280bd8c30
+
+query II nosort
+SELECT a,
+b
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to f88a6f6656b30fc5b3c4ede940008ff2
+
+query IIIIII nosort
+SELECT d,
+a+b*2+c*3+d*4+e*5,
+a+b*2+c*3,
+c-d,
+(a+b+c+d+e)/5,
+a-b
+FROM t1
+ORDER BY 3,4,2,6,5,1
+----
+180 values hashing to 4cf6744bf5d3826cd98ad853eeb5beba
+
+query IIIIII nosort
+SELECT a-b,
+a,
+a+b*2+c*3,
+b,
+d,
+d-e
+FROM t1
+WHERE (e>a AND e<b)
+ORDER BY 2,6,4,1,5,3
+----
+24 values hashing to afd55bf27f337fa6f2554d2ae3726e96
+
+query III nosort
+SELECT a,
+c-d,
+d
+FROM t1
+WHERE c>d
+AND a>b
+AND (a>b-2 AND a<b+2)
+ORDER BY 1,2,3
+----
+6 values hashing to 77fd4c9f3518e50d5bb33ac743f5242d
+
+query IIIII nosort
+SELECT a+b*2+c*3,
+a+b*2+c*3+d*4+e*5,
+c,
+(a+b+c+d+e)/5,
+b
+FROM t1
+ORDER BY 5,4,1,3,2
+----
+150 values hashing to b5d3c38c9410c06baec2ae85a2834ffd
+
+query I nosort
+SELECT a+b*2+c*3
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 20bb63abd067ae8ef5a05f08be3b6762
+
+query I nosort
+SELECT e
+FROM t1
+WHERE b>c
+AND d>e
+ORDER BY 1
+----
+8 values hashing to e3f96226b7ebe7a11e2f77d34145ac4a
+
+query II nosort
+SELECT b,
+e
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+ORDER BY 2,1
+----
+30 values hashing to e2107ed9f44c1f14fa1a14b1818a2073
+
+query IIII nosort
+SELECT b-c,
+d-e,
+c-d,
+a+b*2+c*3
+FROM t1
+ORDER BY 1,2,4,3
+----
+120 values hashing to d9fe6e44ef568e5ddcdd440b1c1058b2
+
+query I nosort
+SELECT e
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+AND (a>b-2 AND a<b+2)
+ORDER BY 1
+----
+1 values hashing to 12fd838288a9836dcb33694479b34c4f
+
+query I nosort
+SELECT b-c
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 970be304ddec1d2bede8d8e2f14368c6
+
+query IIIII nosort
+SELECT (a+b+c+d+e)/5,
+a-b,
+b,
+a+b*2,
+a
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+AND (e>c OR e<d)
+AND d>e
+ORDER BY 4,2,5,3,1
+----
+25 values hashing to 4d716c3a4be4e2c0fcaeb771d9557147
+
+query II nosort
+SELECT a+b*2+c*3,
+a
+FROM t1
+WHERE (e>c OR e<d)
+OR a>b
+ORDER BY 1,2
+----
+56 values hashing to fedff1b28e56669aacb1dc79b927abf9
+
+query I nosort
+SELECT e
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 41762f74ba25ab0f9b0448f319f2f292
+
+query I nosort
+SELECT (a+b+c+d+e)/5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 8d2279ba80763220505cecac39786e90
+
+query IIIII nosort
+SELECT c,
+d,
+a+b*2+c*3,
+a-b,
+e
+FROM t1
+ORDER BY 3,2,1,5,4
+----
+150 values hashing to 2064f4d12bd17daef2792157a3fa01ac
+
+query I nosort
+SELECT a+b*2+c*3+d*4+e*5
+FROM t1
+WHERE (e>a AND e<b)
+AND (e>c OR e<d)
+AND (c<=d-2 OR c>=d+2)
+ORDER BY 1
+----
+1 values hashing to f189b0d87466e6f510175a04b9913b37
+
+query III nosort
+SELECT a+b*2+c*3+d*4,
+b,
+a-b
+FROM t1
+WHERE c>d
+OR d>e
+OR b>c
+ORDER BY 3,1,2
+----
+84 values hashing to 35aa92c733c1c60fedff6d6a36a4e64f
+
+query I nosort
+SELECT a-b
+FROM t1
+ORDER BY 1
+----
+30 values hashing to c2001bebc4d3d2d6b01a5a50ce4282ca
+
+query II nosort
+SELECT b-c,
+a+b*2+c*3+d*4+e*5
+FROM t1
+WHERE b>c
+AND a>b
+AND (e>a AND e<b)
+ORDER BY 2,1
+----
+
+
+query II nosort
+SELECT c-d,
+e
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+AND c>d
+ORDER BY 2,1
+----
+12 values hashing to 536e87880b7535393cfec01b6b44b09e
+
+query II nosort
+SELECT a+b*2+c*3+d*4,
+a+b*2+c*3
+FROM t1
+WHERE b>c
+ORDER BY 1,2
+----
+28 values hashing to 7626a6dc10da4bbb0672aba278414d7f
+
+query IIII nosort
+SELECT a+b*2+c*3+d*4,
+a+b*2+c*3+d*4+e*5,
+a,
+a+b*2
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+OR a>b
+OR b>c
+ORDER BY 3,1,2,4
+----
+112 values hashing to ac8288fa97219e018be4a8600f11d525
+
+query I nosort
+SELECT b
+FROM t1
+ORDER BY 1
+----
+30 values hashing to bac2461f7c1f964c0863658a20e1c90b
+
+query I nosort
+SELECT a+b*2+c*3
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 20bb63abd067ae8ef5a05f08be3b6762
+
+query IIIII nosort
+SELECT (a+b+c+d+e)/5,
+a+b*2,
+a+b*2+c*3+d*4+e*5,
+a,
+d-e
+FROM t1
+WHERE d>e
+AND (e>a AND e<b)
+AND b>c
+ORDER BY 1,5,3,4,2
+----
+5 values hashing to 235acf0594006dce9965e86e446b1803
+
+query I nosort
+SELECT a+b*2+c*3
+FROM t1
+WHERE b>c
+OR a>b
+OR (e>a AND e<b)
+ORDER BY 1
+----
+28 values hashing to 8a2f1569db1be3db575496e85928f459
+
+query IIII nosort
+SELECT a-b,
+a+b*2+c*3+d*4,
+d,
+e
+FROM t1
+ORDER BY 2,4,1,3
+----
+120 values hashing to fa86590cde28cc33911bb46fb0ec59e1
+
+query IIIIII nosort
+SELECT d,
+(a+b+c+d+e)/5,
+a+b*2+c*3,
+a+b*2+c*3+d*4+e*5,
+d-e,
+c
+FROM t1
+WHERE d>e
+OR (e>a AND e<b)
+OR (e>c OR e<d)
+ORDER BY 2,3,1,4,5,6
+----
+174 values hashing to bfaefefd9e122c30da40356d11e517b0
+
+query I nosort
+SELECT d
+FROM t1
+WHERE (e>a AND e<b)
+OR (e>c OR e<d)
+ORDER BY 1
+----
+29 values hashing to dd2f68e88e982f64348a02e0ea88e9e6
+
+query I nosort
+SELECT d-e
+FROM t1
+WHERE a>b
+AND (c<=d-2 OR c>=d+2)
+ORDER BY 1
+----
+10 values hashing to 85ba30eef17fc9cad69f60d48a75b0b9
+
+query I nosort
+SELECT e
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 41762f74ba25ab0f9b0448f319f2f292
+
+query IIIII nosort
+SELECT a+b*2,
+a,
+d,
+c,
+(a+b+c+d+e)/5
+FROM t1
+ORDER BY 4,2,3,1,5
+----
+150 values hashing to 669ba5af7838e6691a8c9d82c2fe58d8
+
+query III nosort
+SELECT a+b*2+c*3+d*4+e*5,
+b-c,
+d-e
+FROM t1
+ORDER BY 2,3,1
+----
+90 values hashing to 577bb9d41043fa7499fca863c9201ba8
+
+query I nosort
+SELECT a+b*2+c*3+d*4+e*5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 9a0d83a47e9ea85f0da38e0f9ca27f2e
+
+query II nosort
+SELECT (a+b+c+d+e)/5,
+c
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+ORDER BY 1,2
+----
+30 values hashing to 0f5786c35d6a3334fe23ccebd6d6b4f8
+
+query I nosort
+SELECT d
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 0c542471646c50440dc6eda5bb1b61a8
+
+query II nosort
+SELECT a+b*2+c*3+d*4+e*5,
+b-c
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 2,1
+----
+22 values hashing to 5df231969b8d5bdc0ea1ed90ff3b23d2
+
+query III nosort
+SELECT a+b*2+c*3+d*4,
+(a+b+c+d+e)/5,
+b
+FROM t1
+ORDER BY 1,2,3
+----
+90 values hashing to 532651aa8e5c293b169f68dbcbc547ff
+
+query III nosort
+SELECT b-c,
+a-b,
+a+b*2
+FROM t1
+ORDER BY 1,2,3
+----
+90 values hashing to 421f11d9db40e5b3cfea3a86c2b3bf1c
+
+query I nosort
+SELECT a+b*2+c*3+d*4+e*5
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+ORDER BY 1
+----
+15 values hashing to 21fef18aeb42508fd385db124bd2a8cc
+
+query IIIII nosort
+SELECT a+b*2+c*3+d*4,
+(a+b+c+d+e)/5,
+d,
+e,
+a+b*2
+FROM t1
+ORDER BY 2,3,4,1,5
+----
+150 values hashing to 9f8c9a18fe3256a5427a7cbef090f435
+
+query III nosort
+SELECT b,
+e,
+b-c
+FROM t1
+ORDER BY 2,1,3
+----
+90 values hashing to 600c8683d405cc652ef67b480900c83f
+
+query IIII nosort
+SELECT a+b*2+c*3,
+a+b*2+c*3+d*4,
+a-b,
+a+b*2
+FROM t1
+WHERE d>e
+AND c>d
+AND a>b
+ORDER BY 3,1,2,4
+----
+12 values hashing to 22099d5488a4d865c8fe18b2de1567c6
+
+query III nosort
+SELECT b,
+a+b*2+c*3,
+d-e
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 3,1,2
+----
+33 values hashing to 4464e6b6019973b9357faf1898fdb3f3
+
+query I nosort
+SELECT a+b*2
+FROM t1
+WHERE a>b
+OR (e>c OR e<d)
+ORDER BY 1
+----
+28 values hashing to accae7212929fbefc8d634ddef286572
+
+query II nosort
+SELECT b,
+a+b*2
+FROM t1
+WHERE (e>a AND e<b)
+OR (a>b-2 AND a<b+2)
+OR (e>c OR e<d)
+ORDER BY 2,1
+----
+58 values hashing to 6e904065f56e9d17cd6aa8d20a330f24
+
+query III nosort
+SELECT b-c,
+a,
+d-e
+FROM t1
+ORDER BY 1,3,2
+----
+90 values hashing to 1f593201ad9d2210fa9b56b756bc1237
+
+query I nosort
+SELECT a-b
+FROM t1
+WHERE c>d
+ORDER BY 1
+----
+14 values hashing to 28d7a52ffd1e2866a0fa7582a43ec38e
+
+query II nosort
+SELECT d,
+c
+FROM t1
+ORDER BY 2,1
+----
+60 values hashing to 69d4ff328a48a4f568bea511642fb2b6
+
+query IIII nosort
+SELECT b-c,
+a+b*2+c*3+d*4,
+c-d,
+a-b
+FROM t1
+ORDER BY 2,4,3,1
+----
+120 values hashing to 7c9d31e357ba5e9ca4d8d2ef8f56117a
+
+query I nosort
+SELECT c
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 70364ca416eb4255377b03cd243b032a
+
+query I nosort
+SELECT b
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 1
+----
+11 values hashing to c11ff9c2a7e1278b7c296c552128c88a
+
+query III nosort
+SELECT a+b*2+c*3+d*4+e*5,
+a-b,
+a+b*2+c*3
+FROM t1
+ORDER BY 2,3,1
+----
+90 values hashing to eb08dc2a0f14d493bfe5f8cf91fb03ba
+
+query II nosort
+SELECT e,
+a+b*2+c*3
+FROM t1
+WHERE (e>a AND e<b)
+OR b>c
+OR (e>c OR e<d)
+ORDER BY 2,1
+----
+58 values hashing to 1ffc5abf8d6961518c76505d9de3ccda
+
+query I nosort
+SELECT (a+b+c+d+e)/5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 8d2279ba80763220505cecac39786e90
+
+query III nosort
+SELECT e,
+a+b*2+c*3+d*4,
+(a+b+c+d+e)/5
+FROM t1
+ORDER BY 2,3,1
+----
+90 values hashing to a693972973d8fc824fbad0bfa2fd3a4a
+
+query IIII nosort
+SELECT c-d,
+d-e,
+d,
+a+b*2+c*3
+FROM t1
+ORDER BY 3,2,4,1
+----
+120 values hashing to 437e9c1325f85bf8fe189bd06339009d
+
+query III nosort
+SELECT b,
+a,
+a+b*2+c*3+d*4
+FROM t1
+ORDER BY 3,1,2
+----
+90 values hashing to 891035696f9a04823f3dbdce5a5c13d9
+
+query I nosort
+SELECT a-b
+FROM t1
+ORDER BY 1
+----
+30 values hashing to c2001bebc4d3d2d6b01a5a50ce4282ca
+
+query I nosort
+SELECT c
+FROM t1
+WHERE (e>c OR e<d)
+ORDER BY 1
+----
+27 values hashing to f46e34330cef7bee4b17e127fcb2433f
+
+query IIIII nosort
+SELECT c-d,
+a-b,
+a+b*2+c*3+d*4,
+a+b*2+c*3+d*4+e*5,
+(a+b+c+d+e)/5
+FROM t1
+ORDER BY 3,2,4,5,1
+----
+150 values hashing to 02281452fc49042060157771c16a930d
+
+query I nosort
+SELECT a+b*2+c*3+d*4
+FROM t1
+ORDER BY 1
+----
+30 values hashing to a97f06c7abca35ed0602e7a54b6ca0ac
+
+query III nosort
+SELECT d-e,
+c-d,
+a
+FROM t1
+WHERE b>c
+AND (e>a AND e<b)
+AND c>d
+ORDER BY 1,2,3
+----
+3 values hashing to f1d0067704e8086f8de856e3843f873b
+
+query II nosort
+SELECT a+b*2+c*3+d*4+e*5,
+c
+FROM t1
+WHERE d>e
+OR (e>c OR e<d)
+ORDER BY 2,1
+----
+54 values hashing to 7ef904f67c0bd193d03e91e943f2254d
+
+query III nosort
+SELECT a,
+a+b*2+c*3+d*4,
+d
+FROM t1
+ORDER BY 1,3,2
+----
+90 values hashing to b368ccf9ec5229d5659d6054528d110f
+
+query III nosort
+SELECT c-d,
+a+b*2+c*3,
+a
+FROM t1
+ORDER BY 1,2,3
+----
+90 values hashing to 7c21a2e1ae8c9a9f0c09afe41b297db1
+
+query I nosort
+SELECT d
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 0c542471646c50440dc6eda5bb1b61a8
+
+query IIII nosort
+SELECT e,
+a-b,
+c,
+a
+FROM t1
+ORDER BY 1,4,2,3
+----
+120 values hashing to 66537dce5d5a5988d8089fe9e8d59800
+
+query III nosort
+SELECT (a+b+c+d+e)/5,
+e,
+a-b
+FROM t1
+ORDER BY 3,1,2
+----
+90 values hashing to 5e58fb2a3eb3e54d048b0a60f2d6e477
+
+query I nosort
+SELECT d
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 0c542471646c50440dc6eda5bb1b61a8
+
+query II nosort
+SELECT a-b,
+d-e
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 2,1
+----
+22 values hashing to afe0aa8cffc769721328534eeed4055a
+
+query II nosort
+SELECT a,
+c-d
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to b22ea8da7d71e791d7a5b66555b3a4c4
+
+query I nosort
+SELECT (a+b+c+d+e)/5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 8d2279ba80763220505cecac39786e90
+
+query I nosort
+SELECT a+b*2+c*3+d*4+e*5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 9a0d83a47e9ea85f0da38e0f9ca27f2e
+
+query III nosort
+SELECT d,
+b,
+(a+b+c+d+e)/5
+FROM t1
+WHERE (e>c OR e<d)
+ORDER BY 1,3,2
+----
+81 values hashing to 6a859601ac2f0273b048c199ef8ded71
+
+query II nosort
+SELECT a-b,
+a+b*2
+FROM t1
+WHERE b>c
+OR c>d
+ORDER BY 2,1
+----
+48 values hashing to 90d735f794a41b2883dfdd912dba4f9b
+
+query III nosort
+SELECT b-c,
+a+b*2,
+b
+FROM t1
+ORDER BY 2,3,1
+----
+90 values hashing to 1b9686dadfd2cec59f0bce345217b20d
+
+query I nosort
+SELECT a
+FROM t1
+WHERE (e>c OR e<d)
+ORDER BY 1
+----
+27 values hashing to 96f1b2d40968aae8aa5efb71c05401fd
+
+query I nosort
+SELECT c
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 70364ca416eb4255377b03cd243b032a
+
+query II nosort
+SELECT c,
+a+b*2+c*3+d*4
+FROM t1
+WHERE b>c
+AND (a>b-2 AND a<b+2)
+AND (e>a AND e<b)
+ORDER BY 2,1
+----
+
+
+query I nosort
+SELECT a
+FROM t1
+WHERE d>e
+ORDER BY 1
+----
+16 values hashing to 952e6c754c450612dd99b9d315977052
+
+query I nosort
+SELECT a+b*2+c*3+d*4
+FROM t1
+WHERE b>c
+ORDER BY 1
+----
+14 values hashing to 840c9b8b71971d5911654f07be8e4708
+
+query I nosort
+SELECT b-c
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 970be304ddec1d2bede8d8e2f14368c6
+
+query I nosort
+SELECT c
+FROM t1
+WHERE b>c
+ORDER BY 1
+----
+14 values hashing to 18666cb3224ae801a1972a186fe5843f
+
+query II nosort
+SELECT a+b*2,
+b
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to 93d843e5c13d5f55222d50bb9152eb1e
+
+query I nosort
+SELECT a+b*2+c*3+d*4
+FROM t1
+ORDER BY 1
+----
+30 values hashing to a97f06c7abca35ed0602e7a54b6ca0ac
+
+query IIIII nosort
+SELECT (a+b+c+d+e)/5,
+b,
+a+b*2+c*3+d*4+e*5,
+c,
+d-e
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+OR c>d
+ORDER BY 2,5,3,4,1
+----
+100 values hashing to d6ab882caeb85ea55130fe69c466a44e
+
+query III nosort
+SELECT a,
+(a+b+c+d+e)/5,
+a+b*2+c*3+d*4
+FROM t1
+WHERE c>d
+AND (c<=d-2 OR c>=d+2)
+AND (e>c OR e<d)
+ORDER BY 3,2,1
+----
+9 values hashing to 401e6addcfa1c054285b2d9d1a3b7161
+
+query IIIII nosort
+SELECT d-e,
+c-d,
+a+b*2+c*3+d*4+e*5,
+a+b*2+c*3+d*4,
+a
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+ORDER BY 1,2,5,3,4
+----
+75 values hashing to 91e95036e8737e2902f3561cf2148b7c
+
+query I nosort
+SELECT a+b*2+c*3+d*4+e*5
+FROM t1
+WHERE a>b
+ORDER BY 1
+----
+19 values hashing to 48eb7e59034740832c393d911a912d77
+
+query I nosort
+SELECT b-c
+FROM t1
+WHERE d>e
+ORDER BY 1
+----
+16 values hashing to c5cb15074dbce6c2853b664f05e5a06a
+
+query III nosort
+SELECT a+b*2+c*3,
+d-e,
+a-b
+FROM t1
+WHERE (e>a AND e<b)
+OR d>e
+OR (e>c OR e<d)
+ORDER BY 2,3,1
+----
+87 values hashing to 680b619be1265b7bc4eb9d45e3fcb324
+
+query I nosort
+SELECT a-b
+FROM t1
+WHERE (e>c OR e<d)
+ORDER BY 1
+----
+27 values hashing to e7100a9a9684fb20d83162187da839e4
+
+query IIIII nosort
+SELECT b,
+a,
+(a+b+c+d+e)/5,
+b-c,
+e
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+OR a>b
+ORDER BY 3,1,2,5,4
+----
+120 values hashing to 9fc494d65a15058f4386b7654088f517
+
+query I nosort
+SELECT a+b*2+c*3+d*4+e*5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 9a0d83a47e9ea85f0da38e0f9ca27f2e
+
+query II nosort
+SELECT a,
+(a+b+c+d+e)/5
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to 46131633c62f2d9e6f547c327a590045
+
+query II nosort
+SELECT a+b*2+c*3,
+a+b*2+c*3+d*4
+FROM t1
+WHERE b>c
+AND a>b
+ORDER BY 1,2
+----
+14 values hashing to 09449abc628f43f2b2cfd09cb028fcbd
+
+query I nosort
+SELECT c-d
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 1
+----
+11 values hashing to 03dc6d78aaa470425875f87a9c9eeab5
+
+query III nosort
+SELECT a+b*2+c*3,
+a-b,
+c-d
+FROM t1
+WHERE a>b
+ORDER BY 1,3,2
+----
+57 values hashing to ef45e87dcde7a60906a6839e404a6b19
+
+query IIII nosort
+SELECT c-d,
+e,
+(a+b+c+d+e)/5,
+a+b*2+c*3+d*4+e*5
+FROM t1
+ORDER BY 4,1,3,2
+----
+120 values hashing to 179b1a322c10a0b9d1ec5b326ea081e1
+
+query II nosort
+SELECT b-c,
+c
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to 5dbfa03f06c7e5ccaaab18dc8fe14c36
+
+query I nosort
+SELECT d
+FROM t1
+WHERE d>e
+ORDER BY 1
+----
+16 values hashing to 8e559d439152e33138660c7aa7710793
+
+query I nosort
+SELECT b
+FROM t1
+WHERE d>e
+OR (e>a AND e<b)
+OR (a>b-2 AND a<b+2)
+ORDER BY 1
+----
+24 values hashing to 94f786f5e40682c2bbc4979d44bfbe20
+
+query III nosort
+SELECT (a+b+c+d+e)/5,
+b-c,
+a
+FROM t1
+ORDER BY 3,1,2
+----
+90 values hashing to 7ead3c920199ae810a2ae8119e9797cd
+
+query III nosort
+SELECT a+b*2+c*3+d*4+e*5,
+a,
+a+b*2
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+ORDER BY 2,1,3
+----
+45 values hashing to b667af4ebb350909eba296967ceeb7db
+
+query IIII nosort
+SELECT a+b*2+c*3,
+c-d,
+d,
+a
+FROM t1
+ORDER BY 3,2,1,4
+----
+120 values hashing to 99149ba966bceda06aa78c50f1a92ceb
+
+query IIIIII nosort
+SELECT b-c,
+a+b*2+c*3+d*4,
+c-d,
+a,
+d-e,
+c
+FROM t1
+WHERE d>e
+ORDER BY 3,4,1,5,6,2
+----
+96 values hashing to a2adef429b6e4247068b4049bbe324c2
+
+query IIIII nosort
+SELECT a,
+d-e,
+c,
+a+b*2,
+e
+FROM t1
+WHERE a>b
+OR c>d
+OR (c<=d-2 OR c>=d+2)
+ORDER BY 2,3,5,4,1
+----
+140 values hashing to 9644b07604668d80e82ada3908306f8b
+
+query IIIIII nosort
+SELECT b,
+a-b,
+a+b*2+c*3+d*4+e*5,
+a+b*2+c*3,
+c,
+c-d
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+ORDER BY 5,3,4,6,1,2
+----
+90 values hashing to 81d55ba8fc8d4f980c895049d3ced18b
+
+query I nosort
+SELECT a
+FROM t1
+WHERE d>e
+ORDER BY 1
+----
+16 values hashing to 952e6c754c450612dd99b9d315977052
+
+query III nosort
+SELECT a+b*2,
+b-c,
+a+b*2+c*3
+FROM t1
+WHERE (e>c OR e<d)
+ORDER BY 2,3,1
+----
+81 values hashing to 87ef93a2fb3074f84f96ba99640b4492
+
+query III nosort
+SELECT a+b*2+c*3+d*4+e*5,
+a-b,
+a+b*2+c*3+d*4
+FROM t1
+WHERE b>c
+AND a>b
+ORDER BY 1,3,2
+----
+21 values hashing to 6e285698d68e49feed2cfcec62881d8f
+
+query I nosort
+SELECT c
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 1
+----
+11 values hashing to 0e007f7dde263c5d47ba4a5ac5ad1b3d
+
+query I nosort
+SELECT (a+b+c+d+e)/5
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 8d2279ba80763220505cecac39786e90
+
+query I nosort
+SELECT (a+b+c+d+e)/5
+FROM t1
+WHERE b>c
+ORDER BY 1
+----
+14 values hashing to e353df4d3a72978b3f4fd672cd9bf5fd
+
+query IIII nosort
+SELECT b-c,
+a,
+a+b*2+c*3+d*4,
+d
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+AND c>d
+AND d>e
+ORDER BY 4,2,3,1
+----
+12 values hashing to 8ffc4e78f33b8122501c601b2692870a
+
+query III nosort
+SELECT e,
+d-e,
+a+b*2+c*3
+FROM t1
+ORDER BY 2,3,1
+----
+90 values hashing to 77b9f35e0dae20699e29f95090443b31
+
+query III nosort
+SELECT a+b*2+c*3,
+c-d,
+d-e
+FROM t1
+WHERE (c<=d-2 OR c>=d+2)
+OR (e>a AND e<b)
+ORDER BY 2,3,1
+----
+48 values hashing to 07d61cbdc1b1a770028513bc1000183b
+
+query III nosort
+SELECT a-b,
+c-d,
+b
+FROM t1
+WHERE (e>a AND e<b)
+ORDER BY 3,1,2
+----
+12 values hashing to b1152eb06806863ed3686d7bf4c6c661
+
+query I nosort
+SELECT d-e
+FROM t1
+ORDER BY 1
+----
+30 values hashing to 4693bcd1d8668b362b0c8373297c511b
+
+query II nosort
+SELECT a+b*2,
+e
+FROM t1
+ORDER BY 2,1
+----
+60 values hashing to 38d959c66fd021952542450eb9e1d47c
+
+query II nosort
+SELECT a+b*2,
+(a+b+c+d+e)/5
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+ORDER BY 1,2
+----
+22 values hashing to 1d743292f7c8b06b88b42a776aa4c895
+
+query I nosort
+SELECT a+b*2
+FROM t1
+WHERE (a>b-2 AND a<b+2)
+AND b>c
+ORDER BY 1
+----
+6 values hashing to 61a7c5d62a8e432e7d074a8bf576719b
+
+query I nosort
+SELECT c
+FROM t1
+WHERE b>c
+OR (e>c OR e<d)
+ORDER BY 1
+----
+28 values hashing to 3a0971879ea1b00ced3f4fa214148c62
+
+query II nosort
+SELECT b,
+c
+FROM t1
+ORDER BY 2,1
+----
+60 values hashing to 2276c23f13eb557d0c37f88904c8e9c6
+
+query IIIIIII nosort
+SELECT (a+b+c+d+e)/5,
+c-d,
+a+b*2+c*3+d*4,
+d-e,
+b-c,
+e,
+a+b*2+c*3+d*4+e*5
+FROM t1
+ORDER BY 7,1,2,4,6,5,3
+----
+210 values hashing to e422c1ef11d9f9184ad371f3657b668a
+
+query II nosort
+SELECT c,
+b
+FROM t1
+WHERE a>b
+OR b>c
+ORDER BY 1,2
+----
+52 values hashing to fde099baa23ed9f3ff2a2988e2603220
+
+query I nosort
+SELECT e
+FROM t1
+WHERE (e>c OR e<d)
+OR (c<=d-2 OR c>=d+2)
+OR (e>a AND e<b)
+ORDER BY 1
+----
+30 values hashing to 41762f74ba25ab0f9b0448f319f2f292
+
+query III nosort
+SELECT a+b*2+c*3+d*4+e*5,
+b,
+a-b
+FROM t1
+ORDER BY 1,2,3
+----
+90 values hashing to 99b07f07bebaeafdec57423602e76a03
+
+query II nosort
+SELECT d,
+a+b*2+c*3+d*4
+FROM t1
+ORDER BY 1,2
+----
+60 values hashing to 53a93bddba583cbe7defea013e483a67
+
+query I nosort
+SELECT a+b*2
+FROM t1
+WHERE a>b
+ORDER BY 1
+----
+19 values hashing to b35d36526e48396f7cd935a35558bee5
+
+query II nosort
+SELECT a+b*2,
+a+b*2+c*3
+FROM t1
+WHERE b>c
+ORDER BY 1,2
+----
+28 values hashing to 287303499a01f42db629b309cc2a7bf5
+
+query III nosort
+SELECT d-e,
+c,
+d
+FROM t1
+ORDER BY 3,2,1
+----
+90 values hashing to 618667761e11a57327170cb4090cd805
+
+query II nosort
+SELECT d-e,
+c
+FROM t1
+WHERE (e>a AND e<b)
+ORDER BY 1,2
+----
+8 values hashing to 47439e65a7040fd9adf9c8037de183e5
+
+query II nosort
+SELECT d-e,
+a+b*2+c*3
+FROM t1
+ORDER BY 2,1
+----
+60 values hashing to 66a495f8d2f4e26e2f3cd7a2b8bbbbe1
+
+query III nosort
+SELECT a,
+a+b*2+c*3,
+(a+b+c+d+e)/5
+FROM t1
+ORDER BY 2,3,1
+----
+90 values hashing to a94a0b4568605d51d7e9a369e55805d8

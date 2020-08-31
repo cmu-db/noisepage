@@ -61,13 +61,13 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
   for (col_id_t col_id : layout.AllColumns()) {
     ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
     // TODO(Yuze): Change column name when we have the information, which we may need from upper layers.
-    auto name = flatbuf_builder->CreateString("Col" + std::to_string(!col_id));
+    auto name = flatbuf_builder->CreateString("Col" + std::to_string(col_id.UnderlyingValue()));
     flatbuf::Type type;
     flatbuffers::Offset<void> type_offset;
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = data_table_.accessor_.GetBlockLayout().AttrSize(col_id);
-      switch ((*col_types)[!col_id]) {
+      switch ((*col_types)[col_id.UnderlyingValue()]) {
         case type::TypeId::BOOLEAN:
           type = flatbuf::Type_Bool;
           type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
@@ -164,7 +164,7 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
   data_table_.blocks_latch_.Lock();
-  std::list<RawBlock *> tmp_blocks = data_table_.blocks_;
+  std::vector<RawBlock *> tmp_blocks = data_table_.blocks_;
   data_table_.blocks_latch_.Unlock();
 
   for (RawBlock *block : tmp_blocks) {

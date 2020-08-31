@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "common/json.h"
 
 namespace terrier::planner {
 
@@ -20,6 +21,9 @@ nlohmann::json IndexJoinPlanNode::ToJson() const {
   nlohmann::json j = AbstractJoinPlanNode::ToJson();
   j["index_oid"] = index_oid_;
   j["table_oid"] = table_oid_;
+  j["scan_type"] = scan_type_;
+  j["lo_index_cols"] = lo_index_cols_;
+  j["hi_index_cols"] = hi_index_cols_;
   return j;
 }
 
@@ -31,5 +35,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> IndexJoinPlanNode::From
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(IndexJoinPlanNode);
 
 }  // namespace terrier::planner

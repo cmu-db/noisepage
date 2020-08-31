@@ -15,13 +15,13 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'echo y | ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && timeout 20m make check-format'
+                        sh 'cd build && timeout 20m make check-lint'
+                        sh 'cd build && timeout 20m make check-censored'
                     }
                     post {
                         cleanup {
@@ -38,13 +38,13 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'echo y | sudo ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && timeout 20m make check-format'
+                        sh 'cd build && timeout 20m make check-lint'
+                        sh 'cd build && timeout 20m make check-censored'
                     }
                     post {
                         cleanup {
@@ -65,13 +65,13 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'echo y | sudo ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 1h make check-format'
-                        sh 'cd build && timeout 1h make check-lint'
-                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && timeout 20m make check-format'
+                        sh 'cd build && timeout 20m make check-lint'
+                        sh 'cd build && timeout 20m make check-censored'
                     }
                     post {
                         cleanup {
@@ -92,15 +92,20 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -116,16 +121,20 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache lsof'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -144,13 +153,13 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install curl lcov ccache'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_GENERATE_COVERAGE=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -158,12 +167,17 @@ pipeline {
                         sh 'cd build && lcov --remove coverage.info \'*/benchmark/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
+                        sh 'cd build && lcov --remove coverage.info \'*/src/include/common/error/*\' --output-file coverage.info'
                         sh 'cd build && lcov --list coverage.info'
                         sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
                         sh 'cd build && chmod a+x ./codecov.sh'
                         sh 'cd build && /bin/bash ./codecov.sh -X gcov'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -183,16 +197,20 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache lsof'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -207,14 +225,19 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -230,15 +253,19 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -258,15 +285,19 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'sudo apt-get -y install ccache'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && python3 ../script/testing/junit/run_junit.py --build-type=release'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
+                        always {
+                            archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
+                            xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
+                        }
                         cleanup {
                             deleteDir()
                         }
@@ -274,8 +305,8 @@ pipeline {
                 }
             }
         }
-        
-        stage('End-to-End') {
+
+        stage('End-to-End Debug') {
             parallel{
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
@@ -285,14 +316,15 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
-                        // TODO: Loading the smallbank database with multiple threads is broken on OSX
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=1'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug'
+                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug'
+                        sh 'cd build && gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug'
+                        // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
+                        // sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -304,18 +336,20 @@ pipeline {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
-                            args '--cap-add sys_ptrace'
+                            args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tatp 2,35,10,35,2,14,2 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py smallbank 15,15,15,25,15,15 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=release --loader-threads=4'
-                        sh 'cd build && python3 ../script/testing/oltpbench/run_oltpbench.py noop 100 --build-type=release'
+                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug'
+                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug'
+                        sh 'cd build && timeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug'
+                        // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
+                        // sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
                     }
                     post {
                         cleanup {
@@ -325,13 +359,22 @@ pipeline {
                 }
             }
         }
-
+        stage('End-to-End Performance') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh all'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
+                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release' 
+                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
+            }
+        }
         stage('Microbenchmark') {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'echo y | sudo ./script/installation/packages.sh'
-                sh 'sudo apt-get -y install ccache'
+                sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
                 // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config

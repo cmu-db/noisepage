@@ -1,11 +1,10 @@
 #include "storage/storage_util.h"
-#include <algorithm>
+
 #include <cstring>
-#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
@@ -13,10 +12,8 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
-#include "test_util/catalog_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier {
 
@@ -142,8 +139,8 @@ TEST_F(StorageUtilTests, ApplyDelta) {
     // check changes has been applied
     for (uint16_t delta_col_offset = 0; delta_col_offset < rand_initializer.NumColumns(); ++delta_col_offset) {
       storage::col_id_t col = rand_initializer.ColId(delta_col_offset);
-      auto old_col_offset =
-          static_cast<uint16_t>(!col - storage::NUM_RESERVED_COLUMNS);  // since all columns were in the old one
+      auto old_col_offset = static_cast<uint16_t>(
+          col.UnderlyingValue() - storage::NUM_RESERVED_COLUMNS);  // since all columns were in the old one
       byte *delta_val_ptr = delta->AccessWithNullCheck(delta_col_offset);
       byte *old_val_ptr = old->AccessWithNullCheck(old_col_offset);
       if (delta_val_ptr == nullptr) {
@@ -177,16 +174,14 @@ TEST_F(StorageUtilTests, ApplyDelta) {
 // Ensure that the ForceOid function for schemas works as intended
 // NOLINTNEXTLINE
 TEST_F(StorageUtilTests, ForceOid) {
-  auto index_col = catalog::IndexSchema::Column(
-      "", type::TypeId::INTEGER, false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto index_col = catalog::IndexSchema::Column("", type::TypeId::INTEGER, false,
+                                                parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto idx_col_oid = catalog::indexkeycol_oid_t(1);
   StorageTestUtil::ForceOid(&(index_col), idx_col_oid);
   EXPECT_EQ(index_col.Oid(), idx_col_oid);
 
-  auto col = catalog::Schema::Column(
-      "iHateStorage", type::TypeId::INTEGER, false,
-      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto col = catalog::Schema::Column("iHateStorage", type::TypeId::INTEGER, false,
+                                     parser::ConstantValueExpression(type::TypeId::INTEGER));
   auto col_oid = catalog::col_oid_t(2);
   StorageTestUtil::ForceOid(&(col), col_oid);
   EXPECT_EQ(col.Oid(), col_oid);

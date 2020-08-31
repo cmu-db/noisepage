@@ -22,19 +22,21 @@ class EndtoendEstimator:
     """
 
     def __init__(self, input_path, model_results_path, mini_model_map, global_resource_model,
-                 global_impact_model):
+                 global_impact_model, global_direct_model):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.mini_model_map = mini_model_map
         self.global_resource_model = global_resource_model
         self.global_impact_model = global_impact_model
+        self.global_direct_model = global_direct_model
 
     def estimate(self):
         """Train the mini-models
 
         :return: the map of the trained models
         """
-        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path, self.mini_model_map,
+        resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
+                                                                                      self.mini_model_map,
                                                                                       self.model_results_path)
         return self._global_model_prediction(resource_data_list, impact_data_list)
 
@@ -57,33 +59,58 @@ class EndtoendEstimator:
         for i, data in enumerate(resource_data_list):
             data.y_pred = y_pred[i]
 
+        self._model_prediction_with_derived_data(impact_data_list, "impact", self.global_impact_model)
+
+        self._model_prediction_with_derived_data(impact_data_list, "direct", self.global_direct_model)
+
+    def _model_prediction_with_derived_data(self, impact_data_list, model_name, model):
         # Then apply the global impact model
         x = []
         y = []
+        mini_model_y_pred = []  # The labels directly predicted from the mini models
+        raw_y = []  # The actual labels
         # The input feature is (normalized mini model prediction, predicted global resource util, the predicted
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
-        for d in tqdm.tqdm(impact_data_list, desc="Construct data for the impact model"):
-            mini_model_y_pred = d.target_grouped_op_unit_data.y_pred
-            predicted_elapsed_us = mini_model_y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
-            x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.resource_data.y_pred,
+        for d in tqdm.tqdm(impact_data_list, desc="Construct data for the {} model".format(model_name)):
+            mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
+            raw_y.append(d.target_grouped_op_unit_data.y)
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
+            predicted_resource_util = None
+            if model_name == "impact":
+                predicted_resource_util = d.resource_data.y_pred
+            if model_name == "direct":
+                predicted_resource_util = d.resource_data.x
+            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
-            y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1e-6))
-
-            memory_idx = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
-            # FIXME: fix the dummy memory value later
-            x[-1][mini_model_y_pred.shape[0] + memory_idx] = 1
-            y[-1][memory_idx] = 1
+            y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred + 1))
 
         # Predict
         x = np.array(x)
         y = np.array(y)
-        y_pred = self.global_impact_model.predict(x)
+        y_pred = model.predict(x)
 
         # Record results
-        self._record_results(x, y, y_pred, "impact")
+        self._record_results(x, y, y_pred, model_name)
+
+        # Calculate the accumulated ratio error
+        mini_model_y_pred = np.array(mini_model_y_pred)
+        raw_y = np.array(raw_y)
+        raw_y_pred = (mini_model_y_pred + 1) * y_pred
+        accumulated_raw_y = np.sum(raw_y, axis=0)
+        accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
+        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1), axis=0)
+        ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + 1), axis=0)
+        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
+        original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
+                accumulated_raw_y + 1)
+
+        logging.info('Original Ratio Error: {}'.format(original_ratio_error))
+        logging.info('Ratio Error: {}'.format(ratio_error))
+        logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
+        logging.info('Accumulated Ratio Error: {}'.format(accumulated_percentage_error))
 
     def _record_results(self, x, y, y_pred, label):
         """Record the prediction results
@@ -108,8 +135,9 @@ class EndtoendEstimator:
             original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
         else:
             original_ratio_error = np.average(np.abs(1/(y+1e-6) - 1), axis=0)
-        logging.info('Original Ratio Error: {}'.format(original_ratio_error))
-        logging.info('Ratio Error: {}'.format(ratio_error))
+        logging.info('Model Original Ratio Error ({}): {}'.format(label, original_ratio_error))
+        logging.info('Model Ratio Error ({}): {}'.format(label, ratio_error))
+        logging.info('')
 
 
 # ==============================================
@@ -126,6 +154,8 @@ if __name__ == '__main__':
                          help='File of the saved global resource model')
     aparser.add_argument('--global_impact_model_file', default='trained_model/global_impact_model.pickle',
                          help='File of the saved global impact model')
+    aparser.add_argument('--global_direct_model_file', default='trained_model/global_direct_model.pickle',
+                         help='File of the saved global impact model')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -137,5 +167,8 @@ if __name__ == '__main__':
         resource_model = pickle.load(pickle_file)
     with open(args.global_impact_model_file, 'rb') as pickle_file:
         impact_model = pickle.load(pickle_file)
-    estimator = EndtoendEstimator(args.input_path, args.model_results_path, model_map, resource_model, impact_model)
+    with open(args.global_direct_model_file, 'rb') as pickle_file:
+        direct_model = pickle.load(pickle_file)
+    estimator = EndtoendEstimator(args.input_path, args.model_results_path, model_map, resource_model, impact_model,
+                                  direct_model)
     estimator.estimate()

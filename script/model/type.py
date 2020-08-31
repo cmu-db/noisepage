@@ -4,7 +4,6 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
-
 class Target(enum.Enum):
     """The output targets for the operating units
     """
@@ -21,41 +20,39 @@ class Target(enum.Enum):
     ELAPSED_US = 10,
 
 
-class OpUnit(enum.Enum):
+class OpUnit(enum.IntEnum):
     """The enum for all the operating units
 
     For each operating unit, the first upper case name should be used in the codebase,
     and the second lower case name (alias) is to match the string identifier from the csv data file
     """
-    GC_DEALLOC = 0,
-    gc_deallocate = 0,
-    GC_UNLINK = 1,
-    gc_unlink = 1,
-    LOG_SERIAL = 2,
-    log_serializer_task = 2,
-    LOG_CONSUME = 3,
-    disk_log_consumer_task = 3,
-    TXN_BEGIN = 4,
-    txn_begin = 4,
-    TXN_COMMIT = 5,
-    txn_commit = 5,
+    GC = 0,
+    LOG_SERIALIZER_TASK = 1,
+    DISK_LOG_CONSUMER_TASK = 2,
+    TXN_BEGIN = 3,
+    TXN_COMMIT = 4,
 
     # Execution engine opunits
-    SEQ_SCAN = 6,
-    HASHJOIN_BUILD = 7,
-    HASHJOIN_PROBE = 8,
-    AGG_BUILD = 9,
-    AGG_ITERATE = 10,
-    SORT_BUILD = 11,
-    SORT_ITERATE = 12,
-    OP_INTEGER_PLUS_OR_MINUS = 13,
-    OP_INTEGER_MULTIPLY = 14,
-    OP_INTEGER_DIVIDE = 15,
-    OP_INTEGER_COMPARE = 16,
-    OP_DECIMAL_PLUS_OR_MINUS = 17,
-    OP_DECIMAL_MULTIPLY = 18,
-    OP_DECIMAL_DIVIDE = 19,
-    OP_DECIMAL_COMPARE = 20,
+    OUTPUT = 6,
+    OP_INTEGER_PLUS_OR_MINUS = 7,
+    OP_INTEGER_MULTIPLY = 8,
+    OP_INTEGER_DIVIDE = 9,
+    OP_INTEGER_COMPARE = 10,
+    OP_DECIMAL_PLUS_OR_MINUS = 11,
+    OP_DECIMAL_MULTIPLY = 12,
+    OP_DECIMAL_DIVIDE = 13,
+    OP_DECIMAL_COMPARE = 14,
+    SEQ_SCAN = 15,
+    IDX_SCAN = 16,
+    HASHJOIN_BUILD = 17,
+    HASHJOIN_PROBE = 18,
+    AGG_BUILD = 19,
+    AGG_ITERATE = 20,
+    SORT_BUILD = 21,
+    SORT_ITERATE = 22,
+    INSERT = 23,
+    UPDATE = 24,
+    DELETE = 25,
 
 
 class ArithmeticFeature(enum.Enum):

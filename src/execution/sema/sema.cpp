@@ -9,11 +9,13 @@
 namespace terrier::execution::sema {
 
 Sema::Sema(ast::Context *ctx)
-    : ctx_(ctx),
-      error_reporter_(ctx->GetErrorReporter()),
-      scope_(nullptr),
-      num_cached_scopes_(0),
-      curr_func_(nullptr) {}
+    : ctx_(ctx), error_reporter_(ctx->GetErrorReporter()), scope_(nullptr), num_cached_scopes_(0), curr_func_(nullptr) {
+  // Fill scope cache.
+  for (auto &scope : scope_cache_) {
+    scope = std::make_unique<Scope>(nullptr, Scope::Kind::File);
+  }
+  num_cached_scopes_ = K_SCOPE_CACHE_SIZE;
+}
 
 // Main entry point to semantic analysis and type checking an AST
 bool Sema::Run(ast::AstNode *root) {

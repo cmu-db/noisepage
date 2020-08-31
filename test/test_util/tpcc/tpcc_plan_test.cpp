@@ -81,7 +81,7 @@ void TpccPlanTest::TearDown() { delete tpcc_db_; }
 
 void TpccPlanTest::BeginTransaction() {
   txn_ = txn_manager_->BeginTransaction();
-  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_).release();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED).release();
 }
 
 void TpccPlanTest::EndTransaction(bool commit) {
@@ -98,9 +98,9 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
   // Bind + Transform
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED);
   auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), db_);
-  binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr);
+  binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr, nullptr);
   auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor), db_);
   auto plan = transformer->ConvertToOpExpression(stmt_list->GetStatement(0), common::ManagedPointer(stmt_list.get()));
   delete binder;
@@ -152,7 +152,6 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
     auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.get());
     EXPECT_EQ(insert->GetDatabaseOid(), db_);
-    EXPECT_EQ(insert->GetNamespaceOid(), accessor_->GetDefaultNamespace());
     EXPECT_EQ(insert->GetTableOid(), tbl_oid);
     EXPECT_EQ(insert->GetParameterInfo(), col_oids);
     EXPECT_EQ(insert->GetBulkInsertCount(), 1);

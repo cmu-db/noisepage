@@ -21,7 +21,6 @@ TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_warehouse_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -41,7 +40,6 @@ TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
@@ -79,7 +77,6 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_district_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -99,7 +96,6 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();
@@ -153,7 +149,6 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_customer_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -167,10 +162,10 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     auto set1 = update->GetSetClauses()[1].second.CastManagedPointerTo<parser::ConstantValueExpression>();
     auto set2 = update->GetSetClauses()[2].second.CastManagedPointerTo<parser::ConstantValueExpression>();
     auto set3 = update->GetSetClauses()[3].second.CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(type::TransientValuePeeker::PeekDecimal(set0->GetValue()), 1);
-    EXPECT_EQ(type::TransientValuePeeker::PeekDecimal(set1->GetValue()), 2);
-    EXPECT_EQ(type::TransientValuePeeker::PeekSmallInt(set2->GetValue()), 3);
-    EXPECT_EQ(type::TransientValuePeeker::PeekVarChar(set3->GetValue()), "4");
+    EXPECT_EQ(set0->Peek<double>(), 1);
+    EXPECT_EQ(set1->Peek<double>(), 2);
+    EXPECT_EQ(set2->Peek<int64_t>(), 3);
+    EXPECT_EQ(set3->Peek<std::string_view>(), "4");
 
     // Idx Scan, full output schema
     EXPECT_EQ(update->GetChildren().size(), 1);
@@ -180,7 +175,6 @@ TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds -> match schema
     auto idx_scan_schema = idx_scan->GetOutputSchema();

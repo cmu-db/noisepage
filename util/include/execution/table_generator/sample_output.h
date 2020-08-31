@@ -6,7 +6,6 @@
 
 #include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/output_schema.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::execution::exec {
 /**
@@ -24,7 +23,7 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
     planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
     planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, pred->Copy()};
     planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
@@ -61,7 +60,7 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
     planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
     planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, pred->Copy()};
     planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
@@ -122,12 +121,22 @@ class SampleOutput {
     // Scan lineitem (no output)
     {
       std::vector<planner::OutputSchema::Column> cols{};
+      for (uint32_t i = 0; i < uint32_t(2); i++) {
+        cols.emplace_back(string_col.Copy());
+      }
+      for (uint32_t i = 0; i < uint32_t(4); i++) {
+        cols.emplace_back(real_col.Copy());
+      }
+      for (uint32_t i = 0; i < uint32_t(4); i++) {
+        cols.emplace_back(int_col.Copy());
+      }
       schemas_.emplace("tpch_scan_lineitem", planner::OutputSchema(std::move(cols)));
     }
 
     // Scan orders (no output)
     {
       std::vector<planner::OutputSchema::Column> cols{};
+      cols.emplace_back(int_col.Copy());
       schemas_.emplace("tpch_scan_orders", planner::OutputSchema(std::move(cols)));
     }
   }

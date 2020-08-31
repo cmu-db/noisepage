@@ -1,9 +1,24 @@
+#include "brain/operating_unit_recorder.h"
+
 #include <utility>
 
 #include "brain/operating_unit.h"
-#include "brain/operating_unit_recorder.h"
 #include "brain/operating_unit_util.h"
+#include "catalog/catalog_accessor.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/context.h"
+#include "execution/ast/type.h"
+#include "execution/compiler/operator/hash_aggregation_translator.h"
+#include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/operator/sort_translator.h"
+#include "execution/compiler/operator/static_aggregation_translator.h"
+#include "execution/sql/aggregators.h"
+#include "execution/sql/hash_table_entry.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/function_expression.h"
 #include "parser/expression_defs.h"
+#include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -33,59 +48,87 @@
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
+#include "storage/block_layout.h"
 #include "type/type_id.h"
 
 namespace terrier::brain {
 
-size_t OperatingUnitRecorder::ComputeKeySize(
-    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs) {
-  size_t key_size = 0;
-  for (auto &expr : exprs) {
-    // TODO(wz2): Need a better way to handle varchars
-    // GetTypeSize() return storage::VARCHAR_COLUMN for varchars but expr does not have length info
-    key_size += type::TypeUtil::GetTypeSize(expr->GetReturnValueType());
-  }
+double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
+                                                       size_t key_size, size_t ref_offset) {
+  auto *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
+  auto &fields = type->Fields();
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
-  return key_size;
-}
-
-size_t OperatingUnitRecorder::ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan) {
-  size_t key_size = 0;
-  for (auto &col : plan->GetOutputSchema()->GetColumns()) {
-    key_size += type::TypeUtil::GetTypeSize(col.GetType());
-  }
-
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
-  return key_size;
-}
-
-size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid) {
-  size_t key_size = 0;
-  auto &schema = accessor_->GetSchema(tbl_oid);
-  for (auto &col : schema.GetColumns()) {
-    if (col.AttrSize() == storage::VARLEN_COLUMN) {
-      key_size += col.MaxVarlenSize();
-    } else {
-      key_size += col.AttrSize();
+  // Rough loop to get an estimate size of entire struct
+  size_t total = total_offset;
+  for (auto *field : fields) {
+    auto *field_repr = field->TypeRepr();
+    if (field_repr->GetType() != nullptr) {
+      total += field_repr->GetType()->GetSize();
+    } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
+      // Likely built in type
+      auto *type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
+      if (type != nullptr) {
+        total += type->GetSize();
+      }
     }
   }
 
+  // For mini-runners, only ints for sort, hj, aggregate
+  double num_keys = key_size / 4.0;
+  double ref_payload = (num_keys * sizeof(execution::sql::Integer)) + ref_offset;
+  return total / ref_payload;
+}
+
+void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key) {
+  if (type == type::TypeId::VARCHAR) {
+    // Mini-Runners can't actually model varchars right now.
+    // So we substitute a key_size += 64, num_key += 15 (since already counts 1)
+    // to model varchars.
+    *key_size = *key_size + 64;
+    *num_key = *num_key + 15;
+  } else {
+    *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
+  }
+}
+
+size_t OperatingUnitRecorder::ComputeKeySize(
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs, size_t *num_key) {
+  size_t key_size = 0;
+  for (auto &expr : exprs) {
+    AdjustKeyWithType(expr->GetReturnValueType(), &key_size, num_key);
+  }
+
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid,
-                                             const std::vector<catalog::col_oid_t> &cols) {
+size_t OperatingUnitRecorder::ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan, size_t *num_key) {
+  size_t key_size = 0;
+  for (auto &col : plan->GetOutputSchema()->GetColumns()) {
+    AdjustKeyWithType(col.GetType(), &key_size, num_key);
+  }
+
+  return key_size;
+}
+
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, size_t *num_key) {
+  size_t key_size = 0;
+  auto &schema = accessor_->GetSchema(tbl_oid);
+  for (auto &col : schema.GetColumns()) {
+    AdjustKeyWithType(col.Type(), &key_size, num_key);
+  }
+
+  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  return key_size;
+}
+
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols,
+                                             size_t *num_key) {
   size_t key_size = 0;
   auto &schema = accessor_->GetSchema(tbl_oid);
   for (auto &oid : cols) {
     auto &col = schema.GetColumn(oid);
-    if (col.AttrSize() == storage::VARLEN_COLUMN) {
-      key_size += col.MaxVarlenSize();
-    } else {
-      key_size += col.AttrSize();
-    }
+    AdjustKeyWithType(col.Type(), &key_size, num_key);
   }
 
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
@@ -93,7 +136,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid,
 }
 
 size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
-                                             const std::vector<catalog::indexkeycol_oid_t> &cols) {
+                                             const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
   std::unordered_set<catalog::indexkeycol_oid_t> kcols;
   for (auto &col : cols) kcols.insert(col);
 
@@ -101,11 +144,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
   auto &schema = accessor_->GetIndexSchema(idx_oid);
   for (auto &col : schema.GetColumns()) {
     if (kcols.find(col.Oid()) != kcols.end()) {
-      if (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) {
-        key_size += col.MaxVarlenSize();
-      } else {
-        key_size += col.AttrSize();
-      }
+      AdjustKeyWithType(col.Type(), &key_size, num_key);
     }
   }
 
@@ -114,26 +153,140 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
 }
 
 void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
-                                              UNUSED_ATTRIBUTE const planner::AbstractPlanNode *plan,
-                                              size_t scaling_factor) {
+                                              const planner::AbstractPlanNode *plan, size_t scaling_factor,
+                                              double mem_factor) {
   // TODO(wz2): Populate actual num_rows/cardinality after #759
-  size_t num_rows = 0;
-  auto cardinality = 0.0;
+  size_t num_rows = 1;
+  size_t cardinality = 1;
+  size_t num_loops = 0;
+  if (type == ExecutionOperatingUnitType::OUTPUT) {
+    // Uses the network result consumer
+    cardinality = 1;
+    auto child_translator = current_translator_->GetChildTranslator();
+    if (child_translator != nullptr) {
+      if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {
+        auto output = child_translator->Op()->GetOutputSchema()->GetColumn(0).GetExpr();
+        if (output && output->GetExpressionType() == parser::ExpressionType::FUNCTION) {
+          auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
+          if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
+            auto child = f_expr->GetChild(0);
+            TERRIER_ASSERT(child, "NpRunnersEmit should have children");
+            TERRIER_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                           "Child should be constants");
+
+            auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
+            num_rows = cve->GetInteger().val_;
+          }
+        }
+      }
+    }
+  } else if (type > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
+    // If feature is OUTPUT or computation, then cardinality = num_rows
+    cardinality = num_rows;
+  } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
+    TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
+    UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
+    num_rows = 1;     // extract from c_plan num_rows (# row to probe)
+    cardinality = 1;  // extract from plan num_rows (# matched rows)
+  } else if (type == ExecutionOperatingUnitType::IDX_SCAN) {
+    // For IDX_SCAN, the feature is as follows:
+    // - num_rows is the size of the index
+    // - cardinality is the scan size
+    if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
+      num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
+    } else {
+      TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
+      num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
+
+      UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
+      num_loops = 0;  // extract from c_plan num_rows
+    }
+
+    cardinality = 1;  // extract from plan num_rows (this is the scan size)
+  }
 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
 
+  if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
+
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
     TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
-    if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys) {
+    if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
+        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type)) {
       itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
       itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
+      itr->second.AddMemFactor(mem_factor);
       return;
     }
   }
 
-  pipeline_features_.emplace(type, ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality));
+  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
+  pipeline_features_.emplace(type, std::move(feature));
+}
+
+void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows,
+                                           const size_t *num_keys, size_t *cardinality, size_t *num_loops) {
+  if (*query_text_ ==
+          "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
+          " ORDER BY NO_O_ID ASC  LIMIT 1" &&
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
+    if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
+      *num_rows = 850;
+      *cardinality = 1;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
+      *cardinality = 850;
+    }
+  }
+
+  if (*query_text_ ==
+          "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
+          " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
+          " AND S_QUANTITY < $6" &&
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
+    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+      *num_rows = 200;
+      *cardinality = 1;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 2) {
+      *num_loops = 200;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 3) {
+      *cardinality = 200;
+    }
+  }
+
+  if (*query_text_ ==
+          "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
+          "OL_W_ID = $4 " &&
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 1) {
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
+      *cardinality = 10;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::UPDATE) {
+      *num_rows = 10;
+      *cardinality = 10;
+    }
+  }
+
+  if (*query_text_ ==
+          "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
+          "AND OL_W_ID = $3" &&
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
+    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
+      *cardinality = 10;
+    }
+
+    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+      *num_rows = 10;
+    }
+  }
 }
 
 void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
@@ -143,7 +296,8 @@ void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlan
       // Recording of simple operators
       // - num_keys is always 1
       // - key_size is max() inputs
-      AggregateFeatures(feature.second, type::TypeUtil::GetTypeSize(feature.first), 1, plan, scaling);
+      auto size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(feature.first));
+      AggregateFeatures(feature.second, size, 1, plan, scaling, 1);
     }
   }
 
@@ -164,9 +318,11 @@ void OperatingUnitRecorder::VisitAbstractPlanNode(const planner::AbstractPlanNod
 void OperatingUnitRecorder::VisitAbstractScanPlanNode(const planner::AbstractScanPlanNode *plan) {
   VisitAbstractPlanNode(plan);
 
-  auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetScanPredicate());
-  arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-                                   std::make_move_iterator(features.end()));
+  if (plan->GetScanPredicate() != nullptr) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetScanPredicate());
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
@@ -179,15 +335,17 @@ void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   size_t key_size = 0;
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
-    key_size = ComputeKeySize(plan->GetTableOid(), plan->GetColumnOids());
-    num_keys = plan->GetColumnOids().size();
+    // We are likely doing an update/delete -- so record key_size = 4; num_keys = 1
+    // This mimics the mini_runners
+    key_size = 4;
+    num_keys = 1;
   } else {
     auto &schema = accessor_->GetSchema(plan->GetTableOid());
     num_keys = schema.GetColumns().size();
-    key_size = ComputeKeySize(plan->GetTableOid());
+    key_size = ComputeKeySize(plan->GetTableOid(), &num_keys);
   }
 
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
@@ -219,40 +377,44 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
   for (auto col : cols) col_vec.emplace_back(col);
 
   size_t num_keys = col_vec.size();
-  size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+  size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec, &num_keys);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NLJOIN_RIGHT ||
+      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
       plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
     // Right side stiches together outputs
     VisitAbstractPlanNode(plan);
-
-    // Join predicates only get handled by the "right" translator (probe)
-    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetJoinPredicate());
-    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-                                     std::make_move_iterator(features.end()));
   }
 }
 
 void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_BUILD) {
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashJoinTranslator>();
+
+  // Build
+  if (translator->IsLeftPipeline(*current_pipeline_)) {
     for (auto key : plan->GetLeftHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
       arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
                                        std::make_move_iterator(features.end()));
     }
 
+    // Get Struct and compute memory scaling factor
+    auto offset = sizeof(execution::sql::HashTableEntry);
+    auto num_key = plan->GetLeftHashKeys().size();
+    auto key_size = ComputeKeySize(plan->GetLeftHashKeys(), &num_key);
+    auto scale = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, offset);
+
     // Record features using the row/cardinality of left plan
     auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetLeftHashKeys()), plan->GetLeftHashKeys().size(),
-                      c_plan, 1);
+    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_BUILD, key_size, num_key, c_plan, 1, scale);
   }
 
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
+  // Probe
+  if (translator->IsRightPipeline(*current_pipeline_)) {
     for (auto key : plan->GetRightHashKeys()) {
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key);
       arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
@@ -262,8 +424,10 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     // Record features using the row/cardinality of right plan which is probe
     auto *c_plan = plan->GetChild(1);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetRightHashKeys()), plan->GetRightHashKeys().size(),
-                      c_plan, 1);
+
+    auto num_key = plan->GetRightHashKeys().size();
+    auto key_size = ComputeKeySize(plan->GetRightHashKeys(), &num_key);
+    AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, key_size, num_key, plan, 1, 1);
   }
 
   // Computes against OutputSchema/Join predicate which will
@@ -273,75 +437,88 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
-  // NLJOIN_LEFT is a pass through translator
-  if (plan_feature_type_ == ExecutionOperatingUnitType::NLJOIN_RIGHT) {
-    // Scale them by (num_rows - 1) of left child
-    // num_rows - 1 since the right child has already been inserted once
-    auto *c_plan = plan->GetChild(1);
-    UNUSED_ATTRIBUTE auto *o_plan = plan->GetChild(0);
-
-    // Left and right seq scan already exist once
-    // So record the join_predicate information once
-    VisitAbstractJoinPlanNode(plan);
-    RecordArithmeticFeatures(c_plan, 1);
-
-    // TODO(wz2): after #759, get num_rows  of o_plan;
-    size_t o_num_rows = 0;
-    if (o_num_rows > 0) {
-      // Join Predicate evaluated left * right times
-      // Similarly, output evaluated at worst left * right
-      // Already recorded once, so record o_num_rows - 1
-      VisitAbstractJoinPlanNode(plan);
-      RecordArithmeticFeatures(c_plan, o_num_rows - 1);
-
-      // Get all features/card estimates from the right child
-      OperatingUnitRecorder rec(accessor_);
-      rec.plan_feature_type_ = plan_feature_type_;
-      plan->GetChild(1)->Accept(common::ManagedPointer<planner::PlanVisitor>(&rec));
-      for (auto &feature : rec.pipeline_features_) {
-        AggregateFeatures(feature.first, feature.second.GetKeySize(), feature.second.GetNumKeys(), c_plan,
-                          o_num_rows - 1);
-      }
-    }
+  // TODO((wz2): Need an outer loop est number rows/invocation times
+  UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
+  size_t outer_num = 1;
+  VisitAbstractJoinPlanNode(plan);
+  if (plan->GetJoinPredicate() != nullptr) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(plan->GetJoinPredicate());
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
   }
+  RecordArithmeticFeatures(c_plan, outer_num);
 }
 
 void OperatingUnitRecorder::Visit(const planner::IndexJoinPlanNode *plan) {
-  // Record features that are output
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+  // Scale by num_rows - 1 of the child
+  UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
 
-  std::vector<catalog::indexkeycol_oid_t> col_vec;
-  for (auto &col : plan->GetIndexColumns()) {
-    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col.second);
+  // Get features
+  std::unordered_set<catalog::indexkeycol_oid_t> cols;
+  for (auto &pair : plan->GetLoIndexColumns()) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(pair.second);
     arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
                                      std::make_move_iterator(features.end()));
 
-    col_vec.emplace_back(col.first);
+    cols.insert(pair.first);
   }
 
-  size_t num_keys = col_vec.size();
-  size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+  for (auto &pair : plan->GetHiIndexColumns()) {
+    auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(pair.second);
+    arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                     std::make_move_iterator(features.end()));
+
+    cols.insert(pair.first);
+  }
+
+  // Above operations are done once per tuple in the child
+  RecordArithmeticFeatures(c_plan, 1);
+
+  // Computes against OutputSchema which will use the rows that join produces
+  VisitAbstractJoinPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
+
+  // Vector of indexkeycol_oid_t columns
+  std::vector<catalog::indexkeycol_oid_t> col_vec;
+  col_vec.reserve(cols.size());
+  for (auto &col : cols) {
+    col_vec.emplace_back(col);
+  }
+
+  // IndexScan output number of rows is the "cumulative scan size"
+  size_t num_keys = col_vec.size();
+  size_t key_size = ComputeKeySize(plan->GetIndexOid(), col_vec, &num_keys);
+  AggregateFeatures(brain::ExecutionOperatingUnitType::IDX_SCAN, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
-  for (size_t idx = 0; idx < plan->GetBulkInsertCount(); idx++) {
-    for (auto &col : plan->GetValues(idx)) {
-      auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col);
-      arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
-                                       std::make_move_iterator(features.end()));
+  if (plan->GetChildrenSize() == 0) {
+    // INSERT without a SELECT
+    for (size_t idx = 0; idx < plan->GetBulkInsertCount(); idx++) {
+      for (auto &col : plan->GetValues(idx)) {
+        auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(col);
+        arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
+                                         std::make_move_iterator(features.end()));
+      }
     }
+
+    // Record features
+    VisitAbstractPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+
+    // Record the Insert
+    auto num_key = plan->GetParameterInfo().size();
+    auto key_size = ComputeKeySize(plan->GetTableOid(), plan->GetParameterInfo(), &num_key);
+    AggregateFeatures(plan_feature_type_, key_size, num_key, plan, 1, 1);
+  } else {
+    // INSERT with a SELECT
+    auto *c_plan = plan->GetChild(0);
+    TERRIER_ASSERT(c_plan->GetOutputSchema() != nullptr, "Child must have OutputSchema");
+
+    auto num_key = c_plan->GetOutputSchema()->GetColumns().size();
+    auto size = ComputeKeySizeOutputSchema(c_plan, &num_key);
+    AggregateFeatures(plan_feature_type_, size, num_key, plan, 1, 1);
   }
-
-  // Record features
-  VisitAbstractPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
-
-  // Record the Insert
-  auto key_size = ComputeKeySize(plan->GetTableOid(), plan->GetParameterInfo());
-  AggregateFeatures(plan_feature_type_, key_size, plan->GetParameterInfo().size(), plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
@@ -359,8 +536,9 @@ void OperatingUnitRecorder::Visit(const planner::UpdatePlanNode *plan) {
   RecordArithmeticFeatures(plan, 1);
 
   // Record the Update
-  auto key_size = ComputeKeySize(plan->GetTableOid(), cols);
-  AggregateFeatures(plan_feature_type_, key_size, cols.size(), plan, 1);
+  auto num_key = cols.size();
+  auto key_size = ComputeKeySize(plan->GetTableOid(), cols, &num_key);
+  AggregateFeatures(plan_feature_type_, key_size, num_key, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) {
@@ -369,7 +547,8 @@ void OperatingUnitRecorder::Visit(const planner::DeletePlanNode *plan) {
 
   auto &schema = accessor_->GetSchema(plan->GetTableOid());
   auto num_cols = schema.GetColumns().size();
-  AggregateFeatures(plan_feature_type_, ComputeKeySize(plan->GetTableOid()), num_cols, plan, 1);
+  auto key_size = ComputeKeySize(plan->GetTableOid(), &num_cols);
+  AggregateFeatures(plan_feature_type_, key_size, num_cols, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
@@ -382,7 +561,7 @@ void OperatingUnitRecorder::Visit(const planner::CSVScanPlanNode *plan) {
     key_size += type::TypeUtil::GetTypeSize(type);
   }
 
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
@@ -391,12 +570,14 @@ void OperatingUnitRecorder::Visit(const planner::LimitPlanNode *plan) {
 
   // Copy outwards
   auto num_keys = plan->GetOutputSchema()->GetColumns().size();
-  auto key_size = ComputeKeySizeOutputSchema(plan);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+  auto key_size = ComputeKeySizeOutputSchema(plan, &num_keys);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_BUILD) {
+  auto translator = current_translator_.CastManagedPointerTo<execution::compiler::SortTranslator>();
+
+  if (translator->IsBuildPipeline(*current_pipeline_)) {
     // SORT_BUILD will operate on sort keys
     std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
     for (auto key : plan->GetSortKeys()) {
@@ -407,35 +588,46 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
       keys.emplace_back(key.first);
     }
 
+    // Get Struct and compute memory scaling factor
+    auto num_key = keys.size();
+    auto key_size = ComputeKeySize(keys, &num_key);
+    auto scale = ComputeMemoryScaleFactor(translator->GetStructDecl(), 0, key_size, 0);
+
     // Sort build sizes/operations are based on the input (from child)
-    auto key_size = ComputeKeySize(keys);
-    auto *c_plan = plan->GetChild(0);
+    const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(plan_feature_type_, key_size, keys.size(), c_plan, 1);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::SORT_ITERATE) {
+    AggregateFeatures(ExecutionOperatingUnitType::SORT_BUILD, key_size, num_key, c_plan, 1, scale);
+  } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);
     RecordArithmeticFeatures(plan, 1);
 
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
-    auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+    auto key_size = ComputeKeySizeOutputSchema(plan, &num_keys);
+    AggregateFeatures(ExecutionOperatingUnitType::SORT_ITERATE, key_size, num_keys, plan, 1, 1);
   }
 }
 
 void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
   VisitAbstractPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
-
-  // Copy outwards
-  auto num_keys = plan->GetOutputSchema()->GetColumns().size();
-  auto key_size = ComputeKeySizeOutputSchema(plan);
-  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_BUILD) {
+  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  }
+}
+
+template <typename Translator>
+void OperatingUnitRecorder::RecordAggregateTranslator(common::ManagedPointer<Translator> translator,
+                                                      const planner::AggregatePlanNode *plan) {
+  if (translator->IsBuildPipeline(*current_pipeline_)) {
     for (auto key : plan->GetAggregateTerms()) {
       auto key_cm = common::ManagedPointer<parser::AbstractExpression>(key.Get());
       auto features = OperatingUnitUtil::ExtractFeaturesFromExpression(key_cm);
@@ -456,13 +648,35 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
     // Build with the rows of child
     size_t key_size = 0;
     size_t num_keys = 0;
+    double mem_factor = 1;
     if (!plan->GetGroupByTerms().empty()) {
-      key_size = ComputeKeySize(plan->GetGroupByTerms());
       num_keys = plan->GetGroupByTerms().size();
+      key_size = ComputeKeySize(plan->GetGroupByTerms(), &num_keys);
+
+      // Get Struct and compute memory scaling factor
+      auto offset = sizeof(execution::sql::HashTableEntry);
+      auto ref_offset = offset + sizeof(execution::sql::CountAggregate);
+      mem_factor = ComputeMemoryScaleFactor(translator->GetStructDecl(), offset, key_size, ref_offset);
+    } else {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> keys;
+      for (auto term : plan->GetAggregateTerms()) {
+        if (term->IsDistinct()) {
+          keys.emplace_back(term.Get());
+        }
+      }
+
+      if (!keys.empty()) {
+        num_keys = keys.size();
+        key_size = ComputeKeySize(keys, &num_keys);
+      } else {
+        // This case is typically just numerics (i.e COUNT)
+        // We still record something to differentiate in the models.
+        num_keys = plan->GetAggregateTerms().size();
+      }
     }
 
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, c_plan, 1);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::AGGREGATE_ITERATE) {
+    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_BUILD, key_size, num_keys, c_plan, 1, mem_factor);
+  } else if (translator->IsProducePipeline(*current_pipeline_)) {
     // AggregateTopTranslator handles any exprs/computations in the output
     VisitAbstractPlanNode(plan);
 
@@ -475,20 +689,37 @@ void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
 
     // Copy outwards
     auto num_keys = plan->GetOutputSchema()->GetColumns().size();
-    auto key_size = ComputeKeySizeOutputSchema(plan);
-    AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1);
+    auto key_size = ComputeKeySizeOutputSchema(plan, &num_keys);
+    AggregateFeatures(ExecutionOperatingUnitType::AGGREGATE_ITERATE, key_size, num_keys, plan, 1, 1);
   }
 }
 
 ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
-    const std::vector<std::unique_ptr<execution::compiler::OperatorTranslator>> &translators) {
+    const std::vector<execution::compiler::OperatorTranslator *> &translators) {
   pipeline_features_ = {};
   for (const auto &translator : translators) {
     plan_feature_type_ = translator->GetFeatureType();
-    if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID &&
-        plan_feature_type_ != ExecutionOperatingUnitType::OUTPUT) {
-      translator->Op()->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
-      TERRIER_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
+    current_translator_ = common::ManagedPointer(translator);
+
+    if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID) {
+      if (plan_feature_type_ == ExecutionOperatingUnitType::OUTPUT) {
+        TERRIER_ASSERT(translator->GetChildTranslator(), "OUTPUT should have child translator");
+        auto child_type = translator->GetChildTranslator()->GetFeatureType();
+        if (child_type == ExecutionOperatingUnitType::INSERT || child_type == ExecutionOperatingUnitType::UPDATE ||
+            child_type == ExecutionOperatingUnitType::DELETE) {
+          // For insert/update/delete, there actually is no real output happening.
+          // So, skip the Output operator
+          continue;
+        }
+
+        auto *op = translator->GetChildTranslator()->Op();
+        auto num_keys = op->GetOutputSchema()->GetColumns().size();
+        auto key_size = ComputeKeySizeOutputSchema(op, &num_keys);
+        AggregateFeatures(plan_feature_type_, key_size, num_keys, op, 1, 1);
+      } else {
+        translator->Op()->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
+        TERRIER_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
+      }
     }
   }
 

@@ -5,21 +5,16 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/performance_counter.h"
+#include "common/managed_pointer.h"
 #include "storage/data_table.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
-#include "storage/storage_defs.h"
-#include "transaction/transaction_context.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+}  // namespace terrier::transaction
 
 namespace terrier::storage::index {
-
-enum ScanType : uint32_t {
-  Closed,   /* [low, high] range scan */
-  OpenLow,  /* [begin(), high] range scan */
-  OpenHigh, /* [low, end()] range scan */
-  OpenBoth  /* [begin(), end()] range scan */
-};
 
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
@@ -71,6 +66,11 @@ class Index {
    * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
    */
   virtual void PerformGarbageCollection() {}
+
+  /**
+   * @return approximate number of bytes allocated on the heap for this index data structure
+   */
+  virtual size_t EstimateHeapUsage() const = 0;
 
   /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.

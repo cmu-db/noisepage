@@ -35,8 +35,8 @@ void Sema::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
 
 void Sema::VisitFunctionTypeRepr(ast::FunctionTypeRepr *node) {
   // Handle parameters
-  util::RegionVector<ast::Field> param_types(GetContext()->Region());
-  for (auto *param : node->Paramaters()) {
+  util::RegionVector<ast::Field> param_types(GetContext()->GetRegion());
+  for (auto *param : node->Parameters()) {
     Visit(param);
     ast::Type *param_type = param->TypeRepr()->GetType();
     if (param_type == nullptr) {
@@ -66,7 +66,7 @@ void Sema::VisitPointerTypeRepr(ast::PointerTypeRepr *node) {
 }
 
 void Sema::VisitStructTypeRepr(ast::StructTypeRepr *node) {
-  util::RegionVector<ast::Field> field_types(GetContext()->Region());
+  util::RegionVector<ast::Field> field_types(GetContext()->GetRegion());
   for (auto *field : node->Fields()) {
     Visit(field);
     ast::Type *field_type = field->TypeRepr()->GetType();
@@ -80,8 +80,8 @@ void Sema::VisitStructTypeRepr(ast::StructTypeRepr *node) {
 }
 
 void Sema::VisitMapTypeRepr(ast::MapTypeRepr *node) {
-  ast::Type *key_type = Resolve(node->Key());
-  ast::Type *value_type = Resolve(node->Val());
+  ast::Type *key_type = Resolve(node->KeyType());
+  ast::Type *value_type = Resolve(node->ValType());
 
   if (key_type == nullptr || value_type == nullptr) {
     // Error

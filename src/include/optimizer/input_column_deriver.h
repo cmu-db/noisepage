@@ -9,12 +9,17 @@
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
+namespace planner {
+enum class AggregateStrategyType;
+}
+
 namespace terrier::optimizer {
 
 class PropertySet;
 class GroupExpression;
 class OperatorNode;
 class Memo;
+class BaseOperatorNodeContents;
 
 /**
  * InputColumnDeriver generate input and output columns based on the required columns,
@@ -89,6 +94,12 @@ class InputColumnDeriver : public OperatorVisitor {
    * @param op Limit operator to visit
    */
   void Visit(const Limit *op) override;
+
+  /**
+   * Visit function to derive input/output columns for InnerIndexJoin
+   * @param op InnerIndexJoin operator to visit
+   */
+  void Visit(const InnerIndexJoin *op) override;
 
   /**
    * Visit function to derive input/output columns for InnerNLJoin

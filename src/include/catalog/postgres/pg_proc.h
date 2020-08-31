@@ -1,17 +1,11 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include "catalog/index_schema.h"
-#include "catalog/schema.h"
-#include "parser/expression/abstract_expression.h"
-#include "storage/projected_row.h"
-#include "storage/sql_table.h"
-#include "storage/storage_defs.h"
-#include "transaction/transaction_context.h"
-#include "type/type_id.h"
+#include <array>
 
-#define HIGHEST_BUILTIN_PROC_ID catalog::postgres::UPPER_PRO_OID
+#include "catalog/catalog_defs.h"
+
+// TODO(Deepayan): change back to lower value once all builtins are added
+#define HIGHEST_BUILTIN_PROC_ID proc_oid_t(1000)
 #define IS_BUILTIN_PROC(x) (x < HIGHEST_BUILTIN_PROC_ID)
 
 namespace terrier::catalog::postgres {
@@ -77,7 +71,47 @@ constexpr proc_oid_t SIN_PRO_OID = proc_oid_t(89);
 // TODO(tanujnay112) This overflows into the next internal oid range and will continue to do so
 constexpr proc_oid_t TAN_PRO_OID = proc_oid_t(90);
 constexpr proc_oid_t COT_PRO_OID = proc_oid_t(91);
-constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(92);
-constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(93);
+constexpr proc_oid_t COSH_PRO_OID = proc_oid_t(92);
+constexpr proc_oid_t SINH_PRO_OID = proc_oid_t(93);
+constexpr proc_oid_t TANH_PRO_OID = proc_oid_t(94);
+constexpr proc_oid_t EXP_PRO_OID = proc_oid_t(95);
+constexpr proc_oid_t CEIL_PRO_OID = proc_oid_t(96);
+constexpr proc_oid_t FLOOR_PRO_OID = proc_oid_t(97);
+constexpr proc_oid_t TRUNCATE_PRO_OID = proc_oid_t(98);
+constexpr proc_oid_t LOG10_PRO_OID = proc_oid_t(99);
+constexpr proc_oid_t LOG2_PRO_OID = proc_oid_t(100);
+constexpr proc_oid_t MOD_PRO_OID = proc_oid_t(101);
+constexpr proc_oid_t INTMOD_PRO_OID = proc_oid_t(102);
+constexpr proc_oid_t SQRT_PRO_OID = proc_oid_t(103);
+constexpr proc_oid_t CBRT_PRO_OID = proc_oid_t(104);
+constexpr proc_oid_t ROUND_PRO_OID = proc_oid_t(105);
+constexpr proc_oid_t ROUND2_PRO_OID = proc_oid_t(106);
+constexpr proc_oid_t POW_PRO_OID = proc_oid_t(107);
+constexpr proc_oid_t LOWER_PRO_OID = proc_oid_t(108);
+constexpr proc_oid_t UPPER_PRO_OID = proc_oid_t(109);
+constexpr proc_oid_t STARTSWITH_PRO_OID = proc_oid_t(110);
+constexpr proc_oid_t SUBSTR_PRO_OID = proc_oid_t(111);
+constexpr proc_oid_t LEFT_PRO_OID = proc_oid_t(112);
+constexpr proc_oid_t RIGHT_PRO_OID = proc_oid_t(113);
+constexpr proc_oid_t REVERSE_PRO_OID = proc_oid_t(114);
+constexpr proc_oid_t REPEAT_PRO_OID = proc_oid_t(115);
+constexpr proc_oid_t TRIM_PRO_OID = proc_oid_t(116);
+constexpr proc_oid_t TRIM2_PRO_OID = proc_oid_t(117);
+constexpr proc_oid_t ABS_INT_PRO_OID = proc_oid_t(118);
+constexpr proc_oid_t ABS_REAL_PRO_OID = proc_oid_t(119);
+constexpr proc_oid_t ASCII_PRO_OID = proc_oid_t(120);
+constexpr proc_oid_t CHR_PRO_OID = proc_oid_t(121);
+constexpr proc_oid_t CHARLENGTH_PRO_OID = proc_oid_t(122);
+constexpr proc_oid_t POSITION_PRO_OID = proc_oid_t(123);
+constexpr proc_oid_t LENGTH_PRO_OID = proc_oid_t(124);
+constexpr proc_oid_t INITCAP_PRO_OID = proc_oid_t(125);
+constexpr proc_oid_t SPLIT_PART_PRO_OID = proc_oid_t(126);
+constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(127);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(128);
+
+constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
+constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_INT_PRO_OID = proc_oid_t(902);
+constexpr proc_oid_t NP_RUNNERS_DUMMY_REAL_PRO_OID = proc_oid_t(903);
 
 }  // namespace terrier::catalog::postgres
