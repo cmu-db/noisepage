@@ -3,7 +3,7 @@
 
 namespace terrier::storage {
 GarbageCollectorThread::GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc,
-                                               std::chrono::milliseconds gc_period,
+                                               std::chrono::microseconds gc_period,
                                                common::ManagedPointer<storage::LogManager> log_manager,
                                                common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                                                uint32_t num_daf_threads)

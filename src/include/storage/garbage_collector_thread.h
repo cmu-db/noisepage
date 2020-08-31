@@ -24,7 +24,7 @@ class GarbageCollectorThread {
    * @param gc_period sleep time between GC invocations
    * @param metrics_manager Metrics Manager
    */
-  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::milliseconds gc_period, common::ManagedPointer<storage::LogManager> log_manager,
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period, common::ManagedPointer<storage::LogManager> log_manager,
                          common::ManagedPointer<metrics::MetricsManager> metrics_manager, uint32_t num_daf_threads = 2);
 
   ~GarbageCollectorThread() { StopGC(); }
@@ -82,7 +82,7 @@ class GarbageCollectorThread {
   const common::ManagedPointer<storage::LogManager> log_manager_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
-  std::chrono::milliseconds gc_period_;
+  std::chrono::microseconds gc_period_;
   std::vector<std::thread> gc_threads_;
   std::uint32_t num_gc_threads_;
 
