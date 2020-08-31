@@ -158,6 +158,12 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
   // Allocate some memory
   char *target = ctx->GetStringAllocator()->PreAllocate(len.val_);
 
@@ -175,6 +181,10 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Lpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
@@ -196,6 +206,12 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
   // Allocate output
   char *target = ctx->GetStringAllocator()->PreAllocate(len.val_);
   char *ptr = target;
@@ -214,6 +230,10 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Rpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Length(Integer *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {
