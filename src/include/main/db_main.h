@@ -8,10 +8,9 @@
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
-#include "common/stat_registry.h"
-#include "common/worker_pool.h"
-#include "execution/execution_util.h"
 #include "metrics/metrics_thread.h"
+#include "network/postgres/postgres_command_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
@@ -261,8 +260,8 @@ class DBMain {
    */
   class ExecutionLayer {
    public:
-    ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
-    ~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
+    ExecutionLayer();
+    ~ExecutionLayer();
   };
 
   /**
@@ -283,14 +282,14 @@ class DBMain {
           use_settings_manager_ ? BootstrapSettingsManager(common::ManagedPointer(db_main)) : DISABLED;
 
       std::unique_ptr<metrics::MetricsManager> metrics_manager = DISABLED;
-      if (use_metrics_) metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (use_metrics_) metrics_manager = BootstrapMetricsManager();
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
         TERRIER_ASSERT(use_metrics_ && metrics_manager != DISABLED,
                        "Can't have a MetricsThread without a MetricsManager.");
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
-                                                                  std::chrono::milliseconds{metrics_interval_});
+                                                                  std::chrono::microseconds{metrics_interval_});
       }
 
       std::unique_ptr<common::DedicatedThreadRegistry> thread_registry = DISABLED;
@@ -303,8 +302,8 @@ class DBMain {
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
-            log_file_path_, num_log_manager_buffers_, std::chrono::microseconds{log_serialization_interval_},
-            std::chrono::milliseconds{log_persist_interval_}, log_persist_threshold_,
+            wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
+            std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
             common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
         log_manager->Start();
       }
@@ -352,7 +351,8 @@ class DBMain {
         TERRIER_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
-            common::ManagedPointer(stats_storage), optimizer_timeout_, use_query_cache_);
+            common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
+            use_query_cache_, execution_mode_);
       }
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
@@ -385,8 +385,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogFilePath(const std::string &value) {
-      log_file_path_ = value;
+    Builder &SetWalFilePath(const std::string &value) {
+      wal_file_path_ = value;
       return *this;
     }
 
@@ -448,8 +448,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetNumLogBuffers(const uint64_t value) {
-      num_log_manager_buffers_ = value;
+    Builder &SetWalNumBuffers(const uint64_t value) {
+      wal_num_buffers_ = value;
       return *this;
     }
 
@@ -457,8 +457,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogSerializationInterval(const uint64_t value) {
-      log_serialization_interval_ = value;
+    Builder &SetWalSerializationInterval(const uint64_t value) {
+      wal_serialization_interval_ = value;
       return *this;
     }
 
@@ -466,8 +466,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogPersistInterval(const uint64_t value) {
-      log_persist_interval_ = value;
+    Builder &SetWalPersistInterval(const uint64_t value) {
+      wal_persist_interval_ = value;
       return *this;
     }
 
@@ -475,8 +475,8 @@ class DBMain {
      * @param value LogManager argument
      * @return self reference for chaining
      */
-    Builder &SetLogPersistThreshold(const uint64_t value) {
-      log_persist_threshold_ = value;
+    Builder &SetWalPersistThreshold(const uint64_t value) {
+      wal_persist_threshold_ = value;
       return *this;
     }
 
@@ -544,6 +544,15 @@ class DBMain {
     }
 
     /**
+     * @param port Network port
+     * @return self reference for chaining
+     */
+    Builder &SetNetworkPort(const uint16_t port) {
+      network_port_ = port;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -606,6 +615,15 @@ class DBMain {
       return *this;
     }
 
+    /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetExecutionMode(const execution::vm::ExecutionMode value) {
+      execution_mode_ = value;
+      return *this;
+    }
+
    private:
     std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
 
@@ -615,28 +633,35 @@ class DBMain {
     bool use_settings_manager_ = false;
     bool use_thread_registry_ = false;
     bool use_metrics_ = false;
-    uint32_t metrics_interval_ = 100;
+    uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
+    bool metrics_pipeline_ = false;
+    bool metrics_transaction_ = false;
+    bool metrics_logging_ = false;
+    bool metrics_gc_ = false;
+    bool metrics_bind_command_ = false;
+    bool metrics_execute_command_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
-    std::string log_file_path_ = "wal.log";
-    uint64_t num_log_manager_buffers_ = 100;
-    int32_t log_serialization_interval_ = 10;
-    int32_t log_persist_interval_ = 10;
-    uint64_t log_persist_threshold_ = static_cast<uint64_t>(1 << 20);
+    std::string wal_file_path_ = "wal.log";
+    uint64_t wal_num_buffers_ = 100;
+    int32_t wal_serialization_interval_ = 100;
+    int32_t wal_persist_interval_ = 100;
+    uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
     uint64_t block_store_reuse_ = 1e3;
-    int32_t gc_interval_ = 10;
+    int32_t gc_interval_ = 1000;
     bool use_gc_thread_ = false;
     bool use_stats_storage_ = false;
     bool use_execution_ = false;
     bool use_traffic_cop_ = false;
     uint64_t optimizer_timeout_ = 5000;
     bool use_query_cache_ = true;
+    execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
     uint16_t network_port_ = 15721;
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
@@ -657,13 +682,17 @@ class DBMain {
       block_store_size_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_size));
       block_store_reuse_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::block_store_reuse));
 
-      log_file_path_ = settings_manager->GetString(settings::Param::log_file_path);
-      num_log_manager_buffers_ =
-          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::num_log_manager_buffers));
-      log_serialization_interval_ = settings_manager->GetInt(settings::Param::log_serialization_interval);
-      log_persist_interval_ = settings_manager->GetInt(settings::Param::log_persist_interval);
-      log_persist_threshold_ =
-          static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::log_persist_threshold));
+      use_logging_ = settings_manager->GetBool(settings::Param::wal_enable);
+      if (use_logging_) {
+        wal_file_path_ = settings_manager->GetString(settings::Param::wal_file_path);
+        wal_num_buffers_ = static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_num_buffers));
+        wal_serialization_interval_ = settings_manager->GetInt(settings::Param::wal_serialization_interval);
+        wal_persist_interval_ = settings_manager->GetInt(settings::Param::wal_persist_interval);
+        wal_persist_threshold_ =
+            static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_persist_threshold));
+      }
+
+      use_metrics_ = use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
@@ -673,7 +702,34 @@ class DBMain {
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
       use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
+      execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
+                            ? execution::vm::ExecutionMode::Compiled
+                            : execution::vm::ExecutionMode::Interpret;
+
+      metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
+      metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
+      metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
+      metrics_gc_ = settings_manager->GetBool(settings::Param::metrics_gc);
+      metrics_bind_command_ = settings_manager->GetBool(settings::Param::metrics_bind_command);
+      metrics_execute_command_ = settings_manager->GetBool(settings::Param::metrics_execute_command);
+
       return settings_manager;
+    }
+
+    /**
+     * Instantiate the MetricsManager and enable metrics for components arrocding to the Builder's settings.
+     * @return
+     */
+    std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
+      std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+      if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
+      if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      if (metrics_gc_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+      if (metrics_bind_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
+      if (metrics_execute_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
+
+      return metrics_manager;
     }
   };
 

@@ -9,7 +9,6 @@
 #include "common/managed_pointer.h"
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::network {
 
@@ -139,21 +138,22 @@ class PacketWriter {
   /**
    * Append a string onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendString(const std::string &str, bool nul_terminate = true) {
+  PacketWriter &AppendString(const std::string &str, bool nul_terminate) {
     return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
   }
 
   /**
    * Append a string_view onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate = true) {
-    return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
+  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate) {
+    return nul_terminate ? AppendRaw(str.data(), str.size()).AppendRawValue<uchar>(0)
+                         : AppendRaw(str.data(), str.size());
   }
 
   /**
@@ -162,7 +162,7 @@ class PacketWriter {
   void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
-    for (const auto &pair : config) AppendString(pair.first).AppendString(pair.second);
+    for (const auto &pair : config) AppendString(pair.first, true).AppendString(pair.second, true);
     AppendRawValue<uchar>(0);  // Startup message should have (byte+1) length
     EndPacket();
   }

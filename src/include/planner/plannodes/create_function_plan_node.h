@@ -344,6 +344,6 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   int param_count_ = 0;
 };
 
-DEFINE_JSON_DECLARATIONS(CreateFunctionPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateFunctionPlanNode);
 
 }  // namespace terrier::planner

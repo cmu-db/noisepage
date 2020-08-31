@@ -37,7 +37,7 @@ class Parser {
   ast::AstNode *Parse();
 
  private:
-  util::Region *Region() { return context_->Region(); }
+  util::Region *Region() { return context_->GetRegion(); }
 
   // Move to the next token in the stream
   Token::Type Next() { return scanner_->Next(); }

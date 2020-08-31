@@ -3,19 +3,20 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::planner {
 
 /**
- * Base class for table joins
+ * Base class for table joins.
  */
 class AbstractJoinPlanNode : public AbstractPlanNode {
  protected:
   /**
-   * Base builder class for join plan nodes
-   * @tparam ConcreteType
+   * Base builder class for join plan nodes.
+   * @tparam ConcreteType The concrete type of plan node this builder is building.
    */
   template <class ConcreteType>
   class Builder : public AbstractPlanNode::Builder<ConcreteType> {
@@ -50,11 +51,11 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   };
 
   /**
-   * Base constructor for joins. Derived join plans should call this constructor
-   * @param children child plan nodes
-   * @param output_schema Schema representing the structure of the output of this plan node
-   * @param join_type logical join type
-   * @param predicate join predicate
+   * Base constructor for joins. Derived join plans should call this constructor.
+   * @param children All children to the join.
+   * @param output_schema Schema representing the structure of the output of this plan node.
+   * @param join_type The logical join type.
+   * @param predicate The join predicate.
    */
   AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
@@ -85,12 +86,42 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   //===--------------------------------------------------------------------===//
 
   /**
-   * @return logical join type
+   * @return The logical join type.
    */
   LogicalJoinType GetLogicalJoinType() const { return join_type_; }
 
   /**
-   * @return pointer to predicate used for join
+   * @return True if this join requires a left-mark. Semi, Anti and Left-outer joins requires marks
+   *         on the left side to indicate if the left-tuple found a join partner.
+   */
+  bool RequiresLeftMark() const {
+    switch (join_type_) {
+      case LogicalJoinType::LEFT:
+      case LogicalJoinType::SEMI:
+      case LogicalJoinType::ANTI:
+      case LogicalJoinType::OUTER:
+      case LogicalJoinType::LEFT_SEMI:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the join requires a right-mark.
+   */
+  bool RequiresRightMark() const {
+    switch (join_type_) {
+      case LogicalJoinType::RIGHT_SEMI:
+      case LogicalJoinType::RIGHT_ANTI:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return The predicate used for join.
    */
   common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 

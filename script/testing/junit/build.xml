@@ -8,8 +8,8 @@
   <javac srcdir="${src.dir}"
          destdir="${out.dir}"
          includeantruntime="false"
-         debug="true">
-    <classpath refid="test.jars"/>
+         debug="true" nowarn="on">
+    <classpath refid="lib.classpath"/>
     </javac>
 </target>
 
@@ -21,19 +21,42 @@
   </delete>
 </target>
 
-<path id="test.jars">
+<path id="lib.classpath">
   <fileset dir="${lib.dir}">
     <include name="**/*.jar"/>
-    <exclude name="junit-platform-console-standalone-1.1.0.jar" />
   </fileset>
 </path>
 
 <path id="test.classpath">
-  <path refid="test.jars"/>
+  <path refid="lib.classpath"/>
   <pathelement location="${out.dir}" />
 </path>
 
-<target name="testconsole" depends="compile">
+<target name="test-all">
+  <antcall target="test-unit"/>
+  <antcall target="test-trace"/>
+</target>
+
+<target name="generate-trace" depends="compile">
+  <java classname="GenerateTrace" fork="yes">
+    <classpath>
+      <pathelement location="${out.dir}" />
+      <path refid="lib.classpath" />
+    </classpath>
+    <arg value="${path}"></arg>
+    <arg value="${db-url}"></arg>
+    <arg value="${db-user}"></arg>
+    <arg value="${db-password}"></arg>
+    <arg value="${output-name}"></arg>
+  </java>
+</target>
+
+<target name="test-trace" depends="compile">
+  <!--
+    IMPORTANT: You have to set the NOISEPAGE_TRACE_FILE environment variable
+    with the name of the file that you want to execute. You cannot pass it in
+    through the commandline.
+  -->
   <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
         dir="."
         fork="yes"
@@ -41,17 +64,38 @@
     <arg value="--class-path" />
     <arg value="${toString:test.classpath}" />
     <arg value="--scan-class-path" />
+    <arg value="--include-classname" />
+    <arg value="TracefileTest" />
   </java>
 </target>
 
-<target name="test" depends="compile">
-  <junit fork="yes" haltonfailure="true" logfailedtests="true">
-    <formatter type="plain" usefile="false" />
-    <classpath refid="test.classpath" />
-    <batchtest skipNonTests="true">
-      <fileset dir="${out.dir}" includes="*.class"/>
-    </batchtest>
-  </junit>
+<target name="filter-trace" depends="compile">
+  <java classname="FilterTrace" fork="yes">
+    <classpath>
+      <pathelement location="${out.dir}" />
+      <path refid="lib.classpath" />
+    </classpath>
+    <arg value="${path}"></arg>
+    <arg value="${db-url}"></arg>
+    <arg value="${db-user}"></arg>
+    <arg value="${db-password}"></arg>
+    <arg value="${skip-list}"></arg>
+    <arg value="${output-name}"></arg>
+  </java>
 </target>
+
+<target name="test-unit" depends="compile">
+  <java jar="lib/junit-platform-console-standalone-1.1.0.jar"
+        dir="."
+        fork="yes"
+        failonerror="true">
+    <arg value="--class-path" />
+    <arg value="${toString:test.classpath}" />
+    <arg value="--scan-class-path" />
+    <arg value="--exclude-classname" />
+    <arg value="TracefileTest" />
+  </java>
+</target>
+
 </project>
 

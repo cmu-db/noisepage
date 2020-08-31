@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 
 namespace terrier::planner {
@@ -22,5 +23,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> NestedLoopJoinPlanNode:
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(NestedLoopJoinPlanNode);
 
 }  // namespace terrier::planner

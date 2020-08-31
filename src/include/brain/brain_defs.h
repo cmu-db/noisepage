@@ -11,8 +11,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
   HASHJOIN_BUILD,
   HASHJOIN_PROBE,
 
-  NLJOIN_LEFT,
-  NLJOIN_RIGHT,
   IDXJOIN,
 
   SORT_BUILD,
@@ -28,6 +26,15 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PROJECTION,
   OUTPUT,
   LIMIT,
+
+  HASH_JOIN,
+  HASH_AGGREGATE,
+  CSV_SCAN,
+  NL_JOIN,
+  SORT,
+  STATIC_AGGREGATE,
+
+  CREATE_INDEX,
 
   // Use to demarcate plan and operations
   PLAN_OPS_DELIMITER,

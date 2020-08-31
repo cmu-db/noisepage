@@ -27,7 +27,7 @@ class PipelineMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<PipelineMetricRawData *>(other);
     if (!other_db_metric->pipeline_data_.empty()) {
-      pipeline_data_.splice(pipeline_data_.cbegin(), other_db_metric->pipeline_data_);
+      pipeline_data_.splice(pipeline_data_.cend(), other_db_metric->pipeline_data_);
     }
   }
 
@@ -49,8 +49,8 @@ class PipelineMetricRawData : public AbstractRawData {
     auto &outfile = (*outfiles)[0];
 
     for (auto &data : pipeline_data_) {
-      outfile << (!data.query_id_) << ", ";
-      outfile << (!data.pipeline_id_) << ", ";
+      outfile << data.query_id_.UnderlyingValue() << ", ";
+      outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
@@ -58,6 +58,8 @@ class PipelineMetricRawData : public AbstractRawData {
       outfile << data.GetKeySizeVectorString() << ", ";
       outfile << data.GetNumKeysVectorString() << ", ";
       outfile << data.GetCardinalityVectorString() << ", ";
+      outfile << data.GetMemFactorsVectorString() << ", ";
+      outfile << data.GetNumLoopsVectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
@@ -76,7 +78,7 @@ class PipelineMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
       "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
-      "est_cardinalities"};
+      "est_cardinalities, mem_factor, num_loops"};
 
  private:
   friend class PipelineMetric;
@@ -85,7 +87,7 @@ class PipelineMetricRawData : public AbstractRawData {
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
                           std::vector<brain::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    pipeline_data_.emplace_front(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
+    pipeline_data_.emplace_back(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 
   struct PipelineData {
@@ -149,6 +151,22 @@ class PipelineMetricRawData : public AbstractRawData {
         num_keys.emplace_back(feature.GetNumKeys());
       }
       return ConcatVectorToString<size_t>(num_keys);
+    }
+
+    std::string GetMemFactorsVectorString() {
+      std::vector<double> factors;
+      for (auto &feature : features_) {
+        factors.emplace_back(feature.GetMemFactor());
+      }
+      return ConcatVectorToString<double>(factors);
+    }
+
+    std::string GetNumLoopsVectorString() {
+      std::vector<size_t> num_loops;
+      for (auto &feature : features_) {
+        num_loops.emplace_back(feature.GetNumLoops());
+      }
+      return ConcatVectorToString<size_t>(num_loops);
     }
 
     const execution::query_id_t query_id_;

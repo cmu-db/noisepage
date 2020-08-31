@@ -1,13 +1,13 @@
-// Fibonacci function
+// Expected output: 832040
 
-fun fib(n: int64) -> int64 {
-  if (n < 2) {
-    return n
-  } else {
-    return fib(n-2) + fib(n-1)
-  }
+fun fib(n: int) -> int {
+    if (n < 2) {
+        return n
+    } else {
+        return fib(n-2) + fib(n-1)
+    }
 }
 
-fun main() -> int64 {
-  return fib(20)
+fun main() -> int {
+    return fib(30)
 }

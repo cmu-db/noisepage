@@ -5,15 +5,11 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-
-#include "parser/expression/abstract_expression.h"
-#include "parser/parser_defs.h"
-
-#include "settings/settings_manager.h"
-
 #include "optimizer/operator_node.h"
 #include "optimizer/property_set.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -106,7 +102,7 @@ class AbstractOptimizer {
   virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(transaction::TransactionContext *txn,
                                                                    catalog::CatalogAccessor *accessor,
                                                                    StatsStorage *storage, QueryInfo query_info,
-                                                                   std::unique_ptr<OperatorNode> op_tree) = 0;
+                                                                   std::unique_ptr<AbstractOptimizerNode> op_tree) = 0;
 
   /**
    * Reset the optimizer's internal state

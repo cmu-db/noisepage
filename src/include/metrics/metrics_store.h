@@ -5,11 +5,15 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "execution/exec_defs.h"
+#include "loggers/metrics_logger.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/abstract_raw_data.h"
+#include "metrics/bind_command_metric.h"
+#include "metrics/execute_command_metric.h"
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
@@ -35,26 +39,35 @@ class MetricsStore {
    * Record metrics from the LogSerializerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
-   * @param resource_metrics third entry of metrics datapoint
+   * @param num_txns third entry of metrics datapoint
+   * @param interval fourth entry of metrics datapoint
+   * @param resource_metrics fifth entry of metrics datapoint
    */
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
-                            const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                            const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
+    if (!ComponentEnabled(MetricsComponent::LOGGING))
+      METRICS_LOG_WARN(
+          "RecordSerializerData() called without logging metrics enabled. Was it recently disabled and the component "
+          "is just lagging?");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordSerializerData(num_bytes, num_records, resource_metrics);
+    logging_metric_->RecordSerializerData(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
 
   /**
    * Record metrics from the LogConsumerTask
    * @param num_bytes first entry of metrics datapoint
    * @param num_records second entry of metrics datapoint
+   * @param interval third entry of metrics datapoint
    * @param resource_metrics third entry of metrics datapoint
    */
-  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records,
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
+    if (!ComponentEnabled(MetricsComponent::LOGGING))
+      METRICS_LOG_WARN(
+          "RecordConsumerData() called without logging metrics enabled. Was it recently disabled and the component is "
+          "just lagging?");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
-    logging_metric_->RecordConsumerData(num_bytes, num_records, resource_metrics);
+    logging_metric_->RecordConsumerData(num_bytes, num_records, interval, resource_metrics);
   }
 
   /**
@@ -83,7 +96,10 @@ class MetricsStore {
    * @param resource_metrics first entry of txn datapoint
    */
   void RecordBeginData(const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
+    if (!ComponentEnabled(MetricsComponent::TRANSACTION))
+      METRICS_LOG_WARN(
+          "RecordBeginData() called without transaction metrics enabled. Was it recently disabled and the component is "
+          "just lagging?");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
     txn_metric_->RecordBeginData(resource_metrics);
   }
@@ -94,7 +110,10 @@ class MetricsStore {
    * @param resource_metrics second entry of txn datapoint
    */
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
+    if (!ComponentEnabled(MetricsComponent::TRANSACTION))
+      METRICS_LOG_WARN(
+          "RecordCommitData() called without transaction metrics enabled. Was it recently disabled and the component "
+          "is just lagging?");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
     txn_metric_->RecordCommitData(is_readonly, resource_metrics);
   }
@@ -123,7 +142,8 @@ class MetricsStore {
    */
   void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION), "ExecutionMetric not enabled.");
+    if (!ComponentEnabled(MetricsComponent::EXECUTION))
+      METRICS_LOG_WARN("RecordExecutionData() called without execution metrics enabled.");
     TERRIER_ASSERT(execution_metric_ != nullptr, "ExecutionMetric not allocated. Check MetricsStore constructor.");
     execution_metric_->RecordExecutionData(feature, len, execution_mode, resource_metrics);
   }
@@ -139,9 +159,35 @@ class MetricsStore {
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
                           std::vector<brain::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE), "PipelineMMetric not enabled.");
+    if (!ComponentEnabled(MetricsComponent::EXECUTION_PIPELINE))
+      METRICS_LOG_WARN("RecordPipelineData() called without pipepline metrics enabled.");
     TERRIER_ASSERT(pipeline_metric_ != nullptr, "PipelineMetric not allocated. Check MetricsStore constructor.");
     pipeline_metric_->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
+  }
+
+  /**
+   * Record metrics for the bind command
+   * @param param_num the number of bind parameters
+   * @param query_text_size the size of the query text
+   * @param resource_metrics Metrics
+   */
+  void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
+                             const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::BIND_COMMAND), "BindCommandMetric not enabled.");
+    TERRIER_ASSERT(bind_command_metric_ != nullptr, "BindCommandMetric not allocated. Check MetricsStore constructor.");
+    bind_command_metric_->RecordBindCommandData(param_num, query_text_size, resource_metrics);
+  }
+
+  /**
+   * Record metrics for the execute command
+   * @param portal_name_size the size of the portal name
+   * @param resource_metrics Metrics
+   */
+  void RecordExecuteCommandData(uint64_t portal_name_size, const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::EXECUTE_COMMAND), "ExecuteCommandMetric not enabled.");
+    TERRIER_ASSERT(execute_command_metric_ != nullptr,
+                   "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
+    execute_command_metric_->RecordExecuteCommandData(portal_name_size, resource_metrics);
   }
 
   /**
@@ -188,6 +234,8 @@ class MetricsStore {
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
   std::unique_ptr<ExecutionMetric> execution_metric_;
   std::unique_ptr<PipelineMetric> pipeline_metric_;
+  std::unique_ptr<BindCommandMetric> bind_command_metric_;
+  std::unique_ptr<ExecuteCommandMetric> execute_command_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
   const std::array<uint32_t, NUM_COMPONENTS> &sample_interval_;

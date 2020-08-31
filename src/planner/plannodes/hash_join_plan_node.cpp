@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::planner {
 
 common::hash_t HashJoinPlanNode::Hash() const {
@@ -80,5 +82,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> HashJoinPlanNode::FromJ
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(HashJoinPlanNode);
 
 }  // namespace terrier::planner

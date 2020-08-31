@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/derived_value_expression.h"
@@ -16,14 +17,13 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "test_util/test_harness.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::planner {
 
 class PlanNodeTest : public TerrierTest {
  public:
   static std::unique_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
-    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
     std::vector<OutputSchema::Column> cols;
     cols.emplace_back(OutputSchema::Column(std::move(name), type, std::move(pred)));
     return std::make_unique<OutputSchema>(std::move(cols));
@@ -235,7 +235,6 @@ TEST(PlanNodeTest, AggregatePlanTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, CSVScanPlanTest) {
   catalog::db_oid_t db_oid(1);
-  catalog::namespace_oid_t ns_oid(2);
   std::string file_name = "/home/file.txt";
   char delimiter = ',';
   char quote = '"';
@@ -244,7 +243,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   planner::CSVScanPlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(db_oid)
-                  .SetNamespaceOid(ns_oid)
                   .SetIsForUpdateFlag(false)
                   .SetFileName(file_name)
                   .SetDelimiter(delimiter)
@@ -257,7 +255,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   EXPECT_TRUE(plan != nullptr);
   EXPECT_EQ(PlanNodeType::CSVSCAN, plan->GetPlanNodeType());
   EXPECT_EQ(plan->GetDatabaseOid(), db_oid);
-  EXPECT_EQ(plan->GetNamespaceOid(), ns_oid);
   EXPECT_EQ(plan->GetFileName(), file_name);
   EXPECT_EQ(plan->GetDelimiterChar(), delimiter);
   EXPECT_EQ(plan->GetQuoteChar(), quote);
@@ -267,7 +264,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   planner::CSVScanPlanNode::Builder builder2;
   auto plan2 = builder2.SetDatabaseOid(db_oid)
-                   .SetNamespaceOid(ns_oid)
                    .SetIsForUpdateFlag(false)
                    .SetFileName(file_name)
                    .SetDelimiter(delimiter)
@@ -281,9 +277,8 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   // Make different variations of the plan node and make
   // sure that they are not equal
-  for (int i = 0; i < 9; i++) {
+  for (int i = 0; i < 8; i++) {
     catalog::db_oid_t o_db_oid(1);
-    catalog::namespace_oid_t o_ns_oid(2);
     std::string o_file_name = "/home/file.txt";
     char o_delimiter = ',';
     char o_quote = '"';
@@ -297,34 +292,30 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
         o_db_oid = catalog::db_oid_t(999);
         break;
       case 1:
-        o_ns_oid = catalog::namespace_oid_t(3);
-        break;
-      case 2:
         o_file_name = "/home/file2.txt";
         break;
-      case 3:
+      case 2:
         o_delimiter = ' ';
         break;
-      case 4:
+      case 3:
         o_quote = 'q';
         break;
-      case 5:
+      case 4:
         o_escape = '\0';
         break;
-      case 6:
+      case 5:
         o_value_types = {type::TypeId::VARCHAR};
         break;
-      case 7:
+      case 6:
         o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
         break;
-      case 8:
+      case 7:
         o_update = true;
         break;
     }
 
     planner::CSVScanPlanNode::Builder builder3;
     auto plan3 = builder3.SetDatabaseOid(o_db_oid)
-                     .SetNamespaceOid(o_ns_oid)
                      .SetIsForUpdateFlag(o_update)
                      .SetFileName(o_file_name)
                      .SetDelimiter(o_delimiter)

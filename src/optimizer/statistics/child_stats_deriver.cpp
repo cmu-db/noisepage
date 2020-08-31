@@ -1,3 +1,5 @@
+#include "optimizer/statistics/child_stats_deriver.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -5,8 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "optimizer/statistics/child_stats_deriver.h"
-
+#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
@@ -18,7 +19,7 @@ std::vector<ExprSet> ChildStatsDeriver::DeriveInputStats(GroupExpression *gexpr,
   gexpr_ = gexpr;
   memo_ = memo;
   output_ = std::vector<ExprSet>(gexpr->GetChildrenGroupsSize(), ExprSet{});
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return std::move(output_);
 }
 

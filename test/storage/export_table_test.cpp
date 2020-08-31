@@ -1,7 +1,9 @@
+#include <fstream>
 #include <unordered_map>
 #include <vector>
 
 #include "common/hash_util.h"
+#include "storage/arrow_serializer.h"
 #include "storage/block_access_controller.h"
 #include "storage/block_compactor.h"
 #include "storage/garbage_collector.h"
@@ -81,6 +83,9 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           end = true;
         }
         break;
+      case '\n':
+        end = true;
+        break;
       default:
         // Normal cases, we get a general ascii char.
         break;
@@ -88,7 +93,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     return end;
   }
 
-  bool CheckContent(std::ifstream &csv_file, transaction::TransactionManager *txn_manager,
+  void CheckContent(std::ifstream &csv_file, transaction::TransactionManager *txn_manager,
                     const storage::BlockLayout &layout,
                     const std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> &tuples,
                     const storage::DataTable &table, storage::RawBlock *block) {
@@ -115,7 +120,7 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           csv_file.get(tmp_char);
           switch (tmp_char) {
             case '"':
-              // Current column is a utf-8 string delimited by "
+              // Current column is a utf-8 string delimited by " or a row with a single null value
               csv_file.seekg(1, std::ios_base::cur);
               while (!ParseNextChar(csv_file, '"', &tmp_char)) {
                 bytes.emplace_back(static_cast<byte>(tmp_char));
@@ -148,22 +153,21 @@ struct ExportTableTest : public ::terrier::TerrierTest {
           auto data = read_row->AccessWithNullCheck(j);
           if (data == nullptr) {
             // Expect null value
-            if (!bytes.empty() || integer.length() != 0) {
-              return false;
-            }
+            EXPECT_TRUE(bytes.empty() && integer.length() == 0)
+                << "Value of row " << i << " column " << j << " should be null.\n";
           } else {
             if (layout.IsVarlen(col_id)) {
               auto *varlen = reinterpret_cast<storage::VarlenEntry *>(data);
               auto content = varlen->Content();
               auto content_len = varlen->Size();
-              if (content_len != bytes.size() - 2) {
-                return false;
-              }
+              EXPECT_EQ(content_len, bytes.size() - 2)
+                  << "Value of row " << i << " column " << j << " should have length " << content_len << "\n";
+
               // the first and last element of bytes are always useless.
               for (int k = 0; k < static_cast<int>(content_len); ++k) {
-                if (bytes[k + 1] != content[k]) {
-                  return false;
-                }
+                EXPECT_EQ(bytes[k + 1], content[k])
+                    << "The " << k << "th char of row " << i << " column " << j << " should be "
+                    << static_cast<uint8_t>(content[k]) << " instead of " << static_cast<uint8_t>(bytes[k + 1]) << "\n";
               }
             } else {
               int64_t true_integer = 0;
@@ -184,9 +188,9 @@ struct ExportTableTest : public ::terrier::TerrierTest {
                 default:
                   throw NOT_IMPLEMENTED_EXCEPTION("Unsupported Attribute Size.");
               }
-              if (std::fabs(1 - (std::stof(integer) + 1e-6) / (true_integer + 1e-6)) > 1e-6) {
-                return false;
-              }
+              EXPECT_TRUE(std::fabs(1 - (std::stof(integer) + 1e-6) / (true_integer + 1e-6)) < 1e-6)
+                  << "Value of row " << i << " column " << j << " should be " << true_integer << " instead of "
+                  << integer << "\n";
             }
           }
         }
@@ -194,7 +198,6 @@ struct ExportTableTest : public ::terrier::TerrierTest {
     }
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     delete[] buffer;
-    return true;
   }
 
   storage::BlockStore block_store_{5000, 5000};
@@ -211,9 +214,10 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   std::ofstream outfile(PYSCRIPT_NAME, std::ios_base::out);
   outfile << PYSCRIPT;
   outfile.close();
-  generator_.seed(
+  auto seed_chosen =
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-          .count());
+          .count();
+  generator_.seed(seed_chosen);
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
@@ -241,10 +245,10 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
-      column_types[!col_id] = type::TypeId::VARCHAR;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::VARCHAR;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types[!col_id] = type::TypeId::INTEGER;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::INTEGER;
     }
   }
 
@@ -262,10 +266,18 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  EXPECT_TRUE(CheckContent(csv_file, &txn_manager, layout, tuples, table, block));
+  CheckContent(csv_file, &txn_manager, layout, tuples, table, block);
   csv_file.close();
 
-  unlink(EXPORT_TABLE_NAME);
+  if (::testing::Test::HasFailure()) {
+    std::string error_csv_file_name(EXPORT_TABLE_NAME);
+    error_csv_file_name = error_csv_file_name + "_" + std::to_string(seed_chosen);
+    rename(EXPORT_TABLE_NAME, error_csv_file_name.c_str());
+    STORAGE_LOG_WARN("Error happened, see detailed exported data file {}. You may use the same seed suffix to debug.",
+                     error_csv_file_name);
+  } else {
+    unlink(EXPORT_TABLE_NAME);
+  }
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
   gc.PerformGarbageCollection();  // Second call to deallocate
@@ -279,9 +291,10 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   std::ofstream outfile(PYSCRIPT_NAME, std::ios_base::out);
   outfile << PYSCRIPT;
   outfile.close();
-  generator_.seed(
+  auto seed_chosen =
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-          .count());
+          .count();
+  generator_.seed(seed_chosen);
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
@@ -308,10 +321,10 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-      column_types[!col_id] = type::TypeId::VARCHAR;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::VARCHAR;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types[!col_id] = type::TypeId::INTEGER;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::INTEGER;
     }
   }
 
@@ -329,10 +342,18 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
 
   std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
-  EXPECT_TRUE(CheckContent(csv_file, &txn_manager, layout, tuples, table, block));
+  CheckContent(csv_file, &txn_manager, layout, tuples, table, block);
   csv_file.close();
 
-  unlink(EXPORT_TABLE_NAME);
+  if (::testing::Test::HasFailure()) {
+    std::string error_csv_file_name(EXPORT_TABLE_NAME);
+    error_csv_file_name = error_csv_file_name + "_" + std::to_string(seed_chosen);
+    rename(EXPORT_TABLE_NAME, error_csv_file_name.c_str());
+    STORAGE_LOG_WARN("Error happened, see detailed exported data file {}. You may use the same seed suffix to debug.",
+                     error_csv_file_name);
+  } else {
+    unlink(EXPORT_TABLE_NAME);
+  }
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
   gc.PerformGarbageCollection();  // Second call to deallocate.

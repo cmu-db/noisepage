@@ -36,18 +36,17 @@ struct hll_t {
 /* HLL Operations */
 
 hll_t* HLL_create(int precision, int* opt_error) {
-  HLL* rep = HLL::Create(precision, opt_error);
-  if (rep == NULL) {
+  std::unique_ptr<HLL> rep = HLL::Create(precision, opt_error);
+  if (!rep) {
     return NULL;
   }
 
   hll_t* obj = reinterpret_cast<hll_t*>(malloc(sizeof(hll_t)));
   if (obj == NULL) {
-    delete rep;
     return NULL;
   }
 
-  obj->rep = rep;
+  obj->rep = rep.release();
   return obj;
 }
 

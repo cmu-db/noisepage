@@ -6,17 +6,32 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
-#include "catalog/index_schema.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_proc.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "storage/index/index.h"
-#include "storage/sql_table.h"
 #include "type/type_id.h"
+
+namespace terrier::storage {
+class SqlTable;
+namespace index {
+class Index;
+}
+}  // namespace terrier::storage
+
+namespace terrier::execution::functions {
+class FunctionContext;
+}
+
+namespace terrier::transaction {
+class TransactionContext;
+}
 
 namespace terrier::catalog {
 class Catalog;
+class DatabaseCatalog;
+class CatalogCache;
+class IndexSchema;
 
 /**
  * A stateful wrapper around the catalog that provides the primary mechanisms
@@ -35,7 +50,7 @@ class Catalog;
  * as well as reinforces the design decision that the catalog is responsible
  * only for managing metadata and not the lifecycle of storage objects.
  */
-class CatalogAccessor {
+class EXPORT CatalogAccessor {
  public:
   /**
    * Given a database name, resolve it to the corresponding OID
@@ -326,27 +341,27 @@ class CatalogAccessor {
   proc_oid_t GetProcOid(const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
   /**
-   * Sets the proc context pointer column of proc_oid to udf_context
+   * Sets the proc context pointer column of proc_oid to func_context
    * @param proc_oid The proc_oid whose pointer column we are setting here
-   * @param udf_context The context object to set to
+   * @param func_context The context object to set to
    * @return False if the given proc_oid is invalid, True if else
    */
-  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::udf::UDFContext *udf_context);
+  bool SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context);
 
   /**
-   * Gets the proc context pointer column of proc_oid to udf_context
+   * Gets the proc context pointer column of proc_oid
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
    */
-  common::ManagedPointer<execution::udf::UDFContext> GetProcCtxPtr(proc_oid_t proc_oid);
+  common::ManagedPointer<execution::functions::FunctionContext> GetProcCtxPtr(proc_oid_t proc_oid);
 
   /**
-   * Gets a udf context object for a given proc if it is null for a valid proc id then the udf context
+   * Gets a functions context object for a given proc if it is null for a valid proc id then the functions context
    * object is reconstructed, put in pg_proc and returned
-   * @param proc_oid The proc_oid whose udfcontext object we are returning here
-   * @return nullptr if proc_oid is invalid else a valid udf context object for this proc_oid
+   * @param proc_oid The proc_oid whose FunctionContext object we are returning here
+   * @return nullptr if proc_oid is invalid else a valid functions context object for this proc_oid
    */
-  common::ManagedPointer<execution::udf::UDFContext> GetUDFContext(proc_oid_t proc_oid);
+  common::ManagedPointer<execution::functions::FunctionContext> GetFunctionContext(proc_oid_t proc_oid);
 
   /**
    * Returns the type oid of the given TypeId in pg_type
@@ -361,19 +376,27 @@ class CatalogAccessor {
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const;
 
   /**
+   * @return managed pointer to transaction context
+   */
+  common::ManagedPointer<transaction::TransactionContext> GetTxn() const { return txn_; }
+
+  /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
    * @param dbc pointer to the database catalog being accessed
    * @param txn the transaction context for this accessor
+   * @param cache CatalogCache object for this connection, or nullptr if disabled
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
   CatalogAccessor(const common::ManagedPointer<Catalog> catalog, const common::ManagedPointer<DatabaseCatalog> dbc,
-                  const common::ManagedPointer<transaction::TransactionContext> txn)
+                  const common::ManagedPointer<transaction::TransactionContext> txn,
+                  const common::ManagedPointer<CatalogCache> cache)
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
         search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID),
+        cache_(cache) {}
 
  private:
   const common::ManagedPointer<Catalog> catalog_;
@@ -381,6 +404,7 @@ class CatalogAccessor {
   const common::ManagedPointer<transaction::TransactionContext> txn_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
+  const common::ManagedPointer<CatalogCache> cache_ = nullptr;
 
   /**
    * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations

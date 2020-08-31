@@ -1,17 +1,30 @@
 #pragma once
 
 #include <queue>
+#include <tuple>
 #include <unordered_set>
 #include <utility>
 
 #include "common/shared_latch.h"
-#include "storage/access_observer.h"
-#include "storage/index/index.h"
-#include "transaction/transaction_context.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
+
+namespace terrier::transaction {
+class TimestampManager;
+class TransactionManager;
+class DeferredActionManager;
+class TransactionContext;
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
+
+class AccessObserver;
+class DataTable;
+class UndoRecord;
+
+namespace index {
+class Index;
+}
 
 /**
  * The garbage collector is responsible for processing a queue of completed transactions from the transaction manager.
@@ -60,6 +73,13 @@ class GarbageCollector {
    * @param index pointer to the index to unregister
    */
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
+
+  /**
+   * Set the GC interval for metrics collection
+   * TODO(lma): this need to be called in the settings callback after we add the ability to change the GC interval
+   * @param gc_interval interval to set (in us)
+   */
+  void SetGCInterval(uint64_t gc_interval) { gc_interval_ = gc_interval; }
 
  private:
   friend class GarbageCollectorThread;

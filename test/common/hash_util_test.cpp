@@ -1,4 +1,5 @@
 #include "common/hash_util.h"
+
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -7,6 +8,7 @@
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
+
 #include "gtest/gtest.h"
 
 namespace terrier {
@@ -49,7 +51,7 @@ TEST(HashUtilTests, HashTest) {
 
 // NOLINTNEXTLINE
 TEST(HashUtilTests, HashStringsTest) {
-  std::string val = "ABCXYZ";
+  const std::string_view val = "ABCXYZ";
   // EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(val));
   common::hash_t hash0 = common::HashUtil::Hash(val);
   common::hash_t hash1 = common::HashUtil::Hash("ABCXYZ");

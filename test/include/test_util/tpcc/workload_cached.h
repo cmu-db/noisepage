@@ -1,16 +1,16 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "execution/executable_query.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/vm/module.h"
 #include "planner/plannodes/abstract_plan_node.h"
-#include "storage/storage_defs.h"
 #include "test_util/tpcc/database.h"
 
 namespace terrier::execution::exec {
@@ -25,7 +25,7 @@ namespace terrier::transaction {
 class TransactionManager;
 }
 
-namespace terrier::execution {
+namespace terrier::execution::compiler {
 class ExecutableQuery;
 }
 
@@ -73,9 +73,10 @@ class WorkloadCached {
   catalog::db_oid_t db_oid_;
   Database *tpcc_db_;
 
-  std::map<std::string, std::vector<execution::ExecutableQuery> > queries_;
-  std::map<std::string, std::vector<std::string> > sqls_;
+  std::map<std::string, std::vector<std::unique_ptr<execution::compiler::ExecutableQuery>>> queries_;
+  std::map<std::string, std::vector<std::string>> sqls_;
   std::vector<std::string> txn_names_;
+  execution::exec::ExecutionSettings exec_settings_{};
 };
 
 }  // namespace terrier::tpcc

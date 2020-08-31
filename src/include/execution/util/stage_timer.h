@@ -1,5 +1,6 @@
 #pragma once
 
+#include <numeric>
 #include <vector>
 
 #include "common/macros.h"
@@ -7,10 +8,7 @@
 
 namespace terrier::execution::util {
 
-/**
- * Stage timer
- * @tparam ResolutionRatio resolution of the timer
- */
+/** Timer that supports multiple stages. */
 template <typename ResolutionRatio = std::milli>
 class StageTimer {
  public:
@@ -74,11 +72,19 @@ class StageTimer {
     TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
     TERRIER_ASSERT(stages_.back().Time() == 0, "Duplicate call to ExitStage()");
     timer_.Stop();
-    stages_.back().SetTime(timer_.Elapsed());
+    stages_.back().SetTime(timer_.GetElapsed());
   }
 
   /**
-   * Access information on all stages.
+   * @return The total time across all stages.
+   */
+  double GetTotalElapsedTime() const {
+    return std::accumulate(stages_.begin(), stages_.end(), double{0},
+                           [](double c, const Stage &stage) { return c + stage.Time(); });
+  }
+
+  /**
+   * @return A const view of information on all stages.
    */
   const std::vector<Stage> &GetStages() const { return stages_; }
 

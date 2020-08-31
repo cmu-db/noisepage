@@ -1,12 +1,9 @@
 #pragma once
 
+#include "common/macros.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/group_expression.h"
-#include "optimizer/physical_operators.h"
-#include "transaction/transaction_context.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 class Memo;
 class GroupExpression;
@@ -20,6 +17,17 @@ class GroupExpression;
 class TrivialCostModel : public AbstractCostModel {
  public:
   /**
+   * Cost of performing a scan
+   * Meant as a rough heuristic to ensure that INDEX_SCANs are always picked
+   */
+  static constexpr double SCAN_COST = 1000000.f;
+
+  /**
+   * Cost of performing a NLJoin
+   */
+  static constexpr double NLJOIN_COST = 1000000.f;
+
+  /**
    * Default constructor
    */
   TrivialCostModel() = default;
@@ -27,28 +35,24 @@ class TrivialCostModel : public AbstractCostModel {
   /**
    * Costs a GroupExpression
    * @param txn TransactionContext that query is generated under
+   * @param accessor CatalogAccessor
    * @param memo Memo object containing all relevant groups
    * @param gexpr GroupExpression to calculate cost for
    */
-  double CalculateCost(transaction::TransactionContext *txn, Memo *memo, GroupExpression *gexpr) override {
-    gexpr_ = gexpr;
-    memo_ = memo;
-    txn_ = txn;
-    gexpr_->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
-    return output_cost_;
-  };
+  double CalculateCost(transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, Memo *memo,
+                       GroupExpression *gexpr) override;
 
   /**
    * Visit a SeqScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override { output_cost_ = 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const SeqScan *op) override { output_cost_ = SCAN_COST; }
 
   /**
    * Visit a IndexScan operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const IndexScan *op) override { output_cost_ = 0.f; }
+  void Visit(const IndexScan *op) override;
 
   /**
    * Visit a QueryDerivedScan operator
@@ -69,10 +73,16 @@ class TrivialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const Limit *op) override { output_cost_ = 0.f; }
 
   /**
+   * Visit a InnerIndexJoin operator
+   * @param op operator
+   */
+  void Visit(const InnerIndexJoin *op) override;
+
+  /**
    * Visit a InnerNLJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = 0.f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) override { output_cost_ = NLJOIN_COST; }
 
   /**
    * Visit a LeftNLJoin operator
@@ -96,7 +106,7 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a InnerHashJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = 1.f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = NLJOIN_COST + 1.0f; }
 
   /**
    * Visit a LeftHashJoin operator
@@ -175,10 +185,14 @@ class TrivialCostModel : public AbstractCostModel {
   transaction::TransactionContext *txn_;
 
   /**
+   * Accessor
+   */
+  catalog::CatalogAccessor *accessor_;
+
+  /**
    * Computed output cost
    */
   double output_cost_ = 0;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

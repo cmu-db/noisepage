@@ -1,20 +1,23 @@
 #pragma once
+
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
 
 namespace terrier::execution::compiler::test {
 class CompilerTest_SimpleSeqScanTest_Test;
+class CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
 class CompilerTest_SimpleSeqScanWithProjectionTest_Test;
 class CompilerTest_SimpleSeqScanWithParamsTest_Test;
 class CompilerTest_SimpleIndexScanTest_Test;
-class CompilerTest_SimpleIndexScanAsendingTest_Test;
-class CompilerTest_SimpleIndexScanLimitAsendingTest_Test;
-class CompilerTest_SimpleIndexScanDesendingTest_Test;
-class CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
+class CompilerTest_SimpleIndexScanAscendingTest_Test;
+class CompilerTest_SimpleIndexScanLimitAscendingTest_Test;
+class CompilerTest_SimpleIndexScanDescendingTest_Test;
+class CompilerTest_SimpleIndexScanLimitDescendingTest_Test;
 class CompilerTest_SimpleAggregateTest_Test;
 class CompilerTest_CountStarTest_Test;
 class CompilerTest_SimpleSortTest_Test;
@@ -31,6 +34,10 @@ class CompilerTest_InsertIntoSelectWithParamTest_Test;
 class CompilerTest_SimpleInsertWithParamsTest_Test;
 class CompilerTest_StaticDistinctAggregateTest_Test;
 }  // namespace terrier::execution::compiler::test
+
+namespace terrier::optimizer {
+class IdxJoinTest_SimpleIdxJoinTest_Test;
+}
 
 namespace terrier::brain {
 
@@ -61,10 +68,18 @@ class ExecutionOperatingUnitFeature {
    * @param key_size Total Key Size
    * @param num_keys Number of keys
    * @param cardinality Estimated cardinality
+   * @param mem_factor Memory adjustment factor
+   * @param num_loops Number of loops
    */
   ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, size_t num_rows, size_t key_size, size_t num_keys,
-                                size_t cardinality)
-      : feature_(feature), num_rows_(num_rows), key_size_(key_size), num_keys_(num_keys), cardinality_(cardinality) {}
+                                size_t cardinality, double mem_factor, size_t num_loops)
+      : feature_(feature),
+        num_rows_(num_rows),
+        key_size_(key_size),
+        num_keys_(num_keys),
+        cardinality_(cardinality),
+        mem_factors_({mem_factor}),
+        num_loops_(num_loops) {}
 
   /**
    * @returns type
@@ -91,6 +106,25 @@ class ExecutionOperatingUnitFeature {
    */
   size_t GetCardinality() const { return cardinality_; }
 
+  /**
+   * @returns memory adjustment factor
+   */
+  double GetMemFactor() const {
+    if (mem_factors_.empty()) return 1.0;
+
+    double sum = 0.0;
+    for (auto factor : mem_factors_) {
+      sum += factor;
+    }
+
+    return sum / mem_factors_.size();
+  }
+
+  /**
+   * @returns number of iterations
+   */
+  size_t GetNumLoops() const { return num_loops_; }
+
  private:
   /**
    * Set the estimated number of output tuples
@@ -106,11 +140,20 @@ class ExecutionOperatingUnitFeature {
    */
   void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
 
+  /**
+   * Set the mem factor
+   * @note only should be invoked by OperatingUnitRecorder
+   * @param mem_factor Updated mem_factor
+   */
+  void AddMemFactor(double mem_factor) { mem_factors_.emplace_back(mem_factor); }
+
   ExecutionOperatingUnitType feature_;
   size_t num_rows_;
   size_t key_size_;
   size_t num_keys_;
   size_t cardinality_;
+  std::vector<double> mem_factors_;
+  size_t num_loops_;
 };
 
 /**
@@ -125,14 +168,16 @@ using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFe
  */
 class PipelineOperatingUnits {
  public:
+  friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanAsendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAsendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanDesendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDesendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanAscendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAscendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanDescendingTest_Test;
+  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDescendingTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_CountStarTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleSortTest_Test;

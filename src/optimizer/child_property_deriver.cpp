@@ -1,13 +1,15 @@
+#include "optimizer/child_property_deriver.h"
+
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
 #include "common/managed_pointer.h"
-#include "optimizer/child_property_deriver.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
 #include "optimizer/memo.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "parser/expression_util.h"
@@ -21,7 +23,7 @@ std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> ChildPropertyD
   memo_ = memo;
   gexpr_ = gexpr;
   accessor_ = accessor;
-  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
+  gexpr->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
   return move(output_);
 }
 
@@ -101,6 +103,11 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
 }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
+
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerIndexJoin *op) {
+  output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{new PropertySet()});
+}
+
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) { DeriveForJoin(); }
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {}

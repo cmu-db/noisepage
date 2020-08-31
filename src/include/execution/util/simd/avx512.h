@@ -196,7 +196,7 @@ class Vec8 : public Vec512b {
   /**
    * Store the eight 64-bit integers in this vector into the output array.
    */
-  void Store(unsigned long *arr) const { Store(reinterpret_cast<int64_t *>(ptr)); }  // NOLINT (runtime/int)
+  void Store(unsigned long *arr) const { Store(reinterpret_cast<int64_t *>(arr)); }  // NOLINT (runtime/int)
 #endif
 
   /**
@@ -931,11 +931,11 @@ struct FilterVecSizer<intptr_t> {
   /**
    * Four 64-bit integer values.
    */
-  using Vec = Vec4;
+  using Vec = Vec8;
   /**
    * Mask for four 64-bit integer values.
    */
-  using VecMask = Vec4Mask;
+  using VecMask = Vec8Mask;
 };
 #endif
 

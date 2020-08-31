@@ -25,11 +25,32 @@ class GroupExpression {
  public:
   /**
    * Constructor for GroupExpression
-   * @param op Operator
+   * @param contents optimizer node contents
    * @param child_groups Vector of children groups
    */
-  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups)
-      : group_id_(UNDEFINED_GROUP), op_(std::move(op)), child_groups_(child_groups), stats_derived_(false) {}
+  GroupExpression(common::ManagedPointer<AbstractOptimizerNodeContents> contents,
+                  std::vector<group_id_t> &&child_groups)
+      : group_id_(UNDEFINED_GROUP), child_groups_(child_groups), stats_derived_(false) {
+    contents_ = contents;
+  }
+
+  /**
+   * Operator-based constructor
+   * @param op Operator
+   * @param txn transaction context for managing memory
+   * @param child_groups Vector of children groups
+   */
+  GroupExpression(Operator op, std::vector<group_id_t> &&child_groups, transaction::TransactionContext *txn) {
+    auto *op_ptr = new Operator(std::move(op));
+    if (txn != nullptr) {
+      txn->RegisterCommitAction([=]() { delete op_ptr; });
+      txn->RegisterAbortAction([=]() { delete op_ptr; });
+    }
+    contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(op_ptr);
+    group_id_ = UNDEFINED_GROUP;
+    child_groups_ = child_groups;
+    stats_derived_ = false;
+  }
 
   /**
    * Destructor. Deletes everything in the lowest_cost_table_
@@ -76,10 +97,11 @@ class GroupExpression {
   }
 
   /**
-   * Gets the operator wrapped by this GroupExpression
-   * @returns Operator
+   * Gets the node contents (either operator- or expression-based) wrapped by
+   * this GroupExpression
+   * @returns the node contents
    */
-  const Operator &Op() const { return op_; }
+  const common::ManagedPointer<AbstractOptimizerNodeContents> &Contents() const { return contents_; }
 
   /**
    * Retrieves the lowest cost satisfying a given set of properties
@@ -109,7 +131,8 @@ class GroupExpression {
    * @param input_properties_list Vector of children input properties required
    * @param cost Cost
    */
-  void SetLocalHashTable(PropertySet *output_properties, std::vector<PropertySet *> input_properties_list, double cost);
+  void SetLocalHashTable(PropertySet *output_properties, const std::vector<PropertySet *> &input_properties_list,
+                         double cost);
 
   /**
    * Hashes GroupExpression
@@ -122,7 +145,9 @@ class GroupExpression {
    * @param r Other GroupExpression
    * @returns TRUE if equal to other GroupExpression
    */
-  bool operator==(const GroupExpression &r) { return (op_ == r.Op()) && (child_groups_ == r.child_groups_); }
+  bool operator==(const GroupExpression &r) {
+    return (*contents_ == *(r.contents_)) && (child_groups_ == r.child_groups_);
+  }
 
   /**
    * Marks a rule as having being explored in this GroupExpression
@@ -157,12 +182,12 @@ class GroupExpression {
   /**
    * Group's ID
    */
-  group_id_t group_id_;
+  group_id_t group_id_{};
 
   /**
-   * Operator
+   * Node contents (either expression- or operator-based)
    */
-  Operator op_;
+  common::ManagedPointer<AbstractOptimizerNodeContents> contents_{};
 
   /**
    * Vector of child groups
