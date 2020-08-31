@@ -69,8 +69,11 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     log_manager_->ForceFlush();
 
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
-    gc_ = new storage::GarbageCollector(DISABLED, common::ManagedPointer(tested.GetTxnManager()));
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_), common::ManagedPointer(metrics_manager));
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                                     common::ManagedPointer(log_manager_),
+                                                     common::ManagedPointer(metrics_manager));
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -128,9 +131,10 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
 
-    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
-                                        common::ManagedPointer(tested.GetTxnManager()), DISABLED);
+    gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
+                                        common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), config_interval * 10,
+                                                     common::ManagedPointer(log_manager_),
                                                      common::ManagedPointer(metrics_manager));
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
@@ -188,9 +192,9 @@ BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, TransactionRunner)
     ->Iterations(1)
     ->Apply(TransactionArguments);
 
-BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, LoggingGCRunner)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->Iterations(1)
-    ->Apply(LoggingGCArguments);
+// BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, LoggingGCRunner)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->Iterations(1)
+//    ->Apply(LoggingGCArguments);
 }  // namespace terrier::runner
