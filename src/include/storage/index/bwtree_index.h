@@ -8,6 +8,7 @@
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier::transaction {
 class TransactionContext;

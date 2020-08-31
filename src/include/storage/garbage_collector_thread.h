@@ -6,10 +6,7 @@
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/deferred_action_manager.h"
-
-namespace terrier::metrics {
-class MetricsManager;
-}
+#include "metrics/metrics_manager.h"
 
 namespace terrier::storage {
 //constexpr uint8_t NUM_GC_THREADS = 2;

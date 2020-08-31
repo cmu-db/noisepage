@@ -1,6 +1,7 @@
 #include "transaction/deferred_action_manager.h"
 
 #include "common/macros.h"
+#include "storage/index/index.h"
 
 namespace terrier::transaction {
 
