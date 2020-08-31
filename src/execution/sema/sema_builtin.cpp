@@ -1101,6 +1101,11 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
+    case ast::Builtin::TableIterGetVPINumTuples: {
+      // A single-arg builtin returning the number of tuples in the table's current VPI.
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+      break;
+    }
     case ast::Builtin::TableIterGetVPI: {
       // A single-arg builtin return a pointer to the current VPI
       const auto vpi_kind = ast::BuiltinType::VectorProjectionIterator;
@@ -2910,6 +2915,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterAdvance:
+    case ast::Builtin::TableIterGetVPINumTuples:
     case ast::Builtin::TableIterGetVPI:
     case ast::Builtin::TableIterClose: {
       CheckBuiltinTableIterCall(call, builtin);

@@ -47,6 +47,7 @@ namespace terrier::execution::ast {
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
   F(TableIterAdvance, tableIterAdvance)                                 \
+  F(TableIterGetVPINumTuples, tableIterGetVPINumTuples)                 \
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \

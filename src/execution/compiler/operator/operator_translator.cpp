@@ -126,6 +126,18 @@ void OperatorTranslator::CounterAdd(FunctionBuilder *function, const StateDescri
   }
 }
 
+void OperatorTranslator::CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter,
+                                    ast::Identifier val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // counter = counter + val
+    ast::Expr *plus = codegen->BinaryOp(parsing::Token::Type::PLUS, counter.Get(codegen), codegen->MakeExpr(val));
+    ast::Stmt *increment = codegen->Assign(counter.Get(codegen), plus);
+    function->Append(increment);
+  }
+}
+
 void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
                                        brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                                        ast::Expr *val) const {

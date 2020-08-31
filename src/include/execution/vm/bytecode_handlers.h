@@ -291,6 +291,12 @@ VM_OP_HOT void OpTableVectorIteratorNext(bool *has_more, terrier::execution::sql
 
 VM_OP void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter);
 
+VM_OP_HOT void OpTableVectorIteratorGetVPINumTuples(uint32_t *result,
+                                                    terrier::execution::sql::TableVectorIterator *iter) {
+  // TODO(WAN): result should be uint64_t, see #1049
+  *result = iter->GetVectorProjectionIteratorNumTuples();
+}
+
 VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjectionIterator **vpi,
                                            terrier::execution::sql::TableVectorIterator *iter) {
   *vpi = iter->GetVectorProjectionIterator();

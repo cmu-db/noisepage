@@ -217,13 +217,17 @@ void SeqScanTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast
       function->Append(assign);
       // Push to parent.
       ctx->Push(function);
-
-      CounterAdd(function, num_scans_, 1);
     }
     vpi_loop.EndLoop();
   };
   // TODO(Amadou): What if the predicate doesn't filter out anything?
   gen_vpi_loop(HasPredicate());
+
+  // var vpi_num_tuples = @tableIterGetNumTuples(tvi)
+  ast::Identifier vpi_num_tuples = codegen->MakeFreshIdentifier("vpi_num_tuples");
+  function->Append(codegen->DeclareVarWithInit(
+      vpi_num_tuples, codegen->CallBuiltin(ast::Builtin::TableIterGetVPINumTuples, {codegen->MakeExpr(tvi_var_)})));
+  CounterAdd(function, num_scans_, vpi_num_tuples);
 }
 
 void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) const {
@@ -297,10 +301,10 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                num_scans_.Get(GetCodeGen()));
+                num_scans_.Get(codegen));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
-                num_scans_.Get(GetCodeGen()));
+                num_scans_.Get(codegen));
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {

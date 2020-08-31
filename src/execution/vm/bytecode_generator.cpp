@@ -667,6 +667,12 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       GetExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
+    case ast::Builtin::TableIterGetVPINumTuples: {
+      LocalVar num_tuples_vpi = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::TableVectorIteratorGetVPINumTuples, num_tuples_vpi, iter);
+      GetExecutionResult()->SetDestination(num_tuples_vpi.ValueOf());
+      break;
+    }
     case ast::Builtin::TableIterGetVPI: {
       LocalVar vpi = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::TableVectorIteratorGetVPI, vpi, iter);
@@ -2350,6 +2356,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterAdvance:
+    case ast::Builtin::TableIterGetVPINumTuples:
     case ast::Builtin::TableIterGetVPI:
     case ast::Builtin::TableIterClose: {
       VisitBuiltinTableIterCall(call, builtin);

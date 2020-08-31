@@ -601,6 +601,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(TableVectorIteratorGetVPINumTuples) : {
+    auto *num_tuples_vpi = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    OpTableVectorIteratorGetVPINumTuples(num_tuples_vpi, iter);
+    DISPATCH_NEXT();
+  }
+
   OP(TableVectorIteratorGetVPI) : {
     auto *vpi = frame->LocalAt<sql::VectorProjectionIterator **>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
