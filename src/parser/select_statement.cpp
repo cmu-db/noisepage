@@ -4,7 +4,93 @@
 #include <utility>
 #include <vector>
 
+#include "common/json.h"
+
 namespace terrier::parser {
+
+nlohmann::json OrderByDescription::ToJson() const {
+  nlohmann::json j;
+  j["types"] = types_;
+  std::vector<nlohmann::json> exprs_json;
+  exprs_json.reserve(exprs_.size());
+  for (const auto &expr : exprs_) {
+    exprs_json.emplace_back(expr->ToJson());
+  }
+  j["exprs"] = exprs_json;
+  return j;
+}
+
+std::vector<std::unique_ptr<AbstractExpression>> OrderByDescription::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> result;
+  // Deserialize types
+  types_ = j.at("types").get<std::vector<OrderType>>();
+
+  // Deserialize exprs
+  auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
+  for (const auto &expr : expressions) {
+    auto deserialized_expr = DeserializeExpression(expr);
+    exprs_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
+    result.emplace_back(std::move(deserialized_expr.result_));
+    result.insert(result.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                  std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
+  }
+  return result;
+}
+
+DEFINE_JSON_BODY_DECLARATIONS(OrderByDescription);
+
+nlohmann::json LimitDescription::ToJson() const {
+  nlohmann::json j;
+  j["limit"] = limit_;
+  j["offset"] = offset_;
+  return j;
+}
+
+std::vector<std::unique_ptr<AbstractExpression>> LimitDescription::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> exprs;
+  limit_ = j.at("limit").get<int64_t>();
+  offset_ = j.at("offset").get<int64_t>();
+  return exprs;
+}
+
+DEFINE_JSON_BODY_DECLARATIONS(LimitDescription);
+
+nlohmann::json GroupByDescription::ToJson() const {
+  nlohmann::json j;
+  std::vector<nlohmann::json> columns_json;
+  columns_json.reserve(columns_.size());
+  for (const auto &col : columns_) {
+    columns_json.emplace_back(col->ToJson());
+  }
+  j["columns"] = columns_json;
+  j["having"] = having_ == nullptr ? nlohmann::json(nullptr) : having_->ToJson();
+  return j;
+}
+
+std::vector<std::unique_ptr<AbstractExpression>> GroupByDescription::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> exprs;
+  // Deserialize columns
+  auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
+  for (const auto &expr : column_expressions) {
+    auto deserialized_expr = DeserializeExpression(expr);
+    columns_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
+    exprs.emplace_back(std::move(deserialized_expr.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
+  }
+
+  // Deserialize having
+  if (!j.at("having").is_null()) {
+    auto deserialized_expr = DeserializeExpression(j.at("having"));
+    having_ = common::ManagedPointer(deserialized_expr.result_);
+    exprs.emplace_back(std::move(deserialized_expr.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
+  }
+  return exprs;
+}
+
+DEFINE_JSON_BODY_DECLARATIONS(GroupByDescription);
 
 nlohmann::json SelectStatement::ToJson() const {
   nlohmann::json j = SQLStatement::ToJson();
@@ -88,6 +174,8 @@ std::vector<std::unique_ptr<AbstractExpression>> SelectStatement::FromJson(const
 
   return exprs;
 }
+
+DEFINE_JSON_BODY_DECLARATIONS(SelectStatement);
 
 std::unique_ptr<SelectStatement> SelectStatement::Copy() {
   auto select = std::make_unique<SelectStatement>(

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "brain/operating_unit.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
@@ -11,11 +12,12 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/join_hash_table_vector_probe.h"
-#include "execution/sql/projected_columns_iterator.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
+#include "execution/sql/vector_projection_iterator.h"
+// #include "execution/util/csv_reader.h" Fix later.
 
 namespace terrier::execution::ast {
 
@@ -25,8 +27,11 @@ namespace terrier::execution::ast {
 
 // TODO(pmenon): Fix me
 bool Type::IsArithmetic() const {
-  return IsIntegerType() || IsFloatType() || IsSpecificBuiltin(BuiltinType::Integer) ||
-         IsSpecificBuiltin(BuiltinType::Real) || IsSpecificBuiltin(BuiltinType::Decimal);
+  return IsIntegerType() ||                          // Primitive TPL integers
+         IsFloatType() ||                            // Primitive TPL floats
+         IsSpecificBuiltin(BuiltinType::Integer) ||  // SQL integer
+         IsSpecificBuiltin(BuiltinType::Real) ||     // SQL reals
+         IsSpecificBuiltin(BuiltinType::Decimal);    // SQL decimals
 }
 
 // ---------------------------------------------------------

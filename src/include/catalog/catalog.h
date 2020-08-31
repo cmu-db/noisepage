@@ -7,21 +7,24 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "common/managed_pointer.h"
-#include "transaction/transaction_context.h"
+#include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
+class TransactionContext;
 class TransactionManager;
-}
+}  // namespace terrier::transaction
 
 namespace terrier::storage {
 class GarbageCollector;
-}
+class RecoveryManager;
+}  // namespace terrier::storage
 
 namespace terrier::catalog {
 
+class CatalogCache;
+class DatabaseCatalog;
 class CatalogAccessor;
 
 /**
@@ -120,10 +123,11 @@ class Catalog {
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
    * @param txn for all subsequent catalog queries
    * @param database in which this transaction is scoped
+   * @param cache CatalogCache object for this connection, or nullptr if disabled
    * @return a CatalogAccessor object for use with this transaction
    */
   std::unique_ptr<CatalogAccessor> GetAccessor(common::ManagedPointer<transaction::TransactionContext> txn,
-                                               db_oid_t database);
+                                               db_oid_t database, common::ManagedPointer<CatalogCache> cache);
 
   /**
    * @return Catalog's BlockStore

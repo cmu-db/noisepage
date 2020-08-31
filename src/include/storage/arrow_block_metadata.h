@@ -1,7 +1,9 @@
 #pragma once
+
 #include <map>
 #include <unordered_set>
 #include <utility>
+
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
@@ -37,7 +39,7 @@ class ArrowVarlenColumn {
       : values_length_(values_length),
         offsets_length_(offsets_length),
         values_(common::AllocationUtil::AllocateAligned(values_length_)),
-        offsets_(common::AllocationUtil::AllocateAligned<uint32_t>(offsets_length_)) {}
+        offsets_(common::AllocationUtil::AllocateAligned<uint64_t>(offsets_length_)) {}
 
   DISALLOW_COPY(ArrowVarlenColumn)
 
@@ -97,7 +99,7 @@ class ArrowVarlenColumn {
   /**
    * @return the offsets array
    */
-  uint32_t *Offsets() const { return offsets_; }
+  uint64_t *Offsets() const { return offsets_; }
 
   /**
    * Deallocates all associated buffers in the ArrowVarlenColumn
@@ -112,7 +114,7 @@ class ArrowVarlenColumn {
  private:
   uint32_t values_length_ = 0, offsets_length_ = 0;
   byte *values_ = nullptr;
-  uint32_t *offsets_ = nullptr;
+  uint64_t *offsets_ = nullptr;
 };
 
 /**
@@ -174,7 +176,7 @@ class ArrowColumnInfo {
    * size of this array is equal to the number of slots in a block.
    * @return the indices array
    */
-  uint32_t *&Indices() {
+  uint64_t *&Indices() {
     TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
                    "this array is only meaningful if the column is dicationary compressed");
     return indices_;
@@ -195,7 +197,7 @@ class ArrowColumnInfo {
   ArrowColumnType type_;
   ArrowVarlenColumn varlen_column_;  // For varlen and dictionary
   // TODO(Tianyu): Add null bitmap
-  uint32_t *indices_ = nullptr;  // for dictionary
+  uint64_t *indices_ = nullptr;  // for dictionary
 };
 
 /**
@@ -244,13 +246,17 @@ class ArrowBlockMetadata {
    * @param col_id the column of interest
    * @return reference to the null count value for given column
    */
-  uint32_t &NullCount(col_id_t col_id) { return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id]; }
+  uint32_t &NullCount(col_id_t col_id) {
+    return reinterpret_cast<uint32_t *>(varlen_content_)[col_id.UnderlyingValue()];
+  }
 
   /**
    * @param col_id the column of interest
    * @return the null count for given column
    */
-  uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
+  uint32_t NullCount(col_id_t col_id) const {
+    return reinterpret_cast<const uint32_t *>(varlen_content_)[col_id.UnderlyingValue()];
+  }
 
   /**
    * @param layout layout object of the Block
@@ -260,7 +266,7 @@ class ArrowBlockMetadata {
   ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.UnderlyingValue()];
   }
 
   /**
@@ -271,7 +277,7 @@ class ArrowBlockMetadata {
   const ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) const {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.UnderlyingValue()];
   }
 
  private:

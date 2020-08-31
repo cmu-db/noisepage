@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 
@@ -64,10 +65,12 @@ class ProjectionPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 };
 
-DEFINE_JSON_DECLARATIONS(ProjectionPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ProjectionPlanNode);
 
 }  // namespace terrier::planner

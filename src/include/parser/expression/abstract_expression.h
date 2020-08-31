@@ -1,25 +1,26 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
-#include "common/json.h"
+#include "common/json_header.h"
 #include "common/managed_pointer.h"
-#include "common/sql_node_visitor.h"
 #include "parser/expression_defs.h"
-#include "type/transient_value.h"
 #include "type/type_id.h"
 
 namespace terrier::optimizer {
 class OptimizerUtil;
 class QueryToOperatorTransformer;
+class ExpressionNodeContents;
 }  // namespace terrier::optimizer
 
 namespace terrier::binder {
 class BindNodeVisitor;
+class BinderUtil;
 }  // namespace terrier::binder
 
 namespace terrier::parser {
@@ -33,6 +34,7 @@ class ParseResult;
  */
 class AbstractExpression {
   friend class optimizer::OptimizerUtil;
+  friend class optimizer::ExpressionNodeContents;
 
  protected:
   /**
@@ -44,6 +46,7 @@ class AbstractExpression {
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
+
   /**
    * Instantiates a new abstract expression with alias used for select statement column references.
    * @param expression_type what type of expression we have
@@ -59,15 +62,21 @@ class AbstractExpression {
         children_(std::move(children)) {}
 
   /**
-   * Copy constructs an abstract expression.
-   * @param other the abstract expression to be copied
-   */
-  AbstractExpression(const AbstractExpression &other) = default;
-
-  /**
    * Default constructor used for json deserialization
    */
   AbstractExpression() = default;
+
+  /**
+   * Copy constructs an abstract expression. Does not do a deep copy of the children
+   * @param other the abstract expression to be copied
+   */
+  AbstractExpression(const AbstractExpression &other)
+      : expression_type_(other.expression_type_),
+        expression_name_(other.expression_name_),
+        alias_(other.alias_),
+        return_value_type_(other.return_value_type_),
+        depth_(other.depth_),
+        has_subquery_(other.has_subquery_) {}
 
   /**
    * @param expression_name Set the expression name of the current expression
@@ -94,13 +103,7 @@ class AbstractExpression {
    * re-derive the expression.
    * @param copy_expr the expression whose mutable state should be copied
    */
-  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
-    SetExpressionName(copy_expr.GetExpressionName());
-    SetReturnValueType(copy_expr.GetReturnValueType());
-    SetDepth(copy_expr.GetDepth());
-    has_subquery_ = copy_expr.HasSubquery();
-    alias_ = copy_expr.alias_;
-  }
+  void SetMutableStateForCopy(const AbstractExpression &copy_expr);
 
  public:
   virtual ~AbstractExpression() = default;
@@ -108,36 +111,14 @@ class AbstractExpression {
   /**
    * Hashes the current abstract expression.
    */
-  virtual common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (const auto &child : children_) {
-      hash = common::HashUtil::CombineHashes(hash, child->Hash());
-    }
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expression_name_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(alias_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(depth_));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(has_subquery_)));
-
-    return hash;
-  }
+  virtual common::hash_t Hash() const;
 
   /**
    * Logical equality check.
    * @param rhs other
    * @return true if the two expressions are logically equal
    */
-  virtual bool operator==(const AbstractExpression &rhs) const {
-    if (expression_type_ != rhs.expression_type_) return false;
-    if (alias_ != rhs.alias_) return false;
-    if (expression_name_ != rhs.expression_name_) return false;
-    if (depth_ != rhs.depth_) return false;
-    if (has_subquery_ != rhs.has_subquery_) return false;
-    if (children_.size() != rhs.children_.size()) return false;
-    for (size_t i = 0; i < children_.size(); i++)
-      if (*(children_[i]) != *(rhs.children_[i])) return false;
-    return return_value_type_ == rhs.return_value_type_;
-  }
+  virtual bool operator==(const AbstractExpression &rhs) const;
 
   /**
    * Logical inequality check.
@@ -181,15 +162,10 @@ class AbstractExpression {
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
-  /** @return children of this abstract expression */
-  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const {
-    std::vector<common::ManagedPointer<AbstractExpression>> children;
-    children.reserve(children_.size());
-    for (const auto &child : children_) {
-      children.emplace_back(common::ManagedPointer(child));
-    }
-    return children;
-  }
+  /**
+   * @return children of this abstract expression
+   */
+  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const;
 
   /**
    * @param index index of child
@@ -211,25 +187,24 @@ class AbstractExpression {
   /** @return alias of this abstract expression */
   const std::string &GetAlias() const { return alias_; }
 
+  /** set alias of this abstract expression */
+  void SetAlias(std::string alias) { alias_ = std::move(alias); }
+
   /**
    * Derive the expression type of the current expression.
    */
   virtual void DeriveReturnValueType() {}
 
-  // TODO(WAN): it looks like we are returning to Peloton style Accept calls AcceptChildren calls Accept, must we?
+  /**
+   * @param v Visitor pattern for the expression
+   */
+  virtual void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) = 0;
 
   /**
    * @param v Visitor pattern for the expression
-   * @param parse_result Result generated by the parser. A collection of statements and expressions in the query.
    */
-  virtual void Accept(SqlNodeVisitor *v, ParseResult *parse_result) = 0;
-
-  /**
-   * @param v Visitor pattern for the expression
-   * @param parse_result Result generated by the parser. A collection of statements and expressions in the query.
-   */
-  virtual void AcceptChildren(SqlNodeVisitor *v, ParseResult *parse_result) {
-    for (auto &child : children_) child->Accept(v, parse_result);
+  virtual void AcceptChildren(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+    for (auto &child : children_) child->Accept(v);
   }
 
   /** @return the sub-query depth level (SEE COMMENT in depth_) */
@@ -270,6 +245,7 @@ class AbstractExpression {
   // as they each traverse the ast independently and add in necessary information to the ast
   // TODO(Ling): we could look into whether the two traversals can be combined to one in the future
   friend class binder::BindNodeVisitor;
+  friend class binder::BinderUtil;
   friend class optimizer::QueryToOperatorTransformer;
 
   /**
@@ -278,13 +254,7 @@ class AbstractExpression {
    * @param index Index of the child to be changed
    * @param expr The abstract expression which we set the child to
    */
-  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
-    if (index >= static_cast<int>(children_.size())) {
-      children_.resize(index + 1);
-    }
-    auto new_child = expr->Copy();
-    children_[index] = std::move(new_child);
-  }
+  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr);
 
   /** Type of the current expression */
   ExpressionType expression_type_;
@@ -317,7 +287,7 @@ class AbstractExpression {
   std::vector<std::unique_ptr<AbstractExpression>> children_;
 };
 
-DEFINE_JSON_DECLARATIONS(AbstractExpression)
+DEFINE_JSON_HEADER_DECLARATIONS(AbstractExpression);
 
 /**
  * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions

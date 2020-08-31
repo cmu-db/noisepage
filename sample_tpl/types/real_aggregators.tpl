@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output: 0
+
+fun main() -> int {
   // Init aggregates
   var sum_agg : RealSumAggregate
   var avg_agg : RealAvgAggregate

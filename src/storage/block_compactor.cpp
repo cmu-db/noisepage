@@ -6,9 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "storage/index/bwtree_index.h"
-#include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
@@ -169,7 +168,7 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // varlen value as not reclaimable so as to not double-free
   for (col_id_t varlen_col_id : layout.Varlens()) {
     // We know this to be true because the projection list has all columns
-    auto offset = static_cast<uint16_t>(!varlen_col_id - NUM_RESERVED_COLUMNS);
+    auto offset = static_cast<uint16_t>(varlen_col_id.UnderlyingValue() - NUM_RESERVED_COLUMNS);
     auto *entry = reinterpret_cast<VarlenEntry *>(record->Delta()->AccessWithNullCheck(offset));
     if (entry == nullptr) continue;
     if (entry->Size() <= VarlenEntry::InlineThreshold()) {
@@ -273,8 +272,8 @@ void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, Ar
                                        ArrowColumnInfo *col, VarlenEntry *values) {
   uint32_t varlen_size = 0;
   // Read through every tuple and update null count and total varlen size
+  metadata->NullCount(col_id) = 0;
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
-    metadata->NullCount(col_id) = 0;
     if (!column_bitmap->Test(i))
       // Update null count
       metadata->NullCount(col_id)++;
@@ -315,8 +314,8 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   VarlenEntryMap<uint32_t> dictionary;
   // Read through every tuple and update null count and build the dictionary
   uint32_t varlen_size = 0;
+  metadata->NullCount(col_id) = 0;
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
-    metadata->NullCount(col_id) = 0;
     if (!column_bitmap->Test(i)) {
       // Update null count
       metadata->NullCount(col_id)++;
@@ -328,7 +327,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   }
   ArrowColumnInfo new_col_info;
   new_col_info.Type() = col->Type();
-  new_col_info.Indices() = common::AllocationUtil::AllocateAligned<uint32_t>(metadata->NumRecords());
+  new_col_info.Indices() = common::AllocationUtil::AllocateAligned<uint64_t>(metadata->NumRecords());
   auto &new_col = new_col_info.VarlenColumn() = {varlen_size, static_cast<uint32_t>(dictionary.size() + 1)};
 
   // TODO(Tianyu): This is retarded, but apparently you cannot retrieve the index of elements in your
@@ -355,7 +354,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
     VarlenEntry &entry = values[i];
     // Need to GC
     if (entry.NeedReclaim()) loose_ptrs->push_back(entry.Content());
-    uint32_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
+    uint64_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
 
     byte *dictionary_word = new_col.Values() + new_col.Offsets()[dictionary_code];
     TERRIER_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,

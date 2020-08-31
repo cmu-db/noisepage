@@ -1,3 +1,5 @@
+#include "optimizer/optimizer_task.h"
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -7,7 +9,6 @@
 #include "optimizer/binding.h"
 #include "optimizer/child_property_deriver.h"
 #include "optimizer/optimizer_context.h"
-#include "optimizer/optimizer_task.h"
 #include "optimizer/property_enforcer.h"
 #include "optimizer/statistics/child_stats_deriver.h"
 #include "optimizer/statistics/stats_calculator.h"
@@ -21,7 +22,7 @@ void OptimizerTask::ConstructValidRules(GroupExpression *group_expr, const std::
                                         std::vector<RuleWithPromise> *valid_rules) {
   for (auto &rule : rules) {
     // Check if we can apply the rule
-    bool root_pattern_mismatch = group_expr->Op().GetType() != rule->GetMatchPattern()->Type();
+    bool root_pattern_mismatch = group_expr->Contents()->GetOpType() != rule->GetMatchPattern()->Type();
     bool already_explored = group_expr->HasRuleExplored(rule);
 
     // This check exists only as an "early" reject. As is evident, we do not check
@@ -49,14 +50,16 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContex
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::Execute() {
-  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group {0}", group_->GetID());
+  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group " + std::to_string(group_->GetID().UnderlyingValue()));
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
     return;
 
   // Push explore task first for logical expressions if the group has not been explored
   if (!group_->HasExplored()) {
-    for (auto &logical_expr : group_->GetLogicalExpressions()) PushTask(new OptimizeExpression(logical_expr, context_));
+    for (auto &logical_expr : group_->GetLogicalExpressions()) {
+      PushTask(new OptimizeExpression(logical_expr, context_));
+    }
   }
 
   // Push implement tasks to ensure that they are run first (for early pruning)
@@ -83,7 +86,7 @@ void OptimizeExpression::Execute() {
 
   std::sort(valid_rules.begin(), valid_rules.end());
   OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op {0}, valid rules : {1}",
-                      static_cast<int>(group_expr_->Op().GetType()), valid_rules.size());
+                      static_cast<int>(group_expr_->Contents()->GetOpType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
     PushTask(new ApplyRule(group_expr_, r.GetRule(), context_));
@@ -153,7 +156,8 @@ void ApplyRule::Execute() {
   OPTIMIZER_LOG_TRACE("ApplyRule::Execute() for rule: {0}", rule_->GetRuleIdx());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
-  GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern());
+  GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern(),
+                                    context_->GetOptimizerContext()->GetTxn());
   while (iterator.HasNext()) {
     auto before = iterator.Next();
     if (!rule_->Check(common::ManagedPointer(before.get()), context_)) {
@@ -161,15 +165,15 @@ void ApplyRule::Execute() {
     }
 
     // Caller frees after
-    std::vector<std::unique_ptr<OperatorNode>> after;
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
     rule_->Transform(common::ManagedPointer(before.get()), &after, context_);
     for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
       auto g_id = group_expr_->GetGroupID();
-      if (context_->GetOptimizerContext()->RecordOperatorNodeIntoGroup(common::ManagedPointer(new_expr.get()),
-                                                                       &new_gexpr, g_id)) {
+      if (context_->GetOptimizerContext()->RecordOptimizerNodeIntoGroup(common::ManagedPointer(new_expr), &new_gexpr,
+                                                                        g_id)) {
         // A new group expression is generated
-        if (new_gexpr->Op().IsLogical()) {
+        if (new_gexpr->Contents()->IsLogical()) {
           // Derive stats for the *logical expression*
           PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_));
           if (explore_only_) {
@@ -200,7 +204,7 @@ void DeriveStats::Execute() {
   auto children_required_stats =
       deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
   bool derive_children = false;
-  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group {0}", gexpr_->GetGroupID());
+  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group " + std::to_string(gexpr_->GetGroupID().UnderlyingValue()));
 
   // If we haven't got enough stats to compute the current stats, derive them
   // from the child first
@@ -276,7 +280,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // 1. Collect stats needed and cache them in the group
       // 2. Calculate cost based on children's stats
       cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
-          context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(), group_expr_);
+          context_->GetOptimizerContext()->GetTxn(), context_->GetOptimizerContext()->GetCatalogAccessor(),
+          &context_->GetOptimizerContext()->GetMemo(), group_expr_);
     }
 
     for (; cur_child_idx_ < static_cast<int>(group_expr_->GetChildrenGroupsSize()); cur_child_idx_++) {
@@ -332,7 +337,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
       // to derive the optimal enforce order or perform a cost-based full enumeration.
       for (auto &prop : context_->GetRequiredProperties()->Properties()) {
         if (!output_prop->HasProperty(*prop)) {
-          auto enforced_expr = prop_enforcer.EnforceProperty(group_expr_, prop);
+          auto enforced_expr =
+              prop_enforcer.EnforceProperty(group_expr_, prop, context_->GetOptimizerContext()->GetTxn());
           // Cannot enforce the missing property
           if (enforced_expr == nullptr) {
             meet_requirement = false;
@@ -348,8 +354,8 @@ void OptimizeExpressionCostWithEnforcedProperty::Execute() {
           auto extended_prop_set = output_prop->Copy();
           extended_prop_set->AddProperty(prop->Copy());
           cur_total_cost_ += context_->GetOptimizerContext()->GetCostModel()->CalculateCost(
-              context_->GetOptimizerContext()->GetTxn(), &context_->GetOptimizerContext()->GetMemo(),
-              memo_enforced_expr);
+              context_->GetOptimizerContext()->GetTxn(), context_->GetOptimizerContext()->GetCatalogAccessor(),
+              &context_->GetOptimizerContext()->GetMemo(), memo_enforced_expr);
 
           // Update hash tables for group and group expression
           memo_enforced_expr->SetLocalHashTable(extended_prop_set, {pre_output_prop_set}, cur_total_cost_);
@@ -392,11 +398,12 @@ void TopDownRewrite::Execute() {
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
-    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
+    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern(),
+                                      context_->GetOptimizerContext()->GetTxn());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
-      std::vector<std::unique_ptr<OperatorNode>> after;
+      std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
@@ -408,7 +415,6 @@ void TopDownRewrite::Execute() {
         return;
       }
     }
-
     cur_group_expr->SetRuleExplored(rule);
   }
 
@@ -449,18 +455,19 @@ void BottomUpRewrite::Execute() {
 
   for (auto &r : valid_rules) {
     Rule *rule = r.GetRule();
-    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern());
+    GroupExprBindingIterator iterator(GetMemo(), cur_group_expr, rule->GetMatchPattern(),
+                                      context_->GetOptimizerContext()->GetTxn());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
-      std::vector<std::unique_ptr<OperatorNode>> after;
+      std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule generated too many transformations");
       // If a rule is applied, we replace the old expression and optimize this
       // group again, this will ensure that we apply rule for this level until
-      // saturated, also childs are already been rewritten
+      // saturated, also children are already been rewritten
       if (!after.empty()) {
         auto &new_expr = after[0];
         context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);

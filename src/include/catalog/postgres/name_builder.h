@@ -2,8 +2,8 @@
 
 #include <string>
 
+#include "common/error/exception.h"
 #include "network/postgres/postgres_defs.h"
-#include "common/exception.h"
 
 namespace terrier::catalog::postgres {
 /**

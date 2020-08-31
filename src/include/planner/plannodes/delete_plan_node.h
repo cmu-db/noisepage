@@ -4,8 +4,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/delete_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 /**
@@ -35,15 +37,6 @@ class DeletePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param namespace_oid OID of the namespace
-     * @return builder object
-     */
-    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
-      namespace_oid_ = namespace_oid;
-      return *this;
-    }
-
-    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -63,8 +56,8 @@ class DeletePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<DeletePlanNode> Build() {
-      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, namespace_oid_, table_oid_));
+      return std::unique_ptr<DeletePlanNode>(
+          new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(), database_oid_, table_oid_));
     }
 
    protected:
@@ -72,11 +65,6 @@ class DeletePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
-
-    /**
-     * OID of namespace
-     */
-    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * the table to be deleted
@@ -93,10 +81,9 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param table_oid the OID of the target SQL table
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
         table_oid_(table_oid) {}
 
  public:
@@ -115,11 +102,6 @@ class DeletePlanNode : public AbstractPlanNode {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return OID of the table to be deleted
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
@@ -132,6 +114,8 @@ class DeletePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -142,16 +126,11 @@ class DeletePlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 
   /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
-
-  /**
    * Table to be deleted
    */
   catalog::table_oid_t table_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DeletePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DeletePlanNode);
 
 }  // namespace terrier::planner

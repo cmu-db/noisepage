@@ -9,20 +9,18 @@ namespace terrier::execution::sql {
  */
 class EXPORT IsNullPredicate {
  public:
-  /**
-   * Delete to force only static functions
-   */
-  IsNullPredicate() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(IsNullPredicate);
 
   /**
-   * Set result to true iff val is null
+   * @return true iff val is null
    */
-  static void IsNull(BoolVal *result, const Val &val) { *result = BoolVal(val.is_null_); }
+  static bool IsNull(const Val &val) { return val.is_null_; }
 
   /**
-   * Set result to true iff val is not null
+   * @return true iff val is not null
    */
-  static void IsNotNull(BoolVal *result, const Val &val) { *result = BoolVal(!val.is_null_); }
+  static bool IsNotNull(const Val &val) { return !val.is_null_; }
 };
 
 }  // namespace terrier::execution::sql

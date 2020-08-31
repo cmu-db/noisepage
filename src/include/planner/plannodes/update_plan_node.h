@@ -4,10 +4,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "parser/parameter.h"
 #include "parser/update_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 
@@ -42,15 +44,6 @@ class UpdatePlanNode : public AbstractPlanNode {
      */
     Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
       database_oid_ = database_oid;
-      return *this;
-    }
-
-    /**
-     * @param namespace_oid OID of the namespace
-     * @return builder object
-     */
-    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
-      namespace_oid_ = namespace_oid;
       return *this;
     }
 
@@ -95,9 +88,9 @@ class UpdatePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<UpdatePlanNode> Build() {
-      return std::unique_ptr<UpdatePlanNode>(
-          new UpdatePlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
-                             update_primary_key_, indexed_update_, std::move(sets_)));
+      return std::unique_ptr<UpdatePlanNode>(new UpdatePlanNode(std::move(children_), std::make_unique<OutputSchema>(),
+                                                                database_oid_, table_oid_, update_primary_key_,
+                                                                indexed_update_, std::move(sets_)));
     }
 
    protected:
@@ -105,11 +98,6 @@ class UpdatePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
-
-    /**
-     * OID of namespace
-     */
-    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to update
@@ -144,11 +132,10 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @param sets SET clauses
    */
   UpdatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 bool update_primary_key, bool indexed_update, std::vector<SetClause> sets)
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, bool update_primary_key,
+                 bool indexed_update, std::vector<SetClause> sets)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         update_primary_key_(update_primary_key),
         indexed_update_(indexed_update),
@@ -166,11 +153,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the target table to operate on
@@ -204,6 +186,8 @@ class UpdatePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -212,11 +196,6 @@ class UpdatePlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the table to update
@@ -239,6 +218,6 @@ class UpdatePlanNode : public AbstractPlanNode {
   std::vector<SetClause> sets_;
 };
 
-DEFINE_JSON_DECLARATIONS(UpdatePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(UpdatePlanNode);
 
 }  // namespace terrier::planner

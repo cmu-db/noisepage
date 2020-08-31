@@ -1,10 +1,12 @@
 #include <catalog/catalog_defs.h>
+
 #include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
+#include "nlohmann/json.hpp"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
@@ -40,12 +42,9 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
-#include "type/type_id.h"
-
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
+#include "type/type_id.h"
 
 namespace terrier::planner {
 
@@ -66,7 +65,7 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy predicate
    */
   static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    return std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   }
 };
 
@@ -131,7 +130,6 @@ TEST(PlanNodeJsonTest, AnalyzePlanNodeJsonTest) {
                                               catalog::col_oid_t(4), catalog::col_oid_t(5)};
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(1))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
                        .SetColumnOIDs(std::move(col_oids))
                        .Build();
@@ -268,7 +266,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   // CHECK CONSTRAINT
   auto get_check_info = []() {
-    type::TransientValue val = type::TransientValueFactory::GetInteger(1);
+    parser::ConstantValueExpression val(type::TypeId::INTEGER, execution::sql::Integer(1));
     std::vector<CheckInfo> checks;
     std::vector<std::string> cks = {"ck_a"};
     checks.emplace_back(cks, "ck_a", parser::ExpressionType::COMPARE_GREATER_THAN, std::move(val));
@@ -278,15 +276,11 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   // Columns
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
-        catalog::Schema::Column(
-            "a", type::TypeId::INTEGER, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
-        catalog::Schema::Column(
-            "u_a", type::TypeId::DECIMAL, false,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
-        catalog::Schema::Column(
-            "u_b", type::TypeId::DATE, true,
-            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+        catalog::Schema::Column("a", type::TypeId::INTEGER, false,
+                                parser::ConstantValueExpression(type::TypeId::INTEGER)),
+        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false,
+                                parser::ConstantValueExpression(type::TypeId::DECIMAL)),
+        catalog::Schema::Column("u_b", type::TypeId::DATE, true, parser::ConstantValueExpression(type::TypeId::DATE))};
     StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
     StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
     StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));
@@ -440,10 +434,7 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
   // Construct DeletePlanNode
   auto delete_pred = PlanNodeJsonTest::BuildDummyPredicate();
   DeletePlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
-                       .SetTableOid(catalog::table_oid_t(2))
-                       .Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1)).SetTableOid(catalog::table_oid_t(2)).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -571,11 +562,8 @@ TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
 TEST(PlanNodeJsonTest, DropViewPlanNodeTest) {
   // Construct DropViewPlanNode
   DropViewPlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(11))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
-                       .SetViewOid(catalog::view_oid_t(12))
-                       .SetIfExist(true)
-                       .Build();
+  auto plan_node =
+      builder.SetDatabaseOid(catalog::db_oid_t(11)).SetViewOid(catalog::view_oid_t(12)).SetIfExist(true).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -653,7 +641,6 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetIndexOid(catalog::index_oid_t(0))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .Build();
 
   // Serialize to Json
@@ -678,11 +665,11 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   auto get_values = [&](int offset, int num_cols) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> tuple;
 
-    auto ptr = new parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(offset));
+    auto ptr = new parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(offset));
     free_exprs.push_back(ptr);
     tuple.emplace_back(ptr);
     for (; num_cols - 1 > 0; num_cols--) {
-      auto cve = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      auto cve = new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
       free_exprs.push_back(cve);
       tuple.emplace_back(cve);
     }
@@ -692,7 +679,6 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   InsertPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(0))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(1))
                        .AddValues(get_values(0, 2))
                        .AddValues(get_values(1, 2))
@@ -717,7 +703,6 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   InsertPlanNode::Builder builder2;
   auto plan_node2 = builder2.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                         .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                         .SetTableOid(catalog::table_oid_t(1))
                         .AddValues(get_values(0, 3))
                         .AddValues(get_values(1, 3))
@@ -859,7 +844,6 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
                        .SetScanPredicate(common::ManagedPointer(scan_pred))
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(0))
                        .Build();
 
@@ -901,7 +885,6 @@ TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   UpdatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetDatabaseOid(catalog::db_oid_t(1000))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(200))
                        .SetUpdatePrimaryKey(true)
                        .Build();

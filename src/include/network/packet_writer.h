@@ -9,7 +9,6 @@
 #include "common/managed_pointer.h"
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
-#include "type/transient_value_peeker.h"
 
 namespace terrier::network {
 
@@ -110,45 +109,51 @@ class PacketWriter {
    * @return self-reference for chaining
    */
   template <typename T>
-  PacketWriter &AppendValue(T val) {
+  PacketWriter &AppendValue(const T val) {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
     static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
 
-    switch (sizeof(T)) {
-      case 1:
-        return AppendRawValue(val);
-      case 2:
-        return AppendRawValue(_CAST(T, htobe16(_CAST(uint16_t, val))));
-      case 4:
-        return AppendRawValue(_CAST(T, htobe32(_CAST(uint32_t, val))));
-      case 8:
-        return AppendRawValue(_CAST(T, htobe64(_CAST(uint64_t, val))));
-        // Will never be here due to compiler optimization
-      default:
-        throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
+    if constexpr (std::is_floating_point_v<T>) {
+      const auto *const double_val = reinterpret_cast<const uint64_t *const>(&val);
+      return AppendRawValue(htobe64(*double_val));
+    } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
+      switch (sizeof(T)) {
+        case 1:
+          return AppendRawValue(val);
+        case 2:
+          return AppendRawValue(static_cast<T>(htobe16(static_cast<uint16_t>(val))));
+        case 4:
+          return AppendRawValue(static_cast<T>(htobe32(static_cast<uint32_t>(val))));
+        case 8:
+          return AppendRawValue(static_cast<T>(htobe64(static_cast<uint64_t>(val))));
+          // Will never be here due to compiler optimization
+        default:
+          throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
+      }
     }
   }
 
   /**
    * Append a string onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendString(const std::string &str, bool nul_terminate = true) {
+  PacketWriter &AppendString(const std::string &str, bool nul_terminate) {
     return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
   }
 
   /**
    * Append a string_view onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate = true) {
-    return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
+  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate) {
+    return nul_terminate ? AppendRaw(str.data(), str.size()).AppendRawValue<uchar>(0)
+                         : AppendRaw(str.data(), str.size());
   }
 
   /**
@@ -157,7 +162,7 @@ class PacketWriter {
   void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
-    for (const auto &pair : config) AppendString(pair.first).AppendString(pair.second);
+    for (const auto &pair : config) AppendString(pair.first, true).AppendString(pair.second, true);
     AppendRawValue<uchar>(0);  // Startup message should have (byte+1) length
     EndPacket();
   }

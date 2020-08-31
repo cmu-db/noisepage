@@ -4,12 +4,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
-#include "storage/storage_defs.h"
+#include "planner/plannodes/plan_visitor.h"
 
-// TODO(Gus,Wen) Tuple as a concept does not exist yet, someone need to define it in the storage layer, possibly a
-// collection of TransientValues
 namespace terrier::planner {
 
 /**
@@ -89,6 +88,8 @@ class ResultPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -99,6 +100,6 @@ class ResultPlanNode : public AbstractPlanNode {
   common::ManagedPointer<parser::AbstractExpression> expr_;
 };
 
-DEFINE_JSON_DECLARATIONS(ResultPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ResultPlanNode);
 
 }  // namespace terrier::planner

@@ -1,5 +1,6 @@
 #include "network/terrier_server.h"
 
+#include <unistd.h>
 #include <fstream>
 #include <memory>
 
@@ -16,11 +17,11 @@ namespace terrier::network {
 TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                             const uint16_t port)
+                             const uint16_t port, const uint16_t connection_thread_count)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
       port_(port),
-      max_connections_(CONNECTION_THREAD_COUNT),
+      max_connections_(connection_thread_count),
       connection_handle_factory_(connection_handle_factory),
       provider_(protocol_provider) {
   // For logging purposes
@@ -74,7 +75,7 @@ void TerrierServer::RunServer() {
       this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()),
       connection_handle_factory_, thread_registry_);
 
-  NETWORK_LOG_INFO("Listening on port {0}", port_);
+  NETWORK_LOG_INFO("Listening on port {0} [PID={1}]", port_, ::getpid());
 
   // Set the running_ flag for any waiting threads
   {

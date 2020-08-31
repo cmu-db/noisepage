@@ -6,6 +6,7 @@
 #include <vector>
 #include "parser/analyze_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 
@@ -36,15 +37,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param namespace_oid OID of the namespace
-     * @return builder object
-     */
-    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
-      namespace_oid_ = namespace_oid;
-      return *this;
-    }
-
-    /**
      * @param table_oid the OID of the target SQL table
      * @return builder object
      */
@@ -68,8 +60,7 @@ class AnalyzePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<AnalyzePlanNode> Build() {
       return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
-                                                                  database_oid_, namespace_oid_, table_oid_,
-                                                                  std::move(column_oids_)));
+                                                                  database_oid_, table_oid_, std::move(column_oids_)));
     }
 
    protected:
@@ -77,11 +68,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
-
-    /**
-     * OID of namespace
-     */
-    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the target table
@@ -104,11 +90,9 @@ class AnalyzePlanNode : public AbstractPlanNode {
    */
   AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                  std::vector<catalog::col_oid_t> &&column_oids)
+                  catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         column_oids_(std::move(column_oids)) {}
 
@@ -131,11 +115,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
-
-  /**
    * @return the OID of the target table
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
@@ -152,6 +131,8 @@ class AnalyzePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -160,11 +141,6 @@ class AnalyzePlanNode : public AbstractPlanNode {
    * OID of the database
    */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of the namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
 
   /**
    * OID of the target table

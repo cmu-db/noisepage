@@ -68,6 +68,7 @@ m4/lt~obsolete.m4
 #==============================================================================#
 #m4/
 build/
+release/
 #*.m4
 *.o
 *.lo
@@ -261,3 +262,20 @@ docs/dev
 # libpqxx files on Linux
 # Note that the wildcard at the end because if you download the file multiple times then it appends .1 to it
 libpqxx-*.deb*
+
+# Python3 pycache
+**/__pycache__
+
+# Python virtualenv
+**/env
+**/venv
+
+# write ahead logging
+wal.log
+
+# OLTP output
+**/oltp_output_*
+
+# JUnit intermediate out directory
+**/junit/out/
+out/

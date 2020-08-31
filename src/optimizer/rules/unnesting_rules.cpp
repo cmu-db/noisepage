@@ -1,3 +1,5 @@
+#include "optimizer/rules/unnesting_rules.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -9,14 +11,13 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/optimizer_context.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
-#include "optimizer/rules/unnesting_rules.h"
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 
@@ -35,7 +36,8 @@ RulePromise UnnestMarkJoinToInnerJoin::Promise(GroupExpression *group_expr) cons
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                      OptimizationContext *context) const {
   (void)context;
   (void)plan;
 
@@ -44,18 +46,20 @@ bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan,
   return true;
 }
 
-void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
-                                          std::vector<std::unique_ptr<OperatorNode>> *transformed,
+void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                          std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestMarkJoinToInnerJoin::Transform");
-  UNUSED_ATTRIBUTE auto mark_join = input->GetOp().As<LogicalMarkJoin>();
+  UNUSED_ATTRIBUTE auto mark_join = input->Contents()->GetContentsAs<LogicalMarkJoin>();
   TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
 
   auto join_children = input->GetChildren();
-  std::vector<std::unique_ptr<OperatorNode>> c;
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(c),
+      context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 
@@ -74,7 +78,8 @@ RulePromise UnnestSingleJoinToInnerJoin::Promise(GroupExpression *group_expr) co
   return RulePromise::LOGICAL_PROMISE;
 }
 
-bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> plan, OptimizationContext *context) const {
+bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                        OptimizationContext *context) const {
   (void)context;
   (void)plan;
 
@@ -83,18 +88,20 @@ bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<OperatorNode> pla
   return true;
 }
 
-void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<OperatorNode> input,
-                                            std::vector<std::unique_ptr<OperatorNode>> *transformed,
+void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                            std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                             UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestSingleJoinToInnerJoin::Transform");
-  UNUSED_ATTRIBUTE auto single_join = input->GetOp().As<LogicalSingleJoin>();
+  UNUSED_ATTRIBUTE auto single_join = input->Contents()->GetContentsAs<LogicalSingleJoin>();
   TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
 
   auto join_children = input->GetChildren();
-  std::vector<std::unique_ptr<OperatorNode>> c;
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   c.emplace_back(join_children[0]->Copy());
   c.emplace_back(join_children[1]->Copy());
-  auto output = std::make_unique<OperatorNode>(LogicalInnerJoin::Make(), std::move(c));
+  auto output = std::make_unique<OperatorNode>(
+      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(c),
+      context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
 }
 

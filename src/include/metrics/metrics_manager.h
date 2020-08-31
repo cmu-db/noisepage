@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <memory>
 #include <thread>  // NOLINT
 #include <unordered_map>
@@ -50,7 +51,7 @@ class MetricsManager {
 
   /**
    * @param component to be tested
-   * @return true if metrics are enabled for this metric, false otherwise
+   * @return true if metrics are enabled for this component, false otherwise
    */
   bool ComponentEnabled(const MetricsComponent component) {
     return enabled_metrics_.test(static_cast<uint8_t>(component));
@@ -63,13 +64,16 @@ class MetricsManager {
 
   /**
    * @param component to be enabled
+   * @param sample_interval the interval between recording two metrics for the component. 0 means recording every metric
    */
-  void EnableMetric(const MetricsComponent component) {
+  void EnableMetric(const MetricsComponent component, uint32_t sample_interval) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
+
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
+    sample_interval_[static_cast<uint8_t>(component)] = sample_interval;
   }
 
   /**
@@ -91,6 +95,8 @@ class MetricsManager {
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> aggregated_metrics_;
 
   std::bitset<NUM_COMPONENTS> enabled_metrics_ = 0x0;
+
+  std::array<uint32_t, NUM_COMPONENTS> sample_interval_{0x0};
 };
 
 }  // namespace terrier::metrics

@@ -6,8 +6,11 @@
 #include <utility>
 
 #include "common/strong_typedef.h"
+
 namespace terrier::transaction {
-STRONG_TYPEDEF(timestamp_t, uint64_t);
+STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
+
+constexpr uint8_t MIN_GC_INVOCATIONS = 3;
 
 // Invalid txn timestamp. Used for validation.
 static constexpr timestamp_t INVALID_TXN_TIMESTAMP = timestamp_t(INT64_MIN);

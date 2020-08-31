@@ -1,122 +1,97 @@
 #pragma once
 
-#include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "parser/expression/abstract_expression.h"
-#include "parser/expression/constant_value_expression.h"
-#include "parser/expression/type_cast_expression.h"
-#include "parser/expression_defs.h"
-#include "type/transient_value_factory.h"
-#include "type/transient_value_peeker.h"
-#include "util/time_util.h"
+#include "common/error/exception.h"
+#include "common/managed_pointer.h"
+#include "type/type_id.h"
+
+namespace terrier::parser {
+class ConstantValueExpression;
+}
 
 namespace terrier::binder {
-/** Utility functions for the binder's role in semantically validating and transforming input. */
+
+/**
+ * Static utility functions for the binder
+ */
 class BinderUtil {
  public:
+  BinderUtil() = delete;
+
   /**
-   * Create the real expression represented by @p expr. Does not modify the existing expression.
-   *
-   * This currently handles the following conversions:
-   *   - Dates/timestamps come in as strings. This parses the strings into a Date/Timestamp TransientValue.
-   *   - Type-cast expressions are unwrapped and follow the above rules for conversion.
-   *
-   * @param expr The expression to convert, this is not modified.
-   * @param expected_ret_type The expected return type of this expression.
-   * @return A pointer to the new converted expression.
+   * Given a vector of parameters, and their desired types, promote them. This is used to fast-path parameter
+   * casting/promotion for prepared statements to avoid a full binding.
+   * @param parameters to be checked and possibly promoted
+   * @param desired_parameter_types desired parameter types from the initial binding
    */
-  static std::unique_ptr<parser::AbstractExpression> Convert(common::ManagedPointer<parser::AbstractExpression> expr,
-                                                             type::TypeId expected_ret_type) {
-    auto expr_type = expr->GetExpressionType();
-    auto expr_ret_type = expr->GetReturnValueType();
+  static void PromoteParameters(common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
+                                const std::vector<type::TypeId> &desired_parameter_types);
 
-    TERRIER_ASSERT(expr_type == parser::ExpressionType::OPERATOR_CAST || expr_ret_type != expected_ret_type,
-                   "Types already compatible!");
+  /**
+   * Attempt to convert the transient value to the desired type.
+   * Note that type promotion could be an upcast or downcast size-wise.
+   *
+   * @param value The transient value to be checked and potentially promoted.
+   * @param desired_type The type to promote the transient value to.
+   */
+  static void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
+                                     type::TypeId desired_type);
 
-    switch (expr_type) {
-      // Looking at a ConstantValueExpression
-      case parser::ExpressionType::VALUE_CONSTANT: {
-        auto cexpr = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
+  /**
+   * @return True if the value of @p int_val fits in the Output type, false otherwise.
+   */
+  template <typename Output, typename Input>
+  static bool IsRepresentable(Input int_val);
 
-        // TODO(WAN): There is code repetition here, but given that we intend to nuke the TransientValue
-        //  in favor of Prashanth's Value system, this is probably fine and is easier to read.
-        switch (expected_ret_type) {
-          // We expect to turn integers into TINYINT.
-          case type::TypeId::TINYINT: {
-            if (expr_ret_type != type::TypeId::INTEGER) {
-              throw BINDER_EXCEPTION("Can't convert to TINYINT.");
-            }
-            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
-            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetTinyInt(val));
-          }
-          // We expect to turn integers into SMALLINT.
-          case type::TypeId::SMALLINT: {
-            if (expr_ret_type != type::TypeId::INTEGER) {
-              throw BINDER_EXCEPTION("Can't convert to SMALLINT.");
-            }
-            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
-            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetSmallInt(val));
-          }
-          // We expect to turn integers into BIGINT.
-          case type::TypeId::BIGINT: {
-            if (expr_ret_type != type::TypeId::INTEGER) {
-              throw BINDER_EXCEPTION("Can't convert to BIGINT.");
-            }
-            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
-            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBigInt(val));
-          }
-          // We expect to turn integers into DECIMAL.
-          case type::TypeId::DECIMAL: {
-            if (expr_ret_type != type::TypeId::INTEGER) {
-              throw BINDER_EXCEPTION("Can't convert to DECIMAL.");
-            }
-            int32_t val{type::TransientValuePeeker::PeekInteger(cexpr->GetValue())};
-            return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetDecimal(val));
-          }
-          // We expect to turn strings into DATE.
-          case type::TypeId::DATE: {
-            if (expr_ret_type != type::TypeId::VARCHAR) {
-              throw BINDER_EXCEPTION("Can't convert to DATE.");
-            }
-            std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
-            auto parsed = util::TimeConvertor::ParseDate(str);
-            if (!parsed.first) {
-              throw BINDER_EXCEPTION("Unable to parse the date.");
-            }
-            return std::make_unique<parser::ConstantValueExpression>(
-                type::TransientValueFactory::GetDate(parsed.second));
-          }
-          // We expect to turn strings into TIMESTAMP.
-          case type::TypeId::TIMESTAMP: {
-            if (expr_ret_type != type::TypeId::VARCHAR) {
-              throw BINDER_EXCEPTION("Can't convert to TIMESTAMP.");
-            }
-            std::string str{type::TransientValuePeeker::PeekVarChar(cexpr->GetValue())};
-            auto parsed = util::TimeConvertor::ParseTimestamp(str);
-            if (!parsed.first) {
-              throw BINDER_EXCEPTION("Unable to parse the timestamp.");
-            }
-            return std::make_unique<parser::ConstantValueExpression>(
-                type::TransientValueFactory::GetTimestamp(parsed.second));
-          }
-          default:
-            throw BINDER_EXCEPTION("Unimplemented binder conversion.");
-        }
-      }
-      // Looking at a TypeCastExpression
-      case parser::ExpressionType::OPERATOR_CAST: {
-        auto cast_expr = expr.CastManagedPointerTo<parser::TypeCastExpression>();
-        TERRIER_ASSERT(cast_expr->GetChildrenSize() == 1, "Cannot type-cast multiple children.");
-        auto child = cast_expr->GetChild(0);
-        return Convert(child, expected_ret_type);
-      }
-      default:
-        throw BINDER_EXCEPTION("Mismatch in expected return type and expression return type.");
-    }
-  }
+  /**
+   * @return Casted numeric type, or an exception if the cast fails.
+   */
+  template <typename Input>
+  static void TryCastNumericAll(common::ManagedPointer<parser::ConstantValueExpression> value, Input int_val,
+                                type::TypeId desired_type);
 };
+
+/// @cond DOXYGEN_IGNORE
+extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
+                                                   const int8_t int_val, const type::TypeId desired_type);
+extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
+                                                   const int16_t int_val, const type::TypeId desired_type);
+extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
+                                                   const int32_t int_val, const type::TypeId desired_type);
+extern template void BinderUtil::TryCastNumericAll(const common::ManagedPointer<parser::ConstantValueExpression> value,
+                                                   const int64_t int_val, const type::TypeId desired_type);
+
+extern template bool BinderUtil::IsRepresentable<int8_t>(const int8_t int_val);
+extern template bool BinderUtil::IsRepresentable<int16_t>(const int8_t int_val);
+extern template bool BinderUtil::IsRepresentable<int32_t>(const int8_t int_val);
+extern template bool BinderUtil::IsRepresentable<int64_t>(const int8_t int_val);
+extern template bool BinderUtil::IsRepresentable<double>(const int8_t int_val);
+
+extern template bool BinderUtil::IsRepresentable<int8_t>(const int16_t int_val);
+extern template bool BinderUtil::IsRepresentable<int16_t>(const int16_t int_val);
+extern template bool BinderUtil::IsRepresentable<int32_t>(const int16_t int_val);
+extern template bool BinderUtil::IsRepresentable<int64_t>(const int16_t int_val);
+extern template bool BinderUtil::IsRepresentable<double>(const int16_t int_val);
+
+extern template bool BinderUtil::IsRepresentable<int8_t>(const int32_t int_val);
+extern template bool BinderUtil::IsRepresentable<int16_t>(const int32_t int_val);
+extern template bool BinderUtil::IsRepresentable<int32_t>(const int32_t int_val);
+extern template bool BinderUtil::IsRepresentable<int64_t>(const int32_t int_val);
+extern template bool BinderUtil::IsRepresentable<double>(const int32_t int_val);
+
+extern template bool BinderUtil::IsRepresentable<int8_t>(const int64_t int_val);
+extern template bool BinderUtil::IsRepresentable<int16_t>(const int64_t int_val);
+extern template bool BinderUtil::IsRepresentable<int32_t>(const int64_t int_val);
+extern template bool BinderUtil::IsRepresentable<int64_t>(const int64_t int_val);
+extern template bool BinderUtil::IsRepresentable<double>(const int64_t int_val);
+
+extern template bool BinderUtil::IsRepresentable<int8_t>(const double int_val);
+extern template bool BinderUtil::IsRepresentable<int16_t>(const double int_val);
+extern template bool BinderUtil::IsRepresentable<int32_t>(const double int_val);
+extern template bool BinderUtil::IsRepresentable<int64_t>(const double int_val);
+extern template bool BinderUtil::IsRepresentable<double>(const double int_val);
+/// @endcond
 
 }  // namespace terrier::binder

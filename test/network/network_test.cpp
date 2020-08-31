@@ -5,11 +5,14 @@
 #include <thread>  // NOLINT
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "network/connection_handle_factory.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
+#include "spdlog/spdlog.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
@@ -30,6 +33,10 @@ class FakeCommandFactory : public PostgresCommandFactory {
   }
 };
 
+/**
+ * This test should be refactored to use DBMain, since there's a bunch of redundant setup here. However we don't have a
+ * way to inject a new CommandFactory.
+ */
 class NetworkTests : public TerrierTest {
  protected:
   trafficcop::TrafficCop *tcop_;
@@ -45,6 +52,7 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = 15721;
+  uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
@@ -63,7 +71,7 @@ class NetworkTests : public TerrierTest {
                                     common::ManagedPointer(gc_));
 
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
-                                       DISABLED, 0);
+                                       DISABLED, DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);
 
     auto txn = txn_manager_->BeginTransaction();
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);
@@ -74,9 +82,10 @@ class NetworkTests : public TerrierTest {
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
-      server_ = std::make_unique<TerrierServer>(
-          common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_);
+      server_ =
+          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+                                          common::ManagedPointer(handle_factory_.get()),
+                                          common::ManagedPointer(&thread_registry_), port_, connection_thread_count_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
@@ -254,10 +263,10 @@ TEST_F(NetworkTests, LargePacketsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, MultipleConnectionTest) {
   std::vector<std::unique_ptr<NetworkIoWrapper>> io_sockets;
-  io_sockets.reserve(CONNECTION_THREAD_COUNT * 2);
+  io_sockets.reserve(connection_thread_count_ * 2);
 
   for (size_t i = 0; i < 2; i++) {
-    for (size_t i = 0; i < CONNECTION_THREAD_COUNT * 2; i++) {
+    for (size_t i = 0; i < connection_thread_count_ * 2; i++) {
       auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
       EXPECT_NE(io_socket_unique_ptr, nullptr);
       io_sockets.emplace_back(std::move(io_socket_unique_ptr));
@@ -277,7 +286,7 @@ TEST_F(NetworkTests, MultipleConnectionTest) {
  * ConnectionHandlerTask instance could corrupt its fields.
  */
 // NOLINTNEXTLINE
-TEST_F(NetworkTests, RacerTest) {
+TEST_F(NetworkTests, DISABLED_RacerTest) {
   //  due to issue #766 PostgresProtocolHandler cannot consistently handle
   //  simultaneous client requests so for now we are allowing for some failure tolerance
 
@@ -285,9 +294,9 @@ TEST_F(NetworkTests, RacerTest) {
   std::vector<size_t> thread_counts = {
       // clang-format off
       2,
-      CONNECTION_THREAD_COUNT,
-      CONNECTION_THREAD_COUNT * 2,
-      CONNECTION_THREAD_COUNT * 3
+      connection_thread_count_,
+      connection_thread_count_ * 2ul,
+      connection_thread_count_ * 3ul
       // clang-format on
   };
 

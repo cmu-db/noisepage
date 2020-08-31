@@ -11,13 +11,10 @@
 #include "main/db_main.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
-#include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
-#include "type/transient_value_factory.h"
 
 namespace terrier {
 
@@ -43,14 +40,13 @@ class CatalogBenchmark : public benchmark::Fixture {
 
   std::pair<catalog::table_oid_t, catalog::index_oid_t> AddUserTableAndIndex() {
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
     // Create the column definition (no OIDs)
     std::vector<catalog::Schema::Column> cols;
-    cols.emplace_back("id", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
     cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+                      parser::ConstantValueExpression(type::TypeId::INTEGER));
     auto tmp_schema = catalog::Schema(cols);
 
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -69,14 +65,13 @@ class CatalogBenchmark : public benchmark::Fixture {
   std::pair<catalog::table_oid_t, std::vector<catalog::index_oid_t>> AddUserTableAndIndexes(
       const uint16_t num_indexes) {
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
     // Create the column definition (no OIDs)
     std::vector<catalog::Schema::Column> cols;
-    cols.emplace_back("id", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("id", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
     cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+                      parser::ConstantValueExpression(type::TypeId::INTEGER));
     auto tmp_schema = catalog::Schema(cols);
 
     const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
@@ -130,7 +125,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetAccessor)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+    const auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
     TERRIER_ASSERT(accessor != nullptr, "getting accessor should not fail");
   }
 
@@ -171,7 +166,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndex)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -189,7 +184,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -207,7 +202,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexes)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -225,7 +220,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexSchema)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -240,13 +235,13 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexSchema)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetNamespaceOid)(benchmark::State &state) {
   auto txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
   const auto ns_oid UNUSED_ATTRIBUTE = accessor->CreateNamespace("test_namespace");
   TERRIER_ASSERT(ns_oid != catalog::INVALID_NAMESPACE_OID, "namespace creation should not fail");
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -264,7 +259,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetSchema)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -281,7 +276,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetTable)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -299,7 +294,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetTableOid)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -318,7 +313,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexObjects)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndexes(num_indexes);
 
   auto *txn = txn_manager_->BeginTransaction();
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_, DISABLED);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {

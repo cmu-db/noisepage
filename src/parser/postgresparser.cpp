@@ -8,7 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
+#include "execution/sql/value_util.h"
 #include "libpg_query/pg_list.h"
 #include "libpg_query/pg_query.h"
 #include "loggers/parser_logger.h"
@@ -26,7 +27,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
-#include "type/transient_value_factory.h"
+#include "parser/statements.h"
 
 /**
  * Log information about the error, then throw an exception
@@ -48,11 +49,12 @@ std::unique_ptr<parser::ParseResult> PostgresParser::BuildParseTree(const std::s
   // Parse the query string with the Postgres parser.
   if (result.error != nullptr) {
     PARSER_LOG_DEBUG("BuildParseTree error: msg {}, curpos {}", result.error->message, result.error->cursorpos);
+
+    ParserException exception(std::string(result.error->message), __FILE__, __LINE__, result.error->cursorpos);
+
     pg_query_parse_finish(ctx);
     pg_query_free_parse_result(result);
-    // TODO(Matt): we just destroyed all of the information we probably wanted to return to the client to match
-    // postgres' behavior
-    throw PARSER_EXCEPTION("BuildParseTree error");
+    throw exception;
   }
 
   // Transform the Postgres parse tree to a Terrier representation.
@@ -231,6 +233,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
       PARSER_LOG_DEBUG("ExprTransform: type {} unsupported", node->type);
       throw PARSER_EXCEPTION("ExprTransform: unsupported type");
     }
+  }
+  if (alias != nullptr) {
+    expr->SetAlias(alias);
   }
   return expr;
 }
@@ -693,26 +698,37 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
   std::unique_ptr<AbstractExpression> result;
   switch (val.type_) {
     case T_Integer: {
-      auto v = type::TransientValueFactory::GetInteger(val.val_.ival_);
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      result =
+          std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(val.val_.ival_));
       break;
     }
 
     case T_String: {
-      auto v = type::TransientValueFactory::GetVarChar(val.val_.str_);
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      const auto string = std::string_view{val.val_.str_};
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val.first,
+                                                         std::move(string_val.second));
+
       break;
     }
 
     case T_Float: {
-      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val_.str_));
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      // Per Postgres, T_Float just means that the string looks like a number.
+      // T_Float is also used for oversized ints, e.g. BIGINT.
+      // For this reason, a quick hack...
+      // TODO(WAN): figure out how Postgres does it once we care about floating point
+      if (std::strchr(val.val_.str_, '.') == nullptr) {
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT,
+                                                           execution::sql::Integer(std::stoll(val.val_.str_)));
+      } else {
+        result = std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL,
+                                                           execution::sql::Real(std::stod(val.val_.str_)));
+      }
       break;
     }
 
     case T_Null: {
-      auto v = type::TransientValueFactory::GetNull(type::TypeId::INVALID);
-      result = std::make_unique<ConstantValueExpression>(std::move(v));
+      result = std::make_unique<ConstantValueExpression>(type::TypeId::INVALID, execution::sql::Val(true));
       break;
     }
     default: {
@@ -843,17 +859,19 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
 // Postgres.SelectStmt.groupClause -> terrier.GroupByDescription
 std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(ParseResult *parse_result, List *group,
                                                                      Node *having_node) {
-  if (group == nullptr) {
+  if (group == nullptr && having_node == nullptr) {
     return nullptr;
   }
 
   std::vector<common::ManagedPointer<AbstractExpression>> columns;
-  for (auto cell = group->head; cell != nullptr; cell = cell->next) {
-    auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
-    auto expr = ExprTransform(parse_result, temp, nullptr);
-    auto expr_ptr = common::ManagedPointer(expr);
-    parse_result->AddExpression(std::move(expr));
-    columns.emplace_back(expr_ptr);
+  if (group != nullptr) {
+    for (auto cell = group->head; cell != nullptr; cell = cell->next) {
+      auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
+      auto expr = ExprTransform(parse_result, temp, nullptr);
+      auto expr_ptr = common::ManagedPointer(expr);
+      parse_result->AddExpression(std::move(expr));
+      columns.emplace_back(expr_ptr);
+    }
   }
 
   // TODO(WAN): old system says, having clauses not implemented, depends on AExprTransform
@@ -1985,11 +2003,26 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(ParseResult *pa
   return result;
 }
 
-// TODO(WAN): Document why exactly this is required as a JDBC hack.
 // Postgres.VariableSetStmt -> terrier.VariableSetStatement
 std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(ParseResult *parse_result,
-                                                                           UNUSED_ATTRIBUTE VariableSetStmt *root) {
-  auto result = std::make_unique<VariableSetStatement>();
+                                                                           VariableSetStmt *root) {
+  std::string name = root->name_;
+  // TODO(WAN): This is an unfortunate hack around the way SET SESSION CHARACTERISTICS comes in.
+  std::vector<common::ManagedPointer<AbstractExpression>> values;
+  if (name == "SESSION CHARACTERISTICS") {
+    auto list_cell = root->args_->head;
+    TERRIER_ASSERT(reinterpret_cast<Node *>(list_cell->data.ptr_value)->type == T_DefElem, "Expect a DefElem.");
+    TERRIER_ASSERT(list_cell->next == nullptr, "Expect only one argument.");
+    auto def_cell = reinterpret_cast<DefElem *>(list_cell->data.ptr_value);
+    name = def_cell->defname_;
+    auto expr = ConstTransform(parse_result, reinterpret_cast<AConst *>(def_cell->arg_));
+    values.emplace_back(common::ManagedPointer(expr));
+    parse_result->AddExpression(std::move(expr));
+  } else {
+    values = ParamListTransform(parse_result, root->args_);
+  }
+  bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
+  auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
   return result;
 }
 

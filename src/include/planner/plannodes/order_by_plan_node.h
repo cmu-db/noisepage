@@ -7,6 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "optimizer/optimizer_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 
@@ -147,10 +148,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    * Should only be used if sort has limit
    * @return offset for sort
    */
-  size_t GetOffset() const {
-    TERRIER_ASSERT(HasLimit(), "OrderBy plan has no limit");
-    return offset_;
-  }
+  size_t GetOffset() const { return offset_; }
 
   /**
    * @return the hashed value of this plan node
@@ -158,6 +156,8 @@ class OrderByPlanNode : public AbstractPlanNode {
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
@@ -176,6 +176,6 @@ class OrderByPlanNode : public AbstractPlanNode {
   size_t offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(OrderByPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace terrier::planner

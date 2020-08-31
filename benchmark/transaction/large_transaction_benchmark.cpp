@@ -17,7 +17,7 @@ class LargeTransactionBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::microseconds gc_period_{1000};
 };
 
 /**
@@ -34,7 +34,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
                                          &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
@@ -59,7 +59,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
                                          &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
@@ -84,7 +84,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
                                          &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
@@ -108,7 +108,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
                                          &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
@@ -132,7 +132,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
                                          &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     const auto result = tested.SimulateOltp(num_txns_, BenchmarkConfig::num_threads);
     abort_count += result.first;
     state.SetIterationTime(static_cast<double>(result.second) / 1000.0);

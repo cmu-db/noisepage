@@ -4,10 +4,11 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "execution/compiler/expression_util.h"
+
+#include "execution/compiler/expression_maker.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::compiler {
+namespace terrier::execution::compiler::test {
 using OutputColumn = planner::OutputSchema::Column;
 
 /**
@@ -30,7 +31,7 @@ class OutputSchemaHelper {
    * @return The attribute at the given index.
    */
   ExpressionMaker::ManagedExpression GetOutput(uint32_t attr_idx) {
-    return expr_maker_->DVE(cols_[attr_idx].GetType(), child_idx_, attr_idx);
+    return expr_maker_->DVE(cols_.at(attr_idx).GetType(), child_idx_, attr_idx);
   }
 
   /**
@@ -38,7 +39,7 @@ class OutputSchemaHelper {
    * @return The attribute with the given name.
    */
   ExpressionMaker::ManagedExpression GetOutput(const std::string &col_name) {
-    return GetOutput(name_to_idx_[col_name]);
+    return GetOutput(name_to_idx_.at(col_name));
   }
 
   /**
@@ -56,9 +57,9 @@ class OutputSchemaHelper {
    * @return The derived value expression that accesses the given aggregate term.
    */
   ExpressionMaker::ManagedExpression GetAggTermForOutput(const std::string &agg_name) {
-    const auto &agg = aggs_[name_to_agg_[agg_name]];
+    const auto &agg = aggs_.at(name_to_agg_.at(agg_name));
     auto ret_type = agg->GetChild(0)->GetReturnValueType();
-    auto tve_idx = name_to_agg_[agg_name];
+    auto tve_idx = name_to_agg_.at(agg_name);
     return expr_maker_->DVE(ret_type, 1, tve_idx);
   }
 
@@ -67,9 +68,9 @@ class OutputSchemaHelper {
    * @return The derived value expression that accesses the given group by term
    */
   ExpressionMaker::ManagedExpression GetGroupByTermForOutput(const std::string &gby_name) {
-    const auto &gby = gbys_[name_to_gby_[gby_name]];
+    const auto &gby = gbys_.at(name_to_gby_.at(gby_name));
     auto ret_type = gby->GetReturnValueType();
-    auto tve_idx = name_to_gby_[gby_name];
+    auto tve_idx = name_to_gby_.at(gby_name);
     return expr_maker_->DVE(ret_type, 0, tve_idx);
   }
 
@@ -88,7 +89,7 @@ class OutputSchemaHelper {
    * @return The group by expression
    */
   ExpressionMaker::ManagedExpression GetGroupByTerm(const std::string &col_name) {
-    return gbys_[name_to_gby_[col_name]];
+    return gbys_.at(name_to_gby_.at(col_name));
   }
 
   /**
@@ -106,7 +107,7 @@ class OutputSchemaHelper {
    * @return The aggregate term
    */
   ExpressionMaker::ManagedAggExpression GetAggTerm(const std::string &agg_name) {
-    return aggs_[name_to_agg_[agg_name]];
+    return aggs_.at(name_to_agg_.at(agg_name));
   }
 
   /**
@@ -130,4 +131,4 @@ class OutputSchemaHelper {
   std::vector<ExpressionMaker::ManagedAggExpression> aggs_;
   ExpressionMaker *expr_maker_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace terrier::execution::compiler::test

@@ -11,6 +11,7 @@
 #include "storage/sql_table.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/multithread_test_util.h"
+#include "transaction/deferred_action_manager.h"
 #include "type/type_id.h"
 
 namespace terrier {
@@ -22,7 +23,7 @@ namespace terrier {
 class IndexBenchmark : public benchmark::Fixture {
  private:
   // Garbage Collector
-  const std::chrono::milliseconds gc_period_{10};
+  const std::chrono::microseconds gc_period_{1000};
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_;
 
@@ -57,9 +58,8 @@ class IndexBenchmark : public benchmark::Fixture {
   // Set up table and associated managers and garbage collector for structure
   void SetUp(const benchmark::State &state) override {
     // Define standard column template type to have name, integer type, non-nullable state, and associated parser
-    auto col = catalog::Schema::Column(
-        "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
+                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
 
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
 
@@ -77,7 +77,7 @@ class IndexBenchmark : public benchmark::Fixture {
     gc_ = new storage::GarbageCollector(common::ManagedPointer(timestamp_manager_),
                                         common::ManagedPointer(deferred_action_manager_),
                                         common::ManagedPointer(txn_manager_), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
   }
 
   // Script to free all allocated elements of table structure

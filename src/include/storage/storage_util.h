@@ -1,18 +1,15 @@
 #pragma once
+
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/macros.h"
 #include "common/strong_typedef.h"
-#include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
-class Schema;
-}
-
 namespace terrier::storage {
+class BlockLayout;
 class ProjectedRow;
 class TupleAccessStrategy;
 class UndoRecord;
@@ -102,7 +99,7 @@ class StorageUtil {
     // example, size is 8 (1000), mask is (0111)
     uintptr_t mask = size - 1;
     auto ptr_value = reinterpret_cast<uintptr_t>(ptr);
-    // This is equivalent to (value + (size - 1)) / size.
+    // This is equivalent to (value + (size - 1)) / size * size.
     return reinterpret_cast<byte *>((ptr_value + mask) & (~mask));
   }
 

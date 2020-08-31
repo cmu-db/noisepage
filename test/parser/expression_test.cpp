@@ -3,10 +3,12 @@
 #include <utility>
 #include <vector>
 
+#include "execution/sql/value_util.h"
 #include "gtest/gtest.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
 // TODO(Tianyu): They are included here so they will get compiled and statically analyzed despite not being used
+#include "nlohmann/json.hpp"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -22,8 +24,6 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/parameter.h"
 #include "parser/postgresparser.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
 namespace terrier::parser::expression {
@@ -44,9 +44,9 @@ bool CompareExpressionsEqual(const std::vector<common::ManagedPointer<AbstractEx
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionTest) {
   // constant Booleans
-  auto expr_b_1 = new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  auto expr_b_2 = new ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  auto expr_b_3 = new ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  auto expr_b_1 = new ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+  auto expr_b_2 = new ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+  auto expr_b_3 = new ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
 
   EXPECT_FALSE(*expr_b_1 == *expr_b_2);
   EXPECT_NE(expr_b_1->Hash(), expr_b_2->Hash());
@@ -58,15 +58,15 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   EXPECT_FALSE(*expr_b_1 != *expr_b_3);
 
   expr_b_1->DeriveExpressionName();
-  EXPECT_EQ(expr_b_1->GetExpressionName(), "BOOLEAN");
+  EXPECT_EQ(expr_b_1->GetExpressionName(), "");
 
   delete expr_b_2;
   delete expr_b_3;
 
   // constant tinyints
-  auto expr_ti_1 = new ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  auto expr_ti_2 = new ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  auto expr_ti_3 = new ConstantValueExpression(type::TransientValueFactory::GetTinyInt(127));
+  auto expr_ti_1 = new ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+  auto expr_ti_2 = new ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
+  auto expr_ti_3 = new ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(127));
 
   EXPECT_TRUE(*expr_ti_1 == *expr_ti_2);
   EXPECT_EQ(expr_ti_1->Hash(), expr_ti_2->Hash());
@@ -74,12 +74,12 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   EXPECT_NE(expr_ti_1->Hash(), expr_ti_3->Hash());
 
   EXPECT_EQ(expr_ti_1->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(expr_ti_1->GetValue(), type::TransientValueFactory::GetTinyInt(1));
+  EXPECT_EQ(*expr_ti_1, ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)));
   // There is no need to deduce the return_value_type of constant value expression
   // and calling this function essentially does nothing
   // Only test if we can call it without error.
   expr_ti_1->DeriveReturnValueType();
-  EXPECT_EQ(expr_ti_1->GetReturnValueType(), type::TransientValueFactory::GetTinyInt(1).Type());
+  EXPECT_EQ(expr_ti_1->GetReturnValueType(), type::TypeId::TINYINT);
   EXPECT_EQ(expr_ti_1->GetChildrenSize(), 0);
   EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<common::ManagedPointer<AbstractExpression>>());
   // Private members depth will be initialized as -1 and has_subquery as false.
@@ -87,7 +87,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   // Private members expression name will be initialized as empty string
   EXPECT_EQ(expr_ti_1->GetExpressionName(), "");
   expr_ti_1->DeriveExpressionName();
-  EXPECT_EQ(expr_ti_1->GetExpressionName(), "TINYINT");
+  EXPECT_EQ(expr_ti_1->GetExpressionName(), "");
   // depth is still -1 after deriveDepth, as the depth is set in binder
   EXPECT_EQ(expr_ti_1->DeriveDepth(), -1);
   EXPECT_FALSE(expr_ti_1->HasSubquery());
@@ -97,9 +97,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_ti_3;
 
   // constant smallints
-  auto expr_si_1 = new ConstantValueExpression(type::TransientValueFactory::GetSmallInt(1));
-  auto expr_si_2 = new ConstantValueExpression(type::TransientValueFactory::GetSmallInt(1));
-  auto expr_si_3 = new ConstantValueExpression(type::TransientValueFactory::GetSmallInt(32767));
+  auto expr_si_1 = new ConstantValueExpression(type::TypeId::SMALLINT, execution::sql::Integer(1));
+  auto expr_si_2 = new ConstantValueExpression(type::TypeId::SMALLINT, execution::sql::Integer(1));
+  auto expr_si_3 = new ConstantValueExpression(type::TypeId::SMALLINT, execution::sql::Integer(32767));
 
   EXPECT_TRUE(*expr_si_1 == *expr_si_2);
   EXPECT_EQ(expr_si_1->Hash(), expr_si_2->Hash());
@@ -111,9 +111,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_si_3;
 
   // constant ints
-  auto expr_i_1 = new ConstantValueExpression(type::TransientValueFactory::GetInteger(1));
-  auto expr_i_2 = new ConstantValueExpression(type::TransientValueFactory::GetInteger(1));
-  auto expr_i_3 = new ConstantValueExpression(type::TransientValueFactory::GetInteger(32768));
+  auto expr_i_1 = new ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1));
+  auto expr_i_2 = new ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1));
+  auto expr_i_3 = new ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(32768));
 
   EXPECT_TRUE(*expr_i_1 == *expr_i_2);
   EXPECT_EQ(expr_i_1->Hash(), expr_i_2->Hash());
@@ -125,9 +125,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_i_3;
 
   // constant bigints
-  auto expr_bi_1 = new ConstantValueExpression(type::TransientValueFactory::GetBigInt(1));
-  auto expr_bi_2 = new ConstantValueExpression(type::TransientValueFactory::GetBigInt(1));
-  auto expr_bi_3 = new ConstantValueExpression(type::TransientValueFactory::GetBigInt(32768));
+  auto expr_bi_1 = new ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(1));
+  auto expr_bi_2 = new ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(1));
+  auto expr_bi_3 = new ConstantValueExpression(type::TypeId::BIGINT, execution::sql::Integer(32768));
 
   EXPECT_TRUE(*expr_bi_1 == *expr_bi_2);
   EXPECT_EQ(expr_bi_1->Hash(), expr_bi_2->Hash());
@@ -139,9 +139,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_bi_3;
 
   // constant double/decimalGetDecimal
-  auto expr_d_1 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(1));
-  auto expr_d_2 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(1));
-  auto expr_d_3 = new ConstantValueExpression(type::TransientValueFactory::GetDecimal(32768));
+  auto expr_d_1 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1)));
+  auto expr_d_2 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1)));
+  auto expr_d_3 = new ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(32768)));
 
   EXPECT_TRUE(*expr_d_1 == *expr_d_2);
   EXPECT_EQ(expr_d_1->Hash(), expr_d_2->Hash());
@@ -153,9 +153,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_d_3;
 
   // constant timestamp
-  auto expr_ts_1 = new ConstantValueExpression(type::TransientValueFactory::GetTimestamp(type::timestamp_t(1)));
-  auto expr_ts_2 = new ConstantValueExpression(type::TransientValueFactory::GetTimestamp(type::timestamp_t(1)));
-  auto expr_ts_3 = new ConstantValueExpression(type::TransientValueFactory::GetTimestamp(type::timestamp_t(32768)));
+  auto expr_ts_1 = new ConstantValueExpression(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(1));
+  auto expr_ts_2 = new ConstantValueExpression(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(1));
+  auto expr_ts_3 = new ConstantValueExpression(type::TypeId::TIMESTAMP, execution::sql::TimestampVal(32768));
 
   EXPECT_TRUE(*expr_ts_1 == *expr_ts_2);
   EXPECT_EQ(expr_ts_1->Hash(), expr_ts_2->Hash());
@@ -167,9 +167,9 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   delete expr_ts_3;
 
   // constant date
-  auto expr_date_1 = new ConstantValueExpression(type::TransientValueFactory::GetDate(type::date_t(1)));
-  auto expr_date_2 = new ConstantValueExpression(type::TransientValueFactory::GetDate(type::date_t(1)));
-  auto expr_date_3 = new ConstantValueExpression(type::TransientValueFactory::GetDate(type::date_t(32768)));
+  auto expr_date_1 = new ConstantValueExpression(type::TypeId::DATE, execution::sql::DateVal(1));
+  auto expr_date_2 = new ConstantValueExpression(type::TypeId::DATE, execution::sql::DateVal(1));
+  auto expr_date_3 = new ConstantValueExpression(type::TypeId::DATE, execution::sql::DateVal(32768));
 
   EXPECT_TRUE(*expr_date_1 == *expr_date_2);
   EXPECT_EQ(expr_date_1->Hash(), expr_date_2->Hash());
@@ -190,8 +190,11 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Create expression
-  auto original_expr = std::make_unique<ConstantValueExpression>(
-      type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
+
+  auto string_val1 = execution::sql::ValueUtil::CreateStringVal(std::string_view("ConstantValueExpressionJsonTest"));
+
+  auto original_expr = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR, string_val1.first,
+                                                                 std::move(string_val1.second));
 
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
@@ -210,15 +213,16 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   auto deserialized = DeserializeExpression(json);
   auto deserialized_expr = common::ManagedPointer(deserialized.result_);
   EXPECT_EQ(*original_expr, *deserialized_expr);
-  EXPECT_EQ(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->GetValue(),
-            type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
+
+  auto string_val2 = execution::sql::ValueUtil::CreateStringVal(std::string_view("ConstantValueExpressionJsonTest"));
+  EXPECT_EQ(*(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()),
+            ConstantValueExpression(type::TypeId::VARCHAR, string_val2.first, std::move(string_val2.second)));
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   // Create expression
-  auto original_expr =
-      std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+  auto original_expr = std::make_unique<ConstantValueExpression>(type::TypeId::VARCHAR);
 
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
@@ -237,32 +241,42 @@ TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   auto deserialized = DeserializeExpression(json);
   auto deserialized_expr = common::ManagedPointer(deserialized.result_);
   EXPECT_EQ(*original_expr, *deserialized_expr);
-  EXPECT_TRUE(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->GetValue().Null());
+  EXPECT_TRUE(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->IsNull());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionExpressionTest) {
   std::vector<std::unique_ptr<AbstractExpression>> children1;
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   std::vector<std::unique_ptr<AbstractExpression>> children1cp;
-  children1cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children1cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children1cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children1cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
   std::vector<std::unique_ptr<AbstractExpression>> children2;
-  children2.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children2.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children2.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children2.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children2));
 
   std::vector<std::unique_ptr<AbstractExpression>> children3;
-  children3.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children3.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children3.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children3.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
 
   std::vector<std::unique_ptr<AbstractExpression>> children4;
-  children4.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children4.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children4.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children4.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_4 = new ConjunctionExpression(ExpressionType::CONJUNCTION_OR, std::move(children4));
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
@@ -287,7 +301,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   EXPECT_EQ(c_expr_1->DeriveDepth(), -1);
   EXPECT_FALSE(c_expr_1->HasSubquery());
   c_expr_1->DeriveExpressionName();
-  EXPECT_EQ(c_expr_1->GetExpressionName(), "AND BOOLEAN AND BOOLEAN");
+  EXPECT_EQ(c_expr_1->GetExpressionName(), "");
 
   delete c_expr_1;
   delete c_expr_2;
@@ -299,8 +313,10 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
 TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   // Create expression
   std::vector<std::unique_ptr<AbstractExpression>> children1;
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
+  children1.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
   auto copy = c_expr_1->Copy();
   EXPECT_EQ(*c_expr_1, *copy);
@@ -355,7 +371,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   // Create expression 5, field child type
   std::vector<std::unique_ptr<AbstractExpression>> children_5;
-  children_5.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  children_5.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
   auto agg_expr_5 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_5), true);
 
   EXPECT_TRUE(*agg_expr_1 == *agg_expr_2);
@@ -381,21 +398,23 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_1->GetDepth(), -1);
   EXPECT_FALSE(agg_expr_1->HasSubquery());
   agg_expr_1->DeriveExpressionName();
-  EXPECT_EQ(agg_expr_1->GetExpressionName(), "COUNT STAR");
+  EXPECT_EQ(agg_expr_1->GetExpressionName(), "");
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_6;
-  children_6.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children_6.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
   agg_expr_6->DeriveReturnValueType();
 
   EXPECT_FALSE(*agg_expr_1 == *agg_expr_6);
   EXPECT_NE(agg_expr_1->Hash(), agg_expr_6->Hash());
-  EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TransientValueFactory::GetBoolean(true).Type());
+  EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TypeId::BOOLEAN);
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_7;
-  children_7.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children_7.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
   agg_expr_7->DeriveReturnValueType();
 
@@ -405,7 +424,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 
   // Testing DeriveReturnValueType functionality
   std::vector<std::unique_ptr<AbstractExpression>> children_8;
-  children_8.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children_8.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true)));
   auto agg_expr_8 = new AggregateExpression(ExpressionType(100), std::move(children_8), true);
   // TODO(WAN): Why is there a random NDEBUG here?
 #ifndef NDEBUG
@@ -470,11 +490,11 @@ TEST(ExpressionTests, CaseExpressionTest) {
   // Create expression 3
   std::vector<CaseExpression::WhenClause> when_clauses_3;
   when_clauses_3.emplace_back(CaseExpression::WhenClause{
-      std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)),
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)),
       std::make_unique<StarExpression>()});
-  auto case_expr_3 =
-      new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_3),
-                         std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  auto case_expr_3 = new CaseExpression(
+      type::TypeId::BOOLEAN, std::move(when_clauses_3),
+      std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false)));
 
   // Create expression 4
   std::vector<CaseExpression::WhenClause> when_clauses_4;
@@ -510,7 +530,7 @@ TEST(ExpressionTests, CaseExpressionTest) {
   case_expr->DeriveSubqueryFlag();
   EXPECT_FALSE(case_expr->HasSubquery());
   case_expr->DeriveExpressionName();
-  EXPECT_EQ(case_expr->GetExpressionName(), "OPERATOR_CASE_EXPR");
+  EXPECT_EQ(case_expr->GetExpressionName(), "");
 
   delete case_expr;
   delete case_expr_2;
@@ -563,7 +583,7 @@ TEST(ExpressionTests, FunctionExpressionTest) {
 
   std::vector<std::unique_ptr<AbstractExpression>> children;
   auto child_expr = std::make_unique<StarExpression>();
-  auto child_expr_2 = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+  auto child_expr_2 = std::make_unique<ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   children.push_back(std::move(child_expr));
   children.push_back(std::move(child_expr_2));
   auto func_expr_5 = std::make_unique<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::move(children));
@@ -577,9 +597,9 @@ TEST(ExpressionTests, FunctionExpressionTest) {
   EXPECT_NE(func_expr_1->Hash(), func_expr_4->Hash());
   EXPECT_NE(func_expr_1->Hash(), func_expr_5->Hash());
   func_expr_5->DeriveExpressionName();
-  EXPECT_EQ(func_expr_5->GetExpressionName(), "FullHouse(STAR,BOOLEAN)");
+  EXPECT_EQ(func_expr_5->GetExpressionName(), "FullHouse");
   func_expr_1->DeriveExpressionName();
-  EXPECT_EQ(func_expr_1->GetExpressionName(), "FullHouse()");
+  EXPECT_EQ(func_expr_1->GetExpressionName(), "FullHouse");
 }
 
 // NOLINTNEXTLINE
@@ -614,28 +634,32 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   op_expr_1->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
   op_expr_1->DeriveExpressionName();
-  EXPECT_EQ(op_expr_1->GetExpressionName(), "OPERATOR_NOT");
+  EXPECT_EQ(op_expr_1->GetExpressionName(), "");
 
   std::vector<std::unique_ptr<AbstractExpression>> children;
-  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1)));
-  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBigInt(32768)));
+  children.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1))));
+  children.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT, execution::sql::Integer(32768)));
   std::vector<std::unique_ptr<AbstractExpression>> children_cp;
-  children_cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1)));
-  children_cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBigInt(32768)));
+  children_cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(static_cast<double>(1))));
+  children_cp.emplace_back(
+      std::make_unique<ConstantValueExpression>(type::TypeId::BIGINT, execution::sql::Integer(32768)));
 
   auto op_expr_2 = new OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children));
   op_expr_2->DeriveReturnValueType();
-  EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TransientValueFactory::GetDecimal(1).Type());
+  EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TypeId::DECIMAL);
   op_expr_2->DeriveExpressionName();
-  EXPECT_EQ(op_expr_2->GetExpressionName(), "+ DECIMAL + BIGINT");
+  EXPECT_EQ(op_expr_2->GetExpressionName(), "");
 
-  auto child3 = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
+  auto child3 = std::make_unique<ConstantValueExpression>(type::TypeId::DATE, execution::sql::DateVal(1));
   children_cp.push_back(std::move(child3));
   auto op_expr_3 =
       new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
 
   op_expr_3->DeriveExpressionName();
-  EXPECT_EQ(op_expr_3->GetExpressionName(), "OPERATOR_CONCAT DECIMAL OPERATOR_CONCAT BIGINT OPERATOR_CONCAT DATE");
+  EXPECT_EQ(op_expr_3->GetExpressionName(), "");
   // Make sure that we catch when the deduced expression type suggests that invalid operand types
   // NOTE: We only do this for debug builds
 #ifndef NDEBUG
@@ -686,7 +710,7 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   auto original_expr = new TypeCastExpression(type::TypeId::SMALLINT, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "OPERATOR_CAST STAR");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
@@ -714,11 +738,12 @@ TEST(ExpressionTests, ParameterValueExpressionTest) {
   EXPECT_EQ(param_expr_1->Hash(), param_expr_2->Hash());
   EXPECT_NE(param_expr_1->Hash(), param_expr_3->Hash());
   EXPECT_EQ(param_expr_1->GetExpressionType(), ExpressionType::VALUE_PARAMETER);
-  EXPECT_EQ(param_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(param_expr_1->GetReturnValueType(),
+            type::TypeId::INVALID);  // default type is now INVALID so we know in the binder whether it's been bound yet
   EXPECT_EQ(param_expr_1->GetChildrenSize(), 0);
   EXPECT_EQ(param_expr_1->GetValueIdx(), 42);
   param_expr_1->DeriveExpressionName();
-  EXPECT_EQ(param_expr_1->GetExpressionName(), "VALUE_PARAMETER");
+  EXPECT_EQ(param_expr_1->GetExpressionName(), "");
 
   delete param_expr_1;
   delete param_expr_2;
@@ -895,7 +920,7 @@ TEST(ExpressionTests, DerivedValueExpressionTest) {
   EXPECT_EQ(tve1->GetValueIdx(), 3);
 
   tve1->DeriveExpressionName();
-  EXPECT_EQ(tve1->GetExpressionName(), "VALUE_TUPLE");
+  EXPECT_EQ(tve1->GetExpressionName(), "");
 
   delete tve1;
   delete tve2;
@@ -929,15 +954,15 @@ TEST(ExpressionTests, DerivedValueExpressionJsonTest) {
 TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   // No Generic ComparisonExpression Test needed as it is simple.
   std::vector<std::unique_ptr<AbstractExpression>> children;
-  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetInteger(1)));
-  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetInteger(2)));
+  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1)));
+  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(2)));
 
   // Create expression
   auto original_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "= INTEGER = INTEGER");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
@@ -960,7 +985,7 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::STAR);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INTEGER);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "STAR");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
 
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
@@ -985,7 +1010,7 @@ TEST(ExpressionTests, DefaultValueExpressionJsonTest) {
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
   EXPECT_EQ(original_expr->GetReturnValueType(), type::TypeId::INVALID);
   original_expr->DeriveExpressionName();
-  EXPECT_EQ(original_expr->GetExpressionName(), "VALUE_DEFAULT");
+  EXPECT_EQ(original_expr->GetExpressionName(), "");
   auto copy = original_expr->Copy();
   EXPECT_EQ(*original_expr, *copy);
 
@@ -1063,7 +1088,7 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   EXPECT_NE(subselect_expr0->Hash(), subselect_expr4->Hash());
   EXPECT_NE(subselect_expr0->Hash(), subselect_expr5->Hash());
   subselect_expr0->DeriveExpressionName();
-  EXPECT_EQ(subselect_expr0->GetExpressionName(), "ROW_SUBQUERY");
+  EXPECT_EQ(subselect_expr0->GetExpressionName(), "");
 
   delete subselect_expr0;
   delete subselect_expr1;

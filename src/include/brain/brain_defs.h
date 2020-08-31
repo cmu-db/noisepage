@@ -1,0 +1,53 @@
+#pragma once
+
+namespace terrier::brain {
+
+enum class ExecutionOperatingUnitType : uint32_t {
+  INVALID,
+
+  AGGREGATE_BUILD,
+  AGGREGATE_ITERATE,
+
+  HASHJOIN_BUILD,
+  HASHJOIN_PROBE,
+
+  IDXJOIN,
+
+  SORT_BUILD,
+  SORT_ITERATE,
+
+  SEQ_SCAN,
+  IDX_SCAN,
+
+  INSERT,
+  UPDATE,
+  DELETE,
+
+  PROJECTION,
+  OUTPUT,
+  LIMIT,
+
+  HASH_JOIN,
+  HASH_AGGREGATE,
+  CSV_SCAN,
+  NL_JOIN,
+  SORT,
+  STATIC_AGGREGATE,
+
+  CREATE_INDEX,
+
+  // Use to demarcate plan and operations
+  PLAN_OPS_DELIMITER,
+
+  OP_INTEGER_PLUS_OR_MINUS,
+  OP_INTEGER_MULTIPLY,
+  OP_INTEGER_DIVIDE,
+  OP_INTEGER_COMPARE,
+  OP_DECIMAL_PLUS_OR_MINUS,
+  OP_DECIMAL_MULTIPLY,
+  OP_DECIMAL_DIVIDE,
+  OP_DECIMAL_COMPARE,
+  OP_BOOL_COMPARE
+};
+
+}  // namespace terrier::brain

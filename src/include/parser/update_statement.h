@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
 #include "common/managed_pointer.h"
-#include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
@@ -36,6 +36,12 @@ class UpdateClause {
    * @return value to update to
    */
   common::ManagedPointer<AbstractExpression> GetUpdateValue() const { return value_; }
+
+  /**
+   * Reset the update value.
+   * @param new_value New value of the update expression
+   */
+  void ResetValue(common::ManagedPointer<AbstractExpression> new_value) { value_ = new_value; }
 
   /**
    * Logical equality check
@@ -78,7 +84,7 @@ class UpdateStatement : public SQLStatement {
 
   ~UpdateStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return update table target */
   common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }

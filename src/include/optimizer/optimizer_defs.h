@@ -18,7 +18,7 @@ namespace terrier::optimizer {
 /**
  * typedef for GroupID
  */
-STRONG_TYPEDEF(group_id_t, int32_t);
+STRONG_TYPEDEF_HEADER(group_id_t, int32_t);
 
 /**
  * Definition for a UNDEFINED_GROUP
@@ -79,6 +79,7 @@ enum class OpType {
   LOGICALDROPFUNCTION,
   LOGICALDROPTRIGGER,
   LOGICALDROPVIEW,
+  LOGICALANALYZE,
   // Separation of logical and physical operators
   LOGICALPHYSICALDELIMITER,
 
@@ -90,6 +91,7 @@ enum class OpType {
   QUERYDERIVEDSCAN,
   ORDERBY,
   LIMIT,
+  INNERINDEXJOIN,
   INNERNLJOIN,
   LEFTNLJOIN,
   RIGHTNLJOIN,
@@ -119,7 +121,8 @@ enum class OpType {
   DROPNAMESPACE,
   DROPFUNCTION,
   DROPTRIGGER,
-  DROPVIEW
+  DROPVIEW,
+  ANALYZE
 };
 
 /**

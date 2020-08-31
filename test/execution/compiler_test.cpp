@@ -1,3 +1,5 @@
+#include "execution/compiler/compiler.h"
+
 #include <functional>
 #include <limits>
 #include <memory>
@@ -7,16 +9,18 @@
 
 #include "catalog/catalog_defs.h"
 #include "execution/ast/ast_dump.h"
-#include "execution/compiler/compiler.h"
-#include "execution/compiler/expression_util.h"
+#include "execution/ast/context.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/executable_query.h"
+#include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/compiler/output_schema_util.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
-#include "execution/executable_query.h"
 #include "execution/execution_util.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
+#include "execution/sql/value_util.h"
 #include "execution/sql_test.h"  // NOLINT
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
@@ -28,14 +32,13 @@
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
+#include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "type/transient_value.h"
-#include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::compiler::test {
@@ -46,11 +49,88 @@ class CompilerTest : public SqlBasedTest {
     // Make the test tables
     auto exec_ctx = MakeExecCtx();
     sql::TableGenerator table_generator{exec_ctx.get(), BlockStore(), NSOid()};
-    table_generator.GenerateTestTables();
+    table_generator.GenerateTestTables(false);
+  }
+
+  bool CheckFeatureVectorEquality(const std::vector<brain::ExecutionOperatingUnitFeature> &vec_a,
+                                  const std::vector<brain::ExecutionOperatingUnitType> &vec_b) {
+    std::unordered_set<brain::ExecutionOperatingUnitType> set_a;
+    std::unordered_set<brain::ExecutionOperatingUnitType> set_b;
+    for (const auto &e : vec_a) {
+      set_a.insert(e.GetExecutionOperatingUnitType());
+    }
+
+    for (auto e : vec_b) {
+      set_b.insert(e);
+    }
+
+    return set_a == set_b;
   }
 
   static constexpr vm::ExecutionMode MODE = vm::ExecutionMode::Interpret;
 };
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, CompileFromSource) {
+  util::Region region{"compiler_test"};
+  sema::ErrorReporter error_reporter{&region};
+  ast::Context context{&region, &error_reporter};
+
+  // Should be able to compile multiple TPL programs from source, including
+  // functions that potentially collide in name.
+
+  for (uint32_t i = 1; i < 4; i++) {
+    auto src = std::string("fun test() -> int32 { return " + std::to_string(i * 10) + " }");
+    auto input = Compiler::Input("Simple Test", &context, &src);
+    auto module = Compiler::RunCompilationSimple(input);
+
+    // The module should be valid since the input source is valid
+    EXPECT_FALSE(module == nullptr);
+
+    // The function should exist
+    std::function<int64_t()> test_fn;
+    EXPECT_TRUE(module->GetFunction("test", vm::ExecutionMode::Interpret, &test_fn));
+
+    // And should return what we expect
+    EXPECT_EQ(i * 10, test_fn());
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, CompileToAst) {
+  util::Region region{"compiler_test"};
+  sema::ErrorReporter error_reporter{&region};
+  ast::Context context{&region, &error_reporter};
+
+  // Check compilation only to AST.
+  struct CompileToAstCallback : public Compiler::Callbacks {
+    ast::AstNode *root_;
+    bool BeginPhase(Compiler::Phase phase, Compiler *compiler) override { return phase == Compiler::Phase::Parsing; }
+    void EndPhase(Compiler::Phase phase, Compiler *compiler) override {
+      if (phase == Compiler::Phase::Parsing) {
+        root_ = compiler->GetAST();
+      }
+    }
+    void OnError(Compiler::Phase phase, Compiler *compiler) override { FAIL(); }
+    void TakeOwnership(std::unique_ptr<vm::Module> module) override { FAIL(); }
+  };
+
+  auto src = std::string("fun BLAH() -> int32 { return 10 }");
+  auto input = Compiler::Input("Simple Test", &context, &src);
+  auto callback = CompileToAstCallback();
+  Compiler::RunCompilation(input, &callback);
+
+  EXPECT_NE(nullptr, callback.root_);
+  EXPECT_TRUE(callback.root_->IsFile());
+  EXPECT_TRUE(callback.root_->As<ast::File>()->Declarations()[0]->IsFunctionDecl());
+  auto *decl = callback.root_->As<ast::File>()->Declarations()[0]->As<ast::FunctionDecl>();
+
+  // Check name
+  EXPECT_EQ(context.GetIdentifier("BLAH"), decl->Name());
+
+  // Check type isn't set, since we didn't do type checking
+  EXPECT_EQ(nullptr, decl->Function()->TypeRepr()->ReturnType()->GetType());
+}
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
@@ -86,7 +166,6 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -103,9 +182,105 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleSeqScanNonVecFilterTest) {
+  // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1
+  // WHERE (col1 < 500 AND col2 >= 5) OR (500 <= col1 <= 1000 AND (col2 = 3 OR col2 = 7));
+  // The filter is not in DNF form and can't be vectorized.
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  ExpressionMaker expr_maker;
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    // Make New Column
+    auto col3 = expr_maker.OpMul(col1, col2);
+    auto col4 = expr_maker.ComparisonGe(col1, expr_maker.OpMul(expr_maker.Constant(100), col2));
+    seq_scan_out.AddOutput("col1", common::ManagedPointer(col1));
+    seq_scan_out.AddOutput("col2", common::ManagedPointer(col2));
+    seq_scan_out.AddOutput("col3", common::ManagedPointer(col3));
+    seq_scan_out.AddOutput("col4", common::ManagedPointer(col4));
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto comp1 = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    auto comp2 = expr_maker.ComparisonGe(col2, expr_maker.Constant(5));
+    auto clause1 = expr_maker.ConjunctionAnd(comp1, comp2);
+    auto comp3 = expr_maker.ComparisonGe(col1, expr_maker.Constant(500));
+    auto comp4 = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+    auto comp5 = expr_maker.ComparisonEq(col2, expr_maker.Constant(3));
+    auto comp6 = expr_maker.ComparisonEq(col2, expr_maker.Constant(7));
+    auto clause2 =
+        expr_maker.ConjunctionAnd(expr_maker.ConjunctionAnd(comp3, comp4), expr_maker.ConjunctionOr(comp5, comp6));
+    auto predicate = expr_maker.ConjunctionOr(clause1, clause2);
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the output checkers
+  std::function<void(const std::vector<sql::Val *> &)> row_checker = [](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<const sql::Integer *>(vals[0]);
+    auto col2 = static_cast<const sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check predicate
+    ASSERT_TRUE((col1->val_ < 500 && col2->val_ >= 5) ||
+                (col1->val_ >= 500 && col1->val_ < 1000 && (col2->val_ == 7 || col2->val_ == 3)));
+  };
+  GenericChecker checker(row_checker, {});
+
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&checker}};
+
+  // Create the execution context
+  OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -136,7 +311,6 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -169,9 +343,21 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), proj->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(proj), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*proj, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -212,7 +398,6 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -228,16 +413,28 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
   auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-  std::vector<type::TransientValue> params;
-  params.emplace_back(type::TransientValueFactory::GetInteger(100));
-  params.emplace_back(type::TransientValueFactory::GetInteger(500));
-  params.emplace_back(type::TransientValueFactory::GetInteger(3));
-  exec_ctx->SetParams(std::move(params));
+  std::vector<parser::ConstantValueExpression> params;
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
+  params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(3));
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::OUTPUT};
+
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -266,7 +463,6 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
                      .SetColumnOids({cola_oid, colb_oid})
                      .SetIndexOid(index_oid)
                      .AddIndexColumn(catalog::indexkeycol_oid_t(1), const_500)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Exact)
                      .SetScanLimit(0)
@@ -283,13 +479,23 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanAscendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -314,7 +520,6 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
@@ -342,11 +547,11 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
     ASSERT_LE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -354,13 +559,23 @@ TEST_F(CompilerTest, SimpleIndexScanAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanLimitAscendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -385,7 +600,6 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(5)
@@ -412,11 +626,11 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
     ASSERT_LE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -424,13 +638,23 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAsendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanDescendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -455,7 +679,6 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -482,11 +705,11 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
     ASSERT_GE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -494,13 +717,23 @@ TEST_F(CompilerTest, SimpleIndexScanDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
+TEST_F(CompilerTest, SimpleIndexScanLimitDescendingTest) {
   // SELECT colA, colB FROM test_1 WHERE colA BETWEEN 495 AND 505 ORDER BY colA DESC LIMIT 5;
   auto accessor = MakeAccessor();
   ExpressionMaker expr_maker;
@@ -525,7 +758,6 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
                      .SetIndexOid(index_oid)
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::DescendingLimit)
                      .SetScanLimit(5)
@@ -552,11 +784,11 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
     ASSERT_GE(curr_col1, col1->val_);
     curr_col1 = col1->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Create the execution context
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
@@ -564,9 +796,19 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDesendingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::IDX_SCAN,
+                                                                brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec, exp_vec));
 }
 
 // NOLINTNEXTLINE
@@ -597,7 +839,6 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -621,7 +862,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-              .AddAggregateTerm(agg_out.GetAggTerm("col1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
               .AddChild(std::move(seq_scan))
               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
               .SetHavingClausePredicate(nullptr)
@@ -639,8 +880,115 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 2);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, DISABLED_AggregateWithDistinctAndGroupByTest) {
+  // TODO(WAN): distinct doesn't work yet in TPL2
+  // SELECT col2, SUM(col1), COUNT(DISTINCT col2), SUM(DISTINCT col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Read previous output
+    auto col1 = seq_scan_out.GetOutput("col1");
+    auto col2 = seq_scan_out.GetOutput("col2");
+    // Add group by term
+    agg_out.AddGroupByTerm("col2", col2);
+    // Add aggregates
+    auto sum_col1 = expr_maker.AggSum(col1);
+    agg_out.AddAggTerm("sum_col1", sum_col1);
+    auto count_distinct_col2 = expr_maker.AggCount(col2, true);
+    agg_out.AddAggTerm("count_distinct_col2", count_distinct_col2);
+    auto sum_distinct_col1 = expr_maker.AggSum(col1, true);
+    agg_out.AddAggTerm("sum_distinct_col1", sum_distinct_col1);
+
+    // Make the output expressions
+    agg_out.AddOutput("col2", agg_out.GetGroupByTermForOutput("col2"));
+    agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
+    agg_out.AddOutput("count_distinct_col2", agg_out.GetAggTermForOutput("count_distinct_col2"));
+    agg_out.AddOutput("sum_distinct_col1", agg_out.GetAggTermForOutput("sum_distinct_col1"));
+    auto schema = agg_out.MakeSchema();
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_distinct_col2"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_distinct_col1"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+  // Make the checkers
+  // There should be 10 output rows.
+  NumChecker num_checker{10};
+  // The sum should be from 0 to 1000.
+  SingleIntSumChecker sum_checker{1, (1000 * 999) / 2};
+  // Group by key and count distinct aggregate are the same. So the output shouls always be one.
+  SingleIntComparisonChecker distinct_count_checker{std::equal_to<>(), 2, 1};
+  // Every key in col1 is unique, the sum and the sum(distinct) should be the same.
+  SingleIntSumChecker distinct_sum_checker{3, (1000 * 999) / 2};
+  MultiChecker multi_checker{
+      std::vector<OutputChecker *>{&num_checker, &sum_checker, &distinct_count_checker, &distinct_sum_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
 }
 
@@ -656,13 +1004,13 @@ TEST_F(CompilerTest, CountStarTest) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     auto schema = seq_scan_out.MakeSchema();
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetColumnOids({})
+                   .SetColumnOids({cola_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -685,9 +1033,11 @@ TEST_F(CompilerTest, CountStarTest) {
               .Build();
   }
   // Make the checkers
+  // There should be only one output
   NumChecker num_checker{1};
-  SingleIntComparisonChecker sum_checker{std::equal_to<>(), 0, sql::TEST1_SIZE};
-  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
+  // The count should be the size of the table.
+  SingleIntComparisonChecker count_checker{std::equal_to<>(), 0, sql::TEST1_SIZE};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &count_checker}};
 
   // Compile and Run
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
@@ -696,9 +1046,173 @@ TEST_F(CompilerTest, CountStarTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   multi_checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, StaticAggregateTest) {
+  // SELECT COUNT(*), SUM(cola) FROM test_1;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Read previous output
+    auto col1 = seq_scan_out.GetOutput("col1");
+    // Add aggregates
+    agg_out.AddAggTerm("count_star", expr_maker.AggCount(expr_maker.Star()));
+    auto sum_col1 = expr_maker.AggSum(col1);
+    agg_out.AddAggTerm("sum_col1", sum_col1);
+    // Make the output expressions
+    agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
+    agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
+    auto schema = agg_out.MakeSchema();
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+  // Make the checkers
+  // There should be only one output
+  NumChecker num_checker{1};
+  // The count should be the size of the table.
+  SingleIntComparisonChecker count_checker{std::equal_to<>(), 0, sql::TEST1_SIZE};
+  // The sum should be from 1 to the size of the table.
+  SingleIntComparisonChecker sum_checker{std::equal_to<>(), 1, sql::TEST1_SIZE * (sql::TEST1_SIZE - 1) / 2};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &count_checker, &sum_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
+  // TODO(WAN): distinct doesn't work yet in TPL2
+  // SELECT COUNT(DISTINCT colb), SUM(DISTINCT colb), COUNT(*) FROM test_1;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    auto col1 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({colb_oid})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Read previous output
+    auto col1 = seq_scan_out.GetOutput("col1");
+    // Add aggregates
+    auto distinct_count1 = expr_maker.AggCount(col1, true);
+    auto distinct_sum1 = expr_maker.AggSum(col1, true);
+    agg_out.AddAggTerm("distinct_count1", distinct_count1);
+    agg_out.AddAggTerm("distinct_sum1", distinct_sum1);
+    agg_out.AddAggTerm("count_star", expr_maker.AggCount(expr_maker.Star()));
+    // Make the output expressions
+    agg_out.AddOutput("distinct_count1", agg_out.GetAggTermForOutput("distinct_count1"));
+    agg_out.AddOutput("distinct_sum1", agg_out.GetAggTermForOutput("distinct_sum1"));
+    agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
+    auto schema = agg_out.MakeSchema();
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddAggregateTerm(agg_out.GetAggTerm("distinct_count1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("distinct_sum1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
+  }
+  // Make the checkers
+  // There should be only one output
+  NumChecker num_checker{1};
+  // The count distinct should be the number of distinct elements (10).
+  SingleIntComparisonChecker distinct_count_checker{std::equal_to<>(), 0, 10};
+  // The sum  should be from 1 to 10, which is 45.
+  SingleIntComparisonChecker distinct_sum_checker{std::equal_to<>(), 1, 45};
+  // The count star should be the size of the table
+  SingleIntComparisonChecker count_star_checker{std::equal_to<>(), 2, sql::TEST1_SIZE};
+  MultiChecker multi_checker{
+      std::vector<OutputChecker *>{&num_checker, &distinct_count_checker, &distinct_sum_checker, &count_star_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_FALSE(true);
+  // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 2);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
 
 // NOLINTNEXTLINE
@@ -729,7 +1243,6 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -757,7 +1270,7 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     planner::AggregatePlanNode::Builder builder;
     agg = builder.SetOutputSchema(std::move(schema))
               .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-              .AddAggregateTerm(agg_out.GetAggTerm("col1"))
+              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
               .AddChild(std::move(seq_scan))
               .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
               .SetHavingClausePredicate(having)
@@ -774,8 +1287,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Check sum_col1 < 50000
     ASSERT_LT(sum_col1->val_, 50000);
   };
-  CorrectnessFn correcteness_fn;
-  GenericChecker checker(row_checker, correcteness_fn);
+  CorrectnessFn correctness_fn;
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Compile and Run
   OutputStore store{&checker, agg->GetOutputSchema().Get()};
@@ -784,9 +1297,85 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 2);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, StaticAggregateHavingTest) {
+  // SELECT COUNT(*) FROM test_1 HAVING COUNT(*) < 0;
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({})
+                   .SetScanPredicate(nullptr)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Make the aggregate
+  std::unique_ptr<planner::AbstractPlanNode> agg;
+  OutputSchemaHelper agg_out{0, &expr_maker};
+  {
+    // Add aggregates
+    agg_out.AddAggTerm("count_star", expr_maker.AggCount(expr_maker.Star()));
+    // Make the output expressions
+    agg_out.AddOutput("count_star", agg_out.GetAggTermForOutput("count_star"));
+    auto schema = agg_out.MakeSchema();
+    // Having
+    auto having = expr_maker.ComparisonLt(agg_out.GetAggTermForOutput("count_star"), expr_maker.Constant(0));
+    // Build
+    planner::AggregatePlanNode::Builder builder;
+    agg = builder.SetOutputSchema(std::move(schema))
+              .AddAggregateTerm(agg_out.GetAggTerm("count_star"))
+              .AddChild(std::move(seq_scan))
+              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(having)
+              .Build();
+  }
+  // Make the checkers
+  // Should not output anything
+  NumChecker num_checker{0};
+  // The count should be the size of the table.
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker}};
+
+  // Compile and Run
+  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable =
+      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  multi_checker.CheckCorrectness();
 }
 
 // NOLINTNEXTLINE
@@ -822,7 +1411,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -846,7 +1434,6 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
                     .Build();
   }
@@ -901,11 +1488,11 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   OutputStore store{&checker, hash_join->GetOutputSchema().Get()};
   exec::OutputPrinter printer(hash_join->GetOutputSchema().Get());
@@ -913,9 +1500,25 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(hash_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*hash_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 2);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_BUILD};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
 
 // NOLINTNEXTLINE
@@ -949,7 +1552,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
                     .SetColumnOids({cola_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -970,7 +1572,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
                     .SetColumnOids({cola_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
                     .Build();
   }
@@ -991,7 +1592,6 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
                     .SetColumnOids({cola_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1069,11 +1669,11 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   OutputStore store{&checker, hash_join2->GetOutputSchema().Get()};
   exec::OutputPrinter printer(hash_join2->GetOutputSchema().Get());
@@ -1081,9 +1681,31 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), hash_join2->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(hash_join2), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*hash_join2, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 3);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  auto feature_vec2 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(3));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+      brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_BUILD};
+  auto exp_vec2 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                                 brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                                 brain::ExecutionOperatingUnitType::HASHJOIN_BUILD};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec2, exp_vec2));
 }
 
 // NOLINTNEXTLINE
@@ -1114,7 +1736,6 @@ TEST_F(CompilerTest, SimpleSortTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid)
                    .Build();
   }
@@ -1168,10 +1789,10 @@ TEST_F(CompilerTest, SimpleSortTest) {
     curr_col1 = col1->val_;
     curr_col2 = col2->val_;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Create exec ctx
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
@@ -1180,8 +1801,296 @@ TEST_F(CompilerTest, SimpleSortTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(order_by), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*order_by, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 2);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SORT_ITERATE, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+      brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::SORT_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SortWithLimitTest) {
+  // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC LIMIT 10
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    auto colb_oid = table_schema.GetColumn("colB").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid, colb_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Order By
+  std::unique_ptr<planner::AbstractPlanNode> order_by;
+  OutputSchemaHelper order_by_out{0, &expr_maker};
+  {
+    // Output Colums col1, col2, col1 + col2
+    auto col1 = seq_scan_out.GetOutput("col1");
+    auto col2 = seq_scan_out.GetOutput("col2");
+    auto sum = expr_maker.OpSum(col1, col2);
+    order_by_out.AddOutput("col1", col1);
+    order_by_out.AddOutput("col2", col2);
+    order_by_out.AddOutput("sum", sum);
+    auto schema = order_by_out.MakeSchema();
+    // Order By Clause
+    planner::SortKey clause1{col2, optimizer::OrderByOrderingType::ASC};
+    auto diff = expr_maker.OpMin(col1, col2);
+    planner::SortKey clause2{diff, optimizer::OrderByOrderingType::DESC};
+    // Build
+    planner::OrderByPlanNode::Builder builder;
+    order_by = builder.SetOutputSchema(std::move(schema))
+                   .AddChild(std::move(seq_scan))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
+                   .SetLimit(10)
+                   .Build();
+  }
+  // Checkers:
+  // There should be 10 output rows because of the limit.
+  // The output should be sorted by col2 ASC, then col1 DESC.
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{10};
+  int64_t curr_col1{std::numeric_limits<int64_t>::max()};
+  int64_t curr_col2{std::numeric_limits<int64_t>::min()};
+  RowChecker row_checker = [&num_output_rows, &curr_col1, &curr_col2,
+                            num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
+    // Check col1 and number of outputs
+    ASSERT_LT(col1->val_, 500);
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+
+    // Check that output is sorted by col2 ASC, then col1 DESC
+    ASSERT_LE(curr_col2, col2->val_);
+    if (curr_col2 == col2->val_) {
+      ASSERT_GE(curr_col1, col1->val_);
+    }
+    curr_col1 = col1->val_;
+    curr_col2 = col2->val_;
+  };
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+  GenericChecker checker(row_checker, correctness_fn);
+
+  // Create exec ctx
+  OutputStore store{&checker, order_by->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(order_by->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*order_by, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SortWithLimitAndOffsetTest) {
+  // SELECT col1 FROM test_1 WHERE col1 < 500 ORDER BY col1 DESC LIMIT 100 OFFSET 100
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  int32_t upper = 500;
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(upper));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Order By
+  std::unique_ptr<planner::AbstractPlanNode> order_by;
+  OutputSchemaHelper order_by_out{0, &expr_maker};
+  {
+    // Output Colums col1
+    auto col1 = seq_scan_out.GetOutput("col1");
+    order_by_out.AddOutput("col1", col1);
+    auto schema = order_by_out.MakeSchema();
+    // Order By Clause
+    planner::SortKey clause1{col1, optimizer::OrderByOrderingType::DESC};
+    // Build
+    planner::OrderByPlanNode::Builder builder;
+    order_by = builder.SetOutputSchema(std::move(schema))
+                   .AddChild(std::move(seq_scan))
+                   .AddSortKey(clause1.first, clause1.second)
+                   .SetLimit(100)
+                   .SetOffset(100)
+                   .Build();
+  }
+  // Checkers:
+  // There should be 100 output rows because of the limit.
+  // The output should be sorted by col1 DESC.
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{100};
+  int64_t curr_col1{std::numeric_limits<int64_t>::max()};
+  RowChecker row_checker = [&num_output_rows, &curr_col1, num_expected_rows,
+                            upper](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    ASSERT_FALSE(col1->is_null_);
+    // Check col1 and number of outputs
+    ASSERT_LT(col1->val_, upper);
+    // This equality holds because of the offset of 100 and the descending order.
+    ASSERT_EQ(col1->val_, (upper - 1) - (num_output_rows + 100));
+    // Check that output is sorted by col1
+    ASSERT_GT(curr_col1, col1->val_);
+    curr_col1 = col1->val_;
+
+    // Check limit
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+  GenericChecker checker(row_checker, correctness_fn);
+
+  // Create exec ctx
+  OutputStore store{&checker, order_by->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(order_by->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*order_by, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
+  checker.CheckCorrectness();
+}
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, LimitAndOffsetTest) {
+  // SELECT col1 FROM test_1 WHERE col1 < 500 LIMIT 100 OFFSET 100
+  // This test uses an explicit limit node.
+  // Get accessor
+  auto accessor = MakeAccessor();
+  ExpressionMaker expr_maker;
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0, &expr_maker};
+  {
+    // OIDs
+    auto cola_oid = table_schema.GetColumn("colA").Oid();
+    // Get Table columns
+    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    auto schema = seq_scan_out.MakeSchema();
+    // Make predicate
+    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(500));
+    // Build
+    planner::SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(std::move(schema))
+                   .SetColumnOids({cola_oid})
+                   .SetScanPredicate(predicate)
+                   .SetIsForUpdateFlag(false)
+                   .SetTableOid(table_oid)
+                   .Build();
+  }
+  // Limit
+  std::unique_ptr<planner::AbstractPlanNode> limit;
+  OutputSchemaHelper limit_out{0, &expr_maker};
+  {
+    // Output Colums col1
+    auto col1 = seq_scan_out.GetOutput("col1");
+    limit_out.AddOutput("col1", col1);
+    auto schema = limit_out.MakeSchema();
+    // Build
+    planner::LimitPlanNode::Builder builder;
+    limit =
+        builder.SetOutputSchema(std::move(schema)).AddChild(std::move(seq_scan)).SetLimit(100).SetOffset(100).Build();
+  }
+  // Checkers:
+  // There should be 100 output rows because of the limit.
+  // The output should be sorted by col1.
+  uint32_t num_output_rows{0};
+  uint32_t num_expected_rows{100};
+  int64_t curr_col1{std::numeric_limits<int64_t>::min()};
+  RowChecker row_checker = [&num_output_rows, &curr_col1, num_expected_rows](const std::vector<sql::Val *> &vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    ASSERT_FALSE(col1->is_null_);
+    // Check col1 and number of outputs
+    ASSERT_LT(col1->val_, 500);
+    // This equality holds because of the offset of 100.
+    // The output should be (399, ..., 300).
+    ASSERT_EQ(col1->val_, num_output_rows + 100);
+    // Check that output is sorted by col1
+    ASSERT_LT(curr_col1, col1->val_);
+    curr_col1 = col1->val_;
+
+    // Check limit
+    num_output_rows++;
+    ASSERT_LE(num_output_rows, num_expected_rows);
+  };
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
+    ASSERT_EQ(num_output_rows, num_expected_rows);
+  };
+  GenericChecker checker(row_checker, correctness_fn);
+
+  // Create exec ctx
+  OutputStore store{&checker, limit->GetOutputSchema().Get()};
+  exec::OutputPrinter printer(limit->GetOutputSchema().Get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), limit->GetOutputSchema().Get());
+
+  // Run & Check
+  auto executable = execution::compiler::CompilationContext::Compile(*limit, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
 }
 
@@ -1217,7 +2126,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1241,7 +2149,6 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
                     .SetColumnOids({cola_oid, colb_oid})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid2)
                     .Build();
   }
@@ -1295,10 +2202,10 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, nl_join->GetOutputSchema().Get()};
@@ -1307,9 +2214,26 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(nl_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*nl_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  // NLJOIN left and right are in same pipeline
+  // But NLJOIN left/right features do not exist
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec0 =
+      std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                     brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                     brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                                                     brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
+                                                     brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+                                                     brain::ExecutionOperatingUnitType::OUTPUT};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
 // NOLINTNEXTLINE
@@ -1343,7 +2267,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid2)
                    .Build();
   }
@@ -1375,10 +2298,12 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid1)
                      .SetTableOid(table_oid1)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), t2_col1)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(predicate)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .Build();
   }
   // Compile and Run
@@ -1402,10 +2327,10 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, index_join->GetOutputSchema().Get()};
@@ -1414,9 +2339,21 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::OUTPUT, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::IDX_SCAN,
+      brain::ExecutionOperatingUnitType::SEQ_SCAN};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
 // NOLINTNEXTLINE
@@ -1447,7 +2384,6 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -1478,8 +2414,11 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     index_join = builder.AddChild(std::move(seq_scan))
                      .SetIndexOid(index_oid2)
                      .SetTableOid(table_oid2)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
-                     .AddIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddLoIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .AddHiIndexColumn(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetOutputSchema(std::move(schema))
                      .SetJoinType(planner::LogicalJoinType::INNER)
                      .SetJoinPredicate(nullptr)
@@ -1505,8 +2444,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     num_output_rows++;
     ASSERT_LT(num_output_rows, max_output_rows);
   };
-  CorrectnessFn correcteness_fn;
-  GenericChecker checker(row_checker, correcteness_fn);
+  CorrectnessFn correctness_fn;
+  GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
   OutputStore store{&checker, index_join->GetOutputSchema().Get()};
@@ -1515,9 +2454,20 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(index_join), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
+  auto executable = execution::compiler::CompilationContext::Compile(*index_join, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE);
   checker.CheckCorrectness();
+
+  // Pipeline Units
+  auto pipeline = executable->GetPipelineOperatingUnits();
+  EXPECT_EQ(pipeline->units_.size(), 1);
+
+  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::OUTPUT, brain::ExecutionOperatingUnitType::IDX_SCAN,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS, brain::ExecutionOperatingUnitType::SEQ_SCAN};
+  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
 }
 
 // NOLINTNEXTLINE
@@ -1548,7 +2498,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                     .SetColumnOids({table_schema1.GetColumn("colA").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1564,8 +2513,19 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), delete_node->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(delete_node), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*delete_node, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
+
+    // Pipeline Units
+    auto pipeline = executable->GetPipelineOperatingUnits();
+    EXPECT_EQ(pipeline->units_.size(), 1);
+
+    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+    auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+        brain::ExecutionOperatingUnitType::DELETE, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+        brain::ExecutionOperatingUnitType::SEQ_SCAN};
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
   // Now scan through table to check content.
@@ -1588,7 +2548,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                    .SetColumnOids({cola_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -1599,8 +2558,9 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1620,7 +2580,6 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(495))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(505))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
@@ -1634,12 +2593,14 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleUpdateTest) {
   // UPDATE test_1 SET colA = -colA, colB = 500 WHERE colA BETWEEN 495 AND 505
   // Then check that the following finds the tuples:
@@ -1674,7 +2635,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                                     table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -1707,8 +2667,19 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), update_node->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(update_node), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*update_node, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
+
+    // Pipeline Units
+    auto pipeline = executable->GetPipelineOperatingUnits();
+    EXPECT_EQ(pipeline->units_.size(), 1);
+
+    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+    auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+        brain::ExecutionOperatingUnitType::UPDATE, brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY,
+        brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE, brain::ExecutionOperatingUnitType::SEQ_SCAN};
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
   // Now scan through table to check content.
@@ -1734,7 +2705,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                    .SetColumnOids({cola_oid, colb_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -1755,19 +2725,20 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1793,7 +2764,6 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-505))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-495))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -1803,13 +2773,14 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -1840,6 +2811,9 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     values2.push_back(expr_maker.Constant(2));
     values2.push_back(expr_maker.Constant(3));
     planner::InsertPlanNode::Builder builder;
+
+    auto output_schema = std::make_unique<planner::OutputSchema>();
+
     insert = builder.AddParameterInfo(table_schema1.GetColumn("colA").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
@@ -1847,8 +2821,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                  .SetIndexOids({index_oid1})
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
-                 .SetNamespaceOid(NSOid())
                  .SetTableOid(table_oid1)
+                 .SetOutputSchema(std::move(output_schema))
                  .Build();
   }
   // Execute insert
@@ -1856,8 +2830,17 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
+
+    // Pipeline Units
+    auto pipeline = executable->GetPipelineOperatingUnits();
+    EXPECT_EQ(pipeline->units_.size(), 1);
+
+    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+    auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::INSERT};
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
   // Now scan through table to check content.
@@ -1887,7 +2870,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                    .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -1910,19 +2892,20 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -1953,7 +2936,6 @@ TEST_F(CompilerTest, SimpleInsertTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-10000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -1963,19 +2945,21 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
+TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
+  // TODO(WAN): insert into select doesn't work yet in TPL2
   // INSERT INTO test_1
   // SELECT -colA, col2, col3, col4 FROM test_1 WHERE colA BETWEEN param1 AND param2.
   // Set param1 = 495 and param2 = 505
@@ -2005,6 +2989,7 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     auto pred1 = expr_maker.ComparisonGe(col1, param1);
     auto pred2 = expr_maker.ComparisonLe(col1, param2);
     auto predicate = expr_maker.ConjunctionAnd(pred1, pred2);
+
     // Build
     planner::SeqScanPlanNode::Builder builder;
     seq_scan1 = builder.SetOutputSchema(std::move(schema))
@@ -2012,7 +2997,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                                     table_schema1.GetColumn("colC").Oid(), table_schema1.GetColumn("colD").Oid()})
                     .SetScanPredicate(predicate)
                     .SetIsForUpdateFlag(false)
-                    .SetNamespaceOid(NSOid())
                     .SetTableOid(table_oid1)
                     .Build();
   }
@@ -2020,15 +3004,17 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   // Insertion node
   std::unique_ptr<planner::AbstractPlanNode> insert;
   {
+    auto output_schema = std::make_unique<planner::OutputSchema>();
+
     planner::InsertPlanNode::Builder builder;
     insert = builder.AddParameterInfo(table_schema1.GetColumn("colA").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("colB").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("colC").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("colD").Oid())
                  .SetIndexOids({index_oid1})
-                 .SetNamespaceOid(NSOid())
                  .SetTableOid(table_oid1)
                  .AddChild(std::move(seq_scan1))
+                 .SetOutputSchema(std::move(output_schema))
                  .Build();
   }
 
@@ -2037,12 +3023,24 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
-    params.emplace_back(type::TransientValueFactory::GetInteger(495));
-    params.emplace_back(type::TransientValueFactory::GetInteger(505));
-    exec_ctx->SetParams(std::move(params));
-    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    std::vector<parser::ConstantValueExpression> params;
+    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
+    params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
+
+    // Pipeline Units
+    auto pipeline = executable->GetPipelineOperatingUnits();
+    EXPECT_FALSE(true);
+    // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 1);
+
+    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+    auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
+        brain::ExecutionOperatingUnitType::INSERT, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+        brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY, brain::ExecutionOperatingUnitType::SEQ_SCAN};
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
   // Now scan through table to check content.
@@ -2072,7 +3070,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                    .SetColumnOids({cola_oid, colb_oid, colc_oid, cold_oid})
                    .SetScanPredicate(predicate)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -2092,20 +3089,21 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -2136,7 +3134,6 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1000))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.Constant(-1))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::Descending)
                      .SetScanLimit(0)
@@ -2145,13 +3142,14 @@ TEST_F(CompilerTest, InsertIntoSelectWithParamTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -2220,6 +3218,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     values2.push_back(expr_maker.PVE(type::TypeId::INTEGER, param_idx++));
     values2.push_back(expr_maker.PVE(type::TypeId::BIGINT, param_idx++));
 
+    auto output_schema = std::make_unique<planner::OutputSchema>();
+
     planner::InsertPlanNode::Builder builder;
     insert = builder.AddParameterInfo(table_schema1.GetColumn("varchar_col").Oid())
                  .AddParameterInfo(table_schema1.GetColumn("date_col").Oid())
@@ -2232,8 +3232,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                  .SetIndexOids({index_oid1})
                  .AddValues(std::move(values1))
                  .AddValues(std::move(values2))
-                 .SetNamespaceOid(NSOid())
                  .SetTableOid(table_oid1)
+                 .SetOutputSchema(std::move(output_schema))
                  .Build();
   }
   // Execute insert
@@ -2241,28 +3241,39 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
     auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
+    std::vector<parser::ConstantValueExpression> params;
     // First parameter list
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date1.val_.ToNative())));
-    params.emplace_back(type::TransientValueFactory::GetDecimal(real1));
-    params.emplace_back(type::TransientValueFactory::GetBoolean(bool1));
-    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint1));
-    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint1));
-    params.emplace_back(type::TransientValueFactory::GetInteger(int1));
-    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint1));
+    auto str1_val = sql::ValueUtil::CreateStringVal(str1);
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::DATE, sql::DateVal(date1.val_));
+    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real1));
+    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool1));
+    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint1));
+    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint1));
+    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int1));
+    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint1));
     // Second parameter list
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    params.emplace_back(type::TransientValueFactory::GetDate(type::date_t(date2.val_.ToNative())));
-    params.emplace_back(type::TransientValueFactory::GetDecimal(real2));
-    params.emplace_back(type::TransientValueFactory::GetBoolean(bool2));
-    params.emplace_back(type::TransientValueFactory::GetTinyInt(tinyint2));
-    params.emplace_back(type::TransientValueFactory::GetSmallInt(smallint2));
-    params.emplace_back(type::TransientValueFactory::GetInteger(int2));
-    params.emplace_back(type::TransientValueFactory::GetBigInt(bigint2));
-    exec_ctx->SetParams(std::move(params));
-    auto executable = ExecutableQuery(common::ManagedPointer(insert), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto str2_val = sql::ValueUtil::CreateStringVal(str2);
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    params.emplace_back(type::TypeId::DATE, sql::DateVal(date2.val_));
+    params.emplace_back(type::TypeId::DECIMAL, sql::Real(real2));
+    params.emplace_back(type::TypeId::BOOLEAN, sql::BoolVal(bool2));
+    params.emplace_back(type::TypeId::TINYINT, sql::Integer(tinyint2));
+    params.emplace_back(type::TypeId::SMALLINT, sql::Integer(smallint2));
+    params.emplace_back(type::TypeId::INTEGER, sql::Integer(int2));
+    params.emplace_back(type::TypeId::BIGINT, sql::Integer(bigint2));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
+
+    // Pipeline Units
+    auto pipeline = executable->GetPipelineOperatingUnits();
+    EXPECT_EQ(pipeline->units_.size(), 1);
+
+    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+    auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::INSERT};
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   }
 
   // Now scan through table to check content.
@@ -2304,7 +3315,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                    .SetColumnOids({col1_oid, col2_oid, col3_oid, col4_oid, col5_oid, col6_oid, col7_oid, col8_oid})
                    .SetScanPredicate(nullptr)
                    .SetIsForUpdateFlag(false)
-                   .SetNamespaceOid(NSOid())
                    .SetTableOid(table_oid1)
                    .Build();
   }
@@ -2334,8 +3344,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
 
     // Make sure all of our values match what we inserted into the table
     if (num_output_rows == 0) {
-      ASSERT_EQ(col1->len_, str1.size());
-      ASSERT_EQ(std::memcmp(col1->Content(), str1.data(), col1->len_), 0);
+      ASSERT_EQ(col1->GetLength(), str1.size());
+      ASSERT_EQ(std::memcmp(col1->GetContent(), str1.data(), col1->GetLength()), 0);
       ASSERT_EQ(col2->val_, date1.val_);
       ASSERT_EQ(col3->val_, real1);
       ASSERT_EQ(col4->val_, bool1);
@@ -2344,8 +3354,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
       ASSERT_EQ(col7->val_, int1);
       ASSERT_EQ(col8->val_, bigint1);
     } else {
-      ASSERT_TRUE(col1->len_ == str2.size());
-      ASSERT_EQ(std::memcmp(col1->Content(), str2.data(), col1->len_), 0);
+      ASSERT_TRUE(col1->GetLength() == str2.size());
+      ASSERT_EQ(std::memcmp(col1->GetContent(), str2.data(), col1->GetLength()), 0);
       ASSERT_EQ(col2->val_, date2.val_);
       ASSERT_EQ(col3->val_, real2);
       ASSERT_EQ(col4->val_, bool2);
@@ -2357,19 +3367,20 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
 
   // Execute Table Scan
   {
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
-    auto executable = ExecutableQuery(common::ManagedPointer(seq_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 
@@ -2414,7 +3425,6 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
                      .AddLoIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 0))
                      .AddHiIndexColumn(catalog::indexkeycol_oid_t(1), expr_maker.PVE(type::TypeId::VARCHAR, 1))
                      .SetScanPredicate(nullptr)
-                     .SetNamespaceOid(NSOid())
                      .SetOutputSchema(std::move(schema))
                      .SetScanType(planner::IndexScanType::AscendingClosed)
                      .SetScanLimit(0)
@@ -2424,17 +3434,20 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   // Execute index scan
   {
     num_output_rows = 0;
-    GenericChecker checker(row_checker, correcteness_fn);
+    GenericChecker checker(row_checker, correctness_fn);
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
     auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
-    std::vector<type::TransientValue> params;
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str1));
-    params.emplace_back(type::TransientValueFactory::GetVarChar(str2));
-    exec_ctx->SetParams(std::move(params));
-    auto executable = ExecutableQuery(common::ManagedPointer(index_scan), common::ManagedPointer(exec_ctx));
-    executable.Run(common::ManagedPointer(exec_ctx), MODE);
+    std::vector<parser::ConstantValueExpression> params;
+    auto str1_val = sql::ValueUtil::CreateStringVal(str1);
+    auto str2_val = sql::ValueUtil::CreateStringVal(str2);
+    params.emplace_back(type::TypeId::VARCHAR, str1_val.first, std::move(str1_val.second));
+    params.emplace_back(type::TypeId::VARCHAR, str2_val.first, std::move(str2_val.second));
+    exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+    auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
     checker.CheckCorrectness();
   }
 }
@@ -2558,9 +3571,9 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   }
   // Compile and Run
   // TODO(How to auto check this test?)
-  CorrectnessFn correcteness_fn;
+  CorrectnessFn correctness_fn;
   RowChecker row_checker;
-  GenericChecker checker(row_checker, correcteness_fn);
+  GenericChecker checker(row_checker, correctness_fn);
   // Make Exec Ctx
   OutputStore store{&checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
@@ -2568,9 +3581,9 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
 
   // Run & Check
-  auto executable = ExecutableQuery(common::ManagedPointer(agg), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), MODE);
-  checker.CheckCorrectness();
+  auto executable = execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), MODE); checker.CheckCorrectness();
 }
 */
 }  // namespace terrier::execution::compiler::test

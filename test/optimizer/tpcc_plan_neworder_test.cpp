@@ -45,7 +45,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_district_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -58,7 +57,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     EXPECT_EQ(dve->GetColumnOid(), schema.GetColumn("d_next_o_id").Oid());
     EXPECT_EQ(expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
     auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+    EXPECT_EQ(cve->Peek<int64_t>(), 1);
 
     // Idx Scan, full output schema
     EXPECT_EQ(update->GetChildren().size(), 1);
@@ -68,7 +67,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
@@ -123,7 +121,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_stock_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -138,7 +135,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
 
     {
       auto expr = update->GetSetClauses()[0].second.CastManagedPointerTo<parser::ConstantValueExpression>();
-      EXPECT_EQ(type::TransientValuePeeker::PeekInteger(expr->GetValue()), 1);
+      EXPECT_EQ(expr->Peek<int64_t>(), 1);
     }
 
     {
@@ -148,7 +145,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
       EXPECT_EQ(dve->GetColumnOid(), schema.GetColumn("s_ytd").Oid());
       EXPECT_EQ(expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
       auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-      EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+      EXPECT_EQ(cve->Peek<int64_t>(), 1);
     }
 
     {
@@ -158,7 +155,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
       EXPECT_EQ(dve->GetColumnOid(), schema.GetColumn("s_order_cnt").Oid());
       EXPECT_EQ(expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
       auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-      EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+      EXPECT_EQ(cve->Peek<int64_t>(), 1);
     }
 
     {
@@ -168,7 +165,7 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
       EXPECT_EQ(dve->GetColumnOid(), schema.GetColumn("s_remote_cnt").Oid());
       EXPECT_EQ(expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
       auto cve = expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
-      EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+      EXPECT_EQ(cve->Peek<int64_t>(), 1);
     }
 
     // Idx Scan, full output schema
@@ -179,7 +176,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();

@@ -1,5 +1,7 @@
 #pragma once
+
 #include <vector>
+
 #include "common/container/bitmap.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"

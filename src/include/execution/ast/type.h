@@ -1,5 +1,7 @@
 #pragma once
 
+#include <llvm/Support/Casting.h>
+
 #include <cstdint>
 #include <string>
 
@@ -8,7 +10,6 @@
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
-#include "llvm/Support/Casting.h"
 
 namespace terrier::execution::ast {
 
@@ -55,34 +56,39 @@ class Context;
                                                                                                 \
   /* Non-primitive builtins */                                                                  \
   NON_PRIM(AggregationHashTable, terrier::execution::sql::AggregationHashTable)                 \
-  NON_PRIM(AggregationHashTableIterator, terrier::execution::sql::AggregationHashTableIterator) \
-  NON_PRIM(AggOverflowPartIter, terrier::execution::sql::AggregationOverflowPartitionIterator)  \
-  NON_PRIM(BloomFilter, terrier::execution::sql::BloomFilter)                                   \
+  NON_PRIM(AHTIterator, terrier::execution::sql::AHTIterator)                                   \
+  NON_PRIM(AHTVectorIterator, terrier::execution::sql::AHTVectorIterator)                       \
+  NON_PRIM(AHTOverflowPartitionIterator, terrier::execution::sql::AHTOverflowPartitionIterator) \
+  /* NON_PRIM(CSVReader, terrier::execution::util::CSVReader)                                */ \
   NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                        \
   NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                               \
   NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                             \
+  NON_PRIM(HashTableEntryIterator, terrier::execution::sql::HashTableEntryIterator)             \
   NON_PRIM(JoinHashTable, terrier::execution::sql::JoinHashTable)                               \
-  NON_PRIM(JoinHashTableVectorProbe, terrier::execution::sql::JoinHashTableVectorProbe)         \
-  NON_PRIM(JoinHashTableIterator, terrier::execution::sql::JoinHashTableIterator)               \
   NON_PRIM(MemoryPool, terrier::execution::sql::MemoryPool)                                     \
   NON_PRIM(Sorter, terrier::execution::sql::Sorter)                                             \
   NON_PRIM(SorterIterator, terrier::execution::sql::SorterIterator)                             \
   NON_PRIM(TableVectorIterator, terrier::execution::sql::TableVectorIterator)                   \
   NON_PRIM(ThreadStateContainer, terrier::execution::sql::ThreadStateContainer)                 \
-  NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)         \
+  NON_PRIM(TupleIdList, terrier::execution::sql::TupleIdList)                                   \
+  NON_PRIM(VectorProjection, terrier::execution::sql::VectorProjection)                         \
+  NON_PRIM(VectorProjectionIterator, terrier::execution::sql::VectorProjectionIterator)         \
   NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
                                                                                                 \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */                        \
   NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                             \
   NON_PRIM(CountStarAggregate, terrier::execution::sql::CountStarAggregate)                     \
-  NON_PRIM(IntegerAvgAggregate, terrier::execution::sql::AvgAggregate)                          \
+  NON_PRIM(AvgAggregate, terrier::execution::sql::AvgAggregate)                                 \
   NON_PRIM(IntegerMaxAggregate, terrier::execution::sql::IntegerMaxAggregate)                   \
   NON_PRIM(IntegerMinAggregate, terrier::execution::sql::IntegerMinAggregate)                   \
   NON_PRIM(IntegerSumAggregate, terrier::execution::sql::IntegerSumAggregate)                   \
-  NON_PRIM(RealAvgAggregate, terrier::execution::sql::AvgAggregate)                             \
   NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
+  NON_PRIM(DateMinAggregate, terrier::execution::sql::DateMinAggregate)                         \
+  NON_PRIM(DateMaxAggregate, terrier::execution::sql::DateMaxAggregate)                         \
+  NON_PRIM(StringMinAggregate, terrier::execution::sql::StringMinAggregate)                     \
+  NON_PRIM(StringMaxAggregate, terrier::execution::sql::StringMaxAggregate)                     \
                                                                                                 \
   /* SQL Table operations */                                                                    \
   NON_PRIM(ProjectedRow, terrier::storage::ProjectedRow)                                        \
@@ -93,7 +99,7 @@ class Context;
   SQL(Boolean, terrier::execution::sql::BoolVal)                                                \
   SQL(Integer, terrier::execution::sql::Integer)                                                \
   SQL(Real, terrier::execution::sql::Real)                                                      \
-  SQL(Decimal, terrier::execution::sql::Decimal)                                                \
+  SQL(Decimal, terrier::execution::sql::DecimalVal)                                             \
   SQL(StringVal, terrier::execution::sql::StringVal)                                            \
   SQL(Date, terrier::execution::sql::DateVal)                                                   \
   SQL(Timestamp, terrier::execution::sql::TimestampVal)
@@ -134,22 +140,22 @@ class Type : public util::RegionObject {
   };
 
   /**
-   * @return the context this type was allocated in
+   * @return The context this type was allocated in.
    */
   Context *GetContext() const { return ctx_; }
 
   /**
-   * @return the size of this type in bytes
+   * @return The size of this type, in bytes.
    */
-  uint32_t Size() const { return size_; }
+  uint32_t GetSize() const { return size_; }
 
   /**
-   * @return the alignment of this type in bytes
+   * @return The alignment of this type, in bytes.
    */
-  uint32_t Alignment() const { return align_; }
+  uint32_t GetAlignment() const { return align_; }
 
   /**
-   * @return the unique type ID of this type (e.g., int16, Array, Struct etc.)
+   * @return The unique type ID of this type (e.g., int16, Array, Struct etc.).
    */
   TypeId GetTypeId() const { return type_id_; }
 
@@ -225,7 +231,7 @@ class Type : public util::RegionObject {
     return llvm::dyn_cast<T>(this);
   }
 
-  /*
+  /**
    * Type checks
    */
 #define F(TypeClass) \
@@ -234,73 +240,68 @@ class Type : public util::RegionObject {
 #undef F
 
   /**
-   * Checks whether this is an arithmetic type
-   * @return true iff this is an arithmetic type.
+   * @return True if this type is arithmetic. Arithmetic types are 8-bit, 16-bit, 32-bit, or 64-bit
+   *         signed and unsigned integer types, or 32- or 64-bit floating point types.
    */
   bool IsArithmetic() const;
 
   /**
-   * Checks whether this is of the given builtin kind
-   * @param kind The kind to check
-   * @return true iff this is of the given kind.
-   */
-  bool IsSpecificBuiltin(uint16_t kind) const;
-
-  /**
-   * Checks whether this is a nil type
-   * @return true iff this is a nil type.
-   */
-  bool IsNilType() const;
-
-  /**
-   * Checks whether this is a bool type
-   * @return true iff this is a bool type.
-   */
-  bool IsBoolType() const;
-
-  /**
-   * Checks whether this is an integer type
-   * @return true iff this is an integer type.
+   * @return True if this is a 8-bit, 16-bit, 32-bit, or 64-bit signed or unsigned TPL integer type.
    */
   bool IsIntegerType() const;
 
   /**
-   * Checks whether this is a float type
-   * @return true iff this is a float type.
+   * @return True if this is a 32-bit or 64-bit floating point type; false otherwise.
    */
   bool IsFloatType() const;
 
   /**
-   * Checks whether this is a sql value type
-   * @return true iff this is a sql value type.
+   * @return True if this type is a specific builtin; false otherwise.
+   */
+  bool IsSpecificBuiltin(uint16_t kind) const;
+
+  /**
+   * @return True if this is a TPL nil; false otherwise.
+   */
+  bool IsNilType() const;
+
+  /**
+   * @return True if this is a TPL boolean type; false otherwise.
+   */
+  bool IsBoolType() const;
+
+  /**
+   * @return True if this is a builtin SQL value type; false otherwise.
    */
   bool IsSqlValueType() const;
 
   /**
-   * Checks whether this is a sql aggregator type
-   * @return true iff this is a sql aggregator type.
+   * @return True if this is a builtin SQL boolean type; false otherwise.
+   */
+  bool IsSqlBooleanType() const;
+
+  /**
+   * @return True if this is a builtin SQL aggregate type; false otherwise.
    */
   bool IsSqlAggregatorType() const;
 
   /**
-   * @return a type that is a pointer to the current type
+   * @return A new type that is a pointer to the current type.
    */
   PointerType *PointerTo();
 
   /**
-   * @return If this is a pointer type, return the type it points to, returning null otherwise.
+   * @return If this is a pointer type, the type of the element pointed to. Returns null otherwise.
    */
   Type *GetPointeeType() const;
 
   /**
-   * @return a string representation of the given type
+   * @return A string representation of this type.
    */
   std::string ToString() const { return ToString(this); }
 
   /**
-   * Get a string representation of the input type
-   * @param type type to represent
-   * @return a string representation of the fiven type
+   * @return A string representation of the input type.
    */
   static std::string ToString(const Type *type);
 
@@ -327,7 +328,7 @@ class Type : public util::RegionObject {
 };
 
 /**
- * A builtin type (int32, float32, Integer, JoinHashTable etc.)
+ * Builtin types (int32, float32, Integer, JoinHashTable etc.)
  */
 class BuiltinType : public Type {
  public:
@@ -339,10 +340,9 @@ class BuiltinType : public Type {
 #undef F
 
   /**
-   * Get the name of the builtin as it appears in TPL code
-   * @return name of the builtin
+   * @return The name of the builtin as it appears in TPL code.
    */
-  const char *TplName() const { return tpl_names[static_cast<uint16_t>(kind_)]; }
+  const char *GetTplName() const { return tpl_names[static_cast<uint16_t>(kind_)]; }
 
   /**
    * Get the name of the C++ type that backs this builtin. For primitive
@@ -351,47 +351,46 @@ class BuiltinType : public Type {
    * along with the namespace).
    * @return the C++ type name
    */
-  const char *CppName() const { return cpp_names[static_cast<uint16_t>(kind_)]; }
+  const char *GetCppName() const { return cpp_names[static_cast<uint16_t>(kind_)]; }
 
   /**
-   * Get the size of this builtin in bytes
-   * @return size of the builtin type
+   * @return The size of this type, in bytes.
    */
-  uint64_t Size() const { return SIZES[static_cast<uint16_t>(kind_)]; }
+  uint64_t GetSize() const { return SIZES[static_cast<uint16_t>(kind_)]; }
 
   /**
-   * Get the required alignment of this builtin in bytes
-   * @return alignment of this builtin type
+   * @return The required alignment of this type, in bytes.
    */
-  uint64_t Alignment() const { return ALIGNMENTS[static_cast<uint16_t>(kind_)]; }
+  uint64_t GetAlignment() const { return ALIGNMENTS[static_cast<uint16_t>(kind_)]; }
 
   /**
-   * @return Is this builtin a primitive?
+   * @return True if this type is a C/C++ primitive; false otherwise.
    */
   bool IsPrimitive() const { return PRIMITIVE_FLAGS[static_cast<uint16_t>(kind_)]; }
 
   /**
-   * @return Is this builtin a primitive integer?
+   * @return True if this type is a C/C++ primitive integer; false otherwise.
    */
-  bool IsInteger() const { return Kind::Int8 <= GetKind() && GetKind() <= Kind::Uint128; }
+  bool IsIntegral() const { return Kind::Int8 <= GetKind() && GetKind() <= Kind::Uint128; }
 
   /**
-   * @return Is this builtin a primitive floating point number?
+   * @return True if this type is a C/C++ primitive floating point number; false otherwise.
    */
   bool IsFloatingPoint() const { return FLOATING_POINT_FLAGS[static_cast<uint16_t>(kind_)]; }
 
   /**
-   * Is this type a SQL value type?
+   * @return True if this type is a SQL value type.
    */
   bool IsSqlValue() const { return Kind::Boolean <= GetKind() && GetKind() <= Kind::Timestamp; }
 
   /**
-   * Is this type a SQL aggregator type? IntegerSumAggregate, CountAggregate ...
+   * @return True if this type is a SQL aggregator type (i.e., IntegerSumAggregate,
+   *         CountAggregate, etc.); false otherwise.
    */
-  bool IsSqlAggregatorType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealSumAggregate; }
+  bool IsSqlAggregateType() const { return Kind::CountAggregate <= GetKind() && GetKind() <= Kind::RealSumAggregate; }
 
   /**
-   * @return the kind of this builtin
+   * @return The kind of this builtin.
    */
   Kind GetKind() const { return kind_; }
 
@@ -412,7 +411,6 @@ class BuiltinType : public Type {
 
  private:
   friend class Context;
-  // Private constructor
   BuiltinType(Context *ctx, uint32_t size, uint32_t alignment, Kind kind)
       : Type(ctx, size, alignment, TypeId::BuiltinType), kind_(kind) {}
 
@@ -430,7 +428,7 @@ class BuiltinType : public Type {
 };
 
 /**
- * String type
+ * String type.
  */
 class StringType : public Type {
  public:
@@ -449,19 +447,18 @@ class StringType : public Type {
 
  private:
   friend class Context;
-  // Private constructor
   explicit StringType(Context *ctx) : Type(ctx, sizeof(int8_t *), alignof(int8_t *), TypeId::StringType) {}
 };
 
 /**
- * Pointer type
+ * Pointer type.
  */
 class PointerType : public Type {
  public:
   /**
    * @return base type
    */
-  Type *Base() const { return base_; }
+  Type *GetBase() const { return base_; }
 
   /**
    * Static Constructor
@@ -477,7 +474,6 @@ class PointerType : public Type {
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::PointerType; }  // NOLINT
 
  private:
-  // Private constructor
   explicit PointerType(Type *base)
       : Type(base->GetContext(), sizeof(int8_t *), alignof(int8_t *), TypeId::PointerType), base_(base) {}
 
@@ -486,35 +482,37 @@ class PointerType : public Type {
 };
 
 /**
- * Array type
+ * Array type.
  */
 class ArrayType : public Type {
  public:
   /**
-   * @return length of the array
+   * @return The length of the array, if known at compile-time. If the length of the array is not
+   *         known at compile-time, returns 0.
    */
-  uint64_t Length() const { return length_; }
+  uint64_t GetLength() const { return length_; }
 
   /**
-   * @return element type
+   * @return The type of the element this array stores.
    */
-  Type *ElementType() const { return elem_type_; }
+  Type *GetElementType() const { return elem_type_; }
 
   /**
-   * @return whether the length is known
+   * @return True if the array has a known compile-time length; false otherwise.
    */
   bool HasKnownLength() const { return length_ != 0; }
 
   /**
-   * @return whether the length is unknown
+   * @return True if the array has an unknown compile-time length; false otherwise.
    */
   bool HasUnknownLength() const { return !HasKnownLength(); }
 
   /**
-   * Construction
-   * @param length of the array
-   * @param elem_type element type
-   * @return the array type
+   * Create an array type with the given length storing elements of type @em type. If the length is
+   * not known, a length of 0 should be used.
+   * @param length The length of the array.
+   * @param elem_type The types of the array elements.
+   * @return The array type.
    */
   static ArrayType *Get(uint64_t length, Type *elem_type);
 
@@ -524,11 +522,10 @@ class ArrayType : public Type {
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::ArrayType; }  // NOLINT
 
  private:
-  // Private constructor
   explicit ArrayType(uint64_t length, Type *elem_type)
       : Type(elem_type->GetContext(),
-             (length == 0 ? sizeof(uint8_t *) : elem_type->Size() * static_cast<uint32_t>(length)),
-             (length == 0 ? alignof(uint8_t *) : elem_type->Alignment()), TypeId::ArrayType),
+             (length == 0 ? sizeof(uint8_t *) : elem_type->GetSize() * static_cast<uint32_t>(length)),
+             (length == 0 ? alignof(uint8_t *) : elem_type->GetAlignment()), TypeId::ArrayType),
         length_(length),
         elem_type_(elem_type) {}
 
@@ -543,12 +540,12 @@ class ArrayType : public Type {
  */
 struct Field {
   /**
-   * Name of the field
+   * Name of the field.
    */
   Identifier name_;
 
   /**
-   * Type of the field
+   * Type of the field.
    */
   Type *type_;
 
@@ -567,30 +564,30 @@ struct Field {
 };
 
 /**
- * Function type
+ * Function type.
  */
 class FunctionType : public Type {
  public:
   /**
-   * @return list of parameters
+   * @return A constant reference to the list of parameters to a function.
    */
-  const util::RegionVector<Field> &Params() const { return params_; }
+  const util::RegionVector<Field> &GetParams() const { return params_; }
 
   /**
-   * @return numner of parameters
+   * @return The number of parameters to the function.
    */
-  uint32_t NumParams() const { return static_cast<uint32_t>(Params().size()); }
+  uint32_t GetNumParams() const { return static_cast<uint32_t>(GetParams().size()); }
 
   /**
-   * @return return type of the function
+   * @return The return type of the function.
    */
-  Type *ReturnType() const { return ret_; }
+  Type *GetReturnType() const { return ret_; }
 
   /**
-   * Static Constructor
-   * @param params list of parameters
-   * @param ret return type
-   * @return the function type
+   * Create a function with parameters @em params and returning types of type @em ret.
+   * @param params The parameters to the function.
+   * @param ret The type of the object the function returns.
+   * @return The function type.
    */
   static FunctionType *Get(util::RegionVector<Field> &&params, Type *ret);
 
@@ -601,7 +598,6 @@ class FunctionType : public Type {
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::FunctionType; }  // NOLINT
 
  private:
-  // Private constructor
   explicit FunctionType(util::RegionVector<Field> &&params, Type *ret);
 
  private:
@@ -610,25 +606,25 @@ class FunctionType : public Type {
 };
 
 /**
- * Hash-map type
+ * Hash-map type.
  */
 class MapType : public Type {
  public:
   /**
-   * @return type of the keys
+   * @return The types of the keys to the map.
    */
-  Type *KeyType() const { return key_type_; }
+  Type *GetKeyType() const { return key_type_; }
 
   /**
-   * @return type of values
+   * @return The types of the value in the map.
    */
-  Type *ValueType() const { return val_type_; }
+  Type *GetValueType() const { return val_type_; }
 
   /**
-   * Static Constructor
-   * @param key_type type of the keys
-   * @param value_type type of the values
-   * @return constructed map type
+   * Create a map type storing keys of type @em key_type and values of type @em value_type.
+   * @param key_type The types of the key.
+   * @param value_type The types of the value.
+   * @return The map type.
    */
   static MapType *Get(Type *key_type, Type *value_type);
 
@@ -639,7 +635,6 @@ class MapType : public Type {
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::MapType; }  // NOLINT
 
  private:
-  // Private Constructor
   MapType(Type *key_type, Type *val_type);
 
  private:
@@ -648,21 +643,22 @@ class MapType : public Type {
 };
 
 /**
- * Struct type
+ * Struct type.
  */
 class StructType : public Type {
  public:
   /**
-   * @return list of fields
+   * @return A const-reference to the fields in the struct.
    */
-  const util::RegionVector<Field> &Fields() const { return fields_; }
+  const util::RegionVector<Field> &GetFields() const { return fields_; }
 
   /**
    * @param name field to lookup
-   * @return type of the field
+   * @return The type of the field in the structure whose name is @em name. If no such field exists,
+   *         returns null.
    */
   Type *LookupFieldByName(Identifier name) const {
-    for (const auto &field : Fields()) {
+    for (const auto &field : GetFields()) {
       if (field.name_ == name) {
         return field.type_;
       }
@@ -672,7 +668,9 @@ class StructType : public Type {
 
   /**
    * @param name field of to lookup
-   * @return offset of the field
+   * @return The offset of the field in the structure with name @em name. This accounts for all
+   *         required padding by all structur members on the machine. If no field exists with the
+   *         given name, returns null.
    */
   uint32_t GetOffsetOfFieldByName(Identifier name) const {
     for (uint32_t i = 0; i < fields_.size(); i++) {
@@ -684,24 +682,25 @@ class StructType : public Type {
   }
 
   /**
-   * @param other struct to compare to
-   * @return whether this and other are identical
+   * @return True if the layout of the provided structure @em other is equivalent to this struct.
    */
-  bool IsLayoutIdentical(const StructType &other) const { return (this == &other || Fields() == other.Fields()); }
+  bool IsLayoutIdentical(const StructType &other) const { return (this == &other || GetFields() == other.GetFields()); }
 
   /**
-   * Note: fields cannot be empty!
-   * Static constructor
-   * @param ctx ast context
-   * @param fields list of types
-   * @return constructor type
+   * Create a structure with the given fields.
+   * @param ctx The context to use.
+   * @param fields The non-empty fields of the structure.
+   * @return The structure type.
    */
   static StructType *Get(Context *ctx, util::RegionVector<Field> &&fields);
 
   /**
-   * Static constructor
-   * @param fields list of types
-   * @return constructor type
+   * Create a structure with the given fields.
+   *
+   * @pre The fields vector cannot be empty!
+   *
+   * @param fields The non-empty fields making up the struct.
+   * @return The structure type.
    */
   static StructType *Get(util::RegionVector<Field> &&fields);
 
@@ -712,7 +711,6 @@ class StructType : public Type {
   static bool classof(const Type *type) { return type->GetTypeId() == TypeId::StructType; }  // NOLINT
 
  private:
-  // Private constructor
   explicit StructType(Context *ctx, uint32_t size, uint32_t alignment, util::RegionVector<Field> &&fields,
                       util::RegionVector<uint32_t> &&field_offsets);
 
@@ -727,7 +725,7 @@ class StructType : public Type {
 
 inline Type *Type::GetPointeeType() const {
   if (auto *ptr_type = SafeAs<PointerType>()) {
-    return ptr_type->Base();
+    return ptr_type->GetBase();
   }
   return nullptr;
 }
@@ -745,7 +743,7 @@ inline bool Type::IsBoolType() const { return IsSpecificBuiltin(BuiltinType::Boo
 
 inline bool Type::IsIntegerType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {
-    return builtin_type->IsInteger();
+    return builtin_type->IsIntegral();
   }
   return false;
 }
@@ -764,9 +762,11 @@ inline bool Type::IsSqlValueType() const {
   return false;
 }
 
+inline bool Type::IsSqlBooleanType() const { return IsSpecificBuiltin(BuiltinType::Boolean); }
+
 inline bool Type::IsSqlAggregatorType() const {
   if (auto *builtin_type = SafeAs<BuiltinType>()) {
-    return builtin_type->IsSqlAggregatorType();
+    return builtin_type->IsSqlAggregateType();
   }
   return false;
 }

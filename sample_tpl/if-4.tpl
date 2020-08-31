@@ -1,13 +1,13 @@
-// Test if statements
+// Expected output: 2
 
 fun main() -> int {
-  var a = 7
-  if (a < 10) {
-    if (a < 5) {
-      return 1
+    var a = 7
+    if (a < 10) {
+        if (a < 5) {
+            return 1
+        }
+    } else {
+        return 3
     }
-  } else {
-    return 3
-  }
-  return 2
+    return 2
 }

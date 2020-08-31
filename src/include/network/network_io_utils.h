@@ -1,18 +1,19 @@
 #pragma once
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "util/portable_endian.h"
 
 namespace terrier::network {
-#define _CAST(type, val) ((type)(val))
 /**
  * A plain old buffer with a movable cursor, the meaning of which is dependent
  * on the use case.
@@ -136,33 +137,51 @@ class ReadBufferView {
   }
 
   /**
-   * Read an integer of specified length off of the read buffer (1, 2,
+   * Read a value of specified length off of the read buffer (1, 2,
    * 4, or 8 bytes). It is assumed that the bytes in the buffer are in network
    * byte ordering and will be converted to the correct host ordering. It is up
    * to the caller to ensure that there are enough bytes available in the read
    * buffer at this point.
    * @tparam T type of value to read off. Has to be size 1, 2, 4, or 8.
-   * @return value of integer switched from network byte order
+   * @return value of numeric switched from network byte order
    */
   template <typename T>
   T ReadValue() {
     // We only want to allow for certain type sizes to be used
     // After the static assert, the compiler should be smart enough to throw
     // away the other cases and only leave the relevant return statement.
-    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for integer");
-    auto val = ReadRawValue<T>();
-    switch (sizeof(T)) {
-      case 1:
-        return val;
-      case 2:
-        return _CAST(T, be16toh(_CAST(uint16_t, val)));
-      case 4:
-        return _CAST(T, be32toh(_CAST(uint32_t, val)));
-      case 8:
-        return _CAST(T, be64toh(_CAST(uint64_t, val)));
-        // Will never be here due to compiler optimization
-      default:
-        throw NETWORK_PROCESS_EXCEPTION("");
+    static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Invalid size for numeric.");
+    if constexpr (std::is_floating_point_v<T>) {
+      switch (sizeof(T)) {
+        case 4: {
+          const auto raw_bytes = be32toh(ReadRawValue<uint32_t>());
+          const auto float_bytes = reinterpret_cast<const T *const>(&raw_bytes);
+          return *float_bytes;
+        }
+        case 8: {
+          const auto raw_bytes = be64toh(ReadRawValue<uint64_t>());
+          const auto double_bytes = reinterpret_cast<const T *const>(&raw_bytes);
+          return *double_bytes;
+        }
+          // Will never be here due to compiler optimization
+        default:
+          throw NETWORK_PROCESS_EXCEPTION("Invalid size for floating point.");
+      }
+    } else {  // NOLINT: false positive on indentation with clang-tidy, fixed in upstream check-clang-tidy
+      const auto val = ReadRawValue<T>();
+      switch (sizeof(T)) {
+        case 1:
+          return val;
+        case 2:
+          return static_cast<T>(be16toh(static_cast<uint16_t>(val)));
+        case 4:
+          return static_cast<T>(be32toh(static_cast<uint32_t>(val)));
+        case 8:
+          return static_cast<T>(be64toh(static_cast<uint64_t>(val)));
+          // Will never be here due to compiler optimization
+        default:
+          throw NETWORK_PROCESS_EXCEPTION("Invalid size for integer.");
+      }
     }
   }
 

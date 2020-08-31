@@ -16,8 +16,11 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "execution/functions/function_context.h"
+#include "nlohmann/json.hpp"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
@@ -347,6 +350,9 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                 postgres::PG_PRO_ALL_COL_OIDS.cend()};
   pg_proc_all_cols_pri_ = procs_->InitializerForProjectedRow(pg_proc_all_oids);
   pg_proc_all_cols_prm_ = procs_->ProjectionMapForOids(pg_proc_all_oids);
+
+  const std::vector<col_oid_t> set_pg_proc_ptr_oids{postgres::PRO_CTX_PTR_COL_OID};
+  pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -671,7 +677,7 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
 
-  auto next_oid = ClassOid(!class_oid + 1);
+  auto next_oid = ClassOid(class_oid.UnderlyingValue() + 1);
   // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = next_oid;
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = 0;
@@ -921,7 +927,7 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
  */
 common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(
     const common::ManagedPointer<transaction::TransactionContext> txn, const table_oid_t table) {
-  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(table));
+  const auto ptr_pair = GetClassPtrKind(txn, table.UnderlyingValue());
   if (ptr_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::SqlTable>(nullptr);
@@ -947,7 +953,7 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
 
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const table_oid_t table) {
-  const auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(table));
+  const auto ptr_pair = GetClassSchemaPtrKind(txn, table.UnderlyingValue());
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
@@ -1219,7 +1225,7 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(
     const common::ManagedPointer<transaction::TransactionContext> txn, index_oid_t index) {
-  const auto ptr_pair = GetClassPtrKind(txn, static_cast<uint32_t>(index));
+  const auto ptr_pair = GetClassPtrKind(txn, index.UnderlyingValue());
   if (ptr_pair.second != postgres::ClassKind::INDEX) {
     // User called GetTable with an OID for an object that doesn't have type REGULAR_TABLE
     return common::ManagedPointer<storage::index::Index>(nullptr);
@@ -1239,7 +1245,7 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
-  auto ptr_pair = GetClassSchemaPtrKind(txn, static_cast<uint32_t>(index));
+  auto ptr_pair = GetClassSchemaPtrKind(txn, index.UnderlyingValue());
   TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
   TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
@@ -1288,7 +1294,7 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   class_tuple_slots.reserve(index_oids.size());
   for (const auto &index_oid : index_oids) {
     // Find the entry using the index
-    *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
+    *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = index_oid.UnderlyingValue();
     classes_oid_index_->ScanKey(*txn, *class_key_pr, &index_scan_results);
     TERRIER_ASSERT(index_scan_results.size() == 1,
                    "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
@@ -1330,6 +1336,7 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   std::vector<storage::SqlTable *> tables;
   std::vector<IndexSchema *> index_schemas;
   std::vector<storage::index::Index *> indexes;
+  std::vector<execution::functions::FunctionContext *> func_contexts;
 
   // pg_class (schemas & objects) [this is the largest projection]
   const std::vector<col_oid_t> pg_class_oids{postgres::RELKIND_COL_OID, postgres::REL_SCHEMA_COL_OID,
@@ -1384,9 +1391,28 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
+  // pg_proc (func_contexts)
+  const std::vector<col_oid_t> pg_proc_contexts{postgres::PRO_CTX_PTR_COL_OID};
+  pci = procs_->InitializerForProjectedColumns(pg_proc_contexts, 100);
+  pc = pci.Initialize(buffer);
+
+  auto ctxts = reinterpret_cast<execution::functions::FunctionContext **>(pc->ColumnStart(0));
+
+  table_iter = procs_->begin();
+  while (table_iter != procs_->end()) {
+    procs_->Scan(txn, &table_iter, pc);
+
+    for (uint i = 0; i < pc->NumTuples(); i++) {
+      if (ctxts[i] == nullptr) {
+        continue;
+      }
+      func_contexts.emplace_back(ctxts[i]);
+    }
+  }
+
   auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
                    table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
-                   expressions{std::move(expressions)}]() {
+                   expressions{std::move(expressions)}, func_contexts{std::move(func_contexts)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) {
@@ -1401,6 +1427,8 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     for (auto schema : index_schemas) delete schema;
 
     for (auto expr : expressions) delete expr;
+
+    for (auto func_ctxt : func_contexts) delete func_ctxt;
   };
 
   // No new transactions can see these object but there may be deferred index
@@ -1638,8 +1666,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   // Insert into oid index
   auto oid_index_delta = types_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   auto oid_index_offset = types_oid_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
-  *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) =
-      static_cast<uint32_t>(type_oid);
+  *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) = type_oid.UnderlyingValue();
   auto result UNUSED_ATTRIBUTE = types_oid_index_->InsertUnique(txn, *oid_index_delta, tuple_slot);
   TERRIER_ASSERT(result, "Insert into type oid index should always succeed");
 
@@ -1648,7 +1675,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   // Populate namespace
   auto name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
   *(reinterpret_cast<uint32_t *>(name_index_delta->AccessForceNotNull(name_index_offset))) =
-      static_cast<uint32_t>(namespace_oid);
+      namespace_oid.UnderlyingValue();
   // Populate type name
   name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(2));
   *(reinterpret_cast<storage::VarlenEntry *>(name_index_delta->AccessForceNotNull(name_index_offset))) = name_varlen;
@@ -1659,7 +1686,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   auto namespace_index_delta = types_namespace_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   auto namespace_index_offset = types_namespace_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
   *(reinterpret_cast<uint32_t *>(namespace_index_delta->AccessForceNotNull(namespace_index_offset))) =
-      static_cast<uint32_t>(namespace_oid);
+      namespace_oid.UnderlyingValue();
   result = types_namespace_index_->Insert(txn, *name_index_delta, tuple_slot);
   TERRIER_ASSERT(result, "Insert into type namespace index should always succeed");
 
@@ -1719,46 +1746,613 @@ void DatabaseCatalog::BootstrapLanguages(const common::ManagedPointer<transactio
 
 void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::TransactionContext> txn) {
   auto dec_type = GetTypeOidForType(type::TypeId::DECIMAL);
+  auto int_type = GetTypeOidForType(type::TypeId::INTEGER);
+
+  // Exp
+  CreateProcedure(txn, postgres::EXP_PRO_OID, "exp", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
   // ATan2
   CreateProcedure(txn, postgres::ATAN2_PRO_OID, "atan2", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
                   dec_type, "", true);
+  // Abs
+  CreateProcedure(txn, postgres::ABS_REAL_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  // Abs
+  CreateProcedure(txn, postgres::ABS_INT_PRO_OID, "abs", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y"}, {int_type}, {int_type}, {}, int_type, "", true);
+
+  // mod
+  CreateProcedure(txn, postgres::MOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
+                  dec_type, "", true);
+
+  // mod
+  CreateProcedure(txn, postgres::INTMOD_PRO_OID, "mod", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {int_type, int_type}, {int_type, int_type}, {},
+                  int_type, "", true);
+
+  // round2
+  CreateProcedure(txn, postgres::ROUND2_PRO_OID, "round", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, int_type}, {dec_type, int_type}, {},
+                  dec_type, "", true);
+
+  // pow
+  CreateProcedure(txn, postgres::POW_PRO_OID, "pow", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"y", "x"}, {dec_type, dec_type}, {dec_type, dec_type}, {},
+                  dec_type, "", true);
+
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                                 \
+  CreateProcedure(txn, pro_oid, str_name, postgres::INTERNAL_LANGUAGE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, \
+                  {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
 
   // ACos
-  CreateProcedure(txn, postgres::ACOS_PRO_OID, "acos", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
 
   // ASin
-  CreateProcedure(txn, postgres::ASIN_PRO_OID, "asin", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("asin", postgres::ASIN_PRO_OID, execution::ast::Builtin::ASin)
 
   // ATan
-  CreateProcedure(txn, postgres::ATAN_PRO_OID, "atan", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"val"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("atan", postgres::ATAN_PRO_OID, execution::ast::Builtin::ATan)
 
   // cos
-  CreateProcedure(txn, postgres::COS_PRO_OID, "cos", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("cos", postgres::COS_PRO_OID, execution::ast::Builtin::Cos)
 
   // sin
-  CreateProcedure(txn, postgres::SIN_PRO_OID, "sin", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
 
   // tan
-  CreateProcedure(txn, postgres::TAN_PRO_OID, "tan", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
+
+  // cosh
+  BOOTSTRAP_TRIG_FN("cosh", postgres::COSH_PRO_OID, execution::ast::Builtin::Cosh)
+
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
+  // tanh
+  BOOTSTRAP_TRIG_FN("tanh", postgres::TANH_PRO_OID, execution::ast::Builtin::Tanh)
 
   // cot
-  CreateProcedure(txn, postgres::COT_PRO_OID, "cot", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"theta"}, {dec_type}, {dec_type}, {}, dec_type, "", true);
+  BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
+
+  // ceil
+  BOOTSTRAP_TRIG_FN("ceil", postgres::CEIL_PRO_OID, execution::ast::Builtin::Ceil)
+
+  // floor
+  BOOTSTRAP_TRIG_FN("floor", postgres::FLOOR_PRO_OID, execution::ast::Builtin::Floor)
+
+  // truncate
+  BOOTSTRAP_TRIG_FN("truncate", postgres::TRUNCATE_PRO_OID, execution::ast::Builtin::Truncate)
+
+  // log10
+  BOOTSTRAP_TRIG_FN("log10", postgres::LOG10_PRO_OID, execution::ast::Builtin::Log10)
+
+  // log2
+  BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
+
+  // sqrt
+  BOOTSTRAP_TRIG_FN("sqrt", postgres::SQRT_PRO_OID, execution::ast::Builtin::Sqrt)
+
+  // cbrt
+  BOOTSTRAP_TRIG_FN("cbrt", postgres::CBRT_PRO_OID, execution::ast::Builtin::Cbrt)
+
+  // round
+  BOOTSTRAP_TRIG_FN("round", postgres::ROUND_PRO_OID, execution::ast::Builtin::Round)
+
+#undef BOOTSTRAP_TRIG_FN
 
   auto str_type = GetTypeOidForType(type::TypeId::VARCHAR);
+  auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
+  auto date_type = GetTypeOidForType(type::TypeId::DATE);
+  auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
+
+  CreateProcedure(
+      txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
+      postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
+      {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
+      {postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN},
+      int_type, "", false);
+
+  CreateProcedure(
+      txn, postgres::NP_RUNNERS_EMIT_REAL_PRO_OID, "nprunnersemitreal", postgres::INTERNAL_LANGUAGE_OID,
+      postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num_tuples", "num_cols", "num_int_cols", "num_real_cols"},
+      {int_type, int_type, int_type, int_type}, {int_type, int_type, int_type, int_type},
+      {postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN, postgres::ProArgModes::IN},
+      real_type, "", false);
+
+  CreateProcedure(txn, postgres::NP_RUNNERS_DUMMY_INT_PRO_OID, "nprunnersdummyint", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, int_type, "", false);
+
+  CreateProcedure(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, "nprunnersdummyreal", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, real_type, "", false);
+
+  // ascii
+  CreateProcedure(txn, postgres::ASCII_PRO_OID, "ascii", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
+
+  // Chr
+  CreateProcedure(txn, postgres::CHR_PRO_OID, "chr", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"num"}, {int_type}, {int_type}, {}, str_type, "", true);
+  // CharLength
+  CreateProcedure(txn, postgres::CHARLENGTH_PRO_OID, "char_length", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
+
   // lower
   CreateProcedure(txn, postgres::LOWER_PRO_OID, "lower", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
 
+  // upper
   CreateProcedure(txn, postgres::UPPER_PRO_OID, "upper", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  // initCap
+  CreateProcedure(txn, postgres::INITCAP_PRO_OID, "initcap", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  // version
+  CreateProcedure(txn, postgres::VERSION_PRO_OID, "version", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {}, {}, {}, {}, str_type, "", false);
+
+  // split part
+  CreateProcedure(txn, postgres::SPLIT_PART_PRO_OID, "split_part", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "delim", "field"}, {str_type, str_type, int_type},
+                  {str_type, str_type, int_type}, {}, str_type, "", true);
+
+  // length
+  CreateProcedure(txn, postgres::LENGTH_PRO_OID, "length", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, int_type, "", true);
+
+  // starts_with
+  CreateProcedure(txn, postgres::STARTSWITH_PRO_OID, "starts_with", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "start"}, {str_type, str_type},
+                  {str_type, str_type}, {}, bool_type, "", true);
+
+  // substr
+  CreateProcedure(txn, postgres::SUBSTR_PRO_OID, "substr", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "pos", "len"}, {str_type, int_type, int_type},
+                  {str_type, int_type, int_type}, {}, str_type, "", true);
+
+  // reverse
+  CreateProcedure(txn, postgres::REVERSE_PRO_OID, "reverse", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+  // left
+  CreateProcedure(txn, postgres::LEFT_PRO_OID, "left", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+  // right
+  CreateProcedure(txn, postgres::RIGHT_PRO_OID, "right", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+  // repeat
+  CreateProcedure(txn, postgres::REPEAT_PRO_OID, "repeat", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "int"}, {str_type, int_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+
+  // trim
+  CreateProcedure(txn, postgres::TRIM_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  // trim
+  CreateProcedure(txn, postgres::TRIM2_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type}, {str_type, str_type},
+                  {}, str_type, "", true);
+
+  // date_part
+  CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"date, date_part_type"}, {date_type, int_type},
+                  {date_type, int_type}, {}, int_type, "", false);
+
+  // position
+  CreateProcedure(txn, postgres::POSITION_PRO_OID, "position", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str1", "str2"}, {str_type, str_type},
+                  {str_type, str_type}, {}, int_type, "", true);
+
+  // lpad
+  CreateProcedure(txn, postgres::LPAD_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
+                  {str_type, int_type, str_type}, {}, str_type, "", true);
+
+  // lpad
+  CreateProcedure(txn, postgres::LPAD2_PRO_OID, "lpad", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+
+  // ltrim2arg
+  CreateProcedure(txn, postgres::LTRIM2ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
+                  {str_type, str_type}, {}, str_type, "", true);
+
+  // ltrim1arg
+  CreateProcedure(txn, postgres::LTRIM1ARG_PRO_OID, "ltrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  // rpad
+  CreateProcedure(txn, postgres::RPAD_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len", "pad"}, {str_type, dec_type, str_type},
+                  {str_type, int_type, str_type}, {}, str_type, "", true);
+
+  // rpad
+  CreateProcedure(txn, postgres::RPAD2_PRO_OID, "rpad", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "len"}, {str_type, dec_type}, {str_type, int_type},
+                  {}, str_type, "", true);
+
+  // rtrim2arg
+  CreateProcedure(txn, postgres::RTRIM2ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "chars"}, {str_type, str_type},
+                  {str_type, str_type}, {}, str_type, "", true);
+
+  // rtrim1arg
+  CreateProcedure(txn, postgres::RTRIM1ARG_PRO_OID, "rtrim", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {str_type}, {str_type}, {}, str_type, "", true);
+
+  BootstrapProcContexts(txn);
+}
+
+void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
+  auto func_context = new execution::functions::FunctionContext(
+      "atan2", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::ATan2);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+  SetProcCtxPtr(txn, postgres::ATAN2_PRO_OID, func_context);
+
+  func_context = new execution::functions::FunctionContext("abs", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                           execution::ast::Builtin::Abs);
+  SetProcCtxPtr(txn, postgres::ABS_REAL_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("abs", type::TypeId::INTEGER, {type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Abs);
+  SetProcCtxPtr(txn, postgres::ABS_INT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+#define BOOTSTRAP_TRIG_FN(str_name, pro_oid, builtin)                                                               \
+  func_context =                                                                                                    \
+      new execution::functions::FunctionContext(str_name, type::TypeId::DECIMAL, {type::TypeId::DECIMAL}, builtin); \
+  SetProcCtxPtr(txn, pro_oid, func_context);                                                                        \
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // ACos
+  BOOTSTRAP_TRIG_FN("acos", postgres::ACOS_PRO_OID, execution::ast::Builtin::ACos)
+
+  // ASin
+  BOOTSTRAP_TRIG_FN("asin", postgres::ASIN_PRO_OID, execution::ast::Builtin::ASin)
+
+  // ATan
+  BOOTSTRAP_TRIG_FN("atan", postgres::ATAN_PRO_OID, execution::ast::Builtin::ATan)
+
+  // cos
+  BOOTSTRAP_TRIG_FN("cos", postgres::COS_PRO_OID, execution::ast::Builtin::Cos)
+
+  // sin
+  BOOTSTRAP_TRIG_FN("sin", postgres::SIN_PRO_OID, execution::ast::Builtin::Sin)
+
+  // tan
+  BOOTSTRAP_TRIG_FN("tan", postgres::TAN_PRO_OID, execution::ast::Builtin::Tan)
+
+  // cosh
+  BOOTSTRAP_TRIG_FN("cosh", postgres::COSH_PRO_OID, execution::ast::Builtin::Cosh)
+
+  // sinh
+  BOOTSTRAP_TRIG_FN("sinh", postgres::SINH_PRO_OID, execution::ast::Builtin::Sinh)
+
+  // tanh
+  BOOTSTRAP_TRIG_FN("tanh", postgres::TANH_PRO_OID, execution::ast::Builtin::Tanh)
+
+  // cot
+  BOOTSTRAP_TRIG_FN("cot", postgres::COT_PRO_OID, execution::ast::Builtin::Cot)
+
+  // ceil
+  BOOTSTRAP_TRIG_FN("ceil", postgres::CEIL_PRO_OID, execution::ast::Builtin::Ceil)
+
+  // floor
+  BOOTSTRAP_TRIG_FN("floor", postgres::FLOOR_PRO_OID, execution::ast::Builtin::Floor)
+
+  // truncate
+  BOOTSTRAP_TRIG_FN("truncate", postgres::TRUNCATE_PRO_OID, execution::ast::Builtin::Truncate)
+
+  // log10
+  BOOTSTRAP_TRIG_FN("log10", postgres::LOG10_PRO_OID, execution::ast::Builtin::Log10)
+
+  // log2
+  BOOTSTRAP_TRIG_FN("log2", postgres::LOG2_PRO_OID, execution::ast::Builtin::Log2)
+
+  // sqrt
+  BOOTSTRAP_TRIG_FN("sqrt", postgres::SQRT_PRO_OID, execution::ast::Builtin::Sqrt)
+
+  // cbrt
+  BOOTSTRAP_TRIG_FN("cbrt", postgres::CBRT_PRO_OID, execution::ast::Builtin::Cbrt)
+
+  // round
+  BOOTSTRAP_TRIG_FN("round", postgres::ROUND_PRO_OID, execution::ast::Builtin::Round)
+
+#undef BOOTSTRAP_TRIG_FN
+
+  // round2
+  func_context = new execution::functions::FunctionContext(
+      "round", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::INTEGER}, execution::ast::Builtin::Round2);
+  SetProcCtxPtr(txn, postgres::ROUND2_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("exp", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                           execution::ast::Builtin::Exp, true);
+  SetProcCtxPtr(txn, postgres::EXP_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // ascii
+  func_context = new execution::functions::FunctionContext("ascii", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::ASCII, true);
+  SetProcCtxPtr(txn, postgres::ASCII_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // lower
+  func_context = new execution::functions::FunctionContext("lower", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Lower, true);
+  SetProcCtxPtr(txn, postgres::LOWER_PRO_OID, func_context);
+
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // initcap
+  func_context = new execution::functions::FunctionContext("initcap", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::InitCap, true);
+  SetProcCtxPtr(txn, postgres::INITCAP_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // pow
+  func_context = new execution::functions::FunctionContext("pow", type::TypeId::DECIMAL, {type::TypeId::DECIMAL},
+                                                           execution::ast::Builtin::Pow);
+  SetProcCtxPtr(txn, postgres::POW_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // split part
+  func_context = new execution::functions::FunctionContext(
+      "split_part", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::VARCHAR, type::TypeId::INTEGER},
+      execution::ast::Builtin::SplitPart, true);
+  SetProcCtxPtr(txn, postgres::SPLIT_PART_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // chr
+  func_context = new execution::functions::FunctionContext("chr", type::TypeId::VARCHAR, {type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Chr, true);
+  SetProcCtxPtr(txn, postgres::CHR_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // char_length
+  func_context = new execution::functions::FunctionContext(
+      "char_length", type::TypeId::INTEGER, {type::TypeId::VARCHAR}, execution::ast::Builtin::CharLength, true);
+  SetProcCtxPtr(txn, postgres::CHARLENGTH_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // position
+  func_context = new execution::functions::FunctionContext("position", type::TypeId::INTEGER,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Position, true);
+  SetProcCtxPtr(txn, postgres::POSITION_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // length
+  func_context = new execution::functions::FunctionContext("length", type::TypeId::INTEGER, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Length, true);
+  SetProcCtxPtr(txn, postgres::LENGTH_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  // upper
+  func_context = new execution::functions::FunctionContext("upper", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Upper, true);
+  SetProcCtxPtr(txn, postgres::UPPER_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("version", type::TypeId::VARCHAR, {},
+                                                           execution::ast::Builtin::Version, true);
+  SetProcCtxPtr(txn, postgres::VERSION_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("starts_with", type::TypeId::BOOLEAN,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::StartsWith, true);
+  SetProcCtxPtr(txn, postgres::STARTSWITH_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "substr", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::INTEGER},
+      execution::ast::Builtin::Substring, true);
+  SetProcCtxPtr(txn, postgres::SUBSTR_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("reverse", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Reverse, true);
+  SetProcCtxPtr(txn, postgres::REVERSE_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("left", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Left, true);
+  SetProcCtxPtr(txn, postgres::LEFT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("right", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Right, true);
+  SetProcCtxPtr(txn, postgres::RIGHT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("repeat", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Repeat, true);
+  SetProcCtxPtr(txn, postgres::REPEAT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("btrim", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Trim, true);
+  SetProcCtxPtr(txn, postgres::TRIM_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("btrim", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Trim2, true);
+  SetProcCtxPtr(txn, postgres::TRIM2_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "lpad", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
+      execution::ast::Builtin::Lpad, true);
+  SetProcCtxPtr(txn, postgres::LPAD_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("lpad", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Lpad, true);
+  SetProcCtxPtr(txn, postgres::LPAD2_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("ltrim", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Ltrim, true);
+  SetProcCtxPtr(txn, postgres::LTRIM2ARG_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("ltrim", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Ltrim, true);
+  SetProcCtxPtr(txn, postgres::LTRIM1ARG_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "rpad", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
+      execution::ast::Builtin::Rpad, true);
+  SetProcCtxPtr(txn, postgres::RPAD_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("rpad", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::Rpad, true);
+  SetProcCtxPtr(txn, postgres::RPAD2_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("rtrim", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Rtrim, true);
+  SetProcCtxPtr(txn, postgres::RTRIM2ARG_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("rtrim", type::TypeId::VARCHAR, {type::TypeId::VARCHAR},
+                                                           execution::ast::Builtin::Rtrim, true);
+  SetProcCtxPtr(txn, postgres::RTRIM1ARG_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "mod", type::TypeId::DECIMAL, {type::TypeId::DECIMAL, type::TypeId::DECIMAL}, execution::ast::Builtin::Mod);
+  SetProcCtxPtr(txn, postgres::MOD_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "mod", type::TypeId::INTEGER, {type::TypeId::INTEGER, type::TypeId::INTEGER}, execution::ast::Builtin::Mod);
+  SetProcCtxPtr(txn, postgres::INTMOD_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "NpRunnersEmitInt", type::TypeId::INTEGER,
+      {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
+      execution::ast::Builtin::NpRunnersEmitInt, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext(
+      "NpRunnersEmitReal", type::TypeId::DECIMAL,
+      {type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER, type::TypeId::INTEGER},
+      execution::ast::Builtin::NpRunnersEmitReal, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_EMIT_REAL_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("NpRunnersDummyInt", type::TypeId::INTEGER, {},
+                                                           execution::ast::Builtin::NpRunnersDummyInt, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_INT_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("NpRunnersDummyReal", type::TypeId::DECIMAL, {},
+                                                           execution::ast::Builtin::NpRunnersDummyReal, true);
+  SetProcCtxPtr(txn, postgres::NP_RUNNERS_DUMMY_REAL_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("date_part", type::TypeId::INTEGER,
+                                                           {type::TypeId::DATE, type::TypeId::INTEGER},
+                                                           execution::ast::Builtin::DatePart);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+  SetProcCtxPtr(txn, postgres::DATE_PART_PRO_OID, func_context);
+}
+
+bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                                    const execution::functions::FunctionContext *func_context) {
+  // Do not need to store the projection map because it is only a single column
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+
+  auto *const index_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  auto *const key_pr = oid_pri.InitializeRow(index_buffer);
+
+  // Find the entry using the index
+  *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
+  std::vector<storage::TupleSlot> index_results;
+  procs_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
+      "code path for this to be called on an oid that isn't present.");
+
+  delete[] index_buffer;
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::PRO_TABLE_OID, pg_proc_ptr_pri_);
+  *reinterpret_cast<const execution::functions::FunctionContext **>(update_redo->Delta()->AccessForceNotNull(0)) =
+      func_context;
+  update_redo->SetTupleSlot(index_results[0]);
+  return procs_->Update(txn, update_redo);
+}
+
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetProcCtxPtr(
+    common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid) {
+  // Do not need to store the projection map because it is only a single column
+  auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
+
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_ptr_pri_.ProjectedRowSize());
+  auto *const key_pr = oid_pri.InitializeRow(buffer);
+
+  // Find the entry using the index
+  *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
+  std::vector<storage::TupleSlot> index_results;
+  procs_oid_index_->ScanKey(*txn, *key_pr, &index_results);
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
+      "code path for this to be called on an oid that isn't present.");
+
+  auto *select_pr = pg_proc_ptr_pri_.InitializeRow(buffer);
+  const auto result UNUSED_ATTRIBUTE = procs_->Select(txn, index_results[0], select_pr);
+  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+
+  auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
+
+  execution::functions::FunctionContext *ptr;
+  if (ptr_ptr == nullptr) {
+    ptr = nullptr;
+  } else {
+    ptr = *reinterpret_cast<execution::functions::FunctionContext **>(ptr_ptr);
+  }
+
+  delete[] buffer;
+  return common::ManagedPointer<execution::functions::FunctionContext>(ptr);
+}
+
+common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::GetFunctionContext(
+    const common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid) {
+  auto func_ctx = GetProcCtxPtr(txn, proc_oid);
+  if (func_ctx == nullptr) {
+    if (IS_BUILTIN_PROC(proc_oid)) {
+      BootstrapProcContexts(txn);
+    } else {
+      UNREACHABLE("We don't support dynamically added udf's yet");
+    }
+    func_ctx = GetProcCtxPtr(txn, proc_oid);
+  }
+  return func_ctx;
 }
 
 bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -2275,6 +2869,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
       0;
 
   redo->Delta()->SetNull(pg_proc_all_cols_prm_[postgres::PROCONFIG_COL_OID]);
+  redo->Delta()->SetNull(pg_proc_all_cols_prm_[postgres::PRO_CTX_PTR_COL_OID]);
 
   const auto tuple_slot = procs_->Insert(txn, redo);
 
@@ -2348,6 +2943,8 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   auto all_args_types_varlen = *reinterpret_cast<storage::VarlenEntry *>(
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
 
+  auto ctx_ptr = table_pr->AccessWithNullCheck(pg_proc_all_cols_prm_[postgres::PRO_CTX_PTR_COL_OID]);
+
   auto name_pr = name_pri.InitializeRow(buffer);
 
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
@@ -2359,14 +2956,19 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
   delete[] buffer;
+
+  if (ctx_ptr != nullptr) {
+    txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction(
+          [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete ctx_ptr; }); });
+    });
+  }
   return true;
 }
 
 proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::TransactionContext> txn,
                                        namespace_oid_t procns, const std::string &procname,
                                        const std::vector<type_oid_t> &arg_types) {
-  if (!TryLock(txn)) return INVALID_PROC_OID;
-
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   byte *const buffer = common::AllocationUtil::AllocateAligned(pg_proc_all_cols_pri_.ProjectedRowSize());
 

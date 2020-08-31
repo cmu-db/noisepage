@@ -1,21 +1,8 @@
 #pragma once
 
-#include <unistd.h>
-
-#include <bitset>
-#include <climits>
-#include <cstdint>
-#include <functional>
-#include <limits>
-#include <map>
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
-#include "common/macros.h"
-#include "type/type_id.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::trafficcop {
 class TrafficCop;
@@ -27,10 +14,7 @@ class ReadBuffer;
 
 // This is to be stashed in a ConnectionContext as a unique identifier. This is really just the socket, but we don't
 // want anyone using it to directly access the socket downstream
-STRONG_TYPEDEF(connection_id_t, uint16_t);
-
-// For threads
-#define CONNECTION_THREAD_COUNT 4
+STRONG_TYPEDEF_HEADER(connection_id_t, uint16_t);
 
 // Number of seconds to timeout on a client read
 #define READ_TIMEOUT (20 * 60)
@@ -87,10 +71,6 @@ enum class NetworkMessageType : unsigned char {
   PG_PARAMETER_DESCRIPTION = 't',
   PG_ROW_DESCRIPTION = 'T',
   PG_DATA_ROW = 'D',
-  // Errors  // TODO(Matt): These should be their own enums. They're field types for ErrorResponse and NoticeResponse,
-  // not message types
-  PG_HUMAN_READABLE_ERROR = 'M',
-  PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
   PG_EXECUTE_COMMAND = 'E',
   PG_SYNC_COMMAND = 'S',
@@ -135,6 +115,8 @@ enum class QueryType : uint8_t {
   QUERY_DROP_TRIGGER,
   QUERY_DROP_SCHEMA,
   QUERY_DROP_VIEW,
+  // Misc (non-transactional)
+  QUERY_SET,
   // end of what we support in the traffic cop right now
   QUERY_RENAME,
   QUERY_ALTER,
@@ -145,11 +127,10 @@ enum class QueryType : uint8_t {
   // Misc
   QUERY_COPY,
   QUERY_ANALYZE,
-  QUERY_SET,
   QUERY_SHOW,
   QUERY_OTHER,
-  QUERY_INVALID,
-  QUERY_EXPLAIN
+  QUERY_EXPLAIN,
+  QUERY_INVALID
 };
 
 enum class NetworkTransactionStateType : unsigned char {
@@ -159,6 +140,7 @@ enum class NetworkTransactionStateType : unsigned char {
   FAIL = 'E',   // In a failed transaction
 };
 
-enum class FieldFormat : uint8_t { text = 0, binary = 1 };
+// postgres uses 0 for text, 1 for binary, so this is fine
+enum class FieldFormat : bool { text = false, binary = true };
 
 }  // namespace terrier::network

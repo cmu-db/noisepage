@@ -1,4 +1,3 @@
-#include <memory>
 #include <vector>
 
 #include "benchmark/benchmark.h"

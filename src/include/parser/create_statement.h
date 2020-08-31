@@ -4,8 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "common/exception.h"
-#include "common/sql_node_visitor.h"
+
+#include "binder/sql_node_visitor.h"
+#include "common/error/exception.h"
 #include "loggers/parser_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
@@ -462,7 +463,7 @@ class CreateStatement : public TableRefStatement {
 
   ~CreateStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return the type of create statement */
   CreateType GetCreateType() { return create_type_; }

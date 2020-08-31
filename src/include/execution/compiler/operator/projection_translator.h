@@ -1,73 +1,49 @@
 #pragma once
 
-#include <utility>
-#include <vector>
 #include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "planner/plannodes/projection_plan_node.h"
+#include "execution/compiler/pipeline_driver.h"
+
+namespace terrier::planner {
+class ProjectionPlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 
 /**
- * Projection Translator
- * The translator only implements GetOutput and GetChildOutput.
+ * Translator for projections.
  */
-class ProjectionTranslator : public OperatorTranslator {
+class ProjectionTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a translator for the given plan.
+   * @param plan The plan.
+   * @param compilation_context The context this translator belongs to.
+   * @param pipeline The pipeline this translator is participating in.
    */
-  ProjectionTranslator(const terrier::planner::ProjectionPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen), op_(op) {}
+  ProjectionTranslator(const planner::ProjectionPlanNode &plan, CompilationContext *compilation_context,
+                       Pipeline *pipeline);
 
-  // Pass through
-  void Produce(FunctionBuilder *builder) override { child_translator_->Produce(builder); }
+  /**
+   * Push the context through this operator to the next in the pipeline.
+   * @param context The context.
+   * @param function The pipeline generating function.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  // Pass through
-  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
-
-  // Pass through
-  void Consume(FunctionBuilder *builder) override { parent_translator_->Consume(builder); }
-
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
-
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
-
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
-
-  ast::Expr *GetOutput(uint32_t attr_idx) override {
-    auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
-    return translator->DeriveExpr(this);
+  /**
+   * Projections do not produce columns from base tables.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
+    UNREACHABLE("Projections do not produce columns from base tables.");
   }
 
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    return child_translator_->GetOutput(attr_idx);
-  }
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Projection is serial."); };
 
-  // Is always vectorizable.
-  bool IsVectorizable() override { return true; }
-
-  // Should not be called here
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override {
-    UNREACHABLE("Projection nodes should not use column value expressions");
-  }
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
-
- private:
-  const planner::ProjectionPlanNode *op_;
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Projection is serial.");
+  };
 };
 
 }  // namespace terrier::execution::compiler

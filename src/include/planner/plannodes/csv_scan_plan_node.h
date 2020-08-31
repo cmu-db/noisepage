@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include "planner/plannodes/abstract_scan_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 /**
@@ -76,7 +77,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     std::unique_ptr<CSVScanPlanNode> Build() {
       return std::unique_ptr<CSVScanPlanNode>(
           new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
-                              database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_));
+                              database_oid_, file_name_, delimiter_, quote_, escape_, value_types_, scan_limit_,
+                              scan_has_limit_, scan_offset_, scan_has_offset_));
     }
 
    protected:
@@ -119,10 +121,11 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
-                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
-                  char delimiter, char quote, char escape, std::vector<type::TypeId> value_types)
+                  catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote, char escape,
+                  std::vector<type::TypeId> value_types, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
+                  bool scan_has_offset)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                             namespace_oid),
+                             scan_limit, scan_has_limit, scan_offset, scan_has_offset),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
@@ -174,6 +177,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -185,6 +190,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   std::vector<type::TypeId> value_types_;
 };
 
-DEFINE_JSON_DECLARATIONS(CSVScanPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(CSVScanPlanNode);
 
 }  // namespace terrier::planner

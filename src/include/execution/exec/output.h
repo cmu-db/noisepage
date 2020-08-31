@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-#include <iostream>
 #include <memory>
 #include <sstream>
 #include <unordered_map>
@@ -10,15 +8,18 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
+#include "network/network_defs.h"
 #include "parser/parser_defs.h"
-#include "planner/plannodes/output_schema.h"
 
 namespace terrier::network {
 class PostgresPacketWriter;
-}
+}  // namespace terrier::network
+
+namespace terrier::planner {
+class OutputSchema;
+}  // namespace terrier::planner
 
 namespace terrier::execution::exec {
 
@@ -74,6 +75,11 @@ class EXPORT OutputBuffer {
    */
   ~OutputBuffer();
 
+  /**
+   * @returns tuple size
+   */
+  uint32_t GetTupleSize() const { return tuple_size_; }
+
  private:
   sql::MemoryPool *memory_pool_;
   uint32_t num_tuples_;
@@ -113,12 +119,14 @@ class OutputPrinter {
 class OutputWriter {
  public:
   /**
-   * @param schema final schema to output
+   * @param schema final schema to output for this query
    * @param out packet writer to use
+   * @param field_formats reference to the field formats for this query
    */
   OutputWriter(const common::ManagedPointer<planner::OutputSchema> schema,
-               const common::ManagedPointer<network::PostgresPacketWriter> out)
-      : schema_(schema), out_(out) {}
+               const common::ManagedPointer<network::PostgresPacketWriter> out,
+               const std::vector<network::FieldFormat> &field_formats)
+      : schema_(schema), out_(out), field_formats_(field_formats) {}
 
   /**
    * Callback that prints a batch of tuples to std out.
@@ -137,6 +145,21 @@ class OutputWriter {
   uint64_t num_rows_ = 0;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
+  const std::vector<network::FieldFormat> &field_formats_;
+};
+
+/**
+ * A consumer that doesn't do anything with the result tuples.
+ */
+class NoOpResultConsumer {
+ public:
+  /**
+   * Callback that does nothing.
+   * @param tuples batch of tuples
+   * @param num_tuples number of tuples
+   * @param tuple_size size of tuples
+   */
+  void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {}
 };
 
 }  // namespace terrier::execution::exec

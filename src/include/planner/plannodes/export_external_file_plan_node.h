@@ -6,6 +6,7 @@
 #include <vector>
 #include "parser/parser_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 // TODO(Gus,Wen): This plan probably needs a different way of generating the output schema. The output schema should be
 // the childs output schema. But also maybe this node doesnt even need an output schema in the execution layer, so I put
@@ -173,6 +174,8 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -184,6 +187,6 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
   char escape_;
 };
 
-DEFINE_JSON_DECLARATIONS(ExportExternalFilePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(ExportExternalFilePlanNode);
 
 }  // namespace terrier::planner

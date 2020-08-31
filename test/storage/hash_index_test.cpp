@@ -10,6 +10,7 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/compact_ints_key.h"
+#include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
@@ -53,9 +54,8 @@ class HashIndexTests : public TerrierTest {
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
-    auto col = catalog::Schema::Column(
-        "attribute", type::TypeId::INTEGER, false,
-        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
+                                       parser::ConstantValueExpression(type::TypeId::INTEGER));
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
     sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);
@@ -141,11 +141,15 @@ TEST_F(HashIndexTests, UniqueInsert) {
     delete[] key_buffer;
   };
 
+  const auto starting_size = unique_index_->EstimateHeapUsage();
+
   // run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+
+  EXPECT_GT(unique_index_->EstimateHeapUsage(), starting_size);
 
   // scan the results
   auto *const scan_txn = txn_manager_->BeginTransaction();
@@ -210,11 +214,15 @@ TEST_F(HashIndexTests, DefaultInsert) {
     delete[] key_buffer;
   };
 
+  const auto starting_size = default_index_->EstimateHeapUsage();
+
   // run the workload
   for (uint32_t i = 0; i < num_threads_; i++) {
     thread_pool_.SubmitTask([i, &workload] { workload(i); });
   }
   thread_pool_.WaitUntilAllFinished();
+
+  EXPECT_GT(default_index_->EstimateHeapUsage(), starting_size);
 
   // scan the results
   auto *const scan_txn = txn_manager_->BeginTransaction();

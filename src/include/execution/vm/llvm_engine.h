@@ -1,14 +1,13 @@
 #pragma once
 
+#include <llvm/Support/MemoryBuffer.h>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 
-#include "llvm/Support/MemoryBuffer.h"
-
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
-#include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::ast {
 class Type;

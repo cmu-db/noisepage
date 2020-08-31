@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "catalog/schema.h"
+#include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
@@ -23,10 +23,19 @@ class OutputSchema;
 
 namespace settings {
 class SettingsManager;
-}
+}  // namespace settings
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
+}  // namespace catalog
+
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+
+namespace planner {
+enum class AggregateStrategyType;
 }
 
 namespace optimizer {
@@ -58,7 +67,7 @@ class PlanGenerator : public OperatorVisitor {
    * @returns Output plan node
    */
   std::unique_ptr<planner::AbstractPlanNode> ConvertOpNode(
-      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, OperatorNode *op,
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,
       PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
@@ -105,6 +114,12 @@ class PlanGenerator : public OperatorVisitor {
    * @param op Limit operator being visited
    */
   void Visit(const Limit *op) override;
+
+  /**
+   * Visitor function for a InnerIndexJoin operator
+   * @param op InnerIndexJoin operator being visited
+   */
+  void Visit(const InnerIndexJoin *op) override;
 
   /**
    * Visitor function for a InnerNLJoin operator
@@ -278,6 +293,12 @@ class PlanGenerator : public OperatorVisitor {
    * @param drop_view operator
    */
   void Visit(const DropView *drop_view) override;
+
+  /**
+   * Visit a Analyze operator
+   * @param analyze operator
+   */
+  void Visit(const Analyze *analyze) override;
 
  private:
   /**

@@ -104,7 +104,7 @@ if ("${MAKE}" STREQUAL "")
 endif ()
 
 if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
-    add_custom_target(unittest ctest -L unittest)
+    add_custom_target(unittest ctest -L unittest --no-compress-output -T Test)
 
     if ("$ENV{GTEST_HOME}" STREQUAL "")
         if (APPLE)
@@ -277,3 +277,6 @@ endif ()
 llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native ipo)
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
+
+#flatbuffers
+include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include")

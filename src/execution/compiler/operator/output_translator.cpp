@@ -1,61 +1,67 @@
 #include "execution/compiler/operator/output_translator.h"
-#include <utility>
-#include <vector>
+
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/function_builder.h"
+#include "execution/compiler/if.h"
+#include "execution/compiler/loop.h"
+#include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::execution::compiler {
-OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)
-    : OperatorTranslator(codegen),
-      output_struct_(codegen->NewIdentifier("Output")),
-      output_var_(codegen->NewIdentifier("out")) {}
 
-void OutputTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
-  util::RegionVector<ast::FieldDecl *> fields(codegen_->Region());
-  GetChildOutputFields(&fields, "col");
-  num_output_fields_ = static_cast<uint32_t>(fields.size());
-  decls->emplace_back(codegen_->MakeStruct(output_struct_, std::move(fields)));
+namespace {
+constexpr char OUTPUT_COL_PREFIX[] = "out";
+}  // namespace
+
+OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context,
+                                   Pipeline *pipeline)
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::OUTPUT),
+      output_var_(GetCodeGen()->MakeFreshIdentifier("outRow")),
+      output_struct_(GetCodeGen()->MakeFreshIdentifier("OutputStruct")) {
+  // Prepare the child.
+  compilation_context->Prepare(plan, pipeline);
 }
 
-ast::Expr *OutputTranslator::GetField(uint32_t attr_idx) {
-  ast::Identifier member = codegen_->Context()->GetIdentifier("col" + std::to_string(attr_idx));
-  return codegen_->MemberExpr(output_var_, member);
-}
+void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
+                                           terrier::execution::compiler::FunctionBuilder *function) const {
+  // First generate the call @resultBufferAllocRow(execCtx)
+  auto exec_ctx = GetExecutionContext();
+  ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferAllocOutRow, {exec_ctx});
+  ast::Expr *cast_call = GetCodeGen()->PtrCast(output_struct_, alloc_call);
+  function->Append(GetCodeGen()->DeclareVar(output_var_, nullptr, cast_call));
+  const auto child_translator = GetCompilationContext()->LookupTranslator(GetPlan());
 
-void OutputTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
-  // Let the child produce
-  child_translator_->Produce(builder);
-
-  // Call @outputFinalize() at the end of the pipeline.
-  FinalizeOutput(builder);
-}
-
-void OutputTranslator::Consume(terrier::execution::compiler::FunctionBuilder *builder) {
-  // First declare the output variable
-  DeclareOutputVariable(builder);
-  // Fill in the output
-  FillOutput(builder);
-}
-
-void OutputTranslator::DeclareOutputVariable(execution::compiler::FunctionBuilder *builder) {
-  // First generate the call @outputAlloc(execCtx)
-  ast::Expr *alloc_call = codegen_->OneArgCall(ast::Builtin::OutputAlloc, codegen_->GetExecCtxVar(), false);
-  // The make the @ptrCast call
-  ast::Expr *cast_call = codegen_->PtrCast(output_struct_, alloc_call);
-  // Finally, declare the variable
-  builder->Append(codegen_->DeclareVariable(output_var_, nullptr, cast_call));
-}
-
-void OutputTranslator::FillOutput(execution::compiler::FunctionBuilder *builder) {
+  // Now fill up the output row
   // For each column in the output, set out.col_i = col_i
-  for (uint32_t attr_idx = 0; attr_idx < num_output_fields_; attr_idx++) {
-    ast::Expr *lhs = GetField(attr_idx);
-    ast::Expr *rhs = child_translator_->GetOutput(attr_idx);
-    builder->Append(codegen_->Assign(lhs, rhs));
+  for (uint32_t attr_idx = 0; attr_idx < GetPlan().GetOutputSchema()->NumColumns(); attr_idx++) {
+    ast::Identifier attr_name = GetCodeGen()->MakeIdentifier(OUTPUT_COL_PREFIX + std::to_string(attr_idx));
+    ast::Expr *lhs = GetCodeGen()->AccessStructMember(GetCodeGen()->MakeExpr(output_var_), attr_name);
+    ast::Expr *rhs = child_translator->GetOutput(context, attr_idx);
+    function->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
 
-void OutputTranslator::FinalizeOutput(execution::compiler::FunctionBuilder *builder) {
-  ast::Expr *finalize_call = codegen_->OneArgCall(ast::Builtin::OutputFinalize, codegen_->GetExecCtxVar(), false);
-  builder->Append(codegen_->MakeStmt(finalize_call));
+void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto exec_ctx = GetExecutionContext();
+  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
+}
+
+void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
+  auto *codegen = GetCodeGen();
+  auto fields = codegen->MakeEmptyFieldList();
+
+  const auto output_schema = GetPlan().GetOutputSchema();
+  fields.reserve(output_schema->NumColumns());
+
+  // Add columns to output.
+  uint32_t attr_idx = 0;
+  for (const auto &col : output_schema->GetColumns()) {
+    auto field_name = codegen->MakeIdentifier(OUTPUT_COL_PREFIX + std::to_string(attr_idx++));
+    auto type = codegen->TplType(sql::GetTypeId(col.GetExpr()->GetReturnValueType()));
+    fields.emplace_back(codegen->MakeField(field_name, type));
+  }
+
+  decls->push_back(codegen->DeclareStruct(output_struct_, std::move(fields)));
 }
 
 }  // namespace terrier::execution::compiler

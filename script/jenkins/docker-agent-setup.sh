@@ -16,7 +16,8 @@
 apt-get update && apt-get -y install default-jdk-headless
 
 # add the jenkins user and put the swarm.sh script in place
-useradd -m -s/bin/bash -c jenkins jenkins && echo 'jenkins ALL=(ALL)       NOPASSWD: ALL' > /etc/sudoers.d/jenkins
+groupadd -g 99 jenkins
+useradd -m -s/bin/bash -u 99 -g jenkins -c jenkins jenkins && echo 'jenkins ALL=(ALL)       NOPASSWD: ALL' > /etc/sudoers.d/jenkins
 install -m 755 -o jenkins -g jenkins /proj/CMUDB-CI/data/swarm.sh ~jenkins
 
 # add the jenkins service and enable it
@@ -45,6 +46,10 @@ chown jenkins:jenkins /jenkins
 # setup the working directory for docker
 /share/testbed/bin/linux-localfs -d /dev/sdb1 -t ext4 /var/lib/docker
 
+# setup the ccache cache_dir
+install -d -m 1777 /jenkins/ccache
+echo 'max_size = 250G' > /jenkins/ccache/ccache.conf
+
 # install docker community edition from upstream
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -58,8 +63,8 @@ usermod -a -G docker jenkins
 
 # setup nat
 route delete default
-route add default gw 10.92.0.4
-route add -net 128.2.0.0/16 gw 10.92.0.1
+route add default gw 10.111.0.4
+route add -net 128.2.0.0/16 gw 10.111.0.1
 
 # now that everything is in place, start the jenkins service
 systemctl start jenkins

@@ -1,9 +1,9 @@
+// Expected output: -20 (= 10 - 30)
 // Test functions on structs
-// Should output -20 (= 10 - 30)
 
 struct Point {
-  x: int64
-  y: int64
+  x: int
+  y: int
 }
 
 fun distance(a: *Point, b: *Point, out: *Point) -> nil {
@@ -11,7 +11,7 @@ fun distance(a: *Point, b: *Point, out: *Point) -> nil {
   out.y = a.y - b.y
 }
 
-fun main() -> int64 {
+fun main() -> int {
   var a: Point
   var b: Point
   a.x = 10

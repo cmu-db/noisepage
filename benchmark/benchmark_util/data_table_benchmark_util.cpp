@@ -92,33 +92,46 @@ LargeDataTableBenchmarkObject::~LargeDataTableBenchmarkObject() {
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
 std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
-    uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsManager *const metrics_manager) {
+    uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsManager *const metrics_manager,
+    uint32_t submit_interval_us) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   thread_pool.Startup();
   std::vector<RandomDataTableTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
-  if (gc_on_) {
-    // Then there is no need to keep track of RandomWorkloadTransaction objects
-    workload = [&](uint32_t /*unused*/) {
-      if (metrics_manager != DISABLED) metrics_manager->RegisterThread();
-      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+
+  if (!gc_on_) txns.resize(num_transactions);
+  workload = [&](uint32_t /*unused*/) {
+    // Timers to control the submission rate
+    auto last_time = metrics::MetricsUtil::Now();
+    auto current_time = metrics::MetricsUtil::Now();
+    uint64_t time_diff;
+
+    if (metrics_manager != DISABLED) metrics_manager->RegisterThread();
+    for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+      if (submit_interval_us > 0) {
+        // control the submission rate according to the argument
+        current_time = metrics::MetricsUtil::Now();
+        time_diff = current_time - last_time;
+        if (time_diff < submit_interval_us) {
+          txns_run--;
+          continue;
+        }
+        last_time = current_time;
+      }
+
+      if (gc_on_) {
+        // Then there is no need to keep track of RandomWorkloadTransaction objects
         RandomDataTableTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
-      }
-    };
-  } else {
-    txns.resize(num_transactions);
-    // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
-    // test objects
-    workload = [&](uint32_t /*unused*/) {
-      if (metrics_manager != DISABLED) metrics_manager->RegisterThread();
-      for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
+      } else {
+        // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
+        // test objects
         txns[txn_id] = new RandomDataTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
       }
-    };
-  }
+    }
+  };
 
   uint64_t elapsed_ms;
   {

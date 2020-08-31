@@ -1,164 +1,82 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import argparse
-import os.path
-import socket
-import subprocess
+import os
 import sys
-import time
 import traceback
 
-class RunJunit:
-    """ Class to run Junit tests """
+base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, base_path)
 
-    def __init__(self, args):
-        """ Locations and misc. variable initialization """
-        self.args = args
+from junit import constants
+from junit.utils import parse_command_line_args
+from junit.test_junit import TestJUnit
+from util.constants import LOG,ErrorCode
+from test_case_junit import TestCaseJUnit
 
-        # server output
-        self.db_server_output_file = "/tmp/db_server_log.txt"
-        # Ant Junit execution output
-        self.junit_output_file = "/tmp/junit_log.txt"
-
-        self._set_server_path()
-        self.db_server_process = None
-
-        # db server location
-        self.db_server_host = "localhost"
-        self.db_server_port = 15721
-        return
-
-    def _set_server_path(self):
-        """ location of db server, relative to this script """
-
-        # builds on Jenkins are in build/<build_type>
-        # but CLion creates cmake-build-<build_type>/<build_type>
-        # determine what we have and set the server path accordingly
-        bin_name = "terrier"
-        build_type = args['build_type']
-        path_list = ["../../../build/{}".format(build_type),
-                     "../../../cmake-build-{}/{}".format(build_type, build_type)]
-        for dir in path_list:
-            path = os.path.join(dir, bin_name)
-            if os.path.exists(path):
-                self.db_server_path = path
-                return
-
-        msg = "No Db_Server binary found in {}".format(path_list)
-        raise RuntimeError(msg)
-        return
-
-    def _check_db_server_binary(self):
-        """ Check that a Db_Server binary is available """
-        if not os.path.exists(self.db_server_path):
-            abs_path = os.path.abspath(self.db_server_path)
-            msg = "No Db_Server binary found at {}".format(abs_path)
-            raise RuntimeError(msg)
-        return
-
-    def _run_db_server(self):
-        """ Start the Db_Server server """
-        self.db_server_output_fd = open(self.db_server_output_file, "w+")
-        self.db_server_process = subprocess.Popen(self.db_server_path,
-                                                  stdout=self.db_server_output_fd,
-                                                  stderr=self.db_server_output_fd)
-        self._wait_for_db_server()
-        return
-
-    def _wait_for_db_server(self):
-        """ Wait for the db_server server to come up.
-        """
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # max wait of 10s in 0.1s increments
-        for i in range(100):
-            try:
-                s.connect((self.db_server_host, self.db_server_port))
-                s.close()
-                print ("connected to server in {} seconds".format(i*0.1))
-                return
-            except:
-                time.sleep(0.1)
-                continue
-        return
-
-    def _stop_db_server(self):
-        """ Stop the Db_Server server and print it's log file """
-        # get exit code, if any
-        self.db_server_process.poll()
-        if self.db_server_process.returncode is not None:
-            # Db_Server terminated already
-            self.db_server_output_fd.close()
-            self._print_output(self.db_server_output_file)
-            msg = "Db_Server terminated with return code {}".format(
-                self.db_server_process.returncode)
-            raise RuntimeError(msg)
-
-        # still (correctly) running, terminate it
-        self.db_server_process.terminate()
-        return
-
-    def _print_output(self, filename):
-        """ Print out contents of a file """
-        fd = open(filename)
-        lines = fd.readlines()
-        for line in lines:
-            print (line.strip())
-        fd.close()
-        return
-
-    def _run_junit(self):
-        """ Run the JUnit tests, via ant """
-        self.junit_output_fd = open(self.junit_output_file, "w+")
-        # use ant's junit runner, until we deprecate Ubuntu 14.04.
-        # (i.e. ant test)
-        # At that time switch to "ant testconsole" which invokes JUnitConsole
-        # runner. It requires Java 1.8 or later, but has much cleaner
-        # human readable output
-        ret_val = subprocess.call(["ant testconsole"],
-                                  stdout=self.junit_output_fd,
-                                  stderr=self.junit_output_fd,
-                                  shell=True)
-        self.junit_output_fd.close()
-        return ret_val
-
-    def run(self):
-        """ Orchestrate the overall JUnit test execution """
-        self._check_db_server_binary()
-        self._run_db_server()
-        ret_val = self._run_junit()
-        self._print_output(self.junit_output_file)
-
-        self._stop_db_server()
-        if ret_val:
-            # print the db_server log file, only if we had a failure
-            self._print_output(self.db_server_output_file)
-        return ret_val
+def section_header(title):
+    border = "+++ " + "="*100 + " +++\n"
+    middle = "+++ " + title.center(100) + " +++\n"
+    return "\n\n" + border + middle + border
+# DEF
 
 if __name__ == "__main__":
 
-    aparser = argparse.ArgumentParser(description="junit runner")
+    args = parse_command_line_args()
 
-    aparser.add_argument('--build_type',
-                         default="debug",
-                         choices=['debug', 'release'],
-                         help="Build type (default: %(default)s")
+    all_exit_codes = []
+    exit_code = ErrorCode.SUCCESS
+    junit_test_runner = TestJUnit(args)
 
-    args = vars(aparser.parse_args())
-
-    # Make it so that we can invoke the script from any directory.
-    # Actual execution has to be from the junit directory, so first
-    # determine the absolute directory path to this script
-    prog_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    # cd to the junit directory
-    os.chdir(prog_dir)
-
+    # Step 1: Run the regular JUnit tests.
+    LOG.info(section_header("JUNIT TESTS"))
+    test_command_regular = constants.JUNIT_TEST_CMD_JUNIT
     try:
-        junit = RunJunit(args)
-        exit_code = junit.run()
+        test_case_junit = TestCaseJUnit(
+            args, test_command=test_command_regular)
+        exit_code = junit_test_runner.run(test_case_junit)
     except:
-        print ("Exception trying to run junit tests")
+        LOG.error("Exception trying to run '%s'" % test_command_regular)
+        LOG.error("================ Python Error Output ==================")
         traceback.print_exc(file=sys.stdout)
-        exit_code = 1
+        exit_code = ErrorCode.ERROR
+    finally:
+        all_exit_codes.append(exit_code)
 
-    sys.exit(exit_code)
+    # Step 2: Run the trace test for each file that we find
+    # Each directory represents another set of SQL traces to test.
+    noise_trace_dir = os.path.join(base_path, constants.REPO_TRACE_DIR)
+    test_command_tracefile = constants.JUNIT_TEST_CMD_TRACE
+    for item in os.listdir(noise_trace_dir):
+        # Look for all of the .test files in the each directory
+        if item.endswith(constants.TESTFILES_PREFIX):
+            os.environ["NOISEPAGE_TRACE_FILE"] = os.path.join(
+                noise_trace_dir, item)
+            LOG.info(section_header("TRACEFILE TEST: " +
+                                    os.environ["NOISEPAGE_TRACE_FILE"]))
+            exit_code = ErrorCode.ERROR
+            try:
+                test_case_junit = TestCaseJUnit(
+                    args, test_command=test_command_tracefile)
+                exit_code = junit_test_runner.run(test_case_junit)
+            except KeyboardInterrupt:
+                exit_code = ErrorCode.ERROR
+                raise
+            except:
+                LOG.error("Exception trying to run '%s'" %
+                          test_command_tracefile)
+                LOG.error(
+                    "================ Python Error Output ==================")
+                traceback.print_exc(file=sys.stdout)
+                exit_code = ErrorCode.ERROR
+            finally:
+                all_exit_codes.append(exit_code)
+        ## FOR (files)
+    ## FOR (dirs)
 
+    # Compute final exit code. If any test failed, then the entire program has to fail
+    final_code = 0
+    for c in all_exit_codes:
+        final_code = final_code or c
+    LOG.info("Final Status => {}".format("FAIL" if final_code else "SUCCESS"))
+    sys.exit(final_code)
+# MAIN

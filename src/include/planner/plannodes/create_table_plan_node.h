@@ -13,6 +13,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/select_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 
@@ -32,21 +33,13 @@ struct PrimaryKeyInfo {
   /**
    * @return serialized PrimaryKeyInfo
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["primary_key_cols"] = primary_key_cols_;
-    j["constraint_name"] = constraint_name_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * Deserializes a PrimaryKeyInfo
    * @param j serialized json of PrimaryKeyInfo
    */
-  void FromJson(const nlohmann::json &j) {
-    primary_key_cols_ = j.at("primary_key_cols").get<std::vector<std::string>>();
-    constraint_name_ = j.at("constraint_name").get<std::string>();
-  }
+  void FromJson(const nlohmann::json &j);
 
   /**
    * @return the hashed value of this primary key info
@@ -117,29 +110,13 @@ struct ForeignKeyInfo {
   /**
    * @return serialized ForeignKeyInfo
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["foreign_key_sources"] = foreign_key_sources_;
-    j["foreign_key_sinks"] = foreign_key_sinks_;
-    j["sink_table_name"] = sink_table_name_;
-    j["constraint_name"] = constraint_name_;
-    j["upd_action"] = upd_action_;
-    j["del_action"] = del_action_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * Deserializes a ForeignKeyInfo
    * @param j serialized json of ForeignKeyInfo
    */
-  void FromJson(const nlohmann::json &j) {
-    foreign_key_sources_ = j.at("foreign_key_sources").get<std::vector<std::string>>();
-    foreign_key_sinks_ = j.at("foreign_key_sinks").get<std::vector<std::string>>();
-    sink_table_name_ = j.at("sink_table_name").get<std::string>();
-    constraint_name_ = j.at("constraint_name").get<std::string>();
-    upd_action_ = j.at("upd_action").get<parser::FKConstrActionType>();
-    del_action_ = j.at("del_action").get<parser::FKConstrActionType>();
-  }
+  void FromJson(const nlohmann::json &j);
 
   /**
    * @return the hashed value of this foreign key info
@@ -216,21 +193,13 @@ struct UniqueInfo {
   /**
    * @return serialized UniqueInfo
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["unique_cols"] = unique_cols_;
-    j["constraint_name"] = constraint_name_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * Deserializes a UniqueInfo
    * @param j serialized json of UniqueInfo
    */
-  void FromJson(const nlohmann::json &j) {
-    unique_cols_ = j.at("unique_cols").get<std::vector<std::string>>();
-    constraint_name_ = j.at("constraint_name").get<std::string>();
-  }
+  void FromJson(const nlohmann::json &j);
 
   /**
    * @return the hashed value of this unique info
@@ -275,7 +244,7 @@ struct CheckInfo {
   /**
    * Columns that need to be checked
    */
-  std::vector<std::string> check_cols_;
+  std::vector<std::string> check_cols_;  // TODO(Matt): always size 1 according to ProcessCheckConstraint?
   /**
    * Name of this constraint
    */
@@ -287,30 +256,18 @@ struct CheckInfo {
   /**
    * Value of expression to be checked
    */
-  type::TransientValue expr_value_;
+  parser::ConstantValueExpression expr_value_;
 
   /**
    * @return serialized CheckInfo
    */
-  nlohmann::json ToJson() const {
-    nlohmann::json j;
-    j["check_cols"] = check_cols_;
-    j["constraint_name"] = constraint_name_;
-    j["expr_type"] = expr_type_;
-    j["expr_value"] = expr_value_;
-    return j;
-  }
+  nlohmann::json ToJson() const;
 
   /**
    * Deserializes a check info
    * @param j serialized json of check info
    */
-  void FromJson(const nlohmann::json &j) {
-    check_cols_ = j.at("check_cols").get<std::vector<std::string>>();
-    constraint_name_ = j.at("constraint_name").get<std::string>();
-    expr_type_ = j.at("expr_type").get<parser::ExpressionType>();
-    expr_value_ = j.at("expr_value").get<type::TransientValue>();
-  }
+  void FromJson(const nlohmann::json &j);
 
   /**
    * CheckInfo constructor
@@ -320,7 +277,7 @@ struct CheckInfo {
    * @param expr_value the value of the expression to be satisfied
    */
   CheckInfo(std::vector<std::string> check_cols, std::string constraint_name, parser::ExpressionType expr_type,
-            type::TransientValue expr_value)
+            parser::ConstantValueExpression expr_value)
       : check_cols_(std::move(check_cols)),
         constraint_name_(std::move(constraint_name)),
         expr_type_(expr_type),
@@ -541,7 +498,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
 
         common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
             (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
-        type::TransientValue tmp_value = const_expr_elem->GetValue();
+        auto tmp_value = *const_expr_elem;
 
         CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
                              std::move(tmp_value));
@@ -705,6 +662,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -753,10 +712,10 @@ class CreateTablePlanNode : public AbstractPlanNode {
   std::vector<CheckInfo> con_checks_;
 };
 
-DEFINE_JSON_DECLARATIONS(PrimaryKeyInfo);
-DEFINE_JSON_DECLARATIONS(ForeignKeyInfo);
-DEFINE_JSON_DECLARATIONS(UniqueInfo);
-DEFINE_JSON_DECLARATIONS(CheckInfo);
-DEFINE_JSON_DECLARATIONS(CreateTablePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(PrimaryKeyInfo);
+DEFINE_JSON_HEADER_DECLARATIONS(ForeignKeyInfo);
+DEFINE_JSON_HEADER_DECLARATIONS(UniqueInfo);
+DEFINE_JSON_HEADER_DECLARATIONS(CheckInfo);
+DEFINE_JSON_HEADER_DECLARATIONS(CreateTablePlanNode);
 
 }  // namespace terrier::planner

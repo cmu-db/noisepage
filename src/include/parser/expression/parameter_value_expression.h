@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
@@ -14,9 +15,11 @@ class ParameterValueExpression : public AbstractExpression {
   /**
    * Instantiates a new ParameterValueExpression with the given offset.
    * @param value_idx the offset of the parameter
+   * @warning we set the type to INVALID as an indicator to the binder that we have not visited this expression yet.
+   * After being visited by the binder, the type should reflect the correct value
    */
   explicit ParameterValueExpression(const uint32_t value_idx)
-      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INTEGER, {}), value_idx_(value_idx) {}
+      : AbstractExpression(ExpressionType::VALUE_PARAMETER, type::TypeId::INVALID, {}), value_idx_(value_idx) {}
 
   /**
    * Instantiates a new ParameterValueExpression with the given offset and the given type
@@ -33,11 +36,7 @@ class ParameterValueExpression : public AbstractExpression {
    * Copies this ParameterValueExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -66,23 +65,13 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
-  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
 
   /** @return expression serialized to json */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    j["value_idx"] = value_idx_;
-    return j;
-  }
+  nlohmann::json ToJson() const override;
 
   /** @param j json to deserialize */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-    value_idx_ = j.at("value_idx").get<uint32_t>();
-    return exprs;
-  }
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   // TODO(Tianyu): Can we get a better name for this?
@@ -90,6 +79,6 @@ class ParameterValueExpression : public AbstractExpression {
   uint32_t value_idx_;
 };
 
-DEFINE_JSON_DECLARATIONS(ParameterValueExpression);
+DEFINE_JSON_HEADER_DECLARATIONS(ParameterValueExpression);
 
 }  // namespace terrier::parser

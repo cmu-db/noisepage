@@ -10,6 +10,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 // TODO(Gus, Wen): Replace Perform Binding in parser::AggregateExpression* and AggregatePlanNode
 // TODO(Gus, Wen): Replace VisitParameters
@@ -166,6 +167,8 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   common::hash_t Hash() const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
@@ -177,5 +180,5 @@ class AggregatePlanNode : public AbstractPlanNode {
   std::vector<AggregateTerm> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };
-DEFINE_JSON_DECLARATIONS(AggregatePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(AggregatePlanNode);
 }  // namespace terrier::planner

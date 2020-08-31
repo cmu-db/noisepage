@@ -18,31 +18,24 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "type/transient_value_factory.h"
+#include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 
 namespace terrier::catalog::postgres {
 
 constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 
-/**
- * Helper function to handle generating the implicit "NULL" default values
- * @param type of the value which is NULL
- * @return NULL expression with the correct type
- */
-static parser::ConstantValueExpression MakeNull(type::TypeId col_type) {
-  return parser::ConstantValueExpression(type::TransientValueFactory::GetNull(col_type));
-}
-
 Schema Builder::GetDatabaseTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("datoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("datoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(DATOID_COL_OID);
 
-  columns.emplace_back("datname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("datname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(DATNAME_COL_OID);
 
-  columns.emplace_back("pointer", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.emplace_back("pointer", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(DAT_CATALOG_COL_OID);
 
   return Schema(columns);
@@ -146,25 +139,31 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 Schema Builder::GetColumnTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("attnum", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("attnum", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(ATTNUM_COL_OID);
 
-  columns.emplace_back("attrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(ATTRELID_COL_OID);
 
-  columns.emplace_back("attname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("attname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(ATTNAME_COL_OID);
 
-  columns.emplace_back("atttypid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("atttypid", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(ATTTYPID_COL_OID);
 
-  columns.emplace_back("attlen", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::SMALLINT));
+  columns.emplace_back("attlen", type::TypeId::SMALLINT, false,
+                       parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(ATTLEN_COL_OID);
 
-  columns.emplace_back("attnotnull", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("attnotnull", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(ATTNOTNULL_COL_OID);
 
-  columns.emplace_back("adsrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("adsrc", type::TypeId::VARCHAR, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(ADSRC_COL_OID);
 
   return Schema(columns);
@@ -173,25 +172,28 @@ Schema Builder::GetColumnTableSchema() {
 Schema Builder::GetClassTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("reloid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("reloid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(RELOID_COL_OID);
 
-  columns.emplace_back("relname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("relname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(RELNAME_COL_OID);
 
-  columns.emplace_back("relnamespace", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("relnamespace", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(RELNAMESPACE_COL_OID);
 
-  columns.emplace_back("relkind", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("relkind", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(RELKIND_COL_OID);
 
-  columns.emplace_back("schema", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.emplace_back("schema", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(REL_SCHEMA_COL_OID);
 
-  columns.emplace_back("pointer", type::TypeId::BIGINT, true, MakeNull(type::TypeId::BIGINT));
+  columns.emplace_back("pointer", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(REL_PTR_COL_OID);
 
-  columns.emplace_back("nextcoloid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("nextcoloid", type::TypeId::INTEGER, true,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(REL_NEXTCOLOID_COL_OID);
 
   return Schema(columns);
@@ -200,40 +202,48 @@ Schema Builder::GetClassTableSchema() {
 Schema Builder::GetConstraintTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("conoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("conoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(CONOID_COL_OID);
 
-  columns.emplace_back("conname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("conname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(CONNAME_COL_OID);
 
-  columns.emplace_back("connamespace", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("connamespace", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(CONNAMESPACE_COL_OID);
 
-  columns.emplace_back("contype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("contype", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(CONTYPE_COL_OID);
 
-  columns.emplace_back("condeferrable", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("condeferrable", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(CONDEFERRABLE_COL_OID);
 
-  columns.emplace_back("condeferred", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("condeferred", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(CONDEFERRED_COL_OID);
 
-  columns.emplace_back("convalidated", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("convalidated", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(CONVALIDATED_COL_OID);
 
-  columns.emplace_back("conrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("conrelid", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(CONRELID_COL_OID);
 
-  columns.emplace_back("conindid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("conindid", type::TypeId::INTEGER, true, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(CONINDID_COL_OID);
 
-  columns.emplace_back("confrelid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("confrelid", type::TypeId::INTEGER, true,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(CONFRELID_COL_OID);
 
-  columns.emplace_back("conbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
+  columns.emplace_back("conbin", type::TypeId::BIGINT, false, parser::ConstantValueExpression(type::TypeId::BIGINT));
   columns.back().SetOid(CONBIN_COL_OID);
 
-  columns.emplace_back("consrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("consrc", type::TypeId::VARCHAR, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(CONSRC_COL_OID);
 
   return Schema(columns);
@@ -242,34 +252,43 @@ Schema Builder::GetConstraintTableSchema() {
 Schema Builder::GetIndexTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("indoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("indoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(INDOID_COL_OID);
 
-  columns.emplace_back("indrelid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("indrelid", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(INDRELID_COL_OID);
 
-  columns.emplace_back("indisunique", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indisunique", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISUNIQUE_COL_OID);
 
-  columns.emplace_back("indisprimary", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indisprimary", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISPRIMARY_COL_OID);
 
-  columns.emplace_back("indisexclusion", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indisexclusion", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISEXCLUSION_COL_OID);
 
-  columns.emplace_back("indimmediate", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indimmediate", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDIMMEDIATE_COL_OID);
 
-  columns.emplace_back("indisvalid", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indisvalid", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISVALID_COL_OID);
 
-  columns.emplace_back("indisready", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indisready", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISREADY_COL_OID);
 
-  columns.emplace_back("indislive", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("indislive", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISLIVE_COL_OID);
 
-  columns.emplace_back("implementation", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("implementation", type::TypeId::TINYINT, false,
+                       parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(IND_TYPE_COL_OID);
 
   return Schema(columns);
@@ -278,10 +297,11 @@ Schema Builder::GetIndexTableSchema() {
 Schema Builder::GetNamespaceTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("nspoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("nspoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(NSPOID_COL_OID);
 
-  columns.emplace_back("nspname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("nspname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(NSPNAME_COL_OID);
 
   return Schema(columns);
@@ -290,22 +310,26 @@ Schema Builder::GetNamespaceTableSchema() {
 Schema Builder::GetTypeTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("typoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("typoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(TYPOID_COL_OID);
 
-  columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("typname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(TYPNAME_COL_OID);
 
-  columns.emplace_back("typnamespace", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("typnamespace", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(TYPNAMESPACE_COL_OID);
 
-  columns.emplace_back("typlen", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::SMALLINT));
+  columns.emplace_back("typlen", type::TypeId::SMALLINT, false,
+                       parser::ConstantValueExpression(type::TypeId::SMALLINT));
   columns.back().SetOid(TYPLEN_COL_OID);
 
-  columns.emplace_back("typbyval", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("typbyval", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(TYPBYVAL_COL_OID);
 
-  columns.emplace_back("typtype", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("typtype", type::TypeId::TINYINT, false, parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(TYPTYPE_COL_OID);
 
   return Schema(columns);
@@ -314,25 +338,30 @@ Schema Builder::GetTypeTableSchema() {
 Schema Builder::GetLanguageTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("lanoid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("lanoid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(LANOID_COL_OID);
 
-  columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("lanname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(LANNAME_COL_OID);
 
-  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("lanispl", type::TypeId::BOOLEAN, false, parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(LANISPL_COL_OID);
 
-  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("lanpltrusted", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(LANPLTRUSTED_COL_OID);
 
-  columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("lanplcallfoid", type::TypeId::INTEGER, true,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(LANPLCALLFOID_COL_OID);
 
-  columns.emplace_back("laninline", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("laninline", type::TypeId::INTEGER, true,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(LANINLINE_COL_OID);
 
-  columns.emplace_back("lanvalidator", type::TypeId::INTEGER, true, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("lanvalidator", type::TypeId::INTEGER, true,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(LANVALIDATOR_COL_OID);
 
   return Schema(columns);
@@ -621,71 +650,93 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
 Schema Builder::GetProcTableSchema() {
   std::vector<Schema::Column> columns;
 
-  columns.emplace_back("prooid", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("prooid", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PROOID_COL_OID);
 
-  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("proname", type::TypeId::VARCHAR, MAX_NAME_LENGTH, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(PRONAME_COL_OID);
 
-  columns.emplace_back("pronamespace", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("pronamespace", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PRONAMESPACE_COL_OID);
 
-  columns.emplace_back("prolang", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("prolang", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PROLANG_COL_OID);
 
-  columns.emplace_back("procost", type::TypeId::DECIMAL, true, MakeNull(type::TypeId::DECIMAL));
+  columns.emplace_back("procost", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
   columns.back().SetOid(PROCOST_COL_OID);
 
-  columns.emplace_back("prorows", type::TypeId::DECIMAL, true, MakeNull(type::TypeId::DECIMAL));
+  columns.emplace_back("prorows", type::TypeId::DECIMAL, true, parser::ConstantValueExpression(type::TypeId::DECIMAL));
   columns.back().SetOid(PROROWS_COL_OID);
 
-  columns.emplace_back("provariadic", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("provariadic", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PROVARIADIC_COL_OID);
 
-  columns.emplace_back("proisagg", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("proisagg", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PROISAGG_COL_OID);
 
-  columns.emplace_back("proiswindow", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("proiswindow", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PROISWINDOW_COL_OID);
 
-  columns.emplace_back("proisstrict", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("proisstrict", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PROISSTRICT_COL_OID);
 
-  columns.emplace_back("proretset", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("proretset", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PRORETSET_COL_OID);
 
-  columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
+  columns.emplace_back("provolatile", type::TypeId::BOOLEAN, false,
+                       parser::ConstantValueExpression(type::TypeId::BOOLEAN));
   columns.back().SetOid(PROVOLATILE_COL_OID);
 
-  columns.emplace_back("pronargs", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("pronargs", type::TypeId::SMALLINT, false,
+                       parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(PRONARGS_COL_OID);
 
-  columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.emplace_back("pronargdefaults", type::TypeId::SMALLINT, false,
+                       parser::ConstantValueExpression(type::TypeId::TINYINT));
   columns.back().SetOid(PRONARGDEFAULTS_COL_OID);
 
-  columns.emplace_back("prorettype", type::TypeId::INTEGER, false, MakeNull(type::TypeId::INTEGER));
+  columns.emplace_back("prorettype", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
   columns.back().SetOid(PRORETTYPE_COL_OID);
 
-  columns.emplace_back("proargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proargtypes", type::TypeId::VARBINARY, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGTYPES_COL_OID);
 
-  columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proallargtypes", type::TypeId::VARBINARY, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROALLARGTYPES_COL_OID);
 
-  columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proargmodes", type::TypeId::VARBINARY, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGMODES_COL_OID);
 
-  columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("proargdefaults", type::TypeId::VARBINARY, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGDEFAULTS_COL_OID);
 
-  columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proargnames", type::TypeId::VARBINARY, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROARGNAMES_COL_OID);
 
-  columns.emplace_back("prosrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
+  columns.emplace_back("prosrc", type::TypeId::VARCHAR, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARCHAR));
   columns.back().SetOid(PROSRC_COL_OID);
 
-  columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false, MakeNull(type::TypeId::VARBINARY));
+  columns.emplace_back("proconfig", type::TypeId::VARBINARY, 4096, false,
+                       parser::ConstantValueExpression(type::TypeId::VARBINARY));
   columns.back().SetOid(PROCONFIG_COL_OID);
+
+  columns.emplace_back("ctx_pointer", type::TypeId::BIGINT, true,
+                       parser::ConstantValueExpression(type::TypeId::BIGINT));
+  columns.back().SetOid(PRO_CTX_PTR_COL_OID);
 
   return Schema(columns);
 }
@@ -722,6 +773,20 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
   IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
 
   return schema;
+}
+
+storage::index::Index *Builder::BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(key_schema);
+  return index_builder.Build();
+}
+
+storage::index::Index *Builder::BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(key_schema);
+  return index_builder.Build();
 }
 
 }  // namespace terrier::catalog::postgres

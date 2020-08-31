@@ -9,10 +9,9 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_join_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
-
-using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 
 /**
  * Plan node for nested loop joins
@@ -38,9 +37,41 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * @return plan node
      */
     std::unique_ptr<IndexJoinPlanNode> Build() {
-      return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      join_type_, join_predicate_, index_oid_,
-                                                                      table_oid_, std::move(index_cols_)));
+      return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(
+          std::move(children_), std::move(output_schema_), join_type_, join_predicate_, index_oid_, table_oid_,
+          scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_), index_size_));
+    }
+
+    /**
+     * Sets the scan type
+     */
+    Builder &SetScanType(IndexScanType scan_type) {
+      scan_type_ = scan_type;
+      return *this;
+    }
+
+    /**
+     * Sets the index size
+     */
+    Builder &SetIndexSize(uint64_t index_size) {
+      index_size_ = index_size;
+      return *this;
+    }
+
+    /**
+     * Sets the lower bound index cols.
+     */
+    Builder &AddLoIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+      lo_index_cols_.emplace(col_oid, expr);
+      return *this;
+    }
+
+    /**
+     * Sets the index upper bound cols.
+     */
+    Builder &AddHiIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
+      hi_index_cols_.emplace(col_oid, expr);
+      return *this;
     }
 
     /**
@@ -49,14 +80,6 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      */
     Builder &SetIndexOid(catalog::index_oid_t oid) {
       index_oid_ = oid;
-      return *this;
-    }
-
-    /**
-     * Sets the index cols.
-     */
-    Builder &AddIndexColumn(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
-      index_cols_.emplace(col_oid, expr);
       return *this;
     }
 
@@ -79,10 +102,10 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      */
     catalog::table_oid_t table_oid_;
 
-    /**
-     * Index Cols
-     */
-    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
+    IndexScanType scan_type_;
+    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
+    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
+    uint64_t index_size_{0};
   };
 
  private:
@@ -95,12 +118,16 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
-                    catalog::table_oid_t table_oid,
-                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&index_cols)
+                    catalog::table_oid_t table_oid, IndexScanType scan_type,
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_cols,
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols, uint64_t index_size)
       : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),
-        index_cols_(std::move(index_cols)) {}
+        scan_type_(scan_type),
+        lo_index_cols_(std::move(lo_cols)),
+        hi_index_cols_(std::move(hi_cols)),
+        index_size_(index_size) {}
 
  public:
   /**
@@ -116,11 +143,18 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::INDEXNLJOIN; }
 
   /**
+   * @return index size
+   */
+  uint64_t GetIndexSize() const { return index_size_; }
+
+  /**
    * @return the NestedLooped value of this plan node
    */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
+
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
 
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
@@ -136,9 +170,23 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
-   * @return the index columns
+   * @return the scan type
    */
-  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetIndexColumns() const { return index_cols_; }
+  IndexScanType GetScanType() const { return scan_type_; }
+
+  /**
+   * @return the lower bound index columns
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetLoIndexColumns() const {
+    return lo_index_cols_;
+  }
+
+  /**
+   * @return the upper bound index columns
+   */
+  const std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &GetHiIndexColumns() const {
+    return hi_index_cols_;
+  }
 
   /**
    * Collect all column oids in this expression
@@ -178,12 +226,13 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    * OID of the corresponding table
    */
   catalog::table_oid_t table_oid_;
-  /**
-   * Index columns
-   */
-  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};
+
+  IndexScanType scan_type_;
+  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> lo_index_cols_{};
+  std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> hi_index_cols_{};
+  uint64_t index_size_;
 };
 
-DEFINE_JSON_DECLARATIONS(IndexJoinPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(IndexJoinPlanNode);
 
 }  // namespace terrier::planner

@@ -1,5 +1,6 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 
+#include "common/resource_tracker.h"
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
@@ -54,14 +55,30 @@ uint64_t DiskLogConsumerTask::PersistLogFile() {
 }
 
 void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
-  uint64_t write_us = 0, persist_us = 0, num_bytes = 0, num_buffers = 0;
+  // input for this operating unit
+  uint64_t num_bytes = 0, num_buffers = 0;
+
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
+  // Initialize sleep period
+  auto curr_sleep = persist_interval_;
+  auto next_sleep = curr_sleep;
+  const std::chrono::microseconds max_sleep = std::chrono::microseconds(10000);
   // Time since last log file persist
   auto last_persist = std::chrono::high_resolution_clock::now();
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
   do {
+    const bool logging_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
+    curr_sleep = next_sleep;
     {
       // Wait until we are told to flush buffers
       std::unique_lock<std::mutex> lock(persist_lock_);
@@ -70,45 +87,44 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 2) There is a filled buffer to write to the disk
       // 3) LogManager has shut down the task
       // 4) Our persist interval timed out
-      disk_log_writer_thread_cv_.wait_for(lock, persist_interval_,
-                                          [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
+
+      bool signaled = disk_log_writer_thread_cv_.wait_for(
+          lock, curr_sleep, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
+      next_sleep = signaled ? persist_interval_ : curr_sleep * 2;
+      next_sleep = std::min(next_sleep, max_sleep);
     }
 
-    uint64_t elapsed_us = 0;
-    {
-      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
-      // Flush all the buffers to the log file
-      WriteBuffersToLogFile();
-    }
-    write_us += elapsed_us;
+    // Flush all the buffers to the log file
+    WriteBuffersToLogFile();
 
     // We persist the log file if the following conditions are met
     // 1) The persist interval amount of time has passed since the last persist
     // 2) We have written more data since the last persist than the threshold
     // 3) We are signaled to persist
     // 4) We are shutting down this task
-    bool timeout = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
-                                                                         last_persist) > persist_interval_;
+    bool timeout = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() -
+                                                                         last_persist) > curr_sleep;
+
     if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
-      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
-      {
-        std::unique_lock<std::mutex> lock(persist_lock_);
-        num_buffers = PersistLogFile();
-        num_bytes = current_data_written_;
-        // Reset meta data
-        last_persist = std::chrono::high_resolution_clock::now();
-        current_data_written_ = 0;
-        do_persist_ = false;
-      }
+      std::unique_lock<std::mutex> lock(persist_lock_);
+      num_buffers = PersistLogFile();
+      num_bytes = current_data_written_;
+      // Reset meta data
+      last_persist = std::chrono::high_resolution_clock::now();
+      current_data_written_ = 0;
+      do_persist_ = false;
+
       // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
     }
-    persist_us = elapsed_us;
 
-    if (num_bytes > 0 && common::thread_context.metrics_store_ != nullptr &&
-        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::LOGGING)) {
-      common::thread_context.metrics_store_->RecordConsumerData(write_us, persist_us, num_bytes, num_buffers);
-      write_us = persist_us = num_bytes = num_buffers = 0;
+    if (logging_metrics_enabled && num_buffers > 0) {
+      // Stop the resource tracker for this operating unit
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
+                                                                resource_metrics);
+      num_bytes = num_buffers = 0;
     }
   } while (run_task_);
   // Be extra sure we processed everything

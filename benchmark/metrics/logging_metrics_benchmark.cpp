@@ -2,20 +2,20 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "benchmark_util/benchmark_config.h"
 #include "benchmark_util/data_table_benchmark_util.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
 
-#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
-
 namespace terrier {
 
 class LoggingMetricsBenchmark : public benchmark::Fixture {
  public:
-  void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
+  void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
 
   const std::vector<uint16_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size_ = 1000000;
@@ -23,18 +23,17 @@ class LoggingMetricsBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
   storage::LogManager *log_manager_ = nullptr;
   storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
-  const std::chrono::milliseconds metrics_period_{100};
+  const std::chrono::microseconds gc_period_{1000};
+  const std::chrono::microseconds metrics_period_{10000};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{5};
-  const std::chrono::milliseconds log_persist_interval_{10};
+  const std::chrono::microseconds log_serialization_interval_{100};
+  const std::chrono::microseconds log_persist_interval_{100};
   const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 };
 
@@ -48,17 +47,17 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
   const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
-                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                           common::ManagedPointer(&buffer_pool_),
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -67,8 +66,8 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -83,7 +82,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
     delete thread_registry_;
     delete metrics_thread;
     delete metrics_manager;
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -98,17 +97,17 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
   const std::vector<double> insert_update_select_ratio = {0.0, 0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
-                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                           common::ManagedPointer(&buffer_pool_),
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true, log_manager_);
@@ -117,8 +116,8 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -133,7 +132,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
     delete thread_registry_;
     delete metrics_thread;
     delete metrics_manager;
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -148,17 +147,17 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
-                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                           common::ManagedPointer(&buffer_pool_),
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true, log_manager_);
@@ -167,8 +166,8 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -183,7 +182,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     delete thread_registry_;
     delete metrics_thread;
     delete metrics_manager;
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -198,17 +197,17 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
   const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
-                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                           common::ManagedPointer(&buffer_pool_),
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -217,8 +216,8 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -233,7 +232,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
     delete thread_registry_;
     delete metrics_thread;
     delete metrics_manager;
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -248,17 +247,17 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
   const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool_),
-                                common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
+    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+                                           log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
+                                           common::ManagedPointer(&buffer_pool_),
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true, log_manager_);
@@ -267,8 +266,8 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_);
-    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
+    const auto result = tested.SimulateOltp(num_txns_, terrier::BenchmarkConfig::num_threads);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -283,7 +282,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
     delete thread_registry_;
     delete metrics_thread;
     delete metrics_manager;
-    unlink(LOG_FILE_NAME);
+    unlink(terrier::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }

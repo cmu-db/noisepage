@@ -6,6 +6,7 @@
 #include <vector>
 #include "catalog/schema.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 
@@ -105,6 +106,8 @@ class LimitPlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -120,6 +123,6 @@ class LimitPlanNode : public AbstractPlanNode {
   size_t offset_;
 };
 
-DEFINE_JSON_DECLARATIONS(LimitPlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(LimitPlanNode);
 
 }  // namespace terrier::planner

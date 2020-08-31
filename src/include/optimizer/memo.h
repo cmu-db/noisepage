@@ -19,7 +19,10 @@ struct GExprPtrHash {
    * @param s GroupExpression to hash
    * @returns hash code
    */
-  std::size_t operator()(GroupExpression *const &s) const { return s->Hash(); }
+  std::size_t operator()(GroupExpression *const &s) const {
+    if (s == nullptr) return 0;
+    return s->Hash();
+  }
 };
 
 /**
@@ -32,7 +35,7 @@ struct GExprPtrEq {
    * @param t2 GroupExpression to check equality with against t1
    * @returns TRUE if equal
    */
-  bool operator()(GroupExpression *const &t1, GroupExpression *const &t2) const { return *t1 == *t2; }
+  bool operator()(GroupExpression *const &t1, GroupExpression *const &t2) const { return (*t1 == *t2); }
 };
 
 /**
@@ -94,7 +97,7 @@ class Memo {
    * @returns Group with specified ID
    */
   Group *GetGroupByID(group_id_t id) const {
-    auto idx = !id;
+    auto idx = id.UnderlyingValue();
     TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
     return groups_[idx];
   }
@@ -106,7 +109,7 @@ class Memo {
    * @param group_id GroupID of Group to erase
    */
   void EraseExpression(group_id_t group_id) {
-    auto idx = !group_id;
+    auto idx = group_id.UnderlyingValue();
     TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
 
     auto gexpr = groups_[idx]->GetLogicalExpression();

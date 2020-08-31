@@ -1,9 +1,80 @@
 #pragma once
 
-#include "optimizer/logical_operators.h"
-#include "optimizer/physical_operators.h"
-
 namespace terrier::optimizer {
+
+class LeafOperator;
+class TableFreeScan;
+class SeqScan;
+class IndexScan;
+class ExternalFileScan;
+class QueryDerivedScan;
+class OrderBy;
+class Limit;
+class InnerIndexJoin;
+class InnerNLJoin;
+class LeftNLJoin;
+class RightNLJoin;
+class OuterNLJoin;
+class InnerHashJoin;
+class LeftHashJoin;
+class RightHashJoin;
+class OuterHashJoin;
+class Insert;
+class InsertSelect;
+class Delete;
+class Update;
+class HashGroupBy;
+class SortGroupBy;
+class Aggregate;
+class ExportExternalFile;
+class CreateDatabase;
+class CreateFunction;
+class CreateIndex;
+class CreateTable;
+class CreateNamespace;
+class CreateTrigger;
+class CreateView;
+class DropDatabase;
+class DropTable;
+class DropIndex;
+class DropNamespace;
+class DropTrigger;
+class DropView;
+class Analyze;
+class LogicalGet;
+class LogicalExternalFileGet;
+class LogicalQueryDerivedGet;
+class LogicalFilter;
+class LogicalProjection;
+class LogicalMarkJoin;
+class LogicalSingleJoin;
+class LogicalDependentJoin;
+class LogicalInnerJoin;
+class LogicalLeftJoin;
+class LogicalRightJoin;
+class LogicalOuterJoin;
+class LogicalSemiJoin;
+class LogicalAggregateAndGroupBy;
+class LogicalInsert;
+class LogicalInsertSelect;
+class LogicalDelete;
+class LogicalUpdate;
+class LogicalLimit;
+class LogicalExportExternalFile;
+class LogicalCreateDatabase;
+class LogicalCreateFunction;
+class LogicalCreateIndex;
+class LogicalCreateTable;
+class LogicalCreateNamespace;
+class LogicalCreateTrigger;
+class LogicalCreateView;
+class LogicalDropDatabase;
+class LogicalDropTable;
+class LogicalDropIndex;
+class LogicalDropNamespace;
+class LogicalDropTrigger;
+class LogicalDropView;
+class LogicalAnalyze;
 
 /**
  * Utility class for visitor pattern
@@ -59,6 +130,12 @@ class OperatorVisitor {
    * @param limit operator
    */
   virtual void Visit(const Limit *limit) {}
+
+  /**
+   * Visit a InnerNLJoin operator
+   * @param index_join operator
+   */
+  virtual void Visit(const InnerIndexJoin *index_join) {}
 
   /**
    * Visit a InnerNLJoin operator
@@ -232,6 +309,12 @@ class OperatorVisitor {
    * @param drop_view operator
    */
   virtual void Visit(const DropView *drop_view) {}
+
+  /**
+   * Visit a Analyze operator
+   * @param analyze operator
+   */
+  virtual void Visit(const Analyze *analyze) {}
 
   /**
    * Visit a LogicalGet operator
@@ -430,6 +513,12 @@ class OperatorVisitor {
    * @param logical_drop_view operator
    */
   virtual void Visit(const LogicalDropView *logical_drop_view) {}
+
+  /**
+   * Visit a LogicalAnalyze operator
+   * @param logical_analyze operator
+   */
+  virtual void Visit(const LogicalAnalyze *logical_analyze) {}
 };
 
 }  // namespace terrier::optimizer

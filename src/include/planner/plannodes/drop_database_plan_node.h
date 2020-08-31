@@ -7,6 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "parser/drop_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/plan_visitor.h"
 
 namespace terrier::planner {
 /**
@@ -86,6 +87,8 @@ class DropDatabasePlanNode : public AbstractPlanNode {
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
+  void Accept(common::ManagedPointer<PlanVisitor> v) const override { v->Visit(this); }
+
   nlohmann::json ToJson() const override;
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
@@ -93,6 +96,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 };
 
-DEFINE_JSON_DECLARATIONS(DropDatabasePlanNode);
+DEFINE_JSON_HEADER_DECLARATIONS(DropDatabasePlanNode);
 
 }  // namespace terrier::planner
