@@ -76,7 +76,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
       total_processed += data.num_actions_processed_;
       daf_count_agg << ", " << (data.num_actions_processed_);
     }
-    daf_count_agg << ", " << (total_processed) << ", " << (max_queue_length_) <<  ", " << (num_txns_processed_) << ", ";
+    daf_count_agg << ", " << (total_processed) << ", " << (max_queue_length_) << ", " << (num_txns_processed_) << ", ";
     resource_metrics.ToCSV(daf_count_agg);
     daf_count_agg << std::endl;
 
@@ -96,16 +96,15 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, TXN_REMOVAL, "
+      "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, "
+      "TXN_REMOVAL, "
       "UNLINK, INVALID, total_num_actions, max_queue_size, num_daf_wakeup, total_num_txns"};
 
  private:
   friend class GarbageCollectionMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordActionData(const transaction::DafId daf_id) {
-    action_data_.emplace_front(daf_id);
-  }
+  void RecordActionData(const transaction::DafId daf_id) { action_data_.emplace_front(daf_id); }
 
   void RecordQueueSize(const int UNUSED_ATTRIBUTE queue_length) {
     if (max_queue_length_ < queue_length) {
@@ -114,14 +113,15 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   }
 
   void RecordTxnsProcessed() {
-    if (num_txns_processed_ == -1) num_txns_processed_ = 1;
-    else num_txns_processed_++;
+    if (num_txns_processed_ == -1)
+      num_txns_processed_ = 1;
+    else
+      num_txns_processed_++;
   }
 
+  // Leave it here so that we can easily collect resource metrics for individual action if needed
   struct ActionData {
-    ActionData(const transaction::DafId daf_id)
-        : start_(metrics::MetricsUtil::Now()), daf_id_(daf_id) {}
-    const int start_;
+    explicit ActionData(const transaction::DafId daf_id) : daf_id_(daf_id) {}
     const transaction::DafId daf_id_;
   };
 
@@ -153,16 +153,10 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
  private:
   friend class MetricsStore;
 
-  void RecordActionData(const transaction::DafId daf_id) {
-    GetRawData()->RecordActionData(daf_id);
-  }
+  void RecordActionData(const transaction::DafId daf_id) { GetRawData()->RecordActionData(daf_id); }
 
-  void RecordQueueSize(const int queue_size) {
-    GetRawData()->RecordQueueSize(queue_size);
-  }
+  void RecordQueueSize(const int queue_size) { GetRawData()->RecordQueueSize(queue_size); }
 
-  void RecordTxnsProcessed() {
-    GetRawData()->RecordTxnsProcessed();
-  }
+  void RecordTxnsProcessed() { GetRawData()->RecordTxnsProcessed(); }
 };
 }  // namespace terrier::metrics

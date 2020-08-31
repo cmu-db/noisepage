@@ -45,18 +45,12 @@ class BwTreeIndex final : public Index {
     } else {
       num_mod_.store(0);
       txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-        deferred_action_manager->RegisterDeferredAction(
-            [=]() {
-              bwtree_->PerformGarbageCollection();
-            },
-            transaction::DafId::MEMORY_DEALLOCATION);
+        deferred_action_manager->RegisterDeferredAction([=]() { bwtree_->PerformGarbageCollection(); },
+                                                        transaction::DafId::MEMORY_DEALLOCATION);
       });
       txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-        deferred_action_manager->RegisterDeferredAction(
-            [=]() {
-              bwtree_->PerformGarbageCollection();
-            },
-            transaction::DafId::MEMORY_DEALLOCATION);
+        deferred_action_manager->RegisterDeferredAction([=]() { bwtree_->PerformGarbageCollection(); },
+                                                        transaction::DafId::MEMORY_DEALLOCATION);
       });
     }
   }

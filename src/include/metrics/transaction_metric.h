@@ -68,7 +68,8 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 3> FILES = {"./txn_begin.csv", "./txn_commit.csv", "./num_txn_processed.csv"};
+  static constexpr std::array<std::string_view, 3> FILES = {"./txn_begin.csv", "./txn_commit.csv",
+                                                            "./num_txn_processed.csv"};
 
   /**
    * Columns to use for writing to CSV.
@@ -87,9 +88,7 @@ class TransactionMetricRawData : public AbstractRawData {
     commit_data_.emplace_back(is_readonly, resource_metrics);
   }
 
-  void RecordTxnsProcessed() {
-    num_txns_++;
-  }
+  void RecordTxnsProcessed() { num_txns_++; }
 
   struct BeginData {
     explicit BeginData(const common::ResourceTracker::Metrics &resource_metrics)
@@ -122,8 +121,6 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordCommitData(is_readonly, resource_metrics);
   }
-  void RecordTxnsProcessed() {
-    GetRawData()->RecordTxnsProcessed();
-  }
+  void RecordTxnsProcessed() { GetRawData()->RecordTxnsProcessed(); }
 };
 }  // namespace terrier::metrics

@@ -44,6 +44,9 @@ STRONG_TYPEDEF_HEADER(layout_version_t, uint16_t);
 constexpr col_id_t VERSION_POINTER_COLUMN_ID = col_id_t(0);
 constexpr uint8_t NUM_RESERVED_COLUMNS = 1;
 
+// Default number of deferred action or gc threads
+constexpr uint8_t DEFAULT_NUM_DAF_THREADS = 2;
+
 class DataTable;
 
 /**

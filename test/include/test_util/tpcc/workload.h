@@ -238,7 +238,7 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
     std::vector<TransactionArgs> txns;
     txns.reserve(num_precomputed_txns_per_worker);
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
-//      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
+      //      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
       switch (deck.NextCard()) {
         case TransactionType::NewOrder:
           txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
@@ -273,11 +273,8 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
  * @param precomputed_args all of the precomputed args for this TPC-C run
  * @param workers preallocated workers with buffers to use for execution
  */
-uint32_t Workload(const int8_t worker_id,
-                  Database *const tpcc_db,
-                  transaction::TransactionManager *const txn_manager,
-                  const std::vector<std::vector<TransactionArgs>> &precomputed_args,
-                  std::vector<Worker> *const workers,
+uint32_t Workload(int8_t worker_id, Database *tpcc_db, transaction::TransactionManager *txn_manager,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> * workers,
                   const bool &shutdown);
 
 /**
