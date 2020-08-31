@@ -1,6 +1,7 @@
 #include "execution/sql/aggregation_hash_table.h"
 
 #include <tbb/parallel_for_each.h>
+#include <tbb/task_scheduler_init.h>
 
 #include <algorithm>
 #include <memory>
@@ -627,7 +628,7 @@ void AggregationHashTable::ExecutePartitionedScan(void *query_state, Aggregation
       // Get or build the table on the partition.
       auto agg_table_partition = GetOrBuildTableOverPartition(query_state, part_idx);
       // Scan the partition.
-      scan_fn(query_state, nullptr, agg_table_partition);
+      scan_fn(query_state, nullptr, agg_table_partition, 0);
     }
   }
 }
@@ -658,6 +659,9 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   util::Timer<std::milli> timer;
   timer.Start();
 
+  size_t num_threads = tbb::task_scheduler_init::default_num_threads();
+  size_t num_tasks = nonempty_parts.size();
+  size_t concurrent_estimate = std::min(num_threads, num_tasks) > 0 ? (std::min(num_threads, num_tasks) - 1) : 0;
   tbb::parallel_for_each(nonempty_parts, [&](const uint32_t part_idx) {
     // Build a hash table over the given partition
     auto agg_table_partition = GetOrBuildTableOverPartition(query_state, part_idx);
@@ -666,7 +670,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
     auto thread_state = thread_states->AccessCurrentThreadState();
 
     // Scan the partition
-    scan_fn(query_state, thread_state, agg_table_partition);
+    scan_fn(query_state, thread_state, agg_table_partition, concurrent_estimate);
   });
 
   timer.Stop();

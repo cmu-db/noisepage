@@ -108,11 +108,6 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
   }
 }
 
-void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  CounterSet(function, num_agg_inputs_, 0);
-  CounterSet(function, num_agg_outputs_, 0);
-}
-
 ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const {
   auto *codegen = GetCodeGen();
   auto member = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(attr_idx));
@@ -133,8 +128,14 @@ void StaticAggregationTranslator::InitializeAggregates(FunctionBuilder *function
 }
 
 void StaticAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    InitializeAggregates(function, true);
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      InitializeAggregates(function, true);
+    }
+
+    CounterSet(function, num_agg_inputs_, 0);
+  } else {
+    CounterSet(function, num_agg_outputs_, 0);
   }
 }
 
@@ -189,6 +190,28 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
   }
 }
 
+void StaticAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  if (IsBuildPipeline(pipeline)) {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_agg_inputs_.Get(codegen));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
+
+    if (pipeline.IsParallel()) {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    pipeline.ConcurrentState());
+    }
+  } else {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  num_agg_outputs_.Get(GetCodeGen()));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
+  }
+}
+
 void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
 
@@ -199,17 +222,6 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
       ast::Expr *query_state = GetQueryStatePtr();
       function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
     }
-
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_agg_inputs_.Get(codegen));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
-  } else {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  num_agg_outputs_.Get(GetCodeGen()));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
   }
 }
 

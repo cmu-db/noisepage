@@ -41,15 +41,19 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
-  /** Declare the counters. */
-  void InitializeQueryState(FunctionBuilder *function) const override;
-
   /**
    * If the provided pipeline is the build-side, initialize the declare partial aggregate.
    * @param pipeline The pipeline whose state is being initialized.
    * @param function The function being built.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * Tear-down the FilterManager if required.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Before the pipeline begins, initial the partial aggregates.

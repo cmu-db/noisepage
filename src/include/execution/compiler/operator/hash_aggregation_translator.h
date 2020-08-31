@@ -181,6 +181,7 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The global and thread-local aggregation hash tables.
   StateDescriptor::Entry global_agg_ht_;
   StateDescriptor::Entry local_agg_ht_;
+  StateDescriptor::Entry iterate_agg_ht_;
 
   // For minirunners
   ast::StructDecl *struct_decl_;

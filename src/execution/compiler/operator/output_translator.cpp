@@ -54,6 +54,12 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_output_.Get(GetCodeGen()));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
+
+  if (pipeline.IsParallel()) {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                  pipeline.ConcurrentState());
+  }
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {

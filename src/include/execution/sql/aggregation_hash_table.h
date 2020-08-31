@@ -93,7 +93,7 @@ class EXPORT AggregationHashTable {
    * Convention: First argument is query state, second argument is thread-local state, last argument
    *             is the aggregation hash table to scan.
    */
-  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *);
+  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *, uint32_t);
 
   /**
    * Small class to capture various usage stats

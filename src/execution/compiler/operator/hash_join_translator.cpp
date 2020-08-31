@@ -25,12 +25,6 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
   TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
 
-  if (IsCountersEnabled()) {
-    // TODO(WAN): for now, enabling counters forces it to be serial.
-    left_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
-    pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
-  }
-
   // Probe pipeline begins after build pipeline.
   pipeline->LinkSourcePipeline(&left_pipeline_);
   // Register left and right child in their appropriate pipelines.
@@ -83,10 +77,6 @@ void HashJoinTranslator::TearDownJoinHashTable(FunctionBuilder *function, ast::E
 void HashJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   InitializeJoinHashTable(function, global_join_ht_.GetPtr(codegen));
-
-  CounterSet(function, num_build_rows_, 0);
-  CounterSet(function, num_probe_rows_, 0);
-  CounterSet(function, num_match_rows_, 0);
 }
 
 void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -94,14 +84,50 @@ void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
 }
 
 void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
-    InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+  if (IsLeftPipeline(pipeline)) {
+    if (left_pipeline_.IsParallel()) {
+      InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+    }
+
+    CounterSet(function, num_build_rows_, 0);
+  } else {
+    CounterSet(function, num_probe_rows_, 0);
+    CounterSet(function, num_match_rows_, 0);
   }
 }
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
-    TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+  auto *codegen = GetCodeGen();
+  if (IsLeftPipeline(pipeline)) {
+    if (left_pipeline_.IsParallel()) {
+      TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+    }
+
+    const auto join_ht = pipeline.IsParallel() ? local_join_ht_ : global_join_ht_;
+    auto *jht = join_ht.GetPtr(codegen);
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_build_rows_.Get(codegen));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
+
+    if (left_pipeline_.IsParallel()) {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    pipeline.ConcurrentState());
+    }
+  } else {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_probe_rows_.Get(codegen));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, num_match_rows_.Get(codegen));
+
+    if (pipeline.IsParallel()) {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    pipeline.ConcurrentState());
+    }
   }
 }
 
@@ -298,17 +324,6 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
     }
-
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_build_rows_.Get(codegen));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
-  } else {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_probe_rows_.Get(codegen));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, num_match_rows_.Get(codegen));
   }
 }
 
