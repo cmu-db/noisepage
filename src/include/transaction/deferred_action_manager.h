@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/thread_context.h"
+#include "metrics/metrics_store.h"
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/timestamp_manager.h"
@@ -14,7 +16,7 @@ class GarbageCollectorThread;
 }
 namespace terrier::transaction {
 
-constexpr uint8_t MIN_GC_INVOCATIONS = 6;
+//constexpr uint8_t MIN_GC_INVOCATIONS = 6;
 constexpr uint8_t BATCH_SIZE = 6;
 
 /**

@@ -8,6 +8,7 @@
 #include "common/shared_latch.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::transaction {
 class TimestampManager;
@@ -73,13 +74,6 @@ class GarbageCollector {
    * @param index pointer to the index to unregister
    */
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
-
-  /**
-   * Set the GC interval for metrics collection
-   * TODO(lma): this need to be called in the settings callback after we add the ability to change the GC interval
-   * @param gc_interval interval to set (in us)
-   */
-  void SetGCInterval(uint64_t gc_interval) { gc_interval_ = gc_interval; }
 
  private:
   friend class GarbageCollectorThread;
