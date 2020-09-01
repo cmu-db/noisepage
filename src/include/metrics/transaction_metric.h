@@ -27,7 +27,6 @@ class TransactionMetricRawData : public AbstractRawData {
     if (!other_db_metric->commit_data_.empty()) {
       commit_data_.splice(commit_data_.cend(), other_db_metric->commit_data_);
     }
-    num_txns_ += other_db_metric->num_txns_.exchange(0);
   }
 
   /**
@@ -47,7 +46,6 @@ class TransactionMetricRawData : public AbstractRawData {
 
     auto &begin_outfile = (*outfiles)[0];
     auto &commit_outfile = (*outfiles)[1];
-    auto &num_outfile = (*outfiles)[2];
 
     for (const auto &data : begin_data_) {
       data.resource_metrics_.ToCSV(begin_outfile);
@@ -58,8 +56,6 @@ class TransactionMetricRawData : public AbstractRawData {
       data.resource_metrics_.ToCSV(commit_outfile);
       commit_outfile << std::endl;
     }
-    num_outfile << metrics::MetricsUtil::Now() % 1000000000 << ", " << num_txns_.exchange(0) << ",";
-    num_outfile << std::endl;
 
     begin_data_.clear();
     commit_data_.clear();
@@ -68,13 +64,12 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 3> FILES = {"./txn_begin.csv", "./txn_commit.csv",
-                                                            "./num_txn_processed.csv"};
+  static constexpr std::array<std::string_view, 2> FILES = {"./txn_begin.csv", "./txn_commit.csv"};
 
   /**
    * Columns to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 3> FEATURE_COLUMNS = {"", "is_readonly", "time, num_txns"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"", "is_readonly"};
 
  private:
   friend class TransactionMetric;
@@ -87,8 +82,6 @@ class TransactionMetricRawData : public AbstractRawData {
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     commit_data_.emplace_back(is_readonly, resource_metrics);
   }
-
-  void RecordTxnsProcessed() { num_txns_++; }
 
   struct BeginData {
     explicit BeginData(const common::ResourceTracker::Metrics &resource_metrics)
@@ -105,7 +98,6 @@ class TransactionMetricRawData : public AbstractRawData {
 
   std::list<BeginData> begin_data_;
   std::list<CommitData> commit_data_;
-  std::atomic<int> num_txns_ = 0;
 };
 
 /**
@@ -121,6 +113,5 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
   void RecordCommitData(const uint64_t is_readonly, const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordCommitData(is_readonly, resource_metrics);
   }
-  void RecordTxnsProcessed() { GetRawData()->RecordTxnsProcessed(); }
 };
 }  // namespace terrier::metrics
