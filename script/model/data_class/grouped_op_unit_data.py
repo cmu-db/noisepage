@@ -7,7 +7,7 @@ import os
 
 from data_class import data_util
 from data_class import tpcc_fixer
-from info import data_info, query_info
+from info import data_info, query_info, query_info_1G, query_info_10G
 import global_model_config
 
 from type import Target, ConcurrentCountingMode, OpUnit
@@ -108,11 +108,11 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
                 q_id = int(line[0])
                 p_id = int(line[1])
                 if tpcc_hack:
-                    x_loc = tpcc_fixer.transformFeature(feature, q_id, p_id, x_loc)
+                    x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
                 opunits.append((opunit, x_loc))
 
-            data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits,
+            data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits,
                                                np.array(metrics)))
 
     return data_list
@@ -160,7 +160,7 @@ def _interval_get_grouped_op_unit_data(filename):
         n = len(interval_x_map[rounded_time])
         for i in range(n):
             metrics = np.concatenate(([rounded_time + i * interval // n], [interval_cpu_map[rounded_time]], y_new))
-            data_list.append(GroupedOpUnitData("{} {}".format(file_name, opunits), opunits, metrics))
+            data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics))
 
     return data_list
 

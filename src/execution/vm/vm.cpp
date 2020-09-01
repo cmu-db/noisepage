@@ -257,7 +257,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   DO_GEN_ARITHMETIC_OP(Sub, false, type) \
   DO_GEN_ARITHMETIC_OP(Mul, false, type) \
   DO_GEN_ARITHMETIC_OP(Div, true, type)  \
-  DO_GEN_ARITHMETIC_OP(Rem, true, type)
+  DO_GEN_ARITHMETIC_OP(Mod, true, type)
 
   ALL_NUMERIC_TYPES(GEN_ARITHMETIC_OP)
 #undef GEN_ARITHMETIC_OP
@@ -854,6 +854,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_VEC_FILTER(VectorFilterLessThan)
   GEN_VEC_FILTER(VectorFilterLessThanEqual)
   GEN_VEC_FILTER(VectorFilterNotEqual)
+  GEN_VEC_FILTER(VectorFilterLike)
+  GEN_VEC_FILTER(VectorFilterNotLike)
 
 #undef GEN_VEC_FILTER
 
@@ -1096,7 +1098,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   GEN_MATH_OPS(Sub)
   GEN_MATH_OPS(Mul)
   GEN_MATH_OPS(Div)
-  GEN_MATH_OPS(Rem)
+  GEN_MATH_OPS(Mod)
 
 #undef GEN_MATH_OPS
 
@@ -1913,6 +1915,15 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(StorageInterfaceIndexInsertWithSlot) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto unique = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexInsertWithSlot(result, storage_interface, tuple_slot, unique);
+    DISPATCH_NEXT();
+  }
+
   OP(StorageInterfaceIndexDelete) : {
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
@@ -2010,11 +2021,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   BINARY_REAL_MATH_OP(Log);
   BINARY_REAL_MATH_OP(Pow);
 
-  OP(RoundUpTo) : {
+  OP(Round2) : {
     auto *result = frame->LocalAt<sql::Real *>(READ_LOCAL_ID());
     auto *v = frame->LocalAt<const sql::Real *>(READ_LOCAL_ID());
-    auto *scale = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
-    OpRoundUpTo(result, v, scale);
+    auto *precision = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpRound2(result, v, precision);
     DISPATCH_NEXT();
   }
 
@@ -2060,6 +2071,29 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // -------------------------------------------------------
   // String functions
   // -------------------------------------------------------
+  OP(Chr) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpChr(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
+
+  OP(CharLength) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpCharLength(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
+
+  OP(ASCII) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpASCII(result, exec_ctx, input);
+    DISPATCH_NEXT();
+  }
 
   OP(Concat) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
@@ -2103,22 +2137,48 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(LPad) : {
+  OP(Position) : {
+    auto *result = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *search_str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *search_sub_str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpPosition(result, exec_ctx, search_str, search_sub_str);
+    DISPATCH_NEXT();
+  }
+
+  OP(LPad3Arg) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpLPad(result, exec_ctx, input, n, chars);
+    OpLPad3Arg(result, exec_ctx, input, n, chars);
     DISPATCH_NEXT();
   }
 
-  OP(LTrim) : {
+  OP(LPad2Arg) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpLPad2Arg(result, exec_ctx, input, n);
+    DISPATCH_NEXT();
+  }
+
+  OP(LTrim2Arg) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpLTrim(result, exec_ctx, input, chars);
+    OpLTrim2Arg(result, exec_ctx, input, chars);
+    DISPATCH_NEXT();
+  }
+
+  OP(LTrim1Arg) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpLTrim1Arg(result, exec_ctx, input);
     DISPATCH_NEXT();
   }
 
@@ -2148,22 +2208,39 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(RPad) : {
+  OP(RPad3Arg) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpRPad(result, exec_ctx, input, n, chars);
+    OpRPad3Arg(result, exec_ctx, input, n, chars);
     DISPATCH_NEXT();
   }
 
-  OP(RTrim) : {
+  OP(RPad2Arg) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *n = frame->LocalAt<const sql::Integer *>(READ_LOCAL_ID());
+    OpRPad2Arg(result, exec_ctx, input, n);
+    DISPATCH_NEXT();
+  }
+
+  OP(RTrim2Arg) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpRTrim(result, exec_ctx, input, chars);
+    OpRTrim2Arg(result, exec_ctx, input, chars);
+    DISPATCH_NEXT();
+  }
+
+  OP(RTrim1Arg) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *input = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpRTrim1Arg(result, exec_ctx, input);
     DISPATCH_NEXT();
   }
 
@@ -2187,12 +2264,29 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(StartsWith) : {
+    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    auto *start = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpStartsWith(result, exec_ctx, str, start);
+    DISPATCH_NEXT();
+  }
+
   OP(Trim) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpTrim(result, exec_ctx, str);
+    DISPATCH_NEXT();
+  }
+
+  OP(Trim2) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
     auto *chars = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpTrim(result, exec_ctx, str, chars);
+    OpTrim2(result, exec_ctx, str, chars);
     DISPATCH_NEXT();
   }
 
@@ -2243,6 +2337,14 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     OpVersion(exec_ctx, result);
+    DISPATCH_NEXT();
+  }
+
+  OP(InitCap) : {
+    auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *str = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
+    OpInitCap(result, exec_ctx, str);
     DISPATCH_NEXT();
   }
 

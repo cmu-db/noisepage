@@ -79,8 +79,8 @@ class LoggingMetricRawData : public AbstractRawData {
   friend class LoggingMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
-                            const uint64_t num_txns, const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                            const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
     serializer_data_.emplace_back(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
 
@@ -126,8 +126,8 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t interval,
-                            const uint64_t num_txns, const common::ResourceTracker::Metrics &resource_metrics) {
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                            const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
     GetRawData()->RecordSerializerData(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
   void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
