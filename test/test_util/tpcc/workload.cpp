@@ -15,9 +15,7 @@ uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::
   uint32_t txn_counter = 0;
 
   for (const auto &txn_args : precomputed_args[worker_id]) {
-    if (shutdown) {
-      break;
-    }
+    if (shutdown) break;
     switch (txn_args.type_) {
       case TransactionType::NewOrder: {
         new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
