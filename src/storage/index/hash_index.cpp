@@ -204,7 +204,7 @@ void HashIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Transa
 
   // Register a deferred action for the GC with txn manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction(ERASE_KEY_ACTION, transaction::DafId::MEMORY_DEALLOCATION);
+    deferred_action_manager->RegisterDeferredAction(ERASE_KEY_ACTION, transaction::DafId::INDEX_REMOVE_KEY);
   });
 }
 template <typename KeyType>

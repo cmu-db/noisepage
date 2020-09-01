@@ -119,7 +119,7 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
           const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
           TERRIER_ASSERT(result, "Deferred delete on the index failed.");
         },
-        transaction::DafId::MEMORY_DEALLOCATION);
+        transaction::DafId::INDEX_REMOVE_KEY);
   });
 }
 
