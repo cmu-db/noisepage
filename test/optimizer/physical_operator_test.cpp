@@ -793,7 +793,8 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   EXPECT_EQ(semi_hash_join_1.GetOpType(), OpType::LEFTSEMIHASHJOIN);
   EXPECT_EQ(semi_hash_join_3.GetOpType(), OpType::LEFTSEMIHASHJOIN);
   EXPECT_EQ(semi_hash_join_1.GetName(), "LeftSemiHashJoin");
-  EXPECT_EQ(semi_hash_join_1.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(semi_hash_join_1.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>());
   EXPECT_EQ(semi_hash_join_3.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(semi_hash_join_4.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
