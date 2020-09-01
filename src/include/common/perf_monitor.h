@@ -86,22 +86,6 @@ class PerfMonitor {
     }
 
     /**
-     * compound assignment
-     * @param rhs you know addition? this is the right side of that binary operator
-     * @return reference to this
-     */
-    PerfCounters &operator+=(const PerfCounters &rhs) {
-      this->cpu_cycles_ += rhs.cpu_cycles_;
-      this->instructions_ += rhs.instructions_;
-      this->cache_references_ += rhs.cache_references_;
-      this->cache_misses_ += rhs.cache_misses_;
-      // this->branch_instructions_ += rhs.branch_instructions_;
-      // this->branch_misses_ += rhs.branch_misses_;
-      this->bus_cycles_ += rhs.bus_cycles_;
-      this->ref_cpu_cycles_ += rhs.ref_cpu_cycles_;
-      return *this;
-    }
-    /**
      * subtract implemented from compound assignment. passing lhs by value helps optimize chained a+b+c
      * @param lhs you know subtraction? this is the left side of that binary operator
      * @param rhs you know subtraction? this is the right side of that binary operator
