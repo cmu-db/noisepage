@@ -743,12 +743,6 @@ table_oid_t DatabaseCatalog::CreateTable(const common::ManagedPointer<transactio
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
 
-view_oid_t DatabaseCatalog::CreateView(common::ManagedPointer<transaction::TransactionContext> txn, namespace_oid_t ns,
-                                       const std::string &view_name, const Schema &schema) {
-  // TODO(Elena) this is just a preparation for implementing create view
-  return INVALID_VIEW_OID;
-}
-
 bool DatabaseCatalog::DeleteIndexes(const common::ManagedPointer<transaction::TransactionContext> txn,
                                     const table_oid_t table) {
   if (!TryLock(txn)) return false;

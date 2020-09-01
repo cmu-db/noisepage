@@ -214,13 +214,6 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       }
       break;
     }
-    case network::QueryType::QUERY_CREATE_VIEW: {
-      if (execution::sql::DDLExecutors::CreateViewExecutor(
-              physical_plan.CastManagedPointerTo<planner::CreateViewPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
-      }
-      break;
-    }
     default: {
       return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "unsupported CREATE statement type",
                                                    common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED)};

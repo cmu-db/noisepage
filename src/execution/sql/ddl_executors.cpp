@@ -157,8 +157,4 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   return true;
 }
 
-bool DDLExecutors::CreateViewExecutor(common::ManagedPointer<planner::CreateViewPlanNode> node,
-                                      common::ManagedPointer<catalog::CatalogAccessor> accessor) {
-  return true;
-}
 }  // namespace terrier::execution::sql
