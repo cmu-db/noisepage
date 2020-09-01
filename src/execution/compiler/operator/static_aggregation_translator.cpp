@@ -40,7 +40,7 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
     if (agg_term->IsDistinct()) {
       distinct_filters_.emplace(std::make_pair(
           agg_term_idx,
-          DistinctAggregationFilter(agg_term_idx, agg_term, compilation_context, pipeline, GetCodeGen())));
+          DistinctAggregationFilter(agg_term_idx, agg_term, 0, compilation_context, pipeline, GetCodeGen())));
     }
   }
 
@@ -97,7 +97,7 @@ void StaticAggregationTranslator::DefineHelperStructs(util::RegionVector<ast::St
   decls->push_back(GenerateValuesStruct());
   for (auto p : distinct_filters_) {
     auto agg_term = GetAggPlan().GetAggregateTerms()[p.first];
-    decls->push_back(p.second.GenerateKeyStruct(GetCodeGen(), agg_term));
+    decls->push_back(p.second.GenerateKeyStruct(GetCodeGen(), agg_term, {}));
   }
 }
 
@@ -118,7 +118,7 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
 
   // Generate key check functions
   for (auto &p : distinct_filters_) {
-    decls->push_back(p.second.GenerateDistinctCheckFunction(GetCodeGen()));
+    decls->push_back(p.second.GenerateDistinctCheckFunction(GetCodeGen(), {}));
   }
 }
 
@@ -186,15 +186,17 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
   // Update aggregate.
   for (term_idx = 0; term_idx < GetAggPlan().GetAggregateTerms().size(); term_idx++) {
     auto agg_term = GetAggPlan().GetAggregateTerms().at(term_idx);
+    // Prepare for the advance aggregate call
     auto agg_payload_ptr = GetAggregateTermPtr(agg_payload.Get(codegen), term_idx);
     auto agg_val_ptr = GetAggregateTermPtr(codegen->MakeExpr(agg_values), term_idx);
     auto agg_advance_call = codegen->AggregatorAdvance(agg_payload_ptr, agg_val_ptr);
 
     if (agg_term->IsDistinct()) {
-      // Get underlying key value
-      auto val = GetAggregateTerm(codegen->MakeExpr(agg_values), term_idx);
       auto &filter = distinct_filters_.at(term_idx);
-      filter.AggregateDistinct(codegen, function, agg_advance_call, val);
+      auto agg_val = ctx->DeriveValue(*agg_term->GetChild(0), this);
+
+      // Get underlying key value
+      filter.AggregateDistinct(codegen, function, agg_advance_call, agg_val,{});
     } else {
       function->Append(agg_advance_call);
     }
