@@ -5,11 +5,14 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
-#include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::planner {
 class AggregatePlanNode;
 }  // namespace terrier::planner
+
+namespace terrier::parser {
+class AggregateExpression;
+}  // namespace terrier::parser
 
 namespace terrier::execution::compiler {
 

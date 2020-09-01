@@ -4,6 +4,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/if.h"
 #include "execution/compiler/work_context.h"
+#include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::execution::compiler {
 
@@ -164,10 +165,8 @@ ast::Expr *StaticAggregationTranslator::GetValuesStructTypeForTerm(
     const common::ManagedPointer<parser::AggregateExpression> &term) {
   auto codegen = GetCodeGen();
   if (term->GetExpressionType() == parser::ExpressionType::AGGREGATE_AVG) {
-    // No guarantee that we have derived the return type of the child
-    // expression at this point in query processing, so we need to do it here.
-    TERRIER_ASSERT(term->GetChildrenSize() >= 1, "No column name given.");
-    const_cast<parser::AbstractExpression *>(term->GetChild(0).Get())->DeriveReturnValueType();
+    TERRIER_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
+                   "Return value type of child expression is invalid.");
     return codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
   }
   return codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
