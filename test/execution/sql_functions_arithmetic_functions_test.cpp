@@ -12,7 +12,7 @@ namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
-  static double cotan(const double arg) { return Cot<double>{}(arg); }
+  static double Cotan(const double arg) { return Cot<double>{}(arg); }
 };
 
 // NOLINTNEXTLINE
@@ -62,6 +62,19 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
     ArithmeticFunctions::IntDiv(&result, a, b, &div_by_zero);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(aval / bval, result.val_);
+
+    result = Integer(0);
+    ArithmeticFunctions::Abs(&result, a);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval, result.val_);
+
+    const auto cval = -4, dval = 4;
+    Integer c(cval), d(dval);
+
+    result = Integer(0);
+    ArithmeticFunctions::Abs(&result, c);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(dval, result.val_);
   }
 
   // Overflow
@@ -145,6 +158,19 @@ TEST_F(ArithmeticFunctionsTests, RealValue) {
     ArithmeticFunctions::Div(&result, a, b, &div_by_zero);
     EXPECT_FALSE(result.is_null_);
     EXPECT_EQ(aval / bval, result.val_);
+
+    result = Real(0.0);
+    ArithmeticFunctions::Abs(&result, a);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval, result.val_);
+
+    const auto cval = -4.8, dval = 4.8;
+    Real c(cval);
+
+    result = Real(0.0);
+    ArithmeticFunctions::Abs(&result, c);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(dval, result.val_);
   }
 }
 
@@ -200,12 +226,13 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
   // Check some of the trig functions on all inputs
   for (const auto input : inputs) {
     CHECK_SQL_FUNC(Cos, std::cos);
-    CHECK_SQL_FUNC(Cot, cotan);
+    CHECK_SQL_FUNC(Cot, Cotan);
     CHECK_SQL_FUNC(Sin, std::sin);
     CHECK_SQL_FUNC(Tan, std::tan);
     CHECK_SQL_FUNC(Cosh, std::cosh);
     CHECK_SQL_FUNC(Tanh, std::tanh);
     CHECK_SQL_FUNC(Sinh, std::sinh);
+    CHECK_SQL_FUNC(Round, std::round);
   }
 
   for (const auto input : arc_inputs) {
@@ -246,12 +273,21 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 
   CHECK_SQL_FUNC(Sqrt, std::sqrt, 4.0);
   CHECK_SQL_FUNC(Sqrt, std::sqrt, 1.0);
+  CHECK_SQL_FUNC(Sqrt, std::sqrt, 50.1);
+  CHECK_SQL_FUNC(Sqrt, std::sqrt, 100.234);
 
   CHECK_SQL_FUNC(Cbrt, std::cbrt, 4.0);
-  CHECK_SQL_FUNC(Cbrt, std::cbrt, 1.0);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, -1.0);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, 50.1);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, -100.234);
 
   CHECK_SQL_FUNC(Exp, std::exp, 4.0);
   CHECK_SQL_FUNC(Exp, std::exp, 1.0);
+
+  CHECK_SQL_FUNC(Truncate, std::trunc, 4.4);
+  CHECK_SQL_FUNC(Truncate, std::trunc, 1.2);
+  CHECK_SQL_FUNC(Truncate, std::trunc, -100.1);
+  CHECK_SQL_FUNC(Truncate, std::trunc, -100.34234);
 
   CHECK_SQL_FUNC(Ceil, std::ceil, 4.5);
   CHECK_SQL_FUNC(Ceil, std::ceil, -100.34234);
@@ -267,6 +303,11 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 
   CHECK_SQL_FUNC(Log10, std::log10, 4.4);
   CHECK_SQL_FUNC(Log10, std::log10, 100.234);
+
+  CHECK_SQL_FUNC(Round, std::round, 100.4);
+  CHECK_SQL_FUNC(Round, std::round, 100.5);
+  CHECK_SQL_FUNC(Round, std::round, -100.4);
+  CHECK_SQL_FUNC(Round, std::round, -100.5);
 
 #undef CHECK_SQL_FUNC
 #undef CHECK_HANDLES_NONNULL
@@ -294,6 +335,46 @@ TEST_F(ArithmeticFunctionsTests, Sign) {
   ArithmeticFunctions::Sign(&result, input);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(0.0, result.val_);
+}
+
+// Round2
+TEST_F(ArithmeticFunctionsTests, Round) {
+  Real input = Real::Null(), result = Real::Null();
+  Integer precision = Integer::Null();
+
+  input = Real::Null();
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_TRUE(result.is_null_);
+
+  input = Real(12.345);
+  precision = Integer::Null();
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_TRUE(result.is_null_);
+
+  input = Real(12.345);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(12.35, result.val_);
+
+  input = Real(12.344);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(12.34, result.val_);
+
+  input = Real(-12.345);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(-12.35, result.val_);
+
+  input = Real(-12.344);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(-12.34, result.val_);
 }
 
 }  // namespace terrier::execution::sql::test

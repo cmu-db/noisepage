@@ -711,7 +711,7 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
 
   /**
-   * Gets the proc context pointer column of proc_oid to func_context
+   * Gets the proc context pointer column of proc_oid
    * @param txn transaction to use
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid

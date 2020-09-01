@@ -14,7 +14,7 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache):
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -30,7 +30,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
-        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache)
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -39,7 +39,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
     return resource_data_list, impact_data_list
 
 
-def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache):
+def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -48,7 +48,7 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path, warmup_period)
+    data_list = _get_data_list(input_path, warmup_period, tpcc_hack)
     _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
@@ -174,7 +174,7 @@ def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path, warmup_period):
+def _get_data_list(input_path, warmup_period, tpcc_hack):
     """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
 
     :param input_path: input data file path
@@ -185,7 +185,7 @@ def _get_data_list(input_path, warmup_period):
 
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
-        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period)
+        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period, tpcc_hack)
         logging.info("Loaded file: {}".format(filename))
 
     return data_list
@@ -211,6 +211,12 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     actual_pipelines = {}
     predicted_pipelines = {}
     count_pipelines = {}
+
+    query_prediction_path = "{}/grouped_query_prediction.csv".format(model_results_path)
+    io_util.create_csv_file(query_prediction_path, ["Query", "", "Actual", "", "Predicted", "", "Ratio Error"])
+    current_query_id = None
+    query_y = None
+    query_y_pred = None
 
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
@@ -264,7 +270,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
                 pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
                 if pred_mem <= buffer_size:
                     logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
-                            .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                 # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
                 # slightly inaccurate since ignores load factors for hash tables
@@ -291,7 +297,22 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
             for field in fields:
                 pipeline_y[field ] = pipeline_y[field] * 0.4
 
-        # Record the predicted
+        # Grouping if we're predicting queries
+        if "tpch" in data.name:
+            query_id = data.name[5:data.name.rfind("_p")]
+            if query_id != current_query_id:
+                if current_query_id is not None:
+                    io_util.write_csv_result(query_prediction_path, current_query_id, [""] + list(query_y) + [""] +
+                                             list(query_y_pred) + [""] +
+                                             list(abs(query_y - query_y_pred) / (query_y + 1)))
+
+                current_query_id = query_id
+                query_y = y
+                query_y_pred = pipeline_y_pred
+            else:
+                query_y += y
+                query_y_pred += pipeline_y_pred
+
         data.y_pred = pipeline_y
         logging.debug("{} pipeline prediction: {}".format(data.name, pipeline_y))
         logging.debug("{} pipeline predicted time: {}".format(data.name, pipeline_y[-1]))
@@ -323,7 +344,12 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
 
         num_pipelines += 1
 
-    total_elapsed_err = abs(total_actual - total_predicted)[-1]
+    total_elapsed_err = 0
+    for pipeline in actual_pipelines:
+        actual = actual_pipelines[pipeline]
+        predicted = predicted_pipelines[pipeline]
+        total_elapsed_err = total_elapsed_err + (abs(actual - predicted))[-1]
+
     for pipeline in actual_pipelines:
         actual = actual_pipelines[pipeline]
         predicted = predicted_pipelines[pipeline]

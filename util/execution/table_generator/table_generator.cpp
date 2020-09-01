@@ -329,6 +329,15 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Index_test
+      {"index_test_table",
+       INDEX_TEST_SIZE,
+       {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
+        {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
+        {"colD", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999},
+        {"colE", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
   };
 
   if (is_mini_runner) {
@@ -343,7 +352,7 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnerIndexes() {
+void TableGenerator::GenerateMiniRunnerIndexTables() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
@@ -361,30 +370,60 @@ void TableGenerator::GenerateMiniRunnerIndexes() {
 
       auto meta = TableInsertMeta(table_name, row_num, col_metas);
       CreateTable(&meta);
-
-      // Create Index Schema
-      for (auto key_num : idx_key) {
-        std::stringstream idx_name;
-        idx_name << table_name << "_index_" << key_num;
-        auto idx_name_str = idx_name.str();
-
-        std::vector<std::string> index_strs;
-        std::vector<IndexColumn> idx_meta_cols;
-        index_strs.reserve(key_num);
-        idx_meta_cols.reserve(key_num);
-        for (uint32_t j = 1; j <= key_num; j++) {
-          std::stringstream col_name;
-          col_name << "col" << j;
-
-          index_strs.push_back(col_name.str());
-          idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
-        }
-
-        auto index_meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
-        CreateIndex(&index_meta);
-      }
     }
   }
+}
+
+void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
+  auto table_name = GenerateTableIndexName(type, row_num);
+
+  // Create Index Schema
+  std::stringstream idx_name;
+  idx_name << table_name << "_index_" << key_num;
+  auto idx_name_str = idx_name.str();
+
+  std::vector<std::string> index_strs;
+  std::vector<IndexColumn> idx_meta_cols;
+  index_strs.reserve(key_num);
+  idx_meta_cols.reserve(key_num);
+  for (uint32_t j = 1; j <= key_num; j++) {
+    std::stringstream col_name;
+    col_name << "col" << j;
+
+    index_strs.push_back(col_name.str());
+    idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
+  }
+
+  auto index_meta = IndexInsertMeta(idx_name_str.c_str(), table_name.c_str(), idx_meta_cols);
+  CreateIndex(&index_meta);
+}
+
+bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
+  auto table_name = GenerateTableIndexName(type, row_num);
+  auto accessor = exec_ctx_->GetAccessor();
+  auto table_oid = accessor->GetTableOid(table_name);
+  auto index_oids = accessor->GetIndexOids(table_oid);
+  if (index_oids.empty()) {
+    return false;
+  }
+
+  catalog::index_oid_t matched(catalog::INVALID_INDEX_OID);
+  for (auto idx_oid : index_oids) {
+    const auto &schema = accessor->GetIndexSchema(idx_oid);
+    if (schema.GetColumns().size() == static_cast<size_t>(key_num)) {
+      if (matched != catalog::INVALID_INDEX_OID) {
+        return false;
+      }
+
+      matched = idx_oid;
+    }
+  }
+
+  if (matched == catalog::INVALID_INDEX_OID) {
+    return false;
+  }
+
+  return accessor->DropIndex(matched);
 }
 
 void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> index,
@@ -414,7 +453,11 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   uint32_t num_inserted = 0;
   for (const storage::TupleSlot &slot : *table) {
     // Get table data
-    table->Select(exec_ctx_->GetTxn(), slot, table_pr);
+    bool visible = table->Select(exec_ctx_->GetTxn(), slot, table_pr);
+    if (!visible) {
+      continue;
+    }
+
     // Fill up the index data
     for (uint32_t index_col_idx = 0; index_col_idx < index_meta.cols_.size(); index_col_idx++) {
       // Get the offset of this column in the table

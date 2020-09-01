@@ -124,6 +124,14 @@ class EXPORT StorageInterface {
    */
   bool IndexInsertUnique();
 
+  /**
+   * Insert into the current index given a tuple
+   * @param table_tuple_slot tuple slot
+   * @param unique if this insertion is unique
+   * @return Whether insertion was successful.
+   */
+  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
+
  protected:
   /**
    * Oid of the table being accessed.

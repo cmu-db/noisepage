@@ -15,7 +15,7 @@ public class MogDb {
      * DbColumnType is an abstraction around the actual column types of various databases.
      * TODO(WAN): This was coded to SQLite's test format. It may be too SQLite-specific.
      */
-    enum DbColumnType {INVALID, INTEGER, TEXT, FLOAT}
+    public enum DbColumnType {INVALID, INTEGER, TEXT, FLOAT}
 
     /**
      * Database (for lack of better naming) abstracts around connecting to and querying different JDBC databases.
@@ -101,8 +101,10 @@ public class MogDb {
                 /* Postgres types. */
                 if (typeName.equals("int2") || typeName.equals("int4") || typeName.equals("int8")) {
                     return DbColumnType.INTEGER;
-                } else if (typeName.equals("varchar")) {
+                } else if (typeName.equals("varchar") || typeName.equals("text")) {
                     return DbColumnType.TEXT;
+                } else if(typeName.equals("float8") || typeName.equals("numeric")){
+                    return DbColumnType.FLOAT;
                 }
             } else if (this.jdbc.startsWith("jdbc:sqlite")) {
                 /* SQLite types. */

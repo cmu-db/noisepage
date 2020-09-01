@@ -81,7 +81,8 @@ void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBui
   builder->Append(GetCodeGen()->DeclareVar(inserter_, storage_interface_type, nullptr));
   // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids, true)
   ast::Expr *inserter_setup = GetCodeGen()->StorageInterfaceInit(
-      inserter_, GetExecutionContext(), !GetPlanAs<planner::InsertPlanNode>().GetTableOid(), col_oids_, true);
+      inserter_, GetExecutionContext(), GetPlanAs<planner::InsertPlanNode>().GetTableOid().UnderlyingValue(), col_oids_,
+      true);
   builder->Append(GetCodeGen()->MakeStmt(inserter_setup));
 }
 
@@ -114,7 +115,7 @@ void InsertTranslator::SetOids(FunctionBuilder *builder) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids[i] = col_oid
     ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(!all_oids_[i]);
+    ast::Expr *rhs = GetCodeGen()->Const32(all_oids_[i].UnderlyingValue());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -158,7 +159,8 @@ void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
                                       const catalog::index_oid_t &index_oid) const {
   // var insert_index_pr = @getIndexPR(&inserter, oid)
   const auto &insert_index_pr = GetCodeGen()->MakeFreshIdentifier("insert_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(inserter_), GetCodeGen()->Const32(!index_oid)};
+  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(inserter_),
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(insert_index_pr, nullptr, get_index_pr_call));
 

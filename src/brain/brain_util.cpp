@@ -5,27 +5,20 @@
 namespace terrier::brain {
 
 std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
+  // NOTE: Before adding any extra case to this switch statement,
+  // please ensure that the output type is actually supported
+  // by the mini-runner infrastructure.
   switch (f) {
-    case ExecutionOperatingUnitType::INVALID:
-      return "INVALID";
     case ExecutionOperatingUnitType::AGGREGATE_BUILD:
       return "AGG_BUILD";
     case ExecutionOperatingUnitType::AGGREGATE_ITERATE:
       return "AGG_ITERATE";
-    case ExecutionOperatingUnitType::STATIC_AGGREGATE:
-      return "STATIC_AGGREGATE";
-    case ExecutionOperatingUnitType::HASH_JOIN:
-      return "HASH_JOIN";
-    case ExecutionOperatingUnitType::HASH_AGGREGATE:
-      return "HASH_AGGREGATE";
     case ExecutionOperatingUnitType::HASHJOIN_BUILD:
       return "HASHJOIN_BUILD";
     case ExecutionOperatingUnitType::HASHJOIN_PROBE:
       return "HASHJOIN_PROBE";
     case ExecutionOperatingUnitType::IDXJOIN:
       return "IDXJOIN";
-    case ExecutionOperatingUnitType::SORT:
-      return "SORT";
     case ExecutionOperatingUnitType::SORT_BUILD:
       return "SORT_BUILD";
     case ExecutionOperatingUnitType::SORT_ITERATE:

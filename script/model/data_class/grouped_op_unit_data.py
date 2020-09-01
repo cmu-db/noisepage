@@ -6,13 +6,14 @@ import pandas as pd
 import os
 
 from data_class import data_util
-from info import data_info, query_info
+from data_class import tpcc_fixer
+from info import data_info, query_info, query_info_1G, query_info_10G
 import global_model_config
 
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename, warmup_period):
+def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
     """Get the training data from the global model
 
     :param filename: the input data file
@@ -28,7 +29,7 @@ def get_grouped_op_unit_data(filename, warmup_period):
         return _execution_get_grouped_op_unit_data(filename)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename, warmup_period)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
@@ -69,7 +70,7 @@ def _execution_get_grouped_op_unit_data(filename):
     return data_list
 
 
-def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
     # Get the global running data for the execution engine
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
@@ -103,9 +104,15 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period):
                     continue
                 opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
+
+                q_id = int(line[0])
+                p_id = int(line[1])
+                if tpcc_hack:
+                    x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
+
                 opunits.append((opunit, x_loc))
 
-            data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits,
+            data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits,
                                                np.array(metrics)))
 
     return data_list
@@ -153,7 +160,7 @@ def _interval_get_grouped_op_unit_data(filename):
         n = len(interval_x_map[rounded_time])
         for i in range(n):
             metrics = np.concatenate(([rounded_time + i * interval // n], [interval_cpu_map[rounded_time]], y_new))
-            data_list.append(GroupedOpUnitData("{} {}".format(file_name, opunits), opunits, metrics))
+            data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics))
 
     return data_list
 

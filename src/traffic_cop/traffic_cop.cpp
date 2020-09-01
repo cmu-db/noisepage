@@ -347,6 +347,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
@@ -357,8 +358,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
-  auto exec_query =
-      execution::compiler::CompilationContext::Compile(*physical_plan, exec_settings, connection_ctx->Accessor().Get());
+  auto exec_query = execution::compiler::CompilationContext::Compile(
+      *physical_plan, exec_settings, connection_ctx->Accessor().Get(),
+      execution::compiler::CompilationMode::Interleaved,
+      common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -374,6 +377,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
@@ -420,7 +424,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
 
   const auto ns_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED)
-          ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(static_cast<uint16_t>(connection_id)));
+          ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(connection_id.UnderlyingValue()));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
     txn_manager_->Abort(txn);
