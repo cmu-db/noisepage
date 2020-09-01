@@ -54,14 +54,6 @@ class ResourceTracker {
     static constexpr std::string_view COLUMNS = {
         "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, "
         "block_read, block_write, memory_b, elapsed_us"};
-
-    Metrics &operator+=(const Metrics &rhs) {
-      this->elapsed_us_ += rhs.elapsed_us_;
-      this->counters_ += rhs.counters_;
-      this->memory_b_ += rhs.memory_b_;
-
-      return *this;
-    }
   };
 
   /**

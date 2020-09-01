@@ -31,9 +31,11 @@ struct ThreadContext {
    */
   ResourceTracker resource_tracker_;
 
-  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
-  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
-  // wasteful traversals of the version chain.
+  /**
+   * It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
+   * timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
+   * wasteful traversals of the version chain.
+   */
   std::unordered_set<storage::TupleSlot> visited_slots_;
 };
 

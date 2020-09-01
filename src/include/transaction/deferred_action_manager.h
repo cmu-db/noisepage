@@ -41,6 +41,7 @@ class DeferredActionManager {
    * be triggered no sooner than when the epoch (timestamp of oldest running
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred. @see DeferredAction
+   * @param daf_id id of the type of this deferred action
    */
   timestamp_t RegisterDeferredAction(DeferredAction &&a, transaction::DafId daf_id);
 
@@ -49,6 +50,7 @@ class DeferredActionManager {
    * be triggered no sooner than when the epoch (timestamp of oldest running
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred
+   * @param daf_id id of the type of this deferred action
    */
   timestamp_t RegisterDeferredAction(const std::function<void()> &a, DafId daf_id) {
     // TODO(Tianyu): Will this be a performance problem? Hopefully C++ is smart enough
@@ -74,6 +76,7 @@ class DeferredActionManager {
    * their logs are persisted.
    * @param gc gc to use for garbage collection
    * @param log_manager log manager to use for flushing logs
+   * @param main_thread if this thread is in charge of process the index
    */
   void FullyPerformGC(const common::ManagedPointer<storage::GarbageCollector> gc,
                       const common::ManagedPointer<storage::LogManager> log_manager, bool main_thread = true) {

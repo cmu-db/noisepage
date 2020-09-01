@@ -635,7 +635,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, metrics_manager,
-                                   &num_actual_processed, &shut_down] {
+                                &num_actual_processed, &shut_down] {
           metrics_manager->RegisterThread();
           num_actual_processed += Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
         });

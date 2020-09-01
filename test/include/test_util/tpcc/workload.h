@@ -274,7 +274,7 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
  * @param workers preallocated workers with buffers to use for execution
  */
 uint32_t Workload(int8_t worker_id, Database *tpcc_db, transaction::TransactionManager *txn_manager,
-                  const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> * workers,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *workers,
                   const bool &shutdown);
 
 /**

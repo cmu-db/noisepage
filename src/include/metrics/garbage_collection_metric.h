@@ -22,9 +22,6 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
  public:
   GarbageCollectionMetricRawData() : aggregate_data_(transaction::DAF_TAG_COUNT, AggregateData()) {}
 
-  /**
-   * Currently used in metrics thread to record the start time of each metric interval
-   */
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<GarbageCollectionMetricRawData *>(other);
 
