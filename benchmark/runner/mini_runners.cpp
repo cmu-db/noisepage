@@ -1134,6 +1134,64 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
   }
 }
 
+void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
+  std::ostream null{nullptr};
+  std::vector<uint32_t> num_cols = {1, 2, 4, 8, 15};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
+                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+
+  bool metrics_enabled = true;
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        // Scale # iterations accordingly
+        // Want to warmup the first query
+        int iters = 1;
+        if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
+          iters += warmup_iterations_num;
+        }
+
+        for (int i = 0; i < iters; i++) {
+          if (i != iters - 1 && metrics_enabled) {
+            db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+            metrics_enabled = false;
+          } else if (i == iters - 1 && !metrics_enabled) {
+            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+            metrics_enabled = true;
+          }
+
+          std::string create_query;
+          {
+            std::stringstream query_ss;
+            auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
+            query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
+            for (size_t j = 1; j <= col; j++) {
+              query_ss << "col" << j;
+              if (j != col) {
+                query_ss << ",";
+              } else {
+                query_ss << ")";
+              }
+            }
+
+            create_query = query_ss.str();
+          }
+          txn->exec(create_query);
+
+          std::string delete_query;
+          {
+            std::stringstream query_ss;
+            query_ss << "DROP INDEX minirunners__" << row;
+            delete_query = query_ss.str();
+          }
+          txn->exec(delete_query);
+        }
+      }
+    }
+  }
+}
+
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
@@ -2113,7 +2171,9 @@ std::mutex network_queries_mutex;
  */
 std::condition_variable network_queries_cv;
 
-void RunNetworkQueries() {
+using NetworkWorkFunction = std::function<void(pqxx::work *)>;
+
+void RunNetworkQueries(NetworkWorkFunction work) {
   // GC does not run in a background thread!
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
@@ -2132,7 +2192,7 @@ void RunNetworkQueries() {
     pqxx::connection c{conn};
     pqxx::work txn{c};
 
-    terrier::runner::NetworkQueriesOutputRunners(&txn);
+    work(&txn);
 
     txn.commit();
   } catch (std::exception &e) {
@@ -2145,12 +2205,12 @@ void RunNetworkQueries() {
   }
 }
 
-void RunNetworkSequence() {
+void RunNetworkSequence(NetworkWorkFunction work) {
   terrier::runner::db_main->GetMetricsManager()->Aggregate();
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
 
-  auto thread = std::thread([] { RunNetworkQueries(); });
+  auto thread = std::thread([=] { RunNetworkQueries(work); });
 
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
@@ -2231,7 +2291,7 @@ void RunMiniRunners() {
   }
 
   for (int i = 0; i <= terrier::runner::rerun_iterations; i++) {
-    RunNetworkSequence();
+    RunNetworkSequence(terrier::runner::NetworkQueriesOutputRunners);
   }
 
   std::rename("pipeline.csv", "execution_NETWORK.csv");
@@ -2294,8 +2354,10 @@ int main(int argc, char **argv) {
   Arg updel_info{"--updel_limit=", false};
   Arg warm_limit_info{"--warm_limit=", false};
   Arg compiled_info{"--compiled=", false};
-  Arg *args[] = {&port_info,  &filter_info, &skip_large_rows_runs_info, &warm_num_info,
-                 &rerun_info, &updel_info,  &warm_limit_info,           &compiled_info};
+  Arg gen_test_data{"--gen_test=", false};
+  Arg *args[] = {&port_info,       &filter_info,   &skip_large_rows_runs_info,
+                 &warm_num_info,   &rerun_info,    &updel_info,
+                 &warm_limit_info, &compiled_info, &gen_test_data};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -2325,6 +2387,7 @@ int main(int argc, char **argv) {
   SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, terrier::runner::warmup_rows_limit);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
   SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match_, compiled_info.found_);
+  SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 
   // Benchmark Config Environment Variables
   // Check whether we are being passed environment variables to override configuration parameter
@@ -2336,19 +2399,23 @@ int main(int argc, char **argv) {
   if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
 
   terrier::runner::InitializeRunnersState();
-
-  if (filter_info.found_) {
-    if (compiled_info.found_) {
-      terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
-    }
-
-    // Pass straight through to gbenchmark
-    benchmark::Initialize(&argc, argv);
-    benchmark::RunSpecifiedBenchmarks();
-    terrier::runner::EndRunnersState();
+  if (gen_test_data.found_) {
+    RunNetworkSequence(terrier::runner::NetworkQueriesCreateIndexRunners);
+    std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
-    RunMiniRunners();
-    Shutdown();
+    if (filter_info.found_) {
+      if (compiled_info.found_) {
+        terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
+      }
+
+      // Pass straight through to gbenchmark
+      benchmark::Initialize(&argc, argv);
+      benchmark::RunSpecifiedBenchmarks();
+      terrier::runner::EndRunnersState();
+    } else {
+      RunMiniRunners();
+      Shutdown();
+    }
   }
 
   terrier::LoggersUtil::ShutDown();

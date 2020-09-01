@@ -211,6 +211,15 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
+  } else if (type == ExecutionOperatingUnitType::CREATE_INDEX) {
+    // We extract the num_rows and cardinality from the table name if possible
+    // This is a special case for mini-runners
+    std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
+    auto mrpos = idx_name.find("minirunners__");
+    if (mrpos != std::string::npos) {
+      num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
+      cardinality = num_rows;
+    }
   }
 
   num_rows *= scaling_factor;

@@ -47,8 +47,8 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
   curr_index_ = exec_ctx_->GetAccessor()->GetIndex(index_oid);
   // index is created after the initialization of storage interface
   if (curr_index_ != nullptr && !need_indexes_) {
-    index_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(
-        curr_index_->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
+    max_pr_size_ = curr_index_->GetProjectedRowInitializer().ProjectedRowSize();
+    index_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(max_pr_size_, alignof(uint64_t), false);
     need_indexes_ = true;
   }
   index_pr_ = curr_index_->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
