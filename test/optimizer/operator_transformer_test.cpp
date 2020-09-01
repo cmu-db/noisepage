@@ -551,11 +551,11 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftSemiJoinTest) {
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
   auto statement = parse_tree->GetStatements()[0];
-  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
   operator_transformer_ =
       std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
-  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorNode>(operator_tree_));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::AbstractOptimizerNode>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
