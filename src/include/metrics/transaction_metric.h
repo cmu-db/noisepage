@@ -56,7 +56,6 @@ class TransactionMetricRawData : public AbstractRawData {
       data.resource_metrics_.ToCSV(commit_outfile);
       commit_outfile << std::endl;
     }
-
     begin_data_.clear();
     commit_data_.clear();
   }
