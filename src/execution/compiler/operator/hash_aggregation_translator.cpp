@@ -29,17 +29,20 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   TERRIER_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
                  "Expected hash-based aggregation plan node");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
-  // TODO(kunal&ricky):
-  // We need to modify many of the setup/initialize/teardown logic to add the additional agg_distinct_ht.
-  // A agg_distinct_ht will be a global mapping [distinct aggregate value -> dummy payload],
-  // for each aggregate term that has a distinct predicate.
-  // The agg_distinc_ht should have the same setup/teardown logic like the current global_agg_ht_. But we need to
-  // keep track of multiple hash tables, or we need to have a complex key (aggregate_term_id, tuple_val) to
-  // accomondate multiple columns with DISTINCT
-  // A couple of things I can think of now:
-  // 1. Declare the hash payload
-  // 2. Setup/Teardown of the Table
-  // 3. HashFunction for (aggregate_term_id, tuple_val)
+
+  for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
+    const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
+    compilation_context->Prepare(*agg_term->GetChild(0));
+    if (agg_term->IsDistinct()) {
+      distinct_filters_.emplace(
+          std::make_pair(agg_term_idx, DistinctAggregationFilter(agg_term_idx, agg_term, plan.GetGroupByTerms().size(),
+                                                                 compilation_context, pipeline, GetCodeGen())));
+    }
+  }
+
+  if (!distinct_filters_.empty()) {
+    build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
+  }
 
   // The produce pipeline begins after the build.
   pipeline->LinkSourcePipeline(&build_pipeline_);
@@ -54,16 +57,6 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   // Prepare all grouping and aggregate expressions.
   for (const auto group_by_term : plan.GetGroupByTerms()) {
     compilation_context->Prepare(*group_by_term);
-  }
-
-  for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
-    const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
-    compilation_context->Prepare(*agg_term->GetChild(0));
-    if (agg_term->IsDistinct()) {
-      distinct_filters_.emplace(
-          std::make_pair(agg_term_idx, DistinctAggregationFilter(agg_term_idx, agg_term, plan.GetGroupByTerms().size(),
-                                                                 compilation_context, pipeline, GetCodeGen())));
-    }
   }
 
   // If there's a having clause, prepare it, too.

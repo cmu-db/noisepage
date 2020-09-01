@@ -20,18 +20,11 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
       merge_func_(GetCodeGen()->MakeFreshIdentifier("MergeAggregates")),
-      build_pipeline_(this, Pipeline::Parallelism::Serial) {
+      build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
-  build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
-
-  // The produce-side begins after the build-side.
-  pipeline->LinkSourcePipeline(&build_pipeline_);
-
-  // Prepare the child.
-  compilation_context->Prepare(*plan.GetChild(0), &build_pipeline_);
 
   // Prepare each of the aggregate expressions.
   for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
@@ -43,6 +36,15 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
           DistinctAggregationFilter(agg_term_idx, agg_term, 0, compilation_context, pipeline, GetCodeGen())));
     }
   }
+
+  if (!distinct_filters_.empty()) {
+    build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
+  }
+  // The produce-side begins after the build-side.
+  pipeline->LinkSourcePipeline(&build_pipeline_);
+
+  // Prepare the child.
+  compilation_context->Prepare(*plan.GetChild(0), &build_pipeline_);
 
   // If there's a having clause, prepare it, too.
   if (const auto having_clause = plan.GetHavingClausePredicate(); having_clause != nullptr) {
