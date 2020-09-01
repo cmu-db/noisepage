@@ -135,6 +135,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     if (current_insert_idx >= blocks_.size()) {
       block = NewBlock();
       blocks_.PushBack(block);
+      current_insert_idx = blocks_.size() - 1;
     } else {
       block = const_cast<RawBlock *>(blocks_[current_insert_idx]);
     }
