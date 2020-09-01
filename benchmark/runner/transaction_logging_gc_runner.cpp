@@ -192,9 +192,9 @@ BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, TransactionRunner)
     ->Iterations(1)
     ->Apply(TransactionArguments);
 
-// BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, LoggingGCRunner)
-//    ->Unit(benchmark::kMillisecond)
-//    ->UseManualTime()
-//    ->Iterations(1)
-//    ->Apply(LoggingGCArguments);
+ BENCHMARK_REGISTER_F(TransactionLoggingGCRunner, LoggingGCRunner)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Iterations(1)
+    ->Apply(LoggingGCArguments);
 }  // namespace terrier::runner
