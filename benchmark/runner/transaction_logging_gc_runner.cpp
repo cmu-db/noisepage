@@ -72,8 +72,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
                                         common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                                     common::ManagedPointer(log_manager_),
-                                                     common::ManagedPointer(metrics_manager));
+                                                     common::ManagedPointer(metrics_manager), 0);
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -134,8 +133,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
                                         common::ManagedPointer(tested.GetTxnManager()));
     gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), config_interval * 10,
-                                                     common::ManagedPointer(log_manager_),
-                                                     common::ManagedPointer(metrics_manager));
+                                                     common::ManagedPointer(metrics_manager), 0);
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;

@@ -108,8 +108,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
 
     // Let GC clean up
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                                     common::ManagedPointer(log_manager_), nullptr,
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
                                                      BenchmarkConfig::num_daf_threads);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -201,8 +200,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
     log_manager_->ForceFlush();
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                                     common::ManagedPointer(log_manager_), nullptr,
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
                                                      BenchmarkConfig::num_daf_threads);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -303,8 +301,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     log_manager_->ForceFlush();
 
     // Let GC clean up
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                                     common::ManagedPointer(log_manager_), nullptr,
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
                                                      BenchmarkConfig::num_daf_threads);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -398,8 +395,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                                     common::ManagedPointer(log_manager_), nullptr,
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
                                                      BenchmarkConfig::num_daf_threads);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -497,7 +493,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
     gc_thread_ = new storage::GarbageCollectorThread(
-        common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_),
+        common::ManagedPointer(gc_), gc_period_,
         common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
 
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
@@ -620,7 +616,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 
     // Let GC clean up
     gc_thread_ = new storage::GarbageCollectorThread(
-        common::ManagedPointer(gc_), gc_period_, common::ManagedPointer(log_manager_),
+        common::ManagedPointer(gc_), gc_period_,
         common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
 
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up

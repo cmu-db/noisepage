@@ -26,9 +26,9 @@ class GarbageCollectorThread {
    * @param metrics_manager pointer to the metrics manager
    * @param num_daf_threads number of DAF threads
    */
-  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period,
-                         common::ManagedPointer<storage::LogManager> log_manager,
-                         common::ManagedPointer<metrics::MetricsManager> metrics_manager,
+  GarbageCollectorThread(common::ManagedPointer <GarbageCollector> gc,
+                         std::chrono::microseconds gc_period,
+                         common::ManagedPointer <metrics::MetricsManager> metrics_manager,
                          uint32_t num_daf_threads = DEFAULT_NUM_DAF_THREADS);
 
   ~GarbageCollectorThread() { StopGC(); }
@@ -42,6 +42,9 @@ class GarbageCollectorThread {
     gc_paused_ = false;
     for (auto &gc_thread : gc_threads_) {
       if (gc_thread.joinable()) gc_thread.join();
+    }
+    for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
+      gc_->PerformGarbageCollection(true);
     }
   }
 
@@ -84,7 +87,6 @@ class GarbageCollectorThread {
  private:
   const common::ManagedPointer<storage::GarbageCollector> gc_;
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
-  const common::ManagedPointer<storage::LogManager> log_manager_;
   volatile bool run_gc_;
   volatile bool gc_paused_;
   std::chrono::microseconds gc_period_;
@@ -95,9 +97,6 @@ class GarbageCollectorThread {
     while (run_gc_) {
       std::this_thread::sleep_for(gc_period_);
       if (!gc_paused_) gc_->PerformGarbageCollection(main_thread);
-    }
-    if (!gc_paused_) {
-      gc_->deferred_action_manager_->FullyPerformGC(gc_, log_manager_, main_thread);
     }
   }
 };
