@@ -129,13 +129,13 @@ class ConcurrentVector {
    * Returns size of the vector.
    * @return size of the vector.
    */
-  uint32_t size() { return vector_.size(); } // NOLINT for STL name compability
+  uint32_t size() { return vector_.size(); }  // NOLINT for STL name compability
 
   /**
    * Returns size of the vector.
    * @return size of the vector.
    */
-  uint32_t size() const { return vector_.size(); } // NOLINT for STL name compability
+  uint32_t size() const { return vector_.size(); }  // NOLINT for STL name compability
 
  private:
   tbb::concurrent_vector<T, Alloc> vector_;
