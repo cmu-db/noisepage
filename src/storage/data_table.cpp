@@ -13,12 +13,12 @@ namespace terrier::storage {
 
 DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : accessor_(layout), block_store_(store), layout_version_(layout_version), blocks_(START_VECTOR_SIZE) {
+    : accessor_(layout), block_store_(store), layout_version_(layout_version) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  if (store != DISABLED) blocks_.Insert(NewBlock());
+  if (store != DISABLED) blocks_.PushBack(NewBlock());
 }
 
 DataTable::~DataTable() {
@@ -134,9 +134,9 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     // No free block left
     if (current_insert_idx >= blocks_.size()) {
       block = NewBlock();
-      current_insert_idx = blocks_.Insert(block);
+      blocks_.PushBack(block);
     } else {
-      block = const_cast<RawBlock *>(blocks_.LookUp(current_insert_idx));
+      block = const_cast<RawBlock *>(blocks_[current_insert_idx]);
     }
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block

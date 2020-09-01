@@ -3,6 +3,7 @@
 #include <tbb/mutex.h>
 #include <atomic>              // NOLINT
 #include <condition_variable>  // NOLINT
+#include <limits>
 #include "../common/constants.h"
 #include "../common/macros.h"
 #include "../common/shared_latch.h"
@@ -292,7 +293,7 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
     claimable_index_ = SHRINKING;
 
     for (uint64_t i = 0; i < claimable_index_; i++) {
-      T* ith = LookUp(i);
+      T *ith = LookUp(i);
       if (!toDelete.count(ith)) {
         smaller_cpv_->Insert(ith);
       }
@@ -306,7 +307,7 @@ class alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector {
   alignas(Constants::CACHELINE_SIZE) std::atomic<uint64_t> claimable_index_ = 0;
   alignas(Constants::CACHELINE_SIZE) std::atomic<uint64_t> first_not_readable_index_ = 0;
   alignas(Constants::CACHELINE_SIZE) T **array_ = nullptr;
-  alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector<T>* smaller_cpv_ = nullptr;
+  alignas(Constants::CACHELINE_SIZE) ConcurrentPointerVector<T> *smaller_cpv_ = nullptr;
   std::condition_variable resize_cv_;
   common::SharedLatch array_pointer_latch_;
   std::mutex resize_mutex_;

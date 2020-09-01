@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/concurrent_pointer_vector.h"
+#include "common/concurrent_vector.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 
@@ -110,15 +110,13 @@ class DataTable {
       uint64_t num_blocks = table->blocks_.size();
       TERRIER_ASSERT(num_blocks >= 1, "there should always be at least one block");
       end_index_ = (num_blocks - 1) * table_->accessor_.GetBlockLayout().NumSlots() +
-                   static_cast<uint64_t>(const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table->blocks_)
-                                             ->LookUp(num_blocks - 1)
-                                             ->GetInsertHead());
+                   static_cast<uint64_t>(table->blocks_[num_blocks - 1]->GetInsertHead());
     }
 
     void UpdateCurrentSlot() {
       auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
       uint64_t block_num = i_ / max_slots;
-      RawBlock *b = const_cast<common::ConcurrentPointerVector<RawBlock> *>(&table_->blocks_)->LookUp(block_num);
+      RawBlock *b = table_->blocks_[block_num];
       current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
     }
 
@@ -258,8 +256,8 @@ class DataTable {
   /**
    * @return pointer to underlying vector of blocks
    */
-  common::ConcurrentPointerVector<RawBlock> *GetBlocks() const {
-    return const_cast<common::ConcurrentPointerVector<RawBlock> *>(&blocks_);
+  common::ConcurrentVector<RawBlock *> *GetBlocks() const {
+    return const_cast<common::ConcurrentVector<RawBlock *> *>(&blocks_);
   }
 
   /**
@@ -312,7 +310,7 @@ class DataTable {
 
   common::ManagedPointer<BlockStore> const block_store_;
   const layout_version_t layout_version_;
-  common::ConcurrentPointerVector<RawBlock> blocks_;
+  common::ConcurrentVector<RawBlock *> blocks_;
   std::atomic<uint64_t> insert_index_ = 0;
   const SlotIterator end_ = {};
 
