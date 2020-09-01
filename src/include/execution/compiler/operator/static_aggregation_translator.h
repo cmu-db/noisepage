@@ -5,6 +5,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
+#include "planner/plannodes/aggregate_plan_node.h"
 
 namespace terrier::planner {
 class AggregatePlanNode;
@@ -104,6 +105,9 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   void InitializeAggregates(FunctionBuilder *function, bool local) const;
 
   void UpdateGlobalAggregate(WorkContext *ctx, FunctionBuilder *function) const;
+
+  // Compute the TPL type for the specified term in the aggregation values helper struct.
+  ast::Expr *GetValuesStructTypeForTerm(const common::ManagedPointer<parser::AggregateExpression> &term);
 
   // For minirunners.
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
