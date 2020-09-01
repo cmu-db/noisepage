@@ -1424,12 +1424,14 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
       GetEmitter()->Emit(Bytecode::SorterGetTupleCount, dest, sorter);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::SorterInsert: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
       GetEmitter()->Emit(Bytecode::SorterAllocTuple, dest, sorter);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::SorterInsertTopK: {
@@ -1437,6 +1439,7 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar top_k = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::SorterAllocTupleTopK, dest, sorter, top_k);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::SorterInsertTopKFinish: {

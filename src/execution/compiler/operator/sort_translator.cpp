@@ -264,6 +264,9 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
   }
+
+  // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.
+  //  However, due to overhead and engineering complexity, we settle for the size of the sorter.
 }
 
 ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,
