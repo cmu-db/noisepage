@@ -764,11 +764,11 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   // InnerHashJoin
   //===--------------------------------------------------------------------===//
   parser::AbstractExpression *expr_b_1 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_3 =
-      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
 
   auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
@@ -790,17 +790,17 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   Operator semi_hash_join_8 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
   Operator semi_hash_join_9 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
 
-  EXPECT_EQ(semi_hash_join_1.GetType(), OpType::LEFTSEMIHASHJOIN);
-  EXPECT_EQ(semi_hash_join_3.GetType(), OpType::LEFTSEMIHASHJOIN);
+  EXPECT_EQ(semi_hash_join_1.GetOpType(), OpType::LEFTSEMIHASHJOIN);
+  EXPECT_EQ(semi_hash_join_3.GetOpType(), OpType::LEFTSEMIHASHJOIN);
   EXPECT_EQ(semi_hash_join_1.GetName(), "LeftSemiHashJoin");
-  EXPECT_EQ(semi_hash_join_1.As<LeftSemiHashJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
-  EXPECT_EQ(semi_hash_join_3.As<LeftSemiHashJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(semi_hash_join_1.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(semi_hash_join_3.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_0});
-  EXPECT_EQ(semi_hash_join_4.As<LeftSemiHashJoin>()->GetJoinPredicates(),
+  EXPECT_EQ(semi_hash_join_4.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
             std::vector<AnnotatedExpression>{annotated_expr_1});
-  EXPECT_EQ(semi_hash_join_1.As<LeftSemiHashJoin>()->GetLeftKeys(),
+  EXPECT_EQ(semi_hash_join_1.GetContentsAs<LeftSemiHashJoin>()->GetLeftKeys(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
-  EXPECT_EQ(semi_hash_join_9.As<LeftSemiHashJoin>()->GetRightKeys(),
+  EXPECT_EQ(semi_hash_join_9.GetContentsAs<LeftSemiHashJoin>()->GetRightKeys(),
             std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(semi_hash_join_1 == semi_hash_join_2);
   EXPECT_FALSE(semi_hash_join_1 == semi_hash_join_3);
