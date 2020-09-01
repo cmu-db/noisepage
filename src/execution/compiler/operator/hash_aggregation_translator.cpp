@@ -55,8 +55,15 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   for (const auto group_by_term : plan.GetGroupByTerms()) {
     compilation_context->Prepare(*group_by_term);
   }
-  for (const auto agg_term : plan.GetAggregateTerms()) {
+
+  for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
+    const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
     compilation_context->Prepare(*agg_term->GetChild(0));
+    if (agg_term->IsDistinct()) {
+      distinct_filters_.emplace(
+          std::make_pair(agg_term_idx, DistinctAggregationFilter(agg_term_idx, agg_term, plan.GetGroupByTerms().size(),
+                                                                 compilation_context, pipeline, GetCodeGen())));
+    }
   }
 
   // If there's a having clause, prepare it, too.
@@ -131,6 +138,10 @@ ast::StructDecl *HashAggregationTranslator::GenerateInputValuesStruct() {
 void HashAggregationTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   decls->push_back(GeneratePayloadStruct());
   decls->push_back(GenerateInputValuesStruct());
+  for (auto p : distinct_filters_) {
+    auto agg_term = GetAggPlan().GetAggregateTerms()[p.first];
+    decls->push_back(p.second.GenerateKeyStruct(GetCodeGen(), agg_term, GetAggPlan().GetGroupByTerms()));
+  }
 }
 
 void HashAggregationTranslator::MergeOverflowPartitions(FunctionBuilder *function, ast::Expr *agg_ht, ast::Expr *iter) {
@@ -247,6 +258,11 @@ void HashAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::Fu
     decls->push_back(GenerateMergeOverflowPartitionsFunction());
   }
   decls->push_back(GenerateKeyCheckFunction());
+
+  // Generate distinctkey check functions
+  for (auto &p : distinct_filters_) {
+    decls->push_back(p.second.GenerateDistinctCheckFunction(GetCodeGen(), GetAggPlan().GetGroupByTerms()));
+  }
 }
 
 void HashAggregationTranslator::InitializeAggregationHashTable(FunctionBuilder *function, ast::Expr *agg_ht) const {
@@ -259,10 +275,16 @@ void HashAggregationTranslator::TearDownAggregationHashTable(FunctionBuilder *fu
 
 void HashAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
   InitializeAggregationHashTable(function, global_agg_ht_.GetPtr(GetCodeGen()));
+  for (auto &p : distinct_filters_) {
+    p.second.Initialize(GetCodeGen(), function, GetExecutionContext(), GetMemoryPool());
+  }
 }
 
 void HashAggregationTranslator::TearDownQueryState(FunctionBuilder *function) const {
   TearDownAggregationHashTable(function, global_agg_ht_.GetPtr(GetCodeGen()));
+  for (auto &p : distinct_filters_) {
+    p.second.TearDown(GetCodeGen(), function);
+  }
 }
 
 void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -369,13 +391,31 @@ void HashAggregationTranslator::ConstructNewAggregate(FunctionBuilder *function,
   }
 }
 
-void HashAggregationTranslator::AdvanceAggregate(FunctionBuilder *function, ast::Identifier agg_payload,
-                                                 ast::Identifier agg_values) const {
+void HashAggregationTranslator::AdvanceAggregate(WorkContext *ctx, FunctionBuilder *function,
+                                                 ast::Identifier agg_payload, ast::Identifier agg_values) const {
   auto *codegen = GetCodeGen();
-  for (uint32_t term_idx = 0; term_idx < GetAggPlan().GetAggregateTerms().size(); term_idx++) {
+  auto agg_terms = GetAggPlan().GetAggregateTerms();
+  auto groupby_terms = GetAggPlan().GetGroupByTerms();
+
+  // Prepare for the GroupBy terms
+  std::vector<ast::Expr *> groupby_exprs;
+  groupby_exprs.reserve(groupby_terms.size());
+  for (const auto &groupby_term : groupby_terms) {
+    groupby_exprs.push_back(ctx->DeriveValue(*groupby_term, this));
+  }
+
+  for (uint32_t term_idx = 0; term_idx < agg_terms.size(); term_idx++) {
     auto agg = GetAggregateTermPtr(agg_payload, term_idx);
     auto val = GetAggregateTermPtr(agg_values, term_idx);
-    function->Append(codegen->AggregatorAdvance(agg, val));
+    auto agg_advance_call = codegen->AggregatorAdvance(agg, val);
+    auto agg_term = agg_terms[term_idx];
+    if (agg_term->IsDistinct()) {
+      // Distinct Aggregation
+      auto agg_val = ctx->DeriveValue(*agg_term->GetChild(0), this);
+      distinct_filters_.at(term_idx).AggregateDistinct(codegen, function, agg_advance_call, agg_val, groupby_exprs);
+    } else {
+      function->Append(agg_advance_call);
+    }
   }
 }
 
@@ -385,14 +425,6 @@ void HashAggregationTranslator::UpdateAggregates(WorkContext *context, FunctionB
 
   auto agg_values = FillInputValues(function, context);
   auto hash_val = HashInputKeys(function, agg_values);
-  // TODO(kunal&ricky):
-  // 1. IF distinct: first check if the agg_values(groupby + aggregate value) has existed in the filter table
-  //  1.a If already exists -> skip
-  //  1.b If not exist yet -> construct new aggregate + advance aggregate (like the current logic)
-  //
-  // We need to have our own agg_values generation that include both GroupBy values and distinct Aggregate values
-  // the current hash_vals are only based on the group by columns
-
   auto agg_payload = PerformLookup(function, agg_ht, hash_val, agg_values);
 
   If check_new_agg(function, codegen->IsNilPointer(codegen->MakeExpr(agg_payload)));
@@ -400,7 +432,7 @@ void HashAggregationTranslator::UpdateAggregates(WorkContext *context, FunctionB
   check_new_agg.EndIf();
 
   // Advance aggregate.
-  AdvanceAggregate(function, agg_payload, agg_values);
+  AdvanceAggregate(context, function, agg_payload, agg_values);
 }
 
 void HashAggregationTranslator::ScanAggregationHashTable(WorkContext *context, FunctionBuilder *function,

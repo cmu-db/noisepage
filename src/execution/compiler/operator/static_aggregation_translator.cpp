@@ -196,7 +196,7 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
       auto agg_val = ctx->DeriveValue(*agg_term->GetChild(0), this);
 
       // Get underlying key value
-      filter.AggregateDistinct(codegen, function, agg_advance_call, agg_val,{});
+      filter.AggregateDistinct(codegen, function, agg_advance_call, agg_val, {});
     } else {
       function->Append(agg_advance_call);
     }
