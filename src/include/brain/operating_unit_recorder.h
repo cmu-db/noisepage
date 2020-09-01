@@ -14,6 +14,7 @@
 
 namespace terrier::catalog {
 class CatalogAccessor;
+class IndexSchema;
 }  // namespace terrier::catalog
 
 namespace terrier::execution {
@@ -175,7 +176,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param num_key Number of keys
    * @returns key size
    */
-  size_t ComputeKeySize(common::ManagedPointer<catalog::IndexSchema> schema, bool restrict_cols,
+  size_t ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema> schema, bool restrict_cols,
                         const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key);
 
   /**

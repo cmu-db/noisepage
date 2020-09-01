@@ -135,8 +135,9 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<catalog::IndexSchema> schema, bool restrict_cols,
-                                             const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
+size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema> schema,
+                                             bool restrict_cols, const std::vector<catalog::indexkeycol_oid_t> &cols,
+                                             size_t *num_key) {
   std::unordered_set<catalog::indexkeycol_oid_t> kcols;
   for (auto &col : cols) kcols.insert(col);
 
@@ -146,12 +147,15 @@ size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<catalog::Ind
       AdjustKeyWithType(col.Type(), &key_size, num_key);
     }
   }
+
+  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  return key_size;
 }
 
 size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
                                              const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
   auto &schema = accessor_->GetIndexSchema(idx_oid);
-  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), ture, cols, num_key);
+  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
@@ -334,7 +338,8 @@ void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
 
   auto schema = plan->GetSchema();
   size_t num_keys = schema->GetColumns().size();
-  size_t key_size = ComputeKeySize(schema, false, keys, &num_keys);
+  size_t key_size =
+      ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema>(schema.Get()), false, keys, &num_keys);
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 

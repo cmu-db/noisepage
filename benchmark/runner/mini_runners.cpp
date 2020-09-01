@@ -17,6 +17,7 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/execution_util.h"
+#include "execution/sql/ddl_executors.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
@@ -868,6 +869,19 @@ class MiniRunners : public benchmark::Fixture {
         db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
 
     out_plan = checker(common::ManagedPointer(txn), std::move(out_plan));
+    if (out_plan->GetPlanNodeType() == planner::PlanNodeType::CREATE_INDEX) {
+      execution::sql::DDLExecutors::CreateIndexExecutor(
+          common::ManagedPointer<planner::CreateIndexPlanNode>(
+              reinterpret_cast<planner::CreateIndexPlanNode *>(out_plan.get())),
+          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+    } else if (out_plan->GetPlanNodeType() == planner::PlanNodeType::DROP_INDEX) {
+      execution::sql::DDLExecutors::DropIndexExecutor(
+          common::ManagedPointer<planner::DropIndexPlanNode>(
+              reinterpret_cast<planner::DropIndexPlanNode *>(out_plan.get())),
+          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      return std::make_pair(nullptr, nullptr);
+    }
 
     auto exec_settings = GetExecutionSettings();
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
@@ -1982,12 +1996,12 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) {
-  auto num_integers = state->range(0);
-  auto num_bigints = state->range(1);
-  auto tbl_ints = state->range(2);
-  auto tbl_bigints = state->range(3);
-  auto row = state->range(4);
-  auto car = state->range(5);
+  auto num_integers = state.range(0);
+  auto num_bigints = state.range(1);
+  auto tbl_ints = state.range(2);
+  auto tbl_bigints = state.range(3);
+  auto row = state.range(4);
+  auto car = state.range(5);
 
   if (rerun_start || row > warmup_rows_limit) {
     return;
@@ -2002,16 +2016,21 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX, row, tuple_size, num_col, car, 1, 0);
+  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, 0, row, car);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
 
-  std::stringstream query;
-  query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
-  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), false);
+  {
+    std::stringstream query;
+    query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
+    auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
+  }
+
+  { OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(), std::move(units)); }
+
   InvokeGC();
-
   state.SetItemsProcessed(row);
 }
 
@@ -2157,11 +2176,18 @@ void RunBenchmarkSequence(int rerun_counter) {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  std::vector<std::vector<std::string>> filters = {{"SEQ0"},  {"SEQ1_0", "SEQ1_1"}, {"SEQ2_0", "SEQ2_1"}, {"SEQ3"},
-                                                   {"SEQ4"},  {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"}, {"SEQ7_2"},
-                                                   {"SEQ8_2"}};
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE"};
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
+                                                   {"SEQ1_0", "SEQ1_1"},
+                                                   {"SEQ2_0", "SEQ2_1"},
+                                                   {"SEQ3"},
+                                                   {"SEQ4"},
+                                                   {"SEQ5_0", "SEQ5_1"},
+                                                   {"SEQ6_0", "SEQ6_1"},
+                                                   {"SEQ7_2"},
+                                                   {"SEQ8_2"},
+                                                   {"SEQ9_0"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
 
   char buffer[64];
   const char *argv[2];
@@ -2211,9 +2237,11 @@ void RunMiniRunners() {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE"};
-  for (const auto &title : titles) {
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6"};
+  for (size_t t = 0; t < titles.size(); t++) {
+    auto &title = titles[t];
     char target[64];
     snprintf(target, sizeof(target), "execution_%s.csv", title.c_str());
 
@@ -2233,7 +2261,21 @@ void RunMiniRunners() {
       // Delete the _%d file
       std::remove(source);
     }
+
+    char adjust[64];
+    snprintf(adjust, sizeof(adjust), "execution_SEQ%s.csv", adjusts[t].c_str());
+    std::rename(target, adjust);
   }
+
+  {
+    std::ifstream ifile("execution_NETWORK.csv");
+    std::ofstream ofile("execution_SEQ0.csv", std::ios::app);
+
+    std::string dummy;
+    std::getline(ifile, dummy);
+    ofile << ifile.rdbuf();
+  }
+  std::remove("execution_NETWORK.csv");
 }
 
 struct Arg {
