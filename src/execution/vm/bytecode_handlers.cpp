@@ -214,7 +214,10 @@ void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::Storag
 void OpStorageInterfaceIndexInsertUnique(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsertUnique();
 }
-
+void OpStorageInterfaceIndexInsertWithSlot(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                           terrier::storage::TupleSlot *tuple_slot, bool unique) {
+  *result = storage_interface->IndexInsertWithTuple(*tuple_slot, unique);
+}
 void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                    terrier::storage::TupleSlot *tuple_slot) {
   storage_interface->IndexDelete(*tuple_slot);
