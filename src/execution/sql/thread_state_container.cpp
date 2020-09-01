@@ -3,9 +3,9 @@
 #include <tbb/mutex.h>
 #include <tbb/parallel_for_each.h>
 
+#include <map>
 #include <memory>
 #include <thread>  //NOLINT
-#include <unordered_map>
 
 #include "common/constants.h"
 
@@ -48,7 +48,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   tbb::mutex states_mutex_;
-  std::unordered_map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
+  std::map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
 };
 
 //===----------------------------------------------------------------------===//
