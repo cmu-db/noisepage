@@ -28,7 +28,8 @@ class GarbageCollectorThread {
    */
   GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period,
                          common::ManagedPointer<storage::LogManager> log_manager,
-                         common::ManagedPointer<metrics::MetricsManager> metrics_manager, uint32_t num_daf_threads = 2);
+                         common::ManagedPointer<metrics::MetricsManager> metrics_manager,
+                         uint32_t num_daf_threads = DEFAULT_NUM_DAF_THREADS);
 
   ~GarbageCollectorThread() { StopGC(); }
 
