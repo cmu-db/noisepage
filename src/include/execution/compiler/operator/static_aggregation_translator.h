@@ -10,10 +10,6 @@ namespace terrier::planner {
 class AggregatePlanNode;
 }  // namespace terrier::planner
 
-namespace terrier::parser {
-class AggregateExpression;
-}  // namespace terrier::parser
-
 namespace terrier::execution::compiler {
 
 class FunctionBuilder;
@@ -108,9 +104,6 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   void InitializeAggregates(FunctionBuilder *function, bool local) const;
 
   void UpdateGlobalAggregate(WorkContext *ctx, FunctionBuilder *function) const;
-
-  // Compute the TPL type for the specified term in the aggregation values helper struct.
-  ast::Expr *GetValuesStructTypeForTerm(const common::ManagedPointer<parser::AggregateExpression> &term);
 
   // For minirunners.
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }

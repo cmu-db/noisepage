@@ -75,8 +75,10 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
+    TERRIER_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
+                   "Return value type of child expression is invalid.");
     auto field_name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx));
-    auto type = GetValuesStructTypeForTerm(term);
+    auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
@@ -159,17 +161,6 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
     auto val = GetAggregateTermPtr(codegen->MakeExpr(agg_values), term_idx);
     function->Append(codegen->AggregatorAdvance(agg, val));
   }
-}
-
-ast::Expr *StaticAggregationTranslator::GetValuesStructTypeForTerm(
-    const common::ManagedPointer<parser::AggregateExpression> &term) {
-  auto codegen = GetCodeGen();
-  if (term->GetExpressionType() == parser::ExpressionType::AGGREGATE_AVG) {
-    TERRIER_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
-                   "Return value type of child expression is invalid.");
-    return codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
-  }
-  return codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
 }
 
 void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
