@@ -83,8 +83,6 @@ class DistinctAggregationFilter {
   void AggregateDistinct(CodeGen *codegen, FunctionBuilder *function, ast::Expr *advance_call, ast::Expr *agg_val,
                          const std::vector<ast::Expr *> &group_bys) const;
 
-  ast::Identifier GetKeyType() const { return key_type_; }
-
  private:
   /**
    * Get the value to be aggregated from the KeyType payload
@@ -109,6 +107,13 @@ class DistinctAggregationFilter {
     return codegen->AccessStructMember(row, member);
   }
 
+  /**
+   * Compute the hash of a hashtable key
+   * @param codegen Codegen object
+   * @param function Function builder
+   * @param row A key to be inserted
+   * @return
+   */
   ast::Identifier ComputeHash(CodeGen *codegen, FunctionBuilder *function, ast::Identifier row) const {
     std::vector<ast::Expr *> keys;
     // Hash the AGG value
@@ -124,6 +129,14 @@ class DistinctAggregationFilter {
     return hash_val;
   }
 
+  /**
+   * Fill up the look up keys from aggregate values and group by values
+   * @param codegen  Codegen object
+   * @param function  Function builder
+   * @param agg_val  Aggregate value
+   * @param group_bys  list of Group By values
+   * @return the key to be inserted
+   */
   ast::Identifier FillLookupKey(CodeGen *codegen, FunctionBuilder *function, ast::Expr *agg_val,
                                 const std::vector<ast::Expr *> &group_bys) const {
     auto lookup_key = codegen->MakeFreshIdentifier("lookupKey");
@@ -142,6 +155,13 @@ class DistinctAggregationFilter {
     return lookup_key;
   }
 
+  /**
+   * Assign a look up key struct into the payload (from the hashtable)
+   * @param codegen  Codegen object
+   * @param function  Function builder
+   * @param payload  Placeholder to fill in values
+   * @param lookup_key Sources of the values
+   */
   void AssignPayload(CodeGen *codegen, FunctionBuilder *function, ast::Identifier payload,
                      ast::Identifier lookup_key) const {
     // Assign Agg Value

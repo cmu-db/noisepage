@@ -20,7 +20,7 @@ ast::StructDecl *DistinctAggregationFilter::GenerateKeyStruct(
 
   // Add Agg Terms
   auto name = codegen->MakeIdentifier(AGG_VALUE_NAME);
-  auto type = codegen->TplType(sql::GetTypeId(agg_term->GetReturnValueType()));
+  auto type = codegen->TplType(sql::GetTypeId(agg_term->GetChild(0)->GetReturnValueType()));
   fields.push_back(codegen->MakeField(name, type));
 
   // Add Group BY
