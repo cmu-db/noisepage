@@ -17,11 +17,11 @@ CMD = "python3 {} --build-type=debug --query-mode=simple".format(
 if __name__ == "__main__":
     count = 1
     while True:
-        print("\r{}".format(count))
         p = subprocess.Popen(shlex.split(CMD),
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
+        print("{}:\t{}".format(count, p.returncode))
         if p.returncode != 0:
             with open(LOG_FILE, "wb+") as f:
                 f.write(stdout)
