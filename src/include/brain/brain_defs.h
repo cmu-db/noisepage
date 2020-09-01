@@ -55,8 +55,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
 
   /**
    * SEQ_SCAN
-   * num_rows: # tuples output (uncertain whether it's # accessed vs # after applying the filters)
-   * cardinality: # unique values // TODO(WAN): this should be the same right?
+   * num_rows: the number of tuples being accessed (including tuples that do not pass filtering)
+   * cardinality: same as num_rows
    */
   SEQ_SCAN,
   /**
@@ -69,19 +69,19 @@ enum class ExecutionOperatingUnitType : uint32_t {
   /**
    * INSERT
    * num_rows: # input tuples
-   * cardinality: # unique values
+   * cardinality: same as num_rows
    */
   INSERT,
   /**
    * UPDATE
    * num_rows: # input tuples
-   * cardinality: # unique values
+   * cardinality: same as num_rows
    */
   UPDATE,
   /**
    * DELETE
    * num_rows: # input tuples
-   * cardinality: # unique values
+   * cardinality: same as num_rows
    */
   DELETE,
 
@@ -95,7 +95,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   /**
    * OUTPUT
    * num_rows: # rows being output
-   * cardinality: 1 for network output TODO(WAN): will when is this not 1?
+   * cardinality: 1 for network output, 0 for NoOpResultConsumer
    */
   OUTPUT,
   /**
