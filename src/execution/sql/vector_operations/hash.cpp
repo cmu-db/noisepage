@@ -10,7 +10,8 @@ namespace {
 void CheckHashArguments(const Vector &input, Vector *result) {
   if (result->GetTypeId() != TypeId::Hash) {
     throw EXECUTION_EXCEPTION(
-        fmt::format("Output of Hash() operation must be hash, but is type {}.", TypeIdToString(result->GetTypeId())));
+        fmt::format("Output of Hash() operation must be hash, but is type {}.", TypeIdToString(result->GetTypeId())),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

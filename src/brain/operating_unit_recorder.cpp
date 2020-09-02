@@ -231,7 +231,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
           " ORDER BY NO_O_ID ASC  LIMIT 1" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
       *num_rows = 850;
       *cardinality = 1;
@@ -246,7 +246,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
           "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
           " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
           " AND S_QUANTITY < $6" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
       *num_rows = 200;
       *cardinality = 1;
@@ -264,7 +264,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
           "OL_W_ID = $4 " &&
-      (!current_pipeline_->GetPipelineId()) == 1) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 1) {
     if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
       *cardinality = 10;
     }
@@ -278,7 +278,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
           "AND OL_W_ID = $3" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
       *cardinality = 10;
     }

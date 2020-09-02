@@ -83,14 +83,16 @@ void CSVScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 
 ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   const auto output_schema = GetPlan().GetOutputSchema();
-  if (static_cast<uint32_t>(col_oid) > output_schema->NumColumns()) {
-    throw EXECUTION_EXCEPTION(fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", !col_oid));
+  if (col_oid.UnderlyingValue() > output_schema->NumColumns()) {
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", col_oid.UnderlyingValue()),
+        common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   // Return the field converted to the appropriate type.
   auto *codegen = GetCodeGen();
-  auto *field = GetField(!col_oid);
-  auto output_type = sql::GetTypeId(GetPlan().GetOutputSchema()->GetColumn(!col_oid).GetType());
+  auto *field = GetField(col_oid.UnderlyingValue());
+  auto output_type = sql::GetTypeId(GetPlan().GetOutputSchema()->GetColumn(col_oid.UnderlyingValue()).GetType());
   switch (output_type) {
     case sql::TypeId::Boolean:
       return codegen->CallBuiltin(ast::Builtin::ConvertStringToBool, {field});

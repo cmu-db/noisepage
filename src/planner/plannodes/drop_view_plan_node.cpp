@@ -16,7 +16,7 @@ common::hash_t DropViewPlanNode::Hash() const {
 
   // Hash view_oid
   auto view_oid = GetViewOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(!view_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid.UnderlyingValue()));
 
   // Hash if_exists_
   auto if_exist = IsIfExists();
