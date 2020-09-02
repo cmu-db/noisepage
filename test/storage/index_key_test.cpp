@@ -267,7 +267,8 @@ class IndexKeyTests : public TerrierTest {
 
     txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    // Clean up
+    // In single-threaded DAF, we need a single deferral in this case to guarantee the action happens afer
+    // transactions in the tests has unlinked
     db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
                                                                                        transaction::DafId::INVALID);
     delete[] key_buffer;

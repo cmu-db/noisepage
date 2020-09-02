@@ -226,10 +226,14 @@ class RecoveryTests : public TerrierTest {
         recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
-    // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-    // DeferredAction
-    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
-                                                                                        transaction::DafId::INVALID);
+    // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
+    // transactions in the tests has unlinked
+    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+        [=]() {
+          db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+              [=]() { delete tested; }, transaction::DafId::INVALID);
+        },
+        transaction::DafId::INVALID);
   }
 };
 
@@ -760,13 +764,21 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
     }
   }
 
-  // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-  // DeferredAction
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
-                                                                                      transaction::DafId::INVALID);
+  // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
+  // transactions in the tests has unlinked
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+      [=]() {
+        db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+            [=]() { delete tested; }, transaction::DafId::INVALID);
+      },
+      transaction::DafId::INVALID);
 
-  secondary_recovery_db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-      [=]() { unlink(secondary_log_file.c_str()); }, transaction::DafId::INVALID);
+  auto daf = secondary_recovery_db_main->GetTransactionLayer()->GetDeferredActionManager();
+  daf->RegisterDeferredAction(
+      [=]() {
+        daf->RegisterDeferredAction([=]() { unlink(secondary_log_file.c_str()); }, transaction::DafId::INVALID);
+      },
+      transaction::DafId::INVALID);
 }
 
 }  // namespace terrier::storage

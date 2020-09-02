@@ -236,7 +236,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   }
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-  // DeferredAction
+  // DeferredAction. In single-threaded DAF, we need a single deferral in this case.
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
                                                                                       transaction::DafId::INVALID);
 
@@ -283,7 +283,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   EXPECT_EQ(log_records_count, 0);
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-  // DeferredAction
+  // DeferredAction. In single-threaded DAF, we need a single deferral in this case.
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
                                                                                       transaction::DafId::INVALID);
 
@@ -358,7 +358,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   EXPECT_TRUE(found_abort_record);
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-  // DeferredAction
+  // DeferredAction. In single-threaded DAF, we need a single deferral in this case.
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
                                                                                       transaction::DafId::INVALID);
 }
@@ -416,7 +416,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   EXPECT_FALSE(found_abort_record);
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-  // DeferredAction
+  // DeferredAction. In single-threaded DAF, we need a single deferral in this case.
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
                                                                                       transaction::DafId::INVALID);
 }
@@ -448,7 +448,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
   EXPECT_TRUE(future.get());
 
   // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-  // DeferredAction
+  // DeferredAction. In single-threaded DAF, we need a single deferral in this case.
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; },
                                                                                       transaction::DafId::INVALID);
 }
