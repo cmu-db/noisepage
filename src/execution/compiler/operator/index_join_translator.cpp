@@ -77,6 +77,8 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   ast::Expr *advance_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorAdvance, {GetCodeGen()->AddressOf(index_iter_)});
 
+  CounterAdd(function, num_loops_, 1);
+
   // for (@indexIteratorScanKey(&index_iter); @indexIteratorAdvance(&index_iter);)
   Loop loop(function, loop_init, advance_call, nullptr);
   {
@@ -101,7 +103,6 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   }
   loop.EndLoop();
 
-  CounterAdd(function, num_loops_, 1);
   CounterSetExpr(function, index_size_,
                  GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
   // @indexIteratorFree(&index_iter_)
