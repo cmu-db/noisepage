@@ -22,7 +22,6 @@ class GarbageCollectorThread {
   /**
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
-   * @param log_manager pointer to the log manager
    * @param metrics_manager pointer to the metrics manager
    * @param num_daf_threads number of DAF threads
    */
