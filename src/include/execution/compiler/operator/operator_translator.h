@@ -260,6 +260,8 @@ class OperatorTranslator : public ColumnValueProvider {
   void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
   /** Add to the value of a counter for Lin's models. */
   void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, ast::Identifier val) const;
+  /** Get the feature value out of a counter. */
+  ast::Expr *CounterVal(StateDescriptor::Entry entry) const;
   /** Record a specified feature's value. */
   void FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
                      brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,

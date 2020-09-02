@@ -138,6 +138,13 @@ void OperatorTranslator::CounterAdd(FunctionBuilder *function, const StateDescri
   }
 }
 
+ast::Expr *OperatorTranslator::CounterVal(StateDescriptor::Entry entry) const {
+  if (IsCountersEnabled()) {
+    return entry.Get(GetCodeGen());
+  }
+  return nullptr;
+}
+
 void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
                                        brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                                        ast::Expr *val) const {

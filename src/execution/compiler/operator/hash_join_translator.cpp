@@ -16,7 +16,8 @@ const char *build_row_attr_prefix = "attr";
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_JOIN),
+    // The ExecutionOperatingUnitType depends on whether it is the build pipeline or probe pipeline.
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
@@ -300,15 +301,15 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     }
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_build_rows_.Get(codegen));
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
   } else {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_probe_rows_.Get(codegen));
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, num_match_rows_.Get(codegen));
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
   }
 }
 

@@ -85,10 +85,10 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                num_updates_.Get(GetCodeGen()));
+                CounterVal(num_updates_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
-                num_updates_.Get(GetCodeGen()));
+                CounterVal(num_updates_));
 
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);

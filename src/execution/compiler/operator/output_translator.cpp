@@ -54,7 +54,7 @@ void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuil
   function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_output_.Get(GetCodeGen()));
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
 }

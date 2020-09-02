@@ -3,7 +3,14 @@
 namespace terrier::brain {
 
 enum class ExecutionOperatingUnitType : uint32_t {
+  /** INVALID is associated with translators that are INVALID no matter what. */
   INVALID,
+
+  /**
+   * DUMMY is associated with translators that have no inherent type as the type will depend on other factors,
+   * for example, the same translator may be used to create both HASHJOIN_BUILD and HASHJOIN_PROBE pipelines.
+   */
+  DUMMY,
 
   /**
    * AGGREGATE_BUILD
@@ -105,31 +112,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * This gets dropped right now... :(
    */
   LIMIT,
-
-  /**
-   * HASH_JOIN
-   */
-  HASH_JOIN,
-  /**
-   * HASH_AGGREGATE
-   */
-  HASH_AGGREGATE,
-  /**
-   * CSV_SCAN
-   */
-  CSV_SCAN,
-  /**
-   * NL_JOIN
-   */
-  NL_JOIN,
-  /**
-   * SORT
-   */
-  SORT,
-  /**
-   * STATIC_AGGREGATE
-   */
-  STATIC_AGGREGATE,
 
   /**
    * Use to demarcate plan and operations.

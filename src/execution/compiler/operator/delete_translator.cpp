@@ -48,10 +48,10 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                num_deletes_.Get(GetCodeGen()));
+                CounterVal(num_deletes_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
-                num_deletes_.Get(GetCodeGen()));
+                CounterVal(num_deletes_));
 
   GenDeleterFree(function);
 }

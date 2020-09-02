@@ -301,10 +301,10 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                num_scans_.Get(codegen));
+                CounterVal(num_scans_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
-                num_scans_.Get(codegen));
+                CounterVal(num_scans_));
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {

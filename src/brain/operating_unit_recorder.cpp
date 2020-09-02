@@ -384,7 +384,7 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
+      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY ||
       plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
     // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
@@ -616,11 +616,11 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
-    RecordAggregateTranslator(translator, plan);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+  if (plan->IsStaticAggregation()) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
   }
 }
