@@ -59,7 +59,7 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
 
  private:
   void DeclareIterator(FunctionBuilder *builder) const;
-  void SetOids(FunctionBuilder *builder) const;
+  void SetIds(FunctionBuilder *builder) const;
   void FillKey(WorkContext *context, FunctionBuilder *builder, ast::Identifier pr,
                const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) const;
   void FreeIterator(FunctionBuilder *builder) const;
@@ -69,6 +69,7 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
 
  private:
   std::vector<catalog::col_oid_t> input_oids_;
+  std::vector<storage::col_id_t> col_ids_array_;
   const catalog::Schema &table_schema_;
   storage::ProjectionMap table_pm_;
   const catalog::IndexSchema &index_schema_;
@@ -76,7 +77,7 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
 
   // Structs and local variables
   ast::Identifier index_iter_;
-  ast::Identifier col_oids_;
+  ast::Identifier col_ids_;
   ast::Identifier lo_index_pr_;
   ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;

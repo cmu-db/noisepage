@@ -20,12 +20,13 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::IDX_SCAN),
       input_oids_(plan.GetColumnOids()),
+      col_ids_array_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ColIdsForOids(input_oids_)),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
       index_schema_(GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(plan.GetIndexOid())),
       index_pm_(GetCodeGen()->GetCatalogAccessor()->GetIndex(plan.GetIndexOid())->GetKeyOidToOffsetMap()),
       index_iter_(GetCodeGen()->MakeFreshIdentifier("index_iter")),
-      col_oids_(GetCodeGen()->MakeFreshIdentifier("col_oids")),
+      col_ids_(GetCodeGen()->MakeFreshIdentifier("col_ids")),
       index_pr_(GetCodeGen()->MakeFreshIdentifier("index_pr")),
       lo_index_pr_(GetCodeGen()->MakeFreshIdentifier("lo_index_pr")),
       hi_index_pr_(GetCodeGen()->MakeFreshIdentifier("hi_index_pr")),
@@ -51,11 +52,11 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
 
 void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const auto &op = GetPlanAs<planner::IndexScanPlanNode>();
-  // var col_oids: [num_cols]uint32
-  // col_oids[i] = ...
-  SetOids(function);
+  // var col_ids: [num_cols]uint32
+  // col_ids[i] = ...
+  SetIds(function);
   // var index_iter : IndexIterator
-  // @indexIteratorInit(&index_iter, queryState.execCtx, num_attrs, table_oid, index_oid, col_oids)
+  // @indexIteratorInit(&index_iter, queryState.execCtx, num_attrs, table_oid, index_oid, col_ids)
   DeclareIterator(function);
   // Either:
   // (A) var index_pr = @indexIteratorGetPR(&index_iter)
@@ -111,15 +112,15 @@ ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const
   return GetCodeGen()->PRGet(GetCodeGen()->MakeExpr(table_pr_), type, nullable, attr_idx);
 }
 
-void IndexScanTranslator::SetOids(FunctionBuilder *builder) const {
-  // var col_oids: [num_cols]uint32
-  ast::Expr *arr_type = GetCodeGen()->ArrayType(input_oids_.size(), ast::BuiltinType::Kind::Uint32);
-  builder->Append(GetCodeGen()->DeclareVar(col_oids_, arr_type, nullptr));
+void IndexScanTranslator::SetIds(FunctionBuilder *builder) const {
+  // var col_ids: [num_cols]uint32
+  ast::Expr *arr_type = GetCodeGen()->ArrayType(col_ids_array_.size(), ast::BuiltinType::Kind::Uint32);
+  builder->Append(GetCodeGen()->DeclareVar(col_ids_, arr_type, nullptr));
 
   for (uint16_t i = 0; i < input_oids_.size(); i++) {
-    // col_oids[i] = col_oid
-    ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(input_oids_[i].UnderlyingValue());
+    // col_ids[i] = col_id
+    ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_ids_, i);
+    ast::Expr *rhs = GetCodeGen()->Const32(col_ids_array_[i].UnderlyingValue());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -128,7 +129,7 @@ void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) const {
   // var index_iter : IndexIterator
   ast::Expr *iter_type = GetCodeGen()->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(GetCodeGen()->DeclareVar(index_iter_, iter_type, nullptr));
-  // @indexIteratorInit(&index_iter, queryState.execCtx, num_attrs, table_oid, index_oid, col_oids)
+  // @indexIteratorInit(&index_iter, queryState.execCtx, num_attrs, table_oid, index_oid, col_ids)
   uint32_t num_attrs = 0;
   const auto &op = GetPlanAs<planner::IndexScanPlanNode>();
   if (op.GetScanType() == planner::IndexScanType::Exact) {
@@ -139,7 +140,7 @@ void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) const {
 
   ast::Expr *init_call = GetCodeGen()->IndexIteratorInit(
       index_iter_, GetCompilationContext()->GetExecutionContextPtrFromQueryState(), num_attrs,
-      op.GetTableOid().UnderlyingValue(), op.GetIndexOid().UnderlyingValue(), col_oids_);
+      op.GetTableOid().UnderlyingValue(), op.GetIndexOid().UnderlyingValue(), col_ids_);
   builder->Append(GetCodeGen()->MakeStmt(init_call));
 }
 
