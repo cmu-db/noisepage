@@ -26,8 +26,12 @@ class LargeGCTests : public TerrierTest {
         for (auto w : result.second) delete w;
         db_main->GetGarbageCollectorThread()->ResumeGC();
       }
-      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete tested; },
-                                                                                         transaction::DafId::INVALID);
+      // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
+      // transactions in the tests has unlinked
+      auto daf = db_main->GetTransactionLayer()->GetDeferredActionManager();
+      daf->RegisterDeferredAction(
+          [=]() { daf->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID); },
+          transaction::DafId::INVALID);
     }
   }
 };

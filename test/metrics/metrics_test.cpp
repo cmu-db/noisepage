@@ -44,6 +44,8 @@ class MetricsTests : public TerrierTest {
     sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);
   }
   void TearDown() override {
+    // In single-threaded DAF, we need a single deferral in this case to guarantee the action happens afer
+    // transactions in the tests has unlinked
     db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table_; },
                                                                                         transaction::DafId::INVALID);
   }

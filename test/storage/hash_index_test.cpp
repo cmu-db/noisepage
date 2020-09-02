@@ -78,11 +78,17 @@ class HashIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
+    // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
+    // transactions in the tests has unlinked
     db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
         [=]() {
-          delete sql_table_;
-          delete default_index_;
-          delete unique_index_;
+          db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+              [=]() {
+                delete sql_table_;
+                delete default_index_;
+                delete unique_index_;
+              },
+              transaction::DafId::INVALID);
         },
         transaction::DafId::INVALID);
 
