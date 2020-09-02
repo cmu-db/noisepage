@@ -61,10 +61,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * IDX_SCAN
    * num_rows: size of index
    * cardinality: size of scan
-   *
-   * Special case: in the case of an index join, it is also recorded as an IDX_SCAN where:
-   * num_rows: number of rows output by the outer loop
-   * cardinality: N/A
    */
   IDX_SCAN,
 

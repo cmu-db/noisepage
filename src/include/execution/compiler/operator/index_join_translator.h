@@ -87,6 +87,6 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
   ast::Identifier slot_;
 
   // The number of loops.
-  StateDescriptor::Entry num_loops_;
+  StateDescriptor::Entry num_scans_index_;
 };
 }  // namespace terrier::execution::compiler

@@ -43,10 +43,10 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   }
 
   compilation_context->Prepare(*GetPlan().GetChild(0), pipeline);
-  num_loops_ = CounterDeclare("num_loops");
+  num_scans_index_ = CounterDeclare("num_loops");
 }
 
-void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_loops_, 0); }
+void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_scans_index_, 0); }
 
 void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const auto &op = GetPlanAs<planner::IndexJoinPlanNode>();
@@ -90,19 +90,22 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
       // PARENT_CODE
       context->Push(function);
     }
+
+    CounterAdd(function, num_scans_index_, 1);
   }
   loop.EndLoop();
 
   // @indexIteratorFree(&index_iter_)
   FreeIterator(function);
-
-  CounterAdd(function, num_loops_, 1);
 }
 
 void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_loops_));
-  FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_loops_));
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_index_));
+  FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_scans_index_));
 }
 
 ast::Expr *IndexJoinTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
