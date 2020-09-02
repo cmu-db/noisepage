@@ -81,10 +81,7 @@ class IndexCreateTest : public SqlBasedTest {
           auto tuple_val UNUSED_ATTRIBUTE = table_pr->Get<int32_t, false>(i, nullptr);
           ASSERT_EQ(*table_val, *tuple_val);
         }
-          while(index_iter.Advance()) {
-            auto *const table_pr1(index_iter.TablePR());
-            auto tuple_val UNUSED_ATTRIBUTE = table_pr1->Get<int32_t, false>(0, nullptr);
-          }
+
         // Check that there are no more entries.
         ASSERT_FALSE(index_iter.Advance());
       }
