@@ -118,7 +118,7 @@ class CompilationContext {
   CompilationMode GetCompilationMode() const { return mode_; }
 
   /** @return True if we should collect counters in TPL, used for Lin's models. */
-  bool IsCountersEnabled() const { return true; }
+  bool IsCountersEnabled() const { return false; }
 
  private:
   // Private to force use of static Compile() function.
