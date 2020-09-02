@@ -49,7 +49,8 @@ void VectorOps::BitwiseAndInPlace(const exec::ExecutionSettings &exec_settings, 
       break;
     default:
       throw EXECUTION_EXCEPTION(
-          fmt::format("Invalid type for in-place bitwise operation, type {}.", TypeIdToString(left->GetTypeId())));
+          fmt::format("Invalid type for in-place bitwise operation, type {}.", TypeIdToString(left->GetTypeId())),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 
