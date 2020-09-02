@@ -22,13 +22,15 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
                                              CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       codegen_(compilation_context->GetCodeGen()),
-      inserter_(codegen_->MakeFreshIdentifier("inserter")),
+      storage_interface_base_(codegen_->MakeFreshIdentifier("storage_interface_base")),
+      storage_interface_(codegen_->MakeFreshIdentifier("storage_interface_")),
       index_pr_(codegen_->MakeFreshIdentifier("index_pr")),
       tvi_var_(codegen_->MakeFreshIdentifier("tvi")),
       vpi_var_(codegen_->MakeFreshIdentifier("vpi")),
       col_oids_var_(codegen_->MakeFreshIdentifier("col_oids")),
       slot_var_(codegen_->MakeFreshIdentifier("slot")),
-      table_schema_(codegen_->GetCatalogAccessor()->GetSchema(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid())),
+      table_oid_(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()),
+      table_schema_(codegen_->GetCatalogAccessor()->GetSchema(table_oid_)),
       all_oids_(AllColOids(table_schema_)),
       index_oid_(
           codegen_->GetCatalogAccessor()->GetIndexOid(GetPlanAs<planner::CreateIndexPlanNode>().GetIndexName())) {
@@ -36,41 +38,60 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   for (const auto &index_col : index_schema.GetColumns()) {
     compilation_context->Prepare(*index_col.StoredExpression());
   }
-  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
+}
+
+util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() const {
+  auto *tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
+  auto *index_pr_type = codegen_->PointerType(ast::BuiltinType::ProjectedRow);
+  auto *inserter_type = codegen_->PointerType(ast::BuiltinType::StorageInterface);
+  return codegen_->MakeFieldList({codegen_->MakeField(tvi_var_, tvi_type), codegen_->MakeField(index_pr_, index_pr_type), codegen_->MakeField(storage_interface_, inserter_type)});
+}
+
+void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
+  InitScan(function);
+  function->Append(codegen_->IterateTableInsertIndexParallel(table_oid_, col_oids_var_, GetQueryStatePtr(),
+                                                      GetExecutionContext(), work_func, index_pr_, storage_interface_));
+  FreeInserter(function);
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
-  InitScan(function);
-
+  const bool declare_local_tvi = !GetPipeline()->IsParallel();
+  if (declare_local_tvi) {
+    InitScan(function);
+    DeclareTVI(function);
+  }
+  DeclareSlot(function);
   // Scan it.
   ScanTable(context, function);
 
   // Close TVI, if need be.
-  function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
+  if (declare_local_tvi) {
+    function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
+  }
 
-  FreeInserter(function);
 }
 
 void IndexCreateTranslator::InitScan(FunctionBuilder *function) const {
-  // Init inserter, index pr, create index, and init tvi
+  // Init storage_interface_, index pr
   DeclareInserter(function);
   DeclareIndexPR(function);
-  DeclareTVI(function);
-  DeclareSlot(function);
 }
 
 void IndexCreateTranslator::DeclareInserter(FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
   // col_oids[i] = ...
   SetOids(function);
-  // var inserter : StorageInterface
+  // var storage_interface_base : StorageInterface
   auto *storage_interface_type = codegen_->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
-  function->Append(codegen_->DeclareVar(inserter_, storage_interface_type, nullptr));
-  // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids_var_, false)
+  function->Append(codegen_->DeclareVar(storage_interface_base_, storage_interface_type, nullptr));
+  // @storageInterfaceInit(storage_interface_base, execCtx, table_oid, col_oids_var_, false)
   ast::Expr *inserter_setup = codegen_->StorageInterfaceInit(
-      inserter_, GetExecutionContext(), uint32_t(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()),
+      storage_interface_base_, GetExecutionContext(), uint32_t(table_oid_),
       col_oids_var_, false);
   function->Append(codegen_->MakeStmt(inserter_setup));
+  // var storage_interface_ = &storage_interface_base
+  function->Append(codegen_->DeclareVarWithInit(storage_interface_, codegen_->AddressOf(storage_interface_base_)));
 }
 
 void IndexCreateTranslator::SetOids(FunctionBuilder *function) const {
@@ -87,8 +108,8 @@ void IndexCreateTranslator::SetOids(FunctionBuilder *function) const {
 }
 
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
-  // var index_pr = @getIndexPR(&inserter, oid)
-  std::vector<ast::Expr *> pr_call_args{codegen_->AddressOf(inserter_), codegen_->Const32(uint32_t(index_oid_))};
+  // var index_pr = @getIndexPR(storage_interface, oid)
+  std::vector<ast::Expr *> pr_call_args{codegen_->MakeExpr(storage_interface_), codegen_->Const32(uint32_t(index_oid_))};
   auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   function->Append(codegen_->DeclareVar(index_pr_, nullptr, get_index_pr_call));
 }
@@ -102,7 +123,7 @@ void IndexCreateTranslator::DeclareTVI(FunctionBuilder *function) const {
   function->Append(codegen->DeclareVarWithInit(tvi_var_, codegen->AddressOf(tvi_base)));
   // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
   function->Append(codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(),
-                                          GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid(), col_oids_var_));
+                                          table_oid_, col_oids_var_));
 }
 
 void IndexCreateTranslator::DeclareSlot(FunctionBuilder *function) const {
@@ -168,20 +189,21 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     function->Append(codegen_->MakeStmt(set_key_call));
   }
 
-  // if (!@IndexInsertWithSlot(&inserter, &slot_var_, unique)) { Abort(); }
+  // if (!@IndexInsertWithSlot(storage_interface, &slot_var_, unique)) { Abort(); }
   auto *index_insert_call = codegen_->CallBuiltin(
       ast::Builtin::IndexInsertWithSlot,
-      {codegen_->AddressOf(inserter_), codegen_->AddressOf(slot_var_), codegen_->ConstBool(index_schema.Unique())});
+      {codegen_->MakeExpr(storage_interface_), codegen_->AddressOf(slot_var_), codegen_->ConstBool(index_schema.Unique())});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
 }
 
+
 void IndexCreateTranslator::FreeInserter(FunctionBuilder *function) const {
   // Call @storageInterfaceFree
   ast::Expr *inserter_free =
-      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {GetCodeGen()->AddressOf(inserter_)});
+      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {codegen_->MakeExpr(storage_interface_)});
   function->Append(GetCodeGen()->MakeStmt(inserter_free));
 }
 

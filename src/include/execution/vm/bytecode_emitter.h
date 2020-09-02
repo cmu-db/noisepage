@@ -323,6 +323,10 @@ class BytecodeEmitter {
   void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
                              LocalVar exec_ctx, FunctionId scan_fn);
 
+  /** Emit a parallel table scan and insert into index. */
+  void EmitParallelTableScanInsertIndex(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
+                             LocalVar exec_ctx, FunctionId scan_fn, LocalVar index_pr, LocalVar storage_interface);
+
   /** Reading values from an iterator. */
   void EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint32_t col_idx);
 

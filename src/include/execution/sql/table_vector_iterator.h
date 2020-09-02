@@ -94,6 +94,16 @@ class EXPORT TableVectorIterator {
   using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
 
   /**
+ * Scan function callback used to scan a partition of the table.
+ * Convention: First argument is the opaque query state (that must contain execCtx as a member),
+ *             second argument is the thread state,
+ *             third argument is the table vector iterator configured to iterate a sub-range of the table.
+ *             The first two arguments are void because their types are only known at runtime
+ *             (i.e., defined in generated code).
+ */
+  using ScanAndInsertIndexFn = void (*)(void *, void *, TableVectorIterator *iter, storage::ProjectedRow *index_pr, StorageInterface *storageInterface);
+
+  /**
    * Perform a parallel scan over the table with ID @em table_id using the callback function
    * @em scanner on each input vector projection from the source table. This call is blocking,
    * meaning that it only returns after the whole table has been scanned. Iteration order is
@@ -111,6 +121,10 @@ class EXPORT TableVectorIterator {
    */
   static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
                            exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
+                           uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
+
+  static bool ParallelScanInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
+                           exec::ExecutionContext *exec_ctx, ScanAndInsertIndexFn scan_fn, storage::ProjectedRow *index_pr, sql::StorageInterface *storage_interface,
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
  private:

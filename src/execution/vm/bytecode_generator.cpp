@@ -683,7 +683,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
   }
 }
 
-void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
+void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call, ast::Builtin builtin) {
   // The first argument is the table oid, which is integer-typed.
   LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[0]);
   // The second argument is the array of column oids.
@@ -696,8 +696,23 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   // The fifth argument is the scan function as an identifier.
   const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
   // Emit the bytecode.
-  GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
+  switch (builtin) {
+    case ast::Builtin::TableIterParallel: {
+      GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
+                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
+      break;
+    }
+    case ast::Builtin::TableIterIndexInsertParallel: {
+      LocalVar index_pr = VisitExpressionForRValue(call->Arguments()[5]);
+      LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[6]);
+      GetEmitter()->EmitParallelTableScanInsertIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
+                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), index_pr, storage_interface);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible table iteration parallel call");
+    }
+  }
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2364,8 +2379,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTableIterCall(call, builtin);
       break;
     }
-    case ast::Builtin::TableIterParallel: {
-      VisitBuiltinTableIterParallelCall(call);
+    case ast::Builtin::TableIterParallel:
+    case ast::Builtin::TableIterIndexInsertParallel:{
+      VisitBuiltinTableIterParallelCall(call, builtin);
       break;
     }
     case ast::Builtin::VPIInit:

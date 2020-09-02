@@ -282,6 +282,13 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
                                                              scanner);
 }
 
+VM_OP_HOT void OpParallelScanTableInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
+                                   terrier::execution::exec::ExecutionContext *exec_ctx,
+                                   const terrier::execution::sql::TableVectorIterator::ScanAndInsertIndexFn scanner, terrier::storage::ProjectedRow *index_pr, terrier::execution::sql::StorageInterface *storage_interface) {
+  terrier::execution::sql::TableVectorIterator::ParallelScanInsertIndex(table_oid, col_oids, num_oids, query_state, exec_ctx,
+                                                             scanner, index_pr, storage_interface);
+}
+
 // ---------------------------------------------------------
 // Vector Projection Iterator
 // ---------------------------------------------------------

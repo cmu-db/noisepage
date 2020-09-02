@@ -121,6 +121,8 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
+    F(ParallelScanTableInsertIndex, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,   \
+    OperandType::Local, OperandType::FunctionId, OperandType::Local, OperandType::Local)                              \
                                                                                                                       \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
