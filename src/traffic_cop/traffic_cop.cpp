@@ -12,6 +12,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/error/error_data.h"
 #include "common/error/exception.h"
+#include "common/thread_context.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
@@ -19,6 +20,7 @@
 #include "execution/exec/output.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
+#include "metrics/metrics_store.h"
 #include "network/connection_context.h"
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
@@ -347,7 +349,6 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
@@ -366,6 +367,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
+  auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+  common::thread_context.metrics_store_->RecordQueryText(exec_query->GetQueryId(),
+                                                         portal->GetStatement()->GetQueryText(),
+                                                         resource_metrics);
   return {ResultType::COMPLETE, 0};
 }
 
@@ -377,7 +382,6 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
-                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
@@ -392,6 +396,11 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
   exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+
+  auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+  common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(),
+                                                          metrics::MetricsUtil::Now(),
+                                                          resource_metrics);
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete

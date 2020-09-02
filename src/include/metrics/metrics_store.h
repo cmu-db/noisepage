@@ -17,6 +17,7 @@
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
+#include "metrics/query_trace_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/pipeline_metric.h"
 #include "metrics/transaction_metric.h"
@@ -176,6 +177,34 @@ class MetricsStore {
   }
 
   /**
+   * Record queries generated
+   * @param query_id id of the query
+   * @param query_text text of the query
+   * @param resource_metrics Metrics
+   */
+  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text,
+                       const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
+    TERRIER_ASSERT(query_trace_metric_ != nullptr,
+                   "QueryTraceMetric not allocated. Check MetricsStore constructor.");
+    query_trace_metric_->RecordQueryText(query_id, query_text, resource_metrics);
+  }
+
+  /**
+   * Record query execution history
+   * @param query_id id of the query
+   * @param timestamp time of the query execution
+   * @param resource_metrics Metrics
+   */
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+                        const common::ResourceTracker::Metrics &resource_metrics) {
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
+    TERRIER_ASSERT(query_trace_metric_ != nullptr,
+                   "QueryTraceMetric not allocated. Check MetricsStore constructor.");
+    query_trace_metric_->RecordQueryTrace(query_id, timestamp, resource_metrics);
+  }
+
+  /**
    * @param component metrics component to test
    * @return true if metrics enabled for this component, false otherwise
    */
@@ -215,6 +244,7 @@ class MetricsStore {
   std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> GetDataToAggregate();
 
   std::unique_ptr<LoggingMetric> logging_metric_;
+  std::unique_ptr<QueryTraceMetric> query_trace_metric_;
   std::unique_ptr<TransactionMetric> txn_metric_;
   std::unique_ptr<GarbageCollectionMetric> gc_metric_;
   std::unique_ptr<ExecutionMetric> execution_metric_;

@@ -75,6 +75,13 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
           result[component] = execute_command_metric_->Swap();
           break;
         }
+        case MetricsComponent::QUERY_TRACE: {
+          TERRIER_ASSERT(
+              query_trace_metric_ != nullptr,
+              "QueryTraceMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = query_trace_metric_->Swap();
+          break;
+        }
       }
     }
   }
