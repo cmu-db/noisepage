@@ -222,7 +222,13 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(current_translator_->translator_id_, type, num_rows, key_size, num_keys,
+  // This is a hack.
+  // Projection translators don't own their features, but pass them further down the pipeline.
+  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
+  while (translator->GetFeatureType() == brain::ExecutionOperatingUnitType::PROJECTION) {
+    translator = translator->GetParentTranslator();
+  }
+  auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
                                                cardinality, mem_factor, num_loops);
   pipeline_features_.emplace(type, std::move(feature));
 }
