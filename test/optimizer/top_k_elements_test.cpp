@@ -1,5 +1,3 @@
-#include "optimizer/statistics/top_k_elements.h"
-
 #include <stack>
 #include <string>
 #include <unordered_map>
@@ -8,6 +6,8 @@
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
+#include "optimizer/statistics/top_k_elements.h"
+
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
@@ -45,10 +45,7 @@ TEST_F(TopKElementsTests, SimpleIncrementTest) {
   top_k.Increment(5, 15);
   EXPECT_EQ(top_k.GetSize(), 5);
 
-  std::ostringstream stream;
-  stream << top_k;
-
-  OPTIMIZER_LOG_TRACE(stream.str());
+  OPTIMIZER_LOG_TRACE(top_k);
 }
 
 // Check that if incrementally increase the count of a key that
@@ -137,8 +134,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
     // TODO(pavlo): This text case is in correct because we can't
     // guarantee that the keys we shove in will have the exact amount
     // that we originally set them to.
-
-    OPTIMIZER_LOG_TRACE("Top-" + std::to_string(i) += ": " + key + " <-> " += expected_key);
+    OPTIMIZER_LOG_TRACE("Top-{0}: {1} <-> {2}", i, key, expected_key);
     // EXPECT_EQ(key, expected_key) << "Iteration #" << i;
     i++;
   }

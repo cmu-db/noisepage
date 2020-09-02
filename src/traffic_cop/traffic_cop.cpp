@@ -393,8 +393,16 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   try {
     exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
-  } catch (ArithmeticException &e) {
+  } catch (ExecutionException &e) {
+    /*
+     * An ExecutionException is thrown in the case of some failure caused by a software bug or caused by some data
+     * exception. In either case we abort the current transaction and return an error to the client.
+     */
+    // TODO(Matt): evict this plan from the statement cache when the functionality is available
+    connection_ctx->Transaction()->SetMustAbort();
     auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
     return {ResultType::ERROR, error};
   }
 
