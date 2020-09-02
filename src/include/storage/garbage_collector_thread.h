@@ -25,9 +25,8 @@ class GarbageCollectorThread {
    * @param metrics_manager pointer to the metrics manager
    * @param num_daf_threads number of DAF threads
    */
-  GarbageCollectorThread(common::ManagedPointer <GarbageCollector> gc,
-                         std::chrono::microseconds gc_period,
-                         common::ManagedPointer <metrics::MetricsManager> metrics_manager,
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period,
+                         common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                          uint32_t num_daf_threads = DEFAULT_NUM_DAF_THREADS);
 
   ~GarbageCollectorThread() { StopGC(); }
