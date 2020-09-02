@@ -39,15 +39,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
   HASHJOIN_PROBE,
 
   /**
-   * IDXJOIN
-   * num_rows: N/A
-   * cardinality: N/A
-   * This feature doesn't actually exist.
-   * The recorder emits a IDX_SCAN (with num_loops = # rows output by the outer loop)
-   */
-  IDXJOIN,
-
-  /**
    * SORT_BUILD
    * num_rows: # input tuples
    * cardinality: # unique values
@@ -70,6 +61,10 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * IDX_SCAN
    * num_rows: size of index
    * cardinality: size of scan
+   *
+   * Special case: in the case of an index join, it is also recorded as an IDX_SCAN where:
+   * num_rows: number of rows output by the outer loop
+   * cardinality: N/A
    */
   IDX_SCAN,
 

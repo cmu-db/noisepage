@@ -18,7 +18,7 @@ namespace terrier::execution::compiler {
 
 IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::IDXJOIN),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       input_oids_(plan.CollectInputOids()),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
@@ -43,7 +43,10 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   }
 
   compilation_context->Prepare(*GetPlan().GetChild(0), pipeline);
+  num_loops_ = CounterDeclare("num_loops");
 }
+
+void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_loops_, 0); }
 
 void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const auto &op = GetPlanAs<planner::IndexJoinPlanNode>();
@@ -92,6 +95,13 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
 
   // @indexIteratorFree(&index_iter_)
   FreeIterator(function);
+
+  CounterAdd(function, num_loops_, 1);
+}
+
+void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_loops_));
 }
 
 ast::Expr *IndexJoinTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

@@ -384,8 +384,7 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY ||
-      plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
+      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY) {
     // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
   }
