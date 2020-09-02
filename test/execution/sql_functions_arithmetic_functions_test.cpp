@@ -386,7 +386,7 @@ TEST_F(ArithmeticFunctionsTests, OutOfRangeTest) {
       Real result = Real::Null();                                                \
       ArithmeticFunctions::TPL_FUNC(&result, Real(42.0));                        \
       FAIL();                                                                    \
-    } catch (ArithmeticException & e) {                                          \
+    } catch (ExecutionException & e) {                                          \
       EXPECT_EQ(common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE, e.code_); \
     }                                                                            \
   }
