@@ -379,6 +379,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif ()
 
 set(TERRIER_LINK_LIBS
+        terrier_static
         gflags
         ${TERRIER_LINK_LIBS}
         pg_query)
@@ -397,6 +398,7 @@ set(TERRIER_TEST_LINK_LIBS
 
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
+        terrier_static
         test_util_benchmark
         benchmark
         gtest
