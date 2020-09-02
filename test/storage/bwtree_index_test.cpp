@@ -94,9 +94,10 @@ class BwTreeIndexTests : public TerrierTest {
 
     // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
     // transactions in the tests has unlinked
-    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+    auto daf = db_main_->GetTransactionLayer()->GetDeferredActionManager();
+    daf->RegisterDeferredAction(
         [=]() {
-          db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
+          daf->RegisterDeferredAction(
               [=]() {
                 delete sql_table_;
                 delete default_index_;

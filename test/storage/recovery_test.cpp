@@ -228,11 +228,9 @@ class RecoveryTests : public TerrierTest {
     }
     // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
     // transactions in the tests has unlinked
-    db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-        [=]() {
-          db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-              [=]() { delete tested; }, transaction::DafId::INVALID);
-        },
+    auto daf = db_main_->GetTransactionLayer()->GetDeferredActionManager();
+    daf->RegisterDeferredAction(
+        [=]() { daf->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID); },
         transaction::DafId::INVALID);
   }
 };
@@ -766,17 +764,15 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
   // transactions in the tests has unlinked
-  db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-      [=]() {
-        db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-            [=]() { delete tested; }, transaction::DafId::INVALID);
-      },
+  auto daf = db_main_->GetTransactionLayer()->GetDeferredActionManager();
+  daf->RegisterDeferredAction(
+      [=]() { daf->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID); },
       transaction::DafId::INVALID);
 
-  auto daf = secondary_recovery_db_main->GetTransactionLayer()->GetDeferredActionManager();
-  daf->RegisterDeferredAction(
+  auto recov_daf = secondary_recovery_db_main->GetTransactionLayer()->GetDeferredActionManager();
+  recov_daf->RegisterDeferredAction(
       [=]() {
-        daf->RegisterDeferredAction([=]() { unlink(secondary_log_file.c_str()); }, transaction::DafId::INVALID);
+        recov_daf->RegisterDeferredAction([=]() { unlink(secondary_log_file.c_str()); }, transaction::DafId::INVALID);
       },
       transaction::DafId::INVALID);
 }
