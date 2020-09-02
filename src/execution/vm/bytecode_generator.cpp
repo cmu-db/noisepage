@@ -1616,6 +1616,7 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
       GetEmitter()->Emit(Bytecode::ExecutionContextGetFeature, value, exec_ctx, pipeline_id, feature_id,
                          feature_attribute);
+      GetExecutionResult()->SetDestination(value.ValueOf());
       break;
     }
     case ast::Builtin::ExecutionContextRecordFeature: {
