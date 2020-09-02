@@ -441,6 +441,7 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
+    FeatureArithmeticRecordMul(function, context->GetPipeline(), CounterVal(num_agg_inputs_));
   } else {
     TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
@@ -463,6 +464,7 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
+    FeatureArithmeticRecordMul(function, context->GetPipeline(), CounterVal(num_agg_outputs_));
   }
 }
 

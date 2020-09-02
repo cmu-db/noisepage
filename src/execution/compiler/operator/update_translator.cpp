@@ -89,6 +89,7 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_updates_));
+  FeatureArithmeticRecordMul(function, context->GetPipeline(), CounterVal(num_updates_));
 
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);

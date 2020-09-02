@@ -102,6 +102,7 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
 void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_loops_));
+  FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_loops_));
 }
 
 ast::Expr *IndexJoinTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

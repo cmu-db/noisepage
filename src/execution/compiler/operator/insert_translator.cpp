@@ -77,6 +77,7 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_inserts_));
+  FeatureArithmeticRecordMul(function, context->GetPipeline(), CounterVal(num_inserts_));
 
   GenInserterFree(function);
 }

@@ -57,6 +57,7 @@ void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuil
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
+  FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_output_));
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

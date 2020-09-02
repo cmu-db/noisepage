@@ -52,6 +52,7 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_deletes_));
+  FeatureArithmeticRecordMul(function, context->GetPipeline(), CounterVal(num_deletes_));
 
   GenDeleterFree(function);
 }

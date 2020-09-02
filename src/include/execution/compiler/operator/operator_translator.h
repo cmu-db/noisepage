@@ -266,6 +266,10 @@ class OperatorTranslator : public ColumnValueProvider {
   void FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
                      brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                      ast::Expr *val) const;
+  /** Record arithmetic feature values by setting feature values to val. */
+  void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline, ast::Expr *val) const;
+  /** Record arithmetic feature values by multiplying existing feature values by val. */
+  void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline, ast::Expr *val) const;
 
  private:
   // For mini-runner stuff.

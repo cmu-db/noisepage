@@ -116,6 +116,7 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_scans_index_));
+  FeatureArithmeticRecordSet(function, context->GetPipeline(), CounterVal(num_scans_index_));
 }
 
 ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
