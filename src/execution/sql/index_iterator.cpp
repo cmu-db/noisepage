@@ -7,18 +7,18 @@
 namespace terrier::execution::sql {
 
 IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
-                             uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids)
+                             uint32_t index_oid, uint32_t *col_ids, uint32_t num_ids)
     : exec_ctx_(exec_ctx),
       num_attrs_(num_attrs),
-      col_oids_(col_oids, col_oids + num_oids),
+      col_ids_(col_ids, col_ids + num_ids),
       index_(exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid))),
       table_(exec_ctx_->GetAccessor()->GetTable(catalog::table_oid_t(table_oid))) {}
 
 void IndexIterator::Init() {
   // Initialize projected rows for the index and the table
-  TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
+  TERRIER_ASSERT(!col_ids_.empty(), "There must be at least one col oid!");
   // Table's PR
-  auto table_pri = table_->InitializerForProjectedRow(col_oids_);
+  auto table_pri = table_->InitializerForProjectedRow(col_ids_);
   table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), alignof(uint64_t), false);
   table_pr_ = table_pri.InitializeRow(table_buffer_);
 

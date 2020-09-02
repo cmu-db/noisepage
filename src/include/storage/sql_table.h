@@ -225,6 +225,18 @@ class SqlTable {
   }
 
   /**
+   * Generates an ProjectedRowInitializer for the execution layer to use directly with the col_ids.
+   * @param col_ids set of col_ids to be projected
+   * @return initializer to create ProjectedRow
+   * @warning col_ids must be a set (no repeats)
+   */
+  ProjectedRowInitializer InitializerForProjectedRow(const std::vector<storage::col_id_t> &col_ids) const {
+    TERRIER_ASSERT((std::set<storage::col_id_t>(col_ids.cbegin(), col_ids.cend())).size() == col_ids.size(),
+                   "There should not be any duplicated in the col_ids!");
+    return ProjectedRowInitializer::Create(table_.layout_, col_ids);
+  }
+
+  /**
    * Generate a projection map given column oids
    * @param col_oids oids that will be scanned.
    * @return the projection map
@@ -240,6 +252,13 @@ class SqlTable {
    * @return Approximate heap usage of the table
    */
   size_t EstimateHeapUsage() const { return table_.data_table_->EstimateHeapUsage(); }
+
+  /**
+   * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
+   * @param col_oids set of col_oids, they must be in the table's ColumnMap
+   * @return vector of col_ids for these col_oids
+   */
+  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
@@ -261,13 +280,6 @@ class SqlTable {
   DataTableVersion table_;
 
   const ColumnMap &GetColumnMap() const { return table_.column_map_; }
-
-  /**
-   * Given a set of col_oids, return a vector of corresponding col_ids to use for ProjectionInitialization
-   * @param col_oids set of col_oids, they must be in the table's ColumnMap
-   * @return vector of col_ids for these col_oids
-   */
-  std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
    * TODO(WAN): currently only used by RecoveryManager::GetOidsForRedoRecord in a O(n^2) way. Refactor + remove?
