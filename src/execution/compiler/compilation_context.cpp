@@ -27,6 +27,7 @@
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
@@ -52,6 +53,7 @@
 #include "parser/expression/star_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
@@ -278,6 +280,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INDEXNLJOIN: {
       const auto &index_join = dynamic_cast<const planner::IndexJoinPlanNode &>(plan);
       translator = std::make_unique<IndexJoinTranslator>(index_join, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::CREATE_INDEX: {
+      const auto &create_index = dynamic_cast<const planner::CreateIndexPlanNode &>(plan);
+      translator = std::make_unique<IndexCreateTranslator>(create_index, this, pipeline);
       break;
     }
     default: {
