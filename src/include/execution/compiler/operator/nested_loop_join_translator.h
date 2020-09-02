@@ -34,6 +34,8 @@ class NestedLoopJoinTranslator : public OperatorTranslator {
     UNREACHABLE("Nested-loop joins do not produce columns from base tables.");
   }
 
+  bool IsCountersPassThrough() const override { return true; }
+
  private:
   // Get the NLJ plan node.
   const planner::NestedLoopJoinPlanNode &GetNLJPlan() const { return GetPlanAs<planner::NestedLoopJoinPlanNode>(); }

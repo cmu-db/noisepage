@@ -225,8 +225,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   // This is a hack.
   // Certain translators don't own their features, but pass them further down the pipeline.
   common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
-  while (translator->GetFeatureType() == brain::ExecutionOperatingUnitType::PROJECTION ||
-         translator->GetFeatureType() == brain::ExecutionOperatingUnitType::DUMMY) {
+  while (translator->IsCountersPassThrough()) {
     translator = translator->GetParentTranslator();
   }
   auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,

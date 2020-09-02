@@ -122,6 +122,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
 };
 
 /** The attributes of an ExecutionOperatingUnitFeature that can be set from TPL. */
-enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINALITY };
+enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINALITY, NUM_LOOPS };
 
 }  // namespace terrier::brain

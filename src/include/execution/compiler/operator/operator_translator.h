@@ -252,6 +252,9 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return True if we should collect counters in TPL, used for Lin's models. */
   bool IsCountersEnabled() const;
 
+  /** @return True if this translator should pass ownership of its counters further down, used for Lin's models. */
+  virtual bool IsCountersPassThrough() const { return false; }
+
   /** Declare a counter for Lin's models. */
   StateDescriptor::Entry CounterDeclare(const std::string &counter_name) const;
   /** Set the value of a counter for Lin's models. */

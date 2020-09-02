@@ -143,17 +143,24 @@ class ExecutionOperatingUnitFeature {
  private:
   /**
    * Set the estimated number of output tuples
-   * @note only should be invoked by OperatingUnitRecorder
+   * @note only should be invoked by OperatingUnitRecorder or counters
    * @param num_rows Updated estimate
    */
   void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
 
   /**
    * Set the estimated cardinality
-   * @note only should be invoked by OperatingUnitRecorder
+   * @note only should be invoked by OperatingUnitRecorder or counters
    * @param cardinality Updated cardinality
    */
   void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
+
+  /**
+   * Set the estimated number of loops
+   * @note only should be invoked by OperatingUnitRecorder or counters
+   * @param num_loops Updated estimate
+   */
+  void SetNumLoops(size_t num_loops) { num_loops_ = num_loops; }
 
   /**
    * Set the mem factor

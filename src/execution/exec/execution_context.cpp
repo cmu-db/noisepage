@@ -101,16 +101,25 @@ void ExecutionContext::RecordFeature(pipeline_id_t pipeline_id, feature_id_t fea
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentEnabled(component)) {
     TERRIER_ASSERT(pipeline_id == current_pipeline_features_id_, "That's not the current pipeline.");
+
+    UNUSED_ATTRIBUTE bool recorded = false;
     auto &features = current_pipeline_features_;
     for (auto &feature : features) {
       if (feature_id == feature.GetFeatureId()) {
         switch (feature_attribute) {
           case brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS: {
             feature.SetNumRows(value);
+            recorded = true;
             break;
           }
           case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
             feature.SetCardinality(value);
+            recorded = true;
+            break;
+          }
+          case brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS: {
+            feature.SetNumLoops(value);
+            recorded = true;
             break;
           }
           default:
@@ -119,6 +128,7 @@ void ExecutionContext::RecordFeature(pipeline_id_t pipeline_id, feature_id_t fea
         break;
       }
     }
+    TERRIER_ASSERT(recorded, "Nothing was recorded. OperatingUnitRecorder hacks are probably necessary.");
   }
 }
 

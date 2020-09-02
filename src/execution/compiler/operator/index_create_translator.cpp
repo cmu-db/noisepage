@@ -20,7 +20,7 @@ namespace terrier::execution::compiler {
 
 IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode &plan,
                                              CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::INVALID),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       codegen_(compilation_context->GetCodeGen()),
       inserter_(codegen_->MakeFreshIdentifier("inserter")),
       index_pr_(codegen_->MakeFreshIdentifier("index_pr")),
