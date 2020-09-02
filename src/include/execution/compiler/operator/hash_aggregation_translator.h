@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "execution/compiler/operator/distinct_aggregation_util.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
