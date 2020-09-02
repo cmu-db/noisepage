@@ -46,7 +46,9 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   num_scans_index_ = CounterDeclare("num_loops");
 }
 
-void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_scans_index_, 0); }
+void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  CounterSet(function, num_scans_index_, 0);
+}
 
 void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const auto &op = GetPlanAs<planner::IndexJoinPlanNode>();
