@@ -114,6 +114,17 @@ void OperatorTranslator::CounterSet(FunctionBuilder *function, const StateDescri
   }
 }
 
+void OperatorTranslator::CounterSetExpr(FunctionBuilder *function, const StateDescriptor::Entry &counter,
+                                        ast::Expr *val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // counter = val
+    ast::Stmt *set = codegen->Assign(counter.Get(codegen), val);
+    function->Append(set);
+  }
+}
+
 void OperatorTranslator::CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter,
                                     int64_t val) const {
   auto *codegen = GetCodeGen();
@@ -162,7 +173,7 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::Executi
 }
 
 void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline,
-                                                    ast::Expr *val) const {
+                                                    execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled()) {
@@ -170,7 +181,9 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     for (const auto &feature : features) {
-      if (feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
+      bool is_same_translator = feature.GetTranslatorId() == translator_id;
+      bool is_arith = feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      if (is_same_translator && is_arith) {
         for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
           ast::Expr *record =
@@ -183,7 +196,7 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
 }
 
 void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
-                                                    ast::Expr *val) const {
+                                                    execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled()) {
@@ -191,7 +204,9 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     for (const auto &feature : features) {
-      if (feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER) {
+      bool is_same_translator = feature.GetTranslatorId() == translator_id;
+      bool is_arith = feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      if (is_same_translator && is_arith) {
         for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
           ast::Expr *mul = codegen->BinaryOp(

@@ -428,12 +428,12 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     auto num_key = plan->GetRightHashKeys().size();
     auto key_size = ComputeKeySize(plan->GetRightHashKeys(), &num_key);
     AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, key_size, num_key, plan, 1, 1);
-  }
 
-  // Computes against OutputSchema/Join predicate which will
-  // use the rows/cardinalities of what the HJ plan produces
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+    // Computes against OutputSchema/Join predicate which will
+    // use the rows/cardinalities of what the HJ plan produces
+    VisitAbstractJoinPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {

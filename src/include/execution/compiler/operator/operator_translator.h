@@ -256,6 +256,8 @@ class OperatorTranslator : public ColumnValueProvider {
   StateDescriptor::Entry CounterDeclare(const std::string &counter_name) const;
   /** Set the value of a counter for Lin's models. */
   void CounterSet(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
+  /** Set the value of a counter for Lin's models. */
+  void CounterSetExpr(FunctionBuilder *function, const StateDescriptor::Entry &counter, ast::Expr *val) const;
   /** Add to the value of a counter for Lin's models. */
   void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
   /** Add to the value of a counter for Lin's models. */
@@ -267,9 +269,11 @@ class OperatorTranslator : public ColumnValueProvider {
                      brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                      ast::Expr *val) const;
   /** Record arithmetic feature values by setting feature values to val. */
-  void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline, ast::Expr *val) const;
+  void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline,
+                                  execution::translator_id_t translator_id, ast::Expr *val) const;
   /** Record arithmetic feature values by multiplying existing feature values by val. */
-  void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline, ast::Expr *val) const;
+  void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
+                                  execution::translator_id_t translator_id, ast::Expr *val) const;
 
  private:
   // For mini-runner stuff.

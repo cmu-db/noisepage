@@ -305,13 +305,13 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
-    FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_build_rows_));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
   } else {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
-    FeatureArithmeticRecordSet(function, pipeline, CounterVal(num_match_rows_));
+    FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
   }
 }
 

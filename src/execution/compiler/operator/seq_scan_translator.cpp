@@ -305,7 +305,7 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                 CounterVal(num_scans_));
-  FeatureArithmeticRecordMul(function, context->GetPipeline(), CounterVal(num_scans_));
+  FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_scans_));
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {

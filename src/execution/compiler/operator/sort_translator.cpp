@@ -255,7 +255,7 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
-    FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_sort_build_rows_));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
   } else {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
@@ -263,7 +263,7 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
-    FeatureArithmeticRecordMul(function, pipeline, CounterVal(num_sort_iterate_rows_));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
   }
 
   // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.
