@@ -38,7 +38,7 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   for (const auto &index_col : index_schema.GetColumns()) {
     compilation_context->Prepare(*index_col.StoredExpression());
   }
-  pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 }
 
 util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() const {
