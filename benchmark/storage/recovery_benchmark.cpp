@@ -83,10 +83,12 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
-      // the table can't be freed until after all GC on it is guaranteed to be done. The easy way to do that is to use a
-      // DeferredAction
-      db_main->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction(
-          [=]() { delete tested; }, transaction::DafId::MEMORY_DEALLOCATION);
+      // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
+      // transactions in the tests has unlinked
+      auto daf = db_main->GetTransactionLayer()->GetDeferredActionManager();
+      daf->RegisterDeferredAction(
+          [=]() { daf->RegisterDeferredAction([=]() { delete tested; }, transaction::DafId::INVALID); },
+          transaction::DafId::INVALID);
     }
     state->SetItemsProcessed(num_txns_ * state->iterations());
   }
