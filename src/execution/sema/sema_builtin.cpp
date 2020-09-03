@@ -1098,7 +1098,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call, ast::Builtin builti
       break;
     }
     case ast::Builtin::TableIterIndexInsertParallel: {
-      if (!CheckArgCount(call, 6)) {
+      if (!CheckArgCount(call, 7)) {
         return;
       }
 
@@ -1161,6 +1161,12 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call, ast::Builtin builti
       const auto storage_interface_kind = ast::BuiltinType::StorageInterface;
       if (!IsPointerToSpecificBuiltin(call_args[5]->GetType(), storage_interface_kind)) {
         ReportIncorrectCallArg(call, 5, GetBuiltinType(storage_interface_kind)->PointerTo());
+        return;
+      }
+
+      // The seventh argument is a index oid.
+      if (!call_args[6]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 6, "Seventh argument should be an integer type.");
         return;
       }
       break;

@@ -51,7 +51,7 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   DeclareInserter(function);
   function->Append(codegen_->IterateTableInsertIndexParallel(table_oid_, col_oids_var_, GetQueryStatePtr(),
-                                                      GetExecutionContext(), work_func, storage_interface_));
+                                                      GetExecutionContext(), work_func, storage_interface_, index_oid_));
   FreeInserter(function);
 }
 
@@ -97,14 +97,14 @@ void IndexCreateTranslator::SetOids(FunctionBuilder *function) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids_var_[i] = col_oid
     ast::Expr *lhs = codegen_->ArrayAccess(col_oids_var_, i);
-    ast::Expr *rhs = codegen_->Const32(uint32_t(all_oids_[i]));
+    ast::Expr *rhs = codegen_->Const32(all_oids_[i].UnderlyingValue());
     function->Append(codegen_->Assign(lhs, rhs));
   }
 }
 
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
   // var index_pr = @getIndexPR(storage_interface, oid)
-  std::vector<ast::Expr *> pr_call_args{codegen_->MakeExpr(storage_interface_), codegen_->Const32(uint32_t(index_oid_))};
+  std::vector<ast::Expr *> pr_call_args{codegen_->MakeExpr(storage_interface_), codegen_->Const32(index_oid_.UnderlyingValue())};
   auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   function->Append(codegen_->DeclareVar(index_pr_, nullptr, get_index_pr_call));
 }
@@ -203,7 +203,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   // if (!@IndexInsertWithSlot(storage_interface, &slot_var_, unique)) { Abort(); }
   auto *index_insert_call = codegen_->CallBuiltin(
       ast::Builtin::IndexInsertWithSlot,
-      {codegen_->MakeExpr(storage_interface_), index_pr_expr, codegen_->AddressOf(slot_var_), codegen_->Const32(uint32_t(index_oid_))});
+      {codegen_->MakeExpr(storage_interface_), index_pr_expr, codegen_->AddressOf(slot_var_), codegen_->Const32(index_oid_.UnderlyingValue())});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }

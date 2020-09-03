@@ -704,8 +704,9 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call, a
     }
     case ast::Builtin::TableIterIndexInsertParallel: {
       LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[5]);
+      LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
       GetEmitter()->EmitParallelTableScanInsertIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), storage_interface);
+                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), storage_interface, index_oid);
       break;
     }
     default: {
