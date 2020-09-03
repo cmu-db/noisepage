@@ -103,7 +103,7 @@ public class MogDb {
                     return DbColumnType.INTEGER;
                 } else if (typeName.equals("varchar") || typeName.equals("text")) {
                     return DbColumnType.TEXT;
-                } else if(typeName.equals("float8")){
+                } else if(typeName.equals("float8") || typeName.equals("numeric")){
                     return DbColumnType.FLOAT;
                 }
             } else if (this.jdbc.startsWith("jdbc:sqlite")) {
