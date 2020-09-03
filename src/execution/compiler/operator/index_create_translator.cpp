@@ -49,16 +49,17 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  InitScan(function);
+  DeclareInserter(function);
   function->Append(codegen_->IterateTableInsertIndexParallel(table_oid_, col_oids_var_, GetQueryStatePtr(),
-                                                      GetExecutionContext(), work_func, index_pr_, storage_interface_));
+                                                      GetExecutionContext(), work_func, storage_interface_));
   FreeInserter(function);
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const bool declare_local_tvi = !GetPipeline()->IsParallel();
   if (declare_local_tvi) {
-    InitScan(function);
+    DeclareInserter(function);
+    DeclareIndexPR(function);
     DeclareTVI(function);
   }
   DeclareSlot(function);
@@ -70,12 +71,6 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
     function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
   }
 
-}
-
-void IndexCreateTranslator::InitScan(FunctionBuilder *function) const {
-  // Init storage_interface_, index pr
-  DeclareInserter(function);
-  DeclareIndexPR(function);
 }
 
 void IndexCreateTranslator::DeclareInserter(FunctionBuilder *function) const {
@@ -208,7 +203,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   // if (!@IndexInsertWithSlot(storage_interface, &slot_var_, unique)) { Abort(); }
   auto *index_insert_call = codegen_->CallBuiltin(
       ast::Builtin::IndexInsertWithSlot,
-      {codegen_->MakeExpr(storage_interface_), codegen_->AddressOf(slot_var_), codegen_->ConstBool(index_schema.Unique())});
+      {codegen_->MakeExpr(storage_interface_), index_pr_expr, codegen_->AddressOf(slot_var_), codegen_->Const32(uint32_t(index_oid_))});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }

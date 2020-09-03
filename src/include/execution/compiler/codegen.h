@@ -596,7 +596,7 @@ class CodeGen {
  */
   [[nodiscard]] ast::Expr *IterateTableInsertIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                ast::Identifier worker_name, ast::Identifier index_pr_, ast::Identifier storage_interface);
+                                                ast::Identifier worker_name, ast::Identifier storage_interface);
 
   /**
    * Call \@abortTxn(exec_ctx).

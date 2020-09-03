@@ -1098,7 +1098,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call, ast::Builtin builti
       break;
     }
     case ast::Builtin::TableIterIndexInsertParallel: {
-      if (!CheckArgCount(call, 7)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
 
@@ -1157,17 +1157,10 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call, ast::Builtin builti
         return;
       }
 
-      // The sixth argument is a pointer to index pr
-      auto pr_kind = ast::BuiltinType::ProjectedRow;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[5]->GetType(), pr_kind)) {
-        ReportIncorrectCallArg(call, 5, GetBuiltinType(pr_kind)->PointerTo());
-        return;
-      }
-
-      // The seventh argument is a pointer to storage interface
+      // The sixth argument is a pointer to storage interface
       const auto storage_interface_kind = ast::BuiltinType::StorageInterface;
-      if (!IsPointerToSpecificBuiltin(call_args[6]->GetType(), storage_interface_kind)) {
-        ReportIncorrectCallArg(call, 6, GetBuiltinType(storage_interface_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[5]->GetType(), storage_interface_kind)) {
+        ReportIncorrectCallArg(call, 5, GetBuiltinType(storage_interface_kind)->PointerTo());
         return;
       }
       break;
@@ -2464,20 +2457,29 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       break;
     }
     case ast::Builtin::IndexInsertWithSlot: {
-      if (!CheckArgCount(call, 3)) {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
-      // Second argument is a tuple slot
+      // Second argument is a Projected Row
+      auto projected_row_type = ast::BuiltinType::ProjectedRow;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), projected_row_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(projected_row_type)->PointerTo());
+        return;
+      }
+
+      // Third argument is a tuple slot
       auto tuple_slot_type = ast::BuiltinType::TupleSlot;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
-      // Third argument is a bool
-      if (!call_args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Bool)) {
-        ReportIncorrectCallArg(call, 2, "boolean literal");
+
+      // Fourth argument is an int32
+      if (!call_args[3]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_kind));
         return;
       }
+
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }

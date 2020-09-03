@@ -64,7 +64,6 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;
 
  private:
-  void InitScan(FunctionBuilder *function) const;
   void DeclareInserter(FunctionBuilder *function) const;
   void DeclareIndexPR(FunctionBuilder *function) const;
   void DeclareTVI(FunctionBuilder *function) const;

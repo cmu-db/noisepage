@@ -284,9 +284,9 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 
 VM_OP_HOT void OpParallelScanTableInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
                                    terrier::execution::exec::ExecutionContext *exec_ctx,
-                                   const terrier::execution::sql::TableVectorIterator::ScanAndInsertIndexFn scanner, terrier::storage::ProjectedRow *index_pr, terrier::execution::sql::StorageInterface *storage_interface) {
+                                   const terrier::execution::sql::TableVectorIterator::ScanAndInsertIndexFn scanner, terrier::execution::sql::StorageInterface *storage_interface) {
   terrier::execution::sql::TableVectorIterator::ParallelScanInsertIndex(table_oid, col_oids, num_oids, query_state, exec_ctx,
-                                                             scanner, index_pr, storage_interface);
+                                                             scanner, storage_interface);
 }
 
 // ---------------------------------------------------------
@@ -1856,8 +1856,8 @@ VM_OP void OpStorageInterfaceIndexInsertUnique(bool *result,
                                                terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceIndexInsertWithSlot(bool *result,
-                                                 terrier::execution::sql::StorageInterface *storage_interface,
-                                                 terrier::storage::TupleSlot *tuple_slot, bool unique);
+                                                 terrier::execution::sql::StorageInterface *storage_interface, terrier::storage::ProjectedRow *index_pr,
+                                                 terrier::storage::TupleSlot *tuple_slot, uint32_t index_oid);
 
 VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);

@@ -50,6 +50,7 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
     index_pr_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(
         curr_index_->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
     need_indexes_ = true;
+    max_pr_size_ = std::max(max_pr_size_, curr_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   index_pr_ = curr_index_->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
   return index_pr_;
@@ -83,12 +84,14 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-bool StorageInterface::IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique) {
-  TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
+bool StorageInterface::IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, storage::ProjectedRow *index_pr, catalog::index_oid_t index_oid) {
+  auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
+  TERRIER_ASSERT(index != nullptr, "Index not found!");
+  const auto unique = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid).Unique();
   if (unique) {
-    return curr_index_->InsertUnique(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
+    return index->InsertUnique(exec_ctx_->GetTxn(), *index_pr, table_tuple_slot);
   }
-  return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
+  return index->Insert(exec_ctx_->GetTxn(), *index_pr, table_tuple_slot);
 }
 
 }  // namespace terrier::execution::sql

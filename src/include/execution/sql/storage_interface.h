@@ -101,7 +101,7 @@ class EXPORT StorageInterface {
    * @param unique if this insertion is unique
    * @return Whether insertion was successful.
    */
-  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
+  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, storage::ProjectedRow *index_pr, catalog::index_oid_t index_oid);
 
  protected:
   /**

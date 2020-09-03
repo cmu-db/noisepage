@@ -124,7 +124,7 @@ class EXPORT TableVectorIterator {
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
   static bool ParallelScanInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                           exec::ExecutionContext *exec_ctx, ScanAndInsertIndexFn scan_fn, storage::ProjectedRow *index_pr, sql::StorageInterface *storage_interface,
+                           exec::ExecutionContext *exec_ctx, ScanAndInsertIndexFn scan_fn, sql::StorageInterface *storage_interface,
                            uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
  private:

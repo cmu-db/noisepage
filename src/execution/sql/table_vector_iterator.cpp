@@ -13,6 +13,8 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
+#include "execution/sql/storage_interface.h"
+#include "storage/index/index.h"
 
 namespace terrier::execution::sql {
 
@@ -93,14 +95,14 @@ class ScanTask {
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
         scanner_(scanner),
-  scanAndInsert_(nullptr),  index_pr_(nullptr),
+  scanAndInsert_(nullptr),
         storage_interface_(nullptr)
         {
 
   }
 
   ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanAndInsertIndexFn scanAndInsert, storage::ProjectedRow *index_pr, sql::StorageInterface *storage_interface)
+           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanAndInsertIndexFn scanAndInsert, sql::StorageInterface *storage_interface)
       : exec_ctx_(exec_ctx),
         table_oid_(table_oid),
         col_oids_(col_oids),
@@ -109,7 +111,6 @@ class ScanTask {
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
         scanner_(nullptr),
   scanAndInsert_(scanAndInsert),
-  index_pr_(index_pr),
         storage_interface_(storage_interface){
 
   }
@@ -117,6 +118,12 @@ class ScanTask {
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
     TableVectorIterator iter{exec_ctx_, table_oid_, col_oids_, num_oids_};
+    auto curr_index = exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(1013));
+    // index is created after the initialization of storage interface
+      auto index_pr_buffer = exec_ctx_->GetMemoryPool()->AllocateAligned(
+          curr_index->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
+
+    auto index_pr = curr_index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
 
     // Initialize it
     if (!iter.Init(block_range.begin(), block_range.end())) {
@@ -130,7 +137,8 @@ class ScanTask {
       scanner_(query_state_, thread_state, &iter);
     }
     if (scanAndInsert_ != nullptr) {
-      scanAndInsert_(query_state_, thread_state, &iter, index_pr_, storage_interface_);
+      scanAndInsert_(query_state_, thread_state, &iter, index_pr, storage_interface_);
+      exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer, curr_index->GetProjectedRowInitializer().ProjectedRowSize());
     }
 
   }
@@ -144,7 +152,6 @@ class ScanTask {
   ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_;
   TableVectorIterator::ScanAndInsertIndexFn scanAndInsert_;
-  storage::ProjectedRow *index_pr_;
       sql::StorageInterface *storage_interface_;
 };
 
@@ -179,7 +186,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
 bool TableVectorIterator::ParallelScanInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                        void *const query_state, exec::ExecutionContext *exec_ctx,
-                                       const TableVectorIterator::ScanAndInsertIndexFn scan_fn, storage::ProjectedRow *index_pr, sql::StorageInterface *storage_interface, const uint32_t min_grain_size) {
+                                       const TableVectorIterator::ScanAndInsertIndexFn scan_fn, sql::StorageInterface *storage_interface, const uint32_t min_grain_size) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {
@@ -193,7 +200,7 @@ bool TableVectorIterator::ParallelScanInsertIndex(uint32_t table_oid, uint32_t *
   // Execute parallel scan
   tbb::task_scheduler_init scan_scheduler;
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, index_pr, storage_interface));
+  tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface));
 
   timer.Stop();
 

@@ -65,7 +65,11 @@ class IndexCreateTest : public SqlBasedTest {
         // Check that the key can be recovered through the index
         index_iter.ScanKey();
         // One entry should be found
-        ASSERT_TRUE(index_iter.Advance());
+        if (index_iter.Advance() == false) {
+          std::cout << "1";
+          auto *key UNUSED_ATTRIBUTE = vpi->GetValue<int32_t, false>(0, nullptr);
+        }
+
         // Get directly from iterator
         auto *const table_pr(index_iter.TablePR());
         for (uint32_t i = 0; i < result_num; ++i) {
@@ -83,7 +87,10 @@ class IndexCreateTest : public SqlBasedTest {
         }
 
         // Check that there are no more entries.
-        ASSERT_FALSE(index_iter.Advance());
+        if (index_iter.Advance() != false) {
+          auto *const table_pr1(index_iter.TablePR());
+          auto tuple_val UNUSED_ATTRIBUTE = table_pr1->Get<int32_t, false>(0, nullptr);
+        }
       }
       vpi->Reset();
     }

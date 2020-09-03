@@ -703,10 +703,9 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call, a
       break;
     }
     case ast::Builtin::TableIterIndexInsertParallel: {
-      LocalVar index_pr = VisitExpressionForRValue(call->Arguments()[5]);
-      LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[6]);
+      LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[5]);
       GetEmitter()->EmitParallelTableScanInsertIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), index_pr, storage_interface);
+                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), storage_interface);
       break;
     }
     default: {
@@ -2148,9 +2147,10 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
     }
     case ast::Builtin::IndexInsertWithSlot: {
       LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar unique = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, tuple_slot, unique);
+      LocalVar index_pr = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, index_pr, tuple_slot, index_oid);
       break;
     }
     case ast::Builtin::IndexDelete: {
