@@ -18,6 +18,7 @@ MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager>
   pipeline_metric_ = std::make_unique<PipelineMetric>();
   bind_command_metric_ = std::make_unique<BindCommandMetric>();
   execute_command_metric_ = std::make_unique<ExecuteCommandMetric>();
+  query_trace_metric_ = std::make_unique<QueryTraceMetric>();
 }
 
 std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {

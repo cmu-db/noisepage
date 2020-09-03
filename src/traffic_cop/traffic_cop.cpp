@@ -366,12 +366,19 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
   // TODO(Matt): handle code generation failing
+  auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+
+  const bool query_trace_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
+  if (query_trace_metrics_enabled) {
+    common::thread_context.metrics_store_->RecordQueryText(exec_query->GetQueryId(),
+                                                           portal->GetStatement()->GetQueryText(),
+                                                           resource_metrics);
+  }
+
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
-  auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-  common::thread_context.metrics_store_->RecordQueryText(exec_query->GetQueryId(),
-                                                         portal->GetStatement()->GetQueryText(),
-                                                         resource_metrics);
   return {ResultType::COMPLETE, 0};
 }
 
@@ -413,9 +420,16 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   }
 
   auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-  common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(),
-                                                          metrics::MetricsUtil::Now(),
-                                                          resource_metrics);
+
+  const bool query_trace_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
+
+  if (query_trace_metrics_enabled) {
+    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(),
+                                                            metrics::MetricsUtil::Now(),
+                                                            resource_metrics);
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
