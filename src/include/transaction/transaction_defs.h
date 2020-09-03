@@ -10,7 +10,10 @@
 namespace terrier::transaction {
 STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 
-constexpr uint8_t MIN_GC_INVOCATIONS = 3;
+constexpr uint8_t MIN_GC_INVOCATIONS = 6;
+
+// Max number of deferred action can be processed per DAF invocation
+constexpr uint16_t MAX_ACTION_PER_RUN = 1000;
 
 // Invalid txn timestamp. Used for validation.
 static constexpr timestamp_t INVALID_TXN_TIMESTAMP = timestamp_t(INT64_MIN);

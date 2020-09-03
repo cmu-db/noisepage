@@ -19,7 +19,7 @@ timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, tr
   return result;
 }
 
-uint32_t DeferredActionManager::Process(bool process_index) {
+uint32_t DeferredActionManager::Process(bool process_index, bool with_limit) {
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
@@ -35,7 +35,7 @@ uint32_t DeferredActionManager::Process(bool process_index) {
   // Check out a timestamp from the transaction manager to determine the progress of
   // running transactions in the system.
 
-  uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled);
+  uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled, with_limit);
   timestamp_manager_->RemoveTransaction(begin);
 
   if (process_index) ProcessIndexes();
@@ -70,42 +70,59 @@ void DeferredActionManager::ProcessIndexes() {
   for (const auto &index : indexes_) index->PerformGarbageCollection();
 }
 
-uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled) {
+uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled, bool with_limit) {
   uint32_t processed = 0;
   std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> temp_action_queue;
   bool break_loop = false;
-  while (true) {
-    // pop a batch of actions
-    queue_latch_.Lock();
-    for (size_t i = 0; i < BATCH_SIZE; i++) {
-      if (new_deferred_actions_.empty() ||
-          !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
-        break_loop = true;
-        break;
-      }
 
-      std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = new_deferred_actions_.front();
-      new_deferred_actions_.pop();
-      temp_action_queue.push(curr_action);
-      queue_size_--;
+  if (with_limit) {
+    // During normal execution, bound the size of number of actions processed per run
+    // so that cleaning the deferred actions does not become the long-running transaction
+    for (size_t iter = 0; iter < MAX_ACTION_PER_RUN; iter++) {
+      ProcessNewActionHelper(oldest_txn, metrics_enabled, &processed, &break_loop);
+      if (break_loop) break;
     }
-
-    queue_latch_.Unlock();
-
-    // process a batch of actions
-    while (!temp_action_queue.empty()) {
-      temp_action_queue.front().second.first(oldest_txn);
-
-      if (metrics_enabled) {
-        common::thread_context.metrics_store_->RecordActionData(temp_action_queue.front().second.second);
-      }
-      processed++;
-      temp_action_queue.pop();
+  } else {
+    // When clearing up the deferred action queue at the end of execution process all actions
+    // that can be processed at each run to ensuring process all actions in the queue
+    while (true) {
+      ProcessNewActionHelper(oldest_txn, metrics_enabled, &processed, &break_loop);
+      if (break_loop) break;
     }
-
-    if (break_loop) break;
   }
+
   return processed;
+}
+
+void DeferredActionManager::ProcessNewActionHelper(timestamp_t oldest_txn, bool metrics_enabled, uint32_t *processed,
+                                                   bool *break_loop) {
+  std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> temp_action_queue;
+  // pop a batch of actions
+  queue_latch_.Lock();
+  for (size_t i = 0; i < BATCH_SIZE; i++) {
+    if (new_deferred_actions_.empty() ||
+        !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
+      *break_loop = true;
+      break;
+    }
+
+    std::pair<timestamp_t, std::pair<DeferredAction, DafId>> curr_action = new_deferred_actions_.front();
+    new_deferred_actions_.pop();
+    temp_action_queue.push(curr_action);
+    queue_size_--;
+  }
+  queue_latch_.Unlock();
+
+  // process a batch of actions
+  while (!temp_action_queue.empty()) {
+    temp_action_queue.front().second.first(oldest_txn);
+
+    if (metrics_enabled) {
+      common::thread_context.metrics_store_->RecordActionData(temp_action_queue.front().second.second);
+    }
+    (*processed)++;
+    temp_action_queue.pop();
+  }
 }
 
 }  // namespace terrier::transaction

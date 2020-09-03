@@ -23,8 +23,8 @@ namespace terrier::storage {
 // counters that are globally incremented in the callbacks (maybe tunable?).  It
 // would be nice if this was hooked into metrics but that's a too far for right
 // now.
-std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(bool main_thread) {
-  if (deferred_action_manager_ != DISABLED) deferred_action_manager_->Process(main_thread);
+std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(bool main_thread, bool with_limit) {
+  if (deferred_action_manager_ != DISABLED) deferred_action_manager_->Process(main_thread, with_limit);
 
   // TODO(John:GC) We should be able to mimic this API interface with counters in the transaction manager that are
   // captured by reference and incremented during the unlink and deallocate actions for the transaction contexts and

@@ -57,22 +57,24 @@ class DeferredActionManager {
     return RegisterDeferredAction([=](timestamp_t /*unused*/) { a(); }, daf_id);
   }
 
-  /**
-   * Clear the queue and apply as many actions as possible. Used in single-threaded GC.
-   * @return numbers of deferred actions processed
-   */
-  uint32_t Process() { return Process(true); }
+  //  /**
+  //   * Clear the queue and apply as many actions as possible. Used in single-threaded DAF.
+  //   * @return numbers of deferred actions processed
+  //   */
+  //  uint32_t Process() { return Process(true); }
 
   /**
-   * Clear the queue and apply as many actions as possible. Used in multi-threaded GC.
+   * Clear the queue and apply as many actions as possible. Used in multi-threaded DAF.
+   * @param process_index Is the caller DAF thread is in charge of GC the indexes.
    * @return numbers of deferred actions processed
    */
-  uint32_t Process(bool process_index);
+  uint32_t Process(bool process_index, bool with_limit);
 
   /**
    * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
    * Currently, this must be done 3 times. The log manager must be called because transactions can only be GC'd once
    * their logs are persisted.
+   *
    * @param gc gc to use for garbage collection
    * @param log_manager log manager to use for flushing logs
    * @param main_thread if this thread is in charge of process the index
@@ -81,7 +83,8 @@ class DeferredActionManager {
                       const common::ManagedPointer<storage::LogManager> log_manager, bool main_thread = true) {
     for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
       if (log_manager != DISABLED) log_manager->ForceFlush();
-      gc->PerformGarbageCollection(main_thread);
+      // process deferred action queue as much as we can in each run
+      gc->PerformGarbageCollection(main_thread, false);
     }
   }
 
@@ -121,6 +124,7 @@ class DeferredActionManager {
   //  However, we can't simply remove the vector of index until we make the PerformGC method of Bwtree concurrent
   void ProcessIndexes();
 
-  uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled);
+  uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled, bool with_limit);
+  void ProcessNewActionHelper(timestamp_t oldest_txn, bool metrics_enabled, uint32_t *processed, bool *break_loop);
 };
 }  // namespace terrier::transaction

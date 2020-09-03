@@ -42,7 +42,8 @@ class GarbageCollectorThread {
       if (gc_thread.joinable()) gc_thread.join();
     }
     for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
-      gc_->PerformGarbageCollection(true);
+      // Using only current thread, process deferred actions without number limit for each run
+      gc_->PerformGarbageCollection(true, false);
     }
   }
 
@@ -94,7 +95,8 @@ class GarbageCollectorThread {
   void GCThreadLoop(bool main_thread) {
     while (run_gc_) {
       std::this_thread::sleep_for(gc_period_);
-      if (!gc_paused_) gc_->PerformGarbageCollection(main_thread);
+      // process deferred actions with number limit per run
+      if (!gc_paused_) gc_->PerformGarbageCollection(main_thread, true);
     }
   }
 };
