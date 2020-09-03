@@ -239,7 +239,6 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
     std::vector<TransactionArgs> txns;
     txns.reserve(num_precomputed_txns_per_worker);
     for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
-      //      txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
       switch (deck.NextCard()) {
         case TransactionType::NewOrder:
           txns.emplace_back(BuildNewOrderArgs(generator, warehouse_id, num_threads));
