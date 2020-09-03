@@ -86,6 +86,16 @@ bool skip_large_rows_runs = false;
 int64_t warmup_rows_limit{1000};
 
 /**
+ * CREATE INDEX small build limit
+ */
+int64_t create_index_small_limit{10000};
+
+/**
+ * Number of cardinalities to vary for CREATE INDEX large builds.
+ */
+int64_t create_index_large_cardinality_num{3};
+
+/**
  * Empty global param vector
  */
 std::vector<std::vector<parser::ConstantValueExpression>> empty_params = {};
@@ -657,6 +667,14 @@ static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
         int64_t car = 1;
+        if (row > create_index_small_limit) {
+          // For these, we get a memory explosion if the cardinality is too low.
+          while (car < row) {
+            car *= 2;
+          }
+          car = car / (pow(2, create_index_large_cardinality_num));
+        }
+
         while (car < row) {
           if (type == type::TypeId::INTEGER)
             b->Args({col, 0, 15, 0, row, car});
@@ -2061,7 +2079,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   auto row = state.range(4);
   auto car = state.range(5);
 
-  if (rerun_start || row > warmup_rows_limit) {
+  if (rerun_start || (row > warmup_rows_limit && skip_large_rows_runs)) {
     return;
   }
 
@@ -2086,6 +2104,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
     BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
   }
 
+  InvokeGC();
   { OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(), std::move(units)); }
 
   InvokeGC();
@@ -2355,9 +2374,19 @@ int main(int argc, char **argv) {
   Arg warm_limit_info{"--warm_limit=", false};
   Arg compiled_info{"--compiled=", false};
   Arg gen_test_data{"--gen_test=", false};
-  Arg *args[] = {&port_info,       &filter_info,   &skip_large_rows_runs_info,
-                 &warm_num_info,   &rerun_info,    &updel_info,
-                 &warm_limit_info, &compiled_info, &gen_test_data};
+  Arg create_index_small_data{"--create_index_small_limit=", false};
+  Arg create_index_car_data{"--create_index_large_car_num=", false};
+  Arg *args[] = {&port_info,
+                 &filter_info,
+                 &skip_large_rows_runs_info,
+                 &warm_num_info,
+                 &rerun_info,
+                 &updel_info,
+                 &warm_limit_info,
+                 &compiled_info,
+                 &gen_test_data,
+                 &create_index_small_data,
+                 &create_index_car_data};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -2375,6 +2404,9 @@ int main(int argc, char **argv) {
   if (rerun_info.found_) terrier::runner::rerun_iterations = rerun_info.int_value_;
   if (updel_info.found_) terrier::runner::updel_limit = updel_info.int_value_;
   if (warm_limit_info.found_) terrier::runner::warmup_rows_limit = warm_limit_info.int_value_;
+  if (create_index_small_data.found_) terrier::runner::create_index_small_limit = create_index_small_data.int_value_;
+  if (create_index_car_data.found_)
+    terrier::runner::create_index_large_cardinality_num = create_index_car_data.int_value_;
 
   terrier::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
@@ -2384,6 +2416,10 @@ int main(int argc, char **argv) {
   SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, terrier::runner::warmup_iterations_num);
   SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match_, terrier::runner::rerun_iterations);
   SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match_, terrier::runner::updel_limit);
+  SETTINGS_LOG_INFO("Create Index Small Build Limit ({}): {}", create_index_small_data.match_,
+                    terrier::runner::create_index_small_limit);
+  SETTINGS_LOG_INFO("Create Index Large Cardinality Number Vary ({}): {}", create_index_car_data.match_,
+                    terrier::runner::create_index_large_cardinality_num);
   SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, terrier::runner::warmup_rows_limit);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
   SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match_, compiled_info.found_);
