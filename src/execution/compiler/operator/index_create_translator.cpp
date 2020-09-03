@@ -69,6 +69,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
   // Close TVI, if need be.
   if (declare_local_tvi) {
     function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
+    FreeInserter(function);
   }
 
 }
