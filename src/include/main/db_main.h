@@ -229,6 +229,8 @@ class DBMain {
      * @param traffic_cop argument to the ConnectionHandleFactor
      * @param port argument to TerrierServer
      * @param connection_thread_count argument to TerrierServer
+     * @param use_unix_domain_sockets argument to TerrierServer
+     * @param socket_directory argument to TerrierServer
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,

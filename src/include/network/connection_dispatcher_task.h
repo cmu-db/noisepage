@@ -36,6 +36,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
    * @param thread_registry DedicatedThreadRegistry dependency needed because it eventually spawns more threads in
    * RunTask
+   * @param file_descriptors The list of file descriptors to listen on
    */
   ConnectionDispatcherTask(uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
