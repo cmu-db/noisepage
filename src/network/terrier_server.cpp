@@ -68,7 +68,6 @@ void TerrierServer::RegisterSocket() {
       // Naming conventions come from https://www.postgresql.org/docs/9.3/runtime-config-connection.html
       const std::string socket_path = fmt::format("{0}/.s.PGSQL.{1}", socket_directory_, port_);
       struct sockaddr_un sun = {0};
-      memset(&sun, 0, sizeof(struct sockaddr_un));
 
       // Validate pathname
       if (socket_path.length() >= 108 /* Max Unix socket path length */ ) {
