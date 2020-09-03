@@ -114,10 +114,12 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
 
   // Register a deferred action for the GC with txn manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() {
-      const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
-      TERRIER_ASSERT(result, "Deferred delete on the index failed.");
-    }, transaction::DafId::MEMORY_DEALLOCATION);
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() {
+          const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
+          TERRIER_ASSERT(result, "Deferred delete on the index failed.");
+        },
+        transaction::DafId::MEMORY_DEALLOCATION);
   });
 }
 

@@ -78,7 +78,8 @@ uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool m
     // pop a batch of actions
     queue_latch_.Lock();
     for (size_t i = 0; i < BATCH_SIZE; i++) {
-      if (new_deferred_actions_.empty() || !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
+      if (new_deferred_actions_.empty() ||
+          !transaction::TransactionUtil::NewerThan(oldest_txn, new_deferred_actions_.front().first)) {
         break_loop = true;
         break;
       }

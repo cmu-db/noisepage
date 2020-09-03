@@ -1,5 +1,5 @@
-#include "common/thread_context.h"
 #include "transaction/transaction_context.h"
+#include "common/thread_context.h"
 
 namespace terrier::transaction {
 void TransactionContext::Unlink(timestamp_t oldest_txn) {

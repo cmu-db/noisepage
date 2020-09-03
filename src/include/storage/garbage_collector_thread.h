@@ -2,14 +2,14 @@
 
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
+#include <vector>
 
+#include "metrics/metrics_manager.h"
 #include "storage/garbage_collector.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/deferred_action_manager.h"
-#include "metrics/metrics_manager.h"
 
 namespace terrier::storage {
-//constexpr uint8_t NUM_GC_THREADS = 2;
 
 /**
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
@@ -24,7 +24,8 @@ class GarbageCollectorThread {
    * @param gc_period sleep time between GC invocations
    * @param metrics_manager Metrics Manager
    */
-  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period, common::ManagedPointer<storage::LogManager> log_manager,
+  GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period,
+                         common::ManagedPointer<storage::LogManager> log_manager,
                          common::ManagedPointer<metrics::MetricsManager> metrics_manager, uint32_t num_daf_threads = 2);
 
   ~GarbageCollectorThread() { StopGC(); }
@@ -36,7 +37,7 @@ class GarbageCollectorThread {
     TERRIER_ASSERT(run_gc_, "GC should already be running.");
     run_gc_ = false;
     gc_paused_ = false;
-    for (auto & gc_thread : gc_threads_) {
+    for (auto &gc_thread : gc_threads_) {
       if (gc_thread.joinable()) gc_thread.join();
     }
   }
@@ -53,7 +54,8 @@ class GarbageCollectorThread {
         if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
         GCThreadLoop(i == 0);
       }));
-    }  }
+    }
+  }
 
   /**
    * Pause the GC from running, typically for use in tests when the state of tables need to be fixed.
