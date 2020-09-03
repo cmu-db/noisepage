@@ -54,7 +54,7 @@ uint32_t Workload(const int8_t worker_id,
 
     if (++iter_count == GC_RATIO) {
       iter_count = 0;
-      daf_manager->Process(worker_id == 0);
+      daf_manager->Process(worker_id == 0, true);
     }
   }
   return txn_counter;
