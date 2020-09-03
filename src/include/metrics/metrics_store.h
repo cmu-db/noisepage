@@ -73,7 +73,6 @@ class MetricsStore {
   /**
    * Record metrics from the deferred action processed
    * @param daf_id type of the deferred action
-   * @param resource_metrics second entry of metrics datapoint
    */
   void RecordActionData(const transaction::DafId daf_id) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::GARBAGECOLLECTION), "GarbageCollectionMetric not enabled.");

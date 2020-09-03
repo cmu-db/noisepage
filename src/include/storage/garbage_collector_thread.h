@@ -15,14 +15,16 @@ namespace terrier::storage {
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
  * to enable GC in the system unless you need fine-grained control over table state or profiling.
  *
- * TODO(John) Repurpose thisto be the deferred action manager's thread
+ * TODO(John) Repurpose this to be the deferred action manager's thread
  */
 class GarbageCollectorThread {
  public:
   /**
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
-   * @param metrics_manager Metrics Manager
+   * @param log_manager pointer to the log manager
+   * @param metrics_manager pointer to the metrics manager
+   * @param num_daf_threads number of DAF threads
    */
   GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc, std::chrono::microseconds gc_period,
                          common::ManagedPointer<storage::LogManager> log_manager,

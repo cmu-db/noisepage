@@ -212,7 +212,6 @@ class TransactionContext {
   /**
    * Unlink the transactionContext
    * @param oldest_txn timestamp of current running oldest transaction
-   * @param visited_slots Pointer to the set containing visted slots in this epoch
    */
   void Unlink(timestamp_t oldest_txn);
 
