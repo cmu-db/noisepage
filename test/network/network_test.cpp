@@ -185,14 +185,16 @@ TEST_F(NetworkTests, SimpleQueryTest) {
 }
 
 /**
- * Use std::thread to initiate peloton server and pqxx client in separate
- * threads
- * Simple query test to guarantee both sides run correctly
- * Callback method to close server after client finishes
+ * Performs the exact same test as SimpleQueryTest, but using a Unix domain socket instead.
+ * This just verifies that the Unix domain socket infrastructure works.
  */
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, UnixDomainSocketTest) {
   try {
+    /*
+     * We specify the location of the domain socket (defaults to /tmp/) for PSQL. This is necessary in
+     * order to ensure that the Unix domain socket gets used.
+     */
     pqxx::connection c(fmt::format("host={0} port={1} user={2} sslmode=disable application_name=psql",
                                    socket_directory_, port_, catalog::DEFAULT_DATABASE));
 
