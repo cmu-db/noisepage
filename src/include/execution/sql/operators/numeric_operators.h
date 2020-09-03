@@ -4,6 +4,9 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "common/error/error_code.h"
+#include "common/error/exception.h"
+
 namespace terrier::execution::sql {
 
 // This file contains a bunch of templated functors that implement many
@@ -39,7 +42,8 @@ struct Acos {
   /** @return Acos(input). */
   constexpr double operator()(T input) const {
     if (input < -1 || input > 1) {
-      throw std::runtime_error("ACos is undefined outside [-1,1]");
+      throw EXECUTION_EXCEPTION("ACos is undefined outside [-1,1]",
+                                common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     return std::acos(input);
   }
@@ -51,7 +55,8 @@ struct Asin {
   /** @return Asin(input). */
   constexpr double operator()(T input) const {
     if (input < -1 || input > 1) {
-      throw std::runtime_error("ASin is undefined outside [-1,1]");
+      throw EXECUTION_EXCEPTION("ASin is undefined outside [-1,1]",
+                                common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     return std::asin(input);
   }
