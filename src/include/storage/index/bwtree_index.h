@@ -39,23 +39,12 @@ class BwTreeIndex final : public Index {
  private:
   explicit BwTreeIndex(IndexMetadata metadata);
 
-  void IncNumModification(const common::ManagedPointer<transaction::TransactionContext> txn) {
-    if (num_mod_ < GC_THRESHOLD) {
-      num_mod_++;
-    } else {
-      num_mod_.store(0);
-      txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-        deferred_action_manager->RegisterDeferredAction([=]() { bwtree_->PerformGarbageCollection(); },
-                                                        transaction::DafId::MEMORY_DEALLOCATION);
-      });
-      txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-        deferred_action_manager->RegisterDeferredAction([=]() { bwtree_->PerformGarbageCollection(); },
-                                                        transaction::DafId::MEMORY_DEALLOCATION);
-      });
-    }
-  }
+  void DAFPerformGC(uint32_t curr_num);
+
+  void IncNumModification(const common::ManagedPointer<transaction::TransactionContext> txn);
 
   std::atomic<uint32_t> num_mod_ = 0;
+  common::SpinLatch index_latch_;
   const std::unique_ptr<third_party::bwtree::BwTree<
       KeyType, TupleSlot, std::less<KeyType>,  // NOLINT transparent functors can't figure out template
       std::equal_to<KeyType>,                  // NOLINT transparent functors can't figure out template

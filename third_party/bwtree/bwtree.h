@@ -6856,7 +6856,7 @@ class BwTree : public BwTreeBase {
    */
   void PerformGarbageCollection() {
     // This function creates a new epoch node, and then checks
-    // epoch counter for exiatsing nodes.
+    // epoch counter for exitsing nodes.
     epoch_manager.PerformGarbageCollection();
   }
 

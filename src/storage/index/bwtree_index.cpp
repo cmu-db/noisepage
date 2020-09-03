@@ -13,6 +13,34 @@ BwTreeIndex<KeyType>::BwTreeIndex(IndexMetadata metadata)
     : Index(std::move(metadata)), bwtree_(std::make_unique<third_party::bwtree::BwTree<KeyType, TupleSlot>>(false)) {}
 
 template <typename KeyType>
+void BwTreeIndex<KeyType>::DAFPerformGC(uint32_t curr_num) {
+  // if the current thread cannot grab the index lock, another thread is working on GC this index
+  if (index_latch_.TryLock()) {
+    bwtree_->PerformGarbageCollection();
+    index_latch_.Unlock();
+  } else {
+    num_mod_ += curr_num;
+  }
+}
+
+template <typename KeyType>
+void BwTreeIndex<KeyType>::IncNumModification(const common::ManagedPointer<transaction::TransactionContext> txn) {
+  if (num_mod_ < GC_THRESHOLD) {
+    num_mod_++;
+  } else {
+    auto curr_num = num_mod_.exchange(0);
+    txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction([=]() { DAFPerformGC(curr_num); },
+                                                      transaction::DafId::MEMORY_DEALLOCATION);
+    });
+    txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction([=]() { DAFPerformGC(curr_num); },
+                                                      transaction::DafId::MEMORY_DEALLOCATION);
+    });
+  }
+}
+
+template <typename KeyType>
 void BwTreeIndex<KeyType>::PerformGarbageCollection() {
   bwtree_->PerformGarbageCollection();
 }
@@ -63,6 +91,7 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
     const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
     TERRIER_ASSERT(result, "Delete on the index failed.");
   });
+  IncNumModification(txn);
   return result;
 }
 
@@ -98,7 +127,7 @@ bool BwTreeIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction
     // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
     txn->SetMustAbort();
   }
-
+  IncNumModification(txn);
   return result;
 }
 
@@ -121,6 +150,7 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
         },
         transaction::DafId::INDEX_REMOVE_KEY);
   });
+  IncNumModification(txn);
 }
 
 template <typename KeyType>
