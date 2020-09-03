@@ -156,14 +156,30 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   const auto &index_schema = codegen_->GetCatalogAccessor()->GetIndexSchema(index_oid_);
   auto *index_pr_expr = codegen_->MakeExpr(index_pr_);
 
+  std::unordered_map<catalog::col_oid_t, uint16_t> oid_offset;
+  for (uint16_t i = 0; i < all_oids_.size(); i++) {
+    oid_offset[all_oids_[i]] = i;
+  }
+
   for (const auto &index_col : index_schema.GetColumns()) {
+    auto stored_expr = index_col.StoredExpression();
+    TERRIER_ASSERT(stored_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
+                   "CREATE INDEX supported on base columns only");
+
+    // col_expr comes from the base table so we need to use TableSchema to get the correct scan_offset.
     // col_expr = @VPIGet(vpi_var_, attr_sql_type, true, oid)
+    auto cve = stored_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
+    TERRIER_ASSERT(cve->GetColumnOid() != catalog::INVALID_COLUMN_OID, "CREATE INDEX column oid not bound");
+    TERRIER_ASSERT(oid_offset.find(cve->GetColumnOid()) != oid_offset.end(), "CREATE INDEX missing column scan");
+    auto &tbl_col = table_schema_.GetColumn(cve->GetColumnOid());
+    auto sql_type = sql::GetTypeId(tbl_col.Type());
+    auto scan_offset = oid_offset[cve->GetColumnOid()];
+    const auto &col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), sql_type, tbl_col.Nullable(), scan_offset);
+
     // @prSet(insert_index_pr, attr_type, attr_idx, nullable, attr_index, col_expr, false)
     uint16_t attr_offset = index_pm.at(index_col.Oid());
     type::TypeId attr_type = index_col.Type();
-    auto attr_sql_type = sql::GetTypeId(index_col.Type());
     bool nullable = index_col.Nullable();
-    const auto &col_expr = codegen_->VPIGet(codegen_->MakeExpr(vpi_var_), attr_sql_type, nullable, attr_offset);
     auto *set_key_call = codegen_->PRSet(index_pr_expr, attr_type, nullable, attr_offset, col_expr, false);
     function->Append(codegen_->MakeStmt(set_key_call));
   }
