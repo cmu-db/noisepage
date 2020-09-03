@@ -2,9 +2,9 @@
 #include "metrics/metrics_manager.h"
 
 namespace terrier::storage {
-GarbageCollectorThread::GarbageCollectorThread(common::ManagedPointer <GarbageCollector> gc,
+GarbageCollectorThread::GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc,
                                                std::chrono::microseconds gc_period,
-                                               common::ManagedPointer <metrics::MetricsManager> metrics_manager,
+                                               common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                                                uint32_t num_daf_threads)
     : gc_(gc),
       metrics_manager_(metrics_manager),

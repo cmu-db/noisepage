@@ -520,9 +520,9 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
 
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
-    gc_thread_ = new storage::GarbageCollectorThread(
-        common::ManagedPointer(gc_), gc_period_,
-        common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
+    gc_thread_ =
+        new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                            common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
 
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
@@ -648,12 +648,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     log_manager_->ForceFlush();
 
     // Let GC clean up
-    gc_thread_ = new storage::GarbageCollectorThread(
-        common::ManagedPointer(gc_), gc_period_,
-        common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
+    gc_thread_ =
+        new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                            common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
     gc_thread_->StopGC();
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
-    bool shut_down UNUSED_ATTRIBUTE = false;
 
     // run the TPCC workload to completion, timing the execution
     metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
