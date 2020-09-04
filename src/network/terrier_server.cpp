@@ -42,40 +42,42 @@ void TerrierServer::RunServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
 
-  int conn_backlog = common::Settings::CONNECTION_BACKLOG;
+  //int conn_backlog = common::Settings::CONNECTION_BACKLOG;
 
-  struct sockaddr_in sin;
-  std::memset(&sin, 0, sizeof(sin));
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
-  sin.sin_port = htons(port_);
+  for (auto &protocol : protocols_) {
+    struct sockaddr_in sin;
+    std::memset(&sin, 0, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = INADDR_ANY;
+    sin.sin_port = htons(protocol.port_);
 
-  listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
+    protocol.listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
 
-  if (listen_fd_ < 0) {
-    NETWORK_LOG_ERROR("Failed to open socket: {}", strerror(errno));
-    throw NETWORK_PROCESS_EXCEPTION("Failed to open socket.");
+    if (protocol.listen_fd_ < 0) {
+      NETWORK_LOG_ERROR("Failed to open socket: {}", strerror(errno));
+      throw NETWORK_PROCESS_EXCEPTION("Failed to open socket.");
+    }
+
+    int reuse = 1;
+    setsockopt(protocol.listen_fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    int retval = bind(protocol.listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
+    if (retval < 0) {
+      NETWORK_LOG_ERROR("Failed to bind socket: {}", strerror(errno));
+      throw NETWORK_PROCESS_EXCEPTION("Failed to bind socket.");
+    }
+    retval = listen(protocol.listen_fd_, protocol.conn_backlog_);
+    if (retval < 0) {
+      NETWORK_LOG_ERROR("Failed to create listen socket: {}", strerror(errno));
+      throw NETWORK_PROCESS_EXCEPTION("Failed to create listen socket.");
+    }
+
+    dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
+        this /* requester */, protocol.max_connections_, protocol.listen_fd_, this, common::ManagedPointer(protocol.provider_.Get()),
+        connection_handle_factory_, thread_registry_);
+
+    NETWORK_LOG_INFO("Listening on port {0} [PID={1}]", protocol.port_, ::getpid());
   }
-
-  int reuse = 1;
-  setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
-  int retval = bind(listen_fd_, reinterpret_cast<struct sockaddr *>(&sin), sizeof(sin));
-  if (retval < 0) {
-    NETWORK_LOG_ERROR("Failed to bind socket: {}", strerror(errno));
-    throw NETWORK_PROCESS_EXCEPTION("Failed to bind socket.");
-  }
-  retval = listen(listen_fd_, conn_backlog);
-  if (retval < 0) {
-    NETWORK_LOG_ERROR("Failed to create listen socket: {}", strerror(errno));
-    throw NETWORK_PROCESS_EXCEPTION("Failed to create listen socket.");
-  }
-
-  dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()),
-      connection_handle_factory_, thread_registry_);
-
-  NETWORK_LOG_INFO("Listening on port {0} [PID={1}]", port_, ::getpid());
 
   // Set the running_ flag for any waiting threads
   {
@@ -89,7 +91,10 @@ void TerrierServer::StopServer() {
   const bool result UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
-  TerrierClose(listen_fd_);
+  for (const auto &protocol : protocols_) {
+    TerrierClose(protocol.listen_fd_);
+    NETWORK_LOG_INFO("Closed port {0}", protocol.port_)
+  }
   NETWORK_LOG_INFO("Server Closed");
 
   // Clear the running_ flag for any waiting threads and wake up them up with the condition variable

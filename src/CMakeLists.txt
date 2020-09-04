@@ -75,6 +75,6 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-add_executable(terrier main/terrier.cpp)
+add_executable(terrier main/terrier.cpp include/storage/write_ahead_log/replication_log_consumer_task.h storage/write_ahead_log/replication_log_consumer_task.cpp include/storage/write_ahead_log/log_consumer_task.h)
 set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
 target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})

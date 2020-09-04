@@ -6,7 +6,7 @@
 
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"
-#include "common/dedicated_thread_task.h"
+#include "storage/write_ahead_log/log_consumer_task.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_io.h"
 
@@ -16,7 +16,7 @@ namespace terrier::storage {
  * A DiskLogConsumerTask is responsible for writing serialized log records out to disk by processing buffers in the log
  * manager's filled buffer queue
  */
-class DiskLogConsumerTask : public common::DedicatedThreadTask {
+class DiskLogConsumerTask : public LogConsumerTask {
  public:
   /**
    * Constructs a new DiskLogConsumerTask
@@ -30,13 +30,11 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
                                std::vector<BufferedLogWriter> *buffers,
                                common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                                common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue)
-      : run_task_(false),
+      : LogConsumerTask(empty_buffer_queue, filled_buffer_queue),
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold),
         current_data_written_(0),
-        buffers_(buffers),
-        empty_buffer_queue_(empty_buffer_queue),
-        filled_buffer_queue_(filled_buffer_queue) {}
+        buffers_(buffers) {}
 
   /**
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
@@ -64,10 +62,6 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
 
   // This stores a reference to all the buffers the log manager has created. Used for persisting
   std::vector<BufferedLogWriter> *buffers_;
-  // The queue containing empty buffers. Task will enqueue a buffer into this queue when it has flushed its logs
-  common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
-  // The queue containing filled buffers. Task should dequeue filled buffers from this queue to flush
-  common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
 
   // Flag used by the serializer thread to signal the disk log consumer task thread to persist the data on disk
   volatile bool do_persist_;

@@ -98,6 +98,12 @@ class TrafficCop {
   void HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer);
 
   /**
+   * Signals to the replication component to stop
+   */
+  void StopReplication();
+
+
+  /**
    * Create a temporary namespace for a connection
    * @param connection_id the unique connection ID to use for the namespace name
    * @param database_name the name of the database the connection is accessing

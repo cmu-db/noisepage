@@ -38,6 +38,8 @@ class StorageTestUtil {
 
 #define MAX_TEST_VARLEN_SIZE (5 * storage::VarlenEntry::InlineThreshold())
 
+#define MIN_GC_INVOCATIONS (3)
+
   /**
    * Check if memory address represented by val in [lower, upper)
    * @tparam A type of ptr

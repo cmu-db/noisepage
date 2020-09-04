@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <common/settings.h>
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
@@ -240,6 +241,7 @@ class DBMain {
       server_ = std::make_unique<network::TerrierServer>(common::ManagedPointer(provider_),
                                                          common::ManagedPointer(connection_handle_factory_),
                                                          thread_registry, port, connection_thread_count);
+      NETWORK_LOG_INFO("Initialization complete");
     }
 
     /**

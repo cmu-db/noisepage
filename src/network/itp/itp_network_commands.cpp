@@ -17,8 +17,11 @@ Transition ReplicationCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
                                     common::ManagedPointer<ITPPacketWriter> out,
                                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     common::ManagedPointer<ConnectionContext> connection) {
-  std::unique_ptr<ReadBuffer> buffer;
-  buffer->FillBufferFrom(in_, in_len_);
+  auto message_id UNUSED_ATTRIBUTE = in_.ReadValue<uint64_t>();
+  auto data_size = in_.ReadValue<uint64_t>();
+  TERRIER_ASSERT(in_.HasMore(data_size), "Insufficient replication data in packet");
+  auto buffer = std::make_unique<ReadBuffer>(data_size);
+  buffer->FillBufferFrom(in_, data_size);
   t_cop->HandBufferToReplication(std::move(buffer));
   return Transition::PROCEED;
 }

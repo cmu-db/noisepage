@@ -221,6 +221,13 @@ class ReadBufferView {
     return result;
   }
 
+  /**
+   * @param bytes The amount of bytes between the current cursor and rest of the buffer view
+   * @return Whether there is any more bytes between the cursor and
+   *         the end of the buffer view
+   */
+  bool HasMore(size_t bytes = 1) { return offset_ + bytes <= size_; }
+
  private:
   size_t offset_ = 0, size_;
   ByteBuf::const_iterator begin_;

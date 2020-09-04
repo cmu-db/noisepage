@@ -87,6 +87,11 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
 }
 
+void TrafficCop::StopReplication() {
+  TERRIER_ASSERT(replication_log_provider_ != DISABLED,"Can't stop replication, no replication log provider was given");
+  replication_log_provider_->EndReplication();
+}
+
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
                                              const bool explicit_txn_block,

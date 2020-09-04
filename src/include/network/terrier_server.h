@@ -74,7 +74,40 @@ class TerrierServer : public common::DedicatedThreadOwner {
    */
   std::condition_variable &RunningCV() { return running_cv_; }
 
+  // TODO(tianlei): add comments.
+  void RegisterProtocol(uint16_t port, common::ManagedPointer<ProtocolInterpreter::Provider> provider,
+                        uint32_t max_connections, uint32_t conn_backlog) {
+    protocols_.emplace_back(port, provider, max_connections, conn_backlog);
+  }
+
  private:
+
+  // TODO(tianlei): add comments.
+  struct Protocol {
+    /**
+     * @param port port to listen on for protocol
+     * @param provider provider for this protocol
+     * @param max_connections max connections on this socket
+     * @param conn_backlog connection backlog for this socket
+     */
+    Protocol(uint16_t port, common::ManagedPointer<ProtocolInterpreter::Provider> provider, uint32_t max_connections,
+             uint32_t conn_backlog)
+        : port_(port),
+          provider_(provider),
+          max_connections_(max_connections),
+          conn_backlog_(conn_backlog),
+          listen_fd_(-1) {}
+
+    uint16_t port_;
+    common::ManagedPointer<ProtocolInterpreter::Provider> provider_;
+    uint32_t max_connections_;
+    uint32_t conn_backlog_;
+    int listen_fd_;  // Socket fd to listen on for this protocol. Set by TerrierServer::RunServer
+  };
+
+  // Protocols to listen for in this server
+  std::vector<Protocol> protocols_;
+
   // TODO(Matt): somewhere there's probably a stronger assertion to be made about the state of the server and if
   // threads can be safely taken away, but I don't understand the networking stuff well enough to say for sure what
   // that assertion is
