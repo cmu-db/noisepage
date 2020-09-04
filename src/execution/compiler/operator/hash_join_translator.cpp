@@ -338,7 +338,14 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
       auto probe_row_type = codegen->MakeExpr(probe_row_type_);
       auto probe_row = codegen->MakeExpr(probe_row_var_);
       function->Append(codegen->DeclareVarNoInit(probe_row_var_, probe_row_type));
-      // Note: Don't change the default probe row values, b/c for left outer join should be NULL
+      // Fill probe row with NULLs
+      const auto child_schema = GetPlan().GetChild(1)->GetOutputSchema();
+      for (uint32_t attr_idx = 0; attr_idx < child_schema->GetColumns().size(); attr_idx++) {
+        auto type = child_schema->GetColumn(attr_idx).GetType();
+        ast::Expr *lhs = GetRowAttribute(probe_row, attr_idx);
+        ast::Expr *rhs = GetCodeGen()->ConstNull(type);
+        function->Append(codegen->Assign(lhs, rhs));
+      }
       // joinConsumer(queryState, pipelineState, buildRow, probeRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
                                               codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
