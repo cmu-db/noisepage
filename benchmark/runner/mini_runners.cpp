@@ -943,8 +943,7 @@ class MiniRunners : public benchmark::Fixture {
 
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
                           planner::OutputSchema *out_schema, bool commit,
-                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
-                          std::function<void(MiniRunners *)> run_cleanup = nullptr) {
+                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
@@ -976,10 +975,6 @@ class MiniRunners : public benchmark::Fixture {
       if (i == num_iters - 1) {
         metrics_manager_->Aggregate();
         metrics_manager_->UnregisterThread();
-      }
-
-      if (run_cleanup != nullptr) {
-        run_cleanup(this);
       }
     }
   }
@@ -2096,11 +2091,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
   auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
 
-  auto cleanup = [](MiniRunners *instance) {
-    auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    instance->OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  };
-
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX, row, tuple_size, num_col, car, 1, 0);
@@ -2109,7 +2099,12 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   std::stringstream query;
   query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  BenchmarkExecQuery(2, equery.first.get(), equery.second.get(), true, &empty_params, cleanup);
+  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params);
+
+  {
+    auto units = std::make_unique<brain::PipelineOperatingUnits>();
+    OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+  }
 
   InvokeGC();
   state.SetItemsProcessed(row);
