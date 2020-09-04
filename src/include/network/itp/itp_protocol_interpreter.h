@@ -85,7 +85,12 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) override;
 
  private:
+  InputPacket curr_input_packet_{};
+  std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<ITPCommandFactory> command_factory_;
+
+  bool TryBuildPacket(common::ManagedPointer<ReadBuffer> in);
+  bool TryReadPacketHeader(common::ManagedPointer<ReadBuffer> in);
 };
 
 }  // namespace terrier::network
