@@ -283,10 +283,8 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
     // Fill row.
     FillProbeRow(ctx, function, codegen->MakeExpr(probe_row_var_));
     // joinConsumer(queryState, pipelineState, buildRow, probeRow);
-    std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
-                                            codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
-                                            codegen->MakeExpr(build_row_var_),
-                                            codegen->AddressOf(probe_row)};
+    std::initializer_list<ast::Expr *> args{GetQueryStatePtr(), codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
+                                            codegen->MakeExpr(build_row_var_), codegen->AddressOf(probe_row)};
     function->Append(codegen->Call(join_consumer_, args));
   }
   check_condition.EndIf();
@@ -344,8 +342,7 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
       // joinConsumer(queryState, pipelineState, buildRow, probeRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
                                               codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
-                                              codegen->MakeExpr(build_row_var_),
-                                              codegen->AddressOf(probe_row)};
+                                              codegen->MakeExpr(build_row_var_), codegen->AddressOf(probe_row)};
       function->Append(codegen->Call(join_consumer_, args));
     }
   }
@@ -389,12 +386,12 @@ ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   // Otherwise if within the joinConsumer function we read from the ProbeRow and if not propagate
   // the request to the correct child
   if (IsRightPipeline(context->GetPipeline()) && child_idx == 0) {
-      auto row = GetCodeGen()->MakeExpr(build_row_var_);
-      return GetRowAttribute(row, attr_idx);
+    auto row = GetCodeGen()->MakeExpr(build_row_var_);
+    return GetRowAttribute(row, attr_idx);
   }
   if (IsRightPipeline(context->GetPipeline()) && child_idx == 1 && join_consumer_flag_) {
-      auto row = GetCodeGen()->MakeExpr(probe_row_var_);
-      return GetRowAttribute(row, attr_idx);
+    auto row = GetCodeGen()->MakeExpr(probe_row_var_);
+    return GetRowAttribute(row, attr_idx);
   }
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
