@@ -75,11 +75,6 @@ class BwTreeIndexTests : public TerrierTest {
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
 
-    db_main_->GetStorageLayer()->GetGarbageCollector()->RegisterIndexForGC(
-        common::ManagedPointer<Index>(unique_index_));
-    db_main_->GetStorageLayer()->GetGarbageCollector()->RegisterIndexForGC(
-        common::ManagedPointer<Index>(default_index_));
-
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_2_ =
@@ -87,10 +82,6 @@ class BwTreeIndexTests : public TerrierTest {
   }
   void TearDown() override {
     thread_pool_.Shutdown();
-    db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
-        common::ManagedPointer<Index>(unique_index_));
-    db_main_->GetStorageLayer()->GetGarbageCollector()->UnregisterIndexForGC(
-        common::ManagedPointer<Index>(default_index_));
 
     // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
     // transactions in the tests has unlinked

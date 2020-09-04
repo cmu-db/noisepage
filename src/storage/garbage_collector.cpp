@@ -23,16 +23,4 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(bool wi
   return std::make_pair(txn_manager_->NumDeallocated(), txn_manager_->NumUnlinked());
 }
 
-void GarbageCollector::RegisterIndexForGC(common::ManagedPointer<index::Index> index) {
-  deferred_action_manager_->RegisterIndexForGC(index);
-}
-
-/**
- * Unregister an index to be periodically garbage collected
- * @param index pointer to the index to unregister
- */
-void GarbageCollector::UnregisterIndexForGC(common::ManagedPointer<index::Index> index) {
-  deferred_action_manager_->UnregisterIndexForGC(index);
-}
-
 }  // namespace terrier::storage
