@@ -1,7 +1,9 @@
 #pragma once
 
+#include <condition_variable>  // NOLINT
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
