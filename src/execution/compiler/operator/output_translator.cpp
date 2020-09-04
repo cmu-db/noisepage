@@ -51,7 +51,7 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
 
 void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, num_output_.Get(GetCodeGen()));
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
 
@@ -60,6 +60,8 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
                   brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
                   pipeline.ConcurrentState());
   }
+
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {

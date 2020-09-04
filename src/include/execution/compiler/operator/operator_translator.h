@@ -255,17 +255,31 @@ class OperatorTranslator : public ColumnValueProvider {
   /** @return True if we should collect counters in TPL, used for Lin's models. */
   bool IsCountersEnabled() const;
 
+  /** @return True if this translator should pass ownership of its counters further down, used for Lin's models. */
+  virtual bool IsCountersPassThrough() const { return false; }
+
   /** Declare a counter for Lin's models. */
   StateDescriptor::Entry CounterDeclare(const std::string &counter_name, Pipeline *pipeline) const;
   /** Set the value of a counter for Lin's models. */
   void CounterSet(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
+  /** Set the value of a counter for Lin's models. */
   void CounterSetExpr(FunctionBuilder *function, const StateDescriptor::Entry &counter, ast::Expr *val) const;
   /** Add to the value of a counter for Lin's models. */
   void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, int64_t val) const;
+  /** Add to the value of a counter for Lin's models. */
+  void CounterAdd(FunctionBuilder *function, const StateDescriptor::Entry &counter, ast::Identifier val) const;
+  /** Get the feature value out of a counter. */
+  ast::Expr *CounterVal(StateDescriptor::Entry entry) const;
   /** Record a specified feature's value. */
   void FeatureRecord(FunctionBuilder *function, brain::ExecutionOperatingUnitType feature_type,
                      brain::ExecutionOperatingUnitFeatureAttribute attrib, const Pipeline &pipeline,
                      ast::Expr *val) const;
+  /** Record arithmetic feature values by setting feature values to val. */
+  void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline,
+                                  execution::translator_id_t translator_id, ast::Expr *val) const;
+  /** Record arithmetic feature values by multiplying existing feature values by val. */
+  void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
+                                  execution::translator_id_t translator_id, ast::Expr *val) const;
 
  private:
   // For mini-runner stuff.

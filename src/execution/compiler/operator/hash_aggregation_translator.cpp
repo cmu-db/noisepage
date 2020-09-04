@@ -17,7 +17,7 @@ constexpr char AGGREGATE_TERM_ATTR_PREFIX[] = "agg_term_attr";
 
 HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                      CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_AGGREGATE),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
@@ -282,7 +282,7 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  num_agg_inputs_.Get(codegen));
+                  CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
@@ -292,6 +292,8 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
                     brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
                     pipeline.ConcurrentState());
     }
+
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
   } else {
     ast::Expr *agg_ht;
     if (pipeline.IsParallel()) {
@@ -302,7 +304,7 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  num_agg_outputs_.Get(codegen));
+                  CounterVal(num_agg_outputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
@@ -312,6 +314,8 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
                     brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
                     pipeline.ConcurrentState());
     }
+
+    FeatureArithmeticRecordMul(function, pipeline,, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
 }
 

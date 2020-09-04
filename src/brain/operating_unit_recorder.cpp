@@ -223,7 +223,13 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(current_translator_->translator_id_, type, num_rows, key_size, num_keys,
+  // This is a hack.
+  // Certain translators don't own their features, but pass them further down the pipeline.
+  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
+  while (translator->IsCountersPassThrough()) {
+    translator = translator->GetParentTranslator();
+  }
+  auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
                                                cardinality, mem_factor, num_loops, num_concurrent);
   pipeline_features_.emplace(type, std::move(feature));
 }
@@ -385,8 +391,7 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
-      plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
+      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY) {
     // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
   }
@@ -430,12 +435,12 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     auto num_key = plan->GetRightHashKeys().size();
     auto key_size = ComputeKeySize(plan->GetRightHashKeys(), &num_key);
     AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, key_size, num_key, plan, 1, 1);
-  }
 
-  // Computes against OutputSchema/Join predicate which will
-  // use the rows/cardinalities of what the HJ plan produces
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+    // Computes against OutputSchema/Join predicate which will
+    // use the rows/cardinalities of what the HJ plan produces
+    VisitAbstractJoinPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
@@ -617,11 +622,11 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
-    RecordAggregateTranslator(translator, plan);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+  if (plan->IsStaticAggregation()) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
   }
 }

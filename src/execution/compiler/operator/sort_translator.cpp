@@ -17,7 +17,7 @@ constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
 
 SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, CompilationContext *compilation_context,
                                Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SORT),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       sort_row_var_(GetCodeGen()->MakeFreshIdentifier("sortRow")),
       sort_row_type_(GetCodeGen()->MakeFreshIdentifier("SortRow")),
       lhs_row_(GetCodeGen()->MakeIdentifier("lhs")),
@@ -147,8 +147,7 @@ void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBui
     }
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  num_sort_build_rows_.Get(GetCodeGen()));
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_sort_build_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
@@ -158,14 +157,17 @@ void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBui
                     brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
                     pipeline.ConcurrentState());
     }
+
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
   } else {
     ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  num_sort_iterate_rows_.Get(GetCodeGen()));
+                  CounterVal(num_sort_iterate_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
   }
 }
 
@@ -272,7 +274,15 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     } else {
       function->Append(codegen->SorterSort(sorter_ptr));
     }
+<<<<<<< HEAD
+=======
+
+  } else {
+>>>>>>> neko/counters
   }
+
+  // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.
+  //  However, due to overhead and engineering complexity, we settle for the size of the sorter.
 }
 
 ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,

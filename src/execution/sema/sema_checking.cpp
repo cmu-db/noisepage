@@ -39,6 +39,16 @@ bool Sema::CheckArgCountAtLeast(ast::CallExpr *call, uint32_t expected_arg_count
   return true;
 }
 
+bool Sema::CheckArgCountBetween(ast::CallExpr *call, uint32_t min_expected_arg_count, uint32_t max_expected_arg_count) {
+  if (call->NumArgs() < min_expected_arg_count || call->NumArgs() > max_expected_arg_count) {
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kMismatchedCallArgsBetween, call->GetFuncName(),
+                               min_expected_arg_count, max_expected_arg_count, call->NumArgs());
+    return false;
+  }
+
+  return true;
+}
+
 // Logical ops: and, or
 Sema::CheckResult Sema::CheckLogicalOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                              ast::Expr *right) {

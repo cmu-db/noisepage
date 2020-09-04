@@ -91,6 +91,7 @@ class Sema : public ast::AstVisitor<Sema> {
   // Check the number of arguments to the call; true if good, false otherwise
   bool CheckArgCount(ast::CallExpr *call, uint32_t expected_arg_count);
   bool CheckArgCountAtLeast(ast::CallExpr *call, uint32_t expected_arg_count);
+  bool CheckArgCountBetween(ast::CallExpr *call, uint32_t min_expected_arg_count, uint32_t max_expected_arg_count);
 
   // Check boolean logic operands: and, or
   CheckResult CheckLogicalOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,

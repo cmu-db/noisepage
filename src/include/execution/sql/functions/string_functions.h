@@ -45,6 +45,9 @@ class StringFunctions {
   static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
 
+  /** Compute LPAD(str, len). */
+  static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len);
+
   /** Compute LTRIM(str, chars). */
   static void Ltrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
@@ -60,9 +63,12 @@ class StringFunctions {
   /** Compute RIGHT(str, n). */
   static void Right(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /** Compute RPAD(str, n). */
-  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n,
+  /** Compute RPAD(str, n, pad). */
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
+
+  /** Compute RPAD(str, n). */
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len);
 
   /** Compute RTRIM(str, chars). */
   static void Rtrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
@@ -104,5 +110,8 @@ class StringFunctions {
 
   /** Compute CHR(code). */
   static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
+
+  /** Compute INITCAP(str). */
+  static void InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 };
 }  // namespace terrier::execution::sql

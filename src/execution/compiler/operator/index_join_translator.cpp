@@ -18,7 +18,7 @@ namespace terrier::execution::compiler {
 
 IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::IDXJOIN),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       input_oids_(plan.CollectInputOids()),
       table_schema_(GetCodeGen()->GetCatalogAccessor()->GetSchema(plan.GetTableOid())),
       table_pm_(GetCodeGen()->GetCatalogAccessor()->GetTable(plan.GetTableOid())->ProjectionMapForOids(input_oids_)),
@@ -43,6 +43,15 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   }
 
   compilation_context->Prepare(*GetPlan().GetChild(0), pipeline);
+  index_size_ = CounterDeclare("index_size");
+  num_scans_index_ = CounterDeclare("num_scans_index");
+  num_loops_ = CounterDeclare("num_loops");
+}
+
+void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  CounterSet(function, index_size_, 0);
+  CounterSet(function, num_scans_index_, 0);
+  CounterSet(function, num_loops_, 0);
 }
 
 void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -68,6 +77,8 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
   ast::Expr *advance_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorAdvance, {GetCodeGen()->AddressOf(index_iter_)});
 
+  CounterAdd(function, num_loops_, 1);
+
   // for (@indexIteratorScanKey(&index_iter); @indexIteratorAdvance(&index_iter);)
   Loop loop(function, loop_init, advance_call, nullptr);
   {
@@ -87,11 +98,25 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
       // PARENT_CODE
       context->Push(function);
     }
+
+    CounterAdd(function, num_scans_index_, 1);
   }
   loop.EndLoop();
 
+  CounterSetExpr(function, index_size_,
+                 GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
   // @indexIteratorFree(&index_iter_)
   FreeIterator(function);
+}
+
+void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(index_size_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_index_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS, pipeline, CounterVal(num_loops_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_index_));
 }
 
 ast::Expr *IndexJoinTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
