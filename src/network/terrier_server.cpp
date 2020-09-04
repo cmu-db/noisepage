@@ -53,7 +53,7 @@ void TerrierServer::RegisterSocket() {
 
   auto &socket_fd = is_networked_socket ? network_socket_fd_ : unix_domain_socket_fd_;
 
-  // Gets the appropriate sockaddr for the given SocketType.
+  // Gets the appropriate sockaddr for the given SocketType. Abuse a lambda and auto to specialize the type.
   auto socket_addr = ([&] {
     if constexpr (is_networked_socket) {
       struct sockaddr_in sin = {0};
@@ -65,13 +65,12 @@ void TerrierServer::RegisterSocket() {
       return sin;
     } else {
       // Builds the socket path name
-      // Naming conventions come from https://www.postgresql.org/docs/9.3/runtime-config-connection.html
-      const std::string socket_path = fmt::format("{0}/.s.PGSQL.{1}", socket_directory_, port_);
+      const std::string socket_path = fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_);
       struct sockaddr_un sun = {0};
 
       // Validate pathname
       if (socket_path.length() > sizeof(sun.sun_path) /* Max Unix socket path length */ ) {
-        NETWORK_LOG_ERROR("Unix domain socket name too long (should be at most 108 characters)");
+        NETWORK_LOG_ERROR(fmt::format("Domain socket name too long (must be <= {} characters)", sizeof(sun.sun_path)));
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to name {} socket.", socket_description));
       }
 
@@ -109,7 +108,7 @@ void TerrierServer::RegisterSocket() {
       if (errno == EADDRINUSE) {
         // I find this disgusting, but it's the approach favored by a bunch of software that uses Unix domain sockets.
         // BSD syslogd, for example, does this in *every* case--error handling or not--and I'm not one to question it.
-        recovered = !std::remove(fmt::format("{0}/.s.PGSQL.{1}", socket_directory_, port_).c_str()) &&
+        recovered = !std::remove(fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_).c_str()) &&
                     bind(socket_fd, reinterpret_cast<struct sockaddr *>(&socket_addr), sizeof(socket_addr)) >= 0;
       }
 
@@ -169,7 +168,7 @@ void TerrierServer::StopServer() {
 
   // Close the Unix domain socket if it exists
   if (use_unix_socket_ && unix_domain_socket_fd_ >= 0) {
-    std::remove(fmt::format("{0}/.s.PGSQL.{1}", socket_directory_, port_).c_str());
+    std::remove(fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_).c_str());
   }
 
   NETWORK_LOG_INFO("Server Closed");

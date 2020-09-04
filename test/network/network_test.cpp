@@ -191,8 +191,8 @@ TEST_F(NetworkTests, SimpleQueryTest) {
 TEST_F(NetworkTests, UnixDomainSocketTest) {
   try {
     /*
-     * We specify the location of the domain socket (defaults to /tmp/) for PSQL. This is necessary in
-     * order to ensure that the Unix domain socket gets used.
+     * We specify the location of the domain socket (defaults to /tmp/) for PSQL.
+     * This is necessary in order to ensure that the Unix domain socket gets used.
      */
     pqxx::connection c(fmt::format("host={0} port={1} user={2} sslmode=disable application_name=psql",
                                    socket_directory_, port_, catalog::DEFAULT_DATABASE));

@@ -25,6 +25,9 @@
 
 namespace terrier::network {
 
+// The name is based on https://www.postgresql.org/docs/9.3/runtime-config-connection.html
+constexpr std::string_view UNIX_DOMAIN_SOCKET_FORMAT_STRING = "{0}/.s.PGSQL.{1}";
+
 /**
  * TerrierServer is the entry point of the network layer
  */
