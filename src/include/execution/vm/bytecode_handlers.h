@@ -1327,12 +1327,21 @@ VM_OP void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter);
 // Output
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpResultBufferAllocOutputRow(terrier::byte **result, terrier::execution::exec::ExecutionContext *ctx) {
-  *result = ctx->GetOutputBuffer()->AllocOutputSlot();
+VM_OP_WARM void OpResultBufferNew(terrier::execution::exec::OutputBuffer **out,
+                                  terrier::execution::exec::ExecutionContext *ctx) {
+  *out = ctx->OutputBufferNew();
 }
 
-VM_OP_WARM void OpResultBufferFinalize(terrier::execution::exec::ExecutionContext *ctx) {
-  ctx->GetOutputBuffer()->Finalize();
+VM_OP_WARM void OpResultBufferAllocOutputRow(terrier::byte **result, terrier::execution::exec::OutputBuffer *out) {
+  *result = out->AllocOutputSlot();
+}
+
+VM_OP_WARM void OpResultBufferFinalize(terrier::execution::exec::OutputBuffer *out) { out->Finalize(); }
+
+VM_OP_WARM void OpResultBufferFree(terrier::execution::exec::OutputBuffer *out) {
+  auto *mem_pool = out->GetMemoryPool();
+  out->~OutputBuffer();
+  mem_pool->Deallocate(out, sizeof(terrier::execution::exec::OutputBuffer));
 }
 
 // ---------------------------------------------------------

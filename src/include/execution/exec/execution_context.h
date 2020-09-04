@@ -1,5 +1,6 @@
 #pragma once
 
+#include <new>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -43,7 +44,7 @@ class EXPORT ExecutionContext {
    * @param exec_settings The execution settings to run with.
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
-                   const OutputCallback &callback, const planner::OutputSchema *schema,
+                   OutputCallback callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    const exec::ExecutionSettings &exec_settings,
                    common::ManagedPointer<metrics::MetricsManager> metrics_manager)
@@ -52,9 +53,8 @@ class EXPORT ExecutionContext {
         txn_(txn),
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
         mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
-        buffer_(schema == nullptr ? nullptr
-                                  : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
-                                                                   ComputeTupleSize(schema), callback)),
+        schema_(schema),
+        callback_(callback),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor),
         metrics_manager_(metrics_manager) {}
@@ -65,9 +65,20 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<transaction::TransactionContext> GetTxn() { return txn_; }
 
   /**
-   * @return the output buffer used by this query
+   * @return newly created outputbuffer
    */
-  OutputBuffer *GetOutputBuffer() { return buffer_.get(); }
+  OutputBuffer *OutputBufferNew() {
+    if (schema_ == nullptr) {
+      return nullptr;
+    }
+
+    // Use C++ placement new
+    auto size = sizeof(OutputBuffer);
+    OutputBuffer *buffer = reinterpret_cast<OutputBuffer*>(mem_pool_->Allocate(size));
+    new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
+    return buffer;
+  }
+
 
   /**
    * @return The thread state container.
@@ -193,7 +204,9 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
-  std::unique_ptr<OutputBuffer> buffer_;
+  std::unique_ptr<OutputBuffer> buffer_ = nullptr;
+  const planner::OutputSchema *schema_ = nullptr;
+  OutputCallback callback_;
   // Container for thread-local state.
   // During parallel processing, execution threads access their thread-local state from this container.
   std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;

@@ -1521,15 +1521,26 @@ void BytecodeGenerator::VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Bui
 }
 
 void BytecodeGenerator::VisitResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar input = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
+    case ast::Builtin::ResultBufferNew: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::ResultBufferNew, dest, input);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
     case ast::Builtin::ResultBufferAllocOutRow: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      GetEmitter()->Emit(Bytecode::ResultBufferAllocOutputRow, dest, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ResultBufferAllocOutputRow, dest, input);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::ResultBufferFinalize: {
-      GetEmitter()->Emit(Bytecode::ResultBufferFinalize, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ResultBufferFinalize, input);
+      break;
+    }
+    case ast::Builtin::ResultBufferFree: {
+      GetEmitter()->Emit(Bytecode::ResultBufferFree, input);
       break;
     }
     default: {
@@ -2637,8 +2648,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinSorterIterCall(call, builtin);
       break;
     }
+    case ast::Builtin::ResultBufferNew:
     case ast::Builtin::ResultBufferAllocOutRow:
-    case ast::Builtin::ResultBufferFinalize: {
+    case ast::Builtin::ResultBufferFinalize:
+    case ast::Builtin::ResultBufferFree: {
       VisitResultBufferCall(call, builtin);
       break;
     }

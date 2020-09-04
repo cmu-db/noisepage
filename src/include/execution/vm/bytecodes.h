@@ -471,8 +471,10 @@ namespace terrier::execution::vm {
   F(SorterIteratorFree, OperandType::Local)                                                                           \
                                                                                                                       \
   /* Output */                                                                                                        \
+  F(ResultBufferNew, OperandType::Local, OperandType::Local)                                                          \
   F(ResultBufferAllocOutputRow, OperandType::Local, OperandType::Local)                                               \
   F(ResultBufferFinalize, OperandType::Local)                                                                         \
+  F(ResultBufferFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \

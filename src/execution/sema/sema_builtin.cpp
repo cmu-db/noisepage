@@ -1647,15 +1647,24 @@ void Sema::CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
-
-  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-    return;
+  if (builtin == ast::Builtin::ResultBufferNew) {
+    const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+    if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
+      return;
+    }
+  } else {
+    const auto out_buffer_kind = ast::BuiltinType::OutputBuffer;
+    if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), out_buffer_kind)) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(out_buffer_kind)->PointerTo());
+      return;
+    }
   }
 
   if (builtin == ast::Builtin::ResultBufferAllocOutRow) {
     call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Uint8)->PointerTo());
+  } else if (builtin == ast::Builtin::ResultBufferNew) {
+    call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::OutputBuffer)->PointerTo());
   } else {
     call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
   }
@@ -3261,8 +3270,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinSorterIterCall(call, builtin);
       break;
     }
+    case ast::Builtin::ResultBufferNew:
     case ast::Builtin::ResultBufferAllocOutRow:
-    case ast::Builtin::ResultBufferFinalize: {
+    case ast::Builtin::ResultBufferFinalize:
+    case ast::Builtin::ResultBufferFree: {
       CheckResultBufferCall(call, builtin);
       break;
     }

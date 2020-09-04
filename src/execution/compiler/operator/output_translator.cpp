@@ -21,18 +21,24 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
   // Prepare the child.
   compilation_context->Prepare(plan, pipeline);
 
+  output_buffer_ = pipeline->DeclarePipelineStateEntry(
+      "output_buffer", GetCodeGen()->PointerType(GetCodeGen()->BuiltinType(ast::BuiltinType::OutputBuffer)));
   num_output_ = CounterDeclare("num_output", pipeline);
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   CounterSet(function, num_output_, 0);
+
+  auto exec_ctx = GetExecutionContext();
+  auto *new_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferNew, {exec_ctx});
+  function->Append(GetCodeGen()->Assign(output_buffer_.Get(GetCodeGen()), new_call));
 }
 
 void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
                                            terrier::execution::compiler::FunctionBuilder *function) const {
   // First generate the call @resultBufferAllocRow(execCtx)
-  auto exec_ctx = GetExecutionContext();
-  ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferAllocOutRow, {exec_ctx});
+  auto out_buffer = output_buffer_.Get(GetCodeGen());
+  ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferAllocOutRow, {out_buffer});
   ast::Expr *cast_call = GetCodeGen()->PtrCast(output_struct_, alloc_call);
   function->Append(GetCodeGen()->DeclareVar(output_var_, nullptr, cast_call));
   const auto child_translator = GetCompilationContext()->LookupTranslator(GetPlan());
@@ -50,6 +56,9 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
 }
 
 void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto out_buffer = output_buffer_.Get(GetCodeGen());
+  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
+
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
@@ -61,11 +70,6 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
   }
 
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
-}
-
-void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto exec_ctx = GetExecutionContext();
-  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

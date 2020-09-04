@@ -1678,16 +1678,29 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   // Output
   // -------------------------------------------------------
 
+  OP(ResultBufferNew) : {
+    auto *result = frame->LocalAt<exec::OutputBuffer **>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpResultBufferNew(result, exec_ctx);
+    DISPATCH_NEXT();
+  }
+
   OP(ResultBufferAllocOutputRow) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpResultBufferAllocOutputRow(result, exec_ctx);
+    auto *out = frame->LocalAt<exec::OutputBuffer *>(READ_LOCAL_ID());
+    OpResultBufferAllocOutputRow(result, out);
     DISPATCH_NEXT();
   }
 
   OP(ResultBufferFinalize) : {
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpResultBufferFinalize(exec_ctx);
+    auto *out = frame->LocalAt<exec::OutputBuffer *>(READ_LOCAL_ID());
+    OpResultBufferFinalize(out);
+    DISPATCH_NEXT();
+  }
+
+  OP(ResultBufferFree) : {
+    auto *out = frame->LocalAt<exec::OutputBuffer *>(READ_LOCAL_ID());
+    OpResultBufferFree(out);
     DISPATCH_NEXT();
   }
 

@@ -75,6 +75,8 @@ class EXPORT OutputBuffer {
    */
   ~OutputBuffer();
 
+  sql::MemoryPool *GetMemoryPool() const { return memory_pool_; }
+
   /**
    * @returns tuple size
    */

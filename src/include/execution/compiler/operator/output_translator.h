@@ -56,11 +56,6 @@ class OutputTranslator : public OperatorTranslator {
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
   /**
-   * Output translator needs to finalize the output.
-   */
-  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
-
-  /**
    * Does not interact with tables.
    */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
@@ -73,6 +68,9 @@ class OutputTranslator : public OperatorTranslator {
 
   // The number of rows that are output.
   StateDescriptor::Entry num_output_;
+
+  // The OutputBuffer to use
+  StateDescriptor::Entry output_buffer_;
 };
 
 }  // namespace terrier::execution::compiler

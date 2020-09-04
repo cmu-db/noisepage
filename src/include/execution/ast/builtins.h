@@ -187,8 +187,10 @@ namespace terrier::execution::ast {
   F(SorterIterClose, sorterIterClose)                                   \
                                                                         \
   /* Output */                                                          \
+  F(ResultBufferNew, resultBufferNew)                                   \
   F(ResultBufferAllocOutRow, resultBufferAllocRow)                      \
   F(ResultBufferFinalize, resultBufferFinalize)                         \
+  F(ResultBufferFree, resultBufferFree)                                 \
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
