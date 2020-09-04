@@ -9,7 +9,6 @@
 #include <pthread.h>
 #include <sys/file.h>
 
-#include <condition_variable>  // NOLINT
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>

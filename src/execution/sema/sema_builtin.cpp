@@ -2741,6 +2741,55 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Boolean;
       break;
     }
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Rpad: {
+      if (!CheckArgCountBetween(call, 3, 4)) {
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the third argument is an integer
+      if (!call->Arguments()[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (call->NumArgs() == 4 && !call->Arguments()[3]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rtrim: {
+      if (!CheckArgCountBetween(call, 2, 3)) {
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the third argument is a string
+      if (call->NumArgs() == 3 && !call->Arguments()[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string call!!");
   }
@@ -3209,7 +3258,11 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Repeat:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::InitCap: {
+    case ast::Builtin::InitCap:
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Rpad:
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rtrim: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
