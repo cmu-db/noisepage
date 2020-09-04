@@ -5,9 +5,9 @@
 
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
-#include "spdlog/fmt/ostr.h"
 #include "optimizer/statistics/count_min_sketch.h"
 #include "optimizer/statistics/top_k_elements.h"
+#include "spdlog/fmt/ostr.h"
 
 #include "test_util/test_harness.h"
 
