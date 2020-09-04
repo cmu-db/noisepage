@@ -66,9 +66,10 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
       total += field_repr->GetType()->GetSize();
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
-      auto *type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
-      if (type != nullptr) {
-        total += type->GetSize();
+      auto *builtin_type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)
+                                                           ->Name());
+      if (builtin_type != nullptr) {
+        total += builtin_type->GetSize();
       }
     }
   }
@@ -248,7 +249,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
           " AND S_QUANTITY < $6" &&
       (!current_pipeline_->GetPipelineId()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 200;
+      *num_rows = 20;
       *cardinality = 1;
     }
 
@@ -332,13 +333,10 @@ void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   // For a sequential scan:
   // - # keys is how mahy columns are scanned (either # cols in table OR plan->GetColumnOids().size()
   // - Total key size is the size of the columns scanned
-  size_t key_size = 0;
+  size_t key_size;
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
-    // We are likely doing an update/delete -- so record key_size = 4; num_keys = 1
-    // This mimics the mini_runners
-    key_size = 4;
-    num_keys = 1;
+    key_size = ComputeKeySize(plan->GetTableOid(), plan->GetColumnOids(), &num_keys);
   } else {
     auto &schema = accessor_->GetSchema(plan->GetTableOid());
     num_keys = schema.GetColumns().size();

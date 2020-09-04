@@ -220,7 +220,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     # Track pipeline cumulative numbers
     num_pipelines = 0
     total_actual = None
-    total_predicted = None
+    total_predicted = []
     actual_pipelines = {}
     predicted_pipelines = {}
     count_pipelines = {}
@@ -281,9 +281,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
                     buffer_size = 0
 
                 pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
-                if pred_mem <= buffer_size:
-                    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
-                                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                #if pred_mem <= buffer_size:
+                #    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
+                #                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                 # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
                 # slightly inaccurate since ignores load factors for hash tables
@@ -310,9 +310,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
             for field in fields:
                 pipeline_y[field ] = pipeline_y[field] * 0.4
 
-        # Grouping if we're predicting queries
-        if "tpch" in data.name:
-            query_id = data.name[5:data.name.rfind("_p")]
+        # Grouping when we're predicting queries
+        if data.name[0] == 'q':
+            query_id = data.name[1:data.name.rfind(" p")]
             if query_id != current_query_id:
                 if current_query_id is not None:
                     io_util.write_csv_result(query_prediction_path, current_query_id, [""] + list(query_y) + [""] +

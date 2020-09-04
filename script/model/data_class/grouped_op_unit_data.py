@@ -4,6 +4,7 @@ import copy
 import tqdm
 import pandas as pd
 import os
+import logging
 
 from data_class import data_util
 from data_class import tpcc_fixer
@@ -102,6 +103,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
             # Get the opunits located within
             opunits = []
             features = line[features_vector_index].split(';')
+            print("Start pipeline")
             for idx, feature in enumerate(features):
                 if feature == 'LIMIT':
                     continue
@@ -113,8 +115,15 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                 if tpcc_hack:
                     x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
-                opunits.append((opunit, x_loc))
+                if x_loc[data_info.TUPLE_NUM_INDEX] == 0:
+                    logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
+                    continue
 
+                opunits.append((opunit, x_loc))
+                print("Record feature for {}".format(opunit.name))
+
+            if len(opunits) == 0:
+                continue
             data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits, np.array(metrics),
                                                ee_sample_interval))
 
