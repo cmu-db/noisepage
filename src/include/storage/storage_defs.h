@@ -35,6 +35,8 @@ constexpr uint16_t VARLEN_COLUMN = static_cast<uint16_t>(0x8010);  // 16 with th
 // are implicit.
 constexpr uint8_t NUM_ATTR_BOUNDARIES = 4;
 
+constexpr int GC_RATIO = 4;
+
 STRONG_TYPEDEF_HEADER(col_id_t, uint16_t);
 STRONG_TYPEDEF_HEADER(layout_version_t, uint16_t);
 

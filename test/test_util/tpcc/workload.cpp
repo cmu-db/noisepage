@@ -4,8 +4,6 @@
 
 namespace terrier::tpcc {
 
-const int GC_RATIO = 4;
-
 uint32_t Workload(const int8_t worker_id,
                   Database *const tpcc_db,
                   transaction::TransactionManager *const txn_manager,
@@ -52,7 +50,7 @@ uint32_t Workload(const int8_t worker_id,
     }
     txn_counter++;
 
-    if (++iter_count == GC_RATIO) {
+    if (++iter_count == storage::GC_RATIO) {
       iter_count = 0;
       daf_manager->Process(worker_id == 0, true);
     }
