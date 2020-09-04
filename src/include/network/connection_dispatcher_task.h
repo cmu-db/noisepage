@@ -30,7 +30,6 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * Creates a new ConnectionDispatcherTask
    *
    * @param num_handlers The number of handler tasks to spawn.
-   * @param listen_fd The server socket fd to listen on.
    * @param dedicated_thread_owner The DedicatedThreadOwner associated with this task
    * @param interpreter_provider provider that constructs protocol interpreters
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
