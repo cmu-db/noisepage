@@ -108,17 +108,18 @@ class DataTable {
     SlotIterator() : is_end_(true) {}
 
     SlotIterator(const DataTable *table) : table_(table), i_(0), is_end_(false) {  // NOLINT
+      common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
       uint64_t num_blocks = table_->blocks_.size();
       TERRIER_ASSERT(num_blocks >= 1, "there should always be at least one block");
-      RawBlock *block = const_cast<DataTable *>(table_)->blocks_.LookUp(num_blocks - 1);
       end_index_ = (num_blocks - 1) * table_->accessor_.GetBlockLayout().NumSlots() +
-                   static_cast<uint64_t>(block->GetInsertHead());
+                   static_cast<uint64_t>(table_->blocks_[num_blocks - 1]->GetInsertHead());
     }
 
     void UpdateCurrentSlot() {
+      common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
       auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
       uint64_t block_num = i_ / max_slots;
-      RawBlock *b = const_cast<DataTable *>(table_)->blocks_.LookUp(block_num);
+      RawBlock *b = const_cast<DataTable *>(table_)->blocks_[block_num];
       current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
     }
 
@@ -213,7 +214,7 @@ class DataTable {
    * @return SlotIterator that will iterate over only the blocks in the range [start, end).
    */
   SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
-    TERRIER_ASSERT(start <= end && end <= blocks_.size(), "must have valid index for start and end");
+    TERRIER_ASSERT(start <= end && end <= blocks_size_, "must have valid index for start and end");
     SlotIterator it(this);
     it.end_index_ = std::min<uint64_t>(it.end_index_, end * accessor_.GetBlockLayout().NumSlots());
     it.i_ = start * accessor_.GetBlockLayout().NumSlots();
@@ -258,8 +259,9 @@ class DataTable {
   /**
    * @return pointer to underlying vector of blocks
    */
-  common::ConcurrentPointerVector<RawBlock> *GetBlocks() const {
-    return const_cast<common::ConcurrentPointerVector<RawBlock> *>(&blocks_);
+  std::vector<RawBlock *> GetBlocks() const {
+    common::SharedLatch::ScopedSharedLatch latch(&blocks_latch_);
+    return std::vector<RawBlock *>(blocks_.begin(), blocks_.end());
   }
 
   /**
@@ -275,7 +277,7 @@ class DataTable {
   /**
    * @return Number of blocks in the data table.
    */
-  uint32_t GetNumBlocks() const { return blocks_.size(); }
+  uint32_t GetNumBlocks() const { return blocks_size_; }
 
   /** @return Maximum number of blocks in the data table. */
   static uint32_t GetMaxBlocks() { return std::numeric_limits<uint32_t>::max(); }
@@ -283,7 +285,7 @@ class DataTable {
   /**
    * @return a coarse estimation on the number of tuples in this table
    */
-  uint64_t GetNumTuple() const { return accessor_.GetBlockLayout().NumSlots() * blocks_.size(); }
+  uint64_t GetNumTuple() const { return accessor_.GetBlockLayout().NumSlots() * blocks_size_; }
 
   /**
    * @return Approximate heap usage of the table
@@ -291,7 +293,7 @@ class DataTable {
   size_t EstimateHeapUsage() const {
     // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
     // elements that are actually owned by TransactionContext
-    return blocks_.size() * common::Constants::BLOCK_SIZE;
+    return blocks_size_ * common::Constants::BLOCK_SIZE;
   }
 
  private:
@@ -310,10 +312,14 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
+  alignas(common::Constants::CACHELINE_SIZE) std::atomic<uint64_t> blocks_size_ = 0;
+  alignas(common::Constants::CACHELINE_SIZE) std::atomic<uint64_t> insert_index_ = 0;
   common::ManagedPointer<BlockStore> const block_store_;
+
+  // protected by blocks_latch_
+  std::vector<RawBlock *> blocks_;
+  mutable common::SharedLatch blocks_latch_;
   const layout_version_t layout_version_;
-  common::ConcurrentPointerVector<RawBlock> blocks_;
-  std::atomic<uint64_t> insert_index_ = 0;
   const SlotIterator end_ = {};
 
   // A templatized version for select, so that we can use the same code for both row and column access.
