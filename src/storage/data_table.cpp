@@ -13,15 +13,19 @@ namespace terrier::storage {
 
 DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : accessor_(layout), block_store_(store), layout_version_(layout_version), blocks_(START_VECTOR_SIZE) {
+    : accessor_(layout), block_store_(store), layout_version_(layout_version) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  if (store != DISABLED) blocks_.Insert(NewBlock());
+  if (store != DISABLED) {
+    blocks_.push_back(NewBlock());
+    blocks_size_++;
+  }
 }
 
 DataTable::~DataTable() {
+  common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
   for (auto block : blocks_) {
     StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
@@ -132,12 +136,16 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   RawBlock *block;                                     // the block into which the insert will occur
   while (true) {
     // No free block left
-    uint64_t size = blocks_.size();
+    uint64_t size = blocks_size_;
     if (current_insert_idx >= size) {
+      common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
       block = NewBlock();
-      current_insert_idx = blocks_.Insert(block);
+      blocks_.push_back(block);
+      current_insert_idx = blocks_.size() - 1;
+      blocks_size_ = blocks_.size();
     } else {
-      block = const_cast<RawBlock *>(blocks_.LookUp(current_insert_idx));
+      common::SharedLatch::ScopedSharedLatch latch(&blocks_latch_);
+      block = const_cast<RawBlock *>(blocks_[current_insert_idx]);
     }
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
