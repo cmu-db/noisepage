@@ -433,7 +433,7 @@ INSERT INTO supplier VALUES (2, 2, 1);
 query I nosort
 SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier);
 ----
-2 values hashing to cb0e93933b5e2202825f38da7587cf07
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
 
 statement ok
 
@@ -600,7 +600,7 @@ INSERT INTO supplier VALUES (2, 2, 1);
 query I nosort
 SELECT pno FROM shipment WHERE shipment.sno = ANY (SELECT sno FROM supplier);
 ----
-2 values hashing to cb0e93933b5e2202825f38da7587cf07
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
 
 statement ok
 
@@ -685,7 +685,7 @@ INSERT INTO supplier VALUES (1, 2, 2);
 query I nosort
 SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty limit 1);
 ----
-2 values hashing to cb0e93933b5e2202825f38da7587cf07
+2 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
 
 statement ok
 
