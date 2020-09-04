@@ -45,7 +45,7 @@ class HashJoinTranslator : public OperatorTranslator {
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
   /**
-   * Declare a function OuterJoinConsumer which encapsulates the parent translator's functionality, this is required
+   * Declare a function joinConsumer which encapsulates the parent translator's functionality, this is required
    * in order to implement outer joins properly
    * @param decls
    */
