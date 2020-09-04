@@ -21,7 +21,7 @@ uint32_t Workload(const int8_t worker_id,
   int iter_count = 0;
   for (const auto &txn_args : precomputed_args[worker_id]) {
     if (shutdown) {
-      daf_manager->Process(worker_id == 0, true);
+      daf_manager->Process(true);
       break;
     }
     switch (txn_args.type_) {
@@ -52,7 +52,7 @@ uint32_t Workload(const int8_t worker_id,
 
     if (++iter_count == storage::GC_RATIO) {
       iter_count = 0;
-      daf_manager->Process(worker_id == 0, true);
+      daf_manager->Process(true);
     }
   }
   return txn_counter;

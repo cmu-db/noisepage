@@ -58,13 +58,12 @@ class GarbageCollector {
    * first invocation will unlink a transaction's UndoRecords, while the second time around will allow the GC to free
    * the transaction if safe to do so. The only exception is read-only transactions, which can be deallocated in a
    * single GC pass.
-   * @param main_thread True if the calling thread is in charge of process index
    * @param with_limit True if for each invocation of this function,
    * there is a upper limit on number of deferred action that can be processed
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  std::pair<uint32_t, uint32_t> PerformGarbageCollection(bool main_thread = true, bool with_limit = false);
+  std::pair<uint32_t, uint32_t> PerformGarbageCollection(bool with_limit);
 
   /**
    * Register an index to be periodically garbage collected
