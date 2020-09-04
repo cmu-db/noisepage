@@ -1,3 +1,4 @@
+#include <array>
 #include <chrono>  // NOLINT
 #include <vector>
 

@@ -1,5 +1,6 @@
 #include "test_util/sql_table_test_util.h"
 
+#include <array>
 #include <utility>
 #include <vector>
 

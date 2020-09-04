@@ -1,5 +1,6 @@
 #include <tbb/tbb.h>
 
+#include <array>
 #include <atomic>
 #include <memory>
 #include <random>
