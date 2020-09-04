@@ -11,17 +11,19 @@
 namespace terrier::execution::compiler {
 
 namespace {
-const char *build_row_attr_prefix = "attr";
+const char *row_attr_prefix = "attr";
 }  // namespace
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_JOIN),
-      left_outer_join_flag_(false),
+      join_consumer_flag_(false),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
-      outer_join_consumer_(GetCodeGen()->MakeFreshIdentifier("outerJoinConsumer")),
+      probe_row_var_(GetCodeGen()->MakeFreshIdentifier("probeRow")),
+      probe_row_type_(GetCodeGen()->MakeFreshIdentifier("ProbeRow")),
+      join_consumer_(GetCodeGen()->MakeFreshIdentifier("joinConsumer")),
       left_pipeline_(this, Pipeline::Parallelism::Parallel) {
   TERRIER_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
   TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
@@ -53,13 +55,22 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
 
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   auto *codegen = GetCodeGen();
+
+  /* Build row declaration */
   auto fields = codegen->MakeEmptyFieldList();
-  GetAllChildOutputFields(0, build_row_attr_prefix, &fields);
+  GetAllChildOutputFields(0, row_attr_prefix, &fields);
   if (GetPlanAs<planner::HashJoinPlanNode>().RequiresLeftMark()) {
     fields.push_back(codegen->MakeField(build_mark_, codegen->BoolType()));
   }
   ast::StructDecl *struct_decl = codegen->DeclareStruct(build_row_type_, std::move(fields));
   struct_decl_ = struct_decl;
+  decls->push_back(struct_decl);
+
+  /* Probe row declaration */
+  // TODO(abalakum): support mini-runners for this struct as well
+  fields = codegen->MakeEmptyFieldList();
+  GetAllChildOutputFields(1, row_attr_prefix, &fields);
+  struct_decl = codegen->DeclareStruct(probe_row_type_, std::move(fields));
   decls->push_back(struct_decl);
 }
 
@@ -73,14 +84,14 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
   auto *codegen = GetCodeGen();
   util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
   params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
-  // Set flag here, so GetChildOutput outputs NULL's for left outer join correctly
-  left_outer_join_flag_ = true;
-  FunctionBuilder function(codegen, outer_join_consumer_, std::move(params), codegen->Nil());
+  params.push_back(codegen->MakeField(probe_row_var_, codegen->PointerType(probe_row_type_)));
+  join_consumer_flag_ = true;
+  FunctionBuilder function(codegen, join_consumer_, std::move(params), codegen->Nil());
   {
     // Push to parent
     ctx.Push(&function);
   }
-  left_outer_join_flag_ = false;
+  join_consumer_flag_ = false;
   decls->push_back(function.Finish());
 }
 
@@ -129,17 +140,17 @@ ast::Expr *HashJoinTranslator::HashKeys(
   return codegen->MakeExpr(hash_val_name);
 }
 
-ast::Expr *HashJoinTranslator::GetBuildRowAttribute(ast::Expr *build_row, uint32_t attr_idx) const {
+ast::Expr *HashJoinTranslator::GetRowAttribute(ast::Expr *row, uint32_t attr_idx) const {
   auto *codegen = GetCodeGen();
-  auto attr_name = codegen->MakeIdentifier(build_row_attr_prefix + std::to_string(attr_idx));
-  return codegen->AccessStructMember(build_row, attr_name);
+  auto attr_name = codegen->MakeIdentifier(row_attr_prefix + std::to_string(attr_idx));
+  return codegen->AccessStructMember(row, attr_name);
 }
 
 void HashJoinTranslator::FillBuildRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *build_row) const {
   auto *codegen = GetCodeGen();
   const auto child_schema = GetPlan().GetChild(0)->GetOutputSchema();
   for (uint32_t attr_idx = 0; attr_idx < child_schema->GetColumns().size(); attr_idx++) {
-    ast::Expr *lhs = GetBuildRowAttribute(build_row, attr_idx);
+    ast::Expr *lhs = GetRowAttribute(build_row, attr_idx);
     ast::Expr *rhs = GetChildOutput(ctx, 0, attr_idx);
     function->Append(codegen->Assign(lhs, rhs));
   }
@@ -147,6 +158,16 @@ void HashJoinTranslator::FillBuildRow(WorkContext *ctx, FunctionBuilder *functio
   if (join_plan.RequiresLeftMark()) {
     ast::Expr *lhs = codegen->AccessStructMember(build_row, build_mark_);
     ast::Expr *rhs = codegen->ConstBool(true);
+    function->Append(codegen->Assign(lhs, rhs));
+  }
+}
+
+void HashJoinTranslator::FillProbeRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *probe_row) const {
+  auto *codegen = GetCodeGen();
+  const auto child_schema = GetPlan().GetChild(1)->GetOutputSchema();
+  for (uint32_t attr_idx = 0; attr_idx < child_schema->GetColumns().size(); attr_idx++) {
+    ast::Expr *lhs = GetRowAttribute(probe_row, attr_idx);
+    ast::Expr *rhs = GetChildOutput(ctx, 1, attr_idx);
     function->Append(codegen->Assign(lhs, rhs));
   }
 }
@@ -254,8 +275,19 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
       auto left_mark = codegen->AccessStructMember(codegen->MakeExpr(build_row_var_), build_mark_);
       function->Append(codegen->Assign(left_mark, codegen->ConstBool(false)));
     }
-    // Move along.
-    ctx->Push(function);
+
+    // var probeRow : ProbeRow
+    auto probe_row_type = codegen->MakeExpr(probe_row_type_);
+    auto probe_row = codegen->MakeExpr(probe_row_var_);
+    function->Append(codegen->DeclareVarNoInit(probe_row_var_, probe_row_type));
+    // Fill row.
+    FillProbeRow(ctx, function, codegen->MakeExpr(probe_row_var_));
+    // joinConsumer(queryState, pipelineState, buildRow, probeRow);
+    std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
+                                            codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
+                                            codegen->MakeExpr(build_row_var_),
+                                            codegen->AddressOf(probe_row)};
+    function->Append(codegen->Call(join_consumer_, args));
   }
   check_condition.EndIf();
 }
@@ -304,11 +336,17 @@ void HashJoinTranslator::CollectUnmatchedLeftRows(FunctionBuilder *function) con
     // If mark is true, then row was not matched
     If check_condition(function, left_mark);
     {
-      // outerJoinConsumer(queryState, pipelineState, buildRow);
+      // var probeRow : ProbeRow
+      auto probe_row_type = codegen->MakeExpr(probe_row_type_);
+      auto probe_row = codegen->MakeExpr(probe_row_var_);
+      function->Append(codegen->DeclareVarNoInit(probe_row_var_, probe_row_type));
+      // Note: Don't change the default probe row values, b/c for left outer join should be NULL
+      // joinConsumer(queryState, pipelineState, buildRow, probeRow);
       std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
                                               codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
-                                              codegen->MakeExpr(build_row_var_)};
-      function->Append(codegen->Call(outer_join_consumer_, args));
+                                              codegen->MakeExpr(build_row_var_),
+                                              codegen->AddressOf(probe_row)};
+      function->Append(codegen->Call(join_consumer_, args));
     }
   }
   loop.EndLoop();
@@ -348,16 +386,15 @@ ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   // If the request is in the probe pipeline and for an attribute in the left
   // child, we read it from the probe/materialized build row.
   //
-  // Otherwise we either output a NULL if needed for an outer join or propagate
+  // Otherwise if within the joinConsumer function we read from the ProbeRow and if not propagate
   // the request to the correct child
   if (IsRightPipeline(context->GetPipeline()) && child_idx == 0) {
-    auto row = GetCodeGen()->MakeExpr(build_row_var_);
-    return GetBuildRowAttribute(row, attr_idx);
+      auto row = GetCodeGen()->MakeExpr(build_row_var_);
+      return GetRowAttribute(row, attr_idx);
   }
-  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1 && left_outer_join_flag_) {
-    auto schema = this->GetPlan().GetOutputSchema();
-    auto type = schema->GetColumn(attr_idx).GetType();
-    return GetCodeGen()->ConstNull(type);
+  if (IsRightPipeline(context->GetPipeline()) && child_idx == 1 && join_consumer_flag_) {
+      auto row = GetCodeGen()->MakeExpr(probe_row_var_);
+      return GetRowAttribute(row, attr_idx);
   }
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
