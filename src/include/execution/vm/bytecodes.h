@@ -107,7 +107,7 @@ namespace terrier::execution::vm {
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local,                   \
     OperandType::Local)                                                                                               \
   F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
-    OperandType::Local)                                                                                               \
+    OperandType::Local, OperandType::Local)                                                                           \
   F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local)                        \
                                                                                                                       \
   F(RegisterMetricsThread, OperandType::Local)                                                                        \

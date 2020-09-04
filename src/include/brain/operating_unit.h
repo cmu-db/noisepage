@@ -107,6 +107,7 @@ class ExecutionOperatingUnitFeature {
   /**
    * @returns estimated number of output tuples
    */
+  size_t &GetNumRows() { return num_rows_; }
   size_t GetNumRows() const { return num_rows_; }
 
   /**
@@ -122,8 +123,10 @@ class ExecutionOperatingUnitFeature {
   /**
    * @returns estimated cardinality
    */
+  size_t &GetCardinality() { return cardinality_; }
   size_t GetCardinality() const { return cardinality_; }
 
+  size_t &GetNumConcurrent() { return num_concurrent_; }
   size_t GetNumConcurrent() const { return num_concurrent_; }
 
   /**
@@ -200,32 +203,58 @@ class ExecOUFeatureVector {
   execution::pipeline_id_t pipeline_id_;
   ExecutionOperatingUnitFeatureVector pipeline_features_;
 
+  /**
+   * Function used to update a feature's metadata information
+   * @param pipeline_id Pipeline Identifier
+   * @param feature_id Feature Identifier
+   * @param modifier Attribute to modify
+   * @param mode Update mode to the value
+   * @param val Value
+   */
   void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
-                     ExecutionOperatingUnitFeatureAttribute modifier, uint32_t value) {
+                     ExecutionOperatingUnitFeatureAttribute modifier, ExecutionOperatingUnitFeatureUpdateMode mode,
+                     uint32_t val) {
     TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
+    size_t *value = nullptr;
     for (auto &feature : pipeline_features_) {
       if (feature.GetFeatureId() == feature_id) {
+        TERRIER_ASSERT(value == nullptr, "Duplicate feature found");
         switch (modifier) {
           case brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS: {
-            feature.SetNumRows(value);
+            value = &feature.GetNumRows();
             break;
           }
           case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
-            feature.SetCardinality(value);
+            value = &feature.GetCardinality();
             break;
           }
           case brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT: {
-            feature.SetNumConcurrent(value);
+            value = &feature.GetNumConcurrent();
             break;
           }
           default:
             TERRIER_ASSERT(false, "Invalid feature attribute.");
         }
-        return;
       }
     }
 
-    TERRIER_ASSERT(false, "feature_id could not be found");
+    TERRIER_ASSERT(value != nullptr, "feature_id could not be found");
+    switch (mode) {
+      case brain::ExecutionOperatingUnitFeatureUpdateMode::SET: {
+        *value = val;
+        break;
+      }
+      case brain::ExecutionOperatingUnitFeatureUpdateMode::ADD: {
+        *value = *value + val;
+        break;
+      }
+      case brain::ExecutionOperatingUnitFeatureUpdateMode::MULT: {
+        *value = *value * val;
+        break;
+      }
+      default:
+        TERRIER_ASSERT(false, "Invalid feature update mode");
+    }
   }
 };
 

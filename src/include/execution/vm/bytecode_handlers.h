@@ -236,8 +236,9 @@ VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::Ex
 VM_OP_HOT void OpExecOUFeatureVectorRecordFeature(
     terrier::brain::ExecOUFeatureVector *ouvec, terrier::execution::pipeline_id_t pipeline_id,
     terrier::execution::feature_id_t feature_id,
-    terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, uint32_t value) {
-  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, value);
+    terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+    terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
+  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
 }
 
 VM_OP_HOT void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
@@ -282,7 +283,8 @@ VM_OP_WARM void OpRegisterMetricsThread(terrier::execution::exec::ExecutionConte
 }
 
 VM_OP_WARM void OpCheckTrackersStopped() {
-  if (terrier::common::thread_context.metrics_store_ != nullptr && terrier::common::thread_context.resource_tracker_.IsRunning()) {
+  if (terrier::common::thread_context.metrics_store_ != nullptr &&
+      terrier::common::thread_context.resource_tracker_.IsRunning()) {
     UNREACHABLE("Resource Trackers should have stopped");
   }
 }

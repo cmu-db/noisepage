@@ -2459,9 +2459,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar value = VisitExpressionForRValue(call->Arguments()[4]);
+      LocalVar mode = VisitExpressionForRValue(call->Arguments()[4]);
+      LocalVar value = VisitExpressionForRValue(call->Arguments()[5]);
       GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorRecordFeature, ouvec, pipeline_id, feature_id, feature_attribute,
-                         value);
+                         mode, value);
       break;
     }
     case ast::Builtin::ThreadStateContainerIterate:

@@ -143,7 +143,8 @@ void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBui
     const auto sorter = pipeline.IsParallel() ? local_sorter_ : global_sorter_;
     ast::Expr *sorter_ptr = sorter.GetPtr(codegen);
     if (build_pipeline_.IsParallel()) {
-      TearDownSorter(function, local_sorter_.GetPtr(GetCodeGen()));
+      sorter_ptr = local_sorter_.GetPtr(codegen);
+      TearDownSorter(function, sorter_ptr);
     }
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
@@ -154,8 +155,7 @@ void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBui
 
     if (build_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
@@ -274,11 +274,6 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     } else {
       function->Append(codegen->SorterSort(sorter_ptr));
     }
-<<<<<<< HEAD
-=======
-
-  } else {
->>>>>>> neko/counters
   }
 
   // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.

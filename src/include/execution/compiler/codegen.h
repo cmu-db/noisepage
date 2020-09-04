@@ -756,12 +756,14 @@ class CodeGen {
    * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
    * @param feature_id The ID of the feature to be recorded.
    * @param feature_attribute The attribute of the feature to record.
+   * @param mode Update mode
    * @param value The value to be recorded.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *ExecOUFeatureVectorRecordFeature(
       ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
-      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, ast::Expr *value);
+      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+      brain::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value);
 
   /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.

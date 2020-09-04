@@ -175,7 +175,8 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::Executi
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
     ast::Expr *record =
-        codegen->ExecOUFeatureVectorRecordFeature(pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib, val);
+        codegen->ExecOUFeatureVectorRecordFeature(pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(),
+                                                  attrib, brain::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
     function->Append(record);
   }
 }
@@ -194,8 +195,9 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
       if (is_same_translator && is_arith) {
         for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
-          ast::Expr *record =
-              codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, val);
+          ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
+              pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
+              brain::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
           function->Append(record);
         }
       }
@@ -217,14 +219,9 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
       if (is_same_translator && is_arith) {
         for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
-          ast::Expr *mul = codegen->BinaryOp(
-              parsing::Token::Type::STAR, val,
-              codegen->CallBuiltin(ast::Builtin::ExecutionContextGetFeature,
-                                   {GetExecutionContext(), codegen->Const32(pipeline.GetPipelineId().UnderlyingValue()),
-                                    codegen->Const32(feature.GetFeatureId().UnderlyingValue()),
-                                    codegen->Const32(static_cast<uint8_t>(attrib))}));
-          ast::Expr *record =
-              codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, mul);
+          ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
+              pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
+              brain::ExecutionOperatingUnitFeatureUpdateMode::MULT, val);
           function->Append(record);
         }
       }

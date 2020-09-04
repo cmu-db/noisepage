@@ -281,16 +281,14 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
     }
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  CounterVal(num_agg_inputs_));
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
 
     if (build_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
@@ -303,19 +301,17 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
     }
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                  CounterVal(num_agg_outputs_));
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
 
     if (pipeline.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
     }
 
-    FeatureArithmeticRecordMul(function, pipeline,, GetTranslatorId(), CounterVal(num_agg_outputs_));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
 }
 
@@ -486,7 +482,8 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
     if (GetPipeline()->IsParallel()) {
-      function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
+      function->Append(
+          codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
 
       // In parallel-mode, we would've issued a parallel partitioned scan. In
       // this case, the aggregation hash table we're to scan is provided as a

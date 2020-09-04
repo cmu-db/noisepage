@@ -39,8 +39,10 @@ class InsertTranslator : public OperatorTranslator, public PipelineDriver {
 
   /**
    * Initialize the counters.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
    */
-  void InitializeQueryState(FunctionBuilder *function) const override;
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement insertion logic where it fills in the insert PR obtained from the StorageInterface struct

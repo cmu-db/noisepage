@@ -115,8 +115,7 @@ void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, Functio
 
     if (left_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
@@ -128,8 +127,7 @@ void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, Functio
 
     if (pipeline.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
     }
 
     FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));

@@ -3052,6 +3052,11 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
         ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
+      // UPdate Mode
+      if (!args[4]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
       // call_args[4] is the value to be recorded, currently unchecked.
       // Doesn't return anything.
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

@@ -739,11 +739,12 @@ ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows
 ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(ast::Expr *ouvec, pipeline_id_t pipeline_id,
                                                      feature_id_t feature_id,
                                                      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                                     brain::ExecutionOperatingUnitFeatureUpdateMode mode,
                                                      ast::Expr *value) {
-  ast::Expr *call = CallBuiltin(
-      ast::Builtin::ExecOUFeatureVectorRecordFeature,
-      {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
-      Const32(static_cast<int32_t>(feature_attribute)), value});
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::ExecOUFeatureVectorRecordFeature,
+                  {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
+                   Const32(static_cast<int32_t>(feature_attribute)), Const32(static_cast<int32_t>(mode)), value});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

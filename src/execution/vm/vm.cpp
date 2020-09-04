@@ -515,8 +515,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto feature_attribute =
         static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    auto mode = static_cast<brain::ExecutionOperatingUnitFeatureUpdateMode>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
     auto value = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpExecOUFeatureVectorRecordFeature(ouvec, pipeline_id, feature_id, feature_attribute, value);
+    OpExecOUFeatureVectorRecordFeature(ouvec, pipeline_id, feature_id, feature_attribute, mode, value);
     DISPATCH_NEXT();
   }
 

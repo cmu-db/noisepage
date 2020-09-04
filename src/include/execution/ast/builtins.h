@@ -352,7 +352,7 @@ namespace terrier::execution::ast {
                                                                         \
   F(RegisterMetricsThread, registerMetricsThread)                       \
   F(CheckTrackersStopped, checkTrackersStopped)                         \
-  F(AggregateMetricsThread, unregisterMetricsThread)                    \
+  F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \

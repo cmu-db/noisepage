@@ -57,8 +57,7 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
 
   if (pipeline.IsParallel()) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                  pipeline.ConcurrentState());
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
   }
 
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));

@@ -271,16 +271,13 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
   }
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
-                CounterVal(num_scans_));
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                CounterVal(num_scans_));
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
 
   if (pipeline.IsParallel()) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                  pipeline.ConcurrentState());
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
   }
 
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
@@ -289,7 +286,8 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   if (GetPipeline()->IsParallel()) {
-    function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
+    function->Append(
+        codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
   }
 
   const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
