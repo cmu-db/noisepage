@@ -246,10 +246,10 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
-      column_types[!col_id] = type::TypeId::VARCHAR;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::VARCHAR;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types[!col_id] = type::TypeId::INTEGER;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::INTEGER;
     }
   }
 
@@ -324,10 +324,10 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   for (storage::col_id_t col_id : layout.AllColumns()) {
     if (layout.IsVarlen(col_id)) {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
-      column_types[!col_id] = type::TypeId::VARCHAR;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::VARCHAR;
     } else {
       arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
-      column_types[!col_id] = type::TypeId::INTEGER;
+      column_types[col_id.UnderlyingValue()] = type::TypeId::INTEGER;
     }
   }
 

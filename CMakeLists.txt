@@ -154,15 +154,6 @@ endif ()
 include(CompilerInfo)
 include(SetupCxxFlags)
 
-############################################################
-# Dependencies
-############################################################
-
-include(BuildUtils)
-enable_testing()
-
-include(ThirdpartyToolchain)
-
 # ASAN / TSAN / UBSAN
 include(san-config)
 
@@ -197,6 +188,15 @@ message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
 message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+
+############################################################
+# Dependencies
+############################################################
+
+include(BuildUtils)
+enable_testing()
+
+include(ThirdpartyToolchain)
 
 ###########################################################
 # "make check-lint" and "make check-censored" targets

@@ -88,7 +88,7 @@ class CompactIntsKey {
 
     for (uint8_t i = 0; i < num_attrs; i++) {
       TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
-      CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
+      CopyAttrFromProjection(from, from.ColumnIds()[i].UnderlyingValue(), attr_sizes[i], compact_ints_offsets[i]);
     }
   }
 
