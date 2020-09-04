@@ -233,9 +233,11 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
 
+    // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
+    // after issue #1154 is fixed
     // Let the operators perform some initialization work in this pipeline.
-    for (auto op : steps_) {
-      op->BeginPipelineWork(*this, &builder);
+    for (auto iter = Begin(), end = End(); iter != end; ++iter) {
+      (*iter)->BeginPipelineWork(*this, &builder);
     }
 
     // var pipelineState = @tlsGetCurrentThreadState(...)
@@ -257,9 +259,11 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
           codegen_->Call(GetWorkFunctionName(), {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)}));
     }
 
+    // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
+    // after issue #1154 is fixed
     // Let the operators perform some completion work in this pipeline.
-    for (auto op_iter = steps_.rbegin(); op_iter < steps_.rend(); op_iter++) {
-      (*op_iter)->FinishPipelineWork(*this, &builder);
+    for (auto iter = Begin(), end = End(); iter != end; ++iter) {
+      (*iter)->FinishPipelineWork(*this, &builder);
     }
 
     if (started_tracker) {
