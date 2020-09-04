@@ -207,10 +207,10 @@ TEST_F(NetworkTests, UnixDomainSocketTest) {
     txn1.commit();
     EXPECT_EQ(r.size(), 0);
   } catch (const std::exception &e) {
-    NETWORK_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
+    NETWORK_LOG_ERROR("[UnixDomainSocketTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
-  NETWORK_LOG_DEBUG("[SimpleQueryTest] Client has closed");
+  NETWORK_LOG_DEBUG("[UnixDomainSocketTest] Client has closed");
 }
 
 // NOLINTNEXTLINE
