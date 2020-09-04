@@ -70,7 +70,7 @@ void TerrierServer::RegisterSocket() {
       struct sockaddr_un sun = {0};
 
       // Validate pathname
-      if (socket_path.length() >= 108 /* Max Unix socket path length */ ) {
+      if (socket_path.length() >= sizeof(sun.sun_path) /* Max Unix socket path length */ ) {
         NETWORK_LOG_ERROR("Unix domain socket name too long (should be at most 108 characters)");
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to name {} socket.", socket_description));
       }
