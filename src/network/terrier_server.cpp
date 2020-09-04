@@ -70,7 +70,7 @@ void TerrierServer::RegisterSocket() {
       struct sockaddr_un sun = {0};
 
       // Validate pathname
-      if (socket_path.length() >= sizeof(sun.sun_path) /* Max Unix socket path length */ ) {
+      if (socket_path.length() > sizeof(sun.sun_path) /* Max Unix socket path length */ ) {
         NETWORK_LOG_ERROR("Unix domain socket name too long (should be at most 108 characters)");
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to name {} socket.", socket_description));
       }
@@ -109,7 +109,7 @@ void TerrierServer::RegisterSocket() {
       if (errno == EADDRINUSE) {
         // I find this disgusting, but it's the approach favored by a bunch of software that uses Unix domain sockets.
         // BSD syslogd, for example, does this in *every* case--error handling or not--and I'm not one to question it.
-        recovered = !std::remove(fmt::format("{0}.s.PGSQL.{1}", socket_directory_, port_).c_str()) &&
+        recovered = !std::remove(fmt::format("{0}/.s.PGSQL.{1}", socket_directory_, port_).c_str()) &&
                     bind(socket_fd, reinterpret_cast<struct sockaddr *>(&socket_addr), sizeof(socket_addr)) >= 0;
       }
 
@@ -169,7 +169,7 @@ void TerrierServer::StopServer() {
 
   // Close the Unix domain socket if it exists
   if (use_unix_socket_ && unix_domain_socket_fd_ >= 0) {
-    std::remove(fmt::format("{0}.s.PGSQL.{1}", socket_directory_, port_).c_str());
+    std::remove(fmt::format("{0}/.s.PGSQL.{1}", socket_directory_, port_).c_str());
   }
 
   NETWORK_LOG_INFO("Server Closed");
