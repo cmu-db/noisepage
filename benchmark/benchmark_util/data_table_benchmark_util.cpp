@@ -73,13 +73,13 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
                                                              storage::RecordBufferSegmentPool *buffer_pool,
                                                              std::default_random_engine *generator, bool gc_on,
                                                              storage::LogManager *log_manager)
-    : table_(common::ManagedPointer(block_store), layout_, storage::layout_version_t(0)),
+    : layout_({attr_sizes}),
+      table_(common::ManagedPointer(block_store), layout_, storage::layout_version_t(0)),
       generator_(generator),
       abort_count_(0),
       operation_ratio_(std::move(operation_ratio)),
       txn_manager_(common::ManagedPointer(&timestamp_manager_), DISABLED, common::ManagedPointer(buffer_pool), gc_on,
                    common::ManagedPointer(log_manager)),
-      layout_({attr_sizes}),
       txn_length_(txn_length),
       gc_on_(gc_on) {
   // Bootstrap the table to have the specified number of tuples

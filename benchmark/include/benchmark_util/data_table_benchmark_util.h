@@ -149,6 +149,7 @@ class LargeDataTableBenchmarkObject {
   void PopulateInitialTable(uint32_t num_tuples, Random *generator);
 
   friend class RandomDataTableTransaction;
+  storage::BlockLayout layout_;
   storage::DataTable table_;
   std::default_random_engine *generator_;
   transaction::TransactionContext *initial_txn_;
@@ -163,7 +164,6 @@ class LargeDataTableBenchmarkObject {
   storage::ProjectedRowInitializer row_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
-  storage::BlockLayout layout_;
   transaction::TimestampManager timestamp_manager_;
   uint32_t txn_length_;
   bool gc_on_;
