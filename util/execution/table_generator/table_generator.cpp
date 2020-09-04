@@ -329,6 +329,15 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Index_test
+      {"index_test_table",
+       INDEX_TEST_SIZE,
+       {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
+        {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
+        {"colD", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999},
+        {"colE", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
   };
 
   if (is_mini_runner) {

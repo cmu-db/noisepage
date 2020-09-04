@@ -25,9 +25,10 @@ ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx
   // Check valid output column.
   const auto output_schema = plan_.GetOutputSchema();
   if (attr_idx >= output_schema->NumColumns()) {
-    throw EXECUTION_EXCEPTION(fmt::format("Codegen: Cannot read column {} from '{}' with output schema {}", attr_idx,
-                                          planner::PlanNodeTypeToString(plan_.GetPlanNodeType()),
-                                          output_schema->ToJson().dump()));
+    throw EXECUTION_EXCEPTION(
+        fmt::format("Codegen: Cannot read column {} from '{}' with output schema {}", attr_idx,
+                    planner::PlanNodeTypeToString(plan_.GetPlanNodeType()), output_schema->ToJson().dump()),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 
   const auto output_expression = output_schema->GetColumn(attr_idx).GetExpr();
@@ -38,7 +39,8 @@ ast::Expr *OperatorTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   // Check valid child.
   if (child_idx >= plan_.GetChildrenSize()) {
     throw EXECUTION_EXCEPTION(fmt::format("Codegen: Plan type '{}' does not have child at index {}",
-                                          planner::PlanNodeTypeToString(plan_.GetPlanNodeType()), child_idx));
+                                          planner::PlanNodeTypeToString(plan_.GetPlanNodeType()), child_idx),
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 
   // Check valid output column from child.

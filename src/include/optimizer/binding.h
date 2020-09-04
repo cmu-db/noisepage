@@ -73,7 +73,7 @@ class GroupBindingIterator : public BindingIterator {
         num_group_items_(target_group_->GetLogicalExpressions().size()),
         current_item_index_(0),
         txn_(txn) {
-    OPTIMIZER_LOG_TRACE("Attempting to bind on group " + std::to_string(!id));
+    OPTIMIZER_LOG_TRACE("Attempting to bind on group " + std::to_string(id.UnderlyingValue()));
   }
 
   /**

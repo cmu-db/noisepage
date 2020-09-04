@@ -32,24 +32,23 @@ void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
     return;
   }
 
-  const auto start = std::max(pos.val_, int64_t{1});
-  const auto end = pos.val_ + std::min(static_cast<int64_t>(str.GetLength()), len.val_);
-
-  // The end can be before the start only if the length was negative. This is an
-  // error.
-  if (end < pos.val_) {
-    *result = StringVal::Null();
-    return;
-  }
-
-  // If start is negative, return empty string
-  if (end < 1) {
+  // If the position is negative or the length is 0 return empty string
+  if (pos.val_ < 0 || len.val_ == 0) {
     *result = StringVal("");
     return;
   }
 
+  if (static_cast<uint64_t>(pos.val_) > str.GetLength() || len.val_ < 0) {
+    *result = StringVal::Null();
+    return;
+  }
+
+  // If the start index is less than 0 we set the index to 0
+  const auto str_start = static_cast<uint32_t>(std::max(pos.val_ - 1, int64_t{0}));
+  const auto str_len = std::min(uint32_t(str.GetLength()) - str_start, static_cast<uint32_t>(len.val_));
+
   // All good
-  *result = StringVal(str.GetContent() + start - 1, end - start);
+  *result = StringVal(str.GetContent() + str_start, str_len);
 }
 
 namespace {
@@ -96,7 +95,7 @@ void StringFunctions::SplitPart(StringVal *result, UNUSED_ATTRIBUTE exec::Execut
   for (uint32_t index = 1;; index++) {
     const auto remaining_len = end - curr;
     const auto next_delim = SearchSubstring(curr, remaining_len, delimiter, delim.GetLength());
-    if (next_delim == nullptr) {
+    if (next_delim == nullptr || next_delim == end) {
       if (index == field.val_) {
         *result = StringVal(curr, remaining_len);
       } else {
@@ -159,6 +158,12 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
   // Allocate some memory
   char *target = ctx->GetStringAllocator()->PreAllocate(len.val_);
 
@@ -176,6 +181,10 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Lpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
@@ -197,6 +206,12 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
   // Allocate output
   char *target = ctx->GetStringAllocator()->PreAllocate(len.val_);
   char *ptr = target;
@@ -215,6 +230,10 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Rpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Length(Integer *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {
@@ -370,6 +389,16 @@ void StringFunctions::Like(BoolVal *result, UNUSED_ATTRIBUTE exec::ExecutionCont
   result->val_ = sql::Like{}(string.val_, pattern.val_);  // NOLINT
 }
 
+void StringFunctions::StartsWith(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &str,
+                                 const StringVal &start) {
+  if (str.is_null_ || start.is_null_) {
+    *result = BoolVal::Null();
+    return;
+  }
+  *result = BoolVal(start.GetLength() <= str.GetLength() &&
+                    strncmp(str.GetContent(), start.GetContent(), static_cast<size_t>(start.GetLength())) == 0);
+}
+
 void StringFunctions::Position(Integer *result, exec::ExecutionContext *ctx, const StringVal &search_str,
                                const StringVal &search_sub_str) {
   if (search_str.is_null_ || search_sub_str.is_null_) {
@@ -438,4 +467,31 @@ void StringFunctions::Chr(StringVal *result, exec::ExecutionContext *ctx, const 
     }
   }
 }
+
+void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str) {
+  if (str.is_null_) {
+    *result = StringVal::Null();
+    return;
+  }
+
+  if (str.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
+  char *ptr = ctx->GetStringAllocator()->PreAllocate(str.GetLength());
+  if (UNLIKELY(ptr == nullptr)) {
+    // Allocation failed
+    return;
+  }
+
+  auto *src = str.GetContent();
+  bool upper = true;
+  for (uint32_t i = 0; i < str.GetLength(); i++) {
+    ptr[i] = upper ? static_cast<char>(std::toupper(src[i])) : static_cast<char>(std::tolower(src[i]));
+    upper = !static_cast<bool>(isalnum(src[i]));
+  }
+  *result = StringVal(ptr, str.GetLength());
+}
+
 }  // namespace terrier::execution::sql

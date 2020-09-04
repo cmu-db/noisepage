@@ -93,6 +93,7 @@ def _interval_get_mini_runner_data(filename, model_results_path):
 
     return [OpUnitData(OpUnit[file_name.upper()], np.array(x_list), np.array(y_list))]
 
+
 def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
     """Get the training data from the mini runner
 
