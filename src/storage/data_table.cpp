@@ -13,12 +13,12 @@ namespace terrier::storage {
 
 DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : accessor_(layout), block_store_(store), layout_version_(layout_version) {
+    : accessor_(layout), block_store_(store), layout_version_(layout_version), blocks_(START_VECTOR_SIZE) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  if (store != DISABLED) blocks_.PushBack(NewBlock());
+  if (store != DISABLED) blocks_.Insert(NewBlock());
 }
 
 DataTable::~DataTable() {
@@ -132,12 +132,12 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   RawBlock *block;                                     // the block into which the insert will occur
   while (true) {
     // No free block left
-    if (current_insert_idx >= blocks_.size()) {
+    uint64_t size = blocks_.size();
+    if (current_insert_idx >= size) {
       block = NewBlock();
-      blocks_.PushBack(block);
-      current_insert_idx = blocks_.size() - 1;
+      current_insert_idx = blocks_.Insert(block);
     } else {
-      block = const_cast<RawBlock *>(blocks_[current_insert_idx]);
+      block = const_cast<RawBlock *>(blocks_.LookUp(current_insert_idx));
     }
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
