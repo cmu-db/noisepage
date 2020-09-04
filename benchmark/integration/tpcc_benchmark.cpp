@@ -119,15 +119,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
-          Workload(i,
-                   tpcc_db,
-                   &txn_manager,
-                   &deferred_action_manager,
-                   precomputed_args,
-                   &workers,
-                   shut_down);
-        });
+        thread_pool.SubmitTask(
+            [i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
+              Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers, shut_down);
+            });
       }
       thread_pool.WaitUntilAllFinished();
     }
@@ -218,15 +213,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
-          Workload(i,
-                   tpcc_db,
-                   &txn_manager,
-                   &deferred_action_manager,
-                   precomputed_args,
-                   &workers,
-                   shut_down);
-        });
+        thread_pool.SubmitTask(
+            [i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
+              Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers, shut_down);
+            });
       }
       thread_pool.WaitUntilAllFinished();
       log_manager_->ForceFlush();
@@ -326,15 +316,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
-          Workload(i,
-                   tpcc_db,
-                   &txn_manager,
-                   &deferred_action_manager,
-                   precomputed_args,
-                   &workers,
-                   shut_down);
-        });
+        thread_pool.SubmitTask(
+            [i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, &shut_down] {
+              Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers, shut_down);
+            });
       }
       thread_pool.WaitUntilAllFinished();
       log_manager_->ForceFlush();
@@ -427,15 +412,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager, &shut_down] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers,
+                                metrics_manager, &shut_down] {
           metrics_manager->RegisterThread();
-          Workload(i,
-                   tpcc_db,
-                   &txn_manager,
-                   &deferred_action_manager,
-                   precomputed_args,
-                   &workers,
-                   shut_down);
+          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers, shut_down);
         });
       }
       thread_pool.WaitUntilAllFinished();
@@ -536,15 +516,11 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager, &shut_down, &num_actual_processed] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers,
+                                metrics_manager, &shut_down, &num_actual_processed] {
           metrics_manager->RegisterThread();
-          num_actual_processed += Workload(i,
-                                           tpcc_db,
-                                           &txn_manager,
-                                           &deferred_action_manager,
-                                           precomputed_args,
-                                           &workers,
-                                           shut_down);
+          num_actual_processed +=
+              Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers, shut_down);
         });
       }
       std::this_thread::sleep_for(std::chrono::seconds(200));
@@ -662,15 +638,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
-        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers, metrics_manager, &shut_down] {
+        thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers,
+                                metrics_manager, &shut_down] {
           metrics_manager->RegisterThread();
-          Workload(i,
-                   tpcc_db,
-                   &txn_manager,
-                   &deferred_action_manager,
-                   precomputed_args,
-                   &workers,
-                   shut_down);
+          Workload(i, tpcc_db, &txn_manager, &deferred_action_manager, precomputed_args, &workers, shut_down);
         });
       }
       std::this_thread::sleep_for(std::chrono::seconds(200));
