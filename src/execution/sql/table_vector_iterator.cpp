@@ -120,8 +120,7 @@ class ScanTask {
     if (!iter.Init(block_range.begin(), block_range.end())) {
       return;
     }
-    auto id = tbb::this_tbb_thread::get_id();
-    std::cout << "thread id " << id << std::endl;
+
     // Pull out the thread-local state
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
     if (scanner_ != nullptr) {
@@ -129,13 +128,15 @@ class ScanTask {
       scanner_(query_state_, thread_state, &iter);
     }
     if (scanAndInsert_ != nullptr) {
+      // tbb::this_tbb_thread::get_id() could be used here to confirm thread id and the number of tasks
+      // An index pr is allocated here to ensure it is thread local to avoid conflict
       auto curr_index = exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid_));
-      // index is created after the initialization of storage interface
       auto index_pr_buffer = exec_ctx_->GetMemoryPool()->AllocateAligned(
           curr_index->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
-
       auto index_pr = curr_index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
+      // calling the scan and insert function
       scanAndInsert_(query_state_, thread_state, &iter, index_pr, storage_interface_);
+      // deallocate index pr
       exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer,
                                              curr_index->GetProjectedRowInitializer().ProjectedRowSize());
     }
@@ -194,17 +195,20 @@ bool TableVectorIterator::ParallelScanInsertIndex(uint32_t table_oid, uint32_t *
     return false;
   }
 
-  // Time
+  // Do we need this?
   util::Timer<std::milli> timer;
   timer.Start();
-
-  // Execute parallel scan
-  tbb::task_arena limited_arena(2);
-  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn, &storage_interface, &index_oid]{tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn,
-                                                                      storage_interface, index_oid)); });
-
-
+  // Specify the number of thread for execution
+  tbb::task_arena limited_arena(4);
+  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks());
+  // TODO(wuwenw): A static partitioner is used for the experimental purpose, may need a better way to split workload
+  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn,
+                         &storage_interface, &index_oid] {
+    tbb::parallel_for(
+        block_range,
+        ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface, index_oid),
+        tbb::static_partitioner());
+  });
 
   timer.Stop();
 
