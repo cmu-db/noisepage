@@ -35,6 +35,18 @@ using callback_fn = void (*)(void *);
  * It is given a handle to the DeferredActionManager in case it needs to register a deferred action.
  */
 using TransactionEndAction = std::function<void(DeferredActionManager *)>;
+
+struct TransactionEndActionFunc {
+  //
+  std::function<void(DeferredActionManager *)> endFunc_;
+
+  TransactionEndActionFunc(std::function<void(DeferredActionManager *)> endFunction) : endFunc_(endFunction) {};
+
+  void operator()(DeferredActionManager * deferred_action_manager) { endFunc_(deferred_action_manager); }
+};
+
+//using TransactionEndAction = TransactionEndActionFunc;
+
 /**
  * A DeferredAction is an action that can only be safely performed after all transactions that could
  * have access to something has finished. (e.g. pruning of version chains)

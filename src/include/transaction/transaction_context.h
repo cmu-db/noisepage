@@ -163,7 +163,11 @@ class TransactionContext {
    * @param a the action to be executed. A handle to the system's deferred action manager is supplied
    * to enable further deferral of actions
    */
-  void RegisterAbortAction(const TransactionEndAction &a) { abort_actions_.push_front(a); }
+  void RegisterAbortAction(const TransactionEndAction &a) { abort_actions_.push_front(TransactionEndActionFunc(a)); }
+//
+//  void RegisterAbortAction(const TransactionEndAction2 &a) {
+//    RegisterAbortAction(TransactionEndAction(a));
+//  }
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
@@ -179,7 +183,11 @@ class TransactionContext {
    * @param a the action to be executed. A handle to the system's deferred action manager is supplied
    * to enable further deferral of actions
    */
-  void RegisterCommitAction(const TransactionEndAction &a) { commit_actions_.push_front(a); }
+  void RegisterCommitAction(const TransactionEndAction &a) { commit_actions_.push_front(TransactionEndActionFunc(a)); }
+
+//  void RegisterCommitAction(const TransactionEndAction2 &a) {
+//    RegisterCommitAction(TransactionEndAction(a));
+//  }
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
