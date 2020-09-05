@@ -592,6 +592,8 @@ class CodeGen {
    * @param query_state The query state pointer.
    * @param exec_ctx The execution context that we are running in.
    * @param worker_name The work function name.
+   * @param storage_interface The storage interface
+   * @param index_oid The index oid
    * @return The call.
    */
   [[nodiscard]] ast::Expr *IterateTableInsertIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
