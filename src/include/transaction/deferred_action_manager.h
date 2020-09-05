@@ -71,7 +71,6 @@ class DeferredActionManager {
    *
    * @param gc gc to use for garbage collection
    * @param log_manager log manager to use for flushing logs
-   * @param main_thread if this thread is in charge of process the index
    */
   void FullyPerformGC(const common::ManagedPointer<storage::GarbageCollector> gc,
                       const common::ManagedPointer<storage::LogManager> log_manager) {
