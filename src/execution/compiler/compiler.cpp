@@ -97,6 +97,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
   }
 
   callbacks->EndPhase(Phase::BytecodeGeneration, this);
+
   // -------------------------------------------------------
   // Phase 4 : Module Generation
   // -------------------------------------------------------

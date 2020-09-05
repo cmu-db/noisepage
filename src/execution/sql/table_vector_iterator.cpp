@@ -94,9 +94,7 @@ class ScanTask {
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanner_(scanner),
-        scanAndInsert_(nullptr),
-        storage_interface_(nullptr) {}
+        scanner_(scanner){}
 
   ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
            exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanAndInsertIndexFn scanAndInsert,
@@ -107,7 +105,6 @@ class ScanTask {
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanner_(nullptr),
         scanAndInsert_(scanAndInsert),
         storage_interface_(storage_interface),
         index_oid_(index_oid) {}
@@ -149,9 +146,9 @@ class ScanTask {
   uint32_t num_oids_;
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
-  TableVectorIterator::ScanFn scanner_;
-  TableVectorIterator::ScanAndInsertIndexFn scanAndInsert_;
-  sql::StorageInterface *storage_interface_;
+  TableVectorIterator::ScanFn scanner_ = nullptr;
+  TableVectorIterator::ScanAndInsertIndexFn scanAndInsert_ = nullptr;
+  sql::StorageInterface *storage_interface_ = nullptr;
   uint32_t index_oid_ = 0;
 };
 

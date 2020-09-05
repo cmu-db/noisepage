@@ -35,6 +35,7 @@ class IndexCreateTest : public SqlBasedTest {
 
     auto query = execution::compiler::CompilationContext::Compile(*plan_node, exec_ctx_->GetExecutionSettings(),
                                                                   exec_ctx_->GetAccessor());
+
     query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx_.get()),
                execution::vm::ExecutionMode::Interpret);
   }
@@ -65,7 +66,6 @@ class IndexCreateTest : public SqlBasedTest {
         index_iter.ScanKey();
         // One entry should be found
         ASSERT_TRUE(index_iter.Advance());
-
         // Get directly from iterator
         auto *const table_pr(index_iter.TablePR());
         for (uint32_t i = 0; i < result_num; ++i) {
