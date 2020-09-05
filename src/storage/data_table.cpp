@@ -138,8 +138,8 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
     // No free block left
     uint64_t size = blocks_size_;
     if (current_insert_idx >= size) {
-      common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
       block = NewBlock();
+      common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
       blocks_.push_back(block);
       current_insert_idx = blocks_.size() - 1;
       blocks_size_ = blocks_.size();
