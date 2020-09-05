@@ -48,7 +48,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   tbb::mutex states_mutex_;
-  std::map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
+  std::map<std::thread::id, std::shared_ptr<TLSHandle>> states_;  // NOLINT
 };
 
 //===----------------------------------------------------------------------===//
@@ -84,8 +84,8 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 byte *ThreadStateContainer::AccessCurrentThreadState() {
   tbb::mutex::scoped_lock lock(impl_->states_mutex_);
   if (impl_->states_.find(std::this_thread::get_id()) == impl_->states_.end()) {
-    std::unique_ptr<TLSHandle> tls_handle(new TLSHandle(this));
-    impl_->states_.insert(std::make_pair(std::this_thread::get_id(), std::move(tls_handle)));
+    std::shared_ptr<TLSHandle> tls_handle(new TLSHandle(this));  // NOLINT
+    impl_->states_.insert(std::make_pair(std::this_thread::get_id(), tls_handle));
   }
   return impl_->states_.find(std::this_thread::get_id())->second->State();
 }
