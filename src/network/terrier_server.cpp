@@ -50,13 +50,13 @@ void TerrierServer::RegisterSocket() {
 
   constexpr auto conn_backlog = common::Settings::CONNECTION_BACKLOG;
   constexpr auto is_networked_socket = type == NETWORKED_SOCKET;
-  constexpr std::string_view socket_description = is_networked_socket ? "networked" : "Unix domain";
+  constexpr auto socket_description = std::string_view(is_networked_socket ? "networked" : "Unix domain");
 
   auto &socket_fd = is_networked_socket ? network_socket_fd_ : unix_domain_socket_fd_;
 
   // Gets the appropriate sockaddr for the given SocketType. Abuse a lambda and auto to specialize the type.
   auto socket_addr = ([&] {
-    if constexpr (is_networked_socket) {
+    if constexpr (is_networked_socket) {  // NOLINT
       struct sockaddr_in sin = {0};
 
       sin.sin_family = AF_INET;
@@ -64,7 +64,7 @@ void TerrierServer::RegisterSocket() {
       sin.sin_port = htons(port_);
 
       return sin;
-    } else {
+    } else {  // NOLINT
       // Builds the socket path name
       const std::string socket_path = fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_);
       struct sockaddr_un sun = {0};
@@ -76,7 +76,7 @@ void TerrierServer::RegisterSocket() {
       }
 
       sun.sun_family = AF_UNIX;
-      std::strcpy(sun.sun_path, socket_path.c_str());
+      std::strncpy(sun.sun_path, socket_path.c_str(), sizeof(sun.sun_path));
 
       return sun;
     }
@@ -92,7 +92,7 @@ void TerrierServer::RegisterSocket() {
   }
 
   // For networked sockets, tell the kernel that we would like to reuse local addresses whenever possible.
-  if constexpr (is_networked_socket) {
+  if constexpr (is_networked_socket) {  // NOLINT
     int reuse = 1;
     setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
   }
@@ -103,7 +103,7 @@ void TerrierServer::RegisterSocket() {
     NETWORK_LOG_ERROR("Failed to bind {} socket: {}", socket_description, strerror(errno), errno);
 
     // We can recover from exactly one type of error here, contingent on this being a Unix domain socket.
-    if constexpr (!is_networked_socket) {
+    if constexpr (!is_networked_socket) {  // NOLINT
       auto recovered = false;
 
       if (errno == EADDRINUSE) {
@@ -118,7 +118,7 @@ void TerrierServer::RegisterSocket() {
       } else {
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to bind and recover {} socket.", socket_description));
       }
-    } else {
+    } else {  // NOLINT
       throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to bind {} socket.", socket_description));
     }
   }
