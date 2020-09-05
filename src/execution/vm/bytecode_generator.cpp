@@ -698,15 +698,16 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call, a
   // Emit the bytecode.
   switch (builtin) {
     case ast::Builtin::TableIterParallel: {
-      GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
+      GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
+                                          query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
       break;
     }
     case ast::Builtin::TableIterIndexInsertParallel: {
       LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[5]);
       LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
-      GetEmitter()->EmitParallelTableScanInsertIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                          exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), storage_interface, index_oid);
+      GetEmitter()->EmitParallelTableScanInsertIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
+                                                     query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()),
+                                                     storage_interface, index_oid);
       break;
     }
     default: {
@@ -2151,7 +2152,8 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       LocalVar index_pr = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
       LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, index_pr, tuple_slot, index_oid);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, index_pr, tuple_slot,
+                         index_oid);
       break;
     }
     case ast::Builtin::IndexDelete: {
@@ -2423,7 +2425,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::TableIterParallel:
-    case ast::Builtin::TableIterIndexInsertParallel:{
+    case ast::Builtin::TableIterIndexInsertParallel: {
       VisitBuiltinTableIterParallelCall(call, builtin);
       break;
     }

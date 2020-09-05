@@ -1091,7 +1091,7 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call, ast::Builtin builti
           || !params[0].type_->IsPointerType()                       // QueryState, must contain execCtx.
           || !params[1].type_->IsPointerType()                       // Thread state.
           || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)  // TableVectorIterator.
-          ) {
+      ) {
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
         return;
       }
@@ -1146,13 +1146,13 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call, ast::Builtin builti
       const auto index_pr_kind = ast::BuiltinType::ProjectedRow;
       const auto inserter_kind = ast::BuiltinType::StorageInterface;
       const auto &params = scan_fn_type->GetParams();
-      if (params.size() != 5                                         // Scan function has 5 arguments.
-          || !params[0].type_->IsPointerType()                       // QueryState, must contain execCtx.
-          || !params[1].type_->IsPointerType()                       // Thread state.
-          || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)  // TableVectorIterator.
+      if (params.size() != 5                                              // Scan function has 5 arguments.
+          || !params[0].type_->IsPointerType()                            // QueryState, must contain execCtx.
+          || !params[1].type_->IsPointerType()                            // Thread state.
+          || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)       // TableVectorIterator.
           || !IsPointerToSpecificBuiltin(params[3].type_, index_pr_kind)  // TableVectorIterator.
           || !IsPointerToSpecificBuiltin(params[4].type_, inserter_kind)  // TableVectorIterator.
-          ) {
+      ) {
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
         return;
       }

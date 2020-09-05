@@ -82,7 +82,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema) const;
 
   CodeGen *codegen_;
-    ast::Identifier storage_interface_base_;
+  ast::Identifier storage_interface_base_;
   ast::Identifier storage_interface_;
   ast::Identifier index_pr_;
 
@@ -101,6 +101,5 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> all_oids_;
 
   catalog::index_oid_t index_oid_;
-
 };
 }  // namespace terrier::execution::compiler

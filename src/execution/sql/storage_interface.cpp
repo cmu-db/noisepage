@@ -84,7 +84,9 @@ void StorageInterface::IndexDelete(storage::TupleSlot table_tuple_slot) {
   curr_index_->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-bool StorageInterface::IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, storage::ProjectedRow *index_pr, catalog::index_oid_t index_oid) {
+bool StorageInterface::IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, storage::ProjectedRow *index_pr,
+                                            catalog::index_oid_t index_oid) {
+  common::SpinLatch::ScopedSpinLatch guard(&transactionContext_latch_);
   auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
   TERRIER_ASSERT(index != nullptr, "Index not found!");
   const auto unique = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid).Unique();
