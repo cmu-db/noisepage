@@ -53,7 +53,6 @@ class RecoveryTests : public TerrierTest {
                    .SetWalFilePath(LOG_FILE_NAME)
                    .SetUseLogging(true)
                    .SetUseGC(true)
-                   .SetUseGCThread(true)
                    .SetUseCatalog(true)
                    .Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
@@ -160,14 +159,12 @@ class RecoveryTests : public TerrierTest {
   // Simulates the system shutting down and restarting
   void ShutdownAndRestartSystem() {
     // Simulate the system "shutting down". Guarantee persist of log records
-    db_main_->GetGarbageCollectorThread()->StopGC();
     db_main_->GetTransactionLayer()->GetDeferredActionManager()->FullyPerformGC(
         db_main_->GetStorageLayer()->GetGarbageCollector(), log_manager_);
     log_manager_->PersistAndStop();
 
     // We now "boot up" up the system
     log_manager_->Start();
-    db_main_->GetGarbageCollectorThread()->StartGC();
   }
 
   // Most tests do a single recovery pass into the recovery DBMain
@@ -454,8 +451,8 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   // We insert a GC restart here so it has the opportunity to clean up the previous txn. Otherwise, the next txn will
   // prevent it from doing so since it never finishes, and by deleting the gc thread during "shutdown", the previous txn
   // will never get cleaned up.
-  db_main_->GetGarbageCollectorThread()->StopGC();
-  db_main_->GetGarbageCollectorThread()->StartGC();
+  db_main_->GetTransactionLayer()->GetDeferredActionManager()->FullyPerformGC(
+      db_main_->GetStorageLayer()->GetGarbageCollector(), log_manager_);
 
   // Create a ton of databases to make a transaction flush redo record buffers. In theory we could do any change, but a
   // create database call will generate a ton of records. Importantly, we don't commit the txn.
@@ -645,7 +642,6 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                           .SetWalFilePath(secondary_log_file)
                           .SetUseLogging(true)
                           .SetUseGC(true)
-                          .SetUseGCThread(true)
                           .SetUseCatalog(true)
                           .SetCreateDefaultDatabase(false)
                           .Build();
@@ -709,7 +705,6 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   auto secondary_recovery_db_main = terrier::DBMain::Builder()
                                         .SetUseThreadRegistry(true)
                                         .SetUseGC(true)
-                                        .SetUseGCThread(true)
                                         .SetUseCatalog(true)
                                         .SetCreateDefaultDatabase(false)
                                         .Build();

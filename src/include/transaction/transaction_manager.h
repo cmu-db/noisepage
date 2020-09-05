@@ -100,6 +100,7 @@ class TransactionManager {
   //  eventually we will removed them after completely integrate the deferred action framework
   std::atomic<int> num_unlinked_{0};
   std::atomic<int> num_deallocated_{0};
+  std::atomic<uint32_t> num_non_read_only_txns_completed_{0};
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 

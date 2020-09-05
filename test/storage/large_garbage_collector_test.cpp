@@ -13,18 +13,16 @@ class LargeGCTests : public TerrierTest {
     for (uint32_t iteration = 0; iteration < config.NumIterations(); iteration++) {
       std::default_random_engine generator;
 
-      auto db_main = DBMain::Builder().SetUseGC(true).SetUseGCThread(true).Build();
+      auto db_main = DBMain::Builder().SetUseGC(true).Build();
       auto *const tested = new LargeDataTableTestObject(config, db_main->GetStorageLayer()->GetBlockStore().Get(),
                                                         db_main->GetTransactionLayer()->GetTransactionManager().Get(),
                                                         &generator, DISABLED);
 
       for (uint32_t batch = 0; batch * config.BatchSize() < config.NumTxns(); batch++) {
         auto result = tested->SimulateOltp(config.BatchSize(), config.NumConcurrentTxns());
-        db_main->GetGarbageCollectorThread()->PauseGC();
         tested->CheckReadsCorrect(&result.first);
         for (auto w : result.first) delete w;
         for (auto w : result.second) delete w;
-        db_main->GetGarbageCollectorThread()->ResumeGC();
       }
       // In multi-threaded DAF, we need at least a double deferral in this case to guarantee the action happens afer
       // transactions in the tests has unlinked

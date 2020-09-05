@@ -41,7 +41,7 @@ class BwTreeIndex final : public Index {
 
   void DAFPerformGC(uint32_t curr_num);
 
-  void IncNumModification(const common::ManagedPointer<transaction::TransactionContext> txn);
+  void IncNumModification(common::ManagedPointer<transaction::TransactionContext> txn);
 
   std::atomic<uint32_t> num_mod_ = 0;
   common::SpinLatch index_latch_;

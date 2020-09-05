@@ -149,6 +149,10 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
               transaction::DafId::TXN_REMOVAL);
         },
         transaction::DafId::UNLINK);
+    if (++num_non_read_only_txns_completed_ == storage::GC_RATIO) {
+      num_non_read_only_txns_completed_ = 0;
+      deferred_action_manager_->Process(true);
+    }
   }
 }
 
