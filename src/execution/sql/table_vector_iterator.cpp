@@ -120,7 +120,8 @@ class ScanTask {
     if (!iter.Init(block_range.begin(), block_range.end())) {
       return;
     }
-
+    auto id = tbb::this_tbb_thread::get_id();
+    std::cout << "thread id " << id << std::endl;
     // Pull out the thread-local state
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
     if (scanner_ != nullptr) {
@@ -198,10 +199,12 @@ bool TableVectorIterator::ParallelScanInsertIndex(uint32_t table_oid, uint32_t *
   timer.Start();
 
   // Execute parallel scan
-  tbb::task_scheduler_init scan_scheduler;
+  tbb::task_arena limited_arena(2);
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn,
-                                          storage_interface, index_oid));
+  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn, &storage_interface, &index_oid]{tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn,
+                                                                      storage_interface, index_oid)); });
+
+
 
   timer.Stop();
 

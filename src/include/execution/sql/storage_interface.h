@@ -98,7 +98,8 @@ class EXPORT StorageInterface {
   /**
    * Insert into the current index given a tuple
    * @param table_tuple_slot tuple slot
-   * @param unique if this insertion is unique
+   * @param index_pr key for index insert
+   * @param index_oid index oid
    * @return Whether insertion was successful.
    */
   bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, storage::ProjectedRow *index_pr,
