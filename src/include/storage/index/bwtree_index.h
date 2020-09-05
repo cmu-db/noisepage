@@ -41,6 +41,7 @@ class BwTreeIndex final : public Index {
       std::equal_to<KeyType>,                  // NOLINT transparent functors can't figure out template
       std::hash<KeyType>, std::equal_to<TupleSlot>, std::hash<TupleSlot>>>
       bwtree_;
+  mutable common::SpinLatch transactionContext_latch_;
 
  public:
   IndexType Type() const final { return IndexType::BWTREE; }

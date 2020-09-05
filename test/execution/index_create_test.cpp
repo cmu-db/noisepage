@@ -35,7 +35,6 @@ class IndexCreateTest : public SqlBasedTest {
 
     auto query = execution::compiler::CompilationContext::Compile(*plan_node, exec_ctx_->GetExecutionSettings(),
                                                                   exec_ctx_->GetAccessor());
-
     query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(exec_ctx_.get()),
                execution::vm::ExecutionMode::Interpret);
   }
@@ -65,10 +64,7 @@ class IndexCreateTest : public SqlBasedTest {
         // Check that the key can be recovered through the index
         index_iter.ScanKey();
         // One entry should be found
-        if (index_iter.Advance() == false) {
-          std::cout << "1";
-          auto *key UNUSED_ATTRIBUTE = vpi->GetValue<int32_t, false>(0, nullptr);
-        }
+        ASSERT_TRUE(index_iter.Advance());
 
         // Get directly from iterator
         auto *const table_pr(index_iter.TablePR());
@@ -87,10 +83,7 @@ class IndexCreateTest : public SqlBasedTest {
         }
 
         // Check that there are no more entries.
-        if (index_iter.Advance() != false) {
-          auto *const table_pr1(index_iter.TablePR());
-          auto tuple_val UNUSED_ATTRIBUTE = table_pr1->Get<int32_t, false>(0, nullptr);
-        }
+        ASSERT_FALSE(index_iter.Advance());
       }
       vpi->Reset();
     }

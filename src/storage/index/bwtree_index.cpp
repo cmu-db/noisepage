@@ -59,6 +59,7 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
       result,
       "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
   // Register an abort action with the txn context in case of rollback
+  common::SpinLatch::ScopedSpinLatch guard(&transactionContext_latch_);
   txn->RegisterAbortAction([=]() {
     const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
     TERRIER_ASSERT(result, "Delete on the index failed.");

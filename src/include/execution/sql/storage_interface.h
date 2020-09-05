@@ -150,7 +150,6 @@ class EXPORT StorageInterface {
    * Reusable ProjectedRowInitializer for this table access
    */
   storage::ProjectedRowInitializer pri_;
-  mutable common::SpinLatch transactionContext_latch_;
   /**
    * Current index being accessed.
    */
