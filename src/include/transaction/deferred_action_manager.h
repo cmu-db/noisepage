@@ -73,8 +73,8 @@ class DeferredActionManager {
    * @param log_manager log manager to use for flushing logs
    * @param main_thread if this thread is in charge of process the index
    */
-  void FullyPerformGC(const common::ManagedPointer<storage::GarbageCollector> gc,
-                      const common::ManagedPointer<storage::LogManager> log_manager, bool main_thread = true) {
+  void FullyPerformGC(const common::ManagedPointer <storage::GarbageCollector> gc,
+                      const common::ManagedPointer <storage::LogManager> log_manager) {
     for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
       if (log_manager != DISABLED) log_manager->ForceFlush();
       // process deferred action queue as much as we can in each run
