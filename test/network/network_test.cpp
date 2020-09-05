@@ -82,11 +82,10 @@ class NetworkTests : public TerrierTest {
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
-      server_ =
-          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-                                          common::ManagedPointer(handle_factory_.get()),
-                                          common::ManagedPointer(&thread_registry_), port_, connection_thread_count_,
-                                          true /* Use unix domain socket */, socket_directory_);
+      server_ = std::make_unique<TerrierServer>(
+          common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_,
+          connection_thread_count_, true /* Use unix domain socket */, socket_directory_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");

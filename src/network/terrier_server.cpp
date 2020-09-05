@@ -1,10 +1,11 @@
 #include "network/terrier_server.h"
 
+#include <sys/un.h>
 #include <unistd.h>
+
 #include <fstream>
 #include <memory>
 #include <utility>
-#include <sys/un.h>
 
 #include "common/dedicated_thread_registry.h"
 #include "common/settings.h"
@@ -43,7 +44,7 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provide
   signal(SIGPIPE, SIG_IGN);
 }
 
-template<TerrierServer::SocketType type>
+template <TerrierServer::SocketType type>
 void TerrierServer::RegisterSocket() {
   static_assert(type == NETWORKED_SOCKET || type == UNIX_DOMAIN_SOCKET, "There should only be two socket types.");
 
@@ -69,7 +70,7 @@ void TerrierServer::RegisterSocket() {
       struct sockaddr_un sun = {0};
 
       // Validate pathname
-      if (socket_path.length() > sizeof(sun.sun_path) /* Max Unix socket path length */ ) {
+      if (socket_path.length() > sizeof(sun.sun_path) /* Max Unix socket path length */) {
         NETWORK_LOG_ERROR(fmt::format("Domain socket name too long (must be <= {} characters)", sizeof(sun.sun_path)));
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to name {} socket.", socket_description));
       }
@@ -91,7 +92,7 @@ void TerrierServer::RegisterSocket() {
   }
 
   // For networked sockets, tell the kernel that we would like to reuse local addresses whenever possible.
-  if constexpr(is_networked_socket) {
+  if constexpr (is_networked_socket) {
     int reuse = 1;
     setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
   }
@@ -146,9 +147,8 @@ void TerrierServer::RunServer() {
 
   // Create a dispatcher to handle connections to the sockets that have been created.
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, max_connections_, this, common::ManagedPointer(provider_.Get()),
-      connection_handle_factory_, thread_registry_,
-      std::initializer_list<int>({unix_domain_socket_fd_, network_socket_fd_}));
+      this /* requester */, max_connections_, this, common::ManagedPointer(provider_.Get()), connection_handle_factory_,
+      thread_registry_, std::initializer_list<int>({unix_domain_socket_fd_, network_socket_fd_}));
 
   // Set the running_ flag for any waiting threads
   {

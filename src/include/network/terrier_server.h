@@ -82,7 +82,8 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // that assertion is
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
   enum SocketType { UNIX_DOMAIN_SOCKET, NETWORKED_SOCKET };
-  template<SocketType type> void RegisterSocket();
+  template <SocketType type>
+  void RegisterSocket();
 
   std::mutex running_mutex_;
   bool running_;
