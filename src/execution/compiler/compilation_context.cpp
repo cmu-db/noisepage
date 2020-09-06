@@ -1,7 +1,5 @@
 #include "execution/compiler/compilation_context.h"
 
-#include <execution/compiler/operator/ind_cte_scan_leader_translator.h>
-
 #include <algorithm>
 #include <atomic>
 #include <sstream>
@@ -34,6 +32,7 @@
 #include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
+#include "execution/compiler/operator/ind_cte_scan_leader_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/limit_translator.h"
 #include "execution/compiler/operator/nested_loop_join_translator.h"
@@ -310,6 +309,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
                                                   planner::PlanNodeTypeToString(plan.GetPlanNodeType())));
     }
   }
+
   ops_[&plan] = std::move(translator);
 }
 

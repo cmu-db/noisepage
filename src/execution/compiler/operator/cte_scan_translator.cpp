@@ -19,6 +19,7 @@ CteScanTranslator::CteScanTranslator(const planner::CteScanPlanNode &plan, Compi
                                      Pipeline *pipeline)
     : SeqScanTranslator(plan, compilation_context, pipeline) {
   if (plan.GetChildrenSize() > 0) {
+    TERRIER_ASSERT(plan.GetChildrenSize() == 1, "CteScanPlanNode must have only one child");
     compilation_context->Prepare(*(plan.GetChild(0)), pipeline);
   }
 }

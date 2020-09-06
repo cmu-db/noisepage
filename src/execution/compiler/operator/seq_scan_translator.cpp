@@ -1,8 +1,5 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
-#include <execution/compiler/operator/cte_scan_leader_translator.h>
-#include <execution/compiler/operator/ind_cte_scan_leader_translator.h>
-
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"

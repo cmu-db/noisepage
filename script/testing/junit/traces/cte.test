@@ -47,17 +47,17 @@ statement ok
 
 
 query I nosort
-with cte(x,x) as (select 1, 2) select * from cte;
+WITH cte(x,x) AS (SELECT 1, 2) SELECT * FROM cte;
 ----
 2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
 
 query I nosort
-with cte as (select 4, 3) select * from cte;
+WITH cte AS (SELECT 4, 3) SELECT * FROM cte;
 ----
 2 values hashing to ba1c8aaf233bb794bc3fc52c7c5c5ac8
 
 query I nosort
-with cte(y,y,x) as (select 5,4,3) select x from cte;
+WITH cte(y,y,x) AS (SELECT 5,4,3) SELECT x FROM cte;
 ----
 1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
 

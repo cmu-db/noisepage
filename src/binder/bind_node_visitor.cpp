@@ -459,6 +459,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     // Store CTE table name
     cte_table_name_.push_back(ref->GetAlias());
 
+    // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table.
     bool inductive =
         (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
     if (ref->GetSelect() != nullptr) {
@@ -467,6 +468,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
         ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       }
       auto sel_cols = ref->GetSelect()->GetSelectColumns();
+
+      // In the case of inductive CTEs, we need to visit the SELECT statement in the base case so we have access to the
+      // columns
       if (inductive) {
         auto union_larg = ref->GetSelect();
         auto base_case = union_larg->GetUnionSelect();
@@ -488,6 +492,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
                                    .c_str(),
                                common::ErrorCode::ERRCODE_INVALID_SCHEMA_DEFINITION);
       }
+
+      // Go through the SELECT statements inside the CTEs and set the alias for each column to the desired column name
+      // Eg:  `WITH cte(x) AS (SELECT 1)`      transforms to `WITH cte AS (SELECT 1 as x)`
+      // Eg2: `WITH cte AS (SELECT 1 as x, 2)` transforms to `WITH cte AS (SELECT 1 as x, 2 as ?column?)`
       std::vector<parser::AliasType> aliases;
       for (size_t i = 0; i < num_aliases; i++) {
         auto serial_no = catalog_accessor_->GetNewTempOid();
@@ -517,7 +525,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       if (inductive) {
         sel_cols = ref->GetSelect()->GetUnionSelect()->GetSelectColumns();
       }
+
+      // Add the CTE to the nested_table_alias_map
       context.AddCTETable(ref->GetAlias(), sel_cols, ref->GetCteColumnAliases());
+
+      // Finally, visit the inductive case
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
     } else {
       ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
@@ -844,7 +856,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
     auto pre_context = context_;
     node->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
-    //    TERRIER_ASSERT(num_aliases == num_columns, "Not enough aliases for all columns");
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
     if (node->GetCteType() == parser::CTEType::INVALID) {

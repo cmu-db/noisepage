@@ -4,10 +4,9 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/work_context.h"
 #include "parser/expression/constant_value_expression.h"
-//
+
 namespace terrier::execution::compiler {
 
-//
 CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                  CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CTE_SCAN),

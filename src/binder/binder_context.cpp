@@ -126,21 +126,12 @@ void BinderContext::AddCTETable(const std::string &table_name,
   if (nested_table_alias_map_.find(table_name) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION("Duplicate cte table definition", common::ErrorCode::ERRCODE_DUPLICATE_TABLE);
   }
-  //  std::vector<catalog::Schema::Column> schema_columns;
   std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> nested_column_mappings;
   for (size_t i = 0; i < col_aliases.size(); i++) {
-    //    catalog::Schema::Column col(col_aliases[i].GetName(), select_list[i]->GetReturnValueType(), false,
-    //                                parser::ConstantValueExpression(select_list[i]->GetReturnValueType()),
-    //                                TEMP_OID(catalog::col_oid_t, i));
-    //    schema_columns.push_back(col);
     TERRIER_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 
-  //  catalog::Schema cte_schema(schema_columns);
-  //  nested_table_alias_map_[table_name] =
-  //      TableMetadata(TEMP_OID(catalog::db_oid_t, catalog::NULL_OID),
-  //                    TEMP_OID(catalog::table_oid_t, accessor->GetNewTempOid()), schema_columns);
   nested_table_alias_map_[table_name] = nested_column_mappings;
 }
 
