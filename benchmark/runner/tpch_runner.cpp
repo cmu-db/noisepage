@@ -28,7 +28,6 @@ class TPCHRunner : public benchmark::Fixture {
     auto db_main_builder = DBMain::Builder()
                                .SetUseGC(true)
                                .SetUseCatalog(true)
-                               .SetUseGCThread(true)
                                .SetUseMetrics(true)
                                .SetUseMetricsThread(true)
                                .SetBlockStoreSize(1000000)

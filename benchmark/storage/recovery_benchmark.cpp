@@ -38,7 +38,6 @@ class RecoveryBenchmark : public benchmark::Fixture {
                          .SetWalFilePath(terrier::BenchmarkConfig::logfile_path.data())
                          .SetUseLogging(true)
                          .SetUseGC(true)
-                         .SetUseGCThread(true)
                          .SetUseCatalog(true)
                          .SetRecordBufferSegmentSize(1e6)
                          .SetRecordBufferSegmentReuse(1e6)
@@ -58,7 +57,6 @@ class RecoveryBenchmark : public benchmark::Fixture {
       auto recovery_db_main = DBMain::Builder()
                                   .SetUseThreadRegistry(true)
                                   .SetUseGC(true)
-                                  .SetUseGCThread(true)
                                   .SetUseCatalog(true)
                                   .SetCreateDefaultDatabase(false)
                                   .Build();
@@ -150,7 +148,6 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
                        .SetWalFilePath(terrier::BenchmarkConfig::logfile_path.data())
                        .SetUseLogging(true)
                        .SetUseGC(true)
-                       .SetUseGCThread(true)
                        .SetUseCatalog(true)
                        .SetRecordBufferSegmentSize(1e6)
                        .SetRecordBufferSegmentReuse(1e6)
@@ -213,7 +210,6 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     auto recovery_db_main = DBMain::Builder()
                                 .SetUseThreadRegistry(true)
                                 .SetUseGC(true)
-                                .SetUseGCThread(true)
                                 .SetUseCatalog(true)
                                 .SetCreateDefaultDatabase(false)
                                 .Build();

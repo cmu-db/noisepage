@@ -89,7 +89,7 @@ class TPCCTests : public TerrierTest {
     for (int8_t i = 0; i < num_threads_; i++) {
       thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers, &shut_down] {
         // this might cause exception as we did not pass in deferred action
-        Workload(i, tpcc_db, txn_manager.Get(), nullptr, precomputed_args, &workers, shut_down);
+        Workload(i, tpcc_db, txn_manager.Get(), precomputed_args, &workers, shut_down);
       });
     }
     thread_pool_.WaitUntilAllFinished();

@@ -71,7 +71,7 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
-  auto db_main_builder = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true);
+  auto db_main_builder = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true);
   if (IS_MINI_RUNNER) {
     db_main_builder.SetUseMetrics(true)
         .SetUseMetricsThread(true)

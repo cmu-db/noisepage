@@ -4,9 +4,11 @@
 
 namespace terrier::tpcc {
 
-uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::TransactionManager *const txn_manager,
-                  transaction::DeferredActionManager *const daf_manager,
-                  const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *const workers,
+uint32_t Workload(const int8_t worker_id,
+                  Database *const tpcc_db,
+                  transaction::TransactionManager *const txn_manager,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args,
+                  std::vector<Worker> *const workers,
                   const bool &shutdown) {
   auto new_order = NewOrder(tpcc_db);
   auto payment = Payment(tpcc_db);
@@ -15,12 +17,8 @@ uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::
   auto stock_level = StockLevel(tpcc_db);
 
   uint32_t txn_counter = 0;
-  int iter_count = 0;
   for (const auto &txn_args : precomputed_args[worker_id]) {
-    if (shutdown) {
-      daf_manager->Process(true);
-      break;
-    }
+    if (shutdown) break;
     switch (txn_args.type_) {
       case TransactionType::NewOrder: {
         new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
@@ -44,12 +42,6 @@ uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::
       }
       default:
         throw std::runtime_error("Unexpected transaction type.");
-    }
-    txn_counter++;
-
-    if (++iter_count == storage::GC_RATIO) {
-      iter_count = 0;
-      daf_manager->Process(true);
     }
   }
   return txn_counter;

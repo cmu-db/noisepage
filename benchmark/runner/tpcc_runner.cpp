@@ -32,7 +32,6 @@ class TPCCRunner : public benchmark::Fixture {
                                .SetUseGC(true)
                                .SetSettingsParameterMap(std::move(param_map))
                                .SetUseCatalog(true)
-                               .SetUseGCThread(true)
                                .SetUseMetrics(true)
                                .SetUseMetricsThread(true)
                                .SetBlockStoreSize(1000)
