@@ -109,7 +109,7 @@ class TransactionManager {
   std::atomic<int> num_unlinked_{0};
   std::atomic<int> num_deallocated_{0};
 
-  std::atomic<uint32_t> num_non_read_only_txns_completed_{0};
+  std::atomic<uint32_t> num_txns_completed_{0};
 
   // This variable is used to set if the transaction manager will do cooperative cleaning of the deferred action queue
   bool cooperative_gc_{true};
