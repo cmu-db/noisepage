@@ -57,6 +57,11 @@ storage::ProjectedRow *StorageInterface::GetIndexPR(catalog::index_oid_t index_o
 
 storage::TupleSlot StorageInterface::TableInsert() { return table_->Insert(exec_ctx_->GetTxn(), table_redo_); }
 
+uint32_t StorageInterface::GetIndexHeapSize() {
+  TERRIER_ASSERT(curr_index_ != nullptr, "Index must have been loaded");
+  return curr_index_->EstimateHeapUsage();
+}
+
 bool StorageInterface::TableDelete(storage::TupleSlot table_tuple_slot) {
   auto txn = exec_ctx_->GetTxn();
   txn->StageDelete(exec_ctx_->DBOid(), table_oid_, table_tuple_slot);
