@@ -185,12 +185,16 @@ class TestServer:
 
     def print_output(self, filename):
         """ Print out contents of a file """
-        fd = open(filename)
-        lines = fd.readlines()
-        for line in lines:
-            LOG.info(line.strip())
-        fd.close()
-        return
+        with open(filename) as file:
+            lines = file.readlines()
+            for line in lines:
+                LOG.info(line.strip())
+        # fd = open(filename)
+        # lines = fd.readlines()
+        # for line in lines:
+        #     LOG.info(line.strip())
+        # fd.close()
+        #return
 
     def run_test(self, test_case: TestCase):
         """ Run the tests """
@@ -202,13 +206,19 @@ class TestServer:
         test_case.run_pre_test()
 
         # run the actual test
-        self.test_output_fd = open(test_case.test_output_file, "w+")
-        ret_val, _, _ = run_command(test_case.test_command,
-                                    test_case.test_error_msg,
-                                    stdout=self.test_output_fd,
-                                    stderr=self.test_output_fd,
-                                    cwd=test_case.test_command_cwd)
-        self.test_output_fd.close()
+        # self.test_output_fd = open(test_case.test_output_file, "w+")
+        # ret_val, _, _ = run_command(test_case.test_command,
+        #                             test_case.test_error_msg,
+        #                             stdout=self.test_output_fd,
+        #                             stderr=self.test_output_fd,
+        #                             cwd=test_case.test_command_cwd)
+        # self.test_output_fd.close()
+        with open(test_case.test_output_file, "w+") as test_output_fd:
+            ret_val, _, _ = run_command(test_case.test_command,
+                                        test_case.test_error_msg,
+                                        stdout=test_output_fd,
+                                        stderr=test_output_fd,
+                                        cwd=test_case.test_command_cwd)
 
         # run the post test tasks
         test_case.run_post_test()
@@ -223,48 +233,47 @@ class TestServer:
             self.check_db_binary()
             self.run_pre_suite()
 
-            # store each test case's result
-            ret_val_list_test_case = {}
-            for test_case in test_suite:
-                if test_case.db_restart:
-                    # for each test case, it can tell the test server whether it wants a fersh db or a used one
-                    self.restart_db()
-                elif not self.db_process:
-                    # if there is no running db, we create one
-                    self.run_db()
-
-                try:
-                    ret_val = self.run_test(test_case)
-                    self.print_output(test_case.test_output_file)
-                    ret_val_list_test_case[test_case] = ret_val
-                except:
-                    if not self.continue_on_error:
-                        raise
-                    else:
-                       traceback.print_exc(file=sys.stdout) 
-                       ret_val_list_test_case[test_case] = constants.ErrorCode.ERROR
-
-            # parse all test cases result
-            # currently, we only want to know if there is an error one
-            for test_case, test_result in ret_val_list_test_case.items():
-                if test_result is None or test_result != constants.ErrorCode.SUCCESS:
-                    ret_val_test_suite = constants.ErrorCode.ERROR
-                    break
-            else:
-                # loop fell through without finding an error
-                ret_val_test_suite = constants.ErrorCode.SUCCESS
+            test_suite_ret_vals = self.run_test_suite(test_suite)
+            test_suite_result = self.determine_test_suite_result(test_suite_ret_vals)
         except:
             traceback.print_exc(file=sys.stdout)
-            ret_val_test_suite = constants.ErrorCode.ERROR
+            test_suite_result = constants.ErrorCode.ERROR
         finally:
             # after the test suite finish, stop the database instance
             self.stop_db()
 
-        if ret_val_test_suite is None or ret_val_test_suite != constants.ErrorCode.SUCCESS:
-            # print the db log file, only if we had a failure
+        return self.handle_test_suite_result(test_suite_result)
+
+    def run_test_suite(self, test_suite):
+        test_suite_ret_vals = {}
+        for test_case in test_suite:
+            if test_case.db_restart:
+                self.restart_db()
+            elif not self.db_process:
+                self.run_db()
+            
+            try:
+                test_case_ret_val = self.run_test(test_case)
+                self.print_output(test_case.test_output_file)
+                test_suite_ret_vals[test_case] = test_case_ret_val
+            except:
+                self.print_output(test_case.test_output_file)
+                if not self.continue_on_error:
+                    raise
+                else:
+                    traceback.print_exec(file=sys.stdout)
+                    test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
+        return test_suite_ret_vals
+
+    def determine_test_suite_result(self, test_suite_ret_vals):
+        for test_case, test_result in test_suite_ret_vals.items():
+            if test_result is None or test_result != constants.ErrorCode.SUCCESS:
+                return constants.ErrorCode.ERROR
+        return constants.ErrorCode.SUCCESS
+
+    def handle_test_suite_result(self, test_suite_result):
+        if test_suite_result is None or test_suite_result != constants.ErrorCode.SUCCESS:
             self.print_output(self.db_output_file)
-        
         if self.continue_on_error:
-            # let Jenkins stage to continue on failed test
             return constants.ErrorCode.SUCCESS
-        return ret_val_test_suite
+        return test_suite_result

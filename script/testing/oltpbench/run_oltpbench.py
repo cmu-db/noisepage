@@ -5,6 +5,7 @@ import sys
 import traceback
 import json
 import itertools
+import logging
 
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
@@ -115,5 +116,5 @@ if __name__ == "__main__":
         LOG.error("Exception trying to run OLTP Bench tests")
         traceback.print_exc(file=sys.stdout)
         exit_code = 1
-
+    logging.shutdown()
     sys.exit(exit_code)
