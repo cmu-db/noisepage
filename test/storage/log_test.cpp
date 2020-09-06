@@ -38,6 +38,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     log_manager_ = db_main_->GetLogManager();
     store_ = db_main_->GetStorageLayer()->GetBlockStore();
+    txn_manager_->SetCooperativeGC(false);
   }
 
   void TearDown() override {

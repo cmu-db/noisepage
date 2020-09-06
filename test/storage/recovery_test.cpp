@@ -63,7 +63,6 @@ class RecoveryTests : public TerrierTest {
     recovery_db_main_ = terrier::DBMain::Builder()
                             .SetUseThreadRegistry(true)
                             .SetUseGC(true)
-                            .SetUseGCThread(true)
                             .SetUseCatalog(true)
                             .SetCreateDefaultDatabase(false)
                             .Build();

@@ -85,6 +85,14 @@ class TransactionManager {
    */
   uint32_t NumDeallocated() { return num_deallocated_.exchange(0); }
 
+  /**
+   * TODO(Ling): for log tests only, as it will compare the redo records,
+   *    we don't want to gc the transactions before comparing the result with the desired values
+   * Set if the transaction manager cooperatively clean up the deferred action queue
+   * @param value True if use cooperative gc at end of transaction
+   */
+  void SetCooperativeGC(bool value) { cooperative_gc_ = value; }
+
  private:
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   const common::ManagedPointer<DeferredActionManager> deferred_action_manager_;
@@ -100,7 +108,11 @@ class TransactionManager {
   //  eventually we will removed them after completely integrate the deferred action framework
   std::atomic<int> num_unlinked_{0};
   std::atomic<int> num_deallocated_{0};
+
   std::atomic<uint32_t> num_non_read_only_txns_completed_{0};
+
+  // This variable is used to set if the transaction manager will do cooperative cleaning of the deferred action queue
+  bool cooperative_gc_{true};
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 
