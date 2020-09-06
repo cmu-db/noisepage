@@ -40,6 +40,7 @@ uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::
       default:
         throw std::runtime_error("Unexpected transaction type.");
     }
+    txn_counter++;
   }
   return txn_counter;
 }

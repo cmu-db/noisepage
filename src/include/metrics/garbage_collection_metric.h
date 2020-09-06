@@ -95,7 +95,7 @@ class GarbageCollectionMetricRawData : public AbstractRawData {
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
       "start_time, MEMORY_DEALLOCATION, CATALOG_TEARDOWN, INDEX_REMOVE_KEY, COMPACTION, LOG_RECORD_REMOVAL, "
       "TXN_REMOVAL, "
-      "UNLINK, INVALID, total_num_actions, max_queue_size, num_daf_wakeup, total_num_txns"};
+      "UNLINK, INVALID, total_num_actions, max_queue_size, total_num_txns"};
 
  private:
   friend class GarbageCollectionMetric;
