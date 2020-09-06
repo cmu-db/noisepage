@@ -162,6 +162,10 @@ class EXPORT ExecutionContext {
   /** Increment or decrement the number of rows affected. */
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
+  /**
+   * Overrides recording from memory tracker
+   * @param memory_use Correct memory value to record
+   */
   void SetMemoryUseOverride(uint32_t memory_use) {
     memory_use_override_ = true;
     memory_use_override_value_ = memory_use;
