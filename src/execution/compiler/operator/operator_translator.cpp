@@ -28,14 +28,6 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, Co
   }
 }
 
-void OperatorTranslator::InjectStartTracker(FunctionBuilder *function) const {
-  GetPipeline()->InjectStartResourceTracker(function);
-}
-
-void OperatorTranslator::InjectEndTracker(FunctionBuilder *function) const {
-  GetPipeline()->InjectEndResourceTracker(function, GetPipeline()->GetQueryId());
-}
-
 ast::Expr *OperatorTranslator::GetOutput(WorkContext *context, uint32_t attr_idx) const {
   // Check valid output column.
   const auto output_schema = plan_.GetOutputSchema();

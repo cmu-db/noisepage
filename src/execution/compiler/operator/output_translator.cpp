@@ -55,10 +55,7 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
   CounterAdd(function, num_output_, 1);
 }
 
-void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto out_buffer = output_buffer_.Get(GetCodeGen());
-  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
-
+void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
@@ -70,6 +67,20 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
   }
 
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
+}
+
+void OutputTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto out_buffer = output_buffer_.Get(GetCodeGen());
+  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
+  RecordCounters(pipeline, function);
+}
+
+void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (!pipeline.IsParallel()) {
+    auto out_buffer = output_buffer_.Get(GetCodeGen());
+    function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
+    RecordCounters(pipeline, function);
+  }
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

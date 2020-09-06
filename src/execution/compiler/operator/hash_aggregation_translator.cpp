@@ -273,13 +273,17 @@ void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline
 }
 
 void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
   if (IsBuildPipeline(pipeline)) {
-    const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     if (build_pipeline_.IsParallel()) {
       TearDownAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
     }
+  }
+}
 
+void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  if (IsBuildPipeline(pipeline)) {
+    const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
@@ -313,6 +317,10 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
+}
+
+void HashAggregationTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
 }
 
 ast::Expr *HashAggregationTranslator::GetGroupByTerm(ast::Identifier agg_row, uint32_t attr_idx) const {
@@ -501,13 +509,19 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
 }
 
 void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    auto *codegen = GetCodeGen();
-    auto global_agg_ht = global_agg_ht_.GetPtr(codegen);
-    auto thread_state_container = GetThreadStateContainer();
-    auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
-    function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
-                                                         merge_partitions_fn_));
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      auto *codegen = GetCodeGen();
+      auto global_agg_ht = global_agg_ht_.GetPtr(codegen);
+      auto thread_state_container = GetThreadStateContainer();
+      auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
+      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
+                                                           merge_partitions_fn_));
+    } else {
+      RecordCounters(pipeline, function);
+    }
+  } else if (!pipeline.IsParallel()) {
+    RecordCounters(pipeline, function);
   }
 }
 

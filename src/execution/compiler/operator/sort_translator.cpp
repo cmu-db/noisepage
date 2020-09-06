@@ -137,15 +137,11 @@ void SortTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionB
   }
 }
 
-void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   if (IsBuildPipeline(pipeline)) {
     const auto sorter = pipeline.IsParallel() ? local_sorter_ : global_sorter_;
     ast::Expr *sorter_ptr = sorter.GetPtr(codegen);
-    if (build_pipeline_.IsParallel()) {
-      sorter_ptr = local_sorter_.GetPtr(codegen);
-      TearDownSorter(function, sorter_ptr);
-    }
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_sort_build_rows_));
@@ -168,6 +164,18 @@ void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBui
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
+  }
+}
+
+void SortTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
+}
+
+void SortTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  if (IsBuildPipeline(pipeline) && pipeline.IsParallel()) {
+    ast::Expr *sorter_ptr = local_sorter_.GetPtr(codegen);
+    TearDownSorter(function, sorter_ptr);
   }
 }
 
@@ -273,7 +281,10 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
       }
     } else {
       function->Append(codegen->SorterSort(sorter_ptr));
+      RecordCounters(pipeline, function);
     }
+  } else if (!pipeline.IsParallel()) {
+    RecordCounters(pipeline, function);
   }
 
   // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.

@@ -107,6 +107,9 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
     UNREACHABLE("Order-by operators do not produce columns from base tables");
   }
 
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
  private:
   friend class brain::OperatingUnitRecorder;
 

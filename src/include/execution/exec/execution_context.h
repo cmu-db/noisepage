@@ -1,7 +1,7 @@
 #pragma once
 
-#include <new>
 #include <memory>
+#include <new>
 #include <utility>
 #include <vector>
 
@@ -74,11 +74,10 @@ class EXPORT ExecutionContext {
 
     // Use C++ placement new
     auto size = sizeof(OutputBuffer);
-    OutputBuffer *buffer = reinterpret_cast<OutputBuffer*>(mem_pool_->Allocate(size));
+    OutputBuffer *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
     new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
     return buffer;
   }
-
 
   /**
    * @return The thread state container.

@@ -146,6 +146,9 @@ class OperatorTranslator : public ColumnValueProvider {
    */
   virtual void BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
+  virtual void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
+  virtual void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
+
   /**
    * Perform the primary logic of a pipeline. This is where the operator's logic should be
    * implemented. The provided context object contains information necessary to help operators
@@ -228,9 +231,6 @@ class OperatorTranslator : public ColumnValueProvider {
 
   /** The pipeline this translator is a part of. */
   Pipeline *GetPipeline() const { return pipeline_; }
-
-  void InjectStartTracker(FunctionBuilder *function) const;
-  void InjectEndTracker(FunctionBuilder *function) const;
 
   /** The plan node for this translator as its concrete type. */
   template <typename T>

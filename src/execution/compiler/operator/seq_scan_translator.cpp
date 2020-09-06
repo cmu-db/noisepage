@@ -269,7 +269,9 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
     auto filter_manager = local_filter_manager_.GetPtr(GetCodeGen());
     function->Append(GetCodeGen()->FilterManagerFree(filter_manager));
   }
+}
 
+void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
@@ -283,13 +285,18 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
 }
 
+void SeqScanTranslator::BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  auto val = codegen->MakeExpr(codegen->MakeIdentifier("concurrent"));
+  function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), val));
+}
+
+void SeqScanTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
+}
+
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  if (GetPipeline()->IsParallel()) {
-    function->Append(
-        codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
-  }
-
   const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
   if (declare_local_tvi) {
     // var tviBase: TableVectorIterator
@@ -313,6 +320,10 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   // Close TVI, if need be.
   if (declare_local_tvi) {
     function->Append(codegen->TableIterClose(codegen->MakeExpr(tvi_var_)));
+  }
+
+  if (!GetPipeline()->IsParallel()) {
+    RecordCounters(*GetPipeline(), function);
   }
 }
 

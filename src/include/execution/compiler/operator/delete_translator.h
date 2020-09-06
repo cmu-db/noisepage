@@ -39,7 +39,7 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * Initialize the counters.
    */
-  void InitializeQueryState(FunctionBuilder *function) const override;
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct
@@ -63,6 +63,8 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
     UNREACHABLE("Delete is serial.");
   };
+
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
  private:
   // Declare the deleter storage interface.

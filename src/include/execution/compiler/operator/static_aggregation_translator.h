@@ -49,13 +49,6 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
-   * Tear-down the FilterManager if required.
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
-   */
-  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
-
-  /**
    * Before the pipeline begins, initial the partial aggregates.
    * @param pipeline The pipeline whose pre-work logic is being generated.
    * @param function The function being built.

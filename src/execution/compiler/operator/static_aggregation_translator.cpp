@@ -190,9 +190,17 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
   }
 }
 
-void StaticAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
+
   if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      // Merge thread-local aggregates into one.
+      ast::Expr *thread_state_container = GetThreadStateContainer();
+      ast::Expr *query_state = GetQueryStatePtr();
+      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
+    }
+
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
@@ -210,19 +218,6 @@ void StaticAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
-  }
-}
-
-void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
-
-  if (IsBuildPipeline(pipeline)) {
-    if (build_pipeline_.IsParallel()) {
-      // Merge thread-local aggregates into one.
-      ast::Expr *thread_state_container = GetThreadStateContainer();
-      ast::Expr *query_state = GetQueryStatePtr();
-      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
-    }
   }
 }
 

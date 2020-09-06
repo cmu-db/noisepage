@@ -98,12 +98,16 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
 }
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
   if (IsLeftPipeline(pipeline)) {
     if (left_pipeline_.IsParallel()) {
       TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
     }
+  }
+}
 
+void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  if (IsLeftPipeline(pipeline)) {
     const auto join_ht = pipeline.IsParallel() ? local_join_ht_ : global_join_ht_;
     auto *jht = join_ht.GetPtr(codegen);
 
@@ -132,6 +136,10 @@ void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, Functio
 
     FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
   }
+}
+
+void HashJoinTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
 }
 
 ast::Expr *HashJoinTranslator::HashKeys(
@@ -326,7 +334,10 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
+      RecordCounters(pipeline, function);
     }
+  } else if (!pipeline.IsParallel()) {
+    RecordCounters(pipeline, function);
   }
 }
 
