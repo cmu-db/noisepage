@@ -117,15 +117,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     // the critical path there anyway
     CleanTransaction(txn);
   }
-
-  if (txn_metrics_enabled) {
-    common::thread_context.resource_tracker_.Stop();
-    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-    common::thread_context.metrics_store_->RecordCommitData(static_cast<uint64_t>(txn->IsReadOnly()), resource_metrics);
-  }
-  if (common::thread_context.metrics_store_ != nullptr && common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION)) {
-    common::thread_context.metrics_store_->RecordTxnsProcessed();
-  }
   return result;
 }
 
@@ -148,6 +139,15 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
         },
         transaction::DafId::UNLINK);
   }
+  if (common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION)) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordCommitData(static_cast<uint64_t>(txn->IsReadOnly()), resource_metrics);
+  }
+  if (common::thread_context.metrics_store_ != nullptr && common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION)) {
+    common::thread_context.metrics_store_->RecordTxnsProcessed();
+  }
+
   if (cooperative_gc_ && ++common::thread_context.num_txns_completed_ == transaction::GC_RATIO) {
     common::thread_context.num_txns_completed_ = 0;
     deferred_action_manager_->Process(true);
