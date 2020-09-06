@@ -1,7 +1,9 @@
-// INSERT INTO temp_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505
-// Select * from temp_table
-// Returns the number of tuples inserted (11)
+// Expected output: 11 (number of output rows)
+// SQL: INSERT INTO temp_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505; SELECT * FROM temp_table;
+
 fun main(execCtx: *ExecutionContext) -> int32 {
+  var TEMP_OID_MASK = -2147483648
+
   // Init inserter
   var col_oids: [1]uint32
   col_oids[0] = 1 // colA
@@ -9,9 +11,9 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   var col_types: [1]uint32
   col_types[0] = 4 // colA
   var temp_col_oids: [1]uint32
-  temp_col_oids[0] = 2147483649 // colA
+  temp_col_oids[0] = TEMP_OID_MASK | 1 // colA
   var cte_scan_iterator: CteScanIterator
-  @cteScanInit(&cte_scan_iterator, execCtx, -2147483648, temp_col_oids, col_types)
+  @cteScanInit(&cte_scan_iterator, execCtx, TEMP_OID_MASK, temp_col_oids, col_types)
 
   // Iterate through rows with colA between 495 and 505
   // Init index iterator
@@ -41,7 +43,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
 
   var ret = 0
   var tvi: TableVectorIterator
-  @tableIterInit(&tvi, execCtx, -2147483648, temp_col_oids)
+  @tableIterInit(&tvi, execCtx, TEMP_OID_MASK, temp_col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vpi = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {

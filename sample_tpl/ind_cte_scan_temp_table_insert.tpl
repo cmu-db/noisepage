@@ -1,8 +1,11 @@
-// Test that Accumulate() returns false on empty
-// Returns the number of tuples returned (should be 0)
+// Expected output: 20 (number of output rows)
+// Perform the following
+//      INSERT INTO temp_table SELECT colA FROM test_1 WHERE colA BETWEEN 1 AND 20;
+//      Call temp_table Accumulate()
 
 fun main(exec_ctx: *ExecutionContext) -> int32 {
   // Initialize CTE Scan Iterator
+  var TEMP_OID_MASK = -2147483648
 
   var col_oids: [1]uint32
   col_oids[0] = 1
@@ -10,10 +13,10 @@ fun main(exec_ctx: *ExecutionContext) -> int32 {
   col_types[0] = 4
 
   var temp_col_oids: [1]uint32
-  temp_col_oids[0] = -2147483647 // colA
+  temp_col_oids[0] = TEMP_OID_MASK | 1 // colA
 
   var cte_scan: IndCteScanIterator
-  @indCteScanInit(&cte_scan, exec_ctx, -2147483648, temp_col_oids, col_types, false)
+  @indCteScanInit(&cte_scan, exec_ctx, TEMP_OID_MASK, temp_col_oids, col_types, false)
 
   // Iterate from 1 -> 20
   var index_iter : IndexIterator
@@ -47,7 +50,7 @@ fun main(exec_ctx: *ExecutionContext) -> int32 {
 
   var ret = 0
   var tvi: TableVectorIterator
-  @tableIterInit(&tvi, exec_ctx, -2147483648, temp_col_oids)
+  @tableIterInit(&tvi, exec_ctx, TEMP_OID_MASK, temp_col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vpi = @tableIterGetVPI(&tvi)
     for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
