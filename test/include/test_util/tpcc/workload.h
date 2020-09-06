@@ -273,11 +273,8 @@ std::vector<std::vector<TransactionArgs>> PrecomputeArgs(Random *const generator
  * @param precomputed_args all of the precomputed args for this TPC-C run
  * @param workers preallocated workers with buffers to use for execution
  */
-uint32_t Workload(const int8_t worker_id,
-                  Database *const tpcc_db,
-                  transaction::TransactionManager *const txn_manager,
-                  const std::vector<std::vector<TransactionArgs>> &precomputed_args,
-                  std::vector<Worker> *const workers,
+uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::TransactionManager *const txn_manager,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *const workers,
                   const bool &shutdown);
 
 /**

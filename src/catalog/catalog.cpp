@@ -130,10 +130,19 @@ bool Catalog::DeleteDatabase(const common::ManagedPointer<transaction::Transacti
 
   // Defer the de-allocation on commit because we need to scan the tables to find
   // live references at deletion that need to be deleted.
-  txn->RegisterCommitAction(
-      [=, del_action{std::move(del_action)}](transaction::DeferredActionManager *deferred_action_manager) {
-        deferred_action_manager->RegisterDeferredAction(del_action, transaction::DafId::CATALOG_TEARDOWN);
-      });
+  // We need triple deferral to ensure deallocation of database catalog happens after deleting the database entries,
+  txn->RegisterCommitAction([=, del_action{std::move(del_action)}](
+                                transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() {
+          deferred_action_manager->RegisterDeferredAction(
+              [=] {
+                deferred_action_manager->RegisterDeferredAction(del_action, transaction::DafId::MEMORY_DEALLOCATION);
+              },
+              transaction::DafId::MEMORY_DEALLOCATION);
+        },
+        transaction::DafId::MEMORY_DEALLOCATION);
+  });
   return true;
 }
 

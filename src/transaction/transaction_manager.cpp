@@ -150,8 +150,8 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
         },
         transaction::DafId::UNLINK);
   }
-  if (cooperative_gc_ && ++num_txns_completed_ == transaction::GC_RATIO) {
-    num_txns_completed_ = 0;
+  if (cooperative_gc_ && ++common::thread_context.num_txns_completed_ == transaction::GC_RATIO) {
+    common::thread_context.num_txns_completed_ = 0;
     deferred_action_manager_->Process(true);
   }
 }

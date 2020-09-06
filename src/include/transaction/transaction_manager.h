@@ -86,8 +86,10 @@ class TransactionManager {
   uint32_t NumDeallocated() { return num_deallocated_.exchange(0); }
 
   /**
-   * TODO(Ling): for log tests only, as it will compare the redo records,
-   *    we don't want to gc the transactions before comparing the result with the desired values
+   * Note: for log tests, as it will compare the redo records,
+   *    we don't want to gc the transactions before comparing the result with the desired values;
+   *    For GC tests and DAF tests, are we are testing on the result of each invocation of Process() function,
+   *    we need a way to stop the automatic invocation.
    * Set if the transaction manager cooperatively clean up the deferred action queue
    * @param value True if use cooperative gc at end of transaction
    */
@@ -108,8 +110,6 @@ class TransactionManager {
   //  eventually we will removed them after completely integrate the deferred action framework
   std::atomic<int> num_unlinked_{0};
   std::atomic<int> num_deallocated_{0};
-
-  std::atomic<uint32_t> num_txns_completed_{0};
 
   // This variable is used to set if the transaction manager will do cooperative cleaning of the deferred action queue
   bool cooperative_gc_{true};

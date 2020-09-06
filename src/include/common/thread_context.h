@@ -37,6 +37,12 @@ struct ThreadContext {
    * wasteful traversals of the version chain.
    */
   std::unordered_set<storage::TupleSlot> visited_slots_;
+
+  /**
+   * Record number of transactions processed by this thread. Used by transaction manager to decide
+   * if this thread will cooperatively clean up the deferred action queue after current transaction completion.
+   */
+  uint32_t num_txns_completed_{0};
 };
 
 /**

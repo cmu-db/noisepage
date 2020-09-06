@@ -4,11 +4,8 @@
 
 namespace terrier::tpcc {
 
-uint32_t Workload(const int8_t worker_id,
-                  Database *const tpcc_db,
-                  transaction::TransactionManager *const txn_manager,
-                  const std::vector<std::vector<TransactionArgs>> &precomputed_args,
-                  std::vector<Worker> *const workers,
+uint32_t Workload(const int8_t worker_id, Database *const tpcc_db, transaction::TransactionManager *const txn_manager,
+                  const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *const workers,
                   const bool &shutdown) {
   auto new_order = NewOrder(tpcc_db);
   auto payment = Payment(tpcc_db);

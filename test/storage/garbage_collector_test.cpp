@@ -96,6 +96,7 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+    txn_manager->SetCooperativeGC(false);
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
@@ -128,6 +129,7 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -148,6 +150,7 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -203,6 +206,7 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -259,6 +263,7 @@ TEST_F(GarbageCollectorTests, AbortInsert1) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -315,6 +320,7 @@ TEST_F(GarbageCollectorTests, AbortInsert2) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -371,6 +377,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -444,6 +451,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate2) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -517,6 +525,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -590,6 +599,7 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);
@@ -663,6 +673,7 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     auto db_main = DBMain::Builder().SetUseGC(true).Build();
     auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
     auto gc = db_main->GetStorageLayer()->GetGarbageCollector();
+    txn_manager->SetCooperativeGC(false);
 
     GarbageCollectorDataTableTestObject tested(db_main->GetStorageLayer()->GetBlockStore().Get(), max_columns_,
                                                &generator_);

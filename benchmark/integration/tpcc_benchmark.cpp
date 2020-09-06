@@ -519,8 +519,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &deferred_action_manager, &workers,
                                 metrics_manager, &shut_down, &num_actual_processed] {
           metrics_manager->RegisterThread();
-          num_actual_processed +=
-              Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
+          num_actual_processed += Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
         });
       }
       std::this_thread::sleep_for(std::chrono::seconds(200));
