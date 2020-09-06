@@ -115,11 +115,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
           .SetTableOid(table_oid);
       std::vector<std::unique_ptr<planner::AbstractPlanNode>> children;
       current_cte->MoveChildren(&children);
-      //      for(auto &child : children){
-      //        builder.AddChild(std::move(child));
-      //      }
 
-      //      TERRIER_ASSERT(children.size() > 0, "Nothing to fill the leader with???");
       for (auto &child : children) {
         builder.AddChild(std::move(child));
       }
