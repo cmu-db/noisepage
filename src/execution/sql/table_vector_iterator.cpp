@@ -1,8 +1,8 @@
 #include "execution/sql/table_vector_iterator.h"
 
 #include <tbb/parallel_for.h>
-#include <tbb/task_scheduler_init.h>
 #include <tbb/task_arena.h>
+#include <tbb/task_scheduler_init.h>
 
 #include <limits>
 #include <numeric>
@@ -95,7 +95,7 @@ class ScanTask {
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanner_(scanner){}
+        scanner_(scanner) {}
 
   ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
            exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanAndInsertIndexFn scanAndInsert,

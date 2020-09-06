@@ -167,7 +167,8 @@ class TransactionContext {
     // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
     // a better way
     common::SpinLatch::ScopedSpinLatch guard(&transactionContext_latch_);
-    abort_actions_.push_front(a); }
+    abort_actions_.push_front(a);
+  }
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
@@ -227,7 +228,7 @@ class TransactionContext {
   // These actions will be triggered (not deferred) at abort/commit.
   std::forward_list<TransactionEndAction> abort_actions_;
   std::forward_list<TransactionEndAction> commit_actions_;
-  mutable common::SpinLatch transactionContext_latch_; // latch used to protect transaction context
+  mutable common::SpinLatch transactionContext_latch_;  // latch used to protect transaction context
 
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
