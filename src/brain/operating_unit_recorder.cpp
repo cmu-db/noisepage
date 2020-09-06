@@ -64,6 +64,11 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
     auto *field_repr = field->TypeRepr();
     if (field_repr->GetType() != nullptr) {
       total += field_repr->GetType()->GetSize();
+      // Increment the total size because of the size mismatch between storage and execution engine integers
+      // TODO(Lin): Assumes the original type is 4 byte integer for now
+      if (field_repr->GetType()->IsIntegerType()) key_size += 4;
+      // Adjust the string type accordingly
+      if (field_repr->GetType()->IsStringType()) total += 64;
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
       auto *builtin_type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)
@@ -74,9 +79,7 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
     }
   }
 
-  // For mini-runners, only ints for sort, hj, aggregate
-  double num_keys = key_size / 4.0;
-  double ref_payload = (num_keys * sizeof(execution::sql::Integer)) + ref_offset;
+  double ref_payload = key_size + ref_offset;
   return total / ref_payload;
 }
 
@@ -337,6 +340,7 @@ void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
     key_size = ComputeKeySize(plan->GetTableOid(), plan->GetColumnOids(), &num_keys);
+    num_keys = plan->GetColumnOids().size();
   } else {
     auto &schema = accessor_->GetSchema(plan->GetTableOid());
     num_keys = schema.GetColumns().size();
