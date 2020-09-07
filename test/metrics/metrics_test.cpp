@@ -271,7 +271,8 @@ TEST_F(MetricsTests, ToggleSettings) {
   // metrics_query_trace
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(11));
-  settings_manager_->SetBool(settings::Param::metrics_query_trace, true, common::ManagedPointer(action_context), callback);
+  settings_manager_->SetBool(settings::Param::metrics_query_trace, true, common::ManagedPointer(action_context),
+                             callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(12));
