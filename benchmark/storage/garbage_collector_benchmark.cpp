@@ -25,8 +25,8 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
     run_gc_ = false;
     gc_thread_.join();
     // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
-    gc_->PerformGarbageCollection();
-    const uint32_t lag_count = gc_->PerformGarbageCollection().first;
+    gc_->PerformGarbageCollection(false);
+    const uint32_t lag_count = gc_->PerformGarbageCollection(false).first;
     delete gc_;
     return lag_count;
   }
@@ -49,7 +49,7 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
   void GCThreadLoop() {
     while (run_gc_) {
       std::this_thread::sleep_for(gc_period_);
-      gc_->PerformGarbageCollection();
+      gc_->PerformGarbageCollection(false);
     }
   }
 };
@@ -78,13 +78,13 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     std::pair<uint32_t, uint32_t> result;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      result = gc_->PerformGarbageCollection();
+      result = gc_->PerformGarbageCollection(false);
     }
     EXPECT_EQ(result.first, 0);
     EXPECT_EQ(result.second, num_txns_);
 
     // run another GC pass to perform deallocation, verify nothing unlinked
-    result = gc_->PerformGarbageCollection();
+    result = gc_->PerformGarbageCollection(false);
     EXPECT_EQ(result.second, 0);
 
     delete gc_;
@@ -107,21 +107,21 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
                                         common::ManagedPointer(tested.GetTxnManager()));
 
     // clean up insert txn
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection(false);
+    gc_->PerformGarbageCollection(false);
 
     // run all txns
     tested.SimulateOltp(num_txns_, num_concurrent_txns_);
 
     // run first pass to unlink everything, verify nothing deallocated
-    std::pair<uint32_t, uint32_t> result = gc_->PerformGarbageCollection();
+    std::pair<uint32_t, uint32_t> result = gc_->PerformGarbageCollection(false);
     EXPECT_EQ(result.first, 0);
 
     // time just the deallocation process, verify nothing unlinked
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      result = gc_->PerformGarbageCollection();
+      result = gc_->PerformGarbageCollection(false);
     }
     EXPECT_EQ(result.first, num_txns_);
     EXPECT_EQ(result.second, 0);

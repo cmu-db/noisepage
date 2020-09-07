@@ -92,8 +92,8 @@ std::vector<std::vector<parser::ConstantValueExpression>> empty_params = {};
 void InvokeGC() {
   // Perform GC to do any cleanup
   auto gc = terrier::runner::db_main->GetStorageLayer()->GetGarbageCollector();
-  gc->PerformGarbageCollection();
-  gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection(false);
+  gc->PerformGarbageCollection(false);
 }
 
 /**

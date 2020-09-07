@@ -13,9 +13,9 @@ GarbageCollectorThread::GarbageCollectorThread(common::ManagedPointer<GarbageCol
       gc_period_(gc_period),
       num_gc_threads_(num_daf_threads) {
   for (size_t i = 0; i < num_gc_threads_; i++) {
-    gc_threads_.emplace_back(std::thread([this, i] {
+    gc_threads_.emplace_back(std::thread([this] {
       if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
-      GCThreadLoop(i == 0);
+      GCThreadLoop();
     }));
   }
 }
