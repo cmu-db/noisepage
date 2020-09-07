@@ -139,7 +139,7 @@ void TransactionManager::CleanTransaction(TransactionContext *txn) {
         },
         transaction::DafId::UNLINK);
   }
-  if (common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION)) {
+  if (common::thread_context.metrics_store_ != nullptr && common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::TRANSACTION)) {
     common::thread_context.resource_tracker_.Stop();
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
     common::thread_context.metrics_store_->RecordCommitData(static_cast<uint64_t>(txn->IsReadOnly()), resource_metrics);
