@@ -38,7 +38,7 @@ uint32_t DeferredActionManager::Process(bool with_limit) {
   uint32_t processed = ProcessNewActions(oldest_txn, daf_metrics_enabled, with_limit);
   timestamp_manager_->RemoveTransaction(begin);
 
-//  if (process_index) ProcessIndexes();
+  ProcessIndexes();
   auto previous_size = common::thread_context.visited_slots_.size();
   common::thread_context.visited_slots_.clear();
   common::thread_context.visited_slots_.reserve(previous_size);
@@ -65,9 +65,10 @@ void DeferredActionManager::UnregisterIndexForGC(const common::ManagedPointer<st
 // potentially introduces a long pause in normal processing (could be bad) and could block (or be blocked by) DDL.
 //
 void DeferredActionManager::ProcessIndexes() {
-  // TODO(Ling): Our current implementation only allows one thread to GC the index.
-  common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  for (const auto &index : indexes_) index->PerformGarbageCollection();
+  if (indexes_latch_.TryExclusiveLock()) {
+    for (const auto &index : indexes_) index->PerformGarbageCollection();
+    indexes_latch_.Unlock();
+  }
 }
 
 uint32_t DeferredActionManager::ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled, bool with_limit) {

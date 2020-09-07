@@ -91,7 +91,7 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
     const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
     TERRIER_ASSERT(result, "Delete on the index failed.");
   });
-  IncNumModification(txn);
+  //  IncNumModification(txn);
   return result;
 }
 
@@ -127,7 +127,7 @@ bool BwTreeIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction
     // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
     txn->SetMustAbort();
   }
-  IncNumModification(txn);
+  //  IncNumModification(txn);
   return result;
 }
 
@@ -150,7 +150,7 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
         },
         transaction::DafId::INDEX_REMOVE_KEY);
   });
-  IncNumModification(txn);
+  //  IncNumModification(txn);
 }
 
 template <typename KeyType>
