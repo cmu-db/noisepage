@@ -176,7 +176,7 @@ bool SetLimitInGet::Check(common::ManagedPointer<AbstractOptimizerNode> plan, Op
   return true;
 }
 
-RulePromise SetLimitInGet::Promise(GroupExpression *group_expr) const { return RulePromise::LOGICAL_PROMISE_PUSHDOWN; }
+RulePromise SetLimitInGet::Promise(GroupExpression *group_expr) const { return RulePromise::LOGICAL_PROMISE; }
 
 void SetLimitInGet::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                               std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,

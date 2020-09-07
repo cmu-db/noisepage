@@ -80,6 +80,7 @@ enum class RuleType : uint32_t {
  */
 enum class RuleSetName : uint32_t {
   PREDICATE_PUSH_DOWN = 0,
+  CLAUSE_PUSH_DOWN,
   UNNEST_SUBQUERY,
   LOGICAL_TRANSFORMATION,
   PHYSICAL_IMPLEMENTATION
@@ -109,11 +110,6 @@ enum class RulePromise : uint32_t {
    * Physical rule
    */
   PHYSICAL_PROMISE = 3,
-
-  /**
-   * High priority pushdown
-   */
-  LOGICAL_PROMISE_PUSHDOWN = 4
 };
 
 /**
