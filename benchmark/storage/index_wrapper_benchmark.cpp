@@ -81,6 +81,8 @@ class IndexBenchmark : public benchmark::Fixture {
 
   // Script to free all allocated elements of table structure
   void TearDown(const benchmark::State &state) override {
+    gc_thread_->GetGarbageCollector()->UnregisterIndexForGC(index_);
+
     delete gc_thread_;
     delete gc_;
     delete sql_table_;
@@ -104,6 +106,9 @@ class IndexBenchmark : public benchmark::Fixture {
     // Define fields of index schema and declare index
     index_schema_ = catalog::IndexSchema(keycols, type, false, false, false, true);
     index_ = (storage::index::IndexBuilder().SetKeySchema(index_schema_)).Build();
+
+    // Register index to garbage collector
+    gc_thread_->GetGarbageCollector()->RegisterIndexForGC(index_);
 
     // Allocate buffer for data
     key_buffer_ = common::AllocationUtil::AllocateAligned(index_->GetProjectedRowInitializer().ProjectedRowSize());

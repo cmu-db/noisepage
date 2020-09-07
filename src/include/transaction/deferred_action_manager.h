@@ -81,13 +81,41 @@ class DeferredActionManager {
     }
   }
 
+  /**
+   * // TODO(John, Ling): Eventually we should remove the special casing of indexes here. See processIndexes()
+   * Register an index to be periodically garbage collected
+   * @param index pointer to the index to register
+   */
+  void RegisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
+
+  /**
+   * // TODO(John, Ling): Eventually we should remove the special casing of indexes here. See processIndexes()
+   * Unregister an index to be periodically garbage collected
+   * @param index pointer to the index to unregister
+   */
+  void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
+
  private:
   friend class storage::GarbageCollectorThread;
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> new_deferred_actions_;
+  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
+  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
+  // wasteful traversals of the version chain.
+  std::unordered_set<storage::TupleSlot> visited_slots_;
   std::atomic<uint32_t> queue_size_ = 0;
+
+  std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
+  common::SharedLatch indexes_latch_;
   common::SpinLatch queue_latch_;
+
+  // TODO(John, Ling): Eventually we should remove the special casing of indexes here.
+  //  This gets invoked every epoch to look through all indexes. It potentially introduces stalls
+  //  and looks inefficient if there is not much to gc. Preferably make index gc action a deferred action that gets
+  //  added to the deferred action queue either in a fixed interval or after a threshold number of tombstones
+  //  However, we can't simply remove the vector of index until we make the PerformGC method of Bwtree concurrent
+  void ProcessIndexes();
 
   uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled, bool with_limit);
   void ProcessNewActionHelper(timestamp_t oldest_txn, bool metrics_enabled, uint32_t *processed, bool *break_loop);

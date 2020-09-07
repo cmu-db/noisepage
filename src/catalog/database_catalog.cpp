@@ -1151,23 +1151,27 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
   // manager. See base function comment.
-  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    // Unregistering from GC can happen immediately, but we have to double-defer freeing the actual objects
-    deferred_action_manager->RegisterDeferredAction(
-        [=]() {
-          deferred_action_manager->RegisterDeferredAction(
-              [=]() {
-                deferred_action_manager->RegisterDeferredAction(
-                    [=]() {
-                      delete schema_ptr;
-                      delete index_ptr;
-                    },
-                    transaction::DafId::MEMORY_DEALLOCATION);
-              },
-              transaction::DafId::MEMORY_DEALLOCATION);
-        },
-        transaction::DafId::MEMORY_DEALLOCATION);
-  });
+  txn->RegisterCommitAction(
+      [=, garbage_collector{garbage_collector_}](transaction::DeferredActionManager *deferred_action_manager) {
+        if (index_ptr->Type() == storage::index::IndexType::BWTREE) {
+          garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
+        }
+        // Unregistering from GC can happen immediately, but we have to double-defer freeing the actual objects
+        deferred_action_manager->RegisterDeferredAction(
+            [=]() {
+              deferred_action_manager->RegisterDeferredAction(
+                  [=]() {
+                    deferred_action_manager->RegisterDeferredAction(
+                        [=]() {
+                          delete schema_ptr;
+                          delete index_ptr;
+                        },
+                        transaction::DafId::MEMORY_DEALLOCATION);
+                  },
+                  transaction::DafId::MEMORY_DEALLOCATION);
+            },
+            transaction::DafId::MEMORY_DEALLOCATION);
+      });
 
   delete[] buffer;
   return true;
@@ -1228,12 +1232,19 @@ bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::
   TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
                  "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
                  "should already have the lock.");
+  if (index_ptr->Type() == storage::index::IndexType::BWTREE) {
+    garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr));
+  }
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
-  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; },
-                                                    transaction::DafId::MEMORY_DEALLOCATION);
-  });
+  txn->RegisterAbortAction(
+      [=, garbage_collector{garbage_collector_}](transaction::DeferredActionManager *deferred_action_manager) {
+        if (index_ptr->Type() == storage::index::IndexType::BWTREE) {
+          garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index_ptr));
+        }
+        deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; },
+                                                        transaction::DafId::MEMORY_DEALLOCATION);
+      });
   return SetClassPointer(txn, index, index_ptr, postgres::REL_PTR_COL_OID);
 }
 
@@ -1424,12 +1435,15 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
     }
   }
 
-  auto dbc_nuke = [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
-                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)},
-                   func_contexts{std::move(func_contexts)}]() {
+  auto dbc_nuke = [=, garbage_collector{garbage_collector_}, tables{std::move(tables)}, indexes{std::move(indexes)},
+                   table_schemas{std::move(table_schemas)}, index_schemas{std::move(index_schemas)},
+                   expressions{std::move(expressions)}, func_contexts{std::move(func_contexts)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) {
+      if (index->Type() == storage::index::IndexType::BWTREE) {
+        garbage_collector->UnregisterIndexForGC(common::ManagedPointer(index));
+      }
       delete index;
     }
 

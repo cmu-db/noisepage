@@ -65,6 +65,18 @@ class GarbageCollector {
    */
   std::pair<uint32_t, uint32_t> PerformGarbageCollection(bool with_limit);
 
+  /**
+   * Register an index to be periodically garbage collected
+   * @param index pointer to the index to register
+   */
+  void RegisterIndexForGC(common::ManagedPointer<index::Index> index);
+
+  /**
+   * Unregister an index to be periodically garbage collected
+   * @param index pointer to the index to unregister
+   */
+  void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
+
  private:
   friend class GarbageCollectorThread;
   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager_;
