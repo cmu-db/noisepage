@@ -387,6 +387,7 @@ void HashAggregationTranslator::UpdateAggregates(WorkContext *context, FunctionB
 
   // Advance aggregate.
   AdvanceAggregate(function, agg_payload, agg_values);
+  FeatureArithmeticRecordAdd(function, context->GetPipeline(), GetTranslatorId(), codegen->Const32(1));
 
   CounterAdd(function, num_agg_inputs_, 1);
 }

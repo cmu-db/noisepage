@@ -195,6 +195,35 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
   }
 }
 
+void OperatorTranslator::FeatureArithmeticRecordAdd(FunctionBuilder *function, const Pipeline &pipeline,
+                                                    execution::translator_id_t translator_id, ast::Expr *val) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsCountersEnabled()) {
+    // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val * old_feature_val)
+    const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
+    const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
+    for (const auto &feature : features) {
+      bool is_same_translator = feature.GetTranslatorId() == translator_id;
+      bool is_arith = feature.GetExecutionOperatingUnitType() > brain::ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+      if (is_same_translator && is_arith) {
+        for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
+                                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
+          ast::Expr *add = codegen->BinaryOp(
+              parsing::Token::Type::PLUS, val,
+              codegen->CallBuiltin(ast::Builtin::ExecutionContextGetFeature,
+                                   {GetExecutionContext(), codegen->Const32(pipeline.GetPipelineId().UnderlyingValue()),
+                                    codegen->Const32(feature.GetFeatureId().UnderlyingValue()),
+                                    codegen->Const32(static_cast<uint8_t>(attrib))}));
+          ast::Expr *record =
+              codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, add);
+          function->Append(record);
+        }
+      }
+    }
+  }
+}
+
 void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
                                                     execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();

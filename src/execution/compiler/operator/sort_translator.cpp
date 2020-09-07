@@ -33,12 +33,6 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
   // The build pipeline must complete before the produce pipeline.
   pipeline->LinkSourcePipeline(&build_pipeline_);
 
-  if (IsCountersEnabled()) {
-    // TODO(WAN): for now, enabling counters forces it to be serial.
-    build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
-    pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
-  }
-
   // Prepare the child.
   compilation_context->Prepare(*plan.GetChild(0), &build_pipeline_);
 

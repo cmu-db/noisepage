@@ -26,12 +26,6 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
   TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
 
-  if (IsCountersEnabled()) {
-    // TODO(WAN): for now, enabling counters forces it to be serial.
-    left_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
-    pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
-  }
-
   // Probe pipeline begins after build pipeline.
   pipeline->LinkSourcePipeline(&left_pipeline_);
   // Register left and right child in their appropriate pipelines.

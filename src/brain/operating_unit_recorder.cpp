@@ -210,11 +210,23 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
 
   if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
 
+  // This is a hack.
+  // Certain translators don't own their features, but pass them further down the pipeline.
+  std::vector<execution::translator_id_t> translator_ids;
+  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
+  translator_ids.emplace_back(translator->GetTranslatorId());
+  while (translator->IsCountersPassThrough()) {
+    translator = translator->GetParentTranslator();
+    translator_ids.emplace_back(translator->GetTranslatorId());
+  }
+
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
     TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
+    bool same_translator = std::find(translator_ids.cbegin(), translator_ids.cend(), itr->second.GetTranslatorId()) !=
+                           translator_ids.cend();
     if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
-        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type)) {
+        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type) && same_translator) {
       itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
       itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
       itr->second.AddMemFactor(mem_factor);
@@ -222,12 +234,6 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  // This is a hack.
-  // Certain translators don't own their features, but pass them further down the pipeline.
-  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
-  while (translator->IsCountersPassThrough()) {
-    translator = translator->GetParentTranslator();
-  }
   auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
                                                cardinality, mem_factor, num_loops);
   pipeline_features_.emplace(type, std::move(feature));

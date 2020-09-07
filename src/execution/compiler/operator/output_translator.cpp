@@ -55,8 +55,6 @@ void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuil
 
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
 }
 
