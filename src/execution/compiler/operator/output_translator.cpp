@@ -24,9 +24,7 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
   num_output_ = CounterDeclare("num_output");
 }
 
-void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  CounterSet(function, num_output_, 0);
-}
+void OutputTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_output_, 0); }
 
 void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
                                            terrier::execution::compiler::FunctionBuilder *function) const {

@@ -83,16 +83,16 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
 
   CounterAdd(function, num_updates_, 1);
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                CounterVal(num_updates_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
-                CounterVal(num_updates_));
-  FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_updates_));
-
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);
+}
+
+void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 
 void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) const {

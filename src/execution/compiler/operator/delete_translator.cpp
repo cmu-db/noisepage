@@ -46,15 +46,15 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     GenIndexDelete(function, context, index_oid);
   }
 
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
-                CounterVal(num_deletes_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
-                CounterVal(num_deletes_));
-  FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_deletes_));
-
   GenDeleterFree(function);
+}
+
+void DeleteTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_deletes_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_deletes_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_deletes_));
 }
 
 void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {

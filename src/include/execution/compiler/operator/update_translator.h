@@ -58,6 +58,9 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
+  /** Record the counters for Lin's models. */
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
   /**
    * @return The value (vector) of the attribute at the given index (@em attr_idx) produced by the
    *         child at the given index (@em child_idx).

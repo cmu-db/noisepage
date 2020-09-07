@@ -64,6 +64,9 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
+  /** Record the counters for Lin's models. */
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
   /**
    * Tear-down the FilterManager if required.
    * @param pipeline The current pipeline.
