@@ -185,6 +185,7 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
     CounterAdd(function, num_agg_outputs_, 1);
   } else {
     UpdateGlobalAggregate(context, function);
+    FeatureArithmeticRecordAdd(function, context->GetPipeline(), GetTranslatorId(), codegen->Const32(1));
     CounterAdd(function, num_agg_inputs_, 1);
   }
 }
