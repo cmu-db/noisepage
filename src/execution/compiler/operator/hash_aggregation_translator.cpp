@@ -387,7 +387,6 @@ void HashAggregationTranslator::UpdateAggregates(WorkContext *context, FunctionB
 
   // Advance aggregate.
   AdvanceAggregate(function, agg_payload, agg_values);
-  FeatureArithmeticRecordAdd(function, context->GetPipeline(), GetTranslatorId(), codegen->Const32(1));
 
   CounterAdd(function, num_agg_inputs_, 1);
 }
@@ -442,7 +441,6 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
-    FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_agg_inputs_));
   } else {
     TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
@@ -465,7 +463,6 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
-    FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
 }
 
@@ -478,6 +475,8 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
     function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
                                                          merge_partitions_fn_));
   }
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(),
+                             IsBuildPipeline(pipeline) ? CounterVal(num_agg_inputs_) : CounterVal(num_agg_outputs_));
 }
 
 ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx,
