@@ -57,12 +57,18 @@ class DeferredActionManager {
     return RegisterDeferredAction([=](timestamp_t /*unused*/) { a(); }, daf_id);
   }
 
+  //  /**
+  //   * Clear the queue and apply as many actions as possible. Used in single-threaded DAF.
+  //   * @return numbers of deferred actions processed
+  //   */
+  //  uint32_t Process() { return Process(true); }
+
   /**
    * Clear the queue and apply as many actions as possible. Used in multi-threaded DAF.
-   * @param with_limit If there is an upper bound on number of actions processed in each invocation
+   * @param process_index Is the caller DAF thread is in charge of GC the indexes.
    * @return numbers of deferred actions processed
    */
-  uint32_t Process(bool with_limit);
+  uint32_t Process(bool process_index, bool with_limit);
 
   /**
    * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
@@ -77,7 +83,7 @@ class DeferredActionManager {
     for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
       if (log_manager != DISABLED) log_manager->ForceFlush();
       // process deferred action queue as much as we can in each run
-      gc->PerformGarbageCollection(false);
+      gc->PerformGarbageCollection(main_thread, false);
     }
   }
 

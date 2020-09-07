@@ -257,7 +257,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
 
   // Need to prune the version chain in order to make sure that the second pass succeeds
-  gc.PerformGarbageCollection(false);
+  gc.PerformGarbageCollection();
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
@@ -279,8 +279,8 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
     unlink(EXPORT_TABLE_NAME);
   }
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
-  gc.PerformGarbageCollection(false);
-  gc.PerformGarbageCollection(false);  // Second call to deallocate
+  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection();  // Second call to deallocate
 }
 
 // NOLINTNEXTLINE
@@ -333,7 +333,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
 
   // Need to prune the version chain in order to make sure that the second pass succeeds
-  gc.PerformGarbageCollection(false);
+  gc.PerformGarbageCollection();
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
@@ -355,8 +355,8 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
     unlink(EXPORT_TABLE_NAME);
   }
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
-  gc.PerformGarbageCollection(false);
-  gc.PerformGarbageCollection(false);  // Second call to deallocate.
+  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection();  // Second call to deallocate.
 }
 
 }  // namespace terrier

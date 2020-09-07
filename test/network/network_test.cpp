@@ -100,9 +100,9 @@ class NetworkTests : public TerrierTest {
     catalog_->TearDown();
 
     // Run the GC to clean up transactions
-    gc_->PerformGarbageCollection(false);
-    gc_->PerformGarbageCollection(false);
-    gc_->PerformGarbageCollection(false);
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
 
     delete catalog_;
     delete tcop_;

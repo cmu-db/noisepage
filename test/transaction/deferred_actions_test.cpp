@@ -71,8 +71,8 @@ TEST_F(DeferredActionsTest, CommitAction) {
   EXPECT_TRUE(committed);
   EXPECT_FALSE(aborted);
 
-  gc_->PerformGarbageCollection(false);
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
+  gc_->PerformGarbageCollection();
 }
 
 // Test that the GC performs available deferred actions when PerformGarbageCollection is called
@@ -83,7 +83,7 @@ TEST_F(DeferredActionsTest, SimpleDefer) {
 
   EXPECT_FALSE(deferred);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_TRUE(deferred);
 }
@@ -100,13 +100,13 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
 
   EXPECT_FALSE(deferred);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_FALSE(deferred);  // txn is still open
 
   txn_mgr_->Abort(txn);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_TRUE(deferred);
 }
@@ -127,12 +127,12 @@ TEST_F(DeferredActionsTest, ChainedDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_TRUE(defer1);
   EXPECT_FALSE(defer2);  // Sitting in txn_mgr_'s deferral queue
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_TRUE(defer1);
   EXPECT_TRUE(defer2);
@@ -165,7 +165,7 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -179,14 +179,14 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_TRUE(aborted);
   EXPECT_FALSE(committed);
   EXPECT_TRUE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_TRUE(aborted);
   EXPECT_FALSE(committed);
@@ -221,7 +221,7 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -235,14 +235,14 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_FALSE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_FALSE(aborted);
   EXPECT_TRUE(committed);
   EXPECT_TRUE(defer1);
   EXPECT_FALSE(defer2);
 
-  gc_->PerformGarbageCollection(false);
+  gc_->PerformGarbageCollection();
 
   EXPECT_FALSE(aborted);
   EXPECT_TRUE(committed);

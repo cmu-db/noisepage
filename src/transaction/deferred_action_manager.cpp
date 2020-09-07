@@ -19,7 +19,7 @@ timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, tr
   return result;
 }
 
-uint32_t DeferredActionManager::Process(bool with_limit) {
+uint32_t DeferredActionManager::Process(bool process_index, bool with_limit) {
   bool daf_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);

@@ -43,7 +43,7 @@ class GarbageCollectorThread {
     }
     for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
       // Using only current thread, process deferred actions without number limit for each run
-      gc_->PerformGarbageCollection(false);
+      gc_->PerformGarbageCollection(true, false);
     }
   }
 
@@ -55,9 +55,9 @@ class GarbageCollectorThread {
     run_gc_ = true;
     gc_paused_ = false;
     for (size_t i = 0; i < num_gc_threads_; i++) {
-      gc_threads_.emplace_back(std::thread([this] {
+      gc_threads_.emplace_back(std::thread([this, i] {
         if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
-        GCThreadLoop();
+        GCThreadLoop(i == 0);
       }));
     }
   }
@@ -92,11 +92,11 @@ class GarbageCollectorThread {
   std::vector<std::thread> gc_threads_;
   std::uint32_t num_gc_threads_;
 
-  void GCThreadLoop() {
+  void GCThreadLoop(bool main_thread) {
     while (run_gc_) {
       std::this_thread::sleep_for(gc_period_);
       // process deferred actions with number limit per run
-      if (!gc_paused_) gc_->PerformGarbageCollection(true);
+      if (!gc_paused_) gc_->PerformGarbageCollection(main_thread, true);
     }
   }
 };
