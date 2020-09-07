@@ -256,7 +256,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           redo->Delta()->SetNull(offset);
         } else {
           byte *data = redo->Delta()->AccessForceNotNull(offset);
-          uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_);
+          uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_) & static_cast<uint8_t>(0x7f);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
         }
       }
@@ -513,7 +513,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
         index_pr->SetNull(index_offset);
       } else {
         byte *index_data = index_pr->AccessForceNotNull(index_offset);
-        auto type_size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type()));
+        auto type_size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type()))  & static_cast<uint8_t>(0x7f);
         std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
       }
     }
