@@ -1318,10 +1318,20 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
 
   std::vector<parser::ConstantValueExpression> params;
   std::vector<type::TypeId> param_types;
-  params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+  if (type != type::TypeId::VARCHAR) {
+    params.emplace_back(type, execution::sql::Integer(0));
+  } else {
+    std::string val = std::string("0");
+    params.emplace_back(type, execution::sql::StringVal(val.c_str()));
+  }
   param_types.push_back(type);
   if (lookup_size > 1) {
-    params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+    if (type != type::TypeId::VARCHAR) {
+      params.emplace_back(type, execution::sql::Integer(0));
+    } else {
+      std::string val = std::string("0");
+      params.emplace_back(type, execution::sql::StringVal(val.c_str()));
+    }
     param_types.push_back(type);
   }
 
