@@ -31,28 +31,29 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, 0);
 
+  storage::StorageUtil::PopulateColumnMap(table_pm_, plan.GetTableSchema()->GetColumns(), offsets);
   // Build the map from Schema columns to underlying columns
-  for (const auto &column : plan.GetTableSchema()->GetColumns()) {
-    switch (column.AttrSize()) {
-      case storage::VARLEN_COLUMN:
-        table_pm_[column.Oid()] = {storage::col_id_t(offsets[0]++), column.Type()};
-        break;
-      case 8:
-        table_pm_[column.Oid()] = {storage::col_id_t(offsets[1]++), column.Type()};
-        break;
-      case 4:
-        table_pm_[column.Oid()] = {storage::col_id_t(offsets[2]++), column.Type()};
-        break;
-      case 2:
-        table_pm_[column.Oid()] = {storage::col_id_t(offsets[3]++), column.Type()};
-        break;
-      case 1:
-        table_pm_[column.Oid()] = {storage::col_id_t(offsets[4]++), column.Type()};
-        break;
-      default:
-        throw std::runtime_error("unexpected switch case value");
-    }
-  }
+  //  for (const auto &column : plan.GetTableSchema()->GetColumns()) {
+  //    switch (column.AttrSize()) {
+  //      case storage::VARLEN_COLUMN:
+  //        table_pm_[column.Oid()] = {storage::col_id_t(offsets[0]++), column.Type()};
+  //        break;
+  //      case 8:
+  //        table_pm_[column.Oid()] = {storage::col_id_t(offsets[1]++), column.Type()};
+  //        break;
+  //      case 4:
+  //        table_pm_[column.Oid()] = {storage::col_id_t(offsets[2]++), column.Type()};
+  //        break;
+  //      case 2:
+  //        table_pm_[column.Oid()] = {storage::col_id_t(offsets[3]++), column.Type()};
+  //        break;
+  //      case 1:
+  //        table_pm_[column.Oid()] = {storage::col_id_t(offsets[4]++), column.Type()};
+  //        break;
+  //      default:
+  //        throw std::runtime_error("unexpected switch case value");
+  //    }
+  //  }
 }
 
 void CteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {

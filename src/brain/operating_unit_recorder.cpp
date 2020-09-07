@@ -132,8 +132,7 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const
     AdjustKeyWithType(col.Type(), &key_size, num_key);
   }
 
-  // TODO(preetang, rohanaff, gautamj, wz2): The following assert is not true
-  // TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
