@@ -17,9 +17,9 @@
 #include "metrics/execution_metric.h"
 #include "metrics/garbage_collection_metric.h"
 #include "metrics/logging_metric.h"
-#include "metrics/query_trace_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/pipeline_metric.h"
+#include "metrics/query_trace_metric.h"
 #include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
@@ -185,8 +185,7 @@ class MetricsStore {
   void RecordQueryText(const execution::query_id_t query_id, const std::string query_text,
                        const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
-    TERRIER_ASSERT(query_trace_metric_ != nullptr,
-                   "QueryTraceMetric not allocated. Check MetricsStore constructor.");
+    TERRIER_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
     query_trace_metric_->RecordQueryText(query_id, query_text, resource_metrics);
   }
 
@@ -199,8 +198,7 @@ class MetricsStore {
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                         const common::ResourceTracker::Metrics &resource_metrics) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
-    TERRIER_ASSERT(query_trace_metric_ != nullptr,
-                   "QueryTraceMetric not allocated. Check MetricsStore constructor.");
+    TERRIER_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
     query_trace_metric_->RecordQueryTrace(query_id, timestamp, resource_metrics);
   }
 

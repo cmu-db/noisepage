@@ -373,8 +373,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
   if (query_trace_metrics_enabled) {
     common::thread_context.metrics_store_->RecordQueryText(exec_query->GetQueryId(),
-                                                           portal->GetStatement()->GetQueryText(),
-                                                           resource_metrics);
+                                                           portal->GetStatement()->GetQueryText(), resource_metrics);
   }
 
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -426,8 +425,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
 
   if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(),
-                                                            metrics::MetricsUtil::Now(),
+    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now(),
                                                             resource_metrics);
   }
 

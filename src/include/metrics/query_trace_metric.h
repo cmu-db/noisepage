@@ -45,19 +45,18 @@ class QueryTraceMetricRawData : public AbstractRawData {
                                  [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
                    "Not all files are open.");
 
-    auto &serializer_outfile = (*outfiles)[0];
-    auto &consumer_outfile = (*outfiles)[1];
+    auto &query_text_outfile = (*outfiles)[0];
+    auto &query_trace_outfile = (*outfiles)[1];
 
     for (const auto &data : query_text_) {
-      serializer_outfile << data.query_id_ << ", "
-                         << data.query_text_ << ", ";
-      data.resource_metrics_.ToCSV(serializer_outfile);
-      serializer_outfile << std::endl;
+      query_text_outfile << data.query_id_ << ", " << data.query_text_ << ", ";
+      data.resource_metrics_.ToCSV(query_text_outfile);
+      query_text_outfile << std::endl;
     }
     for (const auto &data : query_trace_) {
-      consumer_outfile << data.query_id_ << ", " << data.timestamp_ << ", ";
-      data.resource_metrics_.ToCSV(consumer_outfile);
-      consumer_outfile << std::endl;
+      query_trace_outfile << data.query_id_ << ", " << data.timestamp_ << ", ";
+      data.resource_metrics_.ToCSV(query_trace_outfile);
+      query_trace_outfile << std::endl;
     }
     query_text_.clear();
     query_trace_.clear();
@@ -66,14 +65,12 @@ class QueryTraceMetricRawData : public AbstractRawData {
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 2> FILES = {"./query_text.csv",
-                                                            "./query_trace.csv"};
+  static constexpr std::array<std::string_view, 2> FILES = {"./query_text.csv", "./query_trace.csv"};
   /**
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"query_id, query_text",
-                                                                      "query_id, timestamp"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"query_id, query_text", "query_id, timestamp"};
 
  private:
   friend class QueryTraceMetric;
@@ -92,9 +89,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
   struct QueryText {
     QueryText(const execution::query_id_t query_id, const std::string query_text,
               const common::ResourceTracker::Metrics &resource_metrics)
-        : query_id_(query_id),
-          query_text_(query_text),
-          resource_metrics_(resource_metrics) {}
+        : query_id_(query_id), query_text_(query_text), resource_metrics_(resource_metrics) {}
     const execution::query_id_t query_id_;
     const std::string query_text_;
     const common::ResourceTracker::Metrics resource_metrics_;
@@ -103,9 +98,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
   struct QueryTrace {
     QueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                const common::ResourceTracker::Metrics &resource_metrics)
-        : query_id_(query_id),
-          timestamp_(timestamp),
-          resource_metrics_(resource_metrics) {}
+        : query_id_(query_id), timestamp_(timestamp), resource_metrics_(resource_metrics) {}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
     const common::ResourceTracker::Metrics resource_metrics_;
