@@ -106,7 +106,7 @@ class ScanTask {
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanAndInsert_(scanAndInsert),
+        scan_and_insert_(scanAndInsert),
         storage_interface_(storage_interface),
         index_oid_(index_oid) {}
 
@@ -125,7 +125,7 @@ class ScanTask {
       // Call scanning function
       scanner_(query_state_, thread_state, &iter);
     }
-    if (scanAndInsert_ != nullptr) {
+    if (scan_and_insert_ != nullptr) {
       // tbb::this_tbb_thread::get_id() could be used here to confirm thread id and the number of tasks
       // An index pr is allocated here to ensure it is thread local to avoid conflict
       auto curr_index = exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid_));
@@ -133,7 +133,7 @@ class ScanTask {
           curr_index->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
       auto index_pr = curr_index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
       // calling the scan and insert function
-      scanAndInsert_(query_state_, thread_state, &iter, index_pr, storage_interface_);
+      scan_and_insert_(query_state_, thread_state, &iter, index_pr, storage_interface_);
       // deallocate index pr
       exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer,
                                              curr_index->GetProjectedRowInitializer().ProjectedRowSize());
@@ -148,7 +148,7 @@ class ScanTask {
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_ = nullptr;
-  TableVectorIterator::ScanAndInsertIndexFn scanAndInsert_ = nullptr;
+  TableVectorIterator::ScanAndInsertIndexFn scan_and_insert_ = nullptr;
   sql::StorageInterface *storage_interface_ = nullptr;
   uint32_t index_oid_ = 0;
 };
