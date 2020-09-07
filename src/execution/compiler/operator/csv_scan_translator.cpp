@@ -85,7 +85,8 @@ ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   const auto output_schema = GetPlan().GetOutputSchema();
   if (col_oid.UnderlyingValue() > output_schema->NumColumns()) {
     throw EXECUTION_EXCEPTION(
-        fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", col_oid.UnderlyingValue()));
+        fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", col_oid.UnderlyingValue()),
+        common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   // Return the field converted to the appropriate type.
