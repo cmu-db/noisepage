@@ -32,10 +32,10 @@ class TPCCBenchmark : public benchmark::Fixture {
    * May need to increase this if num_threads_ or num_precomputed_txns_per_worker_ are greatly increased
    * (table sizes grow with a bigger workload)
    */
-  const uint64_t blockstore_size_limit_ = 1000;
-  const uint64_t blockstore_reuse_limit_ = 1000;
-  const uint64_t buffersegment_size_limit_ = 1000000;
-  const uint64_t buffersegment_reuse_limit_ = 1000000;
+  const uint64_t blockstore_size_limit_ = 40000;
+  const uint64_t blockstore_reuse_limit_ = 40000;
+  const uint64_t buffersegment_size_limit_ = 10000000;
+  const uint64_t buffersegment_reuse_limit_ = 10000000;
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
@@ -57,14 +57,14 @@ class TPCCBenchmark : public benchmark::Fixture {
    * Number of txns to run per terminal (worker thread)
    * default txn_weights. See definition for values
    */
-  const uint32_t num_precomputed_txns_per_worker_ = 100000;
+  const uint32_t num_precomputed_txns_per_worker_ = 10000000;
   TransactionWeights txn_weights_;
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::microseconds gc_period_{1000};
-  const std::chrono::microseconds metrics_period_{10000};
+  const std::chrono::microseconds gc_period_{0};
+  const std::chrono::microseconds metrics_period_{100000};
 };
 
 // NOLINTNEXTLINE
@@ -694,30 +694,30 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithoutLogging)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLogging)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
 BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(20);
-BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
-    ->Unit(benchmark::kMillisecond)
-    ->UseManualTime()
-    ->MinTime(20);
+//BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)
+//    ->Unit(benchmark::kMillisecond)
+//    ->UseManualTime()
+//    ->MinTime(20);
 // clang-format on
 
 }  // namespace terrier::tpcc
