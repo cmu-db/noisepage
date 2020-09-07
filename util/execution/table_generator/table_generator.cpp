@@ -69,7 +69,7 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
 
       for (uint32_t i = 0; i < num_vals; i++) {
         std::string str_val = std::to_string(distribution(generator));
-        *reinterpret_cast<storage::VarlenEntry *>(val[i * multiply_factor]) =
+        *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
             storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
       }
 
@@ -78,7 +78,7 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
     case Dist::Serial: {
       for (uint32_t i = 0; i < num_vals; i++) {
         std::string str_val = std::to_string(col_meta->counter_);
-        *reinterpret_cast<storage::VarlenEntry *>(val[i * multiply_factor]) =
+        *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
             storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
         col_meta->counter_++;
       }
@@ -90,7 +90,7 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
           rotate_counter = col_meta->min_;
         }
         std::string str_val = std::to_string(rotate_counter);
-        *reinterpret_cast<storage::VarlenEntry *>(val[i * multiply_factor]) =
+        *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
             storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
         rotate_counter++;
       }
