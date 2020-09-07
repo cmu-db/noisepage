@@ -36,7 +36,7 @@ fun pipeline1_finalize(qs: *State, ts: *ThreadState_1) -> nil {
     qs.count = qs.count + ts.count
 }
 
-fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
+fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator, concurrent: uint32) -> nil {
     var filter = &state.filter
     for (@tableIterAdvance(tvi)) {
         var vpi = @tableIterGetVPI(tvi)

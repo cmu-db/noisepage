@@ -111,7 +111,7 @@ namespace terrier::execution::vm {
   F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local)                        \
                                                                                                                       \
   F(RegisterMetricsThread, OperandType::Local)                                                                        \
-  F(CheckTrackersStopped)                                                                                             \
+  F(CheckTrackersStopped, OperandType::Local)                                                                         \
   F(AggregateMetricsThread, OperandType::Local)                                                                       \
                                                                                                                       \
   /* Thread State Container */                                                                                        \

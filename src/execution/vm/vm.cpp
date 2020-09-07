@@ -536,7 +536,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   OP(CheckTrackersStopped) : {
-    OpCheckTrackersStopped();
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpCheckTrackersStopped(exec_ctx);
     DISPATCH_NEXT();
   }
 

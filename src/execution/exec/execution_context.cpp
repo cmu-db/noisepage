@@ -20,6 +20,19 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
   return tuple_size;
 }
 
+void ExecutionContext::RegisterThread() {
+  if (terrier::common::thread_context.metrics_store_ == nullptr && GetMetricsManager()) {
+    GetMetricsManager()->RegisterThread();
+  }
+}
+
+void ExecutionContext::CheckTrackersStopped() {
+  if (terrier::common::thread_context.metrics_store_ != nullptr &&
+      terrier::common::thread_context.resource_tracker_.IsRunning()) {
+    UNREACHABLE("Resource Trackers should have stopped");
+  }
+}
+
 void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component) {
   TERRIER_ASSERT(component == metrics::MetricsComponent::EXECUTION,
                  "StartResourceTracker() invoked with incorrect MetricsComponent");

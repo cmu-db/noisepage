@@ -277,16 +277,11 @@ VM_OP_WARM void OpThreadStateContainerClear(terrier::execution::sql::ThreadState
 }
 
 VM_OP_WARM void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
-  if (terrier::common::thread_context.metrics_store_ == nullptr && exec_ctx->GetMetricsManager()) {
-    exec_ctx->GetMetricsManager()->RegisterThread();
-  }
+  exec_ctx->RegisterThread();
 }
 
-VM_OP_WARM void OpCheckTrackersStopped() {
-  if (terrier::common::thread_context.metrics_store_ != nullptr &&
-      terrier::common::thread_context.resource_tracker_.IsRunning()) {
-    UNREACHABLE("Resource Trackers should have stopped");
-  }
+VM_OP_WARM void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->CheckTrackersStopped();
 }
 
 VM_OP_WARM void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {

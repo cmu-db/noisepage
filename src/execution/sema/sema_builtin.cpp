@@ -3007,7 +3007,13 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::CheckTrackersStopped: {
-      if (!CheckArgCount(call, 0)) {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
 
