@@ -110,10 +110,29 @@ void IndexJoinTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
 }
 
 void IndexJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  // To match the models, IDX_SCAN::CARDINALITY is recorded as per-loop num scans.
+  // i.e. if num loops > 0, this is recorded as int(num_scans_index_ / num_loops_)
+  if (IsCountersEnabled()) {
+    auto *codegen = GetCodeGen();
+    // var per_loop_num_scans = queryState.num_scans_index
+    // if (queryState.num_loops > 0) { per_loop_num_scans = per_loop_num_scans / queryState.num_loops }
+    ast::Identifier per_loop_num_scans = codegen->MakeFreshIdentifier("per_loop_num_scans");
+    ast::Expr *per_loop_num_scans_expr = codegen->MakeExpr(per_loop_num_scans);
+    function->Append(codegen->DeclareVarWithInit(per_loop_num_scans, CounterVal(num_scans_index_)));
+    auto *num_loops_pos = codegen->Compare(parsing::Token::Type::GREATER, CounterVal(num_loops_), codegen->Const32(0));
+    If check(function, num_loops_pos);
+    {
+      ast::Expr *div = codegen->BinaryOp(parsing::Token::Type::SLASH, per_loop_num_scans_expr, CounterVal(num_loops_));
+      function->Append(codegen->Assign(per_loop_num_scans_expr, div));
+    }
+    check.EndIf();
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, per_loop_num_scans_expr);
+  }
+
   FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(index_size_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_index_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS, pipeline, CounterVal(num_loops_));
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_index_));

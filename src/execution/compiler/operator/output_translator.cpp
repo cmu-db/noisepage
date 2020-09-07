@@ -58,8 +58,6 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
 void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, GetCodeGen()->Const32(1));
 
   if (pipeline.IsParallel()) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
