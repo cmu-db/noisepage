@@ -249,6 +249,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* SQL Table Calls */                                                 \
   F(StorageInterfaceInit, storageInterfaceInit)                         \
+  F(StorageInterfaceGetIndexHeapSize, storageInterfaceGetIndexHeapSize) \
   F(GetTablePR, getTablePR)                                             \
   F(TableInsert, tableInsert)                                           \
   F(TableDelete, tableDelete)                                           \
@@ -339,6 +340,7 @@ namespace terrier::execution::ast {
   F(NpRunnersDummyReal, NpRunnersDummyReal)                             \
                                                                         \
   F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
+  F(ExecutionContextSetMemoryUseOverride, execCtxSetMemoryUseOverride)  \
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
                                                                         \
