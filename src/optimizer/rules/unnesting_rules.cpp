@@ -208,9 +208,10 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   if (!ancestor_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
     cf.emplace_back(std::move(new_inner));
-    output = std::make_unique<OperatorNode>(
-        LogicalFilter::Make(std::move(ancestor_predicates)).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-        std::move(cf), context->GetOptimizerContext()->GetTxn());
+    output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(ancestor_predicates))
+                                                .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+                                            std::move(cf), context->GetOptimizerContext()->GetTxn());
+
   } else {
     output = std::move(new_inner);
   }
