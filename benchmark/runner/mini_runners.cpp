@@ -1232,7 +1232,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   size_t mix_size;
   type::TypeId mix_type;
   if (varchar_mix == 1) {
-    mix_size = 64;
+    mix_size = 16;
     mix_type = type::TypeId::VARCHAR;
   } else {
     mix_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
@@ -1307,7 +1307,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
 
   auto type_size = type::TypeUtil::GetTypeSize(type);
   // Match the size in operating unit recorder
-  if (type == type::TypeId::VARCHAR) type_size = 64;
+  if (type == type::TypeId::VARCHAR) type_size = 16;
   auto tuple_size = type_size * key_num;
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
