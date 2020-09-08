@@ -2,7 +2,7 @@
 // SQL: INSERT INTO temp_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505; SELECT * FROM temp_table;
 
 fun main(execCtx: *ExecutionContext) -> int32 {
-  var TEMP_OID_MASK = -2147483648
+  var TEMP_OID_MASK: uint32 = 2147483648                       // 2^31
 
   // Init inserter
   var col_oids: [1]uint32
