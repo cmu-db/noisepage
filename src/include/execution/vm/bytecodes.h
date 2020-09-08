@@ -109,6 +109,7 @@ namespace terrier::execution::vm {
     OperandType::Local)                                                                                               \
   F(ExecutionContextRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,    \
     OperandType::Local)                                                                                               \
+  F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \
@@ -546,6 +547,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceGetIndexHeapSize, OperandType::Local, OperandType::Local)                                         \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(StorageInterfaceIndexGetSize, OperandType::Local, OperandType::Local)                                             \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \

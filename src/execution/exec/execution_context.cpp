@@ -59,7 +59,12 @@ void ExecutionContext::StartPipelineTracker(pipeline_id_t pipeline_id) {
 void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id) {
   if (common::thread_context.metrics_store_ != nullptr && common::thread_context.resource_tracker_.IsRunning()) {
     common::thread_context.resource_tracker_.Stop();
-    common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
+    auto mem_size = mem_tracker_->GetAllocatedSize();
+    if (memory_use_override_) {
+      mem_size = memory_use_override_value_;
+    }
+
+    common::thread_context.resource_tracker_.SetMemory(mem_size);
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,

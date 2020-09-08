@@ -212,6 +212,10 @@ void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
   *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
 }
 
+void OpStorageInterfaceGetIndexHeapSize(uint32_t *size, terrier::execution::sql::StorageInterface *storage_interface) {
+  *size = storage_interface->GetIndexHeapSize();
+}
+
 // TODO(WAN): this should be uint64_t, but see #1049
 void OpStorageInterfaceIndexGetSize(uint32_t *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexGetSize();
