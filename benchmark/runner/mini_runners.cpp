@@ -556,12 +556,24 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
 
     std::vector<parser::ConstantValueExpression> param;
     if (lookup_size == 1) {
-      param.emplace_back(type_param, execution::sql::Integer(low_key));
+      if (type_param != type::TypeId::VARCHAR) {
+        param.emplace_back(type_param, execution::sql::Integer(low_key));
+      } else {
+        std::string val = std::to_string(low_key);
+        param.emplace_back(type_param, execution::sql::StringVal(val.c_str()));
+      }
       bounds.emplace_back(low_key, low_key);
     } else {
       auto high_key = low_key + lookup_size - 1;
-      param.emplace_back(type_param, execution::sql::Integer(low_key));
-      param.emplace_back(type_param, execution::sql::Integer(high_key));
+      if (type_param != type::TypeId::VARCHAR) {
+        param.emplace_back(type_param, execution::sql::Integer(low_key));
+        param.emplace_back(type_param, execution::sql::Integer(high_key));
+      } else {
+        std::string val = std::to_string(low_key);
+        param.emplace_back(type_param, execution::sql::StringVal(val.c_str()));
+        val = std::to_string(high_key);
+        param.emplace_back(type_param, execution::sql::StringVal(val.c_str()));
+      }
       bounds.emplace_back(low_key, high_key);
     }
 
