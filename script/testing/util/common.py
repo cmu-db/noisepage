@@ -8,6 +8,7 @@ import signal
 import errno
 from util.constants import LOG
 
+
 def run_command(command,
                 error_msg="",
                 stdout=subprocess.PIPE,
@@ -33,11 +34,11 @@ def run_command(command,
 
 def check_port(port):
     """Get the list of PIDs (if any) listening on the target port"""
-    
+
     # Copied from https://gist.github.com/jossef/593ade757881bb7ddfe0
     # I would like to use psutil to make this more portable but that would require
     # us to install an additional package with pip
-    
+
     command = "lsof -i :%s | awk '{print $2}'" % port
     output = subprocess.check_output(command, shell=True).strip()
     if output:
@@ -51,10 +52,10 @@ def check_port(port):
 
 def check_pid(pid):
     """Check whether pid exists in the current process table."""
-    
+
     # Copied from psutil
     # https://github.com/giampaolo/psutil/blob/5ba055a8e514698058589d3b615d408767a6e330/psutil/_psposix.py#L28-L53
-    
+
     if pid == 0:
         return True
     try:

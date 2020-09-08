@@ -7,15 +7,16 @@ import sys
 import time
 import traceback
 import errno
+import psutil
 
 from util import constants
 from util.test_case import TestCase
 from util.common import *
 from util.constants import LOG
 
+
 class TestServer:
     """ Class to run general tests """
-
     def __init__(self, args):
         """ Locations and misc. variable initialization """
         # clean up the command line args
@@ -108,7 +109,7 @@ class TestServer:
         """ Wait for the db server to come up """
 
         # Check that PID is running
-        if not check_pid(self.db_process.pid):
+        if not psutil.pid_exists(self.db_process.pid):
             raise RuntimeError("Unable to find DBMS PID {}".format(
                 self.db_process.pid))
 
@@ -130,8 +131,9 @@ class TestServer:
                 break
             except:
                 if i > 0 and i % 20 == 0:
-                    LOG.error("Failed to connect to DB server [Attempt #{}/{}]".
-                          format(i, constants.DB_CONNECT_ATTEMPTS))
+                    LOG.error(
+                        "Failed to connect to DB server [Attempt #{}/{}]".
+                        format(i, constants.DB_CONNECT_ATTEMPTS))
                     # os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
                     # os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
@@ -139,10 +141,10 @@ class TestServer:
                 continue
 
         if not is_db_running:
-            msg = "Unable to connect to DBMS [PID={} / {}]"
-            status = "RUNNING"
-            if not check_pid(self.db_process.pid):
-                status = "NOT RUNNING"
+            msg = "Unable to connect to DBMS [PID={}]".format(
+                self.db_process.pid)
+            status = "RUNNING" if not psutil.pid_exists(
+                self.db_process.pid) else "NOT RUNNING"
             msg = msg.format(self.db_process.pid, status)
             raise RuntimeError(msg)
         return
@@ -186,7 +188,7 @@ class TestServer:
         """ Run the tests """
         if not test_case.test_command or not test_case.test_command_cwd:
             msg = "test command should be provided"
-            raise RuntimeError(msg) 
+            raise RuntimeError(msg)
 
         # run the pre test tasks
         test_case.run_pre_test()
@@ -207,7 +209,7 @@ class TestServer:
 
     def run(self, test_suite):
         """ Orchestrate the overall test execution """
-        if type(test_suite) is not list: test_suite = [ test_suite ]
+        if type(test_suite) is not list: test_suite = [test_suite]
         ret_val_test_suite = None
         try:
             self.check_db_binary()
