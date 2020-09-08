@@ -300,9 +300,9 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
         if (type == type::TypeId::INTEGER)
           b->Args({col, 0, 15, 0, row, row, 0});
         else if (type == type::TypeId::DECIMAL)
-          b->Args({0, col, 0, 15, row, car, 0});
+          b->Args({0, col, 0, 15, row, row, 0});
         else if (type == type::TypeId::VARCHAR)
-          b->Args({0, col, 0, 5, row, car, 1});
+          b->Args({0, col, 0, 5, row, row, 1});
       }
     }
   }
