@@ -10,7 +10,7 @@
                 "weights": "2,35,10,35,2,14,2",
                 "terminals": 2,
                 "query_mode": "extended",
-                "scale_factor": 0.01
+                "scale_factor": 0.1
             }
         }
     ]
