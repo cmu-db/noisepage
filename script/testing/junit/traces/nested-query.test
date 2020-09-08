@@ -48,43 +48,10 @@ statement ok
 statement ok
 -- Test TypeA, max, multiple results
 
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 2, 3);
-
-statement ok
-INSERT INTO part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
-
 query I nosort
 SELECT sno FROM shipment WHERE pno = (SELECT MAX(pno) FROM part WHERE price = 30);
 ----
-2 values hashing to 19283599a9866154a20cbb0be6adc1bc
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
 
 statement ok
 
@@ -92,82 +59,16 @@ statement ok
 statement ok
 -- Test TypeA, max, not equal
 
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 2, 3);
-
-statement ok
-INSERT INTO part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
-
 query I nosort
 SELECT sno FROM shipment WHERE pno != (SELECT MAX(pno) FROM part WHERE price = 30);
 ----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+2 values hashing to 0a88863510308751293f4b91afc07dd6
 
 statement ok
 
 
 statement ok
 -- Test TypeA, max, greater than
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 3, 3);
-
-statement ok
-INSERT INTO  part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
 
 query I nosort
 SELECT sno FROM shipment WHERE pno > (SELECT MAX(pno) FROM part WHERE price = 30);
@@ -178,43 +79,7 @@ statement ok
 
 
 statement ok
-
-
-statement ok
 -- Test TypeA, max, less than
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 3, 3);
-
-statement ok
-INSERT INTO part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
 
 query I nosort
 SELECT sno FROM shipment WHERE pno < (SELECT MAX(pno) FROM part WHERE price = 30);
@@ -227,39 +92,6 @@ statement ok
 statement ok
 -- Test TypeA, max, greater than or equal to
 
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 3, 3);
-
-statement ok
-INSERT INTO part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
-
 query I nosort
 SELECT sno FROM shipment WHERE pno >= (SELECT MAX(pno) FROM part WHERE price = 30);
 ----
@@ -271,39 +103,6 @@ statement ok
 statement ok
 -- Test TypeA, max, less than or equal to
 
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 3, 3);
-
-statement ok
-INSERT INTO part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
-
 query I nosort
 SELECT sno FROM shipment WHERE pno <= (SELECT MAX(pno) FROM part WHERE price = 30);
 ----
@@ -314,39 +113,6 @@ statement ok
 
 statement ok
 -- Test TypeA, sum
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 2);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO shipment VALUES (3, 3, 3);
-
-statement ok
-INSERT INTO part VALUES (1, 30);
-
-statement ok
-INSERT INTO part VALUES (2, 30);
 
 query I nosort
 SELECT sno FROM shipment WHERE pno = (SELECT SUM(pno) FROM part WHERE price = 30);
@@ -400,76 +166,16 @@ statement ok
 statement ok
 -- Test TypeN, Multiple results
 
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 1);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (2, 2, 1);
-
 query I nosort
 SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier);
 ----
-2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
 statement ok
 
 
 statement ok
 -- Test TypeN, limit
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 1);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 2, 1);
 
 statement ok
 INSERT INTO supplier VALUES (2, 2, 1);
@@ -526,36 +232,6 @@ statement ok
 statement ok
 -- Test TypeN, EXISTS
 
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 1);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (2, 2, 1);
-
 query I nosort
 SELECT pno FROM shipment WHERE EXISTS (SELECT sno FROM supplier WHERE sno > 1);
 ----
@@ -565,37 +241,18 @@ statement ok
 
 
 statement ok
+-- Test TypeN, greater than equal to any
+
+query I nosort
+SELECT pno FROM shipment WHERE shipment.sno = ANY (SELECT sno FROM supplier);
+----
+2 values hashing to cb0e93933b5e2202825f38da7587cf07
+
+statement ok
+
+
+statement ok
 -- Test TypeJ
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 1);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 2);
-
-statement ok
-INSERT INTO supplier VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 2, 2);
 
 query I nosort
 SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty);
@@ -644,7 +301,7 @@ INSERT INTO supplier VALUES (1, 2, 2);
 query I nosort
 SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty limit 1);
 ----
-2 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+2 values hashing to cb0e93933b5e2202825f38da7587cf07
 
 statement ok
 
