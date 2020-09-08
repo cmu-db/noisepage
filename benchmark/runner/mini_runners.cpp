@@ -113,7 +113,7 @@ void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::
     mixed_dist = {{3, 12}, {7, 8}, {11, 4}};
   } else {
     /* Vector of table distributions <INTEGER, VARCHAR> */
-    mixed_dist = {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}};
+    mixed_dist = {{3, 2}, {4, 1}};
   } /* Always generate full table scans for all row_num and cardinalities. */
   for (auto col_dist : mixed_dist) {
     std::pair<uint32_t, uint32_t> start = {col_dist.first - 2, 2};
@@ -274,24 +274,27 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
+      // Skip more than 5 varchar cols to match the generated tables
+      if (type == type::TypeId::VARCHAR && col > 5)
+        continue;
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
           if (type == type::TypeId::INTEGER)
             b->Args({col, 0, 15, 0, row, car, 0});
-          else if (type == type::TypeId::DECIMAL)
+          else
             b->Args({0, col, 0, 15, row, car, 0});
           car *= 2;
         }
 
         if (type == type::TypeId::INTEGER)
           b->Args({col, 0, 15, 0, row, row, 0});
-        else if (type == type::TypeId::DECIMAL)
+        else
           b->Args({0, col, 0, 15, row, row, 0});
       }
     }
