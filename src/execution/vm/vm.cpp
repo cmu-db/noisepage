@@ -592,7 +592,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(ParallelScanTableInsertIndex) : {
+  OP(ParallelCreateIndex) : {
     auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
@@ -603,8 +603,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     auto scan_fn =
-        reinterpret_cast<sql::TableVectorIterator::ScanAndInsertIndexFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelScanTableInsertIndex(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface,
+        reinterpret_cast<sql::TableVectorIterator::CreateIndexFn>(module_->GetRawFunctionImpl(scan_fn_id));
+    OpParallelCreateIndex(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface,
                                    index_oid);
     DISPATCH_NEXT();
   }

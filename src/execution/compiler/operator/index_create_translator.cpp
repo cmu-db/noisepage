@@ -23,7 +23,7 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       codegen_(compilation_context->GetCodeGen()),
       storage_interface_base_(codegen_->MakeFreshIdentifier("storage_interface_base")),
-      storage_interface_(codegen_->MakeFreshIdentifier("storage_interface_")),
+      storage_interface_(codegen_->MakeFreshIdentifier("storage_interface")),
       index_pr_(codegen_->MakeFreshIdentifier("index_pr")),
       tvi_var_(codegen_->MakeFreshIdentifier("tvi")),
       vpi_var_(codegen_->MakeFreshIdentifier("vpi")),
@@ -52,7 +52,7 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   DeclareInserter(function);
-  function->Append(codegen_->IterateTableInsertIndexParallel(
+  function->Append(codegen_->CreateIndexParallel(
       table_oid_, col_oids_var_, GetQueryStatePtr(), GetExecutionContext(), work_func, storage_interface_, index_oid_));
   FreeInserter(function);
 }

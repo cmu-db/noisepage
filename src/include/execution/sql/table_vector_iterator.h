@@ -94,14 +94,16 @@ class EXPORT TableVectorIterator {
   using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
 
   /**
-   * Scan function callback used to scan a partition of the table and then insert into the
+   * Create Index function callback used to scan a partition of the table and then insert into the
    * Convention: First argument is the opaque query state (that must contain execCtx as a member),
    *             second argument is the thread state,
    *             third argument is the table vector iterator configured to iterate a sub-range of the table.
+   *             fourth argument is the index pr that is filled during iteration
+   *             fifth argument is the storage interface for given table
    *             The first two arguments are void because their types are only known at runtime
    *             (i.e., defined in generated code).
    */
-  using ScanAndInsertIndexFn = void (*)(void *, void *, TableVectorIterator *iter, storage::ProjectedRow *index_pr,
+  using CreateIndexFn = void (*)(void *, void *, TableVectorIterator *iter, storage::ProjectedRow *index_pr,
                                         StorageInterface *storageInterface);
 
   /**
@@ -126,7 +128,7 @@ class EXPORT TableVectorIterator {
 
   /**
    * Perform a parallel scan over the table with ID @em table_id using the callback function
-   * @em scanner on each input vector projection from the source table, and then it insert each
+   * @em create_index_fn on each input vector projection from the source table, and then it insert each
    * tuple into the index with a thread local index pr. This call is blocking,
    * meaning that it only returns after the whole table has been scanned. Iteration order is
    * non-deterministic.
@@ -138,15 +140,13 @@ class EXPORT TableVectorIterator {
    *                 ThreadStateContainer for all thread states, where it is assumed that the
    *                 container has been configured for size, construction, and destruction
    *                 before this invocation.
-   * @param scan_fn The callback function invoked for vectors of table input.
+   * @param create_index_fn The callback function invoked for vectors of table input.
    * @param storage_interface a pointer to the storage interface
    * @param index_oid the index to be inserted
-   * @param min_grain_size The minimum number of blocks to give a scan task.
    */
-  static bool ParallelScanInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                                      exec::ExecutionContext *exec_ctx, ScanAndInsertIndexFn scan_fn,
-                                      sql::StorageInterface *storage_interface, uint32_t index_oid,
-                                      uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
+  static bool ParallelCreateIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
+                                      exec::ExecutionContext *exec_ctx, CreateIndexFn create_index_fn,
+                                      sql::StorageInterface *storage_interface, uint32_t index_oid);
 
  private:
   exec::ExecutionContext *exec_ctx_;

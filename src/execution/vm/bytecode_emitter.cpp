@@ -296,10 +296,10 @@ void BytecodeEmitter::EmitParallelTableScan(LocalVar table_oid, LocalVar col_oid
   EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
 }
 
-void BytecodeEmitter::EmitParallelTableScanInsertIndex(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
+void BytecodeEmitter::EmitParallelCreateIndex(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
                                                        LocalVar query_state, LocalVar exec_ctx, FunctionId scan_fn,
                                                        LocalVar storage_interface, LocalVar index_oid) {
-  EmitAll(Bytecode::ParallelScanTableInsertIndex, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn,
+  EmitAll(Bytecode::ParallelCreateIndex, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn,
           storage_interface, index_oid);
 }
 

@@ -324,7 +324,7 @@ class BytecodeEmitter {
                              LocalVar exec_ctx, FunctionId scan_fn);
 
   /** Emit a parallel table scan and insert into index. */
-  void EmitParallelTableScanInsertIndex(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
+  void EmitParallelCreateIndex(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
                                         LocalVar exec_ctx, FunctionId scan_fn, LocalVar storage_interface,
                                         LocalVar index_oid);
 

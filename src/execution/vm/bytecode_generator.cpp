@@ -683,7 +683,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
   }
 }
 
-void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call, ast::Builtin builtin) {
+void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   // The first argument is the table oid, which is integer-typed.
   LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[0]);
   // The second argument is the array of column oids.
@@ -696,24 +696,30 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call, a
   // The fifth argument is the scan function as an identifier.
   const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
   // Emit the bytecode.
-  switch (builtin) {
-    case ast::Builtin::TableIterParallel: {
-      GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
+  GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
                                           query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
-      break;
-    }
-    case ast::Builtin::TableIterIndexInsertParallel: {
-      LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[5]);
-      LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
-      GetEmitter()->EmitParallelTableScanInsertIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
-                                                     query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()),
-                                                     storage_interface, index_oid);
-      break;
-    }
-    default: {
-      UNREACHABLE("Impossible table iteration parallel call");
-    }
-  }
+}
+
+void BytecodeGenerator::VisitBuiltinCreateIndexParallelCall(ast::CallExpr *call) {
+  // The first argument is the table oid, which is integer-typed.
+  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[0]);
+  // The second argument is the array of column oids.
+  auto *arr_type = call->Arguments()[1]->GetType()->As<ast::ArrayType>();
+  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[1]);
+  // The third argument is the query state.
+  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[2]);
+  // The fourth argument should be the execution context.
+  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
+  // The fifth argument is the scan and insert function as an identifier.
+  const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
+  // The sixth argument is a pointer to the storage interface
+  LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[5]);
+  // The seventh argument is the index oid
+  LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
+  // Emit the bytecode.
+  GetEmitter()->EmitParallelCreateIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
+                                                 query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()),
+                                                 storage_interface, index_oid);
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2424,9 +2430,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinTableIterCall(call, builtin);
       break;
     }
-    case ast::Builtin::TableIterParallel:
-    case ast::Builtin::TableIterIndexInsertParallel: {
-      VisitBuiltinTableIterParallelCall(call, builtin);
+    case ast::Builtin::TableIterParallel: {
+      VisitBuiltinTableIterParallelCall(call);
+      break;
+    }
+    case ast::Builtin::TableIterCreateIndexParallel: {
+      VisitBuiltinCreateIndexParallelCall(call);
       break;
     }
     case ast::Builtin::VPIInit:

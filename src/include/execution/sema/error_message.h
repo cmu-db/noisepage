@@ -77,6 +77,11 @@ namespace sema {
     "parallel scan function must have type (*ExecutionContext, *TableVectorIterator)->nil, "                          \
     "received '%0'",                                                                                                  \
     (ast::Type *))                                                                                                    \
+    F(BadParallelCreateIndexFunction,                                                                                 \
+    "parallel create index function must have type"                                                                   \
+     "(*ExecutionContext, *TableVectorIterator, *index_pr, *storage_interface)->nil, "                                \
+    "received '%0'",                                                                                                  \
+    (ast::Type *))                                                                                                    \
   F(BadKeyEqualityCheckFunctionForJoinTableLookup,                                                                    \
     "key equality check function must have type: (*,*,*)->bool, received '%0'", (ast::Type *))                        \
   F(BadArgToIndexIteratorInit,                                                                                        \

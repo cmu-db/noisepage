@@ -97,18 +97,45 @@ class ScanTask {
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
         scanner_(scanner) {}
 
-  ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanAndInsertIndexFn scanAndInsert,
-           sql::StorageInterface *storage_interface, uint32_t index_oid)
-      : exec_ctx_(exec_ctx),
-        table_oid_(table_oid),
-        col_oids_(col_oids),
-        num_oids_(num_oids),
-        query_state_(query_state),
-        thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scan_and_insert_(scanAndInsert),
-        storage_interface_(storage_interface),
-        index_oid_(index_oid) {}
+  void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
+    // Create the iterator over the specified block range
+    TableVectorIterator iter{exec_ctx_, table_oid_, col_oids_, num_oids_};
+
+    // Initialize it
+    if (!iter.Init(block_range.begin(), block_range.end())) {
+      return;
+    }
+
+    // Pull out the thread-local state
+    byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
+      // Call scanning function
+      scanner_(query_state_, thread_state, &iter);
+  }
+
+ private:
+  exec::ExecutionContext *exec_ctx_;
+  uint32_t table_oid_;
+  uint32_t *col_oids_;
+  uint32_t num_oids_;
+  void *const query_state_;
+  ThreadStateContainer *const thread_state_container_;
+  TableVectorIterator::ScanFn scanner_ = nullptr;
+};
+
+class CreateIndexTask {
+ public:
+  CreateIndexTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
+      exec::ExecutionContext *exec_ctx, TableVectorIterator::CreateIndexFn create_index_fn,
+      sql::StorageInterface *storage_interface, uint32_t index_oid)
+  : exec_ctx_(exec_ctx),
+      table_oid_(table_oid),
+      col_oids_(col_oids),
+      num_oids_(num_oids),
+      query_state_(query_state),
+      thread_state_container_(exec_ctx->GetThreadStateContainer()),
+    create_index_fn_(create_index_fn),
+  storage_interface_(storage_interface),
+  index_oid_(index_oid) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
@@ -121,11 +148,6 @@ class ScanTask {
 
     // Pull out the thread-local state
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
-    if (scanner_ != nullptr) {
-      // Call scanning function
-      scanner_(query_state_, thread_state, &iter);
-    }
-    if (scan_and_insert_ != nullptr) {
       // tbb::this_tbb_thread::get_id() could be used here to confirm thread id and the number of tasks
       // An index pr is allocated here to ensure it is thread local to avoid conflict
       auto curr_index = exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid_));
@@ -133,11 +155,10 @@ class ScanTask {
           curr_index->GetProjectedRowInitializer().ProjectedRowSize(), alignof(uint64_t), false);
       auto index_pr = curr_index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer);
       // calling the scan and insert function
-      scan_and_insert_(query_state_, thread_state, &iter, index_pr, storage_interface_);
+    create_index_fn_(query_state_, thread_state, &iter, index_pr, storage_interface_);
       // deallocate index pr
       exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer,
                                              curr_index->GetProjectedRowInitializer().ProjectedRowSize());
-    }
   }
 
  private:
@@ -147,8 +168,7 @@ class ScanTask {
   uint32_t num_oids_;
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
-  TableVectorIterator::ScanFn scanner_ = nullptr;
-  TableVectorIterator::ScanAndInsertIndexFn scan_and_insert_ = nullptr;
+  TableVectorIterator::CreateIndexFn create_index_fn_ = nullptr;
   sql::StorageInterface *storage_interface_ = nullptr;
   uint32_t index_oid_ = 0;
 };
@@ -182,11 +202,10 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   return true;
 }
 
-bool TableVectorIterator::ParallelScanInsertIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
+bool TableVectorIterator::ParallelCreateIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                                   void *const query_state, exec::ExecutionContext *exec_ctx,
-                                                  const TableVectorIterator::ScanAndInsertIndexFn scan_fn,
-                                                  sql::StorageInterface *storage_interface, uint32_t index_oid,
-                                                  const uint32_t min_grain_size) {
+                                                  const TableVectorIterator::CreateIndexFn create_index_fn,
+                                                  sql::StorageInterface *storage_interface, uint32_t index_oid) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {
@@ -200,11 +219,11 @@ bool TableVectorIterator::ParallelScanInsertIndex(uint32_t table_oid, uint32_t *
   tbb::task_arena limited_arena(4);
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks());
   // TODO(wuwenw): A static partitioner is used for the experimental purpose, may need a better way to split workload
-  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn,
+  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &create_index_fn,
                          &storage_interface, &index_oid] {
     tbb::parallel_for(
         block_range,
-        ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface, index_oid),
+        CreateIndexTask(table_oid, col_oids, num_oids, query_state, exec_ctx, create_index_fn, storage_interface, index_oid),
         tbb::static_partitioner());
   });
 
