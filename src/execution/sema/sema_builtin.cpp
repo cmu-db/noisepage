@@ -1092,7 +1092,6 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
     return;
   }
   // Check the type of the scanner function parameters. See TableVectorIterator::ScanFn.
-
   const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
   const auto &params = scan_fn_type->GetParams();
   if (params.size() != 3                                         // Scan function has 3 arguments.

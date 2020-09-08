@@ -1918,6 +1918,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *pr_result = frame->LocalAt<storage::ProjectedRow **>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+
     OpStorageInterfaceGetIndexPR(pr_result, storage_interface, index_oid);
     DISPATCH_NEXT();
   }
