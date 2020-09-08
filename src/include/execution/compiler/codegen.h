@@ -597,10 +597,8 @@ class CodeGen {
    * @return The call.
    */
   [[nodiscard]] ast::Expr *CreateIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                                           ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                           ast::Identifier worker_name,
-                                                           ast::Identifier storage_interface,
-                                                           catalog::index_oid_t index_oid);
+                                               ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name,
+                                               ast::Identifier storage_interface, catalog::index_oid_t index_oid);
 
   /**
    * Call \@abortTxn(exec_ctx).

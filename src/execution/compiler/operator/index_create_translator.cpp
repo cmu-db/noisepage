@@ -52,8 +52,8 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   DeclareInserter(function);
-  function->Append(codegen_->CreateIndexParallel(
-      table_oid_, col_oids_var_, GetQueryStatePtr(), GetExecutionContext(), work_func, storage_interface_, index_oid_));
+  function->Append(codegen_->CreateIndexParallel(table_oid_, col_oids_var_, GetQueryStatePtr(), GetExecutionContext(),
+                                                 work_func, storage_interface_, index_oid_));
   FreeInserter(function);
 }
 
@@ -75,8 +75,8 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
       auto *codegen = GetCodeGen();
 
       // Get Memory Use
-      auto *get_mem =
-          codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize, {codegen_->MakeExpr(storage_interface_)});
+      auto *get_mem = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,
+                                           {codegen_->MakeExpr(storage_interface_)});
       auto *record =
           codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
       function->Append(codegen->MakeStmt(record));

@@ -104,7 +104,7 @@ class EXPORT TableVectorIterator {
    *             (i.e., defined in generated code).
    */
   using CreateIndexFn = void (*)(void *, void *, TableVectorIterator *iter, storage::ProjectedRow *index_pr,
-                                        StorageInterface *storageInterface);
+                                 StorageInterface *storageInterface);
 
   /**
    * Perform a parallel scan over the table with ID @em table_id using the callback function
@@ -145,8 +145,8 @@ class EXPORT TableVectorIterator {
    * @param index_oid the index to be inserted
    */
   static bool ParallelCreateIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                                      exec::ExecutionContext *exec_ctx, CreateIndexFn create_index_fn,
-                                      sql::StorageInterface *storage_interface, uint32_t index_oid);
+                                  exec::ExecutionContext *exec_ctx, CreateIndexFn create_index_fn,
+                                  sql::StorageInterface *storage_interface, uint32_t index_oid);
 
  private:
   exec::ExecutionContext *exec_ctx_;

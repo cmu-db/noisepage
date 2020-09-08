@@ -562,9 +562,8 @@ ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Id
 }
 
 ast::Expr *CodeGen::CreateIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                                    ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                    ast::Identifier worker_name, ast::Identifier storage_interface,
-                                                    catalog::index_oid_t index_oid) {
+                                        ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name,
+                                        ast::Identifier storage_interface, catalog::index_oid_t index_oid) {
   ast::Expr *call =
       CallBuiltin(ast::Builtin::TableIterCreateIndexParallel,
                   {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx,

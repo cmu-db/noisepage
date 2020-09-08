@@ -696,8 +696,8 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   // The fifth argument is the scan function as an identifier.
   const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
   // Emit the bytecode.
-  GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
-                                          query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
+  GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
+                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
 }
 
 void BytecodeGenerator::VisitBuiltinCreateIndexParallelCall(ast::CallExpr *call) {
@@ -717,9 +717,9 @@ void BytecodeGenerator::VisitBuiltinCreateIndexParallelCall(ast::CallExpr *call)
   // The seventh argument is the index oid
   LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
   // Emit the bytecode.
-  GetEmitter()->EmitParallelCreateIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()),
-                                                 query_state, exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()),
-                                                 storage_interface, index_oid);
+  GetEmitter()->EmitParallelCreateIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
+                                        exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), storage_interface,
+                                        index_oid);
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {

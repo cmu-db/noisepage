@@ -609,10 +609,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
     auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
-    auto scan_fn =
-        reinterpret_cast<sql::TableVectorIterator::CreateIndexFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelCreateIndex(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface,
-                                   index_oid);
+    auto scan_fn = reinterpret_cast<sql::TableVectorIterator::CreateIndexFn>(module_->GetRawFunctionImpl(scan_fn_id));
+    OpParallelCreateIndex(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface, index_oid);
     DISPATCH_NEXT();
   }
 
