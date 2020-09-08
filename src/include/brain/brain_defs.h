@@ -104,6 +104,8 @@ enum class ExecutionOperatingUnitType : uint32_t {
    */
   LIMIT,
 
+  CREATE_INDEX,
+
   /**
    * Use to demarcate plan and operations.
    * For all operations, cardinality = num_rows.
