@@ -489,7 +489,7 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
   // first build an expression representing hash join
   const auto inner_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
   const auto &children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two children");
 
   // Get the "right" inner child and append the join predicate
   auto r_child = children[1]->Contents()->GetContentsAs<LogicalGet>();
@@ -604,7 +604,7 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
   const auto inner_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
 
   auto children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two children");
   auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();

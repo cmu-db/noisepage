@@ -49,7 +49,7 @@ class UnnestMarkJoinToInnerJoin : public Rule {
 };
 
 /**
- * Transform Single Join to Inner Join
+ * Unnest Single Join to Inner Join
  */
 class UnnestSingleJoinToInnerJoin : public Rule {
  public:

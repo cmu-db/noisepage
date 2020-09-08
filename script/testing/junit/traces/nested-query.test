@@ -565,47 +565,6 @@ statement ok
 
 
 statement ok
--- Test TypeN, greater than equal to any
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 1);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (2, 2, 1);
-
-query I nosort
-SELECT pno FROM shipment WHERE shipment.sno = ANY (SELECT sno FROM supplier);
-----
-2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
-
-statement ok
-
-
-statement ok
 -- Test TypeJ
 
 statement ok

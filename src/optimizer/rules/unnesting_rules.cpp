@@ -150,18 +150,19 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   const auto &agg_group_aliases_set = memo.GetGroupByID(agg_group_id)->GetTableAliases();
   auto &filter_predicates = filter_expr->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
 
-  std::vector<AnnotatedExpression> top_predicates;
-  std::vector<AnnotatedExpression> down_predicates;
+  std::vector<AnnotatedExpression> ancestor_predicates;
+  std::vector<AnnotatedExpression> descendant_predicates;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
 
   // loop over all predicates check each of them if they refer table not contained in agg
+  // from RewritePullFilterThroughAggregation
   for (auto &predicate : filter_predicates) {
     if (OptimizerUtil::IsSubset(agg_group_aliases_set, predicate.GetTableAliasSet())) {
-      down_predicates.emplace_back(predicate);
+      descendant_predicates.emplace_back(predicate);
     } else {
       // Correlated predicate, already in the form of
       // (outer_relation.a = (expr))
-      top_predicates.emplace_back(predicate);
+      ancestor_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
       if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
@@ -187,10 +188,10 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   // Create a new inner join node from single join
   std::vector<std::unique_ptr<AbstractOptimizerNode>> ci;
   ci.emplace_back(input->GetChildren()[0]->Copy());
-  if (!down_predicates.empty()) {
+  if (!descendant_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
     cf.emplace_back(std::move(new_aggr));
-    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(down_predicates))
+    auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(descendant_predicates))
                                                      .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                                  std::move(cf), context->GetOptimizerContext()->GetTxn());
     ci.emplace_back(std::move(filter));
@@ -204,11 +205,11 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   std::unique_ptr<OperatorNode> output;
   // Create new filter nodes
   // Construct a top filter if any
-  if (!top_predicates.empty()) {
+  if (!ancestor_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
     cf.emplace_back(std::move(new_inner));
     output = std::make_unique<OperatorNode>(
-        LogicalFilter::Make(std::move(top_predicates)).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+        LogicalFilter::Make(std::move(ancestor_predicates)).RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
         std::move(cf), context->GetOptimizerContext()->GetTxn());
   } else {
     output = std::move(new_inner);
