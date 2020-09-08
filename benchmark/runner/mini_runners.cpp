@@ -108,15 +108,18 @@ void InvokeGC() {
 void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::vector<int64_t> &row_nums, bool noop,
                             uint32_t varchar_mix) {
   std::vector<std::pair<uint32_t, uint32_t>> mixed_dist;
+  uint32_t step_size;
   if (varchar_mix == 0) {
     /* Vector of table distributions <INTEGER, DECIMALS> */
     mixed_dist = {{3, 12}, {7, 8}, {11, 4}};
+    step_size = 2;
   } else {
     /* Vector of table distributions <INTEGER, VARCHAR> */
-    mixed_dist = {{3, 2}, {4, 1}};
+    mixed_dist = {{2, 3}, {3, 2}, {4, 1}};
+    step_size = 1;
   } /* Always generate full table scans for all row_num and cardinalities. */
   for (auto col_dist : mixed_dist) {
-    std::pair<uint32_t, uint32_t> start = {col_dist.first - 2, 2};
+    std::pair<uint32_t, uint32_t> start = {col_dist.first - step_size, step_size};
     while (true) {
       for (auto row : row_nums) {
         int64_t car = 1;
@@ -127,11 +130,11 @@ void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::
         args->push_back({start.first, start.second, col_dist.first, col_dist.second, row, row, varchar_mix});
       }
       if (start.second < col_dist.second) {
-        start.second += 2;
+        start.second += step_size;
       } else if (start.first < col_dist.first) {
         if (noop) args->push_back({0, 0, 0, 0, 0, 0, varchar_mix});
-        start.first += 2;
-        start.second = 2;
+        start.first += step_size;
+        start.second = step_size;
       } else {
         break;
       }
@@ -287,15 +290,19 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
         while (car < row) {
           if (type == type::TypeId::INTEGER)
             b->Args({col, 0, 15, 0, row, car, 0});
-          else
+          else if (type == type::TypeId::DECIMAL)
             b->Args({0, col, 0, 15, row, car, 0});
+          else if (type == type::TypeId::VARCHAR)
+            b->Args({0, col, 0, 5, row, car, 1});
           car *= 2;
         }
 
         if (type == type::TypeId::INTEGER)
           b->Args({col, 0, 15, 0, row, row, 0});
-        else
-          b->Args({0, col, 0, 15, row, row, 0});
+        else if (type == type::TypeId::DECIMAL)
+          b->Args({0, col, 0, 15, row, car, 0});
+        else if (type == type::TypeId::VARCHAR)
+          b->Args({0, col, 0, 5, row, car, 1});
       }
     }
   }
