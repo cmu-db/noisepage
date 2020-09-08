@@ -108,7 +108,7 @@ void InvokeGC() {
 void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::vector<int64_t> &row_nums, bool noop,
                             uint32_t varchar_mix) {
   std::vector<std::pair<uint32_t, uint32_t>> mixed_dist;
-  if (varchar_mix == 1) {
+  if (varchar_mix == 0) {
     /* Vector of table distributions <INTEGER, DECIMALS> */
     mixed_dist = {{3, 12}, {7, 8}, {11, 4}};
   } else {
