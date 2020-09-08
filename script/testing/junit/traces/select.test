@@ -581,6 +581,7 @@ statement ok
 DROP TABLE like_tbl;
 
 # LEFT OUTER JOIN
+
 statement ok
 CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
 
@@ -717,8 +718,8 @@ INSERT INTO tab0 VALUES(847,221,102);
 statement ok
 INSERT INTO tab0 VALUES(653, 573, 733);
 
-statement error
-INSERT INTO tab1 VALUES(51,14,96);
+statement ok
+INSERT INTO tab1 VALUES(51, 14);
 
 statement ok
 INSERT INTO tab1 VALUES(854,5);
@@ -737,7 +738,7 @@ SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 ORDER BY tab0.c
 query IIIII nosort
 SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col1 = tab1.col1 ORDER BY tab0.col1 ASC;
 ----
-20 values hashing to 061bf4c1fcb67b6ac98b73146a4dbeeb
+20 values hashing to e020bd906325b64a85b01baac93ca8f5
 
 query IIIII nosort
 SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col2 = tab1.col1 ORDER BY tab0.col1 ASC;
