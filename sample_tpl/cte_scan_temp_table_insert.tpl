@@ -6,7 +6,7 @@ fun main(execCtx: *ExecutionContext) -> int32 {
 
   // Init inserter
   var col_oids: [1]uint32
-  col_oids[0] = 1 // colA
+  col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
 
   var col_types: [1]uint32
   col_types[0] = 4 // colA

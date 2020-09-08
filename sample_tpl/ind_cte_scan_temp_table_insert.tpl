@@ -5,10 +5,10 @@
 
 fun main(exec_ctx: *ExecutionContext) -> int32 {
   // Initialize CTE Scan Iterator
-  var TEMP_OID_MASK = -2147483648
+  var TEMP_OID_MASK: uint32 = 2147483648                       // 2^31
 
   var col_oids: [1]uint32
-  col_oids[0] = 1
+  col_oids[0] = @testCatalogLookup(exec_ctx, "test_1", "colA")
   var col_types: [1]uint32
   col_types[0] = 4
 
