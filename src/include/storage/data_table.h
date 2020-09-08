@@ -6,10 +6,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/concurrent_pointer_vector.h"
 #include "common/concurrent_vector.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/shared_latch.h"
 
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
