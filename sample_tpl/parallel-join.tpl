@@ -51,7 +51,7 @@ fun pipeline1_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *Thr
     @joinHTFree(&state.jht)
 }
 
-fun pipeline1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
+fun pipeline1_worker(queryState: *State, state: *ThreadState_1, tvi: *TableVectorIterator, concurrent: uint32) -> nil {
     var filter = &state.filter_manager
     var jht = &state.jht
     for (@tableIterAdvance(tvi)) {
@@ -77,7 +77,7 @@ fun pipeline2_worker_initThreadState(execCtx: *ExecutionContext, state: *ThreadS
 
 fun pipeline2_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *ThreadState_2) -> nil { }
 
-fun pipeline2_worker(queryState: *State, state: *ThreadState_2, tvi: *TableVectorIterator) -> nil {
+fun pipeline2_worker(queryState: *State, state: *ThreadState_2, tvi: *TableVectorIterator, concurrent: uint32) -> nil {
     var jht = &queryState.jht
     for (@tableIterAdvance(tvi)) {
         var vec = @tableIterGetVPI(tvi)

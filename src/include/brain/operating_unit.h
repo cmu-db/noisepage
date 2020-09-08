@@ -7,6 +7,7 @@
 
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::compiler::test {
 class CompilerTest_SimpleSeqScanTest_Test;
@@ -212,10 +213,10 @@ class ExecutionOperatingUnitFeature {
  */
 using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFeature>;
 
-class ExecOUFeatureVector {
+class EXPORT ExecOUFeatureVector {
  public:
-  execution::pipeline_id_t pipeline_id_;
-  ExecutionOperatingUnitFeatureVector pipeline_features_;
+  execution::pipeline_id_t pipeline_id_{0};
+  ExecutionOperatingUnitFeatureVector pipeline_features_{};
 
   /**
    * Function used to update a feature's metadata information
@@ -227,49 +228,7 @@ class ExecOUFeatureVector {
    */
   void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
                      ExecutionOperatingUnitFeatureAttribute modifier, ExecutionOperatingUnitFeatureUpdateMode mode,
-                     uint32_t val) {
-    TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
-    size_t *value = nullptr;
-    for (auto &feature : pipeline_features_) {
-      if (feature.GetFeatureId() == feature_id) {
-        TERRIER_ASSERT(value == nullptr, "Duplicate feature found");
-        switch (modifier) {
-          case brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS: {
-            value = &feature.GetNumRows();
-            break;
-          }
-          case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
-            value = &feature.GetCardinality();
-            break;
-          }
-          case brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT: {
-            value = &feature.GetNumConcurrent();
-            break;
-          }
-          default:
-            TERRIER_ASSERT(false, "Invalid feature attribute.");
-        }
-      }
-    }
-
-    TERRIER_ASSERT(value != nullptr, "feature_id could not be found");
-    switch (mode) {
-      case brain::ExecutionOperatingUnitFeatureUpdateMode::SET: {
-        *value = val;
-        break;
-      }
-      case brain::ExecutionOperatingUnitFeatureUpdateMode::ADD: {
-        *value = *value + val;
-        break;
-      }
-      case brain::ExecutionOperatingUnitFeatureUpdateMode::MULT: {
-        *value = *value * val;
-        break;
-      }
-      default:
-        TERRIER_ASSERT(false, "Invalid feature update mode");
-    }
-  }
+                     uint32_t val);
 };
 
 /**

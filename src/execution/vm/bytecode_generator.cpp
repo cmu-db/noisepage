@@ -2448,7 +2448,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::CheckTrackersStopped: {
-      GetEmitter()->Emit(Bytecode::CheckTrackersStopped);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::CheckTrackersStopped, exec_ctx);
       break;
     }
     case ast::Builtin::AggregateMetricsThread: {

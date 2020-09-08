@@ -929,61 +929,61 @@ class MiniRunners : public benchmark::Fixture {
     pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    brain::ExecOperatingUnitFeatureVector ouvec{execution::pipeline_id_t(1),
-                                                units.GetPipelineFeatures(execution::pipeline_id_t(1))};
+    brain::ExecOUFeatureVector ouvec{execution::pipeline_id_t(1),
+                                     units.GetPipelineFeatures(execution::pipeline_id_t(1))};
 
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_PLUS(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_MULTIPLY(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_DIVIDE(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_GEQ(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_PLUS(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_MULTIPLY(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_DIVIDE(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_GEQ(num_elem);
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
@@ -1104,10 +1104,12 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "}\n";
 
   output << "struct QueryState {\nexecCtx: *ExecutionContext\n}\n";
-  output << "struct P1_State {\n}\n";
+  output << "struct P1_State {\noutput_buffer: *OutputBuffer\nexecFeatures: ExecOUFeatureVector\n}\n";
   output << "fun Query0_Init(queryState: *QueryState) -> nil {\nreturn}\n";
-  output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
-            "{\nreturn\n}\n";
+  output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+  output << "\tpipelineState.output_buffer = @resultBufferNew(queryState.execCtx)\n";
+  output << "\treturn\n";
+  output << "}\n";
   output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
             "{\nreturn\n}\n";
 
@@ -1116,7 +1118,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   if (num_col > 0) {
     output << "\tvar out: *OutputStruct\n";
     output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
-    output << "\t\tout = @ptrCast(*OutputStruct, @resultBufferAllocRow(queryState.execCtx))\n";
+    output << "\t\tout = @ptrCast(*OutputStruct, @resultBufferAllocRow(pipelineState.output_buffer))\n";
     output << "\t}\n";
   }
   output << "}\n";
@@ -1129,12 +1131,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "}\n";
 
   output << "fun Query0_Pipeline1_Run(queryState: *QueryState) -> nil {\n";
-  output << "\t@execCtxStartResourceTracker(queryState.execCtx, 4)\n";
   output
       << "\tvar pipelineState = @ptrCast(*P1_State, @tlsGetCurrentThreadState(@execCtxGetTLS(queryState.execCtx)))\n";
+  output << "\t@execOUFeatureVectorInit(queryState.execCtx, &pipelineState.execFeatures, 1)\n";
+  output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
   output << "\tQuery0_Pipeline1_SerialWork(queryState, pipelineState)\n";
-  output << "\t@resultBufferFinalize(queryState.execCtx)\n";
-  output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1)\n";
+  output << "\t@resultBufferFinalize(pipelineState.output_buffer)\n";
+  output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
   output << "\treturn\n";
   output << "}\n";
 

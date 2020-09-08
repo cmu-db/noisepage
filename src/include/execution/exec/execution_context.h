@@ -196,6 +196,8 @@ class EXPORT ExecutionContext {
   /** Increment or decrement the number of rows affected. */
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
+  void RegisterThread();
+  void CheckTrackersStopped();
   common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
 
  private:
