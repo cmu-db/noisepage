@@ -76,7 +76,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 
       // Get Memory Use
       auto *get_mem =
-          codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize, {codegen->AddressOf(inserter_)});
+          codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize, {codegen_->MakeExpr(storage_interface_)});
       auto *record =
           codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
       function->Append(codegen->MakeStmt(record));
