@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/concurrent_vector.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/shared_latch.h"
