@@ -53,6 +53,7 @@ class OpUnit(enum.IntEnum):
     INSERT = 23,
     UPDATE = 24,
     DELETE = 25,
+    CREATE_INDEX = 26,
 
 
 class ArithmeticFeature(enum.Enum):
