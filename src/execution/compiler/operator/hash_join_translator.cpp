@@ -66,33 +66,37 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
   struct_decl_ = struct_decl;
   decls->push_back(struct_decl);
 
-  /* Probe row declaration */
-  // TODO(abalakum): support mini-runners for this struct as well
-  fields = codegen->MakeEmptyFieldList();
-  GetAllChildOutputFields(1, row_attr_prefix, &fields);
-  struct_decl = codegen->DeclareStruct(probe_row_type_, std::move(fields));
-  decls->push_back(struct_decl);
+  /* Probe row declaration - only for left outer joins */
+  if (GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
+    // TODO(abalakum): support mini-runners for this struct as well
+    fields = codegen->MakeEmptyFieldList();
+    GetAllChildOutputFields(1, row_attr_prefix, &fields);
+    struct_decl = codegen->DeclareStruct(probe_row_type_, std::move(fields));
+    decls->push_back(struct_decl);
+  }
 }
 
 void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
-  auto cc = GetCompilationContext();
-  auto *pipeline = GetPipeline();
-  // Create a WorkContext and make the state identical to the WorkContext generated inside
-  // of PerformPipelineWork
-  WorkContext ctx(cc, *pipeline);
-  ctx.SetSource(this);
-  auto *codegen = GetCodeGen();
-  util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
-  params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
-  params.push_back(codegen->MakeField(probe_row_var_, codegen->PointerType(probe_row_type_)));
-  join_consumer_flag_ = true;
-  FunctionBuilder function(codegen, join_consumer_, std::move(params), codegen->Nil());
-  {
-    // Push to parent
-    ctx.Push(&function);
+  if (GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
+    auto cc = GetCompilationContext();
+    auto *pipeline = GetPipeline();
+    // Create a WorkContext and make the state identical to the WorkContext generated inside
+    // of PerformPipelineWork
+    WorkContext ctx(cc, *pipeline);
+    ctx.SetSource(this);
+    auto *codegen = GetCodeGen();
+    util::RegionVector<ast::FieldDecl *> params = pipeline->PipelineParams();
+    params.push_back(codegen->MakeField(build_row_var_, codegen->PointerType(build_row_type_)));
+    params.push_back(codegen->MakeField(probe_row_var_, codegen->PointerType(probe_row_type_)));
+    join_consumer_flag_ = true;
+    FunctionBuilder function(codegen, join_consumer_, std::move(params), codegen->Nil());
+    {
+      // Push to parent
+      ctx.Push(&function);
+    }
+    join_consumer_flag_ = false;
+    decls->push_back(function.Finish());
   }
-  join_consumer_flag_ = false;
-  decls->push_back(function.Finish());
 }
 
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
@@ -276,17 +280,26 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
       function->Append(codegen->Assign(left_mark, codegen->ConstBool(false)));
     }
 
-    // var probeRow : ProbeRow
-    auto probe_row_type = codegen->MakeExpr(probe_row_type_);
-    auto probe_row = codegen->MakeExpr(probe_row_var_);
-    function->Append(codegen->DeclareVarNoInit(probe_row_var_, probe_row_type));
-    // Fill row.
-    FillProbeRow(ctx, function, codegen->MakeExpr(probe_row_var_));
-    // joinConsumer(queryState, pipelineState, buildRow, probeRow);
-    std::initializer_list<ast::Expr *> args{GetQueryStatePtr(), codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
-                                            codegen->MakeExpr(build_row_var_), codegen->AddressOf(probe_row)};
-    function->Append(codegen->Call(join_consumer_, args));
+    // If left outer join, then call joinConsumer in order to reduce TPL code duplication,
+    // otherwise just push to parent
+    if (join_plan.GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
+      // var probeRow : ProbeRow
+      auto probe_row_type = codegen->MakeExpr(probe_row_type_);
+      auto probe_row = codegen->MakeExpr(probe_row_var_);
+      function->Append(codegen->DeclareVarNoInit(probe_row_var_, probe_row_type));
+      // Fill row.
+      FillProbeRow(ctx, function, codegen->MakeExpr(probe_row_var_));
+      // joinConsumer(queryState, pipelineState, buildRow, probeRow);
+      std::initializer_list<ast::Expr *> args{GetQueryStatePtr(),
+                                              codegen->MakeExpr(GetPipeline()->GetPipelineStateVar()),
+                                              codegen->MakeExpr(build_row_var_), codegen->AddressOf(probe_row)};
+      function->Append(codegen->Call(join_consumer_, args));
+    } else {
+      // Just push forward
+      ctx->Push(function);
+    }
   }
+
   check_condition.EndIf();
 }
 

@@ -37,16 +37,17 @@ class HashJoinTranslator : public OperatorTranslator {
                      Pipeline *pipeline);
 
   /**
-   * Declare the build-row struct and probe-row struct used to materialized tuples from the build side
-   * and probe side of the join.
-   * @param decls The top-level declarations for the query. The build-row struct and probe-row struct
-   *              will be registered here after it's been constructed.
+   * Declare the build-row struct used to materialize tuples from the build side of the join. In the
+   * case of left outer joins additionally declare a probe-row struct which lets us
+   * materialize tuples from the probe side of the join.
+   * @param decls The top-level declarations for the query. The declared structs will be registered
+   *              here after they've been constructed.
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
   /**
-   * Declare a function joinConsumer which encapsulates the parent translator's functionality, this is required
-   * in order to implement outer joins properly
+   * Only for left outer joins - declare a function joinConsumer which encapsulates the parent translator's
+   * functionality
    * @param decls
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
