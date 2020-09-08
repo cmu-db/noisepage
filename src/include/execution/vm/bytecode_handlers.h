@@ -1249,6 +1249,8 @@ VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result, terrier::execution
 VM_OP void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);
 
 VM_OP void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
+                                        terrier::execution::exec::ExecutionContext *exec_ctx,
+                                        terrier::execution::pipeline_id_t pipeline_id,
                                         terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                         uint32_t jht_offset);
 

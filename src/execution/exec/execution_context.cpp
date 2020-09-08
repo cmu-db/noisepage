@@ -1,6 +1,7 @@
 #include "execution/exec/execution_context.h"
 
 #include "brain/operating_unit.h"
+#include "brain/operating_unit_util.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
 #include "metrics/metrics_store.h"
@@ -71,6 +72,38 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
 void ExecutionContext::InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
   ouvec->pipeline_id_ = pipeline_id;
   ouvec->pipeline_features_ = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
+}
+
+void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
+  ouvec->pipeline_id_ = pipeline_id;
+
+  bool found_blocking = false;
+  brain::ExecutionOperatingUnitFeature feature;
+  auto features = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
+  for (auto &feat : features) {
+    if (brain::OperatingUnitUtil::IsOperatingUnitTypeBlocking(feat.GetExecutionOperatingUnitType())) {
+      TERRIER_ASSERT(!found_blocking, "Pipeline should only have 1 blocking");
+      found_blocking = true;
+      feature = feat;
+    }
+  }
+
+  TERRIER_ASSERT(found_blocking, "Pipeline should have 1 blocking");
+  switch (feature.GetExecutionOperatingUnitType()) {
+    case brain::ExecutionOperatingUnitType::HASHJOIN_BUILD:
+      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN, feature);
+      break;
+    case brain::ExecutionOperatingUnitType::AGGREGATE_BUILD:
+      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD, feature);
+      break;
+    case brain::ExecutionOperatingUnitType::SORT_BUILD:
+      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
+      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
+      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MAIN_STEP, feature);
+      break;
+    default:
+      TERRIER_ASSERT(false, "Unsupported parallel OU");
+  }
 }
 
 const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t param_idx) const {

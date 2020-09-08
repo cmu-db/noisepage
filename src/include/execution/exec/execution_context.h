@@ -144,6 +144,7 @@ class EXPORT ExecutionContext {
                   brain::ExecutionOperatingUnitFeatureAttribute feature_attribute);
 
   void InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
    * @return the db oid

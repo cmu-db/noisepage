@@ -872,12 +872,15 @@ class CodeGen {
    * Call \@joinHTBuildParallel(). Performs the parallel hash table build step of a hash join. Called
    * on the provided global join hash table (expected to be a *JoinHashTable), and a pointer to the
    * thread state container where thread-local join hash tables are stored at the given offset.
+   * @param exec_ctx ExecutionContext
    * @param join_hash_table The global join hash table.
+   * @param pipeline_id Pipeline ID of build
    * @param thread_state_container The thread state container.
    * @param offset The offset in the thread state container where thread-local tables are.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *thread_state_container,
+  [[nodiscard]] ast::Expr *JoinHashTableBuildParallel(ast::Expr *exec_ctx, ast::Expr *join_hash_table,
+                                                      ast::Expr *pipeline_id, ast::Expr *thread_state_container,
                                                       ast::Expr *offset);
 
   /**

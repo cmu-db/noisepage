@@ -1365,9 +1365,11 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::JoinHashTableBuildParallel: {
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar jht_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, tls, jht_offset);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar jht_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, exec_ctx, pipeline_id, tls, jht_offset);
       break;
     }
     case ast::Builtin::JoinHashTableLookup: {

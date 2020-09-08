@@ -104,6 +104,12 @@ enum class ExecutionOperatingUnitType : uint32_t {
    */
   LIMIT,
 
+  PARALLEL_MERGE_HASHJOIN,
+  PARALLEL_MERGE_AGGBUILD,
+  PARALLEL_SORT_STEP,
+  PARALLEL_SORT_MERGE_STEP,
+  PARALLEL_SORT_MAIN_STEP,
+
   /**
    * Use to demarcate plan and operations.
    * For all operations, cardinality = num_rows.

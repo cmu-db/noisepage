@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "execution/exec/execution_context.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
@@ -547,7 +548,8 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   owned_.emplace_back(std::move(source->entries_));
 }
 
-void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
+void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
+                                  const ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
   // Collect thread-local hash tables
   std::vector<JoinHashTable *> tl_join_tables;
   thread_state_container->CollectThreadLocalStateElementsAs(&tl_join_tables, jht_offset);

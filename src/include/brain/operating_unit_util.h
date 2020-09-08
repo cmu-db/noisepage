@@ -174,6 +174,17 @@ class OperatingUnitUtil {
     return f > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
   }
 
+  /**
+   * Determines whether the operating unit type is a blocing
+   * @param f OperatingUnitType to consider
+   * @returns blocking or not
+   */
+  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f) {
+    return f == ExecutionOperatingUnitType::HASHJOIN_BUILD ||
+           f == ExecutionOperatingUnitType::SORT_BUILD ||
+           f == ExecutionOperatingUnitType::AGGREGATE_BUILD;
+  }
+
   /** @return The ExecutionOperatingUnitFeature that has the corresponding type. It must be unique in the vector. */
   static const ExecutionOperatingUnitFeature &GetFeature(execution::translator_id_t translator_id,
                                                          const std::vector<ExecutionOperatingUnitFeature> &features,

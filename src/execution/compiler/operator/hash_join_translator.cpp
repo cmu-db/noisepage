@@ -331,7 +331,8 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     if (left_pipeline_.IsParallel()) {
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
-      function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));
+      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
+      function->Append(codegen->JoinHashTableBuildParallel(GetExecutionContext(), pipeline_id, jht, tls, offset));
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
       RecordCounters(pipeline, function);

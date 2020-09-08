@@ -68,6 +68,8 @@ class ExecutionOperatingUnitFeature {
   friend class PipelineOperatingUnits;
 
  public:
+  ExecutionOperatingUnitFeature() {}
+
   /**
    * Constructor for ExecutionOperatingUnitFeature
    * @param translator_id The ID of the translator
@@ -92,6 +94,18 @@ class ExecutionOperatingUnitFeature {
         mem_factors_({mem_factor}),
         num_loops_(num_loops),
         num_concurrent_(num_concurrent) {}
+
+  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, ExecutionOperatingUnitFeature &other)
+      : translator_id_(other.translator_id_),
+        feature_id_(other.feature_id_),
+        feature_(feature),
+        num_rows_(other.num_rows_),
+        key_size_(other.key_size_),
+        num_keys_(other.num_keys_),
+        cardinality_(other.cardinality_),
+        mem_factors_(other.mem_factors_),
+        num_loops_(other.num_loops_),
+        num_concurrent_(other.num_concurrent_) {}
 
   /** @return The ID of the translator for this ExecutionOperatingUnitFeature. */
   execution::translator_id_t GetTranslatorId() const { return translator_id_; }

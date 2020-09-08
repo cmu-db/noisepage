@@ -735,19 +735,29 @@ void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin buil
       break;
     }
     case ast::Builtin::JoinHashTableBuildParallel: {
-      if (!CheckArgCount(call, 3)) {
+      if (!CheckArgCount(call, 5)) {
+        return;
+      }
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      // pipeline_id
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
         return;
       }
       // Second argument must be a thread state container pointer
       const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tls_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tls_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), tls_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(tls_kind)->PointerTo());
         return;
       }
       // Third argument must be a 32-bit integer representing the offset
       const auto uint32_kind = ast::BuiltinType::Uint32;
-      if (!call_args[2]->GetType()->IsSpecificBuiltin(uint32_kind)) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_kind));
+      if (!call_args[4]->GetType()->IsSpecificBuiltin(uint32_kind)) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(uint32_kind));
         return;
       }
       break;

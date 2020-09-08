@@ -1527,9 +1527,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(JoinHashTableBuildParallel) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto jht_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpJoinHashTableBuildParallel(join_hash_table, thread_state_container, jht_offset);
+    OpJoinHashTableBuildParallel(join_hash_table, exec_ctx, pipeline_id, thread_state_container, jht_offset);
     DISPATCH_NEXT();
   }
 
