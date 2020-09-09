@@ -218,7 +218,7 @@ class TestServer:
                 if not self.continue_on_error:
                     raise
                 else:
-                    traceback.print_exec(file=sys.stdout)
+                    traceback.print_exc(file=sys.stdout)
                     test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
         return test_suite_ret_vals
 
