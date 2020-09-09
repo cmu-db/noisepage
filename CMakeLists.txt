@@ -137,7 +137,7 @@ endif ()
 # COMPILER TOOLS
 ###################################################
 
-set(CLANG_TOOLS_VERSION "10")
+set(CLANG_TOOLS_VERSION "8")
 find_package(ClangTools)
 if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
     # Generate a Clang compile_commands.json "compilation database" file for use
