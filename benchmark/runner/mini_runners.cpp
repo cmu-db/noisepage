@@ -2125,7 +2125,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX, row, tuple_size, num_col, car, 1, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::CREATE_INDEX, row, tuple_size, num_col, car, 1, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::stringstream query;
