@@ -1,8 +1,10 @@
 #include "planner/plannodes/create_trigger_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/json.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"

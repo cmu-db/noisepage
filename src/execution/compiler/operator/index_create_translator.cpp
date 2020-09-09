@@ -1,7 +1,5 @@
 #include "execution/compiler/operator/index_create_translator.h"
 
-#include "execution/sql/ddl_executors.h"
-
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -10,6 +8,7 @@
 #include "execution/compiler/loop.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/work_context.h"
+#include "execution/sql/ddl_executors.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/create_index_plan_node.h"

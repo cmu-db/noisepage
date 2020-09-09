@@ -78,8 +78,7 @@ class VectorProjectionIterator {
     SelectionVector ret{};
     for (sel_t i = 0; i < common::Constants::K_DEFAULT_VECTOR_SIZE; i++) ret[i] = i;
     return ret;
-  }
-  ();
+  }();
 
  public:
   /**
