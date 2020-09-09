@@ -220,7 +220,7 @@ class DBMain {
   };
 
   /**
-   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreter::Provider, Server
+   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreterProvider, Server
    */
   class NetworkLayer {
    public:
@@ -251,7 +251,7 @@ class DBMain {
     // Order matters here for destruction order
     std::unique_ptr<network::ConnectionHandleFactory> connection_handle_factory_;
     std::unique_ptr<network::PostgresCommandFactory> command_factory_;
-    std::unique_ptr<network::ProtocolInterpreter::Provider> provider_;
+    std::unique_ptr<network::ProtocolInterpreterProvider> provider_;
     std::unique_ptr<network::TerrierServer> server_;
   };
 

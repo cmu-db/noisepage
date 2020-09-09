@@ -53,7 +53,7 @@ class NetworkTests : public TerrierTest {
   uint16_t port_ = 15721;
   uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
-  PostgresProtocolInterpreter::Provider protocol_provider_{
+  PostgresProtocolInterpreterProvider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
 
   void SetUp() override {
@@ -82,7 +82,7 @@ class NetworkTests : public TerrierTest {
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ =
-          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreterProvider>(&protocol_provider_),
                                           common::ManagedPointer(handle_factory_.get()),
                                           common::ManagedPointer(&thread_registry_), port_, connection_thread_count_);
       server_->RunServer();

@@ -25,52 +25,31 @@
 
 namespace terrier::network {
 
-/**
- * TerrierServer is the entry point of the network layer
- */
+/** TerrierServer is the entry point to the network layer. */
 class TerrierServer : public common::DedicatedThreadOwner {
  public:
-  /**
-   * @brief Constructs a new TerrierServer instance.
-   */
-  TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
+  /** @brief Construct a new TerrierServer instance. */
+  TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
                 uint16_t connection_thread_count);
 
+  /** @brief Destructor. */
   ~TerrierServer() override = default;
 
-  /**
-   * @brief Configure the server to spin up all its threads and start listening
-   * on the configured port.
-   */
+  /** @brief Spin up all of the server threads and start listening on the configured port. */
   void RunServer();
 
-  /**
-   * Break from the server loop and exit all network handling threads.
-   */
+  /** @brief Break from the server loop and exit all network handling threads. */
   void StopServer();
 
-  /**
-   * Set listen port to a new port
-   * @param new_port
-   */
-  void SetPort(uint16_t new_port);
-
-  /**
-   * @return true if the server is still running, false otherwise. Use as a predicate if you're waiting on the RunningCV
-   * condition variable
-   */
+  /** @return True if the server is still running. Use as a predicate when waiting on RunningCV. */
   bool Running() const { return running_; }
 
-  /**
-   * @return the mutex for waiting on RunningCV
-   */
+  /** @return Mutex for waiting on RunningCV. */
   std::mutex &RunningMutex() { return running_mutex_; }
 
-  /**
-   * @return condition variable for a thread to wait on while the server is running. Currently only useful in DBMain
-   */
+  /** @return Condvar for a thread to wait on while the server is running. Currently only useful in DBMain. */
   std::condition_variable &RunningCV() { return running_cv_; }
 
  private:
@@ -83,15 +62,15 @@ class TerrierServer : public common::DedicatedThreadOwner {
   bool running_;
   std::condition_variable running_cv_;
 
-  // For logging purposes
-  // static void LogCallback(int severity, const char *msg);
-
-  uint16_t port_;                   // port number
-  int listen_fd_ = -1;              // server socket fd that TerrierServer is listening on
-  const uint32_t max_connections_;  // maximum number of connections
+  /** The port number of the server. */
+  uint16_t port_;
+  /** The socket file descriptor that the server is listening on. */
+  int listen_fd_ = -1;
+  /** The maximum number of connections to the server. */
+  const uint32_t max_connections_;
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
-  common::ManagedPointer<ProtocolInterpreter::Provider> provider_;
+  common::ManagedPointer<ProtocolInterpreterProvider> provider_;
   common::ManagedPointer<ConnectionDispatcherTask> dispatcher_task_;
 };
 }  // namespace terrier::network

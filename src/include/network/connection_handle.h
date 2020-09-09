@@ -76,10 +76,12 @@ class ConnectionHandle {
    * to be careful.
    */
   void RegisterToReceiveEvents() {
-    workpool_event_ = conn_handler_->RegisterManualEvent(METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+    workpool_event_ = conn_handler_->RegisterManualEvent(
+        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
 
-    network_event_ = conn_handler_->RegisterEvent(io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
-                                                  METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+    network_event_ = conn_handler_->RegisterEvent(
+        io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
+        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
   }
 
   /**
@@ -148,11 +150,14 @@ class ConnectionHandle {
       timeout_str = &timeout;
       timeout.tv_usec = 0;
       timeout.tv_sec = timeout_secs;
-      conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
-                                 METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this, timeout_str);
+      conn_handler_->UpdateEvent(
+          network_event_, io_wrapper_->GetSocketFd(), flags,
+          [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this,
+          timeout_str);
     } else {
-      conn_handler_->UpdateEvent(network_event_, io_wrapper_->GetSocketFd(), flags,
-                                 METHOD_AS_CALLBACK(ConnectionHandle, HandleEvent), this);
+      conn_handler_->UpdateEvent(
+          network_event_, io_wrapper_->GetSocketFd(), flags,
+          [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
     }
   }
 
@@ -228,6 +233,7 @@ class ConnectionHandle {
     ConnState current_state_ = ConnState::READ;
   };
 
+  friend class ConnectionHandleHelper;
   friend class StateMachine;
   friend class ConnectionHandleFactory;
 

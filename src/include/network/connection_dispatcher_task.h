@@ -2,32 +2,37 @@
 
 #include <memory>
 #include <vector>
-#include "common/dedicated_thread_registry.h"
+
 #include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
-#include "loggers/network_logger.h"
-#include "network/connection_handle_factory.h"
-#include "network/connection_handler_task.h"
-#include "network/network_types.h"
+
+namespace terrier::common {
+class DedicatedThreadRegistry;
+class DedicatedThreadOwner;
+}  // namespace terrier::common
 
 namespace terrier::network {
 
+class ConnectionHandleFactory;
+class ConnectionHandlerTask;
+class ProtocolInterpreterProvider;
+
 /**
- * @brief A ConnectionDispatcherTask on the main server thread and dispatches
- * incoming connections to handler threads.
+ * @brief ConnectionDispatcherTask dispatches incoming connections to a pool of handler threads.
  *
- * On RunTask(), the dispatcher registers a number of handlers with the dedicated thread registry. The registered
- * handlers will shut down during Terminate() of this task. ConnectionDispatcherTask is almost a pseudo-owner of the
+ * On RunTask(), the dispatcher registers a number of handlers with the dedicated thread registry.
+ * The registered handlers will shut down during Terminate() of this task.
+ *
+ * ConnectionDispatcherTask is almost a pseudo-owner of the
  * ConnectionHandlerTask objects, but since we can't be both a DedicatedThreadTask/NotifiableTask and
  * DedicatedThreadOwner, we pass the original DedicatedThreadOwner (TerrierServer) value through to the
  * ConnectionHandlerTasks. TerrierServer ends up the DedicatedThreadOwner of both ConnectionDispatcherTask and
  * ConnectionHandlerTasks for its instance.
- *
  */
 class ConnectionDispatcherTask : public common::NotifiableTask {
  public:
   /**
-   * Creates a new ConnectionDispatcherTask
+   * Create a new ConnectionDispatcherTask.
    *
    * @param num_handlers The number of handler tasks to spawn.
    * @param listen_fd The server socket fd to listen on.
@@ -38,7 +43,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * RunTask
    */
   ConnectionDispatcherTask(uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
-                           common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
+                           common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                            common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
 
@@ -51,10 +56,9 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * to receive updates on.
    *
    * @param fd the socket fd of the client connection being dispatched
-   * @param flags Unused. This is here to conform to libevent callback function
-   * signature.
+   * @param provider The protocol that should be used to handle this request.
    */
-  void DispatchConnection(int fd, int16_t flags);
+  void DispatchConnection(uint32_t fd, common::ManagedPointer<ProtocolInterpreterProvider> provider);
 
   /**
    * Creates all of the ConnectionHandlerTasks (num_handlers of them) and then sits in its event loop until stopped.
@@ -67,13 +71,17 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   void Terminate() override;
 
  private:
+
+  /** @return The offset in handlers_ of the next handler to dispatch to. This function mutates internal state. */
+  uint64_t NextDispatchHandlerOffset();
+
+  /** The number of */
   const uint32_t num_handlers_;
   common::DedicatedThreadOwner *const dedicated_thread_owner_;
   const common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry_;
-  const common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider_;
+  const common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider_;
   std::vector<common::ManagedPointer<ConnectionHandlerTask>> handlers_;
-  // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;
 };
 

@@ -54,11 +54,8 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * This method will create the necessary data structure for the client and
    * register its event base to receive updates with appropriate callbacks
    * when the client writes to the socket.
-   *
-   * @param new_conn_recv_fd the socket fd of the new connection
-   * @param flags unused. For compliance with libevent callback interface.
    */
-  void HandleDispatch(int new_conn_recv_fd, int16_t flags);
+  void HandleDispatch();
 
  private:
   /**
