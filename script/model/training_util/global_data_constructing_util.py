@@ -14,7 +14,7 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack):
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -30,7 +30,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
         with open(cache_file, 'rb') as pickle_file:
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
-        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack)
+        data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -39,7 +39,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
     return resource_data_list, impact_data_list
 
 
-def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack):
+def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -49,7 +49,7 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :return: The list of the GroupedOpUnitData objects
     """
     data_list = _get_data_list(input_path, warmup_period, tpcc_hack)
-    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache)
+    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
 
@@ -191,7 +191,7 @@ def _get_data_list(input_path, warmup_period, tpcc_hack):
     return data_list
 
 
-def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache):
+def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
     result in place
 
@@ -222,19 +222,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     prediction_cache = {}
 
     # First run a prediction on the global running data with the mini model results
-    last_pipeline = None
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
         logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
-
-        # Hack for "cache-ness"
-        should_mult = False
-        if i == 0:
-            last_pipeline = data.name
-        elif last_pipeline != data.name:
-            last_pipeline = data.name
-        else:
-            should_mult = True
 
         pipeline_y_pred = 0
         x = None
@@ -283,19 +273,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
             pipeline_y_pred += y_pred[0]
 
         pipeline_y = copy.deepcopy(pipeline_y_pred)
-        if should_mult and simulate_cache:
-            # Scale elapsed time by 40% (this is a hack)
-            fields = [
-                data_info.TARGET_CSV_INDEX[Target.CPU_CYCLE],
-                data_info.TARGET_CSV_INDEX[Target.CACHE_MISS],
-                data_info.TARGET_CSV_INDEX[Target.CPU_TIME],
-                data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
-
-                # Don't for instructions, cache ref, memory
-            ]
-
-            for field in fields:
-                pipeline_y[field ] = pipeline_y[field] * 0.4
 
         # Grouping if we're predicting queries
         if "tpch" in data.name:

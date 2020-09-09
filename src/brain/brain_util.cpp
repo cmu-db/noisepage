@@ -54,6 +54,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "OUTPUT";
     case ExecutionOperatingUnitType::LIMIT:
       return "LIMIT";
+    case ExecutionOperatingUnitType::CREATE_INDEX:
+      return "CREATE_INDEX";
     default:
       UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
       break;

@@ -47,6 +47,17 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
   // Close TVI, if need be.
   function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
 
+  {
+    auto *codegen = GetCodeGen();
+
+    // Get Memory Use
+    auto *get_mem =
+        codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize, {codegen->AddressOf(inserter_)});
+    auto *record =
+        codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
+    function->Append(codegen->MakeStmt(record));
+  }
+
   FreeInserter(function);
 }
 
