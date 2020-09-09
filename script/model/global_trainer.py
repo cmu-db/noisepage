@@ -86,7 +86,7 @@ class GlobalTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map, warmup_period, simulate_cache, tpcc_hack):
+    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map, warmup_period, tpcc_hack):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -94,7 +94,6 @@ class GlobalTrainer:
         self.impact_model_ratio = impact_model_ratio
         self.mini_model_map = mini_model_map
         self.warmup_period = warmup_period
-        self.simulate_cache = simulate_cache
         self.tpcc_hack = tpcc_hack
 
     def train(self):
@@ -106,7 +105,6 @@ class GlobalTrainer:
                                                                                       self.mini_model_map,
                                                                                       self.model_results_path,
                                                                                       self.warmup_period,
-                                                                                      self.simulate_cache,
                                                                                       self.tpcc_hack)
 
         return self._train_global_models(resource_data_list, impact_data_list)
@@ -216,7 +214,6 @@ if __name__ == '__main__':
     aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
     aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
-    aparser.add_argument('--simulate_cache', default=False, help='Should simulate cache at 0.4')
     aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
@@ -228,7 +225,7 @@ if __name__ == '__main__':
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                            args.impact_model_ratio, model_map, args.warmup_period, args.simulate_cache, args.tpcc_hack)
+                            args.impact_model_ratio, model_map, args.warmup_period, args.tpcc_hack)
     resource_model, impact_model, direct_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)

@@ -486,6 +486,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextSetMemoryUseOverride) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpExecutionContextSetMemoryUseOverride(exec_ctx, size);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextEndResourceTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *name = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
@@ -1898,6 +1905,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     OpStorageInterfaceGetIndexPR(pr_result, storage_interface, index_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(StorageInterfaceGetIndexHeapSize) : {
+    auto *size = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceGetIndexHeapSize(size, storage_interface);
     DISPATCH_NEXT();
   }
 
