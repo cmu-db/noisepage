@@ -2,6 +2,7 @@
 
 #include <llvm/ADT/STLExtras.h>
 #include <tbb/parallel_for_each.h>
+#include <tbb/task_scheduler_init.h>
 
 #include <algorithm>
 #include <limits>
@@ -576,11 +577,41 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
     // TODO(pmenon): Switch to parallel-mode if estimate is wrong.
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements < {} element parallel threshold. Using serial merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
+
+    brain::ExecOUFeatureVector ouvec;
+    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+    exec_ctx->StartPipelineTracker(pipeline_id);
+
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
+
+    // Reach in and modify the feature directly
+    // Just set the cardinality to match # rows for now.
+    ouvec.pipeline_features_[0].SetNumRows(owned_.size());
+    ouvec.pipeline_features_[0].SetCardinality(owned_.size());
+    ouvec.pipeline_features_[0].SetNumConcurrent(0);
+    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
-    tbb::parallel_for_each(tl_join_tables, [this](auto source) { MergeIncomplete<true>(source); });
+
+    size_t num_threads = tbb::task_scheduler_init::default_num_threads();
+    size_t num_tasks = std::max(tl_join_tables.size(), static_cast<size_t>(0)) - 1;
+    auto estimate = std::min(num_threads, num_tasks);
+    tbb::parallel_for_each(tl_join_tables, [this, exec_ctx, pipeline_id, estimate](auto source) {
+      brain::ExecOUFeatureVector ouvec;
+      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+      exec_ctx->StartPipelineTracker(pipeline_id);
+
+      size_t size = source->entries_.size();
+      MergeIncomplete<true>(source);
+
+      // Reach in and modify the feature directly
+      // Just set the cardinality to match # rows for now.
+      ouvec.pipeline_features_[0].SetNumRows(size);
+      ouvec.pipeline_features_[0].SetCardinality(size);
+      ouvec.pipeline_features_[0].SetNumConcurrent(estimate);
+      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    });
   }
 
   timer.Stop();

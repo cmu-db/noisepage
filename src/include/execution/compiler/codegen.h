@@ -974,6 +974,8 @@ class CodeGen {
    * tables at the given offset inside the provided thread state container into the global hash
    * table.
    * @param agg_ht A pointer to the global aggregation hash table.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID
    * @param tls A pointer to the thread state container.
    * @param tl_agg_ht_offset The offset in the state container where the thread-local aggregation
    *                         hash tables.
@@ -981,7 +983,8 @@ class CodeGen {
    *                                 into the global hash table.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
+  [[nodiscard]] ast::Expr *AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                                      ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
                                                       ast::Identifier merge_partitions_fn_name);
 
   /**

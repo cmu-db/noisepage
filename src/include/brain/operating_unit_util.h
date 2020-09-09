@@ -180,8 +180,7 @@ class OperatingUnitUtil {
    * @returns blocking or not
    */
   static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f) {
-    return f == ExecutionOperatingUnitType::HASHJOIN_BUILD ||
-           f == ExecutionOperatingUnitType::SORT_BUILD ||
+    return f == ExecutionOperatingUnitType::HASHJOIN_BUILD || f == ExecutionOperatingUnitType::SORT_BUILD ||
            f == ExecutionOperatingUnitType::AGGREGATE_BUILD;
   }
 

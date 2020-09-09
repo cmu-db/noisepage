@@ -11,6 +11,7 @@
 
 #include "common/error/exception.h"
 #include "common/math_util.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/thread_state_container.h"
@@ -531,9 +532,14 @@ void AggregationHashTable::ProcessBatch(VectorProjectionIterator *input_batch, c
   AdvanceGroups(input_batch, advance_agg_fn);
 }
 
-void AggregationHashTable::TransferMemoryAndPartitions(
-    ThreadStateContainer *thread_states, const std::size_t agg_ht_offset,
-    const AggregationHashTable::MergePartitionFn merge_partition_fn) {
+void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *exec_ctx,
+                                                       execution::pipeline_id_t pipeline_id,
+                                                       ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+                                                       MergePartitionFn merge_partition_fn) {
+  brain::ExecOUFeatureVector ouvec;
+  exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+  exec_ctx->StartPipelineTracker(pipeline_id);
+
   // Set the partition merging function. This function tells us how to merge a
   // set of overflow partitions into an AggregationHashTable.
   merge_partition_fn_ = merge_partition_fn;
@@ -579,6 +585,13 @@ void AggregationHashTable::TransferMemoryAndPartitions(
       }
     }
   }
+
+  // Set # rows to be total number of entries in all agg tables
+  size_t num = entries_.size() + owned_entries_.size();
+  ouvec.pipeline_features_[0].SetNumRows(num);
+  ouvec.pipeline_features_[0].SetCardinality(tl_agg_ht.size());
+  ouvec.pipeline_features_[0].SetNumConcurrent(0);
+  exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
 }
 
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,

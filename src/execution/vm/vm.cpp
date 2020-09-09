@@ -1229,13 +1229,16 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(AggregationHashTableTransferPartitions) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto agg_ht_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto merge_partition_fn_id = READ_FUNC_ID();
 
     auto merge_partition_fn = reinterpret_cast<sql::AggregationHashTable::MergePartitionFn>(
         module_->GetRawFunctionImpl(merge_partition_fn_id));
-    OpAggregationHashTableTransferPartitions(agg_hash_table, thread_state_container, agg_ht_offset, merge_partition_fn);
+    OpAggregationHashTableTransferPartitions(exec_ctx, pipeline_id, agg_hash_table, thread_state_container,
+                                             agg_ht_offset, merge_partition_fn);
     DISPATCH_NEXT();
   }
 

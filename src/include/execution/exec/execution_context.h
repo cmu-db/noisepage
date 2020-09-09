@@ -200,7 +200,11 @@ class EXPORT ExecutionContext {
   void CheckTrackersStopped();
   common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
 
+  execution::query_id_t GetQueryId() { return query_id_; }
+  void SetQueryId(execution::query_id_t query_id) { query_id_ = query_id; }
+
  private:
+  query_id_t query_id_{execution::query_id_t(0)};
   const exec::ExecutionSettings &exec_settings_;
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;

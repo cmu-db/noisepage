@@ -7,6 +7,7 @@
 
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/vector.h"
@@ -20,6 +21,7 @@ class HLL;
 
 namespace terrier::execution::exec {
 class ExecutionSettings;
+class ExecutionContext;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
@@ -190,11 +192,14 @@ class EXPORT AggregationHashTable {
    * end of the build-portion of a parallel aggregation before the thread state container is reset
    * for the next pipeline's thread-local state.
    *
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID
    * @param thread_states Container for all thread-local tables.
    * @param agg_ht_offset The offset in the container to find the table.
    * @param merge_partition_fn The function to use for merging partitions.
    */
-  void TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+  void TransferMemoryAndPartitions(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
+                                   ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                    MergePartitionFn merge_partition_fn);
 
   /**

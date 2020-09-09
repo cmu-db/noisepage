@@ -40,6 +40,11 @@ namespace terrier::execution::exec {
 class ExecutionContext;
 }  // namespace terrier::execution::exec
 
+namespace terrier::execution::sql {
+class JoinHashTable;
+class AggregationHashTable;
+}  // namespace terrier::execution::sql
+
 namespace terrier::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
 }  // namespace terrier::optimizer
@@ -67,6 +72,8 @@ class ExecutionOperatingUnitFeature {
   friend class OperatingUnitRecorder;
   friend class ExecOUFeatureVector;
   friend class PipelineOperatingUnits;
+  friend class execution::sql::JoinHashTable;
+  friend class execution::sql::AggregationHashTable;
 
  public:
   ExecutionOperatingUnitFeature() {}

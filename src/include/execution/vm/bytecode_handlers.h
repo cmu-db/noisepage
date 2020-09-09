@@ -818,10 +818,12 @@ VM_OP_HOT void OpAggregationHashTableProcessBatch(
 }
 
 VM_OP_HOT void OpAggregationHashTableTransferPartitions(
+    terrier::execution::exec::ExecutionContext *exec_ctx, terrier::execution::pipeline_id_t pipeline_id,
     terrier::execution::sql::AggregationHashTable *const agg_hash_table,
     terrier::execution::sql::ThreadStateContainer *const thread_state_container, const uint32_t agg_ht_offset,
     const terrier::execution::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
-  agg_hash_table->TransferMemoryAndPartitions(thread_state_container, agg_ht_offset, merge_partition_fn);
+  agg_hash_table->TransferMemoryAndPartitions(exec_ctx, pipeline_id, thread_state_container, agg_ht_offset,
+                                              merge_partition_fn);
 }
 
 VM_OP void OpAggregationHashTableBuildAllHashTablePartitions(

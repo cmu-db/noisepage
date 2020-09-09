@@ -339,7 +339,7 @@ namespace terrier::execution::vm {
   F(AggregationHashTableProcessBatch, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, \
     OperandType::FunctionId, OperandType::FunctionId, OperandType::Local)                                             \
   F(AggregationHashTableTransferPartitions, OperandType::Local, OperandType::Local, OperandType::Local,               \
-    OperandType::FunctionId)                                                                                          \
+    OperandType::Local, OperandType::Local, OperandType::FunctionId)                                                  \
   F(AggregationHashTableBuildAllHashTablePartitions, OperandType::Local, OperandType::Local)                          \
   F(AggregationHashTableRepartition, OperandType::Local)                                                              \
   F(AggregationHashTableMergePartitions, OperandType::Local, OperandType::Local, OperandType::Local,                  \

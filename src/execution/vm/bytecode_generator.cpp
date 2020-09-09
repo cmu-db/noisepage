@@ -1048,10 +1048,12 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
     }
     case ast::Builtin::AggHashTableMovePartitions: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar aht_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      auto merge_part_fn = LookupFuncIdByName(call->Arguments()[3]->As<ast::IdentifierExpr>()->Name().GetData());
-      GetEmitter()->EmitAggHashTableMovePartitions(agg_ht, tls, aht_offset, merge_part_fn);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar aht_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      auto merge_part_fn = LookupFuncIdByName(call->Arguments()[5]->As<ast::IdentifierExpr>()->Name().GetData());
+      GetEmitter()->EmitAggHashTableMovePartitions(agg_ht, exec_ctx, pipeline_id, tls, aht_offset, merge_part_fn);
       break;
     }
     case ast::Builtin::AggHashTableParallelPartitionedScan: {

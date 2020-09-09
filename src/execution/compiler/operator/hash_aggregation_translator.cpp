@@ -516,7 +516,9 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
       auto global_agg_ht = global_agg_ht_.GetPtr(codegen);
       auto thread_state_container = GetThreadStateContainer();
       auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
-      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
+      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
+      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, GetExecutionContext(), pipeline_id,
+                                                           thread_state_container, tl_agg_ht_offset,
                                                            merge_partitions_fn_));
     } else {
       RecordCounters(pipeline, function);

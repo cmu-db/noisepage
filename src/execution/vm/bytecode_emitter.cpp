@@ -327,9 +327,10 @@ void BytecodeEmitter::EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar vpi
           partitioned);
 }
 
-void BytecodeEmitter::EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset,
-                                                     FunctionId merge_part_fn) {
-  EmitAll(Bytecode::AggregationHashTableTransferPartitions, agg_ht, tls, aht_offset, merge_part_fn);
+void BytecodeEmitter::EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar exec_ctx, LocalVar pipeline_id,
+                                                     LocalVar tls, LocalVar aht_offset, FunctionId merge_part_fn) {
+  EmitAll(Bytecode::AggregationHashTableTransferPartitions, agg_ht, exec_ctx, pipeline_id, tls, aht_offset,
+          merge_part_fn);
 }
 
 void BytecodeEmitter::EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,

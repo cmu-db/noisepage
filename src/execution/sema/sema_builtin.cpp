@@ -393,24 +393,34 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
       break;
     }
     case ast::Builtin::AggHashTableMovePartitions: {
-      if (!CheckArgCount(call, 4)) {
+      if (!CheckArgCount(call, 6)) {
+        return;
+      }
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      // pipeline_id
+      if (!args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
         return;
       }
       // Second argument is the thread state container pointer
       const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-      if (!IsPointerToSpecificBuiltin(args[1]->GetType(), tls_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tls_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(args[3]->GetType(), tls_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(tls_kind)->PointerTo());
         return;
       }
       // Third argument is the offset of the hash table in thread local state
       const auto uint32_kind = ast::BuiltinType::Uint32;
-      if (!args[2]->GetType()->IsSpecificBuiltin(uint32_kind)) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_kind));
+      if (!args[4]->GetType()->IsSpecificBuiltin(uint32_kind)) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(uint32_kind));
         return;
       }
       // Fourth argument is the merging function
-      if (!args[3]->GetType()->IsFunctionType()) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(uint32_kind));
+      if (!args[5]->GetType()->IsFunctionType()) {
+        ReportIncorrectCallArg(call, 5, GetBuiltinType(uint32_kind));
         return;
       }
 

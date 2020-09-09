@@ -885,9 +885,11 @@ ast::Expr *CodeGen::AggHashTableLinkEntry(ast::Expr *agg_ht, ast::Expr *entry) {
   return call;
 }
 
-ast::Expr *CodeGen::AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
+ast::Expr *CodeGen::AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                               ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
                                                ast::Identifier merge_partitions_fn_name) {
-  std::initializer_list<ast::Expr *> args = {agg_ht, tls, tl_agg_ht_offset, MakeExpr(merge_partitions_fn_name)};
+  std::initializer_list<ast::Expr *> args = {agg_ht, exec_ctx,         pipeline_id,
+                                             tls,    tl_agg_ht_offset, MakeExpr(merge_partitions_fn_name)};
   ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableMovePartitions, args);
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
