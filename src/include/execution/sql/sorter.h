@@ -6,8 +6,13 @@
 
 #include "catalog/schema.h"
 #include "common/macros.h"
+#include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
+
+namespace terrier::execution::exec {
+class ExecutionContext;
+}
 
 namespace terrier::execution::sql {
 
@@ -137,7 +142,8 @@ class EXPORT Sorter {
    * @param thread_state_container The container holding all thread-local sorter instances.
    * @param sorter_offset The offset into the container where the sorter instance is.
    */
-  void SortParallel(const ThreadStateContainer *thread_state_container, std::size_t sorter_offset);
+  void SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
+                    const ThreadStateContainer *thread_state_container, std::size_t sorter_offset);
 
   /**
    * Perform a parallel Top-K of all sorter instances stored in the thread state container object.
@@ -148,7 +154,8 @@ class EXPORT Sorter {
    * @param sorter_offset The offset into the container where the sorter instance is.
    * @param top_k The number entries at the top the caller cares for.
    */
-  void SortTopKParallel(const ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
+  void SortTopKParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
+                        const ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
 
   /**
    * @return The number of tuples currently in this sorter.

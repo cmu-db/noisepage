@@ -1037,14 +1037,17 @@ ast::Expr *CodeGen::SorterSort(ast::Expr *sorter) {
   return call;
 }
 
-ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortParallel, {sorter, tls, offset});
+ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
+                                 ast::Expr *offset) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortParallel, {sorter, exec_ctx, pipeline_id, tls, offset});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
 
-ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, tls, offset, Const64(top_k)});
+ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
+                                     ast::Expr *offset, std::size_t top_k) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, exec_ctx, pipeline_id, tls, offset, Const64(top_k)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

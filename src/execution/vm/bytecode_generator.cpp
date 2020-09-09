@@ -1459,17 +1459,21 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::SorterSortParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::SorterSortParallel, sorter, tls, sorter_offset);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::SorterSortParallel, sorter, exec_ctx, pipeline_id, tls, sorter_offset);
       break;
     }
     case ast::Builtin::SorterSortTopKParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, tls, sorter_offset, top_k);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[5]);
+      GetEmitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, exec_ctx, pipeline_id, tls, sorter_offset, top_k);
       break;
     }
     case ast::Builtin::SorterFree: {

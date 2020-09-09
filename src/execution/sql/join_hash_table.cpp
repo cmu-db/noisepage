@@ -595,8 +595,8 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
 
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
-    size_t num_tasks = std::max(tl_join_tables.size(), static_cast<size_t>(0)) - 1;
-    auto estimate = std::min(num_threads, num_tasks);
+    size_t num_tasks = tl_join_tables.size();
+    auto estimate = std::min(num_threads, num_tasks) - 1;
     tbb::parallel_for_each(tl_join_tables, [this, exec_ctx, pipeline_id, estimate](auto source) {
       brain::ExecOUFeatureVector ouvec;
       exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);

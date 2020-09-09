@@ -1619,18 +1619,22 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(SorterSortParallel) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto sorter_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpSorterSortParallel(sorter, thread_state_container, sorter_offset);
+    OpSorterSortParallel(sorter, exec_ctx, pipeline_id, thread_state_container, sorter_offset);
     DISPATCH_NEXT();
   }
 
   OP(SorterSortTopKParallel) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto sorter_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto top_k = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpSorterSortTopKParallel(sorter, thread_state_container, sorter_offset, top_k);
+    OpSorterSortTopKParallel(sorter, exec_ctx, pipeline_id, thread_state_container, sorter_offset, top_k);
     DISPATCH_NEXT();
   }
 

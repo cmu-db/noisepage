@@ -461,8 +461,10 @@ namespace terrier::execution::vm {
   F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \
   F(SorterSort, OperandType::Local)                                                                                   \
-  F(SorterSortParallel, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(SorterSortTopKParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(SorterSortParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,               \
+    OperandType::Local)                                                                                               \
+  F(SorterSortTopKParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,           \
+    OperandType::Local, OperandType::Local)                                                                           \
   F(SorterFree, OperandType::Local)                                                                                   \
   F(SorterIteratorInit, OperandType::Local, OperandType::Local)                                                       \
   F(SorterIteratorGetRow, OperandType::Local, OperandType::Local)                                                     \

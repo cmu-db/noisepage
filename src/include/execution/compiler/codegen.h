@@ -1172,7 +1172,8 @@ class CodeGen {
    * @param offset The offset within the container where the thread-local sorter is.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset);
+  [[nodiscard]] ast::Expr *SortParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
+                                        ast::Expr *offset);
 
   /**
    * Call \@sorterSortTopKParallel(). Perform a parallel top-k sort of all sorter instances contained
@@ -1183,7 +1184,8 @@ class CodeGen {
    * @param top_k The top-K value.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k);
+  [[nodiscard]] ast::Expr *SortTopKParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                            ast::Expr *tls, ast::Expr *offset, std::size_t top_k);
 
   /**
    * Call \@sorterFree(). Destroy the provided sorter instance.

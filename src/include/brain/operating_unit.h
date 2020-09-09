@@ -41,6 +41,7 @@ class ExecutionContext;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
+class Sorter;
 class JoinHashTable;
 class AggregationHashTable;
 }  // namespace terrier::execution::sql
@@ -72,6 +73,7 @@ class ExecutionOperatingUnitFeature {
   friend class OperatingUnitRecorder;
   friend class ExecOUFeatureVector;
   friend class PipelineOperatingUnits;
+  friend class execution::sql::Sorter;
   friend class execution::sql::JoinHashTable;
   friend class execution::sql::AggregationHashTable;
 

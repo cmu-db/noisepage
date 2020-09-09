@@ -1295,10 +1295,14 @@ VM_OP_HOT void OpSorterAllocTupleTopKFinish(terrier::execution::sql::Sorter *sor
 VM_OP void OpSorterSort(terrier::execution::sql::Sorter *sorter);
 
 VM_OP void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
+                                terrier::execution::exec::ExecutionContext *exec_ctx,
+                                terrier::execution::pipeline_id_t pipeline_id,
                                 terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                 uint32_t sorter_offset);
 
 VM_OP void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
+                                    terrier::execution::exec::ExecutionContext *exec_ctx,
+                                    terrier::execution::pipeline_id_t pipeline_id,
                                     terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                     uint32_t sorter_offset, uint64_t top_k);
 

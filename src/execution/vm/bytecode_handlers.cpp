@@ -143,16 +143,19 @@ void OpSorterInit(terrier::execution::sql::Sorter *const sorter, terrier::execut
 
 void OpSorterSort(terrier::execution::sql::Sorter *sorter) { sorter->Sort(); }
 
-void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
+void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter, terrier::execution::exec::ExecutionContext *exec_ctx,
+                          terrier::execution::pipeline_id_t pipeline_id,
                           terrier::execution::sql::ThreadStateContainer *thread_state_container,
                           uint32_t sorter_offset) {
-  sorter->SortParallel(thread_state_container, sorter_offset);
+  sorter->SortParallel(exec_ctx, pipeline_id, thread_state_container, sorter_offset);
 }
 
 void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
+                              terrier::execution::exec::ExecutionContext *exec_ctx,
+                              terrier::execution::pipeline_id_t pipeline_id,
                               terrier::execution::sql::ThreadStateContainer *thread_state_container,
                               uint32_t sorter_offset, uint64_t top_k) {
-  sorter->SortTopKParallel(thread_state_container, sorter_offset, top_k);
+  sorter->SortTopKParallel(exec_ctx, pipeline_id, thread_state_container, sorter_offset, top_k);
 }
 
 void OpSorterFree(terrier::execution::sql::Sorter *sorter) { sorter->~Sorter(); }
