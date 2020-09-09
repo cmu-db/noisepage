@@ -486,8 +486,10 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<std::vector<type::TypeId>> mixed_types = {{type::TypeId::INTEGER, type::TypeId::DECIMAL}};
-  std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}};
+  std::vector<std::vector<type::TypeId>> mixed_types = {
+      {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT}};
+  std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15, 0}, {3, 12, 0}, {7, 8, 0},
+                                                   {11, 4, 0}, {15, 0, 0}, {0, 0, 15}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto types : mixed_types) {
@@ -519,14 +521,22 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
             num_cols += col_dist[col_idx];
           }
 
-          std::string tbl_name = GenerateMixedTableName(types, col_dist, row_num, cardinality);
-          for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-            if (col_dist[col_idx] == num_cols) {
-              tbl_name = GenerateTableName(types[col_idx], num_cols, row_num, cardinality);
-              break;
-            }
+          std::vector<std::pair<type::TypeId, uint32_t>> dists;
+          for (size_t i = 0; i < col_dist.size(); i++) {
+            dists.emplace_back(types[i], col_dist[i]);
+          }
+          dists.erase(std::remove_if(dists.begin(), dists.end(),
+                                     [](std::pair<type::TypeId, uint32_t> item) { return item.second == 0; }),
+                      dists.end());
+
+          std::vector<type::TypeId> final_types;
+          std::vector<uint32_t> col_nums;
+          for (auto dist : dists) {
+            final_types.emplace_back(dist.first);
+            col_nums.emplace_back(dist.second);
           }
 
+          std::string tbl_name = GenerateMixedTableName(final_types, col_nums, row_num, cardinality);
           table_metas.emplace_back(tbl_name, row_num, col_metas);
         }
       }
