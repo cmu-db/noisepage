@@ -20,8 +20,6 @@ class TransactionLoggingGCRunner : public benchmark::Fixture {
   std::default_random_engine generator_;
   storage::LogManager *log_manager_ = nullptr;
   storage::GarbageCollector *gc_ = nullptr;
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::microseconds gc_period_{1000};
   const std::chrono::microseconds metrics_period_{10000};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
@@ -71,8 +69,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
                                         common::ManagedPointer(tested.GetTxnManager()));
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                                     common::ManagedPointer(metrics_manager), 0);
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -83,7 +79,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
-    delete gc_thread_;
     delete thread_registry_;
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
@@ -132,8 +127,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetDeferredActionManager()),
                                         common::ManagedPointer(tested.GetTxnManager()));
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), config_interval * 10,
-                                                     common::ManagedPointer(metrics_manager), 0);
     const auto result = tested.SimulateOltp(num_txns, num_thread, metrics_manager, txn_interval);
     abort_count += result.first;
     uint64_t elapsed_ms;
@@ -144,7 +137,6 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
-    delete gc_thread_;
     delete thread_registry_;
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
