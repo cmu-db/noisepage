@@ -201,6 +201,7 @@ class TestServer:
         return self.handle_test_suite_result(test_suite_result)
 
     def run_test_suite(self, test_suite):
+        """ Execute all the tests in the test suite """
         test_suite_ret_vals = {}
         for test_case in test_suite:
             if test_case.db_restart:
@@ -222,12 +223,21 @@ class TestServer:
         return test_suite_ret_vals
 
     def determine_test_suite_result(self, test_suite_ret_vals):
+        """
+        Based on all the test suite resultes this determines whether the test
+        suite was a success or error
+        """
         for test_case, test_result in test_suite_ret_vals.items():
             if test_result is None or test_result != constants.ErrorCode.SUCCESS:
                 return constants.ErrorCode.ERROR
         return constants.ErrorCode.SUCCESS
 
     def handle_test_suite_result(self, test_suite_result):
+        """
+        Determine what to do based on the result. If continue_on_error is
+        True then it will mask any errors and return success. Otherwise,
+        it will return the result of the test suite.
+        """
         if test_suite_result is None or test_suite_result != constants.ErrorCode.SUCCESS:
             print_output(self.db_output_file)
         if self.continue_on_error:
@@ -262,7 +272,7 @@ def print_output(filename):
             LOG.info(line.strip())
 
 def check_db_process_exists(db_pid):
-    """Checks to see if the db_pid exists"""
+    """ Checks to see if the db_pid exists """
     if not check_pid(db_pid):
         raise RuntimeError("Unable to find DBMS PID {}".format(db_pid))
     else:

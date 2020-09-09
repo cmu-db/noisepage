@@ -68,6 +68,7 @@ def generate_test_suite(args):
     return oltpbench, oltp_test_suite
 
 def get_configfile_path(args):
+    """ Return the path to the test suite config file """
     args_configfile = args.get('config_file')
     if not args_configfile:
         raise FileNotFoundError('Config file is not provided')
@@ -78,6 +79,7 @@ def get_configfile_path(args):
     return configfile_path
  
 def load_test_suite(configfile_path):
+    """ Load the test suite from a JSON config file """
     with open(configfile_path) as test_suite_config:
         test_suite_json = json.load(test_suite_config)
 
@@ -87,6 +89,7 @@ def load_test_suite(configfile_path):
     return test_suite_json
 
 def get_server_args(test_suite_json):
+    """ Create a server args string to pass to the DBMS """
     server_args_json = test_suite_json.get('server_args')
 
     if server_args_json:
@@ -103,6 +106,7 @@ def get_server_args(test_suite_json):
         return server_args
 
 def get_server_metadata(test_suite_json, max_connection_threads, wal_enable):
+    """ Aggregate all the server metadata in one dictionary """
     server_metadata = test_suite_json.get('env',{})
     server_metadata['max_connection_threads'] = max_connection_threads
     if not wal_enable:
@@ -110,6 +114,7 @@ def get_server_metadata(test_suite_json, max_connection_threads, wal_enable):
     return server_metadata
 
 def get_test_result_publish_data(args):
+    """ Get the data needed to publish the results, from the args. """
     publish_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get("publish_results")]
     publish_username = args.get("publish_username")
     publish_password= args.get("publish_password")
