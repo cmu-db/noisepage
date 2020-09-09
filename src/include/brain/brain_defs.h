@@ -108,7 +108,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PARALLEL_MERGE_AGGBUILD,
   PARALLEL_SORT_STEP,
   PARALLEL_SORT_MERGE_STEP,
-  PARALLEL_SORT_MAIN_STEP,
 
   /**
    * Use to demarcate plan and operations.

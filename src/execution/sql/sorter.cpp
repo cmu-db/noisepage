@@ -210,20 +210,19 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     return;
   }
 
-  // Start the tracker
-  brain::ExecOUFeatureVector ouvec;
-  exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-  exec_ctx->StartPipelineTracker(pipeline_id);
-  ouvec.pipeline_features_.erase(
-      std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(), [](const auto &feature) {
-        return feature.GetExecutionOperatingUnitType() != brain::ExecutionOperatingUnitType::PARALLEL_SORT_MAIN_STEP;
-      }));
-
-  // Set row_num / cardinality to number of tuples
-  // Set num_concurrent to number of sorters
-  ouvec.pipeline_features_[0].SetNumRows(num_tuples);
-  ouvec.pipeline_features_[0].SetCardinality(num_tuples);
-  ouvec.pipeline_features_[0].SetNumConcurrent(tl_sorters.size());
+  // For the purpose of metrics recording, we assume that computing the splitters and
+  // preparing the work is insignificant compared to the work performed to actually
+  // SORT and MERGE the per-task sorters together.
+  //
+  // If this assumption proves to be incorrect at a future date, then we would need
+  // to insert a `StartPipelineTracker` and `EndPipelineTracker` around the code
+  // that follows (or potentially just the splitters.
+  //
+  // Note the following two:
+  // 1. If placed around all code that follows, the metrics would then end up depending
+  // on the time it takes to do per-task sorting and per-task merging.
+  //
+  // 2. tbb::parallel_for() could actually end up using the "main" thread.
 
 #ifndef NDEBUG
   std::string msg = "Issuing parallel sort. Sorter sizes: ";
@@ -433,7 +432,6 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
   // Done
   // -------------------------------------------------------
 
-  exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
   sorted_ = true;
 
   UNUSED_ATTRIBUTE double tps = (tuples_.size() / timer.GetTotalElapsedTime()) / 1000.0;
