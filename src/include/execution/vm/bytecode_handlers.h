@@ -216,6 +216,11 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
   exec_ctx->StartResourceTracker(component);
 }
 
+VM_OP_HOT void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      uint32_t memory_use) {
+  exec_ctx->SetMemoryUseOverride(memory_use);
+}
+
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
@@ -1918,6 +1923,9 @@ VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_resu
 
 VM_OP void OpStorageInterfaceIndexGetSize(uint32_t *result,
                                           terrier::execution::sql::StorageInterface *storage_interface);
+
+VM_OP void OpStorageInterfaceGetIndexHeapSize(uint32_t *size,
+                                              terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 

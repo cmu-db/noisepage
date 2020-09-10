@@ -46,7 +46,8 @@ struct EXPORT Cast {
     if (!TryCast<InType, OutType>{}(input, &result)) {
       throw EXECUTION_EXCEPTION(
           fmt::format("Type {} cannot be cast because the value is out of range for the target type {}.",
-                      TypeIdToString(GetTypeId<InType>()), TypeIdToString(GetTypeId<OutType>())));
+                      TypeIdToString(GetTypeId<InType>()), TypeIdToString(GetTypeId<OutType>())),
+          common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE);
     }
     return result;  // NOLINT
   }

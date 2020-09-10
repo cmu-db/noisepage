@@ -202,6 +202,14 @@ class EXPORT ExecutionContext {
 
   execution::query_id_t GetQueryId() { return query_id_; }
   void SetQueryId(execution::query_id_t query_id) { query_id_ = query_id; }
+  /**
+   * Overrides recording from memory tracker
+   * @param memory_use Correct memory value to record
+   */
+  void SetMemoryUseOverride(uint32_t memory_use) {
+    memory_use_override_ = true;
+    memory_use_override_value_ = memory_use;
+  }
 
  private:
   query_id_t query_id_{execution::query_id_t(0)};
@@ -225,5 +233,8 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
   uint64_t rows_affected_ = 0;
+
+  bool memory_use_override_ = false;
+  uint32_t memory_use_override_value_ = 0;
 };
 }  // namespace terrier::execution::exec

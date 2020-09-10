@@ -382,7 +382,8 @@ uint32_t SeqScanTranslator::GetColOidIndex(catalog::col_oid_t col_oid) const {
       return i;
     }
   }
-  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", col_oid.UnderlyingValue()));
+  throw EXECUTION_EXCEPTION(fmt::format("Seq scan translator: col OID {} not found.", col_oid.UnderlyingValue()),
+                            common::ErrorCode::ERRCODE_INTERNAL_ERROR);
 }
 
 std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(const catalog::Schema &schema,

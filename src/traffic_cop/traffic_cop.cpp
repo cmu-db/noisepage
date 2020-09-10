@@ -397,7 +397,20 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  try {
+    exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  } catch (ExecutionException &e) {
+    /*
+     * An ExecutionException is thrown in the case of some failure caused by a software bug or caused by some data
+     * exception. In either case we abort the current transaction and return an error to the client.
+     */
+    // TODO(Matt): evict this plan from the statement cache when the functionality is available
+    connection_ctx->Transaction()->SetMustAbort();
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete

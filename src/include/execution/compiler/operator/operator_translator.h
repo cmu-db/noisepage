@@ -281,9 +281,6 @@ class OperatorTranslator : public ColumnValueProvider {
   /** Record arithmetic feature values by setting feature values to val. */
   void FeatureArithmeticRecordSet(FunctionBuilder *function, const Pipeline &pipeline,
                                   execution::translator_id_t translator_id, ast::Expr *val) const;
-  /** Record arithmetic feature values by incrementing existing feature values by val. */
-  void FeatureArithmeticRecordAdd(FunctionBuilder *function, const Pipeline &pipeline,
-                                  execution::translator_id_t translator_id, ast::Expr *val) const;
   /** Record arithmetic feature values by multiplying existing feature values by val. */
   void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
                                   execution::translator_id_t translator_id, ast::Expr *val) const;
