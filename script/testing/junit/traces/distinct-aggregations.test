@@ -2,307 +2,307 @@ statement ok
 DROP TABLE IF EXISTS studentTable
 
 statement ok
-CREATE TABLE studentTable (id INT PRIMARY KEY, name VARCHAR(256), age INT NOT NULL, gpa FLOAT NOT NULL)
+CREATE TABLE studentTable (id INT PRIMARY KEY, name VARCHAR(256), age INT NOT NULL, gpa FLOAT NOT NULL, international BOOLEAN)
 
 statement ok
-INSERT INTO studentTable VALUES (0, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (0, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (1, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (1, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (2, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (2, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (3, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (3, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (4, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (4, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (5, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (5, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (6, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (6, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (7, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (7, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (8, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (8, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (9, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (9, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (10, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (10, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (11, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (11, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (12, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (12, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (13, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (13, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (14, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (14, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (15, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (15, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (16, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (16, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (17, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (17, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (18, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (18, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (19, 'Billy', 19, 3.3)
+INSERT INTO studentTable VALUES (19, 'Billy', 19, 3.3, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (20, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (20, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (21, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (21, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (22, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (22, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (23, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (23, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (24, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (24, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (25, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (25, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (26, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (26, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (27, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (27, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (28, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (28, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (29, 'John', 20, 4.0)
+INSERT INTO studentTable VALUES (29, 'John', 20, 4.0, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (30, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (30, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (31, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (31, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (32, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (32, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (33, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (33, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (34, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (34, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (35, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (35, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (36, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (36, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (37, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (37, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (38, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (38, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (39, 'Bob', 18, 3.5)
+INSERT INTO studentTable VALUES (39, 'Bob', 18, 3.5, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (40, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (40, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (41, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (41, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (42, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (42, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (43, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (43, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (44, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (44, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (45, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (45, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (46, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (46, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (47, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (47, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (48, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (48, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (49, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (49, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (50, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (50, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (51, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (51, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (52, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (52, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (53, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (53, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (54, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (54, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (55, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (55, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (56, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (56, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (57, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (57, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (58, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (58, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (59, 'Billy', 21, 3.7)
+INSERT INTO studentTable VALUES (59, 'Billy', 21, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (60, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (60, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (61, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (61, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (62, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (62, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (63, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (63, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (64, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (64, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (65, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (65, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (66, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (66, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (67, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (67, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (68, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (68, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (69, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (69, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (70, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (70, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (71, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (71, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (72, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (72, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (73, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (73, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (74, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (74, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (75, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (75, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (76, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (76, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (77, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (77, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (78, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (78, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (79, 'Will', 20, 3.7)
+INSERT INTO studentTable VALUES (79, 'Will', 20, 3.7, TRUE)
 
 statement ok
-INSERT INTO studentTable VALUES (80, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (80, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (81, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (81, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (82, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (82, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (83, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (83, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (84, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (84, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (85, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (85, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (86, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (86, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (87, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (87, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (88, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (88, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (89, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (89, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (90, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (90, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (91, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (91, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (92, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (92, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (93, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (93, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (94, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (94, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (95, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (95, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (96, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (96, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (97, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (97, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (98, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (98, 'Kanye', 17, 3.7, FALSE)
 
 statement ok
-INSERT INTO studentTable VALUES (99, 'Kanye', 17, 3.7)
+INSERT INTO studentTable VALUES (99, 'Kanye', 17, 3.7, FALSE)
 
 query I nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount from studentTable
@@ -319,6 +319,16 @@ SELECT COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
 ----
 1 values hashing to 48a24b70a0b376535542b996af517398
 
+query I nosort
+SELECT COUNT(international) as internationalCount from studentTable
+----
+1 values hashing to 919d117956d3135c4c683ff021352f5c
+
+query I nosort
+SELECT COUNT(DISTINCT international) as distinctInternationalCount from studentTable
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
 query II nosort
 SELECT COUNT(DISTINCT age) as distinctAgeCount, COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
 ----
@@ -334,40 +344,65 @@ SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(DISTINCT age) as distinc
 ----
 2 values hashing to a56776f01f8ab14d7d037bf1ccb399cd
 
-query IIRI nosort
-SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(name) as nameCount, MIN(gpa) as minGpa, MAX(age) as maxAge from studentTable
+query II nosort
+SELECT COUNT(DISTINCT international) as distinctIntCount, COUNT(DISTINCT age) as distinctAgeCount from studentTable
 ----
-4 values hashing to 99213c4be9a187a0e49dad4be69a699b
+2 values hashing to 1da4aa1389a35517735e68bba383291c
 
-query RI nosort
-SELECT MAX(DISTINCT gpa) as distinctGpaMax, MIN(DISTINCT age) as distinctAgeMin from studentTable
+query II nosort
+SELECT COUNT(DISTINCT international) as distinctIntCount, COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
+----
+2 values hashing to bcc8bbd9ecc2b739bb05bb4d30e978a5
+
+query II nosort
+SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(DISTINCT international) as distinctIntCount from studentTable
+----
+2 values hashing to 6e1ea256a31508a67859cb9ee2138755
+
+query IIII nosort
+SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(name) as nameCount, CAST(MIN(gpa) as INT) as minGpa, MAX(age) as maxAge from studentTable
+----
+4 values hashing to 31a41fcfab1f2e2d5bc3d32289658fdb
+
+query II nosort
+SELECT CAST(MAX(DISTINCT gpa) as INT) as distinctGpaMax, MIN(DISTINCT age) as distinctAgeMin from studentTable
 ----
 2 values hashing to 9ec0415f9835d73bff09fb65b39f8b3b
 
-query RR nosort
-SELECT AVG(DISTINCT gpa) as distinctGpaAvg, AVG(DISTINCT age) as distinctAgeAvg from studentTable
+query IR nosort
+SELECT CAST(AVG(DISTINCT gpa) as INT) as distinctGpaAvg, AVG(DISTINCT age) as distinctAgeAvg from studentTable
 ----
-2 values hashing to fb723c097a70a4368ff2de46bcb0f28d
+2 values hashing to 860b2474644d5c9680cb07b0a8c3a824
 
-query RRI nosort
-SELECT SUM(DISTINCT gpa) as distinctGpaSum, SUM(gpa) as gpaSum, SUM(DISTINCT age) as distinctAgeSum from studentTable
+query III nosort
+SELECT CAST(SUM(DISTINCT gpa) as INT) as distinctGpaSum, CAST(SUM(gpa) as INT) as gpaSum, SUM(DISTINCT age) as distinctAgeSum from studentTable
 ----
-3 values hashing to 12ddf427fa723780c7c7550064e7eb26
+3 values hashing to 4f6e4be5a04885442b4dc1f0370ffee1
 
 query II nosort
-SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(name) as nameCount from studentTable GROUP BY gpa
+SELECT COUNT(DISTINCT international) as distinctInternationalCount, COUNT(gpa) as gpaCount from studentTable
+----
+2 values hashing to b422730aed890d1e52485b5cc2d16901
+
+query II nosort
+SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(name) as nameCount from studentTable GROUP BY gpa ORDER BY gpa
 ----
 8 values hashing to d9ad7d057a46a9c258702e150ce1d346
 
-query RR nosort
-SELECT AVG(DISTINCT AGE) as distinctAgeAvg, AVG(DISTINCT gpa) as distinctGpaAvg from studentTable GROUP BY name
+query II nosort
+SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(age) as ageCount from studentTable GROUP BY international ORDER BY international
 ----
-10 values hashing to 353b5af4dc97b73a1ae6eb90f68fbb0f
+4 values hashing to d7e88f9a09c637e1515a5978c93b36df
 
-query RRI nosort
-SELECT AVG(DISTINCT gpa) as distinctGpaAvg, AVG(gpa) as gpaAvg, COUNT(DISTINCT name) as distinctNameCount from studentTable GROUP BY age
+query RI nosort
+SELECT AVG(DISTINCT AGE) as distinctAgeAvg, CAST(AVG(DISTINCT gpa) as INT) as distinctGpaAvg from studentTable GROUP BY name ORDER BY name
 ----
-15 values hashing to 462d22550e77a460ba9de96a9cb4d36b
+10 values hashing to 667c06291614e8baef65cc075a309aab
+
+query IRI nosort
+SELECT CAST(AVG(DISTINCT gpa) as INT) as distinctGpaAvg, AVG(gpa) as gpaAvg, COUNT(DISTINCT name) as distinctNameCount from studentTable GROUP BY age ORDER BY age
+----
+15 values hashing to 27e949656de267d84f8ffa1147001e14
 
 statement ok
 DROP TABLE studentTable
