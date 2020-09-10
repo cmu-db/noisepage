@@ -1350,7 +1350,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_mix = state->range(1);
   auto tbl_ints = state->range(2);
-  auto tbl_decimals = state->range(3);
+  auto tbl_mix = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
   auto varchar_mix = state->range(6);
@@ -1383,7 +1383,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   {
     std::stringstream query;
     auto cols = ConstructColumns("", type::TypeId::INTEGER, mix_type, num_integers, num_mix);
-    auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_decimals, row, car);
+    auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_mix, row, car);
     query << "SELECT " << (cols) << " FROM " << tbl_name;
     query_final = query.str();
   }

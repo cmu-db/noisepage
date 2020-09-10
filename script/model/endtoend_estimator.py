@@ -173,11 +173,11 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
                          help='File of the saved mini models')
-    aparser.add_argument('--global_resource_model_file', default='trained_model_3/global_resource_model.pickle',
+    aparser.add_argument('--global_resource_model_file', default='trained_model/global_resource_model.pickle',
                          help='File of the saved global resource model')
-    aparser.add_argument('--global_impact_model_file', default='trained_model_3/global_impact_model.pickle',
+    aparser.add_argument('--global_impact_model_file', default='trained_model/global_impact_model.pickle',
                          help='File of the saved global impact model')
-    aparser.add_argument('--global_direct_model_file', default='trained_model_3/global_direct_model.pickle',
+    aparser.add_argument('--global_direct_model_file', default='trained_model/global_direct_model.pickle',
                          help='File of the saved global impact model')
     aparser.add_argument('--ee_sample_interval', type=int, default=9,
                          help='Sampling interval for the execution engine OUs')
