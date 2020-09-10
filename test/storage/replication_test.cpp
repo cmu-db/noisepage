@@ -156,9 +156,11 @@ namespace terrier::storage {
                                                  common::ManagedPointer(master_txn_manager_), DISABLED);
       master_catalog_ = new catalog::Catalog(common::ManagedPointer(master_txn_manager_), common::ManagedPointer(&block_store_), common::ManagedPointer(master_gc_));
       master_gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(master_gc_), gc_period_, DISABLED);  // Enable background GC
+      NETWORK_LOG_INFO("Initializing complete");
     }
 
     void TearDown() override {
+      return;
       // Delete log file
       unlink(LOG_FILE_NAME);
       TerrierTest::TearDown();
@@ -216,14 +218,18 @@ namespace terrier::storage {
   auto *txn = master_txn_manager_->BeginTransaction();
   auto db_oid = CreateDatabase(txn, master_catalog_, database_name);
   master_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  NETWORK_LOG_INFO("Master Commit Success");
 
   replication_delay_estimate_ = std::chrono::seconds(2);
   std::this_thread::sleep_for(replication_delay_estimate_);
 
   txn = replica_txn_manager_->BeginTransaction();
   EXPECT_EQ(db_oid, replica_catalog_->GetDatabaseOid(common::ManagedPointer(txn), database_name));
+  NETWORK_LOG_INFO("Replica get database oid");
   EXPECT_TRUE(replica_catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid));
+  NETWORK_LOG_INFO("Replica get database catalog");
   replica_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  NETWORK_LOG_INFO("Replica commit success");
 }
 
 }  // namespace terrier::storage

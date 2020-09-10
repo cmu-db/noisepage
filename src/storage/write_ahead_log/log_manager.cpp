@@ -10,6 +10,7 @@ namespace terrier::storage {
 
 void LogManager::Start() {
   TERRIER_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
+  NETWORK_LOG_INFO("Starting log manager");
   // Initialize buffers for logging
   for (size_t i = 0; i < num_buffers_; i++) {
     buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
@@ -26,7 +27,8 @@ void LogManager::Start() {
       &filled_buffer_queue_);
 
   // If an IP address was provided, we register a replication task
-  replication_log_consumer_task_ = thread_registry_->RegisterDedicatedThread<ReplicationLogConsumerTask>(this /* requester */, "127.0.0.1", 9022, &empty_buffer_queue_, &replication_consumer_queue_);
+  replication_log_consumer_task_ = thread_registry_->RegisterDedicatedThread<ReplicationLogConsumerTask>(
+        this /* requester */, "127.0.0.1", 9022, &empty_buffer_queue_, &replication_consumer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
