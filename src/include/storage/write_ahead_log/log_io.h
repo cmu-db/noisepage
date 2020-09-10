@@ -142,9 +142,9 @@ class BufferedLogWriter {
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
   /**
- * Copies the contents of another buffer into this buffer
- * @param other buffer to copy from
- */
+   * Copies the contents of another buffer into this buffer
+   * @param other buffer to copy from
+   */
   void CopyFromBuffer(BufferedLogWriter *other) {
     TERRIER_ASSERT(CanBuffer(other->buffer_size_), "Not enough space to copy into");
     BufferWrite(other->buffer_, other->buffer_size_);

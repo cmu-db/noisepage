@@ -1,16 +1,14 @@
-#include <storage/write_ahead_log/replication_log_consumer_task.h>
 #include "storage/write_ahead_log/log_manager.h"
-
 #include "common/dedicated_thread_registry.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
+#include "storage/write_ahead_log/replication_log_consumer_task.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 
 void LogManager::Start() {
   TERRIER_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
-  NETWORK_LOG_INFO("Starting log manager");
   // Initialize buffers for logging
   for (size_t i = 0; i < num_buffers_; i++) {
     buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
@@ -28,13 +26,15 @@ void LogManager::Start() {
 
   // If an IP address was provided, we register a replication task
   replication_log_consumer_task_ = thread_registry_->RegisterDedicatedThread<ReplicationLogConsumerTask>(
-        this /* requester */, "127.0.0.1", 9022, &empty_buffer_queue_, &replication_consumer_queue_);
+      this /* requester */, "127.0.0.1", 9022, &empty_buffer_queue_, &replication_consumer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
-      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_, (replication_log_consumer_task_ == DISABLED) ? DISABLED : &replication_consumer_queue_,
-      &disk_log_writer_task_->disk_log_writer_thread_cv_,  (replication_log_consumer_task_ == DISABLED) ? DISABLED
-                                                                                                        : &replication_log_consumer_task_->replication_log_sender_cv_);
+      this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &filled_buffer_queue_,
+      (replication_log_consumer_task_ == DISABLED) ? DISABLED : &replication_consumer_queue_,
+      &disk_log_writer_task_->disk_log_writer_thread_cv_,
+      (replication_log_consumer_task_ == DISABLED) ? DISABLED
+                                                   : &replication_log_consumer_task_->replication_log_sender_cv_);
 }
 
 void LogManager::ForceFlush() {

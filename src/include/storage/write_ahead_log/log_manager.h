@@ -16,7 +16,7 @@
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "replication_log_consumer_task.h"
+#include "storage/write_ahead_log/replication_log_consumer_task.h"
 
 namespace terrier::storage {
 

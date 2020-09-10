@@ -81,7 +81,6 @@ class TerrierServer : public common::DedicatedThreadOwner {
   }
 
  private:
-
   // TODO(tianlei): add comments.
   struct Protocol {
     /**

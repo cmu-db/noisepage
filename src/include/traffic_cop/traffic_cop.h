@@ -102,7 +102,6 @@ class TrafficCop {
    */
   void StopReplication();
 
-
   /**
    * Create a temporary namespace for a connection
    * @param connection_id the unique connection ID to use for the namespace name

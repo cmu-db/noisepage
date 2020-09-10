@@ -42,7 +42,7 @@ void TerrierServer::RunServer() {
   // This line is critical to performance for some reason
   evthread_use_pthreads();
 
-  //int conn_backlog = common::Settings::CONNECTION_BACKLOG;
+  // int conn_backlog = common::Settings::CONNECTION_BACKLOG;
 
   for (auto &protocol : protocols_) {
     struct sockaddr_in sin;
@@ -73,8 +73,8 @@ void TerrierServer::RunServer() {
     }
 
     dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-        this /* requester */, protocol.max_connections_, protocol.listen_fd_, this, common::ManagedPointer(protocol.provider_.Get()),
-        connection_handle_factory_, thread_registry_);
+        this /* requester */, protocol.max_connections_, protocol.listen_fd_, this,
+        common::ManagedPointer(protocol.provider_.Get()), connection_handle_factory_, thread_registry_);
 
     NETWORK_LOG_INFO("Listening on port {0} [PID={1}]", protocol.port_, ::getpid());
   }

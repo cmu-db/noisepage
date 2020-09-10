@@ -27,7 +27,9 @@ class ITPPacketWriter : public PacketWriter {
    * bytes to the packet and call EndReplicationCommand when we want to finish the current command.
    * @param message_id message id
    */
-  void BeginReplicationCommand(uint64_t message_id, uint64_t data_size) { BeginPacket(NetworkMessageType::ITP_REPLICATION_COMMAND).AppendValue(message_id).AppendValue(data_size); }
+  void BeginReplicationCommand(uint64_t message_id, uint64_t data_size) {
+    BeginPacket(NetworkMessageType::ITP_REPLICATION_COMMAND).AppendValue(message_id).AppendValue(data_size);
+  }
 
   /**
    * End the Replication command
@@ -42,9 +44,7 @@ class ITPPacketWriter : public PacketWriter {
   /**
    * Writes a Stop Replication packet
    */
-  void WriteStopReplicationCommand() {
-    BeginPacket(NetworkMessageType::ITP_STOP_REPLICATION_COMMAND).EndPacket();
-  }
+  void WriteStopReplicationCommand() { BeginPacket(NetworkMessageType::ITP_STOP_REPLICATION_COMMAND).EndPacket(); }
 };
 
 }  // namespace terrier::network

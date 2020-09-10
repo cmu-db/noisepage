@@ -88,7 +88,8 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 }
 
 void TrafficCop::StopReplication() {
-  TERRIER_ASSERT(replication_log_provider_ != DISABLED,"Can't stop replication, no replication log provider was given");
+  TERRIER_ASSERT(replication_log_provider_ != DISABLED,
+                 "Can't stop replication, no replication log provider was given");
   replication_log_provider_->EndReplication();
 }
 
