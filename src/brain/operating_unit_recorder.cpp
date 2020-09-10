@@ -64,11 +64,6 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
     auto *field_repr = field->TypeRepr();
     if (field_repr->GetType() != nullptr) {
       total += field_repr->GetType()->GetSize();
-      // Increment the total size because of the size mismatch between storage and execution engine integers
-      // TODO(Lin): Assumes the original type is 4 byte integer for now
-      if (field_repr->GetType()->IsIntegerType()) key_size += 4;
-      // Adjust the string type accordingly
-      if (field_repr->GetType()->IsStringType()) total += 64;
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
       auto *builtin_type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)
@@ -79,17 +74,17 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
     }
   }
 
-  double ref_payload = key_size + ref_offset;
+  // For mini-runners, only ints for sort, hj, aggregate
+  double num_keys = key_size / 4.0;
+  double ref_payload = (num_keys * sizeof(execution::sql::Integer)) + ref_offset;
   return total / ref_payload;
 }
 
 void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key) {
   if (type == type::TypeId::VARCHAR) {
-    // Mini-Runners can't actually model varchars right now.
-    // So we substitute a key_size += 64, num_key += 15 (since already counts 1)
-    // to model varchars.
-    *key_size = *key_size + 64;
-    *num_key = *num_key + 15;
+    // TODO(lin): Some how varchar in execution engine is 24 bytes. I don't really know why, but just special case
+    //  here since it's different than the storage size (16 bytes under inline)
+    *key_size = *key_size + 24;
   } else {
     *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
   }

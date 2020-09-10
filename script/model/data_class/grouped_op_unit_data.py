@@ -103,7 +103,6 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
             # Get the opunits located within
             opunits = []
             features = line[features_vector_index].split(';')
-            print("Start pipeline")
             for idx, feature in enumerate(features):
                 if feature == 'LIMIT':
                     continue
@@ -120,7 +119,6 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                     continue
 
                 opunits.append((opunit, x_loc))
-                print("Record feature for {}".format(opunit.name))
 
             if len(opunits) == 0:
                 continue
