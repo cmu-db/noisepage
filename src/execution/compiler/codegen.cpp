@@ -822,7 +822,7 @@ ast::Expr *CodeGen::JoinHashTableBuild(ast::Expr *join_hash_table) {
   return call;
 }
 
-ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *exec_ctx, ast::Expr *join_hash_table, ast::Expr *pipeline_id,
+ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
                                                ast::Expr *thread_state_container, ast::Expr *offset) {
   ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableBuildParallel,
                                 {join_hash_table, exec_ctx, pipeline_id, thread_state_container, offset});

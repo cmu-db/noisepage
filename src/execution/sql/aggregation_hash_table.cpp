@@ -239,6 +239,8 @@ HashTableEntry *AggregationHashTable::AllocateEntryInternal(const hash_t hash) {
 }
 
 byte *AggregationHashTable::AllocInputTuple(const hash_t hash) {
+  stats_.num_inserts_++;
+
   // Grow if need be
   if (NeedsToGrow()) {
     Grow();
@@ -550,6 +552,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
 
   // If, by chance, we have some un-flushed aggregate data, flush it out now to
   // ensure partitioned build captures it.
+  size_t tuple_count = stats_.num_inserts_;
   if (GetTupleCount() > 0) {
     FlushToOverflowPartitions();
   }
@@ -558,10 +561,10 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
   // move both their main entry data and the overflow partitions to us.
   std::vector<AggregationHashTable *> tl_agg_ht;
   thread_states->CollectThreadLocalStateElementsAs(&tl_agg_ht, agg_ht_offset);
-
   for (auto *table : tl_agg_ht) {
     // Flush each table to ensure their hash tables are empty and their overflow
     // partitions contain all partial aggregates
+    tuple_count += table->stats_.num_inserts_;
     table->FlushToOverflowPartitions();
 
     // Now, move over their memory
@@ -587,8 +590,8 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
   }
 
   // Set # rows to be total number of entries in all agg tables
-  size_t num = entries_.size() + owned_entries_.size();
-  ouvec.pipeline_features_[0].SetNumRows(num);
+  // Set cardinality to be # of per-task tables being built from
+  ouvec.pipeline_features_[0].SetNumRows(tuple_count);
   ouvec.pipeline_features_[0].SetCardinality(tl_agg_ht.size());
   ouvec.pipeline_features_[0].SetNumConcurrent(0);
   exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);

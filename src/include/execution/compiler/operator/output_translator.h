@@ -43,7 +43,8 @@ class OutputTranslator : public OperatorTranslator {
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const;
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 

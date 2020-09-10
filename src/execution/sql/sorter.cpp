@@ -254,6 +254,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
 
   tbb::parallel_for_each(tl_sorters, [exec_ctx, pipeline_id, num_concurrent](Sorter *sorter) {
     brain::ExecOUFeatureVector ouvec;
+    exec_ctx->RegisterThread();
     exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
     exec_ctx->StartPipelineTracker(pipeline_id);
     ouvec.pipeline_features_.erase(
@@ -268,6 +269,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     ouvec.pipeline_features_[0].SetCardinality(num_tuples);
     ouvec.pipeline_features_[0].SetNumConcurrent(num_concurrent);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    exec_ctx->GetMetricsManager()->Aggregate();
   });
 
   timer.ExitStage();
@@ -384,6 +386,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
   tbb::parallel_for_each(merge_work, [&heap_cmp, exec_ctx, pipeline_id,
                                       concurrent](const MergeWork<SeqTypeIter> &work) {
     brain::ExecOUFeatureVector ouvec;
+    exec_ctx->RegisterThread();
     exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
     exec_ctx->StartPipelineTracker(pipeline_id);
     ouvec.pipeline_features_.erase(
@@ -410,6 +413,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     ouvec.pipeline_features_[0].SetCardinality(num_iters);
     ouvec.pipeline_features_[0].SetNumConcurrent(concurrent);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    exec_ctx->GetMetricsManager()->Aggregate();
   });
 
   timer.ExitStage();

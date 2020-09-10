@@ -784,6 +784,9 @@ VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTa
 VM_OP void OpAggregationHashTableGetTupleCount(uint32_t *result,
                                                terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
+VM_OP void OpAggregationHashTableGetInsertCount(uint32_t *result,
+                                                terrier::execution::sql::AggregationHashTable *agg_hash_table);
+
 VM_OP_HOT void OpAggregationHashTableAllocTuple(terrier::byte **result,
                                                 terrier::execution::sql::AggregationHashTable *agg_hash_table,
                                                 const terrier::hash_t hash_val) {

@@ -104,6 +104,11 @@ void OpAggregationHashTableGetTupleCount(uint32_t *result,
   *result = agg_hash_table->GetTupleCount();
 }
 
+void OpAggregationHashTableGetInsertCount(uint32_t *result,
+                                          terrier::execution::sql::AggregationHashTable *const agg_hash_table) {
+  *result = agg_hash_table->GetInsertCount();
+}
+
 void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *const agg_hash_table) {
   agg_hash_table->~AggregationHashTable();
 }

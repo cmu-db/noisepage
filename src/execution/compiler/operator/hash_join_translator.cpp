@@ -89,12 +89,9 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
     if (left_pipeline_.IsParallel()) {
       InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
     }
-
-    CounterSet(function, num_build_rows_, 0);
-  } else {
-    CounterSet(function, num_probe_rows_, 0);
-    CounterSet(function, num_match_rows_, 0);
   }
+
+  InitializeCounters(pipeline, function);
 }
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -105,17 +102,21 @@ void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, Functio
   }
 }
 
-void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
+void HashJoinTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsLeftPipeline(pipeline)) {
-    const auto join_ht = pipeline.IsParallel() ? local_join_ht_ : global_join_ht_;
-    auto *jht = join_ht.GetPtr(codegen);
+    CounterSet(function, num_build_rows_, 0);
+  } else {
+    CounterSet(function, num_probe_rows_, 0);
+    CounterSet(function, num_match_rows_, 0);
+  }
+}
 
+void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsLeftPipeline(pipeline)) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_build_rows_));
 
     if (left_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
@@ -332,7 +333,7 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
       auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
-      function->Append(codegen->JoinHashTableBuildParallel(GetExecutionContext(), pipeline_id, jht, tls, offset));
+      function->Append(codegen->JoinHashTableBuildParallel(jht, GetExecutionContext(), pipeline_id, tls, offset));
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
       RecordCounters(pipeline, function);

@@ -1175,6 +1175,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(AggregationHashTableGetInsertCount) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    OpAggregationHashTableGetInsertCount(result, agg_hash_table);
+    DISPATCH_NEXT();
+  }
+
   OP(AggregationHashTableAllocTuple) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());

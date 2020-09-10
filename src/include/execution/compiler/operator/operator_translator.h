@@ -146,7 +146,11 @@ class OperatorTranslator : public ColumnValueProvider {
    */
   virtual void BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
-  virtual void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
+  virtual void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
+  virtual void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
+  virtual void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+    InitializeCounters(pipeline, function);
+  }
   virtual void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
   /**

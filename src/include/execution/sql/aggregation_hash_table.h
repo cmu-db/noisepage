@@ -105,6 +105,8 @@ class EXPORT AggregationHashTable {
     uint64_t num_growths_ = 0;
     /** Number of times that the hash table has been flushed. */
     uint64_t num_flushes_ = 0;
+    /** Number of times insert into hash table. */
+    uint64_t num_inserts_ = 0;
   };
 
   // -------------------------------------------------------
@@ -259,6 +261,7 @@ class EXPORT AggregationHashTable {
    * @return The total number of tuples in this table.
    */
   uint64_t GetTupleCount() const { return hash_table_.GetElementCount(); }
+  uint64_t GetInsertCount() const { return stats_.num_inserts_; }
 
   /**
    * @return A read-only view of this aggregation table's statistics.

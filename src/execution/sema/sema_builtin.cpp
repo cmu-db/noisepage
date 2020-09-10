@@ -310,6 +310,10 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
       call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
       break;
     }
+    case ast::Builtin::AggHashTableGetInsertCount: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+      break;
+    }
     case ast::Builtin::AggHashTableInsert: {
       if (!CheckArgCountAtLeast(call, 2)) {
         return;
@@ -3209,6 +3213,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::AggHashTableInit:
     case ast::Builtin::AggHashTableGetTupleCount:
+    case ast::Builtin::AggHashTableGetInsertCount:
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLinkEntry:
     case ast::Builtin::AggHashTableLookup:

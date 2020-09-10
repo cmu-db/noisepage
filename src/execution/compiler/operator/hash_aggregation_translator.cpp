@@ -67,6 +67,7 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
   }
 
   num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
+  agg_count_ = CounterDeclare("agg_count", &build_pipeline_);
   num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
 }
 
@@ -264,8 +265,15 @@ void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline
   if (IsBuildPipeline(pipeline)) {
     if (build_pipeline_.IsParallel()) {
       InitializeAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+      CounterSet(function, agg_count_, 0);
     }
+  }
 
+  InitializeCounters(pipeline, function);
+}
+
+void HashAggregationTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
     CounterSet(function, num_agg_inputs_, 0);
   } else {
     CounterSet(function, num_agg_outputs_, 0);
@@ -286,13 +294,22 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
     const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
 
     if (build_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                     brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+
+      // In parallel mode, we subtract from the insert count of the last task that might
+      // have been run with the current thread. This is to more correctly model the
+      // amount of work performed by the current task.
+      auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
+      auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
+    } else {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                    codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
@@ -306,6 +323,7 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
 
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
+
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
@@ -321,6 +339,13 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
 
 void HashAggregationTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   RecordCounters(pipeline, function);
+
+  if (IsBuildPipeline(pipeline)) {
+    auto *codegen = GetCodeGen();
+    const auto &agg_ht = local_agg_ht_;
+    auto *tuple_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
+    function->Append(codegen->Assign(agg_count_.Get(codegen), tuple_count));
+  }
 }
 
 ast::Expr *HashAggregationTranslator::GetGroupByTerm(ast::Identifier agg_row, uint32_t attr_idx) const {

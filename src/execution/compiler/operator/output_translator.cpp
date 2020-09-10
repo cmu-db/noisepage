@@ -27,11 +27,11 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
 }
 
 void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  CounterSet(function, num_output_, 0);
-
   auto exec_ctx = GetExecutionContext();
   auto *new_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferNew, {exec_ctx});
   function->Append(GetCodeGen()->Assign(output_buffer_.Get(GetCodeGen()), new_call));
+
+  InitializeCounters(pipeline, function);
 }
 
 void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
@@ -53,6 +53,10 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
   }
 
   CounterAdd(function, num_output_, 1);
+}
+
+void OutputTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_output_, 0);
 }
 
 void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {

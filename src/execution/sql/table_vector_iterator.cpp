@@ -138,7 +138,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   timer.Start();
 
   // Execute parallel scan
-  tbb::task_scheduler_init scan_scheduler;
+  tbb::task_scheduler_init scan_scheduler(2);
   size_t num_threads = tbb::task_scheduler_init::default_num_threads();
   size_t num_tasks = (table->table_.data_table_->GetNumBlocks() / min_grain_size) + 1;
   size_t concurrent_estimate = std::min(num_threads, num_tasks) > 0 ? (std::min(num_threads, num_tasks) - 1) : 0;

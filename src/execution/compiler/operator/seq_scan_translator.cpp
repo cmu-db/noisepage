@@ -261,7 +261,7 @@ void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, Functi
     }
   }
 
-  CounterSet(function, num_scans_, 0);
+  InitializeCounters(pipeline, function);
 }
 
 void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -269,6 +269,10 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
     auto filter_manager = local_filter_manager_.GetPtr(GetCodeGen());
     function->Append(GetCodeGen()->FilterManagerFree(filter_manager));
   }
+}
+
+void SeqScanTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_scans_, 0);
 }
 
 void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -289,6 +293,7 @@ void SeqScanTranslator::BeginParallelPipelineWork(const Pipeline &pipeline, Func
   auto *codegen = GetCodeGen();
   auto val = codegen->MakeExpr(codegen->MakeIdentifier("concurrent"));
   function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), val));
+  InitializeCounters(pipeline, function);
 }
 
 void SeqScanTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {

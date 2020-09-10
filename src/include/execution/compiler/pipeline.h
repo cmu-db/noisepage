@@ -183,9 +183,10 @@ class Pipeline {
 
   void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
-  query_id_t GetQueryId() { return query_id_; }
+  query_id_t GetQueryId() const { return query_id_; }
 
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
+  ast::Expr *OUFeatureVecOffset() const { return oufeatures_.OffsetFromState(codegen_); }
   ast::Expr *ConcurrentState() const { return concurrent_state_.Get(codegen_); }
 
  private:

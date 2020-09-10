@@ -108,7 +108,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
     UNREACHABLE("Hash-based aggregations do not produce columns from base tables.");
   }
 
-  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const;
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
  private:
@@ -194,6 +195,9 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
 
   // The number of output rows from the aggregation.
   StateDescriptor::Entry num_agg_outputs_;
+
+  // The number of rows in the agg hash table at end of previous task
+  StateDescriptor::Entry agg_count_;
 };
 
 }  // namespace terrier::execution::compiler

@@ -130,7 +130,13 @@ void SortTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionB
     if (build_pipeline_.IsParallel()) {
       InitializeSorter(function, local_sorter_.GetPtr(GetCodeGen()));
     }
+  }
 
+  InitializeCounters(pipeline, function);
+}
+
+void SortTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
     CounterSet(function, num_sort_build_rows_, 0);
   } else {
     CounterSet(function, num_sort_iterate_rows_, 0);
@@ -140,14 +146,11 @@ void SortTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionB
 void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   if (IsBuildPipeline(pipeline)) {
-    const auto sorter = pipeline.IsParallel() ? local_sorter_ : global_sorter_;
-    ast::Expr *sorter_ptr = sorter.GetPtr(codegen);
-
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_sort_build_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
+                  CounterVal(num_sort_build_rows_));
 
     if (build_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,

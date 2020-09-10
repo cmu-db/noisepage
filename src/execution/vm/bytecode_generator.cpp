@@ -1003,6 +1003,13 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
       GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
+    case ast::Builtin::AggHashTableGetInsertCount: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableGetInsertCount, dest, agg_ht);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
     case ast::Builtin::AggHashTableInsert: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
@@ -2587,6 +2594,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::AggHashTableInit:
     case ast::Builtin::AggHashTableGetTupleCount:
+    case ast::Builtin::AggHashTableGetInsertCount:
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLinkEntry:
     case ast::Builtin::AggHashTableLookup:
