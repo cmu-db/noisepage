@@ -58,7 +58,8 @@ class LogManager : public common::DedicatedThreadOwner {
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
-             common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
+             common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
+             const std::string& ip_address = "", uint16_t replication_port = 0)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
@@ -66,7 +67,9 @@ class LogManager : public common::DedicatedThreadOwner {
         buffer_pool_(buffer_pool.Get()),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
-        persist_threshold_(persist_threshold) {}
+        persist_threshold_(persist_threshold),
+        ip_address_(ip_address),
+        replication_port_(replication_port) {}
   /**
    * Starts log manager. Does the following in order:
    *    1. Initialize buffers to pass serialized logs to log consumers
@@ -166,6 +169,10 @@ class LogManager : public common::DedicatedThreadOwner {
   // Log consumer task that sends logs over network to replicas
   common::ManagedPointer<ReplicationLogConsumerTask> replication_log_consumer_task_ =
       common::ManagedPointer<ReplicationLogConsumerTask>(nullptr);
+  // IP address to ship logs to, empty string if replication is disabled
+  const std::string ip_address_;
+  // If replication is enabled, port number to use for log shipping
+  const uint16_t replication_port_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

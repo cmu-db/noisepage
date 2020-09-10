@@ -74,14 +74,23 @@ class TerrierServer : public common::DedicatedThreadOwner {
    */
   std::condition_variable &RunningCV() { return running_cv_; }
 
-  // TODO(tianlei): add comments.
+  /**
+   * Registers a port to listen on for protocol.
+   * @param port connection port.
+   * @param provider provider for this protocol.
+   * @param max_connections max connections on this socket.
+   * @param conn_backlog connection backlog for this socket
+   */
   void RegisterProtocol(uint16_t port, common::ManagedPointer<ProtocolInterpreter::Provider> provider,
                         uint32_t max_connections, uint32_t conn_backlog) {
     protocols_.emplace_back(port, provider, max_connections, conn_backlog);
   }
 
  private:
-  // TODO(tianlei): add comments.
+
+  /**
+   * Network protocol to keep track of. Could be either an ITP protocol or Postgres protocol.
+   */
   struct Protocol {
     /**
      * @param port port to listen on for protocol

@@ -1,6 +1,7 @@
+#include "storage/write_ahead_log/log_manager.h"
+
 #include "common/dedicated_thread_registry.h"
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
-#include "storage/write_ahead_log/log_manager.h"
 #include "storage/write_ahead_log/log_serializer_task.h"
 #include "storage/write_ahead_log/replication_log_consumer_task.h"
 #include "transaction/transaction_context.h"
@@ -25,8 +26,10 @@ void LogManager::Start() {
       &filled_buffer_queue_);
 
   // If an IP address was provided, we register a replication task
-  replication_log_consumer_task_ = thread_registry_->RegisterDedicatedThread<ReplicationLogConsumerTask>(
-      this /* requester */, "127.0.0.1", 9022, &empty_buffer_queue_, &replication_consumer_queue_);
+  if (!ip_address_.empty()) {
+    replication_log_consumer_task_ = thread_registry_->RegisterDedicatedThread<ReplicationLogConsumerTask>(
+        this /* requester */, ip_address_, replication_port_, &empty_buffer_queue_, &replication_consumer_queue_);
+  }
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(

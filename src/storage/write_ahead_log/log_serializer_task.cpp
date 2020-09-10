@@ -64,7 +64,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
   uint64_t num_bytes = 0, num_records = 0, num_txns = 0;
 
-  // bool buffers_processed = false;
+  bool buffers_processed = false;
 
   {
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
@@ -104,11 +104,13 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
         num_txns += std::get<2>(num_bytes_records_and_txns);
       }
 
-      // buffers_processed = true;
+      buffers_processed = true;
     }
 
-    // Mark the last buffer that was written to as full
-    // if (buffers_processed) HandFilledBufferToWriter();
+    if (replication_consumer_queue_ == DISABLED) {
+      // Mark the last buffer that was written to as full
+      if (buffers_processed) HandFilledBufferToWriter();
+    }
 
     // Mark the last buffer that was written to as full
     if (filled_buffer_ != nullptr) HandFilledBufferToWriter();

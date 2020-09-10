@@ -1,8 +1,10 @@
+#include "network/itp/itp_network_commands.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include "network/itp/itp_network_commands.h"
+
 #include "network/itp/itp_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"

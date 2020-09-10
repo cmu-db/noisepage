@@ -150,7 +150,7 @@ class ReplicationTests : public TerrierTest {
     master_thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     master_log_manager_ = new LogManager(
         LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
-        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(master_thread_registry_));
+        common::ManagedPointer(&buffer_pool_), common::ManagedPointer(master_thread_registry_), "127.0.0.1", 9022);
     master_log_manager_->Start();
     master_timestamp_manager_ = new transaction::TimestampManager;
     master_deferred_action_manager_ =

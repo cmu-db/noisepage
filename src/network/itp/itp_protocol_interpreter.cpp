@@ -1,9 +1,11 @@
+#include "network/itp/itp_protocol_interpreter.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
+
 #include "network/itp/itp_network_commands.h"
-#include "network/itp/itp_protocol_interpreter.h"
 #include "network/network_defs.h"
 #include "network/terrier_server.h"
 
