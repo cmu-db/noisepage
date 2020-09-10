@@ -1,5 +1,7 @@
 #include "common/rusage_monitor.h"
+
 #include <thread>  //NOLINT
+
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 #include "test_util/test_harness.h"

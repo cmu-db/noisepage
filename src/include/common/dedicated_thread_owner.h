@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <thread>  // NOLINT
+
 #include "common/dedicated_thread_task.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
