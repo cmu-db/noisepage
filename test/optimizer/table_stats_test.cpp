@@ -1,9 +1,9 @@
+#include "optimizer/statistics/table_stats.h"
+
 #include <memory>
 
 #include "common/json.h"
 #include "gtest/gtest.h"
-#include "optimizer/statistics/table_stats.h"
-
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
