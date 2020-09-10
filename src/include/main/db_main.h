@@ -1,7 +1,5 @@
 #pragma once
 
-#include <common/settings.h>
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -10,6 +8,7 @@
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
+#include "common/settings.h"
 #include "metrics/metrics_thread.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
