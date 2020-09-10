@@ -824,6 +824,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
       expected_arg_count = 2;
       break;
@@ -897,6 +898,15 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       // MetricsComponent
       if (!call_args[1]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // Init returns nil
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride: {
+      if (!call_args[1]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
       // Init returns nil
@@ -2621,6 +2631,14 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
+    case ast::Builtin::StorageInterfaceGetIndexHeapSize: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+      break;
+    }
     case ast::Builtin::IndexInsert: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2997,6 +3015,55 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Boolean;
       break;
     }
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Rpad: {
+      if (!CheckArgCountBetween(call, 3, 4)) {
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the third argument is an integer
+      if (!call->Arguments()[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Integer));
+        return;
+      }
+
+      if (call->NumArgs() == 4 && !call->Arguments()[3]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 3, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rtrim: {
+      if (!CheckArgCountBetween(call, 2, 3)) {
+        return;
+      }
+
+      // checking to see if the second argument is a string
+      if (!call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // checking to see if the third argument is a string
+      if (call->NumArgs() == 3 && !call->Arguments()[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      // this function returns a string
+      sql_type = ast::BuiltinType::StringVal;
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string call!!");
   }
@@ -3100,6 +3167,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       CheckBuiltinExecutionContextCall(call, builtin);
@@ -3399,6 +3467,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::StorageInterfaceInit:
     case ast::Builtin::GetTablePR:
+    case ast::Builtin::StorageInterfaceGetIndexHeapSize:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
@@ -3483,7 +3552,11 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Repeat:
     case ast::Builtin::Position:
     case ast::Builtin::Length:
-    case ast::Builtin::InitCap: {
+    case ast::Builtin::InitCap:
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Rpad:
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rtrim: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }

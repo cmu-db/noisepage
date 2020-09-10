@@ -104,6 +104,7 @@ namespace terrier::execution::vm {
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \
@@ -554,6 +555,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceGetIndexHeapSize, OperandType::Local, OperandType::Local)                                         \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
@@ -602,13 +604,17 @@ namespace terrier::execution::vm {
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Like, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
   F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(LPad3Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
+  F(LPad2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(LTrim2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(LTrim1Arg, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(Repeat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Reverse, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(Right, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(RPad3Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
+  F(RPad2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(RTrim2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(RTrim1Arg, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \

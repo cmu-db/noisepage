@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+
 #include "storage/recovery/abstract_log_provider.h"
 
 namespace terrier::storage {

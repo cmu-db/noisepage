@@ -1565,6 +1565,11 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, cmp);
       break;
     }
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride: {
+      LocalVar use = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextSetMemoryUseOverride, exec_ctx, use);
+      break;
+    }
     case ast::Builtin::ExecutionContextEndResourceTracker: {
       LocalVar name = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextEndResourceTracker, exec_ctx, name);
@@ -2119,6 +2124,12 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
                                                    index_oid);
       break;
     }
+    case ast::Builtin::StorageInterfaceGetIndexHeapSize: {
+      LocalVar size = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::StorageInterfaceGetIndexHeapSize, size, storage_interface);
+      GetExecutionResult()->SetDestination(size.ValueOf());
+      break;
+    }
     case ast::Builtin::IndexInsert: {
       LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsert, cond, storage_interface);
@@ -2297,6 +2308,48 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       GetEmitter()->Emit(Bytecode::InitCap, ret, exec_ctx, input_string);
       break;
     }
+    case ast::Builtin::Lpad: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      if (call->NumArgs() == 4) {
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+        GetEmitter()->Emit(Bytecode::LPad3Arg, ret, exec_ctx, input_string, len, pad);
+      } else {
+        GetEmitter()->Emit(Bytecode::LPad2Arg, ret, exec_ctx, input_string, len);
+      }
+      break;
+    }
+    case ast::Builtin::Rpad: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar len = VisitExpressionForRValue(call->Arguments()[2]);
+      if (call->NumArgs() == 4) {
+        LocalVar pad = VisitExpressionForRValue(call->Arguments()[3]);
+        GetEmitter()->Emit(Bytecode::RPad3Arg, ret, exec_ctx, input_string, len, pad);
+      } else {
+        GetEmitter()->Emit(Bytecode::RPad2Arg, ret, exec_ctx, input_string, len);
+      }
+      break;
+    }
+    case ast::Builtin::Ltrim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      if (call->NumArgs() == 2) {
+        GetEmitter()->Emit(Bytecode::LTrim1Arg, ret, exec_ctx, input_string);
+      } else {
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
+        GetEmitter()->Emit(Bytecode::LTrim2Arg, ret, exec_ctx, input_string, chars);
+      }
+      break;
+    }
+    case ast::Builtin::Rtrim: {
+      LocalVar input_string = VisitExpressionForRValue(call->Arguments()[1]);
+      if (call->NumArgs() == 2) {
+        GetEmitter()->Emit(Bytecode::RTrim1Arg, ret, exec_ctx, input_string);
+      } else {
+        LocalVar chars = VisitExpressionForRValue(call->Arguments()[2]);
+        GetEmitter()->Emit(Bytecode::RTrim2Arg, ret, exec_ctx, input_string, chars);
+      }
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string function!");
   }
@@ -2345,6 +2398,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       VisitExecutionContextCall(call, builtin);
@@ -2644,6 +2698,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:
     case ast::Builtin::GetIndexPR:
+    case ast::Builtin::StorageInterfaceGetIndexHeapSize:
     case ast::Builtin::IndexInsert:
     case ast::Builtin::IndexInsertUnique:
     case ast::Builtin::IndexInsertWithSlot:
@@ -2698,7 +2753,11 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Reverse:
     case ast::Builtin::Repeat:
     case ast::Builtin::Trim:
-    case ast::Builtin::Trim2: {
+    case ast::Builtin::Trim2:
+    case ast::Builtin::Lpad:
+    case ast::Builtin::Ltrim:
+    case ast::Builtin::Rpad:
+    case ast::Builtin::Rtrim: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }

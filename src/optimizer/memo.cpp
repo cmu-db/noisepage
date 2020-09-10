@@ -1,10 +1,11 @@
+#include "optimizer/memo.h"
+
 #include <string>
 #include <unordered_set>
 #include <utility>
 
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
-#include "optimizer/memo.h"
 
 namespace terrier::optimizer {
 
