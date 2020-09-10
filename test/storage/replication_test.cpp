@@ -160,7 +160,6 @@ namespace terrier::storage {
     }
 
     void TearDown() override {
-      return;
       // Delete log file
       unlink(LOG_FILE_NAME);
       TerrierTest::TearDown();
@@ -168,9 +167,11 @@ namespace terrier::storage {
       // Destroy original catalog. We need to manually call GC followed by a ForceFlush because catalog deletion can defer
       // events that create new transactions, which then need to be flushed before they can be GC'd.
       master_catalog_->TearDown();
+      NETWORK_LOG_INFO("Tear down catalog");
       delete master_gc_thread_;
       //StorageTestUtil::FullyPerformGC(master_gc_, master_log_manager_);
       master_deferred_action_manager_->FullyPerformGC(common::ManagedPointer(master_gc_), common::ManagedPointer(master_log_manager_));
+      NETWORK_LOG_INFO("Fully perform gc on master");
       master_log_manager_->PersistAndStop();
 
       // Delete in reverse order of initialization
@@ -182,6 +183,8 @@ namespace terrier::storage {
       delete master_log_manager_;
       delete master_thread_registry_;
 
+      NETWORK_LOG_INFO("Master teardown done");
+
       // Replication should be finished by now, each test should ensure it waits for ample time for everything to
       // replicate
       replica_recovery_manager_->WaitForRecoveryToFinish();
@@ -189,6 +192,7 @@ namespace terrier::storage {
       delete replica_gc_thread_;
       //StorageTestUtil::FullyPerformGC(replica_gc_, DISABLED);
       replica_deferred_action_manager_->FullyPerformGC(common::ManagedPointer(replica_gc_), DISABLED);
+      NETWORK_LOG_INFO("Fully perform gc on replica");
 
       delete replica_server_;
       delete replica_connection_handle_factory_;
