@@ -366,14 +366,13 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
   // TODO(Matt): handle code generation failing
-  auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
   const bool query_trace_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
   if (query_trace_metrics_enabled) {
     common::thread_context.metrics_store_->RecordQueryText(exec_query->GetQueryId(),
-                                                           portal->GetStatement()->GetQueryText(), resource_metrics);
+                                                           portal->GetStatement()->GetQueryText());
   }
 
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -418,15 +417,12 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     return {ResultType::ERROR, error};
   }
 
-  auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-
   const bool query_trace_metrics_enabled =
       common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
 
   if (query_trace_metrics_enabled) {
-    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now(),
-                                                            resource_metrics);
+    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now());
   }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {

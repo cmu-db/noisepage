@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/resource_tracker.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
@@ -50,12 +49,10 @@ class QueryTraceMetricRawData : public AbstractRawData {
 
     for (const auto &data : query_text_) {
       query_text_outfile << data.query_id_ << ", " << data.query_text_ << ", ";
-      data.resource_metrics_.ToCSV(query_text_outfile);
       query_text_outfile << std::endl;
     }
     for (const auto &data : query_trace_) {
       query_trace_outfile << data.query_id_ << ", " << data.timestamp_ << ", ";
-      data.resource_metrics_.ToCSV(query_trace_outfile);
       query_trace_outfile << std::endl;
     }
     query_text_.clear();
@@ -74,34 +71,28 @@ class QueryTraceMetricRawData : public AbstractRawData {
 
  private:
   friend class QueryTraceMetric;
-  FRIEND_TEST(MetricsTests, LoggingCSVTest);
+  FRIEND_TEST(MetricsTests, QueryCSVTest);
 
-  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text,
-                       const common::ResourceTracker::Metrics &resource_metrics) {
-    query_text_.emplace_back(query_id, query_text, resource_metrics);
+  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text) {
+    query_text_.emplace_back(query_id, query_text);
   }
 
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
-                        const common::ResourceTracker::Metrics &resource_metrics) {
-    query_trace_.emplace_back(query_id, timestamp, resource_metrics);
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp) {
+    query_trace_.emplace_back(query_id, timestamp);
   }
 
   struct QueryText {
-    QueryText(const execution::query_id_t query_id, const std::string query_text,
-              const common::ResourceTracker::Metrics &resource_metrics)
-        : query_id_(query_id), query_text_(query_text), resource_metrics_(resource_metrics) {}
+    QueryText(const execution::query_id_t query_id, const std::string query_text)
+        : query_id_(query_id), query_text_(query_text) {}
     const execution::query_id_t query_id_;
     const std::string query_text_;
-    const common::ResourceTracker::Metrics resource_metrics_;
   };
 
   struct QueryTrace {
-    QueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
-               const common::ResourceTracker::Metrics &resource_metrics)
-        : query_id_(query_id), timestamp_(timestamp), resource_metrics_(resource_metrics) {}
+    QueryTrace(const execution::query_id_t query_id, const uint64_t timestamp)
+        : query_id_(query_id), timestamp_(timestamp) {}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
-    const common::ResourceTracker::Metrics resource_metrics_;
   };
 
   std::list<QueryText> query_text_;
@@ -116,13 +107,11 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text,
-                       const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordQueryText(query_id, query_text, resource_metrics);
+  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text){
+    GetRawData()->RecordQueryText(query_id, query_text);
   }
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
-                        const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordQueryTrace(query_id, timestamp, resource_metrics);
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp) {
+    GetRawData()->RecordQueryTrace(query_id, timestamp);
   }
 };
 }  // namespace terrier::metrics

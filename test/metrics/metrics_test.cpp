@@ -1,4 +1,5 @@
 #include <memory>
+#include <pqxx/pqxx>  // NOLINT
 #include <random>
 #include <string>
 #include <thread>  //NOLINT
@@ -28,20 +29,33 @@ class MetricsTests : public TerrierTest {
   common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<MetricsManager> metrics_manager_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  uint16_t port_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
 
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
     db_main_ = terrier::DBMain::Builder()
-                   .SetUseSettingsManager(true)
                    .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
                    .SetUseGC(true)
+                   .SetUseCatalog(true)
+                   .SetUseGCThread(true)
+                   .SetUseTrafficCop(true)
+                   .SetUseStatsStorage(true)
+                   .SetUseLogging(true)
+                   .SetUseNetwork(true)
+                   .SetUseExecution(true)
                    .Build();
+
     settings_manager_ = db_main_->GetSettingsManager();
     metrics_manager_ = db_main_->GetMetricsManager();
     db_main_->GetMetricsThread()->PauseMetrics();  // We want to aggregate them manually, so pause the thread.
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     sql_table_ = new storage::SqlTable(db_main_->GetStorageLayer()->GetBlockStore(), table_schema_);
+
+    port_ = static_cast<uint16_t>(db_main_->GetSettingsManager()->GetInt(settings::Param::port));
+    catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
   }
   void TearDown() override {
     db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table_; });
@@ -197,6 +211,56 @@ TEST_F(MetricsTests, TransactionCSVTest) {
                              setter_callback);
 
   metrics_manager_->UnregisterThread();
+}
+
+/**
+ *  Testing logging query trace metrics, single thread
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricsTests, QueryCSVTest) {
+  for (const auto &file : metrics::QueryTraceMetricRawData::FILES) unlink(std::string(file).c_str());
+  const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
+  settings_manager_->SetBool(settings::Param::metrics_query_trace, true, common::ManagedPointer(action_context),
+                             setter_callback);
+
+  db_main_->GetNetworkLayer()->GetServer()->RunServer();
+
+  try {
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+    txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
+    txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+    txn1.exec("SELECT * FROM TableA");
+    txn1.commit();
+  } catch (const std::exception &e) {
+    EXPECT_TRUE(false);
+  }
+
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  metrics_manager_->Aggregate();
+  const auto aggregated_data = reinterpret_cast<QueryTraceMetricRawData *>(
+      metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::QUERY_TRACE)).get());
+  EXPECT_NE(aggregated_data, nullptr);
+  EXPECT_GE(aggregated_data->query_trace_.size(), 2);  // 2 data point recorded
+  if (!(aggregated_data->query_trace_.empty())) {
+    EXPECT_GE(aggregated_data->query_trace_.begin()->timestamp_, 2);  // 1 records: create table
+  }
+  EXPECT_GE(aggregated_data->query_text_.size(), 2);  // 2 data point recorded
+  if (!(aggregated_data->query_text_.empty())) {
+    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_,
+              "INSERT INTO TableA VALUES (1, 'abc');");  // 1 records: create table
+  }
+  metrics_manager_->ToCSV();
+  EXPECT_EQ(aggregated_data->query_trace_.size(), 0);
+  EXPECT_EQ(aggregated_data->query_text_.size(), 0);
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  settings_manager_->SetBool(settings::Param::metrics_query_trace, false, common::ManagedPointer(action_context),
+                             setter_callback);
 }
 
 /**
