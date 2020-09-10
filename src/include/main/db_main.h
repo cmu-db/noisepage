@@ -241,6 +241,7 @@ class DBMain {
       server_ = std::make_unique<network::TerrierServer>(common::ManagedPointer(provider_),
                                                          common::ManagedPointer(connection_handle_factory_),
                                                          thread_registry, port, connection_thread_count);
+      server_->RegisterProtocol(port, common::ManagedPointer(provider_), CONNECTION_THREAD_COUNT, common::Settings::CONNECTION_BACKLOG);
       NETWORK_LOG_INFO("Initialization complete");
     }
 

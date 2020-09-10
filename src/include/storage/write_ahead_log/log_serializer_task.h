@@ -33,14 +33,18 @@ class LogSerializerTask : public common::DedicatedThreadTask {
                              RecordBufferSegmentPool *buffer_pool,
                              common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                              common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
-                             std::condition_variable *disk_log_writer_thread_cv)
+                             common::ConcurrentQueue<storage::SerializedLogs> *replication_consumer_queue,
+                             std::condition_variable *disk_log_writer_thread_cv,
+                             std::condition_variable *replication_log_sender_thread_cv)
       : run_task_(false),
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue),
-        disk_log_writer_thread_cv_(disk_log_writer_thread_cv) {}
+        replication_consumer_queue_(replication_consumer_queue),
+        disk_log_writer_thread_cv_(disk_log_writer_thread_cv),
+        replication_log_sender_cv_(replication_log_sender_thread_cv) {}
 
   /**
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
@@ -117,9 +121,11 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
   // The queue containing filled buffers. Task should push filled serialized buffers into this queue
   common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
+  common::ConcurrentQueue<SerializedLogs> *replication_consumer_queue_;
 
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
+  std::condition_variable *replication_log_sender_cv_;
 
   /**
    * Main serialization loop. Calls Process every interval. Processes all the accumulated log records and

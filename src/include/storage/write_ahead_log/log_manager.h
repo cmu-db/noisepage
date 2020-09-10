@@ -16,6 +16,7 @@
 #include "storage/record_buffer.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
+#include "replication_log_consumer_task.h"
 
 namespace terrier::storage {
 
@@ -147,6 +148,8 @@ class LogManager : public common::DedicatedThreadOwner {
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
   common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
+  // The queue containing filled buffers pending to be sent over network
+  common::ConcurrentQueue<SerializedLogs> replication_consumer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
@@ -160,6 +163,9 @@ class LogManager : public common::DedicatedThreadOwner {
   const std::chrono::microseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
+  // Log consumer task that sends logs over network to replicas
+  common::ManagedPointer<ReplicationLogConsumerTask> replication_log_consumer_task_ =
+      common::ManagedPointer<ReplicationLogConsumerTask>(nullptr);
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

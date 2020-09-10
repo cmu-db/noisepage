@@ -7,6 +7,7 @@
 #include "common/utility.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
+#include "loggers/network_logger.h"
 
 namespace terrier::network {
 
@@ -39,6 +40,7 @@ class NetworkIoWrapper {
 
   explicit NetworkIoWrapper(const std::string &ip_address, uint16_t port)
     : sock_fd_(socket(AF_INET, SOCK_STREAM, 0)), in_(std::make_unique<ReadBuffer>()), out_(std::make_unique<WriteQueue>()) {
+    NETWORK_LOG_INFO("running io wrapper");
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
