@@ -679,6 +679,10 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   size_t num_tasks = nonempty_parts.size();
   size_t concurrent_estimate = std::min(num_threads, num_tasks) > 0 ? (std::min(num_threads, num_tasks) - 1) : 0;
   tbb::parallel_for_each(nonempty_parts, [&](const uint32_t part_idx) {
+    // TODO(wz2): Resource trackers are started and stopped within scan_fn. It might be more correct
+    // to start the trackers here manually -- or have TransferMemoryAndPartitions build all the tables
+    // over each partition (but that would require storing the agg table pointers).
+
     // Build a hash table over the given partition
     auto agg_table_partition = GetOrBuildTableOverPartition(query_state, part_idx);
 

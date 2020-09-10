@@ -111,6 +111,11 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.CREATE_INDEX: _tuple_num_linear_log_transformer,
 
     OpUnit.AGG_BUILD: _tuple_num_memory_cardinality_linear_transformer,
+
+    OpUnit.PARALLEL_MERGE_HASHJOIN: _tuple_num_linear_transformer,
+    OpUnit.PARALLEL_MERGE_AGGBUILD: _tuple_num_linear_transformer,
+    OpUnit.PARALLEL_SORT_STEP: _tuple_num_linear_log_transformer,
+    OpUnit.PARALLEL_SORT_MERGE_STEP: _tuple_num_linear_log_transformer,
 }
 
 
@@ -154,4 +159,9 @@ OPUNIT_X_TRANSFORMER_MAP = {
     OpUnit.HASHJOIN_PROBE: _tuple_num_cardinality_linear_train_transform,
     OpUnit.AGG_BUILD: _tuple_num_cardinality_linear_train_transform,
     OpUnit.SORT_BUILD: _tuple_num_cardinality_linear_train_transform,
+
+    OpUnit.PARALLEL_MERGE_HASHJOIN: None,
+    OpUnit.PARALLEL_MERGE_AGGBUILD: None,
+    OpUnit.PARALLEL_SORT_STEP: None,
+    OpUnit.PARALLEL_SORT_MERGE_STEP: None,
 }
