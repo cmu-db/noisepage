@@ -1,5 +1,4 @@
 #include "network/postgres/postgres_command_factory.h"
-
 #include <memory>
 namespace terrier::network {
 

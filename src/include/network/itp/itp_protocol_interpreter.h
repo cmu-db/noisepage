@@ -89,8 +89,8 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<ITPCommandFactory> command_factory_;
 
-  bool TryBuildPacket(common::ManagedPointer<ReadBuffer> in);
-  bool TryReadPacketHeader(common::ManagedPointer<ReadBuffer> in);
+  bool TryBuildPacket(common::ManagedPointer<ReadBuffer> in) override;
+  bool TryReadPacketHeader(common::ManagedPointer<ReadBuffer> in) override;
 };
 
 }  // namespace terrier::network

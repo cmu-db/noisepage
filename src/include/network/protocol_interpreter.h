@@ -85,7 +85,7 @@ class ProtocolInterpreter {
    */
   virtual void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) = 0;
 
-  /**
+  virtual /**
    * Reads the header of the packet to see if it is valid
    * @param in The ReadBuffer to read input from
    * @return whether the packet header is valid or not
@@ -124,7 +124,7 @@ class ProtocolInterpreter {
     return true;
   }
 
-  /**
+  virtual /**
    * Build the packet if it is valid
    * @param in The ReadBuffer to read input from
    * @return whether the packet is valid or not
