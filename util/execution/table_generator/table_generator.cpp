@@ -65,7 +65,8 @@ storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *
   switch (col_meta->dist_) {
     case Dist::Uniform: {
       std::mt19937 generator{};
-      std::uniform_int_distribution<uint32_t> distribution(static_cast<uint32_t>(col_meta->min_), static_cast<uint32_t>(col_meta->max_));
+      std::uniform_int_distribution<uint32_t> distribution(static_cast<uint32_t>(col_meta->min_),
+                                                           static_cast<uint32_t>(col_meta->max_));
 
       for (uint32_t i = 0; i < num_vals; i++) {
         std::string str_val = std::to_string(distribution(generator));
@@ -380,6 +381,15 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 0},
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
+
+      // Index_test
+      {"index_test_table",
+       INDEX_TEST_SIZE,
+       {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
+        {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
+        {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
+        {"colD", type::TypeId::INTEGER, false, Dist::Uniform, 0, 99999},
+        {"colE", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
   };
 
   if (is_mini_runner) {
@@ -513,7 +523,8 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
         index_pr->SetNull(index_offset);
       } else {
         byte *index_data = index_pr->AccessForceNotNull(index_offset);
-        auto type_size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type()))  & static_cast<uint8_t>(0x7f);
+        auto type_size =
+            storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type())) & static_cast<uint8_t>(0x7f);
         std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
       }
     }
@@ -529,10 +540,12 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<std::vector<type::TypeId>> mixed_types = {{type::TypeId::INTEGER, type::TypeId::DECIMAL},
-                                                        {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
-  std::vector<std::vector<std::vector<uint32_t>>> mixed_dists = {{{0, 15}, {3, 12}, {7, 8}, {11, 4}, {15, 0}},
-                                                                 {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}}};
+  std::vector<std::vector<type::TypeId>> mixed_types = {
+      {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT},
+      {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
+  std::vector<std::vector<std::vector<uint32_t>>> mixed_dists = {
+      {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}, {15, 0, 0}, {0, 0, 15}},
+      {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (size_t idx = 0; idx < mixed_types.size(); ++idx) {
@@ -566,14 +579,22 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
             num_cols += col_dist[col_idx];
           }
 
-          std::string tbl_name = GenerateMixedTableName(types, col_dist, row_num, cardinality);
-          for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-            if (col_dist[col_idx] == num_cols) {
-              tbl_name = GenerateTableName(types[col_idx], num_cols, row_num, cardinality);
-              break;
-            }
+          std::vector<std::pair<type::TypeId, uint32_t>> dists;
+          for (size_t i = 0; i < col_dist.size(); i++) {
+            dists.emplace_back(types[i], col_dist[i]);
+          }
+          dists.erase(std::remove_if(dists.begin(), dists.end(),
+                                     [](std::pair<type::TypeId, uint32_t> item) { return item.second == 0; }),
+                      dists.end());
+
+          std::vector<type::TypeId> final_types;
+          std::vector<uint32_t> col_nums;
+          for (auto dist : dists) {
+            final_types.emplace_back(dist.first);
+            col_nums.emplace_back(dist.second);
           }
 
+          std::string tbl_name = GenerateMixedTableName(final_types, col_nums, row_num, cardinality);
           table_metas.emplace_back(tbl_name, row_num, col_metas);
         }
       }

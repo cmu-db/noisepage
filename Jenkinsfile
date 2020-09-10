@@ -8,10 +8,12 @@ pipeline {
 
         stage('Check') {
             parallel {
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
+                stage('macos-10.14/clang-8 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
                     environment {
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -84,11 +86,13 @@ pipeline {
 
         stage('Test') {
             parallel {
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/ASAN/unittest)') {
+                stage('macos-10.14/clang-8 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -217,11 +221,13 @@ pipeline {
                     }
                 }
 
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Release/unittest)') {
+                stage('macos-10.14/clang-8 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -308,11 +314,13 @@ pipeline {
 
         stage('End-to-End Debug') {
             parallel{
-                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/e2etest/oltpbench)') {
+                stage('macos-10.14/clang-8 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                        LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                        CC="${LLVM_DIR}/bin/clang"
+                        CXX="${LLVM_DIR}/bin/clang++"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -366,8 +374,8 @@ pipeline {
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
-                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release' 
-                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
+                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release'
+                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release'
             }
         }
         stage('Microbenchmark') {

@@ -134,19 +134,27 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
-                                             const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
+size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema> schema,
+                                             bool restrict_cols, const std::vector<catalog::indexkeycol_oid_t> &cols,
+                                             size_t *num_key) {
   std::unordered_set<catalog::indexkeycol_oid_t> kcols;
   for (auto &col : cols) kcols.insert(col);
 
   size_t key_size = 0;
-  auto &schema = accessor_->GetIndexSchema(idx_oid);
-  for (auto &col : schema.GetColumns()) {
-    if (kcols.find(col.Oid()) != kcols.end()) {
+  for (auto &col : schema->GetColumns()) {
+    if (!restrict_cols || kcols.find(col.Oid()) != kcols.end()) {
       AdjustKeyWithType(col.Type(), &key_size, num_key);
     }
   }
 
+  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  return key_size;
+}
+
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
+                                             const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
+  auto &schema = accessor_->GetIndexSchema(idx_oid);
+  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
@@ -202,6 +210,15 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
+  } else if (type == ExecutionOperatingUnitType::CREATE_INDEX) {
+    // We extract the num_rows and cardinality from the table name if possible
+    // This is a special case for mini-runners
+    std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
+    auto mrpos = idx_name.find("minirunners__");
+    if (mrpos != std::string::npos) {
+      num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
+      cardinality = num_rows;
+    }
   }
 
   num_rows *= scaling_factor;
@@ -230,7 +247,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
           " ORDER BY NO_O_ID ASC  LIMIT 1" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
       *num_rows = 850;
       *cardinality = 1;
@@ -245,7 +262,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
           "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
           " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
           " AND S_QUANTITY < $6" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
       *num_rows = 20;
       *cardinality = 1;
@@ -263,7 +280,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
           "OL_W_ID = $4 " &&
-      (!current_pipeline_->GetPipelineId()) == 1) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 1) {
     if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
       *cardinality = 10;
     }
@@ -277,7 +294,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
           "AND OL_W_ID = $3" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
       *cardinality = 10;
     }
@@ -322,6 +339,16 @@ void OperatingUnitRecorder::VisitAbstractScanPlanNode(const planner::AbstractSca
     arithmetic_feature_types_.insert(arithmetic_feature_types_.end(), std::make_move_iterator(features.begin()),
                                      std::make_move_iterator(features.end()));
   }
+}
+
+void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
+  std::vector<catalog::indexkeycol_oid_t> keys;
+
+  auto schema = plan->GetSchema();
+  size_t num_keys = schema->GetColumns().size();
+  size_t key_size =
+      ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema>(schema.Get()), false, keys, &num_keys);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
 void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {

@@ -347,6 +347,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
@@ -362,7 +363,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       execution::compiler::CompilationMode::Interleaved,
       common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
-  std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
+  // std::cout << (exec_query->GetQueryId()) << " " << portal->GetStatement()->GetQueryText() << "\n";
 
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
@@ -378,6 +379,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
@@ -391,7 +393,20 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  try {
+    exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  } catch (ExecutionException &e) {
+    /*
+     * An ExecutionException is thrown in the case of some failure caused by a software bug or caused by some data
+     * exception. In either case we abort the current transaction and return an error to the client.
+     */
+    // TODO(Matt): evict this plan from the statement cache when the functionality is available
+    connection_ctx->Transaction()->SetMustAbort();
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
@@ -424,7 +439,7 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
 
   const auto ns_oid =
       catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED)
-          ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(static_cast<uint16_t>(connection_id)));
+          ->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(connection_id.UnderlyingValue()));
   if (ns_oid == catalog::INVALID_NAMESPACE_OID) {
     // Failed to create new namespace. Could be a concurrent DDL change and worth retrying
     txn_manager_->Abort(txn);

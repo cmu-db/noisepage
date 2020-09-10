@@ -1,4 +1,3 @@
-#include <common/macros.h>
 #include <gflags/gflags.h>
 
 #include <cstdio>
@@ -12,11 +11,13 @@
 #include "binder/bind_node_visitor.h"
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
+#include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/execution_util.h"
+#include "execution/sql/ddl_executors.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
@@ -83,6 +84,16 @@ bool skip_large_rows_runs = false;
  * Limit on num_rows for which queries need warming up
  */
 int64_t warmup_rows_limit{1000};
+
+/**
+ * CREATE INDEX small build limit
+ */
+int64_t create_index_small_limit{10000};
+
+/**
+ * Number of cardinalities to vary for CREATE INDEX large builds.
+ */
+int64_t create_index_large_cardinality_num{3};
 
 /**
  * Empty global param vector
@@ -668,6 +679,49 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
   }
 }
 
+/**
+ * Arg <0, 1, 2, 3, 4, 5>
+ * 0 - # integers to scan
+ * 1 - # bigints to scan
+ * 2 - # integers in table
+ * 3 - # bigints in table
+ * 4 - row
+ * 5 - cardinality
+ */
+static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
+  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        int64_t car = 1;
+        if (row > create_index_small_limit) {
+          // For these, we get a memory explosion if the cardinality is too low.
+          while (car < row) {
+            car *= 2;
+          }
+          car = car / (pow(2, create_index_large_cardinality_num));
+        }
+
+        while (car < row) {
+          if (type == type::TypeId::INTEGER)
+            b->Args({col, 0, 15, 0, row, car});
+          else if (type == type::TypeId::BIGINT)
+            b->Args({0, col, 0, 15, row, car});
+          car *= 2;
+        }
+
+        if (type == type::TypeId::INTEGER)
+          b->Args({col, 0, 15, 0, row, row});
+        else if (type == type::TypeId::BIGINT)
+          b->Args({0, col, 0, 15, row, row});
+      }
+    }
+  }
+}
+
 class MiniRunners : public benchmark::Fixture {
  public:
   static execution::query_id_t query_id;
@@ -863,6 +917,19 @@ class MiniRunners : public benchmark::Fixture {
         db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
 
     out_plan = checker(common::ManagedPointer(txn), std::move(out_plan));
+    if (out_plan->GetPlanNodeType() == planner::PlanNodeType::CREATE_INDEX) {
+      execution::sql::DDLExecutors::CreateIndexExecutor(
+          common::ManagedPointer<planner::CreateIndexPlanNode>(
+              reinterpret_cast<planner::CreateIndexPlanNode *>(out_plan.get())),
+          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+    } else if (out_plan->GetPlanNodeType() == planner::PlanNodeType::DROP_INDEX) {
+      execution::sql::DDLExecutors::DropIndexExecutor(
+          common::ManagedPointer<planner::DropIndexPlanNode>(
+              reinterpret_cast<planner::DropIndexPlanNode *>(out_plan.get())),
+          common::ManagedPointer<catalog::CatalogAccessor>(accessor));
+      txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      return std::make_pair(nullptr, nullptr);
+    }
 
     auto exec_settings = GetExecutionSettings();
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
@@ -1104,11 +1171,69 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
           pqxx::result r{txn->exec(query_ss.str())};
 
           // Get all the results
-          for (auto res_row : r) {
+          for (const auto &result_row : r) {
             for (auto j = 0; j < col; j++) {
-              null << res_row[j];
+              null << result_row[j];
             }
           }
+        }
+      }
+    }
+  }
+}
+
+void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
+  std::ostream null{nullptr};
+  std::vector<uint32_t> num_cols = {1, 2, 4, 8, 15};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
+                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+
+  bool metrics_enabled = true;
+  for (auto type : types) {
+    for (auto col : num_cols) {
+      for (auto row : row_nums) {
+        // Scale # iterations accordingly
+        // Want to warmup the first query
+        int iters = 1;
+        if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
+          iters += warmup_iterations_num;
+        }
+
+        for (int i = 0; i < iters; i++) {
+          if (i != iters - 1 && metrics_enabled) {
+            db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+            metrics_enabled = false;
+          } else if (i == iters - 1 && !metrics_enabled) {
+            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+            metrics_enabled = true;
+          }
+
+          std::string create_query;
+          {
+            std::stringstream query_ss;
+            auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
+            query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
+            for (size_t j = 1; j <= col; j++) {
+              query_ss << "col" << j;
+              if (j != col) {
+                query_ss << ",";
+              } else {
+                query_ss << ")";
+              }
+            }
+
+            create_query = query_ss.str();
+          }
+          txn->exec(create_query);
+
+          std::string delete_query;
+          {
+            std::stringstream query_ss;
+            query_ss << "DROP INDEX minirunners__" << row;
+            delete_query = query_ss.str();
+          }
+          txn->exec(delete_query);
         }
       }
     }
@@ -1299,7 +1424,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
       throw "Invalid is_build argument for IndexScan";
     }
 
-    HandleBuildDropIndex(is_build, num_rows, key_num, type);
+    HandleBuildDropIndex(is_build != 0, num_rows, key_num, type);
     return;
   }
 
@@ -1383,7 +1508,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
       throw "Invalid is_build argument for IndexJoin";
     }
 
-    HandleBuildDropIndex(is_build, inner, key_num, type);
+    HandleBuildDropIndex(is_build != 0, inner, key_num, type);
     return;
   }
 
@@ -1427,12 +1552,12 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
     predicate = preds.str();
   }
 
-  auto outerTbl = execution::sql::TableGenerator::GenerateTableIndexName(type, outer);
-  auto innerTbl = execution::sql::TableGenerator::GenerateTableIndexName(type, inner);
+  auto outer_tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, outer);
+  auto inner_tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, inner);
 
   std::stringstream query;
-  query << "SELECT " << cols << " FROM " << outerTbl << " AS a, " << innerTbl << " AS b WHERE " << predicate;
-  auto f = std::bind(&MiniRunners::IndexNLJoinChecker, this, innerTbl, key_num, std::placeholders::_1,
+  query << "SELECT " << cols << " FROM " << outer_tbl << " AS a, " << inner_tbl << " AS b WHERE " << predicate;
+  auto f = std::bind(&MiniRunners::IndexNLJoinChecker, this, inner_tbl, key_num, std::placeholders::_1,
                      std::placeholders::_2);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units), f);
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
@@ -1577,7 +1702,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
       throw "Invalid is_build argument for ExecuteUpdate";
     }
 
-    HandleBuildDropIndex(is_build, row, num_integers + num_decimals, type);
+    HandleBuildDropIndex(is_build != 0, row, num_integers + num_decimals, type);
     return;
   }
 
@@ -1629,10 +1754,10 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 
   std::vector<parser::ConstantValueExpression> params;
   std::vector<type::TypeId> param_types;
-  params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+  params.emplace_back(type, execution::sql::Integer(0));
   param_types.push_back(type);
   if (car > 1) {
-    params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+    params.emplace_back(type, execution::sql::Integer(0));
     param_types.push_back(type);
   }
 
@@ -1679,7 +1804,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
       throw "Invalid is_build argument for ExecuteDelete";
     }
 
-    HandleBuildDropIndex(is_build, row, num_integers + num_decimals, type);
+    HandleBuildDropIndex(is_build != 0, row, num_integers + num_decimals, type);
     return;
   }
 
@@ -1711,10 +1836,10 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 
   std::vector<parser::ConstantValueExpression> params;
   std::vector<type::TypeId> param_types;
-  params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+  params.emplace_back(type, execution::sql::Integer(0));
   param_types.push_back(type);
   if (car > 1) {
-    params.push_back(parser::ConstantValueExpression(type, execution::sql::Integer(0)));
+    params.emplace_back(type, execution::sql::Integer(0));
     param_types.push_back(type);
   }
 
@@ -1992,6 +2117,51 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
     ->Iterations(1)
     ->Apply(GenAggregateKeylessArguments);
 
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) {
+  auto num_integers = state.range(0);
+  auto num_bigints = state.range(1);
+  auto tbl_ints = state.range(2);
+  auto tbl_bigints = state.range(3);
+  auto row = state.range(4);
+  auto car = state.range(5);
+
+  if (rerun_start || (row > warmup_rows_limit && skip_large_rows_runs)) {
+    return;
+  }
+
+  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
+  auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
+  auto num_col = num_integers + num_bigints;
+
+  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
+
+  auto units = std::make_unique<brain::PipelineOperatingUnits>();
+  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+  pipe0_vec.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX, row, tuple_size, num_col, car, 1, 0);
+  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
+
+  std::stringstream query;
+  query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
+  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params);
+
+  {
+    auto units = std::make_unique<brain::PipelineOperatingUnits>();
+    OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+  }
+
+  InvokeGC();
+  state.SetItemsProcessed(row);
+}
+
+BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenCreateIndexArguments);
+
 void InitializeRunnersState() {
   auto db_main_builder = DBMain::Builder()
                              .SetUseGC(true)
@@ -2066,7 +2236,9 @@ std::mutex network_queries_mutex;
  */
 std::condition_variable network_queries_cv;
 
-void RunNetworkQueries() {
+using NetworkWorkFunction = std::function<void(pqxx::work *)>;
+
+void RunNetworkQueries(NetworkWorkFunction work) {
   // GC does not run in a background thread!
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
@@ -2085,7 +2257,7 @@ void RunNetworkQueries() {
     pqxx::connection c{conn};
     pqxx::work txn{c};
 
-    terrier::runner::NetworkQueriesOutputRunners(&txn);
+    work(&txn);
 
     txn.commit();
   } catch (std::exception &e) {
@@ -2098,12 +2270,12 @@ void RunNetworkQueries() {
   }
 }
 
-void RunNetworkSequence() {
+void RunNetworkSequence(NetworkWorkFunction work) {
   terrier::runner::db_main->GetMetricsManager()->Aggregate();
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
 
-  auto thread = std::thread([] { RunNetworkQueries(); });
+  auto thread = std::thread([=] { RunNetworkQueries(work); });
 
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
@@ -2129,11 +2301,18 @@ void RunBenchmarkSequence(int rerun_counter) {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  std::vector<std::vector<std::string>> filters = {{"SEQ0"},  {"SEQ1_0", "SEQ1_1"}, {"SEQ2_0", "SEQ2_1"}, {"SEQ3"},
-                                                   {"SEQ4"},  {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"}, {"SEQ7_2"},
-                                                   {"SEQ8_2"}};
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE"};
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
+                                                   {"SEQ1_0", "SEQ1_1"},
+                                                   {"SEQ2_0", "SEQ2_1"},
+                                                   {"SEQ3"},
+                                                   {"SEQ4"},
+                                                   {"SEQ5_0", "SEQ5_1"},
+                                                   {"SEQ6_0", "SEQ6_1"},
+                                                   {"SEQ7_2"},
+                                                   {"SEQ8_2"},
+                                                   {"SEQ9_0"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
 
   char buffer[64];
   const char *argv[2];
@@ -2177,15 +2356,17 @@ void RunMiniRunners() {
   }
 
   for (int i = 0; i <= terrier::runner::rerun_iterations; i++) {
-    RunNetworkSequence();
+    RunNetworkSequence(terrier::runner::NetworkQueriesOutputRunners);
   }
 
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS", "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE"};
-  for (auto title : titles) {
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
+                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6"};
+  for (size_t t = 0; t < titles.size(); t++) {
+    auto &title = titles[t];
     char target[64];
     snprintf(target, sizeof(target), "execution_%s.csv", title.c_str());
 
@@ -2205,14 +2386,28 @@ void RunMiniRunners() {
       // Delete the _%d file
       std::remove(source);
     }
+
+    char adjust[64];
+    snprintf(adjust, sizeof(adjust), "execution_SEQ%s.csv", adjusts[t].c_str());
+    std::rename(target, adjust);
   }
+
+  {
+    std::ifstream ifile("execution_NETWORK.csv");
+    std::ofstream ofile("execution_SEQ0.csv", std::ios::app);
+
+    std::string dummy;
+    std::getline(ifile, dummy);
+    ofile << ifile.rdbuf();
+  }
+  std::remove("execution_NETWORK.csv");
 }
 
 struct Arg {
-  const char *match;
-  bool found;
-  const char *value;
-  int intValue;
+  const char *match_;
+  bool found_;
+  const char *value_;
+  int int_value_;
 };
 
 int main(int argc, char **argv) {
@@ -2224,36 +2419,57 @@ int main(int argc, char **argv) {
   Arg updel_info{"--updel_limit=", false};
   Arg warm_limit_info{"--warm_limit=", false};
   Arg compiled_info{"--compiled=", false};
-  Arg *args[] = {&port_info,  &filter_info, &skip_large_rows_runs_info, &warm_num_info,
-                 &rerun_info, &updel_info,  &warm_limit_info,           &compiled_info};
+  Arg gen_test_data{"--gen_test=", false};
+  Arg create_index_small_data{"--create_index_small_limit=", false};
+  Arg create_index_car_data{"--create_index_large_car_num=", false};
+  Arg *args[] = {&port_info,
+                 &filter_info,
+                 &skip_large_rows_runs_info,
+                 &warm_num_info,
+                 &rerun_info,
+                 &updel_info,
+                 &warm_limit_info,
+                 &compiled_info,
+                 &gen_test_data,
+                 &create_index_small_data,
+                 &create_index_car_data};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
-      if (strstr(argv[i], arg->match) != nullptr) {
-        arg->found = true;
-        arg->value = strstr(argv[i], "=") + 1;
-        arg->intValue = atoi(arg->value);
+      if (strstr(argv[i], arg->match_) != nullptr) {
+        arg->found_ = true;
+        arg->value_ = strstr(argv[i], "=") + 1;
+        arg->int_value_ = atoi(arg->value_);
       }
     }
   }
 
-  if (port_info.found) terrier::runner::port = port_info.intValue;
-  if (skip_large_rows_runs_info.found) terrier::runner::skip_large_rows_runs = true;
-  if (warm_num_info.found) terrier::runner::warmup_iterations_num = warm_num_info.intValue;
-  if (rerun_info.found) terrier::runner::rerun_iterations = rerun_info.intValue;
-  if (updel_info.found) terrier::runner::updel_limit = updel_info.intValue;
-  if (warm_limit_info.found) terrier::runner::warmup_rows_limit = warm_limit_info.intValue;
+  if (port_info.found_) terrier::runner::port = port_info.int_value_;
+  if (skip_large_rows_runs_info.found_) terrier::runner::skip_large_rows_runs = true;
+  if (warm_num_info.found_) terrier::runner::warmup_iterations_num = warm_num_info.int_value_;
+  if (rerun_info.found_) terrier::runner::rerun_iterations = rerun_info.int_value_;
+  if (updel_info.found_) terrier::runner::updel_limit = updel_info.int_value_;
+  if (warm_limit_info.found_) terrier::runner::warmup_rows_limit = warm_limit_info.int_value_;
+  if (create_index_small_data.found_) terrier::runner::create_index_small_limit = create_index_small_data.int_value_;
+  if (create_index_car_data.found_)
+    terrier::runner::create_index_large_cardinality_num = create_index_car_data.int_value_;
 
   terrier::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
-  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match, terrier::runner::port);
-  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match, terrier::runner::skip_large_rows_runs);
-  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match, terrier::runner::warmup_iterations_num);
-  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match, terrier::runner::rerun_iterations);
-  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match, terrier::runner::updel_limit);
-  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match, terrier::runner::warmup_rows_limit);
-  SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match, filter_info.value);
-  SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match, compiled_info.found);
+  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, terrier::runner::port);
+  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_,
+                    terrier::runner::skip_large_rows_runs);
+  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, terrier::runner::warmup_iterations_num);
+  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match_, terrier::runner::rerun_iterations);
+  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match_, terrier::runner::updel_limit);
+  SETTINGS_LOG_INFO("Create Index Small Build Limit ({}): {}", create_index_small_data.match_,
+                    terrier::runner::create_index_small_limit);
+  SETTINGS_LOG_INFO("Create Index Large Cardinality Number Vary ({}): {}", create_index_car_data.match_,
+                    terrier::runner::create_index_large_cardinality_num);
+  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, terrier::runner::warmup_rows_limit);
+  SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
+  SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match_, compiled_info.found_);
+  SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 
   // Benchmark Config Environment Variables
   // Check whether we are being passed environment variables to override configuration parameter
@@ -2265,19 +2481,23 @@ int main(int argc, char **argv) {
   if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
 
   terrier::runner::InitializeRunnersState();
-
-  if (filter_info.found) {
-    if (compiled_info.found) {
-      terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
-    }
-
-    // Pass straight through to gbenchmark
-    benchmark::Initialize(&argc, argv);
-    benchmark::RunSpecifiedBenchmarks();
-    terrier::runner::EndRunnersState();
+  if (gen_test_data.found_) {
+    RunNetworkSequence(terrier::runner::NetworkQueriesCreateIndexRunners);
+    std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
-    RunMiniRunners();
-    Shutdown();
+    if (filter_info.found_) {
+      if (compiled_info.found_) {
+        terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
+      }
+
+      // Pass straight through to gbenchmark
+      benchmark::Initialize(&argc, argv);
+      benchmark::RunSpecifiedBenchmarks();
+      terrier::runner::EndRunnersState();
+    } else {
+      RunMiniRunners();
+      Shutdown();
+    }
   }
 
   terrier::LoggersUtil::ShutDown();

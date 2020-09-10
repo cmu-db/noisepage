@@ -1,6 +1,5 @@
-#include <brain/brain_util.h>
-
-#include <execution/util/execution_common.h>
+#include "brain/brain_util.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::brain {
 
@@ -55,6 +54,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "OUTPUT";
     case ExecutionOperatingUnitType::LIMIT:
       return "LIMIT";
+    case ExecutionOperatingUnitType::CREATE_INDEX:
+      return "CREATE_INDEX";
     default:
       UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
       break;

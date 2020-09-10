@@ -101,14 +101,14 @@ ALL_NUMERIC_TYPES(ARITHMETIC);
 
 #define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+  VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = lhs % rhs;                                            \
   }
 
 #define FLOAT_MODULAR(type, ...)                                    \
   /* Primitive modulo-remainder (no zero-check) */                  \
-  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+  VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = std::fmod(lhs, rhs);                                  \
   }
@@ -215,6 +215,11 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
   exec_ctx->StartResourceTracker(component);
 }
 
+VM_OP_HOT void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      uint32_t memory_use) {
+  exec_ctx->SetMemoryUseOverride(memory_use);
+}
+
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
@@ -286,12 +291,14 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 // Vector Projection Iterator
 // ---------------------------------------------------------
 
-void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi, terrier::execution::sql::VectorProjection *vp);
+VM_OP void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi,
+                     terrier::execution::sql::VectorProjection *vp);
 
-void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
-                       terrier::execution::sql::VectorProjection *vp, terrier::execution::sql::TupleIdList *tid_list);
+VM_OP void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
+                             terrier::execution::sql::VectorProjection *vp,
+                             terrier::execution::sql::TupleIdList *tid_list);
 
-void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
+VM_OP void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
 
 VM_OP_HOT void OpVPIIsFiltered(bool *is_filtered, const terrier::execution::sql::VectorProjectionIterator *vpi) {
   *is_filtered = vpi->IsFiltered();
@@ -699,7 +706,7 @@ VM_OP_HOT void OpDivInteger(terrier::execution::sql::Integer *const result,
   terrier::execution::sql::ArithmeticFunctions::IntDiv(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemInteger(terrier::execution::sql::Integer *const result,
+VM_OP_HOT void OpModInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
@@ -727,7 +734,7 @@ VM_OP_HOT void OpDivReal(terrier::execution::sql::Real *const result, const terr
   terrier::execution::sql::ArithmeticFunctions::Div(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
+VM_OP_HOT void OpModReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
                          const terrier::execution::sql::Real *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::Mod(result, *left, *right, &div_by_zero);
@@ -1413,9 +1420,9 @@ VM_OP_WARM void OpRound(terrier::execution::sql::Real *result, const terrier::ex
   terrier::execution::sql::ArithmeticFunctions::Round(result, *v);
 }
 
-VM_OP_WARM void OpRoundUpTo(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
-                            const terrier::execution::sql::Integer *scale) {
-  terrier::execution::sql::ArithmeticFunctions::RoundUpTo(result, *v, *scale);
+VM_OP_WARM void OpRound2(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
+                         const terrier::execution::sql::Integer *precision) {
+  terrier::execution::sql::ArithmeticFunctions::Round2(result, *v, *precision);
 }
 
 VM_OP_WARM void OpLog(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base,
@@ -1514,16 +1521,26 @@ VM_OP_WARM void OpPosition(terrier::execution::sql::Integer *result, terrier::ex
   terrier::execution::sql::StringFunctions::Position(result, ctx, *search_str, *search_sub_str);
 }
 
-VM_OP_WARM void OpLPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
-                       const terrier::execution::sql::StringVal *pad) {
+VM_OP_WARM void OpLPad3Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
+                           const terrier::execution::sql::StringVal *pad) {
   terrier::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len, *pad);
 }
 
-VM_OP_WARM void OpLTrim(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                        const terrier::execution::sql::StringVal *str,
-                        const terrier::execution::sql::StringVal *chars) {
+VM_OP_WARM void OpLPad2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
+  terrier::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len);
+}
+
+VM_OP_WARM void OpLTrim2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                            const terrier::execution::sql::StringVal *str,
+                            const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Ltrim(result, ctx, *str, *chars);
+}
+
+VM_OP_WARM void OpLTrim1Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                            const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::Ltrim(result, ctx, *str);
 }
 
 VM_OP_WARM void OpRepeat(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
@@ -1541,16 +1558,26 @@ VM_OP_WARM void OpRight(terrier::execution::sql::StringVal *result, terrier::exe
   terrier::execution::sql::StringFunctions::Right(result, ctx, *str, *n);
 }
 
-VM_OP_WARM void OpRPad(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *n,
-                       const terrier::execution::sql::StringVal *pad) {
-  terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *n, *pad);
+VM_OP_WARM void OpRPad3Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
+                           const terrier::execution::sql::StringVal *pad) {
+  terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len, *pad);
 }
 
-VM_OP_WARM void OpRTrim(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                        const terrier::execution::sql::StringVal *str,
-                        const terrier::execution::sql::StringVal *chars) {
+VM_OP_WARM void OpRPad2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                           const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len) {
+  terrier::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len);
+}
+
+VM_OP_WARM void OpRTrim2Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                            const terrier::execution::sql::StringVal *str,
+                            const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Rtrim(result, ctx, *str, *chars);
+}
+
+VM_OP_WARM void OpRTrim1Arg(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                            const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::Rtrim(result, ctx, *str);
 }
 
 VM_OP_WARM void OpSplitPart(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
@@ -1566,8 +1593,20 @@ VM_OP_WARM void OpSubstring(terrier::execution::sql::StringVal *result, terrier:
   terrier::execution::sql::StringFunctions::Substring(result, ctx, *str, *pos, *len);
 }
 
+VM_OP_WARM void OpStartsWith(terrier::execution::sql::BoolVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                             const terrier::execution::sql::StringVal *str,
+                             const terrier::execution::sql::StringVal *start) {
+  terrier::execution::sql::StringFunctions::StartsWith(result, ctx, *str, *start);
+}
+
 VM_OP_WARM void OpTrim(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::StringVal *chars) {
+                       const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::Trim(result, ctx, *str);
+}
+
+VM_OP_WARM void OpTrim2(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                        const terrier::execution::sql::StringVal *str,
+                        const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Trim(result, ctx, *str, *chars);
 }
 
@@ -1578,6 +1617,11 @@ VM_OP_WARM void OpUpper(terrier::execution::sql::StringVal *result, terrier::exe
 
 VM_OP_WARM void OpVersion(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result) {
   terrier::execution::sql::SystemFunctions::Version(ctx, result);
+}
+
+VM_OP_WARM void OpInitCap(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
+                          const terrier::execution::sql::StringVal *str) {
+  terrier::execution::sql::StringFunctions::InitCap(result, ctx, *str);
 }
 
 // ---------------------------------------------------------------
@@ -1806,10 +1850,17 @@ VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_resu
                                         terrier::execution::sql::StorageInterface *storage_interface,
                                         uint32_t index_oid);
 
+VM_OP void OpStorageInterfaceGetIndexHeapSize(uint32_t *size,
+                                              terrier::execution::sql::StorageInterface *storage_interface);
+
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceIndexInsertUnique(bool *result,
                                                terrier::execution::sql::StorageInterface *storage_interface);
+
+VM_OP void OpStorageInterfaceIndexInsertWithSlot(bool *result,
+                                                 terrier::execution::sql::StorageInterface *storage_interface,
+                                                 terrier::storage::TupleSlot *tuple_slot, bool unique);
 
 VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);
@@ -1873,10 +1924,10 @@ VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, terrier::execution::exec:
 
   uint32_t out_oid;
   if (col_name.GetLength() == 0) {
-    out_oid = !table_oid;
+    out_oid = table_oid.UnderlyingValue();
   } else {
     const auto &schema = exec_ctx->GetAccessor()->GetSchema(table_oid);
-    out_oid = !schema.GetColumn(std::string(col_name.StringView())).Oid();
+    out_oid = schema.GetColumn(std::string(col_name.StringView())).Oid().UnderlyingValue();
   }
 
   *oid_var = out_oid;
@@ -1887,7 +1938,7 @@ VM_OP_WARM void OpTestCatalogIndexLookup(uint32_t *oid_var, terrier::execution::
   // TODO(WAN): wasteful std::string
   terrier::execution::sql::StringVal table_name{reinterpret_cast<const char *>(index_name_str), index_name_length};
   terrier::catalog::index_oid_t index_oid = exec_ctx->GetAccessor()->GetIndexOid(std::string(table_name.StringView()));
-  *oid_var = !index_oid;
+  *oid_var = index_oid.UnderlyingValue();
 }
 
 // Macro hygiene

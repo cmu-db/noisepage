@@ -14,7 +14,7 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, simulate_cache, tpcc_hack,
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack,
              ee_sample_interval, txn_sample_interval):
     """Get the data for the global models
 
@@ -36,7 +36,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
-                                                             warmup_period, simulate_cache, tpcc_hack,
+                                                             warmup_period, tpcc_hack,
                                                              ee_sample_interval, txn_sample_interval)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
@@ -47,7 +47,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, simu
 
 
 def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period,
-                                             simulate_cache, tpcc_hack, ee_sample_interval, txn_sample_interval):
+                                             tpcc_hack, ee_sample_interval, txn_sample_interval):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -57,7 +57,7 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :return: The list of the GroupedOpUnitData objects
     """
     data_list = _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval)
-    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache)
+    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
 
@@ -204,7 +204,7 @@ def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn
     return data_list
 
 
-def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, simulate_cache):
+def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
     result in place
 
@@ -235,19 +235,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
     prediction_cache = {}
 
     # First run a prediction on the global running data with the mini model results
-    last_pipeline = None
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
         logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
-
-        # Hack for "cache-ness"
-        should_mult = False
-        if i == 0:
-            last_pipeline = data.name
-        elif last_pipeline != data.name:
-            last_pipeline = data.name
-        else:
-            should_mult = True
 
         pipeline_y_pred = 0
         x = None
@@ -281,9 +271,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
                     buffer_size = 0
 
                 pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
-                #if pred_mem <= buffer_size:
-                #    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
-                #                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                if pred_mem <= buffer_size:
+                    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
+                                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                 # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
                 # slightly inaccurate since ignores load factors for hash tables
@@ -296,19 +286,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
             pipeline_y_pred += y_pred[0]
 
         pipeline_y = copy.deepcopy(pipeline_y_pred)
-        if should_mult and simulate_cache:
-            # Scale elapsed time by 40% (this is a hack)
-            fields = [
-                data_info.TARGET_CSV_INDEX[Target.CPU_CYCLE],
-                data_info.TARGET_CSV_INDEX[Target.CACHE_MISS],
-                data_info.TARGET_CSV_INDEX[Target.CPU_TIME],
-                data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
-
-                # Don't for instructions, cache ref, memory
-            ]
-
-            for field in fields:
-                pipeline_y[field ] = pipeline_y[field] * 0.4
 
         # Grouping when we're predicting queries
         if data.name[0] == 'q':
