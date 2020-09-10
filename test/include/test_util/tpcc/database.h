@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
