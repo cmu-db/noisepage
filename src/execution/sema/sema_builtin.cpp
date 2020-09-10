@@ -824,6 +824,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
       expected_arg_count = 2;
       break;
@@ -897,6 +898,15 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       // MetricsComponent
       if (!call_args[1]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint64));
+        return;
+      }
+      // Init returns nil
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride: {
+      if (!call_args[1]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
       // Init returns nil
@@ -2365,6 +2375,14 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
+    case ast::Builtin::StorageInterfaceGetIndexHeapSize: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+      break;
+    }
     case ast::Builtin::IndexInsert: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -2893,6 +2911,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
+    case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       CheckBuiltinExecutionContextCall(call, builtin);
@@ -3174,6 +3193,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::StorageInterfaceInit:
     case ast::Builtin::GetTablePR:
+    case ast::Builtin::StorageInterfaceGetIndexHeapSize:
     case ast::Builtin::TableInsert:
     case ast::Builtin::TableDelete:
     case ast::Builtin::TableUpdate:

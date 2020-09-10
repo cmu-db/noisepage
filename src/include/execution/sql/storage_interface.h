@@ -103,6 +103,11 @@ class EXPORT StorageInterface {
    */
   bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
 
+  /**
+   * @returns index heap size
+   */
+  uint32_t GetIndexHeapSize();
+
  protected:
   /**
    * Oid of the table being accessed.
