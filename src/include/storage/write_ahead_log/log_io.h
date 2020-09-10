@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
-
 #include <cerrno>
 #include <cstring>
 #include <string>
@@ -120,10 +119,15 @@ class BufferedLogWriter {
   }
 
   /**
-   * Call fsync to make sure that all writes are consistent.
+   * Call fsync to make sure that all writes are consistent. fdatasync is used as an optimization on Linux since we
+   * don't care able all of the file's metadata being persisted, just the contents.
    */
   void Persist() {
+#if __APPLE__
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
+#else
+    if (fdatasync(out_) == -1) throw std::runtime_error("fdatasync failed with errno " + std::to_string(errno));
+#endif
   }
 
   /**
