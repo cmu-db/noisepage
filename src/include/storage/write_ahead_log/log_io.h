@@ -120,7 +120,7 @@ class BufferedLogWriter {
 
   /**
    * Call fsync to make sure that all writes are consistent. fdatasync is used as an optimization on Linux since we
-   * don't care able all of the file's metadata being persisted, just the contents.
+   * don't care about all of the file's metadata being persisted, just the contents.
    */
   void Persist() {
 #if __APPLE__
