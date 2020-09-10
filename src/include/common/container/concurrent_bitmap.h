@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <memory>
+
 #include "common/allocator.h"
 #include "common/container/bitmap.h"
 #include "common/strong_typedef.h"

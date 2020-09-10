@@ -84,7 +84,6 @@ BENCHMARKS_TO_RUN = {
     "cuckoomap_benchmark":                  DEFAULT_FAILURE_THRESHOLD,
     "parser_benchmark":                     20,
     "slot_iterator_benchmark":              DEFAULT_FAILURE_THRESHOLD,
-    "varlen_entry_benchmark":               30,
 }
 
 # The number of threads to use for multi-threaded benchmarks.

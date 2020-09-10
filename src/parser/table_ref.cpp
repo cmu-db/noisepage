@@ -1,4 +1,5 @@
 #include "parser/table_ref.h"
+
 #include <memory>
 #include <string>
 #include <utility>
