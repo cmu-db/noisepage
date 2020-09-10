@@ -120,10 +120,17 @@ class BufferedLogWriter {
   }
 
   /**
-   * Call fsync to make sure that all writes are consistent.
+   * Call fsync to make sure that all writes are consistent. fdatasync is used as an optimization on Linux since we
+   * don't care about all of the file's metadata being persisted, just the contents.
    */
   void Persist() {
+#if __APPLE__
+    // macOS provides fcntl(out_, F_FULLFSYNC) to guarantee that on-disk buffers are flushed. AFAIK there is no portable
+    // way to do this on Linux so we'll just keep fsync for now.
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
+#else
+    if (fdatasync(out_) == -1) throw std::runtime_error("fdatasync failed with errno " + std::to_string(errno));
+#endif
   }
 
   /**
