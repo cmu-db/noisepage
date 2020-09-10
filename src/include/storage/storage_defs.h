@@ -400,6 +400,9 @@ class VarlenEntry {
    * Compute the hash value of this variable-length string instance.
    * @param seed The value to seed the hash with.
    * @return The hash value for this string instance.
+   *
+   * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark
+   * before and after. It is not currently part of CI because it can be noisy.
    */
   hash_t Hash(hash_t seed) const {
     // "small" strings use CRC hashing, "long" strings use XXH3.
@@ -415,6 +418,9 @@ class VarlenEntry {
    * @param left The first string.
    * @param right The second string.
    * @return 0 if equal according to EqualCheck; any non-zero value otherwise.
+   *
+   * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark
+   * before and after. It is not currently part of CI because it can be noisy.
    */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
