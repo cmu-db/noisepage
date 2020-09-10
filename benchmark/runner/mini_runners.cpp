@@ -294,8 +294,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
   for (auto type : types) {
     for (auto col : num_cols) {
       // Skip more than 5 varchar cols to match the generated tables
-      if (type == type::TypeId::VARCHAR && col > 5)
-        continue;
+      if (type == type::TypeId::VARCHAR && col > 5) continue;
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
@@ -519,7 +518,7 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   for (auto type : types) {
     for (auto key_size : key_sizes) {
       // Only handle varchar up to 5 keys for size concerns
-      if (type == type::TypeId::VARCHAR and key_size > 5) continue;
+      if (type == type::TypeId::VARCHAR && key_size > 5) continue;
       for (auto idx_size : idx_sizes) {
         b->Args({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
 
