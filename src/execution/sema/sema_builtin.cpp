@@ -1191,6 +1191,91 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
+void Sema::CheckBuiltinCreateIndexParCall(ast::CallExpr *call) {
+  if (!CheckArgCount(call, 8)) {
+    return;
+  }
+
+  const auto &call_args = call->Arguments();
+
+  // The first argument is a table oid.
+  if (!call_args[0]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 0, "First argument should be an integer type.");
+    return;
+  }
+
+  // The second argument is a uint32_t array.
+  if (!call_args[1]->GetType()->IsArrayType()) {
+    ReportIncorrectCallArg(call, 1, "Second argument should be a fixed length uint32 array.");
+    return;
+  }
+  auto *arr_type = call_args[1]->GetType()->SafeAs<ast::ArrayType>();
+  if (!arr_type->GetElementType()->IsSpecificBuiltin(ast::BuiltinType::Uint32) || !arr_type->HasKnownLength()) {
+    ReportIncorrectCallArg(call, 1, "Second argument should be a fixed length uint32 array");
+  }
+
+  // The third argument is an opaque query state. For now, check it's a pointer.
+  const auto void_kind = ast::BuiltinType::Nil;
+  if (!call_args[2]->GetType()->IsPointerType()) {
+    ReportIncorrectCallArg(call, 2, GetBuiltinType(void_kind)->PointerTo());
+    return;
+  }
+
+  // The fourth argument is the execution context.
+  const auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+  if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), exec_ctx_kind)) {
+    ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
+    return;
+  }
+
+  // The fifth argument is the scanner function.
+  auto *scan_fn_type = call_args[4]->GetType()->SafeAs<ast::FunctionType>();
+  if (scan_fn_type == nullptr) {
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelCreateIndexFunction,
+                               call_args[4]->GetType());
+    return;
+  }
+  // Check the type of the scanner function parameters. See TableVectorIterator::ScanFn.
+
+  const auto tvi_kind = ast::BuiltinType::TableVectorIterator;
+  const auto index_pr_kind = ast::BuiltinType::ProjectedRow;
+  const auto inserter_kind = ast::BuiltinType::StorageInterface;
+  const auto &params = scan_fn_type->GetParams();
+  if (params.size() != 6                                              // Scan function has 5 arguments.
+      || !params[0].type_->IsPointerType()                            // QueryState, must contain execCtx.
+      || !params[1].type_->IsPointerType()                            // Thread state.
+      || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)       // TableVectorIterator.
+      || !IsPointerToSpecificBuiltin(params[3].type_, index_pr_kind)  // Index pr
+      || !IsPointerToSpecificBuiltin(params[4].type_, inserter_kind)  // Storage interface
+      || !params[5].type_->IsIntegerType()) {
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelCreateIndexFunction,
+                               call_args[4]->GetType());
+    return;
+  }
+
+  // The sixth argument is a pointer to storage interface
+  const auto storage_interface_kind = ast::BuiltinType::StorageInterface;
+  if (!IsPointerToSpecificBuiltin(call_args[5]->GetType(), storage_interface_kind)) {
+    ReportIncorrectCallArg(call, 5, GetBuiltinType(storage_interface_kind)->PointerTo());
+    return;
+  }
+
+  // The seventh argument is a index oid.
+  if (!call_args[6]->GetType()->IsIntegerType()) {
+    ReportIncorrectCallArg(call, 6, "Seventh argument should be an integer type.");
+    return;
+  }
+
+  // pipeline_id
+  if (!call_args[7]->IsIntegerLiteral()) {
+    ReportIncorrectCallArg(call, 7, GetBuiltinType(ast::BuiltinType::Uint64));
+    return;
+  }
+
+  // This builtin does not return a value.
+  call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+}
+
 void Sema::CheckBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -2535,20 +2620,29 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       break;
     }
     case ast::Builtin::IndexInsertWithSlot: {
-      if (!CheckArgCount(call, 3)) {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
-      // Second argument is a tuple slot
+      // Second argument is a Projected Row
+      auto projected_row_type = ast::BuiltinType::ProjectedRow;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), projected_row_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(projected_row_type)->PointerTo());
+        return;
+      }
+
+      // Third argument is a tuple slot
       auto tuple_slot_type = ast::BuiltinType::TupleSlot;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
-      // Third argument is a bool
-      if (!call_args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Bool)) {
-        ReportIncorrectCallArg(call, 2, "boolean literal");
+
+      // Fourth argument is an int32
+      if (!call_args[3]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(int32_kind));
         return;
       }
+
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
@@ -3147,6 +3241,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::TableIterParallel: {
       CheckBuiltinTableIterParCall(call);
+      break;
+    }
+    case ast::Builtin::TableIterCreateIndexParallel: {
+      CheckBuiltinCreateIndexParCall(call);
       break;
     }
     case ast::Builtin::VPIInit:

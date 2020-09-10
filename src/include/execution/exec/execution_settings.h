@@ -1,5 +1,7 @@
 #pragma once
 
+#include <thread>
+
 #include "common/constants.h"
 #include "execution/util/execution_common.h"
 
@@ -36,6 +38,9 @@ class EXPORT ExecutionSettings {
   /** @return True if counters are enabled. */
   constexpr bool GetIsCountersEnabled() const { return is_counters_enabled_; }
 
+  /** @return Number of parallel threads to use for CREATE INDEX */
+  constexpr size_t GetNumCreateIndexThreads() const { return num_create_index_threads_; }
+
  private:
   double select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD};
   double arithmetic_full_compute_opt_threshold_{common::Constants::ARITHMETIC_FULL_COMPUTE_THRESHOLD};
@@ -43,6 +48,7 @@ class EXPORT ExecutionSettings {
   float adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ};
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
   bool is_counters_enabled_{common::Constants::IS_COUNTERS_ENABLED};
+  size_t num_create_index_threads_{std::thread::hardware_concurrency()};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class terrier::runner::MiniRunners;

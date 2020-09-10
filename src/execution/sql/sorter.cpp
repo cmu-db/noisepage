@@ -249,7 +249,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
   {
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = tl_sorters.size();
-    num_concurrent = std::min(num_threads, num_tasks) - 1;
+    num_concurrent = std::min(num_threads, num_tasks);
   }
 
   tbb::parallel_for_each(tl_sorters, [exec_ctx, pipeline_id, num_concurrent](Sorter *sorter) {
@@ -380,7 +380,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
   {
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = merge_work.size();
-    concurrent = std::min(num_threads, num_tasks) - 1;
+    concurrent = std::min(num_threads, num_tasks);
   }
 
   tbb::parallel_for_each(merge_work, [&heap_cmp, exec_ctx, pipeline_id,

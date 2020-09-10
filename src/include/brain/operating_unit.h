@@ -41,6 +41,7 @@ class ExecutionContext;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
+class TableVectorIterator;
 class Sorter;
 class JoinHashTable;
 class AggregationHashTable;
@@ -73,6 +74,7 @@ class ExecutionOperatingUnitFeature {
   friend class OperatingUnitRecorder;
   friend class ExecOUFeatureVector;
   friend class PipelineOperatingUnits;
+  friend class execution::sql::TableVectorIterator;
   friend class execution::sql::Sorter;
   friend class execution::sql::JoinHashTable;
   friend class execution::sql::AggregationHashTable;
@@ -90,7 +92,7 @@ class ExecutionOperatingUnitFeature {
    * @param cardinality Estimated cardinality
    * @param mem_factor Memory adjustment factor
    * @param num_loops Number of loops
-   * @param num_concurrent Number concurrent tasks other than the current one
+   * @param num_concurrent Number concurrent tasks (including current one)
    */
   ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
                                 size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,

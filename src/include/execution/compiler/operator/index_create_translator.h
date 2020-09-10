@@ -58,15 +58,17 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Not implemented"); };
 
   /** @return Throw an error, this is serial for now. */
-  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("index create is serial."); };
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override;
 
   /** @return Throw an error, this is serial for now. */
-  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
-    UNREACHABLE("index create is serial.");
-  };
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;
+
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
  private:
-  void InitScan(FunctionBuilder *function) const;
   void DeclareInserter(FunctionBuilder *function) const;
   void DeclareIndexPR(FunctionBuilder *function) const;
   void DeclareTVI(FunctionBuilder *function) const;
@@ -85,7 +87,8 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema) const;
 
   CodeGen *codegen_;
-  ast::Identifier inserter_;
+  ast::Identifier storage_interface_base_;
+  ast::Identifier storage_interface_;
   ast::Identifier index_pr_;
 
   // The name of the declared TVI and VPI.
@@ -95,7 +98,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   ast::Identifier col_oids_var_;
   // The name of the declared slot.
   ast::Identifier slot_var_;
-
+  catalog::table_oid_t table_oid_;
   // Schema of the table that we are inserting on.
   const catalog::Schema &table_schema_;
 
@@ -103,5 +106,8 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> all_oids_;
 
   catalog::index_oid_t index_oid_;
+
+  // The number of rows that are inserted.
+  StateDescriptor::Entry num_inserts_;
 };
 }  // namespace terrier::execution::compiler

@@ -657,36 +657,41 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
  * 3 - # bigints in table
  * 4 - row
  * 5 - cardinality
+ * 6 - # possible threads
  */
 static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
+  // 0 is a special argument used to indicate serial
+  auto num_threads = {0, 1, 2, 4, 8, 16};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        int64_t car = 1;
-        if (row > create_index_small_limit) {
-          // For these, we get a memory explosion if the cardinality is too low.
+  for (auto thread : num_threads) {
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          int64_t car = 1;
+          if (row > create_index_small_limit) {
+            // For these, we get a memory explosion if the cardinality is too low.
+            while (car < row) {
+              car *= 2;
+            }
+            car = car / (pow(2, create_index_large_cardinality_num));
+          }
+
           while (car < row) {
+            if (type == type::TypeId::INTEGER)
+              b->Args({col, 0, 15, 0, row, car, thread});
+            else if (type == type::TypeId::BIGINT)
+              b->Args({0, col, 0, 15, row, car, thread});
             car *= 2;
           }
-          car = car / (pow(2, create_index_large_cardinality_num));
-        }
 
-        while (car < row) {
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, car});
+            b->Args({col, 0, 15, 0, row, row, thread});
           else if (type == type::TypeId::BIGINT)
-            b->Args({0, col, 0, 15, row, car});
-          car *= 2;
+            b->Args({0, col, 0, 15, row, row, thread});
         }
-
-        if (type == type::TypeId::INTEGER)
-          b->Args({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::BIGINT)
-          b->Args({0, col, 0, 15, row, row});
       }
     }
   }
@@ -864,6 +869,13 @@ class MiniRunners : public benchmark::Fixture {
     return settings;
   }
 
+  static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads) {
+    execution::exec::ExecutionSettings settings;
+    settings.is_parallel_execution_enabled_ = (num_threads != 0);
+    settings.num_create_index_threads_ = num_threads;
+    return settings;
+  }
+
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>>
   OptimizeSqlStatement(
       const std::string &query, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
@@ -874,7 +886,8 @@ class MiniRunners : public benchmark::Fixture {
               common::ManagedPointer<transaction::TransactionContext>, std::unique_ptr<planner::AbstractPlanNode>)>(
               PassthroughPlanChecker),
       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params = nullptr,
-      common::ManagedPointer<std::vector<type::TypeId>> param_types = nullptr) {
+      common::ManagedPointer<std::vector<type::TypeId>> param_types = nullptr,
+      execution::exec::ExecutionSettings *settings = nullptr) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
@@ -902,6 +915,10 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     auto exec_settings = GetExecutionSettings();
+    if (settings != nullptr) {
+      exec_settings = *settings;
+    }
+
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor), exec_settings, metrics_manager_);
@@ -944,7 +961,8 @@ class MiniRunners : public benchmark::Fixture {
 
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
                           planner::OutputSchema *out_schema, bool commit,
-                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params) {
+                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
+                          execution::exec::ExecutionSettings *settings = nullptr) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
@@ -957,6 +975,10 @@ class MiniRunners : public benchmark::Fixture {
       accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
       auto exec_settings = GetExecutionSettings();
+      if (settings != nullptr) {
+        exec_settings = *settings;
+      }
+
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
           common::ManagedPointer(accessor), exec_settings, metrics_manager_);
@@ -2118,11 +2140,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   auto tbl_bigints = state.range(3);
   auto row = state.range(4);
   auto car = state.range(5);
+  auto num_threads = state.range(6);
 
   if (rerun_start || (row > warmup_rows_limit && skip_large_rows_runs)) {
     return;
   }
 
+  auto settings = GetParallelExecutionSettings(num_threads);
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
   auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
@@ -2134,13 +2158,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::CREATE_INDEX, row,
-                         tuple_size, num_col, car, 1, 0);
+                         tuple_size, num_col, car, 1, 0, num_threads);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::stringstream query;
   query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
-  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params);
+  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
+                                     PassthroughPlanChecker, nullptr, nullptr, &settings);
+  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
 
   {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();

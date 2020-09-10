@@ -236,6 +236,7 @@ class EXPORT ExecutionContext {
 
   /**
    * Overrides recording from memory tracker
+   * This should never be used by parallel threads directly
    * @param memory_use Correct memory value to record
    */
   void SetMemoryUseOverride(uint32_t memory_use) {

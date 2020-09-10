@@ -118,6 +118,9 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
       ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
       ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
       break;
+    case brain::ExecutionOperatingUnitType::CREATE_INDEX:
+      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
+      break;
     default:
       TERRIER_ASSERT(false, "Unsupported parallel OU");
   }

@@ -63,6 +63,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "PARALLEL_SORT_MERGE_STEP";
     case ExecutionOperatingUnitType::CREATE_INDEX:
       return "CREATE_INDEX";
+    case ExecutionOperatingUnitType::CREATE_INDEX_MAIN:
+      return "CREATE_INDEX_MAIN";
     default:
       UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
       break;

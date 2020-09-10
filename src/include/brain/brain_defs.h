@@ -109,6 +109,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
   PARALLEL_SORT_STEP,
   PARALLEL_SORT_MERGE_STEP,
   CREATE_INDEX,
+  CREATE_INDEX_MAIN,
 
   /**
    * Use to demarcate plan and operations.

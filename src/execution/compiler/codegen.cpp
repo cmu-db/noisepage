@@ -561,6 +561,18 @@ ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Id
   return call;
 }
 
+ast::Expr *CodeGen::CreateIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
+                                        ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name,
+                                        ast::Identifier storage_interface, catalog::index_oid_t index_oid,
+                                        ast::Expr *pipeline_id) {
+  ast::Expr *call = CallBuiltin(
+      ast::Builtin::TableIterCreateIndexParallel,
+      {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx, MakeExpr(worker_name),
+       MakeExpr(storage_interface), Const32(index_oid.UnderlyingValue()), pipeline_id});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 ast::Expr *CodeGen::AbortTxn(ast::Expr *exec_ctx) { return CallBuiltin(ast::Builtin::AbortTxn, {exec_ctx}); }
 
 // ---------------------------------------------------------
