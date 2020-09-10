@@ -230,6 +230,9 @@ enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT, ABORT };
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
  * with exactly size many bytes (no extra nul in the end).
+ *
+ * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark before
+ * and after. It is not currently part of CI because it can be noisy.
  */
 class VarlenEntry {
  public:
