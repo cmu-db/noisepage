@@ -85,12 +85,12 @@ class ProtocolInterpreter {
    */
   virtual void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) = 0;
 
-  virtual /**
+  /**
    * Reads the header of the packet to see if it is valid
    * @param in The ReadBuffer to read input from
    * @return whether the packet header is valid or not
    */
-  bool TryReadPacketHeader(const common::ManagedPointer<ReadBuffer> in) {
+  virtual bool TryReadPacketHeader(const common::ManagedPointer<ReadBuffer> in) {
     if (curr_input_packet_.header_parsed_) return true;
 
     // Header format: 1 byte message type (only if non-startup)
@@ -124,12 +124,12 @@ class ProtocolInterpreter {
     return true;
   }
 
-  virtual /**
+  /**
    * Build the packet if it is valid
    * @param in The ReadBuffer to read input from
    * @return whether the packet is valid or not
    */
-  bool TryBuildPacket(const common::ManagedPointer<ReadBuffer> in) {
+  virtual bool TryBuildPacket(const common::ManagedPointer<ReadBuffer> in) {
     if (!TryReadPacketHeader(in)) return false;
 
     size_t size_needed = curr_input_packet_.extended_
