@@ -261,6 +261,13 @@ class EXPORT AggregationHashTable {
    * @return The total number of tuples in this table.
    */
   uint64_t GetTupleCount() const { return hash_table_.GetElementCount(); }
+
+  /**
+   * @return Number of insertions into the aggregation hash table
+   *
+   * @note this function differs from GetTupleCount() in that it is not affected
+   * by the behavior of overflow partitions.
+   */
   uint64_t GetInsertCount() const { return stats_.num_inserts_; }
 
   /**

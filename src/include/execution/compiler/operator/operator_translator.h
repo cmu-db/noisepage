@@ -146,11 +146,38 @@ class OperatorTranslator : public ColumnValueProvider {
    */
   virtual void BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
+  /**
+   * Function to initialize relevant countfers.
+   * @param pipeline The pipeline to initialize counters for
+   * @param function The function being built.
+   */
   virtual void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
+
+  /**
+   * Function to record relevant countfers.
+   * @param pipeline The pipeline to record counters for
+   * @param function The function being built.
+   */
   virtual void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
+
+  /**
+   * Perform any logic that should happen at the start of a parallel work function.
+   * The parallel work function is the function that is invoked by LaunchWork from the driver.
+   * By default, this function re-initializes any relevant counters.
+   *
+   * @param pipeline The pipeline whose pre parallel work logic is being generated.
+   * @param function The function being built.
+   */
   virtual void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
     InitializeCounters(pipeline, function);
   }
+
+  /**
+   * Perform any logic that should happen at the end of a parallel work function.
+   * The parallel work function is the function that is invoked by LaunchWork from the driver.
+   * @param pipeline The pipeline whose post parallel work logic is being generated.
+   * @param function The function being built.
+   */
   virtual void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
   /**

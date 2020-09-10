@@ -41,6 +41,7 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
+#include "execution/exec/execution_settings.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
@@ -77,11 +78,12 @@ std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
-                                       const CompilationMode mode)
+                                       const CompilationMode mode, bool counters_enabled)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
+      counters_enabled_(counters_enabled),
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
       query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }) {}
@@ -187,7 +189,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode);
+  CompilationContext ctx(query.get(), accessor, mode, exec_settings.GetIsCountersEnabled());
   ctx.GeneratePlan(plan);
 
   // Done

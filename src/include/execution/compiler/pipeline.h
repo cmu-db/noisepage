@@ -179,14 +179,32 @@ class Pipeline {
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
+  /**
+   * Inject start resource tracker into function
+   * @param builder Function being built
+   */
   void InjectStartResourceTracker(FunctionBuilder *builder) const;
 
+  /**
+   * Inject end resource tracker into function
+   * @param builder Function being built
+   * @param query_id Query ID that we're ending trackers for
+   */
   void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
+  /**
+   * @returns query identifier that we're codegen-ing for
+   */
   query_id_t GetQueryId() const { return query_id_; }
 
+  /**
+   * @returns pointer to the OU feature vector in the pipeline state
+   */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
-  ast::Expr *OUFeatureVecOffset() const { return oufeatures_.OffsetFromState(codegen_); }
+
+  /**
+   * @returns state indicating # cnocurrent in the pipeline state
+   */
   ast::Expr *ConcurrentState() const { return concurrent_state_.Get(codegen_); }
 
  private:

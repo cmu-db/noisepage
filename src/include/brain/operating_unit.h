@@ -90,6 +90,7 @@ class ExecutionOperatingUnitFeature {
    * @param cardinality Estimated cardinality
    * @param mem_factor Memory adjustment factor
    * @param num_loops Number of loops
+   * @param num_concurrent Number concurrent tasks other than the current one
    */
   ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
                                 size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,
@@ -105,7 +106,12 @@ class ExecutionOperatingUnitFeature {
         num_loops_(num_loops),
         num_concurrent_(num_concurrent) {}
 
-  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, ExecutionOperatingUnitFeature &other)
+  /**
+   * Constructor for ExecutionOperatingUnitFeature from an existing feature
+   * @param feature Newly created OU type
+   * @param other Existing OU to copy information from
+   */
+  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, const ExecutionOperatingUnitFeature &other)
       : translator_id_(other.translator_id_),
         feature_id_(other.feature_id_),
         feature_(feature),
@@ -129,9 +135,13 @@ class ExecutionOperatingUnitFeature {
   ExecutionOperatingUnitType GetExecutionOperatingUnitType() const { return feature_; }
 
   /**
-   * @returns estimated number of output tuples
+   * @returns estimated number of output tuples as a reference
    */
   size_t &GetNumRows() { return num_rows_; }
+
+  /**
+   * @returns estimated number of output tuples
+   */
   size_t GetNumRows() const { return num_rows_; }
 
   /**
@@ -145,12 +155,23 @@ class ExecutionOperatingUnitFeature {
   size_t GetNumKeys() const { return num_keys_; }
 
   /**
-   * @returns estimated cardinality
+   * @returns estimated cardinality as a reference
    */
   size_t &GetCardinality() { return cardinality_; }
+
+  /**
+   * @returns estimated cardinality
+   */
   size_t GetCardinality() const { return cardinality_; }
 
+  /**
+   * @returns num concurrent as a reference
+   */
   size_t &GetNumConcurrent() { return num_concurrent_; }
+
+  /**
+   * @returns num concurrent
+   */
   size_t GetNumConcurrent() const { return num_concurrent_; }
 
   /**
@@ -187,6 +208,10 @@ class ExecutionOperatingUnitFeature {
    */
   void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
 
+  /*
+   * Set the number of concurrent other tasks
+   * @param num_concurrent number of concurent tasks
+   */
   void SetNumConcurrent(size_t num_concurrent) { num_concurrent_ = num_concurrent; }
 
   /**
@@ -222,9 +247,18 @@ class ExecutionOperatingUnitFeature {
  */
 using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFeature>;
 
+/**
+ * Class used to maintain information about a single feature's pipeline.
+ * State is maintained in TLS during execution.
+ */
 class EXPORT ExecOUFeatureVector {
  public:
+  /**
+   * Pipeline ID
+   */
   execution::pipeline_id_t pipeline_id_{0};
+
+  /** Features for a given pipeline */
   ExecutionOperatingUnitFeatureVector pipeline_features_{};
 
   /**

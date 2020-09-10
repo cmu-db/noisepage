@@ -75,6 +75,9 @@ class EXPORT OutputBuffer {
    */
   ~OutputBuffer();
 
+  /**
+   * @returns memory pool
+   */
   sql::MemoryPool *GetMemoryPool() const { return memory_pool_; }
 
   /**

@@ -42,6 +42,7 @@ class EXPORT ExecutionContext {
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
    * @param exec_settings The execution settings to run with.
+   * @param metrics_manager Metrics Manager
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    OutputCallback callback, const planner::OutputSchema *schema,
@@ -130,6 +131,7 @@ class EXPORT ExecutionContext {
    * End the resource tracker for a pipeline and record the metrics
    * @param query_id query identifier
    * @param pipeline_id id of the pipeline
+   * @param ouvec OU feature vector for the pipeline
    */
   void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, brain::ExecOUFeatureVector *ouvec);
 
@@ -143,7 +145,18 @@ class EXPORT ExecutionContext {
   void GetFeature(uint32_t *value, pipeline_id_t pipeline_id, feature_id_t feature_id,
                   brain::ExecutionOperatingUnitFeatureAttribute feature_attribute);
 
+  /**
+   * Initializes an OU feature vector for a given pipeline
+   * @param ouvec OU Feature Vector to initialize
+   * @param pipeline_id Pipeline to initialize with
+   */
   void InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+
+  /**
+   * Initializes an OU feature vector for a given parallel step (i.e hashjoin_build, sort_build, agg_build)
+   * @param ouvec OU Feature Vector to initialize
+   * @param pipeline_id Pipeline to initialize with
+   */
   void InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
@@ -196,12 +209,31 @@ class EXPORT ExecutionContext {
   /** Increment or decrement the number of rows affected. */
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
+  /**
+   * Registers a thread with the attached metrics manager
+   */
   void RegisterThread();
+
+  /**
+   * Checks that the trackers for the current thread are stopped
+   */
   void CheckTrackersStopped();
+
+  /**
+   * @returns metrics manager used by execution context
+   */
   common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
 
+  /**
+   * @returns query identifier
+   */
   execution::query_id_t GetQueryId() { return query_id_; }
+
+  /**
+   * Set the current executing query identifier
+   */
   void SetQueryId(execution::query_id_t query_id) { query_id_ = query_id; }
+
   /**
    * Overrides recording from memory tracker
    * @param memory_use Correct memory value to record

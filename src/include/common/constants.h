@@ -103,5 +103,10 @@ struct Constants {
    * Flag indicating if parallel execution is supported.
    */
   static constexpr const bool IS_PARALLEL_EXECUTION_ENABLED = true;
+
+  /**
+   * Flag indicating if counters is enabled
+   */
+  static constexpr const bool IS_COUNTERS_ENABLED = true;
 };
 }  // namespace terrier::common

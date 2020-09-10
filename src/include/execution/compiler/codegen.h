@@ -752,7 +752,7 @@ class CodeGen {
 
   /**
    * Call \@execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value).
-   * @param exec_ctx The execution context to modify.
+   * @param ouvec OU feature vector to update
    * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
    * @param feature_id The ID of the feature to be recorded.
    * @param feature_attribute The attribute of the feature to record.
@@ -1168,6 +1168,8 @@ class CodeGen {
    * provided thread-state  container at the given offset, merging sorter results into a central
    * sorter instance.
    * @param sorter The central sorter instance that will contain the results of the sort.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID containing the sort
    * @param tls The thread state container.
    * @param offset The offset within the container where the thread-local sorter is.
    * @return The call.
@@ -1179,6 +1181,8 @@ class CodeGen {
    * Call \@sorterSortTopKParallel(). Perform a parallel top-k sort of all sorter instances contained
    * in the provided thread-local container at the given offset.
    * @param sorter The central sorter instance that will contain the results of the sort.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID containing the sort
    * @param tls The thread-state container.
    * @param offset The offset within the container where the thread-local sorters are.
    * @param top_k The top-K value.
