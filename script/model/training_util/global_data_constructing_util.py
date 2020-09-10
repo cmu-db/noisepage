@@ -24,7 +24,6 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     :param mini_model_map: mini models used for prediction
     :param model_results_path: directory path to log the result information
     :param warmup_period: warmup period for pipeline data
-    :param simulate_cache: whether to simulate the impact of cache locality interference
     :param tpcc_hack: whether to manually fix the tpcc features
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs

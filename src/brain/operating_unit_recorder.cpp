@@ -66,8 +66,8 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
       total += field_repr->GetType()->GetSize();
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
-      auto *builtin_type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)
-                                                           ->Name());
+      auto *builtin_type =
+          ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
       if (builtin_type != nullptr) {
         total += builtin_type->GetSize();
       }

@@ -41,7 +41,7 @@ def _get_base_ml_model(method):
         regressor = multioutput.MultiOutputRegressor(regressor)
     if method == 'nn':
         regressor = neural_network.MLPRegressor(hidden_layer_sizes=(25, 25), early_stopping=True,
-                                                max_iter=1000000, alpha=50)
+                                                max_iter=1000000, alpha=0.01)
 
     return regressor
 
