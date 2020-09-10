@@ -229,20 +229,18 @@ class DBMain {
      * @param traffic_cop argument to the ConnectionHandleFactor
      * @param port argument to TerrierServer
      * @param connection_thread_count argument to TerrierServer
-     * @param use_unix_domain_sockets argument to TerrierServer
      * @param socket_directory argument to TerrierServer
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
-                 const uint16_t connection_thread_count, const bool use_unix_domain_sockets,
-                 const std::string socket_directory) {
+                 const uint16_t connection_thread_count, const std::string socket_directory) {
       connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
           std::make_unique<network::PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_));
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_), thread_registry, port,
-          connection_thread_count, use_unix_domain_sockets, socket_directory);
+          connection_thread_count, socket_directory);
     }
 
     /**
@@ -363,7 +361,7 @@ class DBMain {
         TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
-                                           network_port_, connection_thread_count_, uds_enable_, uds_file_directory_);
+                                           network_port_, connection_thread_count_, uds_file_directory_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -666,7 +664,6 @@ class DBMain {
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
     uint16_t network_port_ = 15721;
-    bool uds_enable_ = true;  // Unix domain sockets
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
@@ -701,7 +698,6 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
-      uds_enable_ = settings_manager->GetBool(settings::Param::uds_enable);
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =

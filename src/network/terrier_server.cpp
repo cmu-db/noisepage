@@ -20,11 +20,9 @@ namespace terrier::network {
 TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                              common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                             const uint16_t port, const uint16_t connection_thread_count, const bool use_unix_socket,
-                             std::string socket_directory)
+                             const uint16_t port, const uint16_t connection_thread_count, std::string socket_directory)
     : DedicatedThreadOwner(thread_registry),
       running_(false),
-      use_unix_socket_(use_unix_socket),
       port_(port),
       socket_directory_(std::move(socket_directory)),
       max_connections_(connection_thread_count),
@@ -140,10 +138,8 @@ void TerrierServer::RunServer() {
   // Register the network socket
   RegisterSocket<NETWORKED_SOCKET>();
 
-  // Register the Unix domain socket if Unix domain sockets have been turned on
-  if (use_unix_socket_) {
-    RegisterSocket<UNIX_DOMAIN_SOCKET>();
-  }
+  // Register the Unix domain socket
+  RegisterSocket<UNIX_DOMAIN_SOCKET>();
 
   // Create a dispatcher to handle connections to the sockets that have been created.
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
@@ -167,7 +163,7 @@ void TerrierServer::StopServer() {
   TerrierClose(network_socket_fd_);
 
   // Close the Unix domain socket if it exists
-  if (use_unix_socket_ && unix_domain_socket_fd_ >= 0) {
+  if (unix_domain_socket_fd_ >= 0) {
     std::remove(fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_).c_str());
   }
 

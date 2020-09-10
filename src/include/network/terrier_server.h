@@ -40,7 +40,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
-                uint16_t connection_thread_count, bool use_unix_socket, std::string socket_directory);
+                uint16_t connection_thread_count, std::string socket_directory);
 
   ~TerrierServer() override = default;
 
@@ -93,7 +93,6 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  const bool use_unix_socket_;          // Enables a low-overhead communication protocol protocol
   uint16_t port_;                       // port number
   int network_socket_fd_ = -1;          // networked server socket fd that TerrierServer is listening on
   int unix_domain_socket_fd_ = -1;      // unix-based local socket fd that TerrierServer may listen on

@@ -85,7 +85,7 @@ class NetworkTests : public TerrierTest {
       server_ = std::make_unique<TerrierServer>(
           common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
           common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_,
-          connection_thread_count_, true /* Use unix domain socket */, socket_directory_);
+          connection_thread_count_, socket_directory_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
