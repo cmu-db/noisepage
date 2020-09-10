@@ -1,4 +1,5 @@
 #include "parser/expression/derived_value_expression.h"
+
 #include "common/json.h"
 
 namespace terrier::parser {
