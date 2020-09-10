@@ -215,6 +215,11 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
   exec_ctx->StartResourceTracker(component);
 }
 
+VM_OP_HOT void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      uint32_t memory_use) {
+  exec_ctx->SetMemoryUseOverride(memory_use);
+}
+
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
@@ -286,12 +291,14 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 // Vector Projection Iterator
 // ---------------------------------------------------------
 
-void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi, terrier::execution::sql::VectorProjection *vp);
+VM_OP void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi,
+                     terrier::execution::sql::VectorProjection *vp);
 
-void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
-                       terrier::execution::sql::VectorProjection *vp, terrier::execution::sql::TupleIdList *tid_list);
+VM_OP void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
+                             terrier::execution::sql::VectorProjection *vp,
+                             terrier::execution::sql::TupleIdList *tid_list);
 
-void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
+VM_OP void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
 
 VM_OP_HOT void OpVPIIsFiltered(bool *is_filtered, const terrier::execution::sql::VectorProjectionIterator *vpi) {
   *is_filtered = vpi->IsFiltered();
@@ -1842,6 +1849,9 @@ VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot
 VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                         terrier::execution::sql::StorageInterface *storage_interface,
                                         uint32_t index_oid);
+
+VM_OP void OpStorageInterfaceGetIndexHeapSize(uint32_t *size,
+                                              terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 

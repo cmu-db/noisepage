@@ -2,12 +2,10 @@
 
 #include <cmath>
 
-#include "execution/util/arithmetic_overflow.h"
-
 #include "execution/sql/operators/numeric_binary_operators.h"
 #include "execution/sql/operators/numeric_operators.h"
-
 #include "execution/sql/value.h"
+#include "execution/util/arithmetic_overflow.h"
 
 namespace terrier::execution::sql {
 
