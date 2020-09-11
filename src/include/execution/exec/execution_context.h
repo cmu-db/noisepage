@@ -215,6 +215,11 @@ class EXPORT ExecutionContext {
   void RegisterThread();
 
   /**
+   * Aggregate thread
+   */
+  void AggregateMetricsThread();
+
+  /**
    * Checks that the trackers for the current thread are stopped
    */
   void CheckTrackersStopped();

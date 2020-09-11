@@ -290,7 +290,7 @@ VM_OP_WARM void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContex
 }
 
 VM_OP_WARM void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
-  exec_ctx->GetMetricsManager()->Aggregate();
+  exec_ctx->AggregateMetricsThread();
 }
 
 // ---------------------------------------------------------
