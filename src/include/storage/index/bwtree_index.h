@@ -82,5 +82,6 @@ extern template class BwTreeIndex<CompactIntsKey<32>>;
 extern template class BwTreeIndex<GenericKey<64>>;
 extern template class BwTreeIndex<GenericKey<128>>;
 extern template class BwTreeIndex<GenericKey<256>>;
+extern template class BwTreeIndex<GenericKey<512>>;
 
 }  // namespace terrier::storage::index

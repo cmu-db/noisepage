@@ -91,6 +91,7 @@ void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &acce
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ6(accessor, exec_settings_));
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ7(accessor, exec_settings_));
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ11(accessor, exec_settings_));
+      query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ16(accessor, exec_settings_));
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ18(accessor, exec_settings_));
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ19(accessor, exec_settings_));
       break;
