@@ -318,12 +318,14 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 // Vector Projection Iterator
 // ---------------------------------------------------------
 
-void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi, terrier::execution::sql::VectorProjection *vp);
+VM_OP void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi,
+                     terrier::execution::sql::VectorProjection *vp);
 
-void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
-                       terrier::execution::sql::VectorProjection *vp, terrier::execution::sql::TupleIdList *tid_list);
+VM_OP void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
+                             terrier::execution::sql::VectorProjection *vp,
+                             terrier::execution::sql::TupleIdList *tid_list);
 
-void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
+VM_OP void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
 
 VM_OP_HOT void OpVPIIsFiltered(bool *is_filtered, const terrier::execution::sql::VectorProjectionIterator *vpi) {
   *is_filtered = vpi->IsFiltered();
