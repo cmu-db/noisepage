@@ -1847,6 +1847,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
   auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
+  auto variadic_type = GetTypeOidForType(type::TypeId::VARIADIC);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1941,8 +1942,8 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
 
   // concat
   CreateProcedure(txn, postgres::CONCAT_PRO_OID, "concat", postgres::INTERNAL_LANGUAGE_OID,
-                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type}, {str_type, str_type},
-                  {}, str_type, "", true);
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {variadic_type}, {variadic_type}, {}, str_type,
+                  "", true);
 
   // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
@@ -2894,10 +2895,8 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) = procns;
   *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))) =
       name_varlen;
-  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))) =
-      all_arg_types_varlen;
 
-  auto result = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
+  auto result = procs_name_index_->Insert(txn, *name_pr, tuple_slot);
   if (!result) {
     delete[] buffer;
     return false;
@@ -2952,8 +2951,6 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
   auto proc_ns = *reinterpret_cast<namespace_oid_t *>(
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]));
-  auto all_args_types_varlen = *reinterpret_cast<storage::VarlenEntry *>(
-      table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
 
   auto ctx_ptr = table_pr->AccessWithNullCheck(pg_proc_all_cols_prm_[postgres::PRO_CTX_PTR_COL_OID]);
 
@@ -2962,8 +2959,6 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
   *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = proc_ns;
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) =
-      all_args_types_varlen;
 
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
@@ -2991,22 +2986,28 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
   *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = procns;
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) =
-      all_arg_types_varlen;
 
   std::vector<storage::TupleSlot> results;
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
 
   proc_oid_t ret = INVALID_PROC_OID;
   if (!results.empty()) {
-    TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
-
-    auto found_slot = results[0];
-
-    auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-    bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, found_slot, table_pr);
-    ret =
-        *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+    const std::vector<type_oid_t> variadic = {GetTypeOidForType(type::TypeId::VARIADIC)};
+    auto variadic_varlen = storage::StorageUtil::CreateVarlen(variadic);
+    for (auto tuple : results) {
+      auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
+      storage::VarlenEntry index_all_arg_types = *reinterpret_cast<storage::VarlenEntry *>(
+          table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
+      if (index_all_arg_types == all_arg_types_varlen || index_all_arg_types == variadic_varlen) {
+        ret = *reinterpret_cast<proc_oid_t *>(
+            table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+        break;
+      }
+    }
+    if (variadic_varlen.NeedReclaim()) {
+      delete[] variadic_varlen.Content();
+    }
   }
 
   if (name_varlen.NeedReclaim()) {
@@ -3019,6 +3020,17 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
 
   delete[] buffer;
   return ret;
+}
+
+proc_oid_t DatabaseCatalog::ProcessIndexResults(std::vector<storage::TupleSlot> results, byte *const buffer,
+                                                common::ManagedPointer<transaction::TransactionContext> txn) {
+  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+
+  auto found_slot = results[0];
+
+  auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+  bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, found_slot, table_pr);
+  return *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(

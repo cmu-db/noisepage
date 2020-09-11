@@ -2594,7 +2594,7 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       // checking to see if the arguments are strings
-      for(uint32_t i = 1; i < call->NumArgs(); i++) {
+      for (uint32_t i = 1; i < call->NumArgs(); i++) {
         auto *resolved_type = call->Arguments()[i]->GetType();
         if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
           ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
