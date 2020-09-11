@@ -10,6 +10,7 @@
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "metrics/metrics_thread.h"
+#include "network/connection_handle_factory.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"

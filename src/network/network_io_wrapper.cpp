@@ -2,7 +2,9 @@
 
 #include <netinet/tcp.h>
 
+#include "common/utility.h"
 #include "loggers/network_logger.h"
+#include "network/network_io_utils.h"
 
 namespace terrier::network {
 
@@ -22,6 +24,13 @@ Transition NetworkIoWrapper::FlushAllWrites() {
   out_->Reset();
   return Transition::PROCEED;
 }
+
+Transition NetworkIoWrapper::Close() {
+  TerrierClose(sock_fd_);
+  return Transition::PROCEED;
+}
+
+void NetworkIoWrapper::Restart() { RestartState(); }
 
 Transition NetworkIoWrapper::FillReadBuffer() {
   if (!in_->HasMore()) in_->Reset();
@@ -56,6 +65,8 @@ Transition NetworkIoWrapper::FillReadBuffer() {
   }
   return result;
 }
+
+bool NetworkIoWrapper::ShouldFlush() { return out_->ShouldFlush(); }
 
 Transition NetworkIoWrapper::FlushWriteBuffer(const common::ManagedPointer<WriteBuffer> wbuf) {
   while (wbuf->HasMore()) {
@@ -105,7 +116,5 @@ void NetworkIoWrapper::RestartState() {
   in_->Reset();
   out_->Reset();
 }
-
-void NetworkIoWrapper::Restart() { RestartState(); }
 
 }  // namespace terrier::network

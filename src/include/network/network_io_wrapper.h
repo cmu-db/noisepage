@@ -1,14 +1,16 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 
-#include "common/error/exception.h"
-#include "common/utility.h"
-#include "network/network_io_utils.h"
+#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "network/network_types.h"
 
 namespace terrier::network {
+
+class ReadBuffer;
+class WriteBuffer;
+class WriteQueue;
 
 /**
  * A network io wrapper implements an interface for interacting with a client connection.
@@ -37,7 +39,7 @@ class NetworkIoWrapper {
   /**
    * @return Whether or not this IOWrapper is configured to flush its writes when this is called
    */
-  bool ShouldFlush() { return out_->ShouldFlush(); }
+  bool ShouldFlush();
 
   /**
    * @brief Flushes the write buffer of this IOWrapper to the assigned fd
@@ -55,10 +57,7 @@ class NetworkIoWrapper {
    * @brief Closes this IOWrapper
    * @return The next transition for this client's state machine
    */
-  Transition Close() {
-    TerrierClose(sock_fd_);
-    return Transition::PROCEED;
-  }
+  Transition Close();
 
   /**
    * @brief Restarts this IOWrapper

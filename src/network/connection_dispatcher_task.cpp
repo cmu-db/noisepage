@@ -1,14 +1,13 @@
 #include "network/connection_dispatcher_task.h"
 
 #include <csignal>
-#include <memory>
 
 #include "common/dedicated_thread_registry.h"
 #include "loggers/network_logger.h"
 #include "network/connection_handler_task.h"
 
 namespace {
-static constexpr uint32_t MAIN_THREAD_ID = -1;
+constexpr uint32_t MAIN_THREAD_ID = -1;
 }  // namespace
 
 namespace terrier::network {
