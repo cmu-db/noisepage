@@ -39,6 +39,32 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   DISALLOW_COPY_AND_MOVE(IndexCreateTranslator);
 
   /**
+   * Initialize the global storage interface.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
+
+  /**
+   * Tear-down the global storage interface.
+   */
+  void TearDownQueryState(FunctionBuilder *function) const override;
+
+  /**
+   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
+   * need to initialize the thread-local join hash table we've declared.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
+   * need to clean up and destroy the thread-local join hash table we've declared.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
    * Implement create index logic where it fills in the scanned tuples obtained from the StorageInterface struct
    * @param context The context of the work.
    * @param function The pipeline generating function.
@@ -64,10 +90,14 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;
 
  private:
-  void DeclareInserter(FunctionBuilder *function) const;
+  void InitializeStorageInterface(FunctionBuilder *function, ast::Expr *storage_interface_ptr) const;
+
+  void TearDownStorageInterface(FunctionBuilder *function, ast::Expr *storage_interface_ptr) const;
+
+  void SetGlobalOids(FunctionBuilder *function, ast::Expr *global_col_oids) const;
+
   void DeclareIndexPR(FunctionBuilder *function) const;
   void DeclareTVI(FunctionBuilder *function) const;
-  void DeclareSlot(FunctionBuilder *function) const;
 
   // Perform a table scan using the provided table vector iterator pointer.
   void ScanTable(WorkContext *ctx, FunctionBuilder *function) const;
@@ -76,21 +106,23 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast::Expr *vpi) const;
   void IndexInsert(WorkContext *ctx, FunctionBuilder *function) const;
 
-  void FreeInserter(FunctionBuilder *function) const;
-
-  void SetOids(FunctionBuilder *function) const;
   std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema) const;
 
   CodeGen *codegen_;
-  ast::Identifier storage_interface_base_;
-  ast::Identifier storage_interface_;
-  ast::Identifier index_pr_;
+
+  // The name of the col_oids that the plan wants to scan over.
+  StateDescriptor::Entry global_col_oids_;
+  // thread local storage interface
+  StateDescriptor::Entry local_storage_interface_;
+  // thread local index pr
+  StateDescriptor::Entry local_index_pr_;
+  // thread local tuple slot
+  StateDescriptor::Entry local_tuple_slot_;
 
   // The name of the declared TVI and VPI.
   ast::Identifier tvi_var_;
   ast::Identifier vpi_var_;
-  // The name of the col_oids that the plan wants to scan over.
-  ast::Identifier col_oids_var_;
+
   // The name of the declared slot.
   ast::Identifier slot_var_;
   catalog::table_oid_t table_oid_;

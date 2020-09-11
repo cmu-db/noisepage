@@ -213,6 +213,8 @@ class CodeGen {
   /** @return An expression representing "arr[idx]". */
   ast::Expr *ArrayAccess(ast::Identifier arr, uint64_t idx);
 
+  ast::Expr *ArrayAccess(ast::Expr *arr, uint64_t idx);
+
   /**
    * Convert a SQL type into a type representation expression.
    * @param type The SQL type.
@@ -544,7 +546,7 @@ class CodeGen {
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, catalog::table_oid_t table_oid,
-                                         ast::Identifier col_oids);
+                                         ast::Expr *col_oids);
 
   /**
    * Call \@tableIterAdvance(). Attempt to advance the iterator, returning true if successful and
@@ -579,26 +581,9 @@ class CodeGen {
    * @param worker_name The work function name.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
+  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
                                                 ast::Identifier worker_name);
-
-  /**
-   * Call \@iterateTableCreateIndexParallel(). Performs a parallel scan over the table with the provided name,
-   * using the provided query state and thread-state container and calling the provided function to
-   * scan tuples and insert into index
-   * @param table_oid The OID of the table to be scanned.
-   * @param col_oids The column OIDs from the table that should be scanned.
-   * @param query_state The query state pointer.
-   * @param exec_ctx The execution context that we are running in.
-   * @param worker_name The work function name.
-   * @param storage_interface The storage interface
-   * @param index_oid The index oid
-   * @return The call.
-   */
-  [[nodiscard]] ast::Expr *CreateIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                               ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name,
-                                               ast::Identifier storage_interface, catalog::index_oid_t index_oid);
 
   /**
    * Call \@abortTxn(exec_ctx).

@@ -50,7 +50,6 @@ namespace terrier::execution::ast {
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
-  F(TableIterCreateIndexParallel, iterateTableCreateIndexParallel)      \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
@@ -240,6 +239,7 @@ namespace terrier::execution::ast {
   F(PRGetDateNull, prGetDateNull)                                       \
   F(PRGetTimestampNull, prGetTimestampNull)                             \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
+                                                                        \
   /* CSV */                                                             \
   F(CSVReaderInit, csvReaderInit)                                       \
   F(CSVReaderAdvance, csvReaderAdvance)                                 \

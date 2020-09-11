@@ -287,14 +287,6 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
                                                              scanner);
 }
 
-VM_OP_HOT void OpParallelCreateIndex(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-                                     terrier::execution::exec::ExecutionContext *exec_ctx,
-                                     const terrier::execution::sql::TableVectorIterator::CreateIndexFn scanner,
-                                     terrier::execution::sql::StorageInterface *storage_interface, uint32_t index_oid) {
-  terrier::execution::sql::TableVectorIterator::ParallelCreateIndex(table_oid, col_oids, num_oids, query_state,
-                                                                    exec_ctx, scanner, storage_interface, index_oid);
-}
-
 // ---------------------------------------------------------
 // Vector Projection Iterator
 // ---------------------------------------------------------
@@ -1866,8 +1858,7 @@ VM_OP void OpStorageInterfaceIndexInsertUnique(bool *result,
 
 VM_OP void OpStorageInterfaceIndexInsertWithSlot(bool *result,
                                                  terrier::execution::sql::StorageInterface *storage_interface,
-                                                 terrier::storage::ProjectedRow *index_pr,
-                                                 terrier::storage::TupleSlot *tuple_slot, uint32_t index_oid);
+                                                 terrier::storage::TupleSlot *tuple_slot, bool unique);
 
 VM_OP void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                          terrier::storage::TupleSlot *tuple_slot);

@@ -22,12 +22,8 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
                                              CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CREATE_INDEX),
       codegen_(compilation_context->GetCodeGen()),
-      storage_interface_base_(codegen_->MakeFreshIdentifier("storage_interface_base")),
-      storage_interface_(codegen_->MakeFreshIdentifier("storage_interface")),
-      index_pr_(codegen_->MakeFreshIdentifier("index_pr")),
       tvi_var_(codegen_->MakeFreshIdentifier("tvi")),
       vpi_var_(codegen_->MakeFreshIdentifier("vpi")),
-      col_oids_var_(codegen_->MakeFreshIdentifier("col_oids")),
       slot_var_(codegen_->MakeFreshIdentifier("slot")),
       table_oid_(GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid()),
       table_schema_(codegen_->GetCatalogAccessor()->GetSchema(table_oid_)),
@@ -39,32 +35,70 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
     compilation_context->Prepare(*index_col.StoredExpression());
   }
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
+  // col_oids is a global array
+  ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
+  global_col_oids_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen_, "global_col_oids", arr_type);
+  // storage interface is local to pipeline
+  ast::Expr *storage_interface_type = codegen_->BuiltinType(ast::BuiltinType::StorageInterface);
+  local_storage_interface_ = pipeline->DeclarePipelineStateEntry("local_storage_interface", storage_interface_type);
+  // index pr is local to pipeline
+  ast::Expr *index_pr_type = codegen_->BuiltinType(ast::BuiltinType::ProjectedRow);
+  local_index_pr_ = pipeline->DeclarePipelineStateEntry("local_index_pr", codegen_->PointerType(index_pr_type));
+  // tuple slot is local to pipeline
+  // TODO(wuwenw): do we really need a local copy of tuple slot?
+  ast::Expr *tuple_slot_type = codegen_->BuiltinType(ast::BuiltinType::TupleSlot);
+  local_tuple_slot_ = pipeline->DeclarePipelineStateEntry("local_tuple_slot", tuple_slot_type);
+}
+
+void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,
+                                                       ast::Expr *storage_interface_ptr) const {
+  // @storageInterfaceInit(global_storage_interface, execCtx, table_oid, col_oids_var_, false)
+  ast::Expr *table_oid_expr = codegen_->Const64(static_cast<int64_t>(table_oid_.UnderlyingValue()));
+  ast::Expr *col_oids_expr = global_col_oids_.Get(codegen_);
+  ast::Expr *need_indexes_expr = codegen_->ConstBool(false);
+
+  std::vector<ast::Expr *> args{storage_interface_ptr, GetExecutionContext(), table_oid_expr, col_oids_expr,
+                                need_indexes_expr};
+
+  function->Append(codegen_->CallBuiltin(ast::Builtin::StorageInterfaceInit, args));
+}
+
+void IndexCreateTranslator::TearDownStorageInterface(FunctionBuilder *function,
+                                                     ast::Expr *storage_interface_ptr) const {
+  // Call @storageInterfaceFree
+  function->Append(codegen_->CallBuiltin(ast::Builtin::StorageInterfaceFree, {storage_interface_ptr}));
+}
+
+void IndexCreateTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  SetGlobalOids(function, global_col_oids_.Get(codegen_));
+}
+
+void IndexCreateTranslator::TearDownQueryState(FunctionBuilder *function) const {}
+
+void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
+  DeclareIndexPR(function);
+}
+
+void IndexCreateTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  TearDownStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
 }
 
 util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() const {
   auto *tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
-  auto *index_pr_type = codegen_->PointerType(ast::BuiltinType::ProjectedRow);
-  auto *inserter_type = codegen_->PointerType(ast::BuiltinType::StorageInterface);
-  return codegen_->MakeFieldList({codegen_->MakeField(tvi_var_, tvi_type),
-                                  codegen_->MakeField(index_pr_, index_pr_type),
-                                  codegen_->MakeField(storage_interface_, inserter_type)});
+  return codegen_->MakeFieldList({codegen_->MakeField(tvi_var_, tvi_type)});
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  DeclareInserter(function);
-  function->Append(codegen_->CreateIndexParallel(table_oid_, col_oids_var_, GetQueryStatePtr(), GetExecutionContext(),
-                                                 work_func, storage_interface_, index_oid_));
-  FreeInserter(function);
+  function->Append(codegen_->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
+                                                  GetExecutionContext(), work_func));
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   const bool declare_local_tvi = !GetPipeline()->IsParallel();
   if (declare_local_tvi) {
-    DeclareInserter(function);
-    DeclareIndexPR(function);
     DeclareTVI(function);
   }
-  DeclareSlot(function);
   // Scan it.
   ScanTable(context, function);
 
@@ -76,49 +110,29 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 
       // Get Memory Use
       auto *get_mem = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,
-                                           {codegen_->MakeExpr(storage_interface_)});
+                                           {local_storage_interface_.GetPtr(codegen_)});
       auto *record =
           codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
       function->Append(codegen->MakeStmt(record));
     }
-    FreeInserter(function);
   }
 }
 
-void IndexCreateTranslator::DeclareInserter(FunctionBuilder *function) const {
-  // var col_oids: [num_cols]uint32
-  // col_oids[i] = ...
-  SetOids(function);
-  // var storage_interface_base : StorageInterface
-  auto *storage_interface_type = codegen_->BuiltinType(ast::BuiltinType::Kind::StorageInterface);
-  function->Append(codegen_->DeclareVar(storage_interface_base_, storage_interface_type, nullptr));
-  // @storageInterfaceInit(storage_interface_base, execCtx, table_oid, col_oids_var_, false)
-  ast::Expr *inserter_setup = codegen_->StorageInterfaceInit(storage_interface_base_, GetExecutionContext(),
-                                                             uint32_t(table_oid_), col_oids_var_, false);
-  function->Append(codegen_->MakeStmt(inserter_setup));
-  // var storage_interface_ = &storage_interface_base
-  function->Append(codegen_->DeclareVarWithInit(storage_interface_, codegen_->AddressOf(storage_interface_base_)));
-}
-
-void IndexCreateTranslator::SetOids(FunctionBuilder *function) const {
-  // var col_oids_var_: [num_cols]uint32
-  ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
-  function->Append(codegen_->DeclareVar(col_oids_var_, arr_type, nullptr));
-
+void IndexCreateTranslator::SetGlobalOids(FunctionBuilder *function, ast::Expr *global_col_oids) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids_var_[i] = col_oid
-    ast::Expr *lhs = codegen_->ArrayAccess(col_oids_var_, i);
+    ast::Expr *lhs = codegen_->ArrayAccess(global_col_oids, i);
     ast::Expr *rhs = codegen_->Const32(all_oids_[i].UnderlyingValue());
     function->Append(codegen_->Assign(lhs, rhs));
   }
 }
 
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
-  // var index_pr = @getIndexPR(storage_interface, oid)
-  std::vector<ast::Expr *> pr_call_args{codegen_->MakeExpr(storage_interface_),
+  // var local_index_pr = @getIndexPR(local_storage_interface, oid)
+  std::vector<ast::Expr *> pr_call_args{local_storage_interface_.GetPtr(codegen_),
                                         codegen_->Const32(index_oid_.UnderlyingValue())};
   auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
-  function->Append(codegen_->DeclareVar(index_pr_, nullptr, get_index_pr_call));
+  function->Append(codegen_->Assign(local_index_pr_.Get(codegen_), get_index_pr_call));
 }
 
 void IndexCreateTranslator::DeclareTVI(FunctionBuilder *function) const {
@@ -130,12 +144,8 @@ void IndexCreateTranslator::DeclareTVI(FunctionBuilder *function) const {
   function->Append(codegen->DeclareVarWithInit(tvi_var_, codegen->AddressOf(tvi_base)));
   // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
   function->Append(codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(),
-                                          GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid(), col_oids_var_));
-}
-
-void IndexCreateTranslator::DeclareSlot(FunctionBuilder *function) const {
-  auto declare_slot = codegen_->DeclareVarNoInit(slot_var_, ast::BuiltinType::TupleSlot);
-  function->Append(declare_slot);
+                                          GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid(),
+                                          global_col_oids_.Get(codegen_)));
 }
 
 std::vector<catalog::col_oid_t> IndexCreateTranslator::AllColOids(const catalog::Schema &table_schema) const {
@@ -168,7 +178,7 @@ void IndexCreateTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function,
     {
       // var slot = @tableIterGetSlot(vpi)
       auto make_slot = codegen_->CallBuiltin(ast::Builtin::VPIGetSlot, {codegen_->MakeExpr(vpi_var_)});
-      auto assign = codegen_->Assign(codegen_->MakeExpr(slot_var_), make_slot);
+      auto assign = codegen_->Assign(local_tuple_slot_.Get(codegen_), make_slot);
       function->Append(assign);
       IndexInsert(ctx, function);
       // We expect create index to be the end of a pipeline, so no need to push to parent
@@ -182,7 +192,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   const auto &index = codegen_->GetCatalogAccessor()->GetIndex(index_oid_);
   const auto &index_pm = index->GetKeyOidToOffsetMap();
   const auto &index_schema = codegen_->GetCatalogAccessor()->GetIndexSchema(index_oid_);
-  auto *index_pr_expr = codegen_->MakeExpr(index_pr_);
+  auto *index_pr_expr = local_index_pr_.Get(codegen_);
 
   std::unordered_map<catalog::col_oid_t, uint16_t> oid_offset;
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
@@ -212,22 +222,14 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     function->Append(codegen_->MakeStmt(set_key_call));
   }
 
-  // if (!@IndexInsertWithSlot(storage_interface, &slot_var_, unique)) { Abort(); }
-  auto *index_insert_call =
-      codegen_->CallBuiltin(ast::Builtin::IndexInsertWithSlot,
-                            {codegen_->MakeExpr(storage_interface_), index_pr_expr, codegen_->AddressOf(slot_var_),
-                             codegen_->Const32(index_oid_.UnderlyingValue())});
+  // if (!@IndexInsertWithSlot(storage_interface, &local_tuple_slot_, unique)) { Abort(); }
+  auto *index_insert_call = codegen_->CallBuiltin(
+      ast::Builtin::IndexInsertWithSlot, {local_storage_interface_.GetPtr(codegen_), local_tuple_slot_.GetPtr(codegen_),
+                                          codegen_->ConstBool(index_schema.Unique())});
   auto *cond = codegen_->UnaryOp(parsing::Token::Type::BANG, index_insert_call);
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
-}
-
-void IndexCreateTranslator::FreeInserter(FunctionBuilder *function) const {
-  // Call @storageInterfaceFree
-  ast::Expr *inserter_free =
-      GetCodeGen()->CallBuiltin(ast::Builtin::StorageInterfaceFree, {codegen_->MakeExpr(storage_interface_)});
-  function->Append(GetCodeGen()->MakeStmt(inserter_free));
 }
 
 }  // namespace terrier::execution::compiler
