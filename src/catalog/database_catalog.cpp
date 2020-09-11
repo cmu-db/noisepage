@@ -2991,17 +2991,22 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
 
   proc_oid_t ret = INVALID_PROC_OID;
+  std::vector<proc_oid_t> matching_functions;
   if (!results.empty()) {
     const std::vector<type_oid_t> variadic = {GetTypeOidForType(type::TypeId::VARIADIC)};
     auto variadic_varlen = storage::StorageUtil::CreateVarlen(variadic);
-    for (auto tuple : results) {
+
+    // Search through results and see if any match the parsed function by argument types
+    for (auto &tuple : results) {
       auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
       bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
       storage::VarlenEntry index_all_arg_types = *reinterpret_cast<storage::VarlenEntry *>(
           table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
+      // variadic functions will match any argument types
       if (index_all_arg_types == all_arg_types_varlen || index_all_arg_types == variadic_varlen) {
-        ret = *reinterpret_cast<proc_oid_t *>(
+        proc_oid_t proc_oid = *reinterpret_cast<proc_oid_t *>(
             table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+        matching_functions.push_back(proc_oid);
         break;
       }
     }
@@ -3019,6 +3024,19 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   }
 
   delete[] buffer;
+
+  if (matching_functions.size() == 1) {
+    ret = matching_functions[0];
+  } else if (matching_functions.size() > 1) {
+    // TODO(Joe Koshakow) would be nice to to include the parsed arg types of the function and the arg types that it
+    // matches with
+    throw BINDER_EXCEPTION(
+        fmt::format(
+            "Ambiguous function \"{}\", with given types. It matches multiple function signatures in the catalog",
+            procname),
+        common::ErrorCode::ERRCODE_DUPLICATE_FUNCTION);
+  }
+
   return ret;
 }
 
