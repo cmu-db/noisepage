@@ -169,6 +169,13 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   // Create a new static string
   LocalVar NewStaticString(ast::Context *ctx, ast::Identifier string);
 
+  /*
+   * Creates a LocalVar array from the arguments of an expression. This is useful for variadic functions to create an
+   * array of arguments to pass to the underlying implementation.
+   */
+  LocalVar CreateArgumentArray(const util::RegionVector<execution::ast::Expr *> &arguments, const uint32_t start,
+                               const uint32_t end, execution::ast::Type *type);
+
   // Access the current execution result scope
   ExpressionResultScope *GetExecutionResult() { return execution_result_; }
 

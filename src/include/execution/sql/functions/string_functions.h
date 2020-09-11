@@ -30,7 +30,8 @@ class StringFunctions {
   }
 
   /** Compute CONCAT(left, right). */
-  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &left, const StringVal &right);
+  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const int64_t &num_inputs,
+                     const StringVal **inputs);
 
   /** Compute LEFT(str, n). */
   static void Left(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);

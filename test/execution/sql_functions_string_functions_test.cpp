@@ -33,24 +33,53 @@ TEST_F(StringFunctionsTests, Concat) {
   // Nulls
   {
     auto result = StringVal("");
-    StringFunctions::Concat(&result, Ctx(), StringVal::Null(), StringVal::Null());
+    StringVal args[2] = {StringVal::Null(), StringVal::Null()};
+    const StringVal *args_ptr = static_cast<StringVal *>(args);
+    const StringVal **args_arr = &args_ptr;
+    StringFunctions::Concat(&result, Ctx(), 2, args_arr);
     EXPECT_TRUE(result.is_null_);
 
-    StringFunctions::Concat(&result, Ctx(), StringVal::Null(), StringVal("xy"));
-    EXPECT_TRUE(result.is_null_);
+    args[1] = StringVal("xy");
+    StringFunctions::Concat(&result, Ctx(), 2, args_arr);
+    EXPECT_EQ(StringVal("xy"), result);
 
-    StringFunctions::Concat(&result, Ctx(), StringVal("xy"), StringVal::Null());
-    EXPECT_TRUE(result.is_null_);
+    args[0] = StringVal("xy");
+    args[1] = StringVal::Null();
+    StringFunctions::Concat(&result, Ctx(), 2, args_arr);
+    EXPECT_EQ(StringVal("xy"), result);
   }
 
   // Simple Case
   {
     auto result = StringVal("");
-    auto x = StringVal("xyz");
-    auto a = StringVal("abc");
+    StringVal args[2] = {StringVal("xyz"), StringVal("abc")};
+    const StringVal *args_ptr = static_cast<StringVal *>(args);
+    const StringVal **args_arr = &args_ptr;
 
-    StringFunctions::Concat(&result, Ctx(), x, a);
+    StringFunctions::Concat(&result, Ctx(), 2, args_arr);
     EXPECT_TRUE(StringVal("xyzabc") == result);
+  }
+
+  // Single arg
+  {
+    auto result = StringVal("");
+    StringVal args[1] = {StringVal("xyz")};
+    const StringVal *args_ptr = static_cast<StringVal *>(args);
+    const StringVal **args_arr = &args_ptr;
+
+    StringFunctions::Concat(&result, Ctx(), 1, args_arr);
+    EXPECT_EQ(StringVal("xyz"), result);
+  }
+
+  // Multiple arg
+  {
+    auto result = StringVal("");
+    StringVal args[3] = {StringVal("xyz"), StringVal("666"), StringVal("towel")};
+    const StringVal *args_ptr = static_cast<StringVal *>(args);
+    const StringVal **args_arr = &args_ptr;
+
+    StringFunctions::Concat(&result, Ctx(), 3, args_arr);
+    EXPECT_EQ(StringVal("xyz666towel"), result);
   }
 }
 
