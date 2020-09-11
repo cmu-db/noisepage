@@ -10,7 +10,7 @@
 namespace terrier::execution::sql {
 
 void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const int64_t &num_inputs,
-                             const StringVal **inputs) {
+                             const StringVal *inputs) {
   if (num_inputs == 0) {
     *result = StringVal::Null();
     return;
@@ -18,18 +18,18 @@ void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, con
 
   std::size_t length = 0;
   for (int64_t i = 0; i < num_inputs; i++) {
-    length += inputs[i]->GetLength();
+    length += inputs[i].GetLength();
   }
 
   char *const ptr = ctx->GetStringAllocator()->PreAllocate(length);
   for (int64_t i = 0, offset = 0; i < num_inputs; i++) {
-    if (!inputs[i]->is_null_) {
-      std::memcpy(ptr + offset, inputs[i]->GetContent(), inputs[i]->GetLength());
-      offset += inputs[i]->GetLength();
+    if (!inputs[i].is_null_) {
+      std::memcpy(ptr + offset, inputs[i].GetContent(), inputs[i].GetLength());
+      offset += inputs[i].GetLength();
     }
   }
 
-  *result = StringVal(ptr, length);
+  *result = length == 0 ? StringVal::Null() : StringVal(ptr, length);
 }
 
 void StringFunctions::Substring(StringVal *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str,

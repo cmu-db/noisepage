@@ -308,6 +308,14 @@ class TableGenerator {
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
 
   /**
+   * Generate column data for varchar
+   * @param col_meta
+   * @param num_vals
+   * @return
+   */
+  storage::VarlenEntry *CreateVarcharColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
+
+  /**
    * Clone Column Data
    * T - underlying type of original
    * S - underlying type of copied data
