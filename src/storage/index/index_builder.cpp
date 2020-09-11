@@ -84,6 +84,8 @@ Index *IndexBuilder::BuildBwTreeGenericKey(IndexMetadata metadata) const {
     index = new BwTreeIndex<GenericKey<128>>(std::move(metadata));
   } else if (key_size <= 256) {
     index = new BwTreeIndex<GenericKey<256>>(std::move(metadata));
+  } else if (key_size <= 512) {
+    index = new BwTreeIndex<GenericKey<512>>(std::move(metadata));
   }
   TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
   return index;

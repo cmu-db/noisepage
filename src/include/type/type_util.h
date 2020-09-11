@@ -48,6 +48,13 @@ class TypeUtil {
   }
 
   /**
+   * Get the true size of the given type (without flipping the sign bit)
+   * @param type_id the type to get the size of
+   * @return size in bytes used to represent the given type
+   */
+  static uint16_t GetTypeTrueSize(const TypeId type_id) { return GetTypeSize(type_id) & static_cast<uint8_t>(0x7f); }
+
+  /**
    * This function stringify the Types for getting expression name for the constant value expression
    * @param type_id the type to get the string version of
    * @return string representation of the type

@@ -116,34 +116,42 @@ void InvokeGC() {
  * 4 - Number of rows
  * 5 - Cardinality
  */
-#define GENERATE_MIXED_ARGUMENTS(args, noop)                                                        \
-  {                                                                                                 \
-    /* Vector of table distributions <INTEGER, DECIMALS> */                                         \
-    std::vector<std::pair<uint32_t, uint32_t>> mixed_dist = {{3, 12}, {7, 8}, {11, 4}};             \
-    /* Always generate full table scans for all row_num and cardinalities. */                       \
-    for (auto col_dist : mixed_dist) {                                                              \
-      std::pair<uint32_t, uint32_t> start = {col_dist.first - 2, 2};                                \
-      while (true) {                                                                                \
-        for (auto row : row_nums) {                                                                 \
-          int64_t car = 1;                                                                          \
-          while (car < row) {                                                                       \
-            args.push_back({start.first, start.second, col_dist.first, col_dist.second, row, car}); \
-            car *= 2;                                                                               \
-          }                                                                                         \
-          args.push_back({start.first, start.second, col_dist.first, col_dist.second, row, row});   \
-        }                                                                                           \
-        if (start.second < col_dist.second) {                                                       \
-          start.second += 2;                                                                        \
-        } else if (start.first < col_dist.first) {                                                  \
-          if (noop) args.push_back({0, 0, 0, 0, 0, 0});                                             \
-          start.first += 2;                                                                         \
-          start.second = 2;                                                                         \
-        } else {                                                                                    \
-          break;                                                                                    \
-        }                                                                                           \
-      }                                                                                             \
-    }                                                                                               \
+void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::vector<int64_t> &row_nums, bool noop,
+                            uint32_t varchar_mix) {
+  std::vector<std::pair<uint32_t, uint32_t>> mixed_dist;
+  uint32_t step_size;
+  if (varchar_mix == 0) {
+    /* Vector of table distributions <INTEGER, DECIMALS> */
+    mixed_dist = {{3, 12}, {7, 8}, {11, 4}};
+    step_size = 2;
+  } else {
+    /* Vector of table distributions <INTEGER, VARCHAR> */
+    mixed_dist = {{2, 3}, {3, 2}, {4, 1}};
+    step_size = 1;
+  } /* Always generate full table scans for all row_num and cardinalities. */
+  for (auto col_dist : mixed_dist) {
+    std::pair<uint32_t, uint32_t> start = {col_dist.first - step_size, step_size};
+    while (true) {
+      for (auto row : row_nums) {
+        int64_t car = 1;
+        while (car < row) {
+          args->push_back({start.first, start.second, col_dist.first, col_dist.second, row, car, varchar_mix});
+          car *= 2;
+        }
+        args->push_back({start.first, start.second, col_dist.first, col_dist.second, row, row, varchar_mix});
+      }
+      if (start.second < col_dist.second) {
+        start.second += step_size;
+      } else if (start.first < col_dist.first) {
+        if (noop) args->push_back({0, 0, 0, 0, 0, 0, varchar_mix});
+        start.first += step_size;
+        start.second = step_size;
+      } else {
+        break;
+      }
+    }
   }
+}
 
 /**
  * Taken from Facebook's folly library.
@@ -280,25 +288,31 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
+  auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
+      // Skip more than 5 varchar cols to match the generated tables
+      if (type == type::TypeId::VARCHAR && col > 5) continue;
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, car});
+            b->Args({col, 0, 15, 0, row, car, 0});
           else if (type == type::TypeId::DECIMAL)
-            b->Args({0, col, 0, 15, row, car});
+            b->Args({0, col, 0, 15, row, car, 0});
+          else if (type == type::TypeId::VARCHAR)
+            b->Args({0, col, 0, 5, row, car, 1});
           car *= 2;
         }
 
         if (type == type::TypeId::INTEGER)
-          b->Args({col, 0, 15, 0, row, row});
+          b->Args({col, 0, 15, 0, row, row, 0});
         else if (type == type::TypeId::DECIMAL)
-          b->Args({0, col, 0, 15, row, row});
+          b->Args({0, col, 0, 15, row, row, 0});
+        else if (type == type::TypeId::VARCHAR)
+          b->Args({0, col, 0, 5, row, row, 1});
       }
     }
   }
@@ -308,7 +322,8 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   std::vector<std::vector<int64_t>> args;
-  GENERATE_MIXED_ARGUMENTS(args, false);
+  GenerateMixedArguments(&args, row_nums, false, 0);
+  GenerateMixedArguments(&args, row_nums, false, 1);
   for (const auto &arg : args) {
     b->Args(arg);
   }
@@ -496,12 +511,14 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
  *     index. This argument is only used when lookup_size = 0
  */
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
-  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
   auto key_sizes = {1, 2, 4, 8, 15};
   auto idx_sizes = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
   for (auto type : types) {
     for (auto key_size : key_sizes) {
+      // Only handle varchar up to 5 keys for size concerns
+      if (type == type::TypeId::VARCHAR && key_size > 5) continue;
       for (auto idx_size : idx_sizes) {
         b->Args({static_cast<int64_t>(type), key_size, idx_size, 0, 1});
 
@@ -559,12 +576,24 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
 
     std::vector<parser::ConstantValueExpression> param;
     if (lookup_size == 1) {
-      param.emplace_back(type_param, execution::sql::Integer(low_key));
+      if (type_param != type::TypeId::VARCHAR) {
+        param.emplace_back(type_param, execution::sql::Integer(low_key));
+      } else {
+        std::string val = std::to_string(low_key);
+        param.emplace_back(type_param, execution::sql::StringVal(val.c_str()));
+      }
       bounds.emplace_back(low_key, low_key);
     } else {
       auto high_key = low_key + lookup_size - 1;
-      param.emplace_back(type_param, execution::sql::Integer(low_key));
-      param.emplace_back(type_param, execution::sql::Integer(high_key));
+      if (type_param != type::TypeId::VARCHAR) {
+        param.emplace_back(type_param, execution::sql::Integer(low_key));
+        param.emplace_back(type_param, execution::sql::Integer(high_key));
+      } else {
+        std::string val = std::to_string(low_key);
+        param.emplace_back(type_param, execution::sql::StringVal(val.c_str()));
+        val = std::to_string(high_key);
+        param.emplace_back(type_param, execution::sql::StringVal(val.c_str()));
+      }
       bounds.emplace_back(low_key, high_key);
     }
 
@@ -1320,11 +1349,12 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
 
 void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   auto num_integers = state->range(0);
-  auto num_decimals = state->range(1);
+  auto num_mix = state->range(1);
   auto tbl_ints = state->range(2);
-  auto tbl_decimals = state->range(3);
+  auto tbl_mix = state->range(3);
   auto row = state->range(4);
   auto car = state->range(5);
+  auto varchar_mix = state->range(6);
 
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
@@ -1334,9 +1364,15 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   }
 
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
-  auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
-  auto num_col = num_integers + num_decimals;
+  size_t mix_size;
+  type::TypeId mix_type;
+  if (varchar_mix == 1)
+    mix_type = type::TypeId::VARCHAR;
+  else
+    mix_type = type::TypeId::DECIMAL;
+  mix_size = type::TypeUtil::GetTypeTrueSize(mix_type);
+  auto tuple_size = int_size * num_integers + mix_size * num_mix;
+  auto num_col = num_integers + num_mix;
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
@@ -1349,8 +1385,8 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   std::string query_final;
   {
     std::stringstream query;
-    auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::DECIMAL, num_integers, num_decimals);
-    auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
+    auto cols = ConstructColumns("", type::TypeId::INTEGER, mix_type, num_integers, num_mix);
+    auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_mix, row, car);
     query << "SELECT " << (cols) << " FROM " << tbl_name;
     query_final = query.str();
   }
@@ -1404,7 +1440,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
   GenIdxScanParameters(type, num_rows, lookup_size, num_iters, &real_params);
 
-  auto type_size = type::TypeUtil::GetTypeSize(type);
+  auto type_size = type::TypeUtil::GetTypeTrueSize(type);
   auto tuple_size = type_size * key_num;
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -1429,10 +1465,20 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
 
   std::vector<parser::ConstantValueExpression> params;
   std::vector<type::TypeId> param_types;
-  params.emplace_back(type, execution::sql::Integer(0));
+  if (type != type::TypeId::VARCHAR) {
+    params.emplace_back(type, execution::sql::Integer(0));
+  } else {
+    std::string val = std::string("0");
+    params.emplace_back(type, execution::sql::StringVal(val.c_str()));
+  }
   param_types.push_back(type);
   if (lookup_size > 1) {
-    params.emplace_back(type, execution::sql::Integer(0));
+    if (type != type::TypeId::VARCHAR) {
+      params.emplace_back(type, execution::sql::Integer(0));
+    } else {
+      std::string val = std::string("0");
+      params.emplace_back(type, execution::sql::StringVal(val.c_str()));
+    }
     param_types.push_back(type);
   }
 
