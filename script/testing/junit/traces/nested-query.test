@@ -263,50 +263,6 @@ statement ok
 
 
 statement ok
--- Test TypeJ, limit
-
-statement ok
-DROP TABLE IF EXISTS shipment;
-
-statement ok
-DROP TABLE IF EXISTS supplier;
-
-statement ok
-DROP TABLE IF EXISTS part;
-
-statement ok
-CREATE TABLE shipment (sno int, pno int, qty int);
-
-statement ok
-CREATE TABLE supplier (sno int, sloc int, subdget int);
-
-statement ok
-CREATE TABLE part (pno int, price int);
-
-statement ok
-INSERT INTO shipment VALUES (2, 2, 1);
-
-statement ok
-INSERT INTO shipment VALUES (1, 1, 2);
-
-statement ok
-INSERT INTO supplier VALUES (2, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 1, 1);
-
-statement ok
-INSERT INTO supplier VALUES (1, 2, 2);
-
-query I nosort
-SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE subdget = qty limit 1);
-----
-2 values hashing to cb0e93933b5e2202825f38da7587cf07
-
-statement ok
-
-
-statement ok
 -- Test TypeJA, less than max
 
 statement ok
