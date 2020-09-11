@@ -1,12 +1,10 @@
 #include <string>
 
-#include "execution/sql/vector_operations/vector_operations.h"
-
-#include "spdlog/fmt/fmt.h"
-
 #include "common/error/exception.h"
 #include "execution/sql/operators/cast_operators.h"
 #include "execution/sql/vector_operations/unary_operation_executor.h"
+#include "execution/sql/vector_operations/vector_operations.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+
 #include "network/itp/itp_network_commands.h"
 
 #define MAKE_ITP_COMMAND(type) \

@@ -1,7 +1,5 @@
 #include "execution/compiler/operator/index_create_translator.h"
 
-#include "execution/sql/ddl_executors.h"
-
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -10,6 +8,7 @@
 #include "execution/compiler/loop.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/work_context.h"
+#include "execution/sql/ddl_executors.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -47,6 +46,17 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 
   // Close TVI, if need be.
   function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
+
+  {
+    auto *codegen = GetCodeGen();
+
+    // Get Memory Use
+    auto *get_mem =
+        codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize, {codegen->AddressOf(inserter_)});
+    auto *record =
+        codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
+    function->Append(codegen->MakeStmt(record));
+  }
 
   FreeInserter(function);
 }

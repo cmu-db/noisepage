@@ -1,4 +1,5 @@
 #include "parser/expression/comparison_expression.h"
+
 #include "common/json.h"
 
 namespace terrier::parser {
