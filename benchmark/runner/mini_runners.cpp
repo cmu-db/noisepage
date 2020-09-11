@@ -375,25 +375,27 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER};
+  auto types = {type::TypeId::INTEGER, type::TypeId::VARCHAR};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
+      // Skip more than 5 varchar cols to match the generated tables
+      if (type == type::TypeId::VARCHAR && col > 5) continue;
       for (auto row : row_nums) {
         int64_t car = 1;
         while (car < row) {
-          if (type == type::TypeId::INTEGER)
+          if (type != type::TypeId::VARCHAR)
             b->Args({col, 0, 15, 0, row, car});
-          else if (type == type::TypeId::BIGINT)
-            b->Args({0, col, 0, 15, row, car});
+          else
+            b->Args({0, col, 0, 5, row, car});
           car *= 2;
         }
 
-        if (type == type::TypeId::INTEGER)
+        if (type != type::TypeId::VARCHAR)
           b->Args({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::BIGINT)
-          b->Args({0, col, 0, 15, row, row});
+        else
+          b->Args({0, col, 0, 5, row, row});
       }
     }
   }
@@ -1314,8 +1316,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
     cols.emplace_back(col.str(), type::TypeId::DECIMAL, nullptr);
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::DECIMAL);
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
 
   auto txn = txn_manager_->BeginTransaction();
@@ -1362,7 +1364,7 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
   size_t mix_size;
   type::TypeId mix_type;
   if (varchar_mix == 1)
@@ -1513,7 +1515,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
 
   // No warmup
   int num_iters = 1;
-  auto type_size = type::TypeUtil::GetTypeSize(type);
+  auto type_size = type::TypeUtil::GetTypeTrueSize(type);
   auto tuple_size = type_size * key_num;
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -1640,8 +1642,8 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
     }
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::DECIMAL);
   auto tuple_size = int_size * num_ints + decimal_size * num_decimals;
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -1721,8 +1723,8 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::string tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
   query << "UPDATE " << tbl << " SET ";
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
   auto num_col = num_integers + num_decimals;
   std::vector<catalog::Schema::Column> cols;
@@ -1814,8 +1816,8 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
   auto num_col = num_integers + num_decimals;
 
@@ -1880,8 +1882,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::DECIMAL);
   auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
   auto num_col = num_integers + num_decimals;
 
@@ -1925,8 +1927,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
   // Size of the scan tuple
   // Size of hash key size, probe key size
   // Size of output since only output 1 side
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
@@ -1973,8 +1975,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
@@ -2016,9 +2018,9 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
-  auto num_bigints = state.range(1);
+  auto num_varchars = state.range(1);
   auto tbl_ints = state.range(2);
-  auto tbl_bigints = state.range(3);
+  auto tbl_varchars = state.range(3);
   auto row = state.range(4);
   auto car = state.range(5);
 
@@ -2029,10 +2031,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
-  auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
-  auto num_col = num_integers + num_bigints;
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto varchar_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::VARCHAR);
+  auto tuple_size = int_size * num_integers + varchar_size * num_varchars;
+  auto num_col = num_integers + num_varchars;
   auto out_cols = num_col + 1;     // pulling the count(*) out
   auto out_size = tuple_size + 4;  // count(*) is an integer
 
@@ -2047,8 +2049,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
-  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
+  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::VARCHAR, num_integers, num_varchars);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::VARCHAR, tbl_ints, tbl_varchars, row, car);
   query << "SELECT COUNT(*), " << cols << " FROM " << tbl_name << " GROUP BY " << cols;
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
@@ -2075,7 +2077,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
   auto tuple_size = int_size * num_integers;
   auto num_col = num_integers;
   auto out_cols = num_col;
@@ -2129,8 +2131,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
     return;
   }
 
-  auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
+  auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
+  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
   auto num_col = num_integers + num_bigints;
 
