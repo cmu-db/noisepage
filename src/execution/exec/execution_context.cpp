@@ -34,8 +34,7 @@ void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component)
 }
 
 void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION)) {
+  if (common::thread_context.metrics_store_ != nullptr && common::thread_context.resource_tracker_.IsRunning()) {
     common::thread_context.resource_tracker_.Stop();
     common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
@@ -44,10 +43,14 @@ void ExecutionContext::EndResourceTracker(const char *name, uint32_t len) {
 }
 
 void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline) {
-  if (common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTION_PIPELINE)) {
+  if (common::thread_context.metrics_store_ != nullptr && common::thread_context.resource_tracker_.IsRunning()) {
     common::thread_context.resource_tracker_.Stop();
-    common::thread_context.resource_tracker_.SetMemory(mem_tracker_->GetAllocatedSize());
+    auto mem_size = mem_tracker_->GetAllocatedSize();
+    if (memory_use_override_) {
+      mem_size = memory_use_override_value_;
+    }
+
+    common::thread_context.resource_tracker_.SetMemory(mem_size);
     auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
     // TODO(wz2): With a query cache, see if we can avoid this copy

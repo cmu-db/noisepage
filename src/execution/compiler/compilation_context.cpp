@@ -27,6 +27,7 @@
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
@@ -52,6 +53,7 @@
 #include "parser/expression/star_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
@@ -155,7 +157,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     // Extract and record the translators.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
-                                          common::ManagedPointer(pipeline));
+                                          common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
   }
@@ -175,9 +177,12 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
 std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::AbstractPlanNode &plan,
                                                              const exec::ExecutionSettings &exec_settings,
                                                              catalog::CatalogAccessor *accessor,
-                                                             const CompilationMode mode) {
+                                                             const CompilationMode mode,
+                                                             common::ManagedPointer<const std::string> query_text) {
   // The query we're generating code for.
   auto query = std::make_unique<ExecutableQuery>(plan, exec_settings);
+  // TODO(Lin): Hacking... remove this after getting the counters in
+  query->SetQueryText(query_text);
 
   // Generate the plan for the query
   CompilationContext ctx(query.get(), accessor, mode);
@@ -273,6 +278,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INDEXNLJOIN: {
       const auto &index_join = dynamic_cast<const planner::IndexJoinPlanNode &>(plan);
       translator = std::make_unique<IndexJoinTranslator>(index_join, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::CREATE_INDEX: {
+      const auto &create_index = dynamic_cast<const planner::CreateIndexPlanNode &>(plan);
+      translator = std::make_unique<IndexCreateTranslator>(create_index, this, pipeline);
       break;
     }
     default: {

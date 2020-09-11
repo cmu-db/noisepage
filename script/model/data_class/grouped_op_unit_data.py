@@ -4,18 +4,24 @@ import copy
 import tqdm
 import pandas as pd
 import os
+import logging
 
 from data_class import data_util
-from info import data_info, query_info
+from data_class import tpcc_fixer
+from info import data_info, query_info, query_info_1G, query_info_10G
 import global_model_config
 
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename):
+def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
     """Get the training data from the global model
 
     :param filename: the input data file
+    :param warmup_period: warmup period for pipeline data
+    :param tpcc_hack: whether to manually fix the tpcc features
+    :param ee_sample_interval: sampling interval for the EE OUs
+    :param txn_sample_interval: sampling interval for the transaction OUs
     :return: the list of global model data
     """
 
@@ -24,10 +30,10 @@ def get_grouped_op_unit_data(filename):
         return []
     if "execution" in filename:
         # Special handle of the execution data
-        return _execution_get_grouped_op_unit_data(filename)
+        return _execution_get_grouped_op_unit_data(filename, ee_sample_interval)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
@@ -35,7 +41,7 @@ def get_grouped_op_unit_data(filename):
     return _default_get_global_data(filename)
 
 
-def _execution_get_grouped_op_unit_data(filename):
+def _execution_get_grouped_op_unit_data(filename, ee_sample_interval):
     # Get the global running data for the execution engine
     data_list = []
     with open(filename, "r") as f:
@@ -63,21 +69,30 @@ def _execution_get_grouped_op_unit_data(filename):
                     opunit_feature[1].append(mode)
 
                 line_data = list(map(int, line[2:]))
-                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data)))
+                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data), ee_sample_interval))
 
     return data_list
 
 
-def _pipeline_get_grouped_op_unit_data(filename):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval):
     # Get the global running data for the execution engine
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
+    start_time = None
 
     data_list = []
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         next(reader)
         for line in reader:
+            # extract the time
+            cpu_time = line[data_info.RAW_CPU_TIME_INDEX]
+            if start_time is None:
+                start_time = cpu_time
+
+            if int(cpu_time) - int(start_time) < warmup_period * 1000000:
+                continue
+
             # drop query_id, pipeline_id, num_features, features_vector
             record = [d for i,d in enumerate(line) if i > features_vector_index]
             record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])
@@ -93,10 +108,22 @@ def _pipeline_get_grouped_op_unit_data(filename):
                     continue
                 opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
+
+                q_id = int(line[0])
+                p_id = int(line[1])
+                if tpcc_hack:
+                    x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
+
+                if x_loc[data_info.TUPLE_NUM_INDEX] == 0:
+                    logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
+                    continue
+
                 opunits.append((opunit, x_loc))
 
-            data_list.append(GroupedOpUnitData("q{} p{} {}".format(line[0], line[1], opunits), opunits,
-                                               np.array(metrics)))
+            if len(opunits) == 0:
+                continue
+            data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits, np.array(metrics),
+                                               ee_sample_interval))
 
     return data_list
 
@@ -143,7 +170,7 @@ def _interval_get_grouped_op_unit_data(filename):
         n = len(interval_x_map[rounded_time])
         for i in range(n):
             metrics = np.concatenate(([rounded_time + i * interval // n], [interval_cpu_map[rounded_time]], y_new))
-            data_list.append(GroupedOpUnitData("{} {}".format(file_name, opunits), opunits, metrics))
+            data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics))
 
     return data_list
 
@@ -157,11 +184,12 @@ class GroupedOpUnitData:
     """
     The class that stores the information about a group of operating units measured together
     """
-    def __init__(self, name, opunit_features, metrics):
+    def __init__(self, name, opunit_features, metrics, sample_interval=0):
         """
         :param name: The name of the data point (e.g., could be the pipeline identifier)
         :param opunit_features: The list of opunits and their inputs for this event
         :param metrics: The runtime metrics
+        :param sample_interval: The sampling interval for this OU group
         """
         self.name = name
         self.opunit_features = opunit_features
@@ -171,6 +199,7 @@ class GroupedOpUnitData:
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
+        self.sample_interval = sample_interval
 
     def get_start_time(self, concurrent_counting_mode):
         """Get the start time for this group for counting the concurrent operations

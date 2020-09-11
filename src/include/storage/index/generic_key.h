@@ -14,8 +14,8 @@
 namespace terrier::storage::index {
 
 // This is the maximum number of bytes to pack into a single GenericKey template. This constraint is arbitrary and can
-// be increased if 256 bytes is too small for future workloads.
-constexpr uint16_t GENERICKEY_MAX_SIZE = 256;
+// be increased if 512 bytes is too small for future workloads.
+constexpr uint16_t GENERICKEY_MAX_SIZE = 512;
 
 /**
  * GenericKey is a slower key type than CompactIntsKey for use when the constraints of CompactIntsKey make it
@@ -52,8 +52,8 @@ class GenericKey {
       TERRIER_ASSERT(num_attrs > 0 && num_attrs <= key_cols.size(), "Number of attributes violates invariant");
 
       for (uint16_t i = 0; i < num_attrs; i++) {
-        const auto offset = static_cast<uint16_t>(from.ColumnIds()[i]);
-        TERRIER_ASSERT(offset == static_cast<uint16_t>(pr->ColumnIds()[i]), "PRs must have the same comparison order!");
+        const auto offset = from.ColumnIds()[i].UnderlyingValue();
+        TERRIER_ASSERT(offset == pr->ColumnIds()[i].UnderlyingValue(), "PRs must have the same comparison order!");
         const byte *const from_attr = from.AccessWithNullCheck(offset);
         if (from_attr == nullptr) {
           pr->SetNull(offset);
@@ -211,7 +211,7 @@ class GenericKey {
       const auto *const lhs_pr = GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 
-      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
+      const auto offset = lhs_pr->ColumnIds()[i].UnderlyingValue();
       TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
 
       const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
@@ -291,7 +291,7 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
 
     const auto &key_cols = key_schema.GetColumns();
     for (uint16_t i = 0; i < key_cols.size(); i++) {
-      const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
+      const auto offset = pr->ColumnIds()[i].UnderlyingValue();
       const byte *const attr = pr->AccessWithNullCheck(offset);
       if (attr == nullptr) {
         continue;
@@ -324,7 +324,7 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 
-      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
+      const auto offset = lhs_pr->ColumnIds()[i].UnderlyingValue();
       TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
 
       const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);
@@ -379,7 +379,7 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
       const auto *const lhs_pr = lhs.GetProjectedRow();
       const auto *const rhs_pr = rhs.GetProjectedRow();
 
-      const auto offset = static_cast<uint16_t>(lhs_pr->ColumnIds()[i]);
+      const auto offset = lhs_pr->ColumnIds()[i].UnderlyingValue();
       TERRIER_ASSERT(lhs_pr->ColumnIds()[i] == rhs_pr->ColumnIds()[i], "Comparison orders should be the same.");
 
       const byte *const lhs_attr = lhs_pr->AccessWithNullCheck(offset);

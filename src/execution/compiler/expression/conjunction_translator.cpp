@@ -12,9 +12,10 @@ namespace terrier::execution::compiler {
 ConjunctionTranslator::ConjunctionTranslator(const parser::ConjunctionExpression &expr,
                                              CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
-  // Prepare the left and right expression subtrees for translation.
-  compilation_context->Prepare(*expr.GetChild(0));
-  compilation_context->Prepare(*expr.GetChild(1));
+  // Prepare all children expression subtrees for translation.
+  for (const auto &child : expr.GetChildren()) {
+    compilation_context->Prepare(*child);
+  }
 }
 
 ast::Expr *ConjunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {

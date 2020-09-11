@@ -12,7 +12,6 @@
 #include "network/connection_handle_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
-#include "spdlog/spdlog.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
@@ -71,7 +70,7 @@ class NetworkTests : public TerrierTest {
                                     common::ManagedPointer(gc_));
 
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
-                                       DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);
+                                       DISABLED, DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);
 
     auto txn = txn_manager_->BeginTransaction();
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);

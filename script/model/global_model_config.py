@@ -6,3 +6,6 @@ INTERVAL_START = -2500000
 
 # The size between to inverval segments
 INTERVAL_SEGMENT = 1000000
+
+# The added small bias when calculating the interference ratio
+RATIO_DIVISION_EPSILON = 0.1

@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "brain/operating_unit.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/context.h"
@@ -37,14 +38,16 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   for (const auto &func_name : functions_) {
     Function func;
     if (!module_->GetFunction(func_name, mode, &func)) {
-      throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name));
+      throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name),
+                                common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
     try {
       func(query_state);
     } catch (const AbortException &e) {
       for (const auto &teardown_name : teardown_fn_) {
         if (!module_->GetFunction(teardown_name, mode, &func)) {
-          throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name));
+          throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name),
+                                    common::ErrorCode::ERRCODE_INTERNAL_ERROR);
         }
         func(query_state);
       }
@@ -82,11 +85,12 @@ ExecutableQuery::ExecutableQuery(const planner::AbstractPlanNode &plan, const ex
       errors_(std::make_unique<sema::ErrorReporter>(errors_region_.get())),
       ast_context_(std::make_unique<ast::Context>(context_region_.get(), errors_.get())),
       query_state_size_(0),
-      pipeline_operating_units_(nullptr) {}
+      pipeline_operating_units_(nullptr),
+      query_id_(query_identifier++) {}
 
 ExecutableQuery::ExecutableQuery(const std::string &contents,
                                  const common::ManagedPointer<exec::ExecutionContext> exec_ctx, bool is_file,
-                                 const exec::ExecutionSettings &exec_settings)
+                                 size_t query_state_size, const exec::ExecutionSettings &exec_settings)
     // TODO(WAN): Giant hack for the plan. The whole point is that you have no plan.
     : plan_(reinterpret_cast<const planner::AbstractPlanNode &>(exec_settings)), exec_settings_(exec_settings) {
   context_region_ = std::make_unique<util::Region>("context_region");
@@ -119,7 +123,7 @@ ExecutableQuery::ExecutableQuery(const std::string &contents,
   std::vector<std::unique_ptr<Fragment>> fragments;
   fragments.emplace_back(std::move(fragment));
 
-  Setup(std::move(fragments), 0, nullptr);
+  Setup(std::move(fragments), query_state_size, nullptr);
 
   if (is_file) {
     // acquire the output format
@@ -151,6 +155,7 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   auto query_state = std::make_unique<byte[]>(query_state_size_);
   *reinterpret_cast<exec::ExecutionContext **>(query_state.get()) = exec_ctx.Get();
 
+  exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
   exec_ctx->SetPipelineOperatingUnits(GetPipelineOperatingUnits());
 
   // Now run through fragments.

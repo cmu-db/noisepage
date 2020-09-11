@@ -30,6 +30,11 @@ constexpr uint32_t TEST2_SIZE = 1000;
 constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
 
 /**
+ * Size of the index test table
+ */
+constexpr uint32_t INDEX_TEST_SIZE = 100000;
+
+/**
  * Helper class to generate test tables and their indexes.
  */
 class TableGenerator {
@@ -100,7 +105,28 @@ class TableGenerator {
   /**
    * Generate mini runners indexes
    */
-  void GenerateMiniRunnerIndexes();
+  void GenerateMiniRunnerIndexTables();
+
+  /**
+   * Adds a mini-runner index
+   * Function does not check whether an index of the same key_num
+   * already exists on the table GenerateTableIndexName(type, row_num)
+   *
+   * @param type Datatype of the underlying table
+   * @param row_num # of rows in the underlying table
+   * @param key_num Number of keys comprising the index
+   */
+  void BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
+
+  /**
+   * Drops a unique mini-runner index
+   *
+   * @param type Datatype of the underlying table
+   * @param row_num # of rows in the underlying table
+   * @param key_num Number of keys comprising the index
+   * @returns bool indicating whether successful
+   */
+  bool DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -280,6 +306,14 @@ class TableGenerator {
    * @return
    */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
+
+  /**
+   * Generate column data for varchar
+   * @param col_meta
+   * @param num_vals
+   * @return
+   */
+  storage::VarlenEntry *CreateVarcharColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
 
   /**
    * Clone Column Data

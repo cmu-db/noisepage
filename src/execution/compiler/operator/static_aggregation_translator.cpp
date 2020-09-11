@@ -22,6 +22,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
+  build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
+
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 
@@ -61,7 +63,9 @@ ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
     auto type = codegen->AggregateType(term->GetExpressionType(), sql::GetTypeId(term->GetReturnValueType()));
     fields.push_back(codegen->MakeField(name, type));
   }
-  return codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+
+  struct_decl_ = codegen->DeclareStruct(agg_payload_type_, std::move(fields));
+  return struct_decl_;
 }
 
 ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
@@ -71,8 +75,10 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
+    TERRIER_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
+                   "Return value type of child expression is invalid.");
     auto field_name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx));
-    auto type = codegen->TplType(sql::GetTypeId(term->GetReturnValueType()));
+    auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }

@@ -168,7 +168,7 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // varlen value as not reclaimable so as to not double-free
   for (col_id_t varlen_col_id : layout.Varlens()) {
     // We know this to be true because the projection list has all columns
-    auto offset = static_cast<uint16_t>(!varlen_col_id - NUM_RESERVED_COLUMNS);
+    auto offset = static_cast<uint16_t>(varlen_col_id.UnderlyingValue() - NUM_RESERVED_COLUMNS);
     auto *entry = reinterpret_cast<VarlenEntry *>(record->Delta()->AccessWithNullCheck(offset));
     if (entry == nullptr) continue;
     if (entry->Size() <= VarlenEntry::InlineThreshold()) {

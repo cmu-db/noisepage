@@ -1,6 +1,7 @@
 #include "common/error/exception.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/operators/comparison_operators.h"
+#include "execution/sql/operators/like_operators.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/tuple_id_list.h"
 #include "execution/sql/vector_operations/vector_operations.h"
@@ -45,23 +46,27 @@ struct IsSafeForFullCompute<T, std::enable_if_t<std::is_fundamental_v<T> || std:
 void CheckSelection(const Vector &left, const Vector &right, TupleIdList *result) {
   if (left.GetTypeId() != right.GetTypeId()) {
     throw EXECUTION_EXCEPTION(fmt::format("Input vector types must match for selections, left {} right {}.",
-                                          TypeIdToString(left.GetTypeId()), TypeIdToString(right.GetTypeId())));
+                                          TypeIdToString(left.GetTypeId()), TypeIdToString(right.GetTypeId())),
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   if (!left.IsConstant() && !right.IsConstant()) {
     if (left.GetSize() != right.GetSize()) {
       throw EXECUTION_EXCEPTION(
           fmt::format("Left and right vectors to comparison have different sizes, left {} right {}.", left.GetSize(),
-                      right.GetSize()));
+                      right.GetSize()),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
     if (left.GetCount() != right.GetCount()) {
       throw EXECUTION_EXCEPTION(
           fmt::format("Left and right vectors to comparison have different counts, left {} right {}.", left.GetCount(),
-                      right.GetCount()));
+                      right.GetCount()),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
     if (result->GetCapacity() != left.GetSize()) {
       throw EXECUTION_EXCEPTION(
           fmt::format("Result list not large enough to store all TIDs in input vector, result {} input {}.",
-                      result->GetCapacity(), left.GetSize()));
+                      result->GetCapacity(), left.GetSize()),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
   }
 }

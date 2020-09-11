@@ -37,7 +37,7 @@ TEST_F(ConciseHashTableTest, InsertTest) {
   const uint32_t probe_length = 1;
 
   ConciseHashTable table(probe_length);
-  table.SetSize(num_tuples);
+  table.SetSize(num_tuples, nullptr);
 
   // Check minimum capacity is enforced
   EXPECT_EQ(ConciseHashTable::MIN_NUM_SLOTS, table.GetCapacity());
@@ -68,7 +68,7 @@ TEST_F(ConciseHashTableTest, InsertOverflowTest) {
   //
 
   ConciseHashTable table(probe_length);
-  table.SetSize(num_tuples);
+  table.SetSize(num_tuples, nullptr);
 
   EXPECT_EQ(ConciseHashTable::MIN_NUM_SLOTS, table.GetCapacity());
 
@@ -103,7 +103,7 @@ TEST_F(ConciseHashTableTest, MultiGroupInsertTest) {
   //
 
   ConciseHashTable table(probe_length);
-  table.SetSize(num_tuples);
+  table.SetSize(num_tuples, nullptr);
 
   EXPECT_EQ(ConciseHashTable::MIN_NUM_SLOTS, table.GetCapacity());
 
@@ -150,7 +150,7 @@ TEST_F(ConciseHashTableTest, CornerCaseTest) {
   const uint32_t probe_length = 4;
 
   ConciseHashTable table(probe_length);
-  table.SetSize(num_tuples);
+  table.SetSize(num_tuples, nullptr);
 
   EXPECT_EQ(ConciseHashTable::MIN_NUM_SLOTS, table.GetCapacity());
 
@@ -187,7 +187,7 @@ TEST_F(ConciseHashTableTest, BuildTest) {
   //
 
   ConciseHashTable table(probe_length);
-  table.SetSize(num_tuples);
+  table.SetSize(num_tuples, nullptr);
 
   EXPECT_EQ(ConciseHashTable::MIN_NUM_SLOTS, table.GetCapacity());
 
@@ -216,7 +216,7 @@ TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
   //
 
   ConciseHashTable table(probe_length);
-  table.SetSize(num_tuples);
+  table.SetSize(num_tuples, nullptr);
 
   EXPECT_EQ(ConciseHashTable::MIN_NUM_SLOTS, table.GetCapacity());
 

@@ -8,7 +8,9 @@
 #include <cstring>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "common/math_util.h"
+#include "execution/sql/memory_tracker.h"
 
 // Needed for some Darwin machine that don't have MAP_ANONYMOUS
 #ifndef MAP_ANONYMOUS
@@ -102,13 +104,17 @@ class Memory {
   /**
    * Allocate an array of @em num_elems of type @em T using huge pages.
    * @tparam T The element type of the array.
+   * @param tracker Memory Tracker
    * @param num_elems The number of elements in the array.
    * @param populate Whether to pre-fault the allocated pages backing the memory chunk.
    * @return A pointer tot he allocated array.
    */
   template <typename T>
-  [[nodiscard]] static T *MallocHugeArray(const std::size_t num_elems, const bool populate) {
+  [[nodiscard]] static T *TrackMallocHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker,
+                                               const std::size_t num_elems, const bool populate) {
     std::size_t size = sizeof(T) * num_elems;
+    if (tracker != nullptr) tracker->Increment(size);
+
     void *ptr = MallocHuge(size, populate);
     return reinterpret_cast<T *>(ptr);
   }
@@ -128,14 +134,19 @@ class Memory {
    * Free an array of elements pointed to by @em arr with @em num_elems elements. This array should
    * have been allocated using MallocHugeArray().
    * @tparam T The type of element in the array.
+   * @param tracker Memory Tracker
    * @param arr The array of elements to free.
    * @param num_elems The number of elements in the array.
    */
   template <typename T>
-  static void FreeHugeArray(T arr[], const std::size_t num_elems) {
+  static void TrackFreeHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, T arr[],
+                                 const std::size_t num_elems) {
     TERRIER_ASSERT(arr != nullptr, "Cannot free NULL pointer");
     TERRIER_ASSERT(num_elems != 0, "Cannot free zero-sized memory");
-    FreeHuge(static_cast<void *>(arr), sizeof(T) * num_elems);
+    std::size_t size = sizeof(T) * num_elems;
+
+    if (tracker != nullptr) tracker->Decrement(size);
+    FreeHuge(static_cast<void *>(arr), size);
   }
 
   /**

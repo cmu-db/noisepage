@@ -14,6 +14,10 @@
 - `TestOLTPBench`: the test class for oltp bench tests
 - `constants`: all the constants used in the any file under the `util`
 
+## OLTP Bench
+`oltpbench` folder contains Python scripts for running an oltp bench test
+- `TestOLTPBench`: the test class for oltp bench tests
+
 ## How to run a test
 To run a test of a certain type, just run the `run_<TEST TYPE>.py` script in the respective folder. For example, if you want to run a junit test, just simply run `python3 junit/run_junit.py`.
 

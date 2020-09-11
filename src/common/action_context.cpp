@@ -1,4 +1,5 @@
 #include "common/action_context.h"
+
 #include "common/strong_typedef_body.h"
 
 namespace terrier::common {

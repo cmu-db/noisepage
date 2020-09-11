@@ -4,7 +4,6 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
-
 class Target(enum.Enum):
     """The output targets for the operating units
     """
@@ -54,6 +53,7 @@ class OpUnit(enum.IntEnum):
     INSERT = 23,
     UPDATE = 24,
     DELETE = 25,
+    CREATE_INDEX = 26,
 
 
 class ArithmeticFeature(enum.Enum):

@@ -207,6 +207,10 @@ void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
   *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
 }
 
+void OpStorageInterfaceGetIndexHeapSize(uint32_t *size, terrier::execution::sql::StorageInterface *storage_interface) {
+  *size = storage_interface->GetIndexHeapSize();
+}
+
 void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsert();
 }
@@ -214,7 +218,10 @@ void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::Storag
 void OpStorageInterfaceIndexInsertUnique(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsertUnique();
 }
-
+void OpStorageInterfaceIndexInsertWithSlot(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                           terrier::storage::TupleSlot *tuple_slot, bool unique) {
+  *result = storage_interface->IndexInsertWithTuple(*tuple_slot, unique);
+}
 void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                    terrier::storage::TupleSlot *tuple_slot) {
   storage_interface->IndexDelete(*tuple_slot);

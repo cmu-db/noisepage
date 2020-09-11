@@ -230,6 +230,9 @@ enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT, ABORT };
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,
  * with exactly size many bytes (no extra nul in the end).
+ *
+ * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark before
+ * and after. It is not currently part of CI because it can be noisy.
  */
 class VarlenEntry {
  public:
@@ -397,6 +400,9 @@ class VarlenEntry {
    * Compute the hash value of this variable-length string instance.
    * @param seed The value to seed the hash with.
    * @return The hash value for this string instance.
+   *
+   * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark
+   * before and after. It is not currently part of CI because it can be noisy.
    */
   hash_t Hash(hash_t seed) const {
     // "small" strings use CRC hashing, "long" strings use XXH3.
@@ -412,33 +418,52 @@ class VarlenEntry {
    * @param left The first string.
    * @param right The second string.
    * @return 0 if equal according to EqualCheck; any non-zero value otherwise.
+   *
+   * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark
+   * before and after. It is not currently part of CI because it can be noisy.
    */
   template <bool EqualityCheck>
   static bool CompareEqualOrNot(const VarlenEntry &left, const VarlenEntry &right) {
-    TERRIER_ASSERT(left.Size() >= 0, "Left VarlenEntry has negative size?");
-    TERRIER_ASSERT(right.Size() >= 0, "Right VarlenEntry has negative size?");
+    // Read the first 8 bytes of each VarlenEntry so we can use a single comparison for size and prefix equality
+    const uint64_t left_size_prefix = *reinterpret_cast<const uint64_t *>(&left);
+    const uint64_t right_size_prefix = *reinterpret_cast<const uint64_t *>(&right);
+    //  We're going to mask off the reclaim bit. Because the reclaim bit is the sign bit of the size, it ends up near
+    //  the middle of this 8 byte sequence due to endianness with that int32_t. The mask defined below passes through
+    //  all of the bits except the MSB of size. Its position is due to the original endianness of the int32_t being
+    //  embedded within a uint64_t (which is also subject to endianness shenanigans).
+    constexpr uint64_t remove_reclaim_bit_mask = 0xffffffff7fffffff;
 
-    // Compare the size and prefix in one fell swoop, ignoring the sign bit indicating reclaimability.
-    uint8_t left_first = *reinterpret_cast<const uint8_t *>(&left);
-    uint8_t right_first = *reinterpret_cast<const uint8_t *>(&right);
-    bool first_byte_same = (left_first << 1) == (right_first << 1);
-    bool following_bytes_same =
-        0 == std::memcmp(reinterpret_cast<const char *>(&left) + 1, reinterpret_cast<const char *>(&right) + 1,
-                         sizeof(left.size_) + PrefixSize() - 1);
-    if (first_byte_same && following_bytes_same) {
-      // Prefix and length are equal.
+    const bool size_and_prefix_same =
+        (left_size_prefix & remove_reclaim_bit_mask) == (right_size_prefix & remove_reclaim_bit_mask);
+
+    if (size_and_prefix_same) {
+      // Check if we even need to look any further
+      if (left.Size() <= PrefixSize()) {
+        // we looked at everything we need to
+        return EqualityCheck;
+      }
+      // compare more bytes
       if (left.IsInlined()) {
-        if (std::memcmp(left.prefix_, right.prefix_, PrefixSize()) == 0) {
-          return EqualityCheck ? true : false;
+        // inspect the remaining inlined bytes
+        if (std::memcmp(&left.content_, &right.content_, left.Size() - PrefixSize()) == 0) {
+          return EqualityCheck;
         }
       } else {
-        if (std::memcmp(left.content_, right.content_, left.Size()) == 0) {
-          return EqualityCheck ? true : false;
+        // inspect the remaining non-inlined bytes, skipping prefix-size bytes since those are duplicated at the start
+        // of content
+        TERRIER_ASSERT(std::memcmp(left.content_, &left.prefix_, PrefixSize()) == 0,
+                       "The prefix should be at the beginning of the non-inlined content again. We assert this since "
+                       "we're about to skip it on the real comparison.");
+        TERRIER_ASSERT(std::memcmp(right.content_, &right.prefix_, PrefixSize()) == 0,
+                       "The prefix should be at the beginning of the non-inlined content again. We assert this since "
+                       "we're about to skip it on the real comparison.");
+        if (std::memcmp(left.content_ + PrefixSize(), right.content_ + PrefixSize(), left.Size() - PrefixSize()) == 0) {
+          return EqualityCheck;
         }
       }
     }
     // Not equal.
-    return EqualityCheck ? false : true;
+    return !EqualityCheck;
   }
 
   /**

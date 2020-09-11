@@ -1,13 +1,13 @@
-#include <brain/brain_util.h>
-
-#include <execution/util/execution_common.h>
+#include "brain/brain_util.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::brain {
 
 std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
+  // NOTE: Before adding any extra case to this switch statement,
+  // please ensure that the output type is actually supported
+  // by the mini-runner infrastructure.
   switch (f) {
-    case ExecutionOperatingUnitType::INVALID:
-      return "INVALID";
     case ExecutionOperatingUnitType::AGGREGATE_BUILD:
       return "AGG_BUILD";
     case ExecutionOperatingUnitType::AGGREGATE_ITERATE:
@@ -54,6 +54,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "OUTPUT";
     case ExecutionOperatingUnitType::LIMIT:
       return "LIMIT";
+    case ExecutionOperatingUnitType::CREATE_INDEX:
+      return "CREATE_INDEX";
     default:
       UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
       break;

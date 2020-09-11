@@ -36,6 +36,25 @@ namespace terrier::optimizer {
 struct IdxJoinTest : public TerrierTest {
   const uint64_t optimizer_timeout_ = 1000000;
 
+  void CompileAndRun(std::unique_ptr<planner::AbstractPlanNode> *plan, network::Statement *stmt) {
+    network::WriteQueue queue;
+    auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
+    auto portal = network::Portal(common::ManagedPointer(stmt));
+    stmt->SetPhysicalPlan(std::move(*plan));
+    auto result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
+                                             common::ManagedPointer(&portal));
+    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
+    result = tcop_->RunExecutableQuery(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
+                                       common::ManagedPointer(&portal));
+    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+  }
+
+  void ExecuteCreate(std::unique_ptr<planner::AbstractPlanNode> *plan, network::QueryType qtype) {
+    auto result =
+        tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(*plan), qtype);
+    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+  }
+
   void ExecuteSQL(std::string sql, network::QueryType qtype) {
     std::vector<parser::ConstantValueExpression> params;
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
@@ -46,20 +65,13 @@ struct IdxJoinTest : public TerrierTest {
     TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
     auto plan = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult());
-    if (qtype >= network::QueryType::QUERY_CREATE_TABLE) {
-      result = tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(plan), qtype);
-      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+    if (qtype >= network::QueryType::QUERY_CREATE_TABLE && qtype != network::QueryType::QUERY_CREATE_INDEX) {
+      ExecuteCreate(&plan, qtype);
+    } else if (qtype == network::QueryType::QUERY_CREATE_INDEX) {
+      ExecuteCreate(&plan, qtype);
+      CompileAndRun(&plan, &stmt);
     } else {
-      network::WriteQueue queue;
-      auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
-      auto portal = network::Portal(common::ManagedPointer(&stmt));
-      stmt.SetPhysicalPlan(std::move(plan));
-      result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
-                                          common::ManagedPointer(&portal));
-      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
-      result = tcop_->RunExecutableQuery(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
-                                         common::ManagedPointer(&portal));
-      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+      CompileAndRun(&plan, &stmt);
     }
 
     tcop_->EndTransaction(common::ManagedPointer(&context_), network::QueryType::QUERY_COMMIT);
@@ -212,7 +224,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   for (auto &feature : pipe0_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT:
+      case brain::ExecutionOperatingUnitType::SORT_ITERATE:
         build_feature = true;
         break;
       default:
@@ -226,7 +238,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
   for (auto &feature : pipe1_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT:
+      case brain::ExecutionOperatingUnitType::SORT_BUILD:
         iterate_feature = true;
         break;
       case brain::ExecutionOperatingUnitType::SEQ_SCAN:
