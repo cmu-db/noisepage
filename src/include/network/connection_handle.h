@@ -31,17 +31,15 @@
 namespace terrier::network {
 
 /**
- * A ConnectionHandle encapsulates all information we need to do IO about
- * a client connection for its entire duration. This includes a state machine
- * and the necessary libevent infrastructure for a handler to work on this
- * connection.
+ * ConnectionHandle encapsulates IO-related information throughout the lifetime of a client connection.
  *
- * State not related to the network state machine probably doesn't belong here, but rather in the ConnectionContext.
+ * @warning Don't add state to this class unless it involves the state machine. Instead, consider ConnectionContext.
  */
 class ConnectionHandle {
  public:
   /**
-   * Constructs a new ConnectionHandle
+   * @brief Construct a new ConnectionHandle.
+   *
    * @param sock_fd Client's connection fd
    * @param handler The handler responsible for this handle
    * @param tcop The pointer to the traffic cop
@@ -58,16 +56,17 @@ class ConnectionHandle {
     context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
   }
 
+  /** Reset this connection handle. */
   ~ConnectionHandle() { context_.Reset(); }
 
-  /**
-   * Disable copying and moving ConnectionHandle instances
-   */
+  /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(ConnectionHandle);
 
   /**
    * @brief Signal to libevent that this ConnectionHandle is ready to handle
    * events
+   *
+   * TODO(WAN): libevent is impl detail, don't talk about it
    *
    * This method needs to be called separately after initialization for the
    * connection handle to do anything. The reason why this is not performed in
@@ -197,45 +196,36 @@ class ConnectionHandle {
    */
   class StateMachine {
    public:
-    using action = Transition (*)(const common::ManagedPointer<ConnectionHandle>);
-    using transition_result = std::pair<ConnState, action>;
-    /**
-     * Runs the internal state machine, starting from the symbol given, until no
-     * more
-     * symbols are available.
-     *
-     * Each state of the state machine defines a map from a transition symbol to
-     * an action
-     * and the next state it should go to. The actions can either generate the
-     * next symbol,
-     * which means the state machine will continue to run on the generated
-     * symbol, or signal
-     * that there is no more symbols that can be generated, at which point the
-     * state machine
-     * will stop running and return, waiting for an external event (user
-     * interaction, or system event)
-     * to generate the next symbol.
-     *
-     * @param action starting symbol
-     * @param connection the network connection object to apply actions to
-     */
-    void Accept(Transition action, common::ManagedPointer<ConnectionHandle> connection);
+    using Action = Transition (*)(const common::ManagedPointer<ConnectionHandle>);
+    using TransitionResult = std::pair<ConnState, Action>;
 
+    /**
+     * @brief Run the state machine on @p action until a halting state is reached.
+     *
+     * @param action The starting action to be taken by the state machine.
+     * @param handle The connection handle that state machine actions should be applied to.
+     */
+    void Accept(Transition action, common::ManagedPointer<ConnectionHandle> handle);
+
+    /** @return The current state of the state machine. */
     ConnState CurrentState() const { return current_state_; }
 
    private:
     /**
-     * delta is the transition function that defines, for each state, its
-     * behavior and the
-     * next state it should go to.
+     * Delta is a standard state machine transition function (ConnState x Transition -> TransitionResult).
+     * Equivalently, (Old state x Transition -> New state x Action to be taken).
      */
-    static transition_result Delta(ConnState state, Transition transition);
+    static TransitionResult Delta(ConnState state, Transition transition);
+
+    /** The StateMachine starts in the READ state. */
     ConnState current_state_ = ConnState::READ;
   };
 
-  friend class ConnectionHandleHelper;
-  friend class StateMachine;
   friend class ConnectionHandleFactory;
+  friend class ConnectionHandleStateMachineTransition;
+  friend class StateMachine;
+
+  // See class header warning; don't add state here unless required for the StateMachine.
 
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
   common::ManagedPointer<ConnectionHandlerTask> conn_handler_;
@@ -243,7 +233,8 @@ class ConnectionHandle {
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
 
   StateMachine state_machine_{};
-  struct event *network_event_ = nullptr, *workpool_event_ = nullptr;
+  struct event *network_event_ = nullptr;
+  struct event *workpool_event_ = nullptr;
 
   // TODO(Tianyu): Do we want to flatten this struct out into connection handle, or is this current separation
   // sensible?

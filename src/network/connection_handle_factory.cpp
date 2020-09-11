@@ -1,6 +1,8 @@
 #include "network/connection_handle_factory.h"
+
 #include <memory>
 #include <utility>
+
 #include "common/macros.h"
 #include "network/connection_handle.h"
 #include "network/connection_handler_task.h"
@@ -16,7 +18,7 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
     it = reusable_handles_.find(conn_fd);
     if (it == reusable_handles_.end()) {
       auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));
-      TERRIER_ASSERT(ret.second, "ret.second false");
+      TERRIER_ASSERT(ret.second, "ret.second false");  // TODO(WAN): no fucking shit its false how is that helpful
       return ret.first->second;
     }
   }

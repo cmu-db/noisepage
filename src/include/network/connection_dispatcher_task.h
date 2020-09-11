@@ -20,8 +20,9 @@ class ProtocolInterpreterProvider;
 /**
  * @brief ConnectionDispatcherTask dispatches incoming connections to a pool of handler threads.
  *
- * On RunTask(), the dispatcher registers a number of handlers with the dedicated thread registry.
- * The registered handlers will shut down during Terminate() of this task.
+ * Task life-cycle:
+ * - RunTask() : This task registers all of its ConnectionHandlerTask instances with the DedicatedThreadRegistry.
+ * - Terminate() : This task stops and removes all its ConnectionHandlerTask instances from the DedicatedThreadRegistry.
  *
  * ConnectionDispatcherTask is almost a pseudo-owner of the
  * ConnectionHandlerTask objects, but since we can't be both a DedicatedThreadTask/NotifiableTask and
@@ -71,7 +72,6 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   void Terminate() override;
 
  private:
-
   /** @return The offset in handlers_ of the next handler to dispatch to. This function mutates internal state. */
   uint64_t NextDispatchHandlerOffset();
 

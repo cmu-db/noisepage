@@ -27,6 +27,9 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       next_handler_(0) {
   TERRIER_ASSERT(num_handlers_ > 0, "No workers that connections can be dispatched to.");
 
+  // The libevent callback functions are defined here.
+  // Note that libevent callback functions must have type (int fd, int16_t flags, void *arg) -> void.
+
   // This callback dispatches client connections at fd to a handler. This uses the dispatcher's protocol interpreter.
   event_callback_fn connection_dispatcher_fn = [](int fd, int16_t flags, void *arg) {
     auto *dispatcher = static_cast<ConnectionDispatcherTask *>(arg);
@@ -36,6 +39,8 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
   event_callback_fn loop_exit_fn = [](int fd, int16_t flags, void *arg) {
     static_cast<NotifiableTask *>(arg)->ExitLoop(fd, flags);
   };
+
+  // Specific events are then associated with their respective libevent callback functions.
 
   // Dispatch a new connection every time the file descriptor becomes readable again.
   //   EV_READ : Wait until the file descriptor becomes readable.

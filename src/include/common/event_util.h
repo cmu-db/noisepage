@@ -35,6 +35,9 @@ class EventUtil {
   }
 
  public:
+  /** WAIT_FOREVER can be supplied as a timeout value to indicate that the event should not timeout. */
+  static constexpr const struct timeval *EVENT_ADD_WAIT_FOREVER = nullptr;
+
   EventUtil() = delete;
 
   /**
