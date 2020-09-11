@@ -213,6 +213,7 @@ class CodeGen {
   /** @return An expression representing "arr[idx]". */
   ast::Expr *ArrayAccess(ast::Identifier arr, uint64_t idx);
 
+  /** @return An expression representing "arr[idx]". */
   ast::Expr *ArrayAccess(ast::Expr *arr, uint64_t idx);
 
   /**

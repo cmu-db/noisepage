@@ -12,7 +12,6 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
-#include "execution/sql/storage_interface.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
@@ -145,8 +144,8 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   limited_arena.execute(
       [&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn, is_static_partitioned] {
-        is_static_partitioned ?
-                              tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn),
+        is_static_partitioned
+            ? tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn),
                                 tbb::static_partitioner())
             : tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
       });
@@ -159,5 +158,4 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   return true;
 }
-
 }  // namespace terrier::execution::sql

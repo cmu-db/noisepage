@@ -98,7 +98,7 @@ class EXPORT StorageInterface {
   /**
    * Insert into the current index given a tuple
    * @param table_tuple_slot tuple slot
-   * @param unique uniqueness of the insertion
+   * @param unique if this insertion is unique
    * @return Whether insertion was successful.
    */
   bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
@@ -154,6 +154,7 @@ class EXPORT StorageInterface {
    * Reusable ProjectedRowInitializer for this table access
    */
   storage::ProjectedRowInitializer pri_;
+
   /**
    * Current index being accessed.
    */

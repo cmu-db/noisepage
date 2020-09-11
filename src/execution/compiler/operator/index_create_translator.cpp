@@ -72,8 +72,6 @@ void IndexCreateTranslator::InitializeQueryState(FunctionBuilder *function) cons
   SetGlobalOids(function, global_col_oids_.Get(codegen_));
 }
 
-void IndexCreateTranslator::TearDownQueryState(FunctionBuilder *function) const {}
-
 void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
   DeclareIndexPR(function);

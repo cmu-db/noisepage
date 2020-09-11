@@ -39,26 +39,24 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   DISALLOW_COPY_AND_MOVE(IndexCreateTranslator);
 
   /**
-   * Initialize the global storage interface.
+   * Initialize the global col_oids array.
    */
   void InitializeQueryState(FunctionBuilder *function) const override;
 
   /**
-   * Tear-down the global storage interface.
+   * Nothing to tear down.
    */
-  void TearDownQueryState(FunctionBuilder *function) const override;
+  void TearDownQueryState(FunctionBuilder *function) const override { UNREACHABLE("Nothing to tear down"); };
 
   /**
-   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
-   * need to initialize the thread-local join hash table we've declared.
+   * Initilize a thread local storage interface and index pr, work for both serial and parallel
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
-   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
-   * need to clean up and destroy the thread-local join hash table we've declared.
+   * clean up the storage interface, where destructor of index pr also gets called
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
@@ -71,32 +69,28 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  /**
-   * @return The child's output at the given index.
-   */
+  /** @return This translator doesn't have a child */
   ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override {
     UNREACHABLE("index create doesn't have child");
   };
 
-  /**
-   * @return An expression representing the value of the column with the given OID.
-   */
+  /** @return Not implemented */
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Not implemented"); };
 
-  /** @return Throw an error, this is serial for now. */
+  /** @return a collection of parameters for the scan function */
   util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override;
 
-  /** @return Throw an error, this is serial for now. */
+  /** Launch work for parallel execution */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;
 
  private:
-  void InitializeStorageInterface(FunctionBuilder *function, ast::Expr *storage_interface_ptr) const;
-
-  void TearDownStorageInterface(FunctionBuilder *function, ast::Expr *storage_interface_ptr) const;
-
+  // Initialization for serial and parallel
   void SetGlobalOids(FunctionBuilder *function, ast::Expr *global_col_oids) const;
-
+  void InitializeStorageInterface(FunctionBuilder *function, ast::Expr *storage_interface_ptr) const;
+  void TearDownStorageInterface(FunctionBuilder *function, ast::Expr *storage_interface_ptr) const;
   void DeclareIndexPR(FunctionBuilder *function) const;
+
+  // Initialization for serial only
   void DeclareTVI(FunctionBuilder *function) const;
 
   // Perform a table scan using the provided table vector iterator pointer.

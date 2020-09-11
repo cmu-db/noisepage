@@ -2401,20 +2401,17 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       if (!CheckArgCount(call, 3)) {
         return;
       }
-
       // Second argument is a tuple slot
       auto tuple_slot_type = ast::BuiltinType::TupleSlot;
       if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
-
       // Third argument is an bool
       if (!call_args[2]->GetType()->IsBoolType()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Bool));
         return;
       }
-
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
     }
