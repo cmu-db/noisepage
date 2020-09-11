@@ -107,6 +107,6 @@ struct Constants {
   /**
    * Flag indicating if counters is enabled
    */
-  static constexpr const bool IS_COUNTERS_ENABLED = true;
+  static constexpr const bool IS_COUNTERS_ENABLED = false;
 };
 }  // namespace terrier::common

@@ -106,7 +106,11 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
     }
   }
 
-  TERRIER_ASSERT(found_blocking, "Pipeline should have 1 blocking");
+  if (!found_blocking) {
+    TERRIER_ASSERT(false, "Pipeline should have 1 blocking");
+    return;
+  }
+
   switch (feature.GetExecutionOperatingUnitType()) {
     case brain::ExecutionOperatingUnitType::HASHJOIN_BUILD:
       ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN, feature);
