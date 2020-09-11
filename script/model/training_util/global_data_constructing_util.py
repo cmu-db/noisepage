@@ -264,7 +264,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
                 # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
                 # slightly inaccurate since ignores load factors for hash tables
-                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][-3] + buffer_size
+                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][data_info.RECORD_MEM_SCALE_OFFSET] + buffer_size
 
                 # Don't modify prediction cache
                 y_pred = copy.deepcopy(y_pred)

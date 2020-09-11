@@ -9,6 +9,10 @@
 #include "execution/exec_defs.h"
 #include "execution/util/execution_common.h"
 
+namespace terrier::runner {
+class MiniRunners;
+}  // namespace terrier::runner
+
 namespace terrier::execution::compiler::test {
 class CompilerTest_SimpleSeqScanTest_Test;
 class CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
@@ -70,6 +74,7 @@ class OperatingUnitRecorder;
  * - Estimated cardinality
  */
 class ExecutionOperatingUnitFeature {
+  friend class terrier::runner::MiniRunners;
   friend class execution::exec::ExecutionContext;
   friend class OperatingUnitRecorder;
   friend class ExecOUFeatureVector;
@@ -308,6 +313,7 @@ class PipelineOperatingUnits {
   friend class terrier::execution::compiler::test::CompilerTest_InsertIntoSelectWithParamTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertWithParamsTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_StaticDistinctAggregateTest_Test;
+  friend class terrier::runner::MiniRunners;
 
   /**
    * Constructor

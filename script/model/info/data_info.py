@@ -65,6 +65,9 @@ RAW_CPU_TIME_INDEX = 12
 # End index of model input feature vector
 RECORD_FEATURES_END = 8
 
+# Memory Scaling factor location in feature
+RECORD_MEM_SCALE_OFFSET = -4
+
 # Start index of metrics
 RECORD_METRICS_START = MINI_MODEL_TARGET_NUM
 

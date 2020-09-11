@@ -869,10 +869,11 @@ class MiniRunners : public benchmark::Fixture {
     return settings;
   }
 
-  static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads) {
+  static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads, bool counters) {
     execution::exec::ExecutionSettings settings;
     settings.is_parallel_execution_enabled_ = (num_threads != 0);
     settings.num_create_index_threads_ = num_threads;
+    settings.is_counters_enabled_ = counters;
     return settings;
   }
 
@@ -926,6 +927,22 @@ class MiniRunners : public benchmark::Fixture {
     execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                        execution::compiler::CompilationMode::OneShot);
+
+    // Since we don't have duplicate features in a pipeline, this works
+    // to override the feature_ids so counters can work.
+    auto pipeline = exec_query->GetPipelineOperatingUnits();
+    for (auto &info : pipeline_units->units_) {
+      auto other_feature = pipeline->units_[info.first];
+      for (auto &oufeature : info.second) {
+        for (auto other_oufeature : other_feature) {
+          if (oufeature.GetExecutionOperatingUnitType() == other_oufeature.GetExecutionOperatingUnitType()) {
+            oufeature.feature_id_ = other_oufeature.feature_id_;
+            break;
+          }
+        }
+      }
+    }
+
     exec_query->SetPipelineOperatingUnits(std::move(pipeline_units));
 
     auto ret_val = std::make_pair(std::move(exec_query), out_plan->GetOutputSchema()->Copy());
@@ -2146,7 +2163,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
     return;
   }
 
-  auto settings = GetParallelExecutionSettings(num_threads);
+  auto settings = GetParallelExecutionSettings(num_threads, true);
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
   auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
