@@ -52,7 +52,7 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
 
 void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,
                                                        ast::Expr *storage_interface_ptr) const {
-  // @storageInterfaceInit(global_storage_interface, execCtx, table_oid, col_oids_var_, false)
+  // @storageInterfaceInit(&local_storage_interface, execCtx, table_oid, global_col_oids, false)
   ast::Expr *table_oid_expr = codegen_->Const64(static_cast<int64_t>(table_oid_.UnderlyingValue()));
   ast::Expr *col_oids_expr = global_col_oids_.Get(codegen_);
   ast::Expr *need_indexes_expr = codegen_->ConstBool(false);
@@ -65,15 +65,17 @@ void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function
 
 void IndexCreateTranslator::TearDownStorageInterface(FunctionBuilder *function,
                                                      ast::Expr *storage_interface_ptr) const {
-  // Call @storageInterfaceFree
+  // Call @storageInterfaceFree(&local_storage_interface)
   function->Append(codegen_->CallBuiltin(ast::Builtin::StorageInterfaceFree, {storage_interface_ptr}));
 }
 
 void IndexCreateTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  // Set up global col oid array
   SetGlobalOids(function, global_col_oids_.Get(codegen_));
 }
 
 void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  // Thread local member
   InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
   DeclareIndexPR(function);
 }
@@ -83,6 +85,7 @@ void IndexCreateTranslator::TearDownPipelineState(const Pipeline &pipeline, Func
 }
 
 util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() const {
+  // Parameters for the scanner
   auto *tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
   return codegen_->MakeFieldList({codegen_->MakeField(tvi_var_, tvi_type)});
 }
@@ -130,7 +133,7 @@ void IndexCreateTranslator::SetGlobalOids(FunctionBuilder *function, ast::Expr *
 }
 
 void IndexCreateTranslator::DeclareIndexPR(FunctionBuilder *function) const {
-  // var local_index_pr = @getIndexPR(local_storage_interface, oid)
+  // var local_index_pr = @getIndexPR(&local_storage_interface, index_oid)
   std::vector<ast::Expr *> pr_call_args{local_storage_interface_.GetPtr(codegen_),
                                         codegen_->Const32(index_oid_.UnderlyingValue())};
   auto get_index_pr_call = codegen_->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
@@ -144,7 +147,7 @@ void IndexCreateTranslator::DeclareTVI(FunctionBuilder *function) const {
   auto tvi_base = codegen->MakeFreshIdentifier("tviBase");
   function->Append(codegen->DeclareVarNoInit(tvi_base, ast::BuiltinType::TableVectorIterator));
   function->Append(codegen->DeclareVarWithInit(tvi_var_, codegen->AddressOf(tvi_base)));
-  // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
+  // @tableIterInit(tvi, exec_ctx, table_oid, global_col_oids)
   ast::Expr *table_iter_init = codegen_->CallBuiltin(
       ast::Builtin::TableIterInit, {codegen->MakeExpr(tvi_var_), GetExecutionContext(),
                                     codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_)});
@@ -167,10 +170,7 @@ void IndexCreateTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *functio
     // var vpi = @tableIterGetVPI(tvi)
     auto vpi = codegen_->MakeExpr(vpi_var_);
     function->Append(codegen_->DeclareVarWithInit(vpi_var_, codegen_->TableIterGetVPI(codegen_->MakeExpr(tvi_var_))));
-
-    if (!ctx->GetPipeline().IsVectorized()) {
-      ScanVPI(ctx, function, vpi);
-    }
+    ScanVPI(ctx, function, vpi);
   }
   tvi_loop.EndLoop();
 }
@@ -226,7 +226,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
     function->Append(codegen_->MakeStmt(set_key_call));
   }
 
-  // if (!@IndexInsertWithSlot(storage_interface, &local_tuple_slot_, unique)) { Abort(); }
+  // if (!@IndexInsertWithSlot(&local_storage_interface, &local_tuple_slot, unique)) { Abort(); }
   auto *index_insert_call = codegen_->CallBuiltin(
       ast::Builtin::IndexInsertWithSlot, {local_storage_interface_.GetPtr(codegen_), local_tuple_slot_.GetPtr(codegen_),
                                           codegen_->ConstBool(index_schema.Unique())});
