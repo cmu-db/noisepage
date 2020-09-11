@@ -1,6 +1,7 @@
 #include "execution/compiler/operator/index_create_translator.h"
 
 #include "catalog/catalog_accessor.h"
+#include "execution/ast/context.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -33,7 +34,7 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   for (const auto &index_col : index_schema.GetColumns()) {
     compilation_context->Prepare(*index_col.StoredExpression());
   }
-  pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
   // col_oids is a global array
   ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
   global_col_oids_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen_, "global_col_oids", arr_type);
@@ -87,8 +88,11 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  function->Append(codegen_->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
-                                                  GetExecutionContext(), work_func));
+  ast::Expr *iter_table_parallel = codegen_->CallBuiltin(
+      ast::Builtin::TableIterParallel, {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_),
+                                        GetQueryStatePtr(), GetExecutionContext(), codegen_->MakeExpr(work_func)});
+  iter_table_parallel->SetType(ast::BuiltinType::Get(codegen_->GetAstContext().Get(), ast::BuiltinType::Nil));
+  function->Append(iter_table_parallel);
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -116,9 +120,10 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
 }
 
 void IndexCreateTranslator::SetGlobalOids(FunctionBuilder *function, ast::Expr *global_col_oids) const {
-  for (uint16_t i = 0; i < all_oids_.size(); i++) {
+  for (uint64_t i = 0; i < all_oids_.size(); i++) {
     // col_oids_var_[i] = col_oid
-    ast::Expr *lhs = codegen_->ArrayAccess(global_col_oids, i);
+    ast::Expr *lhs = codegen_->GetAstContext()->GetNodeFactory()->NewIndexExpr(codegen_->GetPosition(), global_col_oids,
+                                                                               codegen_->Const64(i));
     ast::Expr *rhs = codegen_->Const32(all_oids_[i].UnderlyingValue());
     function->Append(codegen_->Assign(lhs, rhs));
   }
@@ -140,9 +145,11 @@ void IndexCreateTranslator::DeclareTVI(FunctionBuilder *function) const {
   function->Append(codegen->DeclareVarNoInit(tvi_base, ast::BuiltinType::TableVectorIterator));
   function->Append(codegen->DeclareVarWithInit(tvi_var_, codegen->AddressOf(tvi_base)));
   // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
-  function->Append(codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(),
-                                          GetPlanAs<planner::CreateIndexPlanNode>().GetTableOid(),
-                                          global_col_oids_.Get(codegen_)));
+  ast::Expr *table_iter_init = codegen_->CallBuiltin(
+      ast::Builtin::TableIterInit, {codegen->MakeExpr(tvi_var_), GetExecutionContext(),
+                                    codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_)});
+  table_iter_init->SetType(ast::BuiltinType::Get(codegen_->GetAstContext().Get(), ast::BuiltinType::Nil));
+  function->Append(table_iter_init);
 }
 
 std::vector<catalog::col_oid_t> IndexCreateTranslator::AllColOids(const catalog::Schema &table_schema) const {

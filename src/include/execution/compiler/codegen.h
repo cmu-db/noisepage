@@ -213,9 +213,6 @@ class CodeGen {
   /** @return An expression representing "arr[idx]". */
   ast::Expr *ArrayAccess(ast::Identifier arr, uint64_t idx);
 
-  /** @return An expression representing "arr[idx]". */
-  ast::Expr *ArrayAccess(ast::Expr *arr, uint64_t idx);
-
   /**
    * Convert a SQL type into a type representation expression.
    * @param type The SQL type.
@@ -547,7 +544,7 @@ class CodeGen {
    * @return The call expression.
    */
   [[nodiscard]] ast::Expr *TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, catalog::table_oid_t table_oid,
-                                         ast::Expr *col_oids);
+                                         ast::Identifier col_oids);
 
   /**
    * Call \@tableIterAdvance(). Attempt to advance the iterator, returning true if successful and
@@ -582,7 +579,7 @@ class CodeGen {
    * @param worker_name The work function name.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
+  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
                                                 ast::Identifier worker_name);
 

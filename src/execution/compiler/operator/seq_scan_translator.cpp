@@ -274,8 +274,8 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
     // Declare the col_oids variable.
     DeclareColOids(function);
     // @tableIterInit(tvi, exec_ctx, table_oid, col_oids)
-    function->Append(codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(),
-                                            codegen->MakeExpr(col_oids_var_)));
+    function->Append(
+        codegen->TableIterInit(codegen->MakeExpr(tvi_var_), GetExecutionContext(), GetTableOid(), col_oids_var_));
   }
 
   auto declare_slot = codegen->DeclareVarNoInit(slot_var_, ast::BuiltinType::TupleSlot);
@@ -298,8 +298,8 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const 
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   DeclareColOids(function);
-  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), GetCodeGen()->MakeExpr(col_oids_var_),
-                                                      GetQueryStatePtr(), GetExecutionContext(), work_func));
+  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oids_var_, GetQueryStatePtr(),
+                                                      GetExecutionContext(), work_func));
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

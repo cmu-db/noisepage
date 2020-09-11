@@ -177,10 +177,6 @@ ast::Expr *CodeGen::ArrayAccess(ast::Identifier arr, uint64_t idx) {
   return GetFactory()->NewIndexExpr(position_, MakeExpr(arr), Const64(idx));
 }
 
-ast::Expr *CodeGen::ArrayAccess(ast::Expr *arr, uint64_t idx) {
-  return GetFactory()->NewIndexExpr(position_, arr, Const64(idx));
-}
-
 ast::Expr *CodeGen::TplType(sql::TypeId type) {
   switch (type) {
     case sql::TypeId::Boolean:
@@ -531,9 +527,9 @@ ast::Expr *CodeGen::PRSet(ast::Expr *pr, type::TypeId type, bool nullable, uint3
 catalog::CatalogAccessor *CodeGen::GetCatalogAccessor() const { return accessor_; }
 
 ast::Expr *CodeGen::TableIterInit(ast::Expr *table_iter, ast::Expr *exec_ctx, catalog::table_oid_t table_oid,
-                                  ast::Expr *col_oids) {
-  ast::Expr *call =
-      CallBuiltin(ast::Builtin::TableIterInit, {table_iter, exec_ctx, Const32(table_oid.UnderlyingValue()), col_oids});
+                                  ast::Identifier col_oids) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::TableIterInit,
+                                {table_iter, exec_ctx, Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -556,10 +552,11 @@ ast::Expr *CodeGen::TableIterClose(ast::Expr *table_iter) {
   return call;
 }
 
-ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids, ast::Expr *query_state,
-                                         ast::Expr *exec_ctx, ast::Identifier worker_name) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::TableIterParallel, {Const32(table_oid.UnderlyingValue()), col_oids,
-                                                                  query_state, exec_ctx, MakeExpr(worker_name)});
+ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
+                                         ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name) {
+  ast::Expr *call = CallBuiltin(
+      ast::Builtin::TableIterParallel,
+      {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx, MakeExpr(worker_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
