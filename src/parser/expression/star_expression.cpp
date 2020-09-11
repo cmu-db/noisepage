@@ -1,4 +1,5 @@
 #include "parser/expression/star_expression.h"
+
 #include "common/json.h"
 
 namespace terrier::parser {

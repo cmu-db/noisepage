@@ -1,6 +1,8 @@
 #include "storage/access_observer.h"
+
 #include <random>
 #include <thread>  // NOLINT
+
 #include "storage/block_compactor.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"

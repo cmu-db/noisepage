@@ -1,4 +1,3 @@
-#include <common/macros.h>
 #include <gflags/gflags.h>
 
 #include <cstdio>
@@ -12,6 +11,7 @@
 #include "binder/bind_node_visitor.h"
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
+#include "common/macros.h"
 #include "common/scoped_timer.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"

@@ -1,4 +1,5 @@
 #include "execution/exec_defs.h"
+
 #include "common/strong_typedef_body.h"
 
 namespace terrier::execution {

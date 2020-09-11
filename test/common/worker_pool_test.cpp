@@ -1,8 +1,9 @@
+#include "common/worker_pool.h"
+
 #include <atomic>
 #include <thread>  // NOLINT
 #include <vector>
 
-#include "common/worker_pool.h"
 #include "gtest/gtest.h"
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
