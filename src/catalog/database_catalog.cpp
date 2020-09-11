@@ -2201,7 +2201,7 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext("concat", type::TypeId::VARCHAR,
-                                                           {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
+                                                           {type::TypeId::VARIADIC, type::TypeId::VARIADIC},
                                                            execution::ast::Builtin::Concat, true);
   SetProcCtxPtr(txn, postgres::CONCAT_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
@@ -3020,17 +3020,6 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
 
   delete[] buffer;
   return ret;
-}
-
-proc_oid_t DatabaseCatalog::ProcessIndexResults(std::vector<storage::TupleSlot> results, byte *const buffer,
-                                                common::ManagedPointer<transaction::TransactionContext> txn) {
-  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
-
-  auto found_slot = results[0];
-
-  auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-  bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, found_slot, table_pr);
-  return *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(

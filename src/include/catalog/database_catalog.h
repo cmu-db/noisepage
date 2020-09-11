@@ -359,16 +359,6 @@ class DatabaseCatalog {
                         const std::string &procname, const std::vector<type_oid_t> &all_arg_types);
 
   /**
-   * Helper functions to process the results of an index scan for proc oid
-   * @param results results of index scan
-   * @param buffer buffer used for index scan
-   * @param txn transaction to use
-   * @return the oid of the found proc
-   */
-  proc_oid_t ProcessIndexResults(std::vector<storage::TupleSlot> results, byte *const buffer,
-                                 common::ManagedPointer<transaction::TransactionContext> txn);
-
-  /**
    * Sets the proc context pointer column of proc_oid to func_context
    * @param txn transaction to use
    * @param proc_oid The proc_oid whose pointer column we are setting here
