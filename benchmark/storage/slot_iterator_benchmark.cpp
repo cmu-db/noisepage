@@ -55,14 +55,13 @@ class SlotIteratorBenchmark : public benchmark::Fixture {
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 
   // Workload
-  const uint32_t num_inserts_ = 10000000;
   const uint32_t num_reads_ = 10000000;
   const uint64_t buffer_pool_reuse_limit_ = 10000000;
 
   // Test infrastructure
   std::default_random_engine generator_;
   storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{num_inserts_, buffer_pool_reuse_limit_};
+  storage::RecordBufferSegmentPool buffer_pool_{num_reads_, buffer_pool_reuse_limit_};
 
   // Insert buffer pointers
   byte *redo_buffer_;
@@ -87,7 +86,6 @@ BENCHMARK_DEFINE_F(SlotIteratorBenchmark, ConcurrentSlotIterators)(benchmark::St
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
                                       common::ManagedPointer(&buffer_pool_), DISABLED);
-  std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_table.Insert(common::ManagedPointer(&txn), *redo_);
   }
@@ -120,12 +118,61 @@ BENCHMARK_DEFINE_F(SlotIteratorBenchmark, ConcurrentSlotIterators)(benchmark::St
   state.SetItemsProcessed(state.iterations() * num_reads_ * BenchmarkConfig::num_threads);
 }
 
+// Iterate the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(SlotIteratorBenchmark, ConcurrentSlotIteratorsReads)(benchmark::State &state) {
+  storage::DataTable read_table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout_,
+                                storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0),
+                                      common::ManagedPointer(&buffer_pool_), DISABLED);
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_table.Insert(common::ManagedPointer(&txn), *redo_);
+  }
+
+  std::vector<std::vector<storage::TupleSlot>> reads(BenchmarkConfig::num_threads);
+
+  for (auto &i : reads) i.resize(num_reads_);
+
+  auto workload = [&](const uint32_t worker_id) {
+    auto it = read_table.begin();
+    uint32_t num_reads = 0;
+    while (it != read_table.end()) {
+      reads[worker_id][num_reads++] = *it++;
+    }
+    EXPECT_EQ(num_reads, num_reads_);
+  };
+
+  common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
+  thread_pool.Startup();
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      for (uint32_t j = 0; j < BenchmarkConfig::num_threads; j++) {
+        thread_pool.SubmitTask([&workload, j] { workload(j); });
+      }
+      thread_pool.WaitUntilAllFinished();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+  state.SetItemsProcessed(state.iterations() * num_reads_ * BenchmarkConfig::num_threads);
+}
+
 // ----------------------------------------------------------------------------
 // BENCHMARK REGISTRATION
 // ----------------------------------------------------------------------------
 // clang-format off
 BENCHMARK_REGISTER_F(SlotIteratorBenchmark, ConcurrentSlotIterators)
-    ->Unit(benchmark::kMillisecond)
+->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+BENCHMARK_REGISTER_F(SlotIteratorBenchmark, ConcurrentSlotIteratorsReads)
+->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
 // clang-format on

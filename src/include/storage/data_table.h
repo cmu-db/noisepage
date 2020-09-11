@@ -49,24 +49,34 @@ class DataTable {
     /**
      * @return reference to the underlying tuple slot
      */
-    TupleSlot &operator*() {
-      UpdateCurrentSlot();
-      return current_slot_;
-    }
+    TupleSlot &operator*() { return current_slot_; }
 
     /**
      * @return pointer to the underlying tuple slot
      */
-    TupleSlot *operator->() {
-      UpdateCurrentSlot();
-      return &current_slot_;
-    }
+    TupleSlot *operator->() { return &current_slot_; }
 
     /**
      * pre-fix increment.
      * @return self-reference after the iterator is advanced
      */
-    SlotIterator &operator++();
+    SlotIterator &operator++() {
+      RawBlock *b = current_slot_.GetBlock();
+      slot_num_++;
+      if (LIKELY(slot_num_ < b->GetInsertHead())) {
+        current_slot_ = {b, slot_num_};
+      } else {
+        slot_num_ = 0;
+        block_index_++;
+        TERRIER_ASSERT(block_index_ <= end_index_, "block_index_ must always stay in range of table's size");
+        if (UNLIKELY(block_index_ == end_index_)) {
+          current_slot_ = {nullptr, 0};
+        } else {
+          UpdateFromNextBlock();
+        }
+      }
+      return *this;
+    }
 
     /**
      * post-fix increment.
@@ -85,13 +95,12 @@ class DataTable {
      */
     bool operator==(const SlotIterator &other) const {
       if (LIKELY(other.is_end_)) {
-        return i_ >= end_index_;
+        return block_index_ >= end_index_;
       }
       if (LIKELY(is_end_)) {
-        return other.i_ >= other.end_index_;
+        return other.block_index_ >= other.end_index_;
       }
-      TERRIER_ASSERT(table_ == other.table_, "should only compare SlotIterators on the same table");
-      return i_ == other.i_;
+      return current_slot_ == other.current_slot_;
     }
 
     /**
@@ -106,26 +115,27 @@ class DataTable {
 
     SlotIterator() : is_end_(true) {}
 
-    SlotIterator(const DataTable *table) : table_(table), i_(0), is_end_(false) {  // NOLINT
-      common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
-      uint64_t num_blocks = table_->blocks_.size();
-      TERRIER_ASSERT(num_blocks >= 1, "there should always be at least one block");
-      end_index_ = (num_blocks - 1) * table_->accessor_.GetBlockLayout().NumSlots() +
-                   static_cast<uint64_t>(table_->blocks_[num_blocks - 1]->GetInsertHead());
+    SlotIterator(const DataTable *table) : table_(table), block_index_(0), is_end_(false) {  // NOLINT
+      end_index_ = table_->blocks_size_;
+      TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+      UpdateFromNextBlock();
     }
 
-    void UpdateCurrentSlot() {
-      common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
-      auto max_slots = static_cast<uint64_t>(table_->accessor_.GetBlockLayout().NumSlots());
-      uint64_t block_num = i_ / max_slots;
-      RawBlock *b = const_cast<DataTable *>(table_)->blocks_[block_num];
-      current_slot_ = {b, static_cast<uint32_t>(i_ % max_slots)};
+    void UpdateFromNextBlock() {
+      TERRIER_ASSERT(table_->blocks_size_ >= 1, "there should always be at least one block");
+      RawBlock *b;
+      {
+        common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
+        b = const_cast<DataTable *>(table_)->blocks_[block_index_];
+      }
+      current_slot_ = {b, slot_num_};
     }
 
     static auto InvalidTupleSlot() -> TupleSlot { return {nullptr, 0}; }
     const DataTable *table_{};
-    uint64_t i_ = 0, end_index_ = 0;
+    uint64_t block_index_ = 0, end_index_ = 0;
     TupleSlot current_slot_;
+    uint32_t slot_num_ = 0;
     bool is_end_ = false;
   };
   /**
@@ -215,8 +225,8 @@ class DataTable {
   SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
     TERRIER_ASSERT(start <= end && end <= blocks_size_, "must have valid index for start and end");
     SlotIterator it(this);
-    it.end_index_ = std::min<uint64_t>(it.end_index_, end * accessor_.GetBlockLayout().NumSlots());
-    it.i_ = start * accessor_.GetBlockLayout().NumSlots();
+    it.end_index_ = std::min<uint64_t>(it.end_index_, end);
+    it.block_index_ = start;
     return it;
   }
 

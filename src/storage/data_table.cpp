@@ -75,11 +75,6 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->Reset(filled);
 }
 
-DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
-  ++i_;
-  return *this;
-}
-
 DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   return end_;
 }
