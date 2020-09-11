@@ -74,7 +74,7 @@ void TerrierServer::RegisterSocket() {
       }
 
       sun.sun_family = AF_UNIX;
-      std::strncpy(sun.sun_path, socket_path.c_str(), sizeof(sun.sun_path));
+      std::memcpy(sun.sun_path, socket_path.c_str(), sizeof(sun.sun_path));
 
       return sun;
     }
