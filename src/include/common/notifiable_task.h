@@ -125,7 +125,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param timeout Timeout if any for the event
    */
   void UpdateEvent(struct event *event, int fd, int16_t flags, event_callback_fn callback, void *arg,
-                   const struct timeval *timeout = nullptr) {
+                   const struct timeval *timeout) {
     TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
     EventUtil::EventDel(event);
     EventUtil::EventAssign(event, base_, fd, flags, callback, arg);

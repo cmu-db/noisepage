@@ -173,8 +173,6 @@ class ConnectionHandle {
   struct event *network_event_ = nullptr;
   struct event *workpool_event_ = nullptr;
 
-  // TODO(Tianyu): Do we want to flatten this struct out into connection handle, or is this current separation
-  // sensible?
   ConnectionContext context_;
 };
 }  // namespace terrier::network

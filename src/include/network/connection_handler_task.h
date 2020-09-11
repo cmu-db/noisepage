@@ -42,6 +42,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   void Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter);
 
+ private:
   /**
    * @brief Handles a new client assigned to this handler by the dispatcher.
    *
@@ -51,7 +52,6 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   void HandleDispatch();
 
- private:
   /**
    * Using this latch+deque instead of the Common::ConcurrentQueue as the overhead is not worth
    * for the common case where there is no contention

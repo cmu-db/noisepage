@@ -1,10 +1,10 @@
 #include "network/connection_handle.h"
 
 #include "loggers/network_logger.h"
-#include "network/network_io_wrapper.h"
-#include "network/connection_handler_task.h"
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle_factory.h"
+#include "network/connection_handler_task.h"
+#include "network/network_io_wrapper.h"
 
 namespace terrier::network {
 
@@ -143,6 +143,7 @@ ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<Connectio
       conn_handler_task_(handler),
       traffic_cop_(tcop),
       protocol_interpreter_(std::move(interpreter)) {
+  // TODO(WAN): wake up and figure out a better name for Callback
   context_.SetCallback(Callback, this);
   context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
 }
@@ -159,9 +160,6 @@ void ConnectionHandle::RegisterToReceiveEvents() {
       [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
 }
 
-/**
- * Handles a libevent event. This simply delegates to the state machine.
- */
 void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
   Transition t;
   if ((flags & EV_TIMEOUT) != 0) {
@@ -173,16 +171,8 @@ void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
   state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
 }
 
-/**
- * @brief Tries to read from the event port onto the read buffer
- * @return The transition to trigger in the state machine after
- */
 Transition ConnectionHandle::TryRead() { return io_wrapper_->FillReadBuffer(); }
 
-/**
- * @brief Flushes the write buffer to the client if needed
- * @return The transition to trigger in the state machine after
- */
 Transition ConnectionHandle::TryWrite() {
   if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
 
@@ -222,20 +212,22 @@ Transition ConnectionHandle::TryCloseConnection() {
 }
 
 void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
-  if ((flags & EV_TIMEOUT) != 0) {
-    struct timeval timeout;
-    struct timeval *timeout_str;
-    timeout_str = &timeout;
-    timeout.tv_usec = 0;
-    timeout.tv_sec = timeout_secs;
-    conn_handler_task_->UpdateEvent(
-        network_event_, io_wrapper_->GetSocketFd(), flags,
-        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this,
-        timeout_str);
+  // This callback function just calls HandleEvent().
+  event_callback_fn handle_event = [](int fd, int16_t flags, void *arg) {
+    static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags);
+  };
+
+  // Update the flags for the event, casing on whether a timeout value needs to be specified.
+  int conn_fd = io_wrapper_->GetSocketFd();
+  if ((flags & EV_TIMEOUT) == 0) {
+    // If there is no timeout specified, then the event will wait forever to be activated.
+    conn_handler_task_->UpdateEvent(network_event_, conn_fd, flags, handle_event, this, EventUtil::WAIT_FOREVER);
   } else {
-    conn_handler_task_->UpdateEvent(
-        network_event_, io_wrapper_->GetSocketFd(), flags,
-        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
+    // Otherwise if there is a timeout specified, then the event will fire once the timeout has passed.
+    struct timeval timeout {
+      timeout_secs, 0
+    };
+    conn_handler_task_->UpdateEvent(network_event_, conn_fd, flags, handle_event, this, &timeout);
   }
 }
 
