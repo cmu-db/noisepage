@@ -40,6 +40,7 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
     }
   }
 
+  // TODO(ricky): Make it work for parallel pipeline
   if (!distinct_filters_.empty()) {
     build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
   }

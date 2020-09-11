@@ -1,12 +1,17 @@
 #pragma once
-#include <execution/compiler/if.h>
 
 #include <vector>
 
 #include "execution/compiler/compilation_context.h"
+#include "execution/compiler/if.h"
 #include "execution/compiler/state_descriptor.h"
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+
+/* Forward Declare for optimized compilation */
+namespace terrier::planner {
+class AggregatePlanNode;
+}  // namespace terrier::planner
 
 namespace terrier::execution::compiler {
 
@@ -90,10 +95,7 @@ class DistinctAggregationFilter {
    * @param row KeyType struct
    * @return the aggregate value
    */
-  ast::Expr *GetAggregateValue(CodeGen *codegen, ast::Expr *row) const {
-    auto member = codegen->MakeIdentifier(AGG_VALUE_NAME);
-    return codegen->AccessStructMember(row, member);
-  }
+  ast::Expr *GetAggregateValue(CodeGen *codegen, ast::Expr *row) const;
 
   /**
    * Get the group by value from the payload
@@ -102,10 +104,7 @@ class DistinctAggregationFilter {
    * @param idx the index of the group by terms
    * @return the group by term
    */
-  ast::Expr *GetGroupByValue(CodeGen *codegen, ast::Expr *row, uint32_t idx) const {
-    auto member = codegen->MakeIdentifier(GROUPBY_VALUE_NAME + std::to_string(idx));
-    return codegen->AccessStructMember(row, member);
-  }
+  ast::Expr *GetGroupByValue(CodeGen *codegen, ast::Expr *row, uint32_t idx) const;
 
   /**
    * Compute the hash of a hashtable key
@@ -114,20 +113,7 @@ class DistinctAggregationFilter {
    * @param row A key to be inserted
    * @return
    */
-  ast::Identifier ComputeHash(CodeGen *codegen, FunctionBuilder *function, ast::Identifier row) const {
-    std::vector<ast::Expr *> keys;
-    // Hash the AGG value
-    keys.push_back(GetAggregateValue(codegen, codegen->MakeExpr(row)));
-
-    // Hash the GroupBy terms
-    for (uint32_t idx = 0; idx < num_group_by_; ++idx) {
-      keys.push_back(GetGroupByValue(codegen, codegen->MakeExpr(row), idx));
-    }
-
-    auto hash_val = codegen->MakeFreshIdentifier("hashVal");
-    function->Append(codegen->DeclareVarWithInit(hash_val, codegen->Hash(keys)));
-    return hash_val;
-  }
+  ast::Identifier ComputeHash(CodeGen *codegen, FunctionBuilder *function, ast::Identifier row) const;
 
   /**
    * Fill up the look up keys from aggregate values and group by values
@@ -138,22 +124,7 @@ class DistinctAggregationFilter {
    * @return the key to be inserted
    */
   ast::Identifier FillLookupKey(CodeGen *codegen, FunctionBuilder *function, ast::Expr *agg_val,
-                                const std::vector<ast::Expr *> &group_bys) const {
-    auto lookup_key = codegen->MakeFreshIdentifier("lookupKey");
-    function->Append(codegen->DeclareVarNoInit(lookup_key, codegen->MakeExpr(key_type_)));
-
-    // Fill in agg value
-    auto agg_lhs = GetAggregateValue(codegen, codegen->MakeExpr(lookup_key));
-    function->Append(codegen->Assign(agg_lhs, agg_val));
-
-    // Fill in Group bys
-    for (uint32_t idx = 0; idx < group_bys.size(); ++idx) {
-      auto grp_lhs = GetGroupByValue(codegen, codegen->MakeExpr(lookup_key), idx);
-      function->Append(codegen->Assign(grp_lhs, group_bys[idx]));
-    }
-
-    return lookup_key;
-  }
+                                const std::vector<ast::Expr *> &group_bys) const;
 
   /**
    * Assign a look up key struct into the payload (from the hashtable)
@@ -163,19 +134,7 @@ class DistinctAggregationFilter {
    * @param lookup_key Sources of the values
    */
   void AssignPayload(CodeGen *codegen, FunctionBuilder *function, ast::Identifier payload,
-                     ast::Identifier lookup_key) const {
-    // Assign Agg Value
-    auto agg_lhs = GetAggregateValue(codegen, codegen->MakeExpr(payload));
-    auto agg_rhs = GetAggregateValue(codegen, codegen->MakeExpr(lookup_key));
-    function->Append(codegen->Assign(agg_lhs, agg_rhs));
-
-    // Assign Group By Values
-    for (uint32_t idx = 0; idx < num_group_by_; ++idx) {
-      auto grp_lhs = GetGroupByValue(codegen, codegen->MakeExpr(payload), idx);
-      auto grp_rhs = GetGroupByValue(codegen, codegen->MakeExpr(lookup_key), idx);
-      function->Append(codegen->Assign(grp_lhs, grp_rhs));
-    }
-  }
+                     ast::Identifier lookup_key) const;
 
   // Hash table value type
   ast::Identifier key_type_;

@@ -172,7 +172,7 @@ class MaxAggregate {
       return;
     }
 
-    if (max_.is_null_) {  // Initial null value should not be larger than any string
+    if (max_.is_null_) {  // Initial null value should not be larger than any value
       max_.val_ = val.val_;
     } else {
       max_.val_ = std::max(val.val_, max_.val_);
@@ -188,7 +188,7 @@ class MaxAggregate {
       return;
     }
 
-    if (max_.is_null_) {  // Initial null value should not be larger than any string
+    if (max_.is_null_) {  // Initial null value should not be larger than any value
       max_.val_ = that.max_.val_;
     } else {
       max_.val_ = std::max(that.max_.val_, max_.val_);
