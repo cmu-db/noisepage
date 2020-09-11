@@ -7,6 +7,7 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "metrics/metrics_thread.h"
 #include "network/postgres/postgres_command_factory.h"
@@ -16,6 +17,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 

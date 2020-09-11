@@ -1,7 +1,8 @@
 #include "network/connection_handle.h"
 
-#include <memory>
-
+#include "loggers/network_logger.h"
+#include "network/network_io_wrapper.h"
+#include "network/connection_handler_task.h"
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle_factory.h"
 
@@ -106,7 +107,7 @@ class ConnectionHandleStateMachineTransition {
 };
 
 ConnectionHandle::StateMachine::TransitionResult ConnectionHandle::StateMachine::Delta(ConnState state,
-                                                                                        Transition transition) {
+                                                                                       Transition transition) {
   // clang-format off
   switch (state) {
     case ConnState::READ:      return ConnectionHandleStateMachineTransition::TransitionForRead(transition);
@@ -135,9 +136,68 @@ void ConnectionHandle::StateMachine::Accept(Transition action,
   }
 }
 
+ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
+                                   common::ManagedPointer<trafficcop::TrafficCop> tcop,
+                                   std::unique_ptr<ProtocolInterpreter> interpreter)
+    : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
+      conn_handler_task_(handler),
+      traffic_cop_(tcop),
+      protocol_interpreter_(std::move(interpreter)) {
+  context_.SetCallback(Callback, this);
+  context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
+}
+
+/** Reset this connection handle. */
+ConnectionHandle::~ConnectionHandle() { context_.Reset(); }
+
+void ConnectionHandle::RegisterToReceiveEvents() {
+  workpool_event_ = conn_handler_task_->RegisterManualEvent(
+      [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
+
+  network_event_ = conn_handler_task_->RegisterEvent(
+      io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
+      [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
+}
+
+/**
+ * Handles a libevent event. This simply delegates to the state machine.
+ */
+void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
+  Transition t;
+  if ((flags & EV_TIMEOUT) != 0) {
+    t = Transition::TERMINATE;
+    NETWORK_LOG_TRACE("Timeout occurred on file descriptor {0}", fd);
+  } else {
+    t = Transition ::WAKEUP;
+  }
+  state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
+}
+
+/**
+ * @brief Tries to read from the event port onto the read buffer
+ * @return The transition to trigger in the state machine after
+ */
+Transition ConnectionHandle::TryRead() { return io_wrapper_->FillReadBuffer(); }
+
+/**
+ * @brief Flushes the write buffer to the client if needed
+ * @return The transition to trigger in the state machine after
+ */
+Transition ConnectionHandle::TryWrite() {
+  if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
+
+  return Transition::PROCEED;
+}
+
+Transition ConnectionHandle::Process() {
+  auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
+                                                   traffic_cop_, common::ManagedPointer(&context_));
+  return transition;
+}
+
 Transition ConnectionHandle::GetResult() {
   // Wait until a network event happens.
-  EventUtil::EventAdd(network_event_, EventUtil::EVENT_ADD_WAIT_FOREVER);
+  EventUtil::EventAdd(network_event_, EventUtil::WAIT_FOREVER);
   // TODO(WAN): It is absolutely not clear to me wtf is this doing. Nothing?
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
   return Transition::PROCEED;
@@ -155,10 +215,49 @@ Transition ConnectionHandle::TryCloseConnection() {
   // connection handle and we will need to destruct and exit.
 
   // The connection must be closed.
-  conn_handler_->UnregisterEvent(network_event_);
-  conn_handler_->UnregisterEvent(workpool_event_);
+  conn_handler_task_->UnregisterEvent(network_event_);
+  conn_handler_task_->UnregisterEvent(workpool_event_);
 
   return Transition::NONE;
+}
+
+void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
+  if ((flags & EV_TIMEOUT) != 0) {
+    struct timeval timeout;
+    struct timeval *timeout_str;
+    timeout_str = &timeout;
+    timeout.tv_usec = 0;
+    timeout.tv_sec = timeout_secs;
+    conn_handler_task_->UpdateEvent(
+        network_event_, io_wrapper_->GetSocketFd(), flags,
+        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this,
+        timeout_str);
+  } else {
+    conn_handler_task_->UpdateEvent(
+        network_event_, io_wrapper_->GetSocketFd(), flags,
+        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
+  }
+}
+
+void ConnectionHandle::StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
+
+void ConnectionHandle::Callback(void *callback_args) {
+  auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
+  TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
+                 "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
+  event_active(handle->workpool_event_, EV_WRITE, 0);
+}
+
+void ConnectionHandle::ResetForReuse(connection_id_t connection_id, common::ManagedPointer<ConnectionHandlerTask> task,
+                                     std::unique_ptr<ProtocolInterpreter> interpreter) {
+  conn_handler_task_ = task;
+  network_event_ = nullptr;
+  workpool_event_ = nullptr;
+  io_wrapper_->Restart();
+  protocol_interpreter_ = std::move(interpreter);
+  state_machine_ = ConnectionHandle::StateMachine();
+  context_.Reset();
+  context_.SetConnectionID(connection_id);
 }
 
 }  // namespace terrier::network

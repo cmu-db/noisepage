@@ -33,7 +33,7 @@ TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider>
 }
 
 void TerrierServer::RunServer() {
-  // This line is critical to performance for some reason
+  // Initialize thread support for libevent as libevent will be invoked from multiple ConnectionHandlerTask threads.
   evthread_use_pthreads();
 
   // Create an internet socket address descriptor.
@@ -73,6 +73,7 @@ void TerrierServer::RunServer() {
     throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to create listen socket: {}", strerror(errno)));
   }
 
+  // Register the ConnectionDispatcherTask. This allows client connections.
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
       this, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()), connection_handle_factory_,
       thread_registry_);

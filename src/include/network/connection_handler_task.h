@@ -1,16 +1,9 @@
 #pragma once
 
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/event.h>
-#include <event2/listener.h>
-#include <unistd.h>
-
 #include <deque>
 #include <memory>
 #include <utility>
 
-#include "common/error/exception.h"
 #include "common/notifiable_task.h"
 #include "network/network_defs.h"
 #include "network/protocol_interpreter.h"
@@ -18,6 +11,7 @@
 namespace terrier::network {
 
 class ConnectionHandleFactory;
+
 /**
  * A ConnectionHandlerTask is responsible for interacting with a client
  * connection.

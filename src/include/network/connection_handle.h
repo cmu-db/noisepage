@@ -1,34 +1,19 @@
 #pragma once
 
-#include <arpa/inet.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/event.h>
-#include <event2/listener.h>
-#include <netinet/tcp.h>
-#include <sys/file.h>
-
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <memory>
-#include <string>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
-#include "common/error/exception.h"
 #include "common/managed_pointer.h"
-#include "loggers/network_logger.h"
 #include "network/connection_context.h"
-#include "network/connection_handler_task.h"
-#include "network/network_io_wrapper.h"
 #include "network/network_types.h"
-#include "network/protocol_interpreter.h"
-#include "traffic_cop/traffic_cop.h"
+
+struct event;
 
 namespace terrier::network {
+
+class ConnectionHandlerTask;
+class NetworkIoWrapper;
+class ProtocolInterpreter;
 
 /**
  * ConnectionHandle encapsulates IO-related information throughout the lifetime of a client connection.
@@ -47,17 +32,10 @@ class ConnectionHandle {
    */
   ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
                    common::ManagedPointer<trafficcop::TrafficCop> tcop,
-                   std::unique_ptr<ProtocolInterpreter> interpreter)
-      : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
-        conn_handler_(handler),
-        traffic_cop_(tcop),
-        protocol_interpreter_(std::move(interpreter)) {
-    context_.SetCallback(Callback, this);
-    context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
-  }
+                   std::unique_ptr<ProtocolInterpreter> interpreter);
 
   /** Reset this connection handle. */
-  ~ConnectionHandle() { context_.Reset(); }
+  ~ConnectionHandle();
 
   /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(ConnectionHandle);
@@ -74,54 +52,30 @@ class ConnectionHandle {
    * object should be fully initialized at that point, it's never a bad idea
    * to be careful.
    */
-  void RegisterToReceiveEvents() {
-    workpool_event_ = conn_handler_->RegisterManualEvent(
-        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
-
-    network_event_ = conn_handler_->RegisterEvent(
-        io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
-        [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
-  }
+  void RegisterToReceiveEvents();
 
   /**
    * Handles a libevent event. This simply delegates to the state machine.
    */
-  void HandleEvent(int fd, int16_t flags) {
-    Transition t;
-    if ((flags & EV_TIMEOUT) != 0) {
-      t = Transition::TERMINATE;
-      NETWORK_LOG_TRACE("Timeout occurred on file descriptor {0}", fd);
-    } else {
-      t = Transition ::WAKEUP;
-    }
-    state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
-  }
+  void HandleEvent(int fd, int16_t flags);
 
   /**
    * @brief Tries to read from the event port onto the read buffer
    * @return The transition to trigger in the state machine after
    */
-  Transition TryRead() { return io_wrapper_->FillReadBuffer(); }
+  Transition TryRead();
 
   /**
    * @brief Flushes the write buffer to the client if needed
    * @return The transition to trigger in the state machine after
    */
-  Transition TryWrite() {
-    if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
-
-    return Transition::PROCEED;
-  }
+  Transition TryWrite();
 
   /**
    * @brief Processes the client's input that has been fed into the ReadBuffer
    * @return The transition to trigger in the state machine after
    */
-  Transition Process() {
-    auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
-                                                     traffic_cop_, common::ManagedPointer(&context_));
-    return transition;
-  }
+  Transition Process();
 
   /**
    * @brief Gets a computed result that the client requested
@@ -142,43 +96,26 @@ class ConnectionHandle {
    * @param timeout_secs number of seconds for timeout for this event, this is ignored if flags doesn't include
    * EV_TIMEOUT
    */
-  void UpdateEventFlags(int16_t flags, int timeout_secs = 0) {
-    if ((flags & EV_TIMEOUT) != 0) {
-      struct timeval timeout;
-      struct timeval *timeout_str;
-      timeout_str = &timeout;
-      timeout.tv_usec = 0;
-      timeout.tv_sec = timeout_secs;
-      conn_handler_->UpdateEvent(
-          network_event_, io_wrapper_->GetSocketFd(), flags,
-          [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this,
-          timeout_str);
-    } else {
-      conn_handler_->UpdateEvent(
-          network_event_, io_wrapper_->GetSocketFd(), flags,
-          [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
-    }
-  }
+  void UpdateEventFlags(int16_t flags, int timeout_secs = 0);
 
   /**
    * Stops receiving network events from client connection. This is useful when
    * we are waiting on terrier to return the result of a query and not handling
    * client query.
    */
-  void StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
+  void StopReceivingNetworkEvent();
 
   /**
    * issues a libevent to wake up the state machine in the WAIT_ON_TERRIER state
    * @param callback_args this for a ConnectionHandle in WAIT_ON_TERRIER state
    */
-  static void Callback(void *callback_args) {
-    auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
-    TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
-                   "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
-    event_active(handle->workpool_event_, EV_WRITE, 0);
-  }
+  static void Callback(void *callback_args);
 
  private:
+  /** Reset the state of this connection handle for reuse. This should only be called by ConnectionHandleFactory. */
+  void ResetForReuse(connection_id_t connection_id, common::ManagedPointer<ConnectionHandlerTask> task,
+                     std::unique_ptr<ProtocolInterpreter> interpreter);
+
   /**
    * A state machine is defined to be a set of states, a set of symbols it
    * supports, and a function mapping each
@@ -228,7 +165,7 @@ class ConnectionHandle {
   // See class header warning; don't add state here unless required for the StateMachine.
 
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
-  common::ManagedPointer<ConnectionHandlerTask> conn_handler_;
+  common::ManagedPointer<ConnectionHandlerTask> conn_handler_task_;
   common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
 

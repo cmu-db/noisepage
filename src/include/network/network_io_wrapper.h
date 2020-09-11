@@ -11,8 +11,7 @@
 namespace terrier::network {
 
 /**
- * A network io wrapper implements an interface for interacting with a client
- * connection.
+ * A network io wrapper implements an interface for interacting with a client connection.
  *
  * Underneath the hood the wrapper buffers read and write, and supports posix reads and writes to the socket.
  *
@@ -23,23 +22,15 @@ namespace terrier::network {
 
 class NetworkIoWrapper {
  public:
-  /**
-   * Barring copying and moving of PosixSocketIoWrapper instances
-   */
+  /** This class cannot be copied or moved. */
   DISALLOW_COPY_AND_MOVE(NetworkIoWrapper);
 
-  /**
-   * @brief Constructor for a PosixSocketIoWrapper
-   * @param sock_fd The fd this IoWrapper communicates on
-   */
-  explicit NetworkIoWrapper(const int sock_fd)
-      : sock_fd_(sock_fd), in_(std::make_unique<ReadBuffer>()), out_(std::make_unique<WriteQueue>()) {
-    RestartState();
-  }
+  /** Construct a wrapper around the provided socket file descriptor. */
+  explicit NetworkIoWrapper(int sock_fd);
 
   /**
-   * @brief Fills the read buffer of this IOWrapper from the assigned fd
-   * @return The next transition for this client's state machine
+   * @brief Fills the read buffer of this IOWrapper from the assigned fd.
+   * @return The next transition for this client's state machine.
    */
   Transition FillReadBuffer();
 
