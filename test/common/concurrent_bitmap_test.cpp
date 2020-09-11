@@ -1,3 +1,5 @@
+#include "common/container/concurrent_bitmap.h"
+
 #include <algorithm>
 #include <atomic>
 #include <bitset>
@@ -5,7 +7,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "common/container/concurrent_bitmap.h"
 #include "gtest/gtest.h"
 #include "test_util/container_test_util.h"
 #include "test_util/multithread_test_util.h"

@@ -1,7 +1,7 @@
-#include "spdlog/fmt/fmt.h"
+#include "parser/expression/aggregate_expression.h"
 
 #include "common/json.h"
-#include "parser/expression/aggregate_expression.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::parser {
 

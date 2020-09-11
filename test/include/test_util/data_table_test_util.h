@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_vector.h"
 #include "gtest/gtest.h"
 #include "storage/data_table.h"

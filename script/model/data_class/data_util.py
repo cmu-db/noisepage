@@ -1,3 +1,5 @@
+import math
+
 def convert_string_to_numeric(value):
     """Break up a string that contains ";" to a list of values
 
@@ -11,7 +13,7 @@ def convert_string_to_numeric(value):
         return int(value)
     finally:
         # Scientific notation
-        return int(float(value))
+        return math.ceil(float(value))
 
 
 def round_to_interval(time, interval):

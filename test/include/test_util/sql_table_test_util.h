@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector.h"

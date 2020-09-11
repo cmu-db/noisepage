@@ -9,6 +9,7 @@ import random
 from sklearn import model_selection
 
 import model
+import global_model_config
 from info import data_info
 from util import io_util, logging_util
 from training_util import global_data_constructing_util, result_writing_util
@@ -31,7 +32,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
     :return: (the best model, the indices for the test data for additional metric calculation)
     """
     global_model = None
-    result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
+    result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path, False)
     n_samples = x.shape[0]
     indices = np.arange(n_samples)
 
@@ -86,7 +87,8 @@ class GlobalTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map, warmup_period, tpcc_hack):
+    def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map,
+                 warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -95,6 +97,8 @@ class GlobalTrainer:
         self.mini_model_map = mini_model_map
         self.warmup_period = warmup_period
         self.tpcc_hack = tpcc_hack
+        self.ee_sample_interval = ee_sample_interval
+        self.txn_sample_interval = txn_sample_interval
 
     def train(self):
         """Train the mini-models
@@ -105,7 +109,9 @@ class GlobalTrainer:
                                                                                       self.mini_model_map,
                                                                                       self.model_results_path,
                                                                                       self.warmup_period,
-                                                                                      self.tpcc_hack)
+                                                                                      self.tpcc_hack,
+                                                                                      self.ee_sample_interval,
+                                                                                      self.txn_sample_interval)
 
         return self._train_global_models(resource_data_list, impact_data_list)
 
@@ -146,6 +152,7 @@ class GlobalTrainer:
         raw_y = []  # The actual labels
         data_len = len(impact_data_list)
         sample_list = random.sample(range(data_len), k=int(data_len * self.impact_model_ratio))
+        epsilon = global_model_config.RATIO_DIVISION_EPSILON
         # The input feature is (normalized mini model prediction, predicted global resource util, the predicted
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
@@ -156,14 +163,16 @@ class GlobalTrainer:
             predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
-                predicted_resource_util = d.resource_data.y_pred
+                predicted_resource_util = d.resource_data.y_pred.copy()
             if model_name == "direct":
-                predicted_resource_util = d.resource_data.x
+                predicted_resource_util = d.resource_data.x.copy()
+            # Remove the OU group itself from the total resource data
+            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= mini_model_y_pred[-1] / global_model_config.INTERVAL_SIZE
             x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
                                      d.resource_util_same_core_x)))
             # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
-            y.append(raw_y[-1] / (mini_model_y_pred[-1] + 1))
+            y.append(raw_y[-1] / (mini_model_y_pred[-1] + epsilon))
             # Do not adjust memory consumption since it shouldn't change
             y[-1][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = 1
 
@@ -178,15 +187,15 @@ class GlobalTrainer:
         # Calculate the accumulated ratio error
         mini_model_y_pred = np.array(mini_model_y_pred)[test_indices]
         y_pred = trained_model.predict(x)[test_indices]
-        raw_y_pred = (mini_model_y_pred + 1) * y_pred
+        raw_y_pred = (mini_model_y_pred + epsilon) * y_pred
         raw_y = np.array(raw_y)[test_indices]
         accumulated_raw_y = np.sum(raw_y, axis=0)
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
-        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + 1), axis=0)
-        ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + 1), axis=0)
-        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + 1)
+        original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + epsilon), axis=0)
+        ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + epsilon), axis=0)
+        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + epsilon)
         original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
-                accumulated_raw_y + 1)
+                accumulated_raw_y + epsilon)
 
         logging.info('Original Ratio Error: {}'.format(original_ratio_error))
         logging.info('Ratio Error: {}'.format(ratio_error))
@@ -201,9 +210,9 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input_40_40',
+    aparser.add_argument('--input_path', default='global_runner_input_tpch',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results_40_40',
+    aparser.add_argument('--model_results_path', default='global_model_results_tpch',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
@@ -215,6 +224,10 @@ if __name__ == '__main__':
                          help='Sample ratio to train the global impact model')
     aparser.add_argument('--warmup_period', type=float, default=3, help='OLTPBench warmup period')
     aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
+    aparser.add_argument('--ee_sample_interval', type=int, default=9,
+                         help='Sampling interval for the execution engine OUs')
+    aparser.add_argument('--txn_sample_interval', type=int, default=0,
+                         help='Sampling interval for the transaction OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -225,7 +238,8 @@ if __name__ == '__main__':
     with open(args.mini_model_file, 'rb') as pickle_file:
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
-                            args.impact_model_ratio, model_map, args.warmup_period, args.tpcc_hack)
+                            args.impact_model_ratio, model_map, args.warmup_period, args.tpcc_hack,
+                            args.ee_sample_interval, args.txn_sample_interval)
     resource_model, impact_model, direct_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)
