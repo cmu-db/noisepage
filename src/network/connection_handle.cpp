@@ -136,19 +136,17 @@ void ConnectionHandle::StateMachine::Accept(Transition action,
   }
 }
 
-ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
+ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> task,
                                    common::ManagedPointer<trafficcop::TrafficCop> tcop,
                                    std::unique_ptr<ProtocolInterpreter> interpreter)
     : io_wrapper_(std::make_unique<NetworkIoWrapper>(sock_fd)),
-      conn_handler_task_(handler),
+      conn_handler_task_(task),
       traffic_cop_(tcop),
       protocol_interpreter_(std::move(interpreter)) {
-  // TODO(WAN): wake up and figure out a better name for Callback
   context_.SetCallback(Callback, this);
   context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
 }
 
-/** Reset this connection handle. */
 ConnectionHandle::~ConnectionHandle() { context_.Reset(); }
 
 void ConnectionHandle::RegisterToReceiveEvents() {
@@ -161,12 +159,12 @@ void ConnectionHandle::RegisterToReceiveEvents() {
 }
 
 void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
+  // TODO(WAN): convince myself that this is correct. Why should it be TERMINATE?
   Transition t;
   if ((flags & EV_TIMEOUT) != 0) {
     t = Transition::TERMINATE;
-    NETWORK_LOG_TRACE("Timeout occurred on file descriptor {0}", fd);
   } else {
-    t = Transition ::WAKEUP;
+    t = Transition::WAKEUP;
   }
   state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
 }
@@ -174,8 +172,9 @@ void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
 Transition ConnectionHandle::TryRead() { return io_wrapper_->FillReadBuffer(); }
 
 Transition ConnectionHandle::TryWrite() {
-  if (io_wrapper_->ShouldFlush()) return io_wrapper_->FlushAllWrites();
-
+  if (io_wrapper_->ShouldFlush()) {
+    return io_wrapper_->FlushAllWrites();
+  }
   return Transition::PROCEED;
 }
 
@@ -194,17 +193,18 @@ Transition ConnectionHandle::GetResult() {
 }
 
 Transition ConnectionHandle::TryCloseConnection() {
+  // Stop the protocol interpreter.
   protocol_interpreter_->Teardown(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
                                   common::ManagedPointer(&context_));
 
+  // Try to close the connection. If that fails, return whatever should have been done instead.
+  // The connection must be closed before events are removed for safety reasons.
   Transition close = io_wrapper_->Close();
-  if (close != Transition::PROCEED) return close;
-  // Remove listening event
-  // Only after the connection is closed is it safe to remove events,
-  // after this point no object in the system has reference to this
-  // connection handle and we will need to destruct and exit.
+  if (close != Transition::PROCEED) {
+    return close;
+  }
 
-  // The connection must be closed.
+  // Remove the network and worker pool events.
   conn_handler_task_->UnregisterEvent(network_event_);
   conn_handler_task_->UnregisterEvent(workpool_event_);
 
@@ -234,6 +234,7 @@ void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
 void ConnectionHandle::StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
 
 void ConnectionHandle::Callback(void *callback_args) {
+  // TODO(WAN): this is currently unused.
   auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
   TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
                  "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
@@ -242,12 +243,14 @@ void ConnectionHandle::Callback(void *callback_args) {
 
 void ConnectionHandle::ResetForReuse(connection_id_t connection_id, common::ManagedPointer<ConnectionHandlerTask> task,
                                      std::unique_ptr<ProtocolInterpreter> interpreter) {
-  conn_handler_task_ = task;
-  network_event_ = nullptr;
-  workpool_event_ = nullptr;
   io_wrapper_->Restart();
+  conn_handler_task_ = task;
+  // TODO(WAN): the same traffic cop is kept because the ConnectionHandleFactory always uses the same traffic cop
+  //  anyway, but if this ever changes then we'll need to revisit this.
   protocol_interpreter_ = std::move(interpreter);
   state_machine_ = ConnectionHandle::StateMachine();
+  network_event_ = nullptr;
+  workpool_event_ = nullptr;
   context_.Reset();
   context_.SetConnectionID(connection_id);
 }

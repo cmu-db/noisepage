@@ -25,12 +25,12 @@ class ConnectionHandle {
   /**
    * @brief Construct a new ConnectionHandle.
    *
-   * @param sock_fd Client's connection fd
-   * @param handler The handler responsible for this handle
-   * @param tcop The pointer to the traffic cop
-   * @param interpreter protocol interpreter to use for this connection handle
+   * @param sock_fd Client connection's file descriptor.
+   * @param task The task responsible for this handle's creation.
+   * @param tcop The traffic cop to be used.
+   * @param interpreter protocol Interpreter to use for this connection handle.
    */
-  ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> handler,
+  ConnectionHandle(int sock_fd, common::ManagedPointer<ConnectionHandlerTask> task,
                    common::ManagedPointer<trafficcop::TrafficCop> tcop,
                    std::unique_ptr<ProtocolInterpreter> interpreter);
 
@@ -41,16 +41,16 @@ class ConnectionHandle {
   DISALLOW_COPY_AND_MOVE(ConnectionHandle);
 
   /**
-   * @brief Signal to libevent that this ConnectionHandle is ready to handle
-   * events
-   *
-   * TODO(WAN): libevent is impl detail, don't talk about it
+   * @brief Signal that this ConnectionHandle is ready to handle events.
    *
    * This method needs to be called separately after initialization for the
    * connection handle to do anything. The reason why this is not performed in
    * the constructor is because it publishes pointers to this object. While the
    * object should be fully initialized at that point, it's never a bad idea
    * to be careful.
+   *
+   * TODO(WAN): I'm not sure what I just read in the above paragraph...
+   *  what can you do to a ConnectionHandle that will make it any more initialized than constructing it?
    */
   void RegisterToReceiveEvents();
 

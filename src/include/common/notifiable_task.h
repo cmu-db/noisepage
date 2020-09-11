@@ -36,7 +36,7 @@ namespace terrier::common {
  */
 class NotifiableTask : public DedicatedThreadTask {
  public:
-  /** Construct a new NotifiableTask instance with the specified task_id. */
+  /** Construct a new NotifiableTask instance with the specified task id. */
   explicit NotifiableTask(int task_id);
 
   /** Destroy the NotifiableTask, deleting and freeing all of its registered events. */
