@@ -1,8 +1,8 @@
 #include "execution/sql/table_vector_iterator.h"
 
 #include <tbb/parallel_for.h>
+#include <tbb/partitioner.h>
 #include <tbb/task_arena.h>
-#include <tbb/task_scheduler_init.h>
 
 #include <limits>
 #include <numeric>
@@ -11,11 +11,11 @@
 
 #include "catalog/catalog_accessor.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
-#include "storage/index/index.h"
 
 namespace terrier::execution::sql {
 
@@ -108,6 +108,7 @@ class ScanTask {
 
     // Pull out the thread-local state
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
+
     // Call scanning function
     scanner_(query_state_, thread_state, &iter);
   }
@@ -119,7 +120,7 @@ class ScanTask {
   uint32_t num_oids_;
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
-  TableVectorIterator::ScanFn scanner_ = nullptr;
+  TableVectorIterator::ScanFn scanner_;
 };
 
 }  // namespace
@@ -137,21 +138,19 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   util::Timer<std::milli> timer;
   timer.Start();
 
-  // Execute parallel scan
-  tbb::task_scheduler_init scan_scheduler;
+  const int num_threads = exec_ctx->GetExecutionSettings().GetNumberofThreads();
+  const bool is_static_partitioned = exec_ctx->GetExecutionSettings().GetIsStaticPartitionerEnabled();
+  tbb::task_arena limited_arena(num_threads);
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
 
-  //  tbb::task_arena limited_arena(4);
-  //  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks());
-  //  // TODO(wuwenw): A static partitioner is used for the experimental purpose, may need a better way to split
-  //  workload limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx,
-  //  &create_index_fn,
-  //                            &storage_interface, &index_oid] {
-  //    tbb::parallel_for(block_range,
-  //                      CreateIndexTask(table_oid, col_oids, num_oids, query_state, exec_ctx, create_index_fn,
-  //                                      storage_interface, index_oid),
-  //                      tbb::static_partitioner());
+  limited_arena.execute(
+      [&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn, is_static_partitioned] {
+        is_static_partitioned ?
+                              tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn),
+                                tbb::static_partitioner())
+            : tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
+      });
+
   timer.Stop();
 
   double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;

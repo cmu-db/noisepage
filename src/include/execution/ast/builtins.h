@@ -239,7 +239,6 @@ namespace terrier::execution::ast {
   F(PRGetDateNull, prGetDateNull)                                       \
   F(PRGetTimestampNull, prGetTimestampNull)                             \
   F(PRGetVarlenNull, prGetVarlenNull)                                   \
-                                                                        \
   /* CSV */                                                             \
   F(CSVReaderInit, csvReaderInit)                                       \
   F(CSVReaderAdvance, csvReaderAdvance)                                 \
