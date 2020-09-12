@@ -34,7 +34,7 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   for (const auto &index_col : index_schema.GetColumns()) {
     compilation_context->Prepare(*index_col.StoredExpression());
   }
-  pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
+  pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
   // col_oids is a global array
   ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
   global_col_oids_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen_, "global_col_oids", arr_type);
