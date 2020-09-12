@@ -2209,7 +2209,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
     return;
   }
 
-  auto settings = GetParallelExecutionSettings(num_threads, true);
+  // Only generate counters if executing in parallel
+  auto settings = GetParallelExecutionSettings(num_threads, num_threads != 0);
   auto int_size = type::TypeUtil::GetTypeSize(type::TypeId::INTEGER);
   auto bigint_size = type::TypeUtil::GetTypeSize(type::TypeId::BIGINT);
   auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
