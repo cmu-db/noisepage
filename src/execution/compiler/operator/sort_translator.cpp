@@ -17,7 +17,7 @@ constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
 
 SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, CompilationContext *compilation_context,
                                Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::SORT),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       sort_row_var_(GetCodeGen()->MakeFreshIdentifier("sortRow")),
       sort_row_type_(GetCodeGen()->MakeFreshIdentifier("SortRow")),
       lhs_row_(GetCodeGen()->MakeIdentifier("lhs")),
@@ -52,6 +52,9 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
   if (build_pipeline_.IsParallel()) {
     local_sorter_ = build_pipeline_.DeclarePipelineStateEntry("sorter", sorter_type);
   }
+
+  num_sort_build_rows_ = CounterDeclare("num_sort_build_rows");
+  num_sort_iterate_rows_ = CounterDeclare("num_sort_iterate_rows");
 }
 
 void SortTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -116,6 +119,9 @@ void SortTranslator::TearDownSorter(FunctionBuilder *function, ast::Expr *sorter
 
 void SortTranslator::InitializeQueryState(FunctionBuilder *function) const {
   InitializeSorter(function, global_sorter_.GetPtr(GetCodeGen()));
+
+  CounterSet(function, num_sort_build_rows_, 0);
+  CounterSet(function, num_sort_iterate_rows_, 0);
 }
 
 void SortTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -199,6 +205,8 @@ void SortTranslator::ScanSorter(WorkContext *ctx, FunctionBuilder *function) con
     function->Append(codegen->DeclareVarWithInit(sort_row_var_, row));
     // Move along
     ctx->Push(function);
+
+    CounterAdd(function, num_sort_iterate_rows_, 1);
   }
   loop.EndLoop();
 
@@ -212,13 +220,15 @@ void SortTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *func
   } else {
     TERRIER_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
     InsertIntoSorter(ctx, function);
+    CounterAdd(function, num_sort_build_rows_, 1);
   }
 }
 
 void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
+
   if (IsBuildPipeline(pipeline)) {
-    auto *codegen = GetCodeGen();
-    ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);
     if (build_pipeline_.IsParallel()) {
       // Build pipeline is parallel, so we need to issue a parallel sort. Issue
       // a SortParallel() or a SortParallelTopK() depending on whether a limit
@@ -233,7 +243,25 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     } else {
       function->Append(codegen->SorterSort(sorter_ptr));
     }
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_sort_build_rows_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
+  } else {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
+                  CounterVal(num_sort_iterate_rows_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::SorterGetTupleCount, {sorter_ptr}));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_iterate_rows_));
   }
+
+  // TODO(WAN): In theory, we would like to record the true number of unique tuples as the cardinality.
+  //  However, due to overhead and engineering complexity, we settle for the size of the sorter.
 }
 
 ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,

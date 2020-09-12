@@ -47,6 +47,12 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
       compilation_context->Prepare(*key.second);
     }
   }
+
+  num_scans_index_ = CounterDeclare("num_scans_index");
+}
+
+void IndexScanTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  CounterSet(function, num_scans_index_, 0);
 }
 
 void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -96,11 +102,21 @@ void IndexScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuil
       // PARENT_CODE
       context->Push(function);
     }
+
+    CounterAdd(function, num_scans_index_, 1);
   }
   loop.EndLoop();
 
   // @indexIteratorFree(&index_iter_)
   FreeIterator(function);
+
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+                GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSize, {GetCodeGen()->AddressOf(index_iter_)}));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::IDX_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+                CounterVal(num_scans_index_));
+  FeatureArithmeticRecordSet(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_scans_index_));
 }
 
 ast::Expr *IndexScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
