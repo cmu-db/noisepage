@@ -37,6 +37,9 @@ class OutputTranslator : public OperatorTranslator {
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
+  /** Set up counters for Lin's models. */
+  void InitializeQueryState(FunctionBuilder *function) const override;
+
   /**
    * Perform the main work of the translator.
    */
@@ -57,6 +60,9 @@ class OutputTranslator : public OperatorTranslator {
  private:
   ast::Identifier output_var_;
   ast::Identifier output_struct_;
+
+  // The number of rows that are output.
+  StateDescriptor::Entry num_output_;
 };
 
 }  // namespace terrier::execution::compiler

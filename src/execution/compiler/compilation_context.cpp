@@ -151,15 +151,17 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
-    pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
-
     // Extract and record the translators.
+    // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
+    // Therefore translator extraction must happen before pipelines are generated.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
                                           common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
+
+    pipeline->Prepare(query_->GetExecutionSettings());
+    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
   }
 
   // Register the tear-down function.
@@ -213,7 +215,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       if (aggregation.GetAggregateStrategyType() == planner::AggregateStrategyType::SORTED) {
         throw NOT_IMPLEMENTED_EXCEPTION("Code generation for sort-based aggregations.");
       }
-      if (aggregation.GetGroupByTerms().empty()) {
+      if (aggregation.IsStaticAggregation()) {
         translator = std::make_unique<StaticAggregationTranslator>(aggregation, this, pipeline);
       } else {
         translator = std::make_unique<HashAggregationTranslator>(aggregation, this, pipeline);

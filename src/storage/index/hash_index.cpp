@@ -32,6 +32,11 @@ size_t HashIndex<KeyType>::EstimateHeapUsage() const {
   return hash_map_->capacity() * (sizeof(KeyType) + sizeof(TupleSlot));
 }
 
+template <typename KeyType>
+uint64_t HashIndex<KeyType>::GetSize() const {
+  return hash_map_->size();
+}
+
 /**
  * The lambda below is used for aborted inserts as well as committed deletes to perform the erase logic. Macros are
  * ugly but you can't define a macro that captures location outside of the scope of that variable

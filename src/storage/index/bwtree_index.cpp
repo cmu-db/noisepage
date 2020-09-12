@@ -234,6 +234,11 @@ void BwTreeIndex<KeyType>::ScanLimitDescending(const transaction::TransactionCon
   }
 }
 
+template <typename KeyType>
+uint64_t BwTreeIndex<KeyType>::GetSize() const {
+  return bwtree_->GetSize();
+}
+
 template class BwTreeIndex<CompactIntsKey<8>>;
 template class BwTreeIndex<CompactIntsKey<16>>;
 template class BwTreeIndex<CompactIntsKey<24>>;

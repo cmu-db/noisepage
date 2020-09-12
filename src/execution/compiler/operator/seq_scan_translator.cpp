@@ -34,6 +34,8 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
     ast::Expr *fm_type = GetCodeGen()->BuiltinType(ast::BuiltinType::FilterManager);
     local_filter_manager_ = pipeline->DeclarePipelineStateEntry("filterManager", fm_type);
   }
+
+  num_scans_ = CounterDeclare("num_scans");
 }
 
 bool SeqScanTranslator::HasPredicate() const {
@@ -220,6 +222,12 @@ void SeqScanTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast
   };
   // TODO(Amadou): What if the predicate doesn't filter out anything?
   gen_vpi_loop(HasPredicate());
+
+  // var vpi_num_tuples = @tableIterGetNumTuples(tvi)
+  ast::Identifier vpi_num_tuples = codegen->MakeFreshIdentifier("vpi_num_tuples");
+  function->Append(codegen->DeclareVarWithInit(
+      vpi_num_tuples, codegen->CallBuiltin(ast::Builtin::TableIterGetVPINumTuples, {codegen->MakeExpr(tvi_var_)})));
+  CounterAdd(function, num_scans_, vpi_num_tuples);
 }
 
 void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) const {
@@ -243,6 +251,8 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
   }
   tvi_loop.EndLoop();
 }
+
+void SeqScanTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_scans_, 0); }
 
 void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (HasPredicate()) {
@@ -288,6 +298,14 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   if (declare_local_tvi) {
     function->Append(codegen->TableIterClose(codegen->MakeExpr(tvi_var_)));
   }
+}
+
+void SeqScanTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {

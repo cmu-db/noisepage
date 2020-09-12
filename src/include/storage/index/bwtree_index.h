@@ -71,6 +71,8 @@ class BwTreeIndex final : public Index {
 
   void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                            const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) final;
+
+  uint64_t GetSize() const final;
 };
 
 extern template class BwTreeIndex<CompactIntsKey<8>>;
