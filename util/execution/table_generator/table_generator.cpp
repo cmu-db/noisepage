@@ -56,6 +56,54 @@ T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t n
   return val;
 }
 
+storage::VarlenEntry *TableGenerator::CreateVarcharColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
+  // TODO(Lin): we're only generating inline data for now.
+  uint32_t multiply_factor = sizeof(storage::VarlenEntry) / sizeof(uint32_t);
+  auto *val = new uint32_t[num_vals * multiply_factor];
+  static uint64_t rotate_counter = 0;
+
+  switch (col_meta->dist_) {
+    case Dist::Uniform: {
+      std::mt19937 generator{};
+      std::uniform_int_distribution<uint32_t> distribution(static_cast<uint32_t>(col_meta->min_),
+                                                           static_cast<uint32_t>(col_meta->max_));
+
+      for (uint32_t i = 0; i < num_vals; i++) {
+        std::string str_val = std::to_string(distribution(generator));
+        *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
+            storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
+      }
+
+      break;
+    }
+    case Dist::Serial: {
+      for (uint32_t i = 0; i < num_vals; i++) {
+        std::string str_val = std::to_string(col_meta->counter_);
+        *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
+            storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
+        col_meta->counter_++;
+      }
+      break;
+    }
+    case Dist::Rotate: {
+      for (uint32_t i = 0; i < num_vals; i++) {
+        if (rotate_counter > col_meta->max_) {
+          rotate_counter = col_meta->min_;
+        }
+        std::string str_val = std::to_string(rotate_counter);
+        *reinterpret_cast<storage::VarlenEntry *>(val + i * multiply_factor) =
+            storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str_val.data()), str_val.size());
+        rotate_counter++;
+      }
+      break;
+    }
+    default:
+      throw std::runtime_error("Implement me!");
+  }
+
+  return reinterpret_cast<storage::VarlenEntry *>(val);
+}
+
 bool *TableGenerator::CreateBooleanColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
   auto *val = new bool[num_vals];
 
@@ -107,6 +155,10 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
     case type::TypeId::BIGINT:
     case type::TypeId::DECIMAL: {
       col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta, num_rows));
+      break;
+    }
+    case type::TypeId::VARCHAR: {
+      col_data = reinterpret_cast<byte *>(CreateVarcharColumnData(col_meta, num_rows));
       break;
     }
     default: {
@@ -205,7 +257,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           redo->Delta()->SetNull(offset);
         } else {
           byte *data = redo->Delta()->AccessForceNotNull(offset);
-          uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_);
+          uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta->col_meta_[k].type_) & static_cast<uint8_t>(0x7f);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
         }
       }
@@ -357,12 +409,13 @@ void TableGenerator::GenerateMiniRunnerIndexTables() {
   std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
                                     10000, 20000, 50000, 100000, 300000, 500000, 1000000};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
   for (auto row_num : row_nums) {
     for (type::TypeId type : types) {
       auto table_name = GenerateTableIndexName(type, row_num);
       std::vector<ColumnInsertMeta> col_metas;
-      for (uint32_t j = 1; j <= 15; j++) {
+      uint32_t column_num = (type == type::TypeId::VARCHAR) ? 5 : 15;
+      for (uint32_t j = 1; j <= column_num; j++) {
         std::stringstream col_name;
         col_name << "col" << j;
         col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
@@ -470,7 +523,8 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
         index_pr->SetNull(index_offset);
       } else {
         byte *index_data = index_pr->AccessForceNotNull(index_offset);
-        auto type_size = storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type()));
+        auto type_size =
+            storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(index_col.Type())) & static_cast<uint8_t>(0x7f);
         std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
       }
     }
@@ -487,12 +541,16 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
 std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
   std::vector<TableInsertMeta> table_metas;
   std::vector<std::vector<type::TypeId>> mixed_types = {
-      {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT}};
-  std::vector<std::vector<uint32_t>> mixed_dist = {{0, 15, 0}, {3, 12, 0}, {7, 8, 0},
-                                                   {11, 4, 0}, {15, 0, 0}, {0, 0, 15}};
+      {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT},
+      {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
+  std::vector<std::vector<std::vector<uint32_t>>> mixed_dists = {
+      {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}, {15, 0, 0}, {0, 0, 15}},
+      {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto types : mixed_types) {
+  for (size_t idx = 0; idx < mixed_types.size(); ++idx) {
+    auto types = mixed_types[idx];
+    auto mixed_dist = mixed_dists[idx];
     for (auto col_dist : mixed_dist) {
       for (uint32_t row_num : row_nums) {
         // Cardinality of the last column
