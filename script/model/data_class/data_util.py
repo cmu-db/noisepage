@@ -13,7 +13,7 @@ def convert_string_to_numeric(value):
         return int(value)
     finally:
         # Scientific notation
-        return math.ceil(float(value))
+        return float(value)
 
 
 def round_to_interval(time, interval):

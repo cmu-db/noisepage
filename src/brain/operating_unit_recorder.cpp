@@ -85,6 +85,7 @@ void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_siz
     // TODO(lin): Some how varchar in execution engine is 24 bytes. I don't really know why, but just special case
     //  here since it's different than the storage size (16 bytes under inline)
     *key_size = *key_size + 24;
+    *num_key = *num_key + 1;
   } else {
     *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
   }
