@@ -67,13 +67,13 @@ _tuple_num_linear_log_transformer = (_tuple_num_linear_log_train_transform, _tup
 def _tuple_num_log_train_transform(x, y):
     # Transform down the target according to the log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
-    return y / (np.log2(tuple_num) + 1e-6)[:, np.newaxis]
+    return y / (np.log2(tuple_num) + 1)[:, np.newaxis]
 
 
 def _tuple_num_log_predict_transform(x, y):
     # Transform up the target according to the log tuple num value in the input
     tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
-    return y * (np.log2(tuple_num) + 1e-6)[:, np.newaxis]
+    return y * (np.log2(tuple_num) + 1)[:, np.newaxis]
 
 
 # Transform the target in a log scale (logn) according to the tuple num
