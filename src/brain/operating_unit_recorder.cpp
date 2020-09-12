@@ -55,8 +55,8 @@ namespace terrier::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
-  auto *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
-  auto &fields = type->Fields();
+  auto *struct_type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
+  auto &fields = struct_type->Fields();
 
   // Rough loop to get an estimate size of entire struct
   size_t total = total_offset;
@@ -227,11 +227,23 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
 
   if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
 
+  // This is a hack.
+  // Certain translators don't own their features, but pass them further down the pipeline.
+  std::vector<execution::translator_id_t> translator_ids;
+  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
+  translator_ids.emplace_back(translator->GetTranslatorId());
+  while (translator->IsCountersPassThrough()) {
+    translator = translator->GetParentTranslator();
+    translator_ids.emplace_back(translator->GetTranslatorId());
+  }
+
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
     TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
+    bool same_translator = std::find(translator_ids.cbegin(), translator_ids.cend(), itr->second.GetTranslatorId()) !=
+                           translator_ids.cend();
     if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
-        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type)) {
+        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type) && same_translator) {
       itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
       itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
       itr->second.AddMemFactor(mem_factor);
@@ -239,7 +251,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
+  auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
+                                               cardinality, mem_factor, num_loops);
   pipeline_features_.emplace(type, std::move(feature));
 }
 
@@ -408,9 +421,8 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
-      plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
-    // Right side stiches together outputs
+      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY) {
+    // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
   }
 }
@@ -453,12 +465,12 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     auto num_key = plan->GetRightHashKeys().size();
     auto key_size = ComputeKeySize(plan->GetRightHashKeys(), &num_key);
     AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, key_size, num_key, plan, 1, 1);
-  }
 
-  // Computes against OutputSchema/Join predicate which will
-  // use the rows/cardinalities of what the HJ plan produces
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+    // Computes against OutputSchema/Join predicate which will
+    // use the rows/cardinalities of what the HJ plan produces
+    VisitAbstractJoinPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
@@ -640,11 +652,11 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
-    RecordAggregateTranslator(translator, plan);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+  if (plan->IsStaticAggregation()) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
   }
 }
