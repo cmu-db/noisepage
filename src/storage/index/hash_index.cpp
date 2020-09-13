@@ -112,7 +112,9 @@ bool HashIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Transa
   TERRIER_ASSERT(insert_result != uprase_result,
                  "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
                  "inserted (insert_result).");
-
+  // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
+  // a better way
+  common::SpinLatch::ScopedSpinLatch guard(&transaction_context_latch_);
   // Register an abort action with the txn context in case of rollback
   txn->RegisterAbortAction(ERASE_KEY_ACTION);
 
@@ -187,6 +189,9 @@ bool HashIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction::
                  "inserted (insert_result).");
 
   if (overall_result) {
+    // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
+    // a better way
+    common::SpinLatch::ScopedSpinLatch guard(&transaction_context_latch_);
     txn->RegisterAbortAction(ERASE_KEY_ACTION);
   } else {
     // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
