@@ -2526,9 +2526,9 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
         ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
-      // Third argument is a bool
-      if (!call_args[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Bool)) {
-        ReportIncorrectCallArg(call, 2, "boolean literal");
+      // Third argument is an bool
+      if (!call_args[2]->GetType()->IsBoolType()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Bool));
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
