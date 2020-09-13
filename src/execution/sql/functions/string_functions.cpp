@@ -9,7 +9,7 @@
 
 namespace terrier::execution::sql {
 
-void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const int64_t &num_inputs,
+void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const int64_t num_inputs,
                              const StringVal *inputs) {
   if (num_inputs == 0) {
     *result = StringVal::Null();
