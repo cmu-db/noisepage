@@ -391,20 +391,11 @@ pipeline {
         stage('Microbenchmark') {
             agent { label 'benchmark' }            
             steps {
-                sh 'echo "Someone needs to fix the microbenchmarks so they give reliable, stable, meaningful results"'
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh all'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
             }
-            // steps {
-            //     sh 'echo $NODE_NAME'
-            //     sh 'echo y | sudo ./script/installation/packages.sh all'
-            //     sh 'mkdir build'
-            //     sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-            //     // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
-            //     //  # of Threads: 4
-            //     //  WAL Path: Ramdisk
-            //     sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
-            //     archiveArtifacts 'script/micro_bench/*.json'
-            //     junit 'script/micro_bench/*.xml'
-            // }
             post {
                 cleanup {
                     deleteDir()
