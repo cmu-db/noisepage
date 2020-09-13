@@ -5,6 +5,9 @@
         "wal_file_path": "/mnt/ramdisk/wal.log",
         "record_buffer_segment_size": 10000000    
     },
+    "env":{
+        "wal_device":"RAM disk"
+    },
     "testcases": [
         {
             "base": {
@@ -16,8 +19,5 @@
                 "client_time": 60
             }
         }
-    ],
-    "env":{
-        "wal_device":"RAM disk"
-    }
+    ]
 }

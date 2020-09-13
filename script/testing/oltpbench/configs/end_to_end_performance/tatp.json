@@ -3,6 +3,9 @@
     "server_args":{
         "connection_thread_count": 32
     },
+    "env":{
+        "wal_device":"HDD"
+    },
     "testcases": [
         {
             "base": {

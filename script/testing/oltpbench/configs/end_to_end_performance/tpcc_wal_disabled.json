@@ -4,6 +4,9 @@
         "connection_thread_count": 32,
         "wal_enable": false,
         "record_buffer_segment_size": 10000000
+    },    
+    "env":{
+        "wal_device":"None"
     },
     "testcases": [
         {
@@ -16,8 +19,5 @@
                 "client_time": 60
             }
         }
-    ],
-    "env":{
-        "wal_device":"RAM disk"
-    }
+    ]
 }

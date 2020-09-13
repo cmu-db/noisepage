@@ -4,6 +4,9 @@
         "connection_thread_count": 32,
         "wal_enable": false
     },
+    "env":{
+        "wal_device":"None"
+    },
     "testcases": [
         {
             "base": {

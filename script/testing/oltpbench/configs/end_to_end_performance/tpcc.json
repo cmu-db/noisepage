@@ -3,6 +3,9 @@
     "server_args":{
         "connection_thread_count": 32
     },
+    "env":{
+        "wal_device":"HDD"
+    },
     "testcases": [
         {
             "base": {
@@ -14,8 +17,5 @@
                 "client_time": 60
             }
         }
-    ],
-    "env":{
-        "wal_device":"RAM disk"
-    }
+    ]
 }
