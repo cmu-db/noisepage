@@ -25,6 +25,10 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
           value = &feature.GetNumConcurrent();
           break;
         }
+        case brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS: {
+          value = &feature.GetNumLoops();
+          break;
+        }
         default:
           TERRIER_ASSERT(false, "Invalid feature attribute.");
       }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <thread>
-
 #include "common/constants.h"
 #include "execution/util/execution_common.h"
 

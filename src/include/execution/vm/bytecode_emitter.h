@@ -200,12 +200,6 @@ class BytecodeEmitter {
   /**
    * Emit arbitrary bytecode with one operand
    * @param bytecode bytecode to emit
-   */
-  void Emit(Bytecode bytecode);
-
-  /**
-   * Emit arbitrary bytecode with one operand
-   * @param bytecode bytecode to emit
    * @param operand_1 first operand
    */
   void Emit(Bytecode bytecode, LocalVar operand_1);

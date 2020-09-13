@@ -196,6 +196,11 @@ class ExecutionOperatingUnitFeature {
   }
 
   /**
+   * @returns number of iterations as a reference
+   */
+  size_t &GetNumLoops() { return num_loops_; }
+
+  /**
    * @returns number of iterations
    */
   size_t GetNumLoops() const { return num_loops_; }
