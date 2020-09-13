@@ -45,10 +45,10 @@ class EXPORT ExecutionSettings {
   constexpr bool GetIsParallelQueryExecutionEnabled() const { return is_parallel_execution_enabled_; }
 
   /** @return True if counters are enabled. */
-  constexpr bool GetIsCountersEnabled() const { return is_counters_enabled_; }
+  bool GetIsCountersEnabled() const { return is_counters_enabled_; }
 
   /** @return number of threads used for parallel execution. */
-  constexpr int GetNumberofThreads() const { return number_of_threads_; }
+  size_t GetNumberofThreads() const { return number_of_threads_; }
 
   /** @return True if static partitioner is enabled. */
   constexpr bool GetIsStaticPartitionerEnabled() const { return is_static_partitioner_enabled_; }
