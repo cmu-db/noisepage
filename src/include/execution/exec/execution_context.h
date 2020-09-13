@@ -136,16 +136,6 @@ class EXPORT ExecutionContext {
   void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id, brain::ExecOUFeatureVector *ouvec);
 
   /**
-   * Get the specified feature.
-   * @param value The destination for the value of the feature's attribute.
-   * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
-   * @param feature_id The ID of the feature to be recorded.
-   * @param feature_attribute The attribute of the feature to record.
-   */
-  void GetFeature(uint32_t *value, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                  brain::ExecutionOperatingUnitFeatureAttribute feature_attribute);
-
-  /**
    * Initializes an OU feature vector for a given pipeline
    * @param ouvec OU Feature Vector to initialize
    * @param pipeline_id Pipeline to initialize with

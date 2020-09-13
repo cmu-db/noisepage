@@ -901,7 +901,7 @@ class MiniRunners : public benchmark::Fixture {
   static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads, bool counters) {
     execution::exec::ExecutionSettings settings;
     settings.is_parallel_execution_enabled_ = (num_threads != 0);
-    settings.num_create_index_threads_ = num_threads;
+    settings.number_of_threads_ = num_threads;
     settings.is_counters_enabled_ = counters;
     return settings;
   }

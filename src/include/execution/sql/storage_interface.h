@@ -101,12 +101,10 @@ class EXPORT StorageInterface {
   /**
    * Insert into the current index given a tuple
    * @param table_tuple_slot tuple slot
-   * @param index_pr key for index insert
-   * @param index_oid index oid
+   * @param unique if this insertion is unique
    * @return Whether insertion was successful.
    */
-  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, storage::ProjectedRow *index_pr,
-                            catalog::index_oid_t index_oid);
+  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
 
   /**
    * @returns index heap size
@@ -159,6 +157,7 @@ class EXPORT StorageInterface {
    * Reusable ProjectedRowInitializer for this table access
    */
   storage::ProjectedRowInitializer pri_;
+
   /**
    * Current index being accessed.
    */

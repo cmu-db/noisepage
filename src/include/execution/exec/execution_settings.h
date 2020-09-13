@@ -38,8 +38,11 @@ class EXPORT ExecutionSettings {
   /** @return True if counters are enabled. */
   constexpr bool GetIsCountersEnabled() const { return is_counters_enabled_; }
 
-  /** @return Number of parallel threads to use for CREATE INDEX */
-  constexpr size_t GetNumCreateIndexThreads() const { return num_create_index_threads_; }
+  /** @return number of threads used for parallel execution. */
+  constexpr int GetNumberofThreads() const { return number_of_threads_; }
+
+  /** @return True if static partitioner is enabled. */
+  constexpr bool GetIsStaticPartitionerEnabled() const { return is_static_partitioner_enabled_; }
 
  private:
   double select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD};
@@ -48,7 +51,8 @@ class EXPORT ExecutionSettings {
   float adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ};
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
   bool is_counters_enabled_{common::Constants::IS_COUNTERS_ENABLED};
-  size_t num_create_index_threads_{std::thread::hardware_concurrency()};
+  int number_of_threads_{common::Constants::NUM_THREADS};
+  bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class terrier::runner::MiniRunners;

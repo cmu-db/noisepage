@@ -552,23 +552,12 @@ ast::Expr *CodeGen::TableIterClose(ast::Expr *table_iter) {
   return call;
 }
 
-ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                         ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name) {
-  ast::Expr *call = CallBuiltin(
-      ast::Builtin::TableIterParallel,
-      {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx, MakeExpr(worker_name)});
-  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
-  return call;
-}
-
-ast::Expr *CodeGen::CreateIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                        ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name,
-                                        ast::Identifier storage_interface, catalog::index_oid_t index_oid,
-                                        ast::Expr *pipeline_id) {
-  ast::Expr *call = CallBuiltin(
-      ast::Builtin::TableIterCreateIndexParallel,
-      {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx, MakeExpr(worker_name),
-       MakeExpr(storage_interface), Const32(index_oid.UnderlyingValue()), pipeline_id});
+ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids, ast::Expr *query_state,
+                                         ast::Expr *exec_ctx, ast::Identifier worker_name, ast::Expr *pipeline_id,
+                                         ast::Expr *index_oid) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::TableIterParallel, {Const32(table_oid.UnderlyingValue()), col_oids, query_state,
+                                                    exec_ctx, MakeExpr(worker_name), pipeline_id, index_oid});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

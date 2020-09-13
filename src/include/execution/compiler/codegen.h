@@ -577,30 +577,14 @@ class CodeGen {
    * @param query_state The query state pointer.
    * @param exec_ctx The execution context that we are running in.
    * @param worker_name The work function name.
+   * @param pipeline_id Pipeline ID
+   * @param index_oid Index OID
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
+  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                ast::Identifier worker_name);
-
-  /**
-   * Call \@iterateTableCreateIndexParallel(). Performs a parallel scan over the table with the provided name,
-   * using the provided query state and thread-state container and calling the provided function to
-   * scan tuples and insert into index
-   * @param table_oid The OID of the table to be scanned.
-   * @param col_oids The column OIDs from the table that should be scanned.
-   * @param query_state The query state pointer.
-   * @param exec_ctx The execution context that we are running in.
-   * @param worker_name The work function name.
-   * @param storage_interface The storage interface
-   * @param index_oid The index oid
-   * @param pipeline_id pipeline id
-   * @return The call.
-   */
-  [[nodiscard]] ast::Expr *CreateIndexParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                               ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name,
-                                               ast::Identifier storage_interface, catalog::index_oid_t index_oid,
-                                               ast::Expr *pipeline_id);
+                                                ast::Identifier worker_name, ast::Expr *pipeline_id,
+                                                ast::Expr *index_oid);
 
   /**
    * Call \@abortTxn(exec_ctx).

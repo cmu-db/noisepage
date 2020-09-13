@@ -646,26 +646,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto scan_fn_id = READ_FUNC_ID();
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto index_oid = catalog::index_oid_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
 
     auto scan_fn = reinterpret_cast<sql::TableVectorIterator::ScanFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
-    DISPATCH_NEXT();
-  }
-
-  OP(ParallelCreateIndex) : {
-    auto table_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
-    auto num_oids = READ_UIMM4();
-    auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto scan_fn_id = READ_FUNC_ID();
-    auto storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-    auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-
-    auto scan_fn = reinterpret_cast<sql::TableVectorIterator::CreateIndexFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelCreateIndex(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, storage_interface, index_oid,
-                          pipeline_id);
+    OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, pipeline_id, index_oid);
     DISPATCH_NEXT();
   }
 
@@ -2066,10 +2051,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(StorageInterfaceIndexInsertWithSlot) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
-    auto *index_pr = frame->LocalAt<storage::ProjectedRow *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    auto index_oid = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpStorageInterfaceIndexInsertWithSlot(result, storage_interface, index_pr, tuple_slot, index_oid);
+    auto unique = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexInsertWithSlot(result, storage_interface, tuple_slot, unique);
     DISPATCH_NEXT();
   }
 

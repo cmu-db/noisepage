@@ -38,9 +38,7 @@ class IndexScanTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * Initialize the counters.
    */
-  void InitializeQueryState(FunctionBuilder *function) const override;
-
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 

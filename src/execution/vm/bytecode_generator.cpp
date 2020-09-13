@@ -701,32 +701,11 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
   // The fifth argument is the scan function as an identifier.
   const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
+  LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[5]);
+  LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
   // Emit the bytecode.
   GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
-}
-
-void BytecodeGenerator::VisitBuiltinCreateIndexParallelCall(ast::CallExpr *call) {
-  // The first argument is the table oid, which is integer-typed.
-  LocalVar table_oid = VisitExpressionForRValue(call->Arguments()[0]);
-  // The second argument is the array of column oids.
-  auto *arr_type = call->Arguments()[1]->GetType()->As<ast::ArrayType>();
-  LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[1]);
-  // The third argument is the query state.
-  LocalVar query_state = VisitExpressionForRValue(call->Arguments()[2]);
-  // The fourth argument should be the execution context.
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
-  // The fifth argument is the scan and insert function as an identifier.
-  const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
-  // The sixth argument is a pointer to the storage interface
-  LocalVar storage_interface = VisitExpressionForRValue(call->Arguments()[5]);
-  // The seventh argument is the index oid
-  LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
-  LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[7]);
-  // Emit the bytecode.
-  GetEmitter()->EmitParallelCreateIndex(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                        exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), storage_interface,
-                                        index_oid, pipeline_id);
+                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), pipeline_id, index_oid);
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2239,11 +2218,10 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
     }
     case ast::Builtin::IndexInsertWithSlot: {
       LocalVar cond = GetExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
-      LocalVar index_pr = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, index_pr, tuple_slot,
-                         index_oid);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar unique = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, tuple_slot, unique);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::IndexDelete: {
@@ -2546,10 +2524,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::TableIterParallel: {
       VisitBuiltinTableIterParallelCall(call);
-      break;
-    }
-    case ast::Builtin::TableIterCreateIndexParallel: {
-      VisitBuiltinCreateIndexParallelCall(call);
       break;
     }
     case ast::Builtin::VPIInit:

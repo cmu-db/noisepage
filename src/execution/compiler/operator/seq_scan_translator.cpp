@@ -341,9 +341,13 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const 
 }
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
+  auto *codegen = GetCodeGen();
   DeclareColOids(function);
-  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oids_var_, GetQueryStatePtr(),
-                                                      GetExecutionContext(), work_func));
+  auto pipeline_id = codegen->Const32(GetPipeline()->GetPipelineId().UnderlyingValue());
+  auto index_oid = codegen->Const32(0);
+  auto col_oid = codegen->MakeExpr(col_oids_var_);
+  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oid, GetQueryStatePtr(), GetExecutionContext(),
+                                                      work_func, pipeline_id, index_oid));
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

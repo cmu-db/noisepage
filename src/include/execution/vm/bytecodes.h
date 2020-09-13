@@ -131,9 +131,7 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorGetVPINumTuples, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
-    OperandType::Local, OperandType::FunctionId)                                                                      \
-  F(ParallelCreateIndex, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,              \
-    OperandType::Local, OperandType::FunctionId, OperandType::Local, OperandType::Local, OperandType::Local)          \
+    OperandType::Local, OperandType::FunctionId, OperandType::Local, OperandType::Local)                              \
                                                                                                                       \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
@@ -565,7 +563,7 @@ namespace terrier::execution::vm {
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
   F(StorageInterfaceIndexInsertWithSlot, OperandType::Local, OperandType::Local, OperandType::Local,                  \
-    OperandType::Local, OperandType::Local)                                                                           \
+    OperandType::Local)                                                                                               \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
