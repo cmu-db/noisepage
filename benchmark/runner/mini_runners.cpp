@@ -1227,60 +1227,76 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
 
 void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
   std::ostream null{nullptr};
+  std::vector<int> num_threads = {1, 2, 4, 8, 16};
   std::vector<uint32_t> num_cols = {1, 2, 4, 8, 15};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
                                     10000, 20000, 50000, 100000, 300000, 500000, 1000000};
 
-  bool metrics_enabled = true;
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        // Scale # iterations accordingly
-        // Want to warmup the first query
-        int iters = 1;
-        if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
-          iters += warmup_iterations_num;
-        }
+  const common::action_id_t action_id(1);
+  auto callback = [](common::ManagedPointer<common::ActionContext> action UNUSED_ATTRIBUTE) {};
+  settings::setter_callback_fn setter_callback = callback;
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
+  auto settings = db_main->GetSettingsManager();
 
-        for (int i = 0; i < iters; i++) {
-          if (i != iters - 1 && metrics_enabled) {
-            db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
-            metrics_enabled = false;
-          } else if (i == iters - 1 && !metrics_enabled) {
-            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
-            metrics_enabled = true;
+  bool metrics_enabled = true;
+  for (auto thread : num_threads) {
+    settings->SetBool(settings::Param::override_num_threads, true, common::ManagedPointer(action_context),
+                      setter_callback);
+    settings->SetInt(settings::Param::num_threads, thread, common::ManagedPointer(action_context), setter_callback);
+
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          // Scale # iterations accordingly
+          // Want to warmup the first query
+          int iters = 1;
+          if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
+            iters += warmup_iterations_num;
           }
 
-          std::string create_query;
-          {
-            std::stringstream query_ss;
-            auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
-            query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
-            for (size_t j = 1; j <= col; j++) {
-              query_ss << "col" << j;
-              if (j != col) {
-                query_ss << ",";
-              } else {
-                query_ss << ")";
-              }
+          for (int i = 0; i < iters; i++) {
+            if (i != iters - 1 && metrics_enabled) {
+              db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+              metrics_enabled = false;
+            } else if (i == iters - 1 && !metrics_enabled) {
+              db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+              metrics_enabled = true;
             }
 
-            create_query = query_ss.str();
-          }
-          txn->exec(create_query);
+            std::string create_query;
+            {
+              std::stringstream query_ss;
+              auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
+              query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
+              for (size_t j = 1; j <= col; j++) {
+                query_ss << "col" << j;
+                if (j != col) {
+                  query_ss << ",";
+                } else {
+                  query_ss << ")";
+                }
+              }
 
-          std::string delete_query;
-          {
-            std::stringstream query_ss;
-            query_ss << "DROP INDEX minirunners__" << row;
-            delete_query = query_ss.str();
+              create_query = query_ss.str();
+            }
+            txn->exec(create_query);
+
+            std::string delete_query;
+            {
+              std::stringstream query_ss;
+              query_ss << "DROP INDEX minirunners__" << row;
+              delete_query = query_ss.str();
+            }
+            txn->exec(delete_query);
           }
-          txn->exec(delete_query);
         }
       }
     }
   }
+
+  settings->SetBool(settings::Param::override_num_threads, false, common::ManagedPointer(action_context),
+                    setter_callback);
 }
 
 // NOLINTNEXTLINE

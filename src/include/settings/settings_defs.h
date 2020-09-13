@@ -259,3 +259,21 @@ SETTING_string(
     true,
     terrier::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    override_num_threads,
+    "Overrides the number of threads to use rather than the hardware concurrency",
+    false,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    num_threads,
+    "Number of threads",
+    1,
+    1,
+    128,
+    true,
+    terrier::settings::Callbacks::NoOp
+)

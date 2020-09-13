@@ -1,6 +1,6 @@
 #pragma once
 
-#include <thread>
+#include <thread> // NOLINT
 
 #include "common/constants.h"
 #include "execution/util/execution_common.h"
@@ -8,6 +8,10 @@
 namespace terrier::runner {
 class MiniRunners;
 }  // namespace terrier::runner
+
+namespace terrier::trafficcop {
+class TrafficCop;
+}  // namespace terrier::trafficcop
 
 namespace terrier::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
@@ -65,6 +69,7 @@ class EXPORT ExecutionSettings {
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class terrier::runner::MiniRunners;
+  friend class terrier::trafficcop::TrafficCop;
   friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
   friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoin_Test;
   friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoinWithExtra_Test;
