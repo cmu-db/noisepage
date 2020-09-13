@@ -191,7 +191,7 @@ class Pipeline {
    * @return A vector of expressions that do the work of running a pipeline function and its dependencies
    */
   std::vector<ast::Expr *> CallRunPipelineFunction() const;
-  
+
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
