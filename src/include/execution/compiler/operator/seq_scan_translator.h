@@ -165,7 +165,10 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    * The name of the col_oids that the plan wants to scan over.
    */
   ast::Identifier col_oids_var_;
-  // The number of rows that are scanned.
+
+  /**
+   * The number of rows that are scanned.
+   */
   StateDescriptor::Entry num_scans_;
 };
 
