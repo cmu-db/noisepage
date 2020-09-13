@@ -383,7 +383,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   execution::exec::ExecutionSettings exec_settings{};
-  common::ManagedPointer<metrics::MetricsManager> metrics;
+  common::ManagedPointer<metrics::MetricsManager> metrics = nullptr;
   if (common::thread_context.metrics_store_ != nullptr) {
     metrics = common::thread_context.metrics_store_->MetricsManager();
   }

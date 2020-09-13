@@ -34,7 +34,11 @@ void ExecutionContext::CheckTrackersStopped() {
   }
 }
 
-void ExecutionContext::AggregateMetricsThread() { GetMetricsManager()->Aggregate(); }
+void ExecutionContext::AggregateMetricsThread() {
+  if (GetMetricsManager()) {
+    GetMetricsManager()->Aggregate();
+  }
+}
 
 void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component) {
   TERRIER_ASSERT(component == metrics::MetricsComponent::EXECUTION,

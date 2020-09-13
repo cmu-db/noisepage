@@ -269,7 +269,9 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     ouvec.pipeline_features_[0].SetCardinality(num_tuples);
     ouvec.pipeline_features_[0].SetNumConcurrent(num_concurrent);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    exec_ctx->GetMetricsManager()->Aggregate();
+    if (exec_ctx->GetMetricsManager()) {
+      exec_ctx->GetMetricsManager()->Aggregate();
+    }
   });
 
   timer.ExitStage();
@@ -413,7 +415,9 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     ouvec.pipeline_features_[0].SetCardinality(num_iters);
     ouvec.pipeline_features_[0].SetNumConcurrent(concurrent);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    exec_ctx->GetMetricsManager()->Aggregate();
+    if (exec_ctx->GetMetricsManager()) {
+      exec_ctx->GetMetricsManager()->Aggregate();
+    }
   });
 
   timer.ExitStage();

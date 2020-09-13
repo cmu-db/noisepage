@@ -1,11 +1,22 @@
 #pragma once
 
+#include <thread>
+
 #include "common/constants.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::runner {
 class MiniRunners;
 }  // namespace terrier::runner
+
+namespace terrier::optimizer {
+class IdxJoinTest_SimpleIdxJoinTest_Test;
+class IdxJoinTest_MultiPredicateJoin_Test;
+class IdxJoinTest_MultiPredicateJoinWithExtra_Test;
+class IdxJoinTest_FooOnlyScan_Test;
+class IdxJoinTest_BarOnlyScan_Test;
+class IdxJoinTest_IndexToIndexJoin_Test;
+}  // namespace terrier::optimizer
 
 namespace terrier::execution::exec {
 /**
@@ -49,10 +60,16 @@ class EXPORT ExecutionSettings {
   float adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ};
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
   bool is_counters_enabled_{common::Constants::IS_COUNTERS_ENABLED};
-  int number_of_threads_{common::Constants::NUM_THREADS};
+  size_t number_of_threads_{std::thread::hardware_concurrency()};
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class terrier::runner::MiniRunners;
+  friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
+  friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoin_Test;
+  friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoinWithExtra_Test;
+  friend class terrier::optimizer::IdxJoinTest_FooOnlyScan_Test;
+  friend class terrier::optimizer::IdxJoinTest_BarOnlyScan_Test;
+  friend class terrier::optimizer::IdxJoinTest_IndexToIndexJoin_Test;
 };
 }  // namespace terrier::execution::exec

@@ -613,7 +613,9 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
       ouvec.pipeline_features_[0].SetCardinality(size);
       ouvec.pipeline_features_[0].SetNumConcurrent(estimate);
       exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-      exec_ctx->GetMetricsManager()->Aggregate();
+      if (exec_ctx->GetMetricsManager()) {
+        exec_ctx->GetMetricsManager()->Aggregate();
+      }
     });
   }
 

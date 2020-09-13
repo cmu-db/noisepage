@@ -110,11 +110,6 @@ struct Constants {
   static constexpr const bool IS_COUNTERS_ENABLED = false;
 
   /**
-   * Number of threads of parallel execution
-   */
-  static constexpr const int NUM_THREADS = -1;
-
-  /**
    * Flag indicating if static partitioner is used
    */
   static constexpr const bool IS_STATIC_PARTITIONER_ENABLED = false;

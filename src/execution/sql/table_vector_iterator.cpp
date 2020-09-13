@@ -173,7 +173,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
     }
   }
 
-  if (is_create_idx) {
+  if (is_create_idx && common::thread_context.metrics_store_ != nullptr) {
     brain::ExecOUFeatureVector ouvec;
     exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
     auto index = exec_ctx->GetAccessor()->GetIndex(index_oid);
@@ -189,8 +189,6 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
     exec_ctx->StartPipelineTracker(pipeline_id);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
   }
-
-  TERRIER_ASSERT(common::thread_context.metrics_store_ != nullptr, "non-null metrics store");
 
   double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),
