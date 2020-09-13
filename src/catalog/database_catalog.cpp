@@ -2204,7 +2204,6 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            {type::TypeId::VARIADIC, type::TypeId::VARIADIC},
                                                            execution::ast::Builtin::Concat, true);
   SetProcCtxPtr(txn, postgres::CONCAT_PRO_OID, func_context);
-  txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext(
       "lpad", type::TypeId::VARCHAR, {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
