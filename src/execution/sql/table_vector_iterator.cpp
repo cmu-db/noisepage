@@ -145,7 +145,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   const bool is_static_partitioned = exec_ctx->GetExecutionSettings().GetIsStaticPartitionerEnabled();
   tbb::task_arena limited_arena(num_threads);
   tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
-  size_t num_tasks = (table->table_.data_table_->GetNumBlocks() / min_grain_size) + 1;
+  size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
 
   limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn,
