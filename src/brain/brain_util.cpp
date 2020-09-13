@@ -16,8 +16,6 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "HASHJOIN_BUILD";
     case ExecutionOperatingUnitType::HASHJOIN_PROBE:
       return "HASHJOIN_PROBE";
-    case ExecutionOperatingUnitType::IDXJOIN:
-      return "IDXJOIN";
     case ExecutionOperatingUnitType::SORT_BUILD:
       return "SORT_BUILD";
     case ExecutionOperatingUnitType::SORT_ITERATE:
