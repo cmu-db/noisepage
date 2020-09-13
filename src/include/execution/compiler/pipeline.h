@@ -191,6 +191,9 @@ class Pipeline {
    * @return A vector of expressions that do the work of running a pipeline function and its dependencies
    */
   std::vector<ast::Expr *> CallRunPipelineFunction() const;
+  
+  /** @return The unique ID of this pipeline. */
+  pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
  private:
   // Return the thread-local state initialization and tear-down function names.
@@ -227,10 +230,8 @@ class Pipeline {
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
-  /** @return The unique ID of this pipeline. */
-  pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
-  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
 
   void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 

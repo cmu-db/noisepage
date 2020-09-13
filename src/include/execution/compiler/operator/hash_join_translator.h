@@ -156,6 +156,13 @@ class HashJoinTranslator : public OperatorTranslator {
   StateDescriptor::Entry global_join_ht_;
   StateDescriptor::Entry local_join_ht_;
 
+  // The number of rows that are inserted into the hash table.
+  StateDescriptor::Entry num_build_rows_;
+  // The number of probes that are performed.
+  StateDescriptor::Entry num_probe_rows_;
+  // The number of rows that are matched by the probes.
+  StateDescriptor::Entry num_match_rows_;
+
   // Struct declaration for minirunner.
   ast::StructDecl *struct_decl_;
 };

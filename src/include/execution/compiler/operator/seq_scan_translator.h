@@ -49,6 +49,11 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
+   * Initialize the counters.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
+
+  /**
    * Initialize the FilterManager if required.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
@@ -59,6 +64,9 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
+
+  /** Record the counters for Lin's models. */
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Tear-down the FilterManager if required.
@@ -157,6 +165,8 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    * The name of the col_oids that the plan wants to scan over.
    */
   ast::Identifier col_oids_var_;
+  // The number of rows that are scanned.
+  StateDescriptor::Entry num_scans_;
 };
 
 }  // namespace terrier::execution::compiler

@@ -32,7 +32,7 @@ constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
 /**
  * Size of the index test table
  */
-constexpr uint32_t INDEX_TEST_SIZE = 100000;
+constexpr uint32_t INDEX_TEST_SIZE = 400000;
 
 /**
  * Helper class to generate test tables and their indexes.
@@ -306,6 +306,14 @@ class TableGenerator {
    * @return
    */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
+
+  /**
+   * Generate column data for varchar
+   * @param col_meta
+   * @param num_vals
+   * @return
+   */
+  storage::VarlenEntry *CreateVarcharColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
 
   /**
    * Clone Column Data

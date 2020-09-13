@@ -41,6 +41,7 @@ class BwTreeIndex final : public Index {
       std::equal_to<KeyType>,                  // NOLINT transparent functors can't figure out template
       std::hash<KeyType>, std::equal_to<TupleSlot>, std::hash<TupleSlot>>>
       bwtree_;
+  mutable common::SpinLatch transaction_context_latch_;  // latch used to protect transaction context
 
  public:
   IndexType Type() const final { return IndexType::BWTREE; }
@@ -70,6 +71,8 @@ class BwTreeIndex final : public Index {
 
   void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                            const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) final;
+
+  uint64_t GetSize() const final;
 };
 
 extern template class BwTreeIndex<CompactIntsKey<8>>;
@@ -80,5 +83,6 @@ extern template class BwTreeIndex<CompactIntsKey<32>>;
 extern template class BwTreeIndex<GenericKey<64>>;
 extern template class BwTreeIndex<GenericKey<128>>;
 extern template class BwTreeIndex<GenericKey<256>>;
+extern template class BwTreeIndex<GenericKey<512>>;
 
 }  // namespace terrier::storage::index
