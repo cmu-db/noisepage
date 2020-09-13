@@ -310,10 +310,13 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
       call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
       break;
     }
+<<<<<<< HEAD
     case ast::Builtin::AggHashTableGetInsertCount: {
       call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
       break;
     }
+=======
+>>>>>>> cmudb/master
     case ast::Builtin::AggHashTableInsert: {
       if (!CheckArgCountAtLeast(call, 2)) {
         return;
@@ -881,6 +884,12 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::ExecOUFeatureVectorInitialize:
       expected_arg_count = 3;
       break;
+    case ast::Builtin::ExecutionContextGetFeature:
+      expected_arg_count = 4;
+      break;
+    case ast::Builtin::ExecutionContextRecordFeature:
+      expected_arg_count = 5;
+      break;
     default:
       UNREACHABLE("Impossible execution context call");
   }
@@ -978,6 +987,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+<<<<<<< HEAD
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
       if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), ou_kind)) {
@@ -985,10 +995,49 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
       // Pipeline ID.
+=======
+    case ast::Builtin::ExecutionContextGetFeature: {
+      // Pipeline ID.
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature ID.
       if (!call_args[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
+      // Feature attribute.
+      if (!call_args[3]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Features are 32-bit integers.
+      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32));
+      break;
+    }
+    case ast::Builtin::ExecutionContextRecordFeature: {
+      // Pipeline ID.
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // Feature ID.
+>>>>>>> cmudb/master
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+<<<<<<< HEAD
+=======
+      // Feature attribute.
+      if (!call_args[3]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      // call_args[4] is the value to be recorded, currently unchecked.
+      // Doesn't return anything.
+>>>>>>> cmudb/master
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -3188,7 +3237,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
+<<<<<<< HEAD
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
+=======
+    case ast::Builtin::ExecutionContextGetFeature:
+    case ast::Builtin::ExecutionContextRecordFeature: {
+>>>>>>> cmudb/master
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }
@@ -3330,7 +3384,10 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::AggHashTableInit:
     case ast::Builtin::AggHashTableGetTupleCount:
+<<<<<<< HEAD
     case ast::Builtin::AggHashTableGetInsertCount:
+=======
+>>>>>>> cmudb/master
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLinkEntry:
     case ast::Builtin::AggHashTableLookup:
