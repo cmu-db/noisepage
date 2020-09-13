@@ -118,6 +118,12 @@ class DataTable {
     SlotIterator(const DataTable *table) : table_(table), block_index_(0), is_end_(false) {  // NOLINT
       end_index_ = table_->blocks_size_;
       TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+      if (end_index_ == 1) {
+        common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
+        if (table_->blocks_[0]->GetInsertHead() == 0) {
+          end_index_ = 0;
+        }
+      }
       UpdateFromNextBlock();
     }
 
@@ -134,7 +140,7 @@ class DataTable {
     static auto InvalidTupleSlot() -> TupleSlot { return {nullptr, 0}; }
     const DataTable *table_{};
     uint64_t block_index_ = 0, end_index_ = 0;
-    TupleSlot current_slot_;
+    TupleSlot current_slot_ = {nullptr, 0};
     uint32_t slot_num_ = 0;
     bool is_end_ = false;
   };
