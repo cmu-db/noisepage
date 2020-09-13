@@ -864,6 +864,9 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
   uint32_t expected_arg_count = 1;
 
   switch (builtin) {
+    case ast::Builtin::RegisterMetricsThread:
+    case ast::Builtin::CheckTrackersStopped:
+    case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
       expected_arg_count = 1;
@@ -2548,7 +2551,7 @@ void Sema::CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin bu
       if (!CheckArgCount(call, 3)) {
         return;
       }
-      // Second argument is a TupleSlot
+      // Second argument is a tuple slot
       auto tuple_slot_type = ast::BuiltinType::TupleSlot;
       if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
@@ -3055,48 +3058,9 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinDateFunctionCall(call, builtin);
       break;
     }
-    case ast::Builtin::RegisterMetricsThread: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::CheckTrackersStopped: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::AggregateMetricsThread: {
-      if (!CheckArgCount(call, 1)) {
-        return;
-      }
-
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
+    case ast::Builtin::RegisterMetricsThread:
+    case ast::Builtin::CheckTrackersStopped:
+    case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -3131,12 +3095,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
         ReportIncorrectCallArg(call, 3, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
-      // UPdate Mode
+      // Update Mode
       if (!args[4]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
       }
-      // call_args[4] is the value to be recorded, currently unchecked.
+      // call_args[5] is the value to be recorded, currently unchecked.
       // Doesn't return anything.
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
