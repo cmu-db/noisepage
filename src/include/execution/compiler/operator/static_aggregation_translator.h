@@ -87,6 +87,8 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
     UNREACHABLE("Static aggregations do not produce columns from base tables.");
   }
 
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
  private:
   // Access the plan.
   const planner::AggregatePlanNode &GetAggPlan() const { return GetPlanAs<planner::AggregatePlanNode>(); }

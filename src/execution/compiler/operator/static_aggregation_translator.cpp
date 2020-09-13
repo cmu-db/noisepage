@@ -129,16 +129,22 @@ void StaticAggregationTranslator::InitializeAggregates(FunctionBuilder *function
   }
 }
 
+void StaticAggregationTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    CounterSet(function, num_agg_inputs_, 0);
+  } else {
+    CounterSet(function, num_agg_outputs_, 0);
+  }
+}
+
 void StaticAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsBuildPipeline(pipeline)) {
     if (build_pipeline_.IsParallel()) {
       InitializeAggregates(function, true);
     }
-
-    CounterSet(function, num_agg_inputs_, 0);
-  } else {
-    CounterSet(function, num_agg_outputs_, 0);
   }
+
+  InitializeCounters(pipeline, function);
 }
 
 void StaticAggregationTranslator::BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {

@@ -902,6 +902,12 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
   }
 
   switch (builtin) {
+    case ast::Builtin::RegisterMetricsThread:
+    case ast::Builtin::CheckTrackersStopped:
+    case ast::Builtin::AggregateMetricsThread: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::ExecutionContextAddRowsAffected: {
       if (!CheckArgCount(call, 2)) {
         return;
