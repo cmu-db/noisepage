@@ -1,6 +1,6 @@
 #pragma once
 
-#include <thread> // NOLINT
+#include <thread>  // NOLINT
 
 #include "common/constants.h"
 #include "execution/util/execution_common.h"

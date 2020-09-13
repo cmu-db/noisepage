@@ -358,7 +358,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
-  if (settings_manager_->GetBool(settings::Param::override_num_threads)) {
+  if (settings_manager_ && settings_manager_->GetBool(settings::Param::override_num_threads)) {
     exec_settings.number_of_threads_ = settings_manager_->GetInt(settings::Param::num_threads);
   }
 
@@ -387,7 +387,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   execution::exec::ExecutionSettings exec_settings{};
-  if (settings_manager_->GetBool(settings::Param::override_num_threads)) {
+  if (settings_manager_ && settings_manager_->GetBool(settings::Param::override_num_threads)) {
     exec_settings.number_of_threads_ = settings_manager_->GetInt(settings::Param::num_threads);
   }
 

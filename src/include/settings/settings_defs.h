@@ -28,7 +28,7 @@ SETTING_int(
     "The maximum number of record buffer segments in the system. (default: 100000)",
     100000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolSizeLimit
 )
@@ -39,7 +39,7 @@ SETTING_int(
     "The minimum number of record buffer segments to keep allocated in the system (default: 10000)",
     10000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolReuseLimit
 )
@@ -50,7 +50,7 @@ SETTING_int(
     "The maximum number of storage blocks for the catalog. (default: 100000)",
     100000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BlockStoreSizeLimit
 )
@@ -61,7 +61,7 @@ SETTING_int(
     "The minimum number of storage blocks for the catalog to keep allocated (default: 1000)",
     1000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BlockStoreReuseLimit
 )

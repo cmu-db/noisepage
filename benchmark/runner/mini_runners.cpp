@@ -2262,6 +2262,24 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
     ->Apply(GenCreateIndexArguments);
 
 void InitializeRunnersState() {
+  std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+  settings::SettingsManager::ConstructParamMap(param_map);
+
+  size_t limit = 1000000000;
+  auto sql_val = execution::sql::Integer(limit);
+  param_map.find(settings::Param::block_store_size)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::block_store_reuse)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::record_buffer_segment_size)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::record_buffer_segment_reuse)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::block_store_size)->second.max_value_ = limit;
+  param_map.find(settings::Param::block_store_reuse)->second.max_value_ = limit;
+  param_map.find(settings::Param::record_buffer_segment_size)->second.max_value_ = limit;
+  param_map.find(settings::Param::record_buffer_segment_reuse)->second.max_value_ = limit;
+
   auto db_main_builder = DBMain::Builder()
                              .SetUseGC(true)
                              .SetUseCatalog(true)
@@ -2274,6 +2292,8 @@ void InitializeRunnersState() {
                              .SetUseExecution(true)
                              .SetUseTrafficCop(true)
                              .SetUseNetwork(true)
+                             .SetUseSettingsManager(true)
+                             .SetSettingsParameterMap(std::move(param_map))
                              .SetNetworkPort(terrier::runner::port);
 
   db_main = db_main_builder.Build().release();
