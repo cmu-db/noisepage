@@ -6,6 +6,7 @@
 #include <list>
 #include <utility>
 #include <vector>
+#include <string>
 
 #include "catalog/catalog_defs.h"
 #include "metrics/abstract_metric.h"

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <string>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
