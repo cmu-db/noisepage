@@ -692,7 +692,8 @@ class DBMain {
             static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_persist_threshold));
       }
 
-      use_metrics_ = use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics);
+      use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
+      use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics_thread);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 

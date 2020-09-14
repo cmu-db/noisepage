@@ -173,6 +173,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_thread,
+    "Use a thread for the metrics sub-system (default: true).",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     metrics_logging,
     "Metrics collection for the Logging component (default: false).",
     false,
