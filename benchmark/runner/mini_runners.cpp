@@ -1256,14 +1256,20 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
   const common::action_id_t action_id(1);
   auto callback = [](common::ManagedPointer<common::ActionContext> action UNUSED_ATTRIBUTE) {};
   settings::setter_callback_fn setter_callback = callback;
-  auto action_context = std::make_unique<common::ActionContext>(action_id);
   auto settings = db_main->GetSettingsManager();
 
   bool metrics_enabled = true;
   for (auto thread : num_threads) {
-    settings->SetBool(settings::Param::override_num_threads, true, common::ManagedPointer(action_context),
-                      setter_callback);
-    settings->SetInt(settings::Param::num_threads, thread, common::ManagedPointer(action_context), setter_callback);
+    {
+      auto action_context = std::make_unique<common::ActionContext>(action_id);
+      settings->SetBool(settings::Param::override_num_threads, true, common::ManagedPointer(action_context),
+                        setter_callback);
+    }
+
+    {
+      auto action_context = std::make_unique<common::ActionContext>(action_id);
+      settings->SetInt(settings::Param::num_threads, thread, common::ManagedPointer(action_context), setter_callback);
+    }
 
     for (auto type : types) {
       for (auto col : num_cols) {
@@ -1315,6 +1321,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
     }
   }
 
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
   settings->SetBool(settings::Param::override_num_threads, false, common::ManagedPointer(action_context),
                     setter_callback);
 }
@@ -2317,6 +2324,10 @@ void InitializeRunnersState() {
   param_map.find(settings::Param::block_store_reuse)->second.max_value_ = limit;
   param_map.find(settings::Param::record_buffer_segment_size)->second.max_value_ = limit;
   param_map.find(settings::Param::record_buffer_segment_reuse)->second.max_value_ = limit;
+
+  // Set Network Port
+  param_map.find(settings::Param::port)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(port));
 
   // Need to disable metrics thread
   param_map.find(settings::Param::metrics_thread)->second.value_ =

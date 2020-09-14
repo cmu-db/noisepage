@@ -877,7 +877,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get(), true);
 
   // Run & Check
   auto executable =

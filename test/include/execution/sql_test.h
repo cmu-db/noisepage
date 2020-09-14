@@ -51,10 +51,15 @@ class SqlBasedTest : public TplTest {
   common::ManagedPointer<storage::BlockStore> BlockStore() { return block_store_; }
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
-                                                      const planner::OutputSchema *schema = nullptr) {
+                                                      const planner::OutputSchema *schema = nullptr,
+                                                      bool force_serial = false) {
+    exec::ExecutionSettings settings = *exec_settings_;
+    if (force_serial) {
+      settings.is_parallel_execution_enabled_ = false;
+    }
+
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback, schema,
-                                                    common::ManagedPointer(accessor_), *exec_settings_,
-                                                    metrics_manager_);
+                                                    common::ManagedPointer(accessor_), settings, metrics_manager_);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
