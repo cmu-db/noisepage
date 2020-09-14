@@ -48,7 +48,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
     auto &query_trace_outfile = (*outfiles)[1];
 
     for (const auto &data : query_text_) {
-      query_text_outfile << data.query_id_ << ", " << data.query_text_ << data.timestamp_ << ", ";
+      query_text_outfile << data.query_id_ << ", " << data.query_text_ << ", " << data.timestamp_ << ", ";
       query_text_outfile << std::endl;
     }
     for (const auto &data : query_trace_) {
