@@ -36,7 +36,7 @@ TEST_F(StringFunctionsTests, Concat) {
     auto null_string = StringVal::Null();
     const StringVal *args[2] = {&null_string, &null_string};
     StringFunctions::Concat(&result, Ctx(), 2, args);
-    EXPECT_TRUE(result.is_null_);
+    EXPECT_EQ(StringVal(""), result);
 
     auto xy_string = StringVal("xy");
     args[1] = &xy_string;
