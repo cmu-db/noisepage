@@ -3079,6 +3079,16 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }
+    case ast::Builtin::ExecOUFeatureVectorDestroy: {
+      const auto &args = call->Arguments();
+      auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
+      if (!IsPointerToSpecificBuiltin(args[0]->GetType(), ou_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ou_kind)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
       // ExecOperatingUnitFeatureVector
       const auto &args = call->Arguments();

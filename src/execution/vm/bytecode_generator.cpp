@@ -2496,6 +2496,11 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitExecutionContextCall(call, builtin);
       break;
     }
+    case ast::Builtin::ExecOUFeatureVectorDestroy: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorDestroy, ouvector);
+      break;
+    }
     case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
       LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);

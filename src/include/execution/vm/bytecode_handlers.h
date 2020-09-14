@@ -252,6 +252,8 @@ VM_OP_HOT void OpExecOUFeatureVectorInitialize(terrier::execution::exec::Executi
   exec_ctx->InitializeExecOUFeatureVector(ouvec, pipeline_id);
 }
 
+VM_OP_HOT void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Destroy(); }
+
 VM_OP_WARM
 void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,
                               terrier::execution::exec::ExecutionContext *const exec_ctx) {

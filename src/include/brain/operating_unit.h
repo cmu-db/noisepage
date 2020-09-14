@@ -284,6 +284,15 @@ class EXPORT ExecOUFeatureVector {
   void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
                      ExecutionOperatingUnitFeatureAttribute modifier, ExecutionOperatingUnitFeatureUpdateMode mode,
                      uint32_t val);
+
+  ~ExecOUFeatureVector() { Destroy(); }
+
+  void Destroy() {
+    // This assumes shrink_to_fit() will remove memory.
+    // Otherwise we can possibly leak memory on "exceptional execution"
+    pipeline_features_.clear();
+    pipeline_features_.shrink_to_fit();
+  }
 };
 
 /**

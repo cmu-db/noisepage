@@ -34,6 +34,12 @@ void OutputTranslator::InitializePipelineState(const Pipeline &pipeline, Functio
   InitializeCounters(pipeline, function);
 }
 
+void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto out_buffer = output_buffer_.Get(GetCodeGen());
+  ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFree, {out_buffer});
+  function->Append(GetCodeGen()->MakeStmt(alloc_call));
+}
+
 void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
                                            terrier::execution::compiler::FunctionBuilder *function) const {
   // First generate the call @resultBufferAllocRow(execCtx)

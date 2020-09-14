@@ -45,6 +45,7 @@ namespace terrier::execution::ast {
   F(ThreadStateContainerClear, tlsClear)                                \
   F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
   F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
+  F(ExecOUFeatureVectorDestroy, execOUFeatureVectorDestroy)             \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \

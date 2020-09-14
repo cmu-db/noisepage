@@ -109,6 +109,7 @@ namespace terrier::execution::vm {
   F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
     OperandType::Local, OperandType::Local)                                                                           \
   F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(ExecOUFeatureVectorDestroy, OperandType::Local)                                                                   \
                                                                                                                       \
   F(RegisterMetricsThread, OperandType::Local)                                                                        \
   F(CheckTrackersStopped, OperandType::Local)                                                                         \

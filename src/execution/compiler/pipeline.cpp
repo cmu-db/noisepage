@@ -206,6 +206,11 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
     for (auto *op : steps_) {
       op->TearDownPipelineState(*this, &builder);
     }
+
+    // Destroy the pipeline features
+    std::vector<ast::Expr *> args{oufeatures_.GetPtr(codegen_)};
+    auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorDestroy, args);
+    builder.Append(codegen_->MakeStmt(call));
   }
   return builder.Finish();
 }
