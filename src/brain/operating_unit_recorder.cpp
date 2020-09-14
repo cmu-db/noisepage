@@ -55,8 +55,8 @@ namespace terrier::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
-  auto *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
-  auto &fields = type->Fields();
+  auto *struct_type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
+  auto &fields = struct_type->Fields();
 
   // Rough loop to get an estimate size of entire struct
   size_t total = total_offset;
@@ -66,9 +66,10 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
       total += field_repr->GetType()->GetSize();
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
-      auto *type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
-      if (type != nullptr) {
-        total += type->GetSize();
+      auto *builtin_type =
+          ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
+      if (builtin_type != nullptr) {
+        total += builtin_type->GetSize();
       }
     }
   }
@@ -81,11 +82,9 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
 
 void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key) {
   if (type == type::TypeId::VARCHAR) {
-    // Mini-Runners can't actually model varchars right now.
-    // So we substitute a key_size += 64, num_key += 15 (since already counts 1)
-    // to model varchars.
-    *key_size = *key_size + 64;
-    *num_key = *num_key + 15;
+    // TODO(lin): Some how varchar in execution engine is 24 bytes. I don't really know why, but just special case
+    //  here since it's different than the storage size (16 bytes under inline)
+    *key_size = *key_size + 24;
   } else {
     *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
   }
@@ -227,11 +226,23 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
 
   if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
 
+  // This is a hack.
+  // Certain translators don't own their features, but pass them further down the pipeline.
+  std::vector<execution::translator_id_t> translator_ids;
+  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
+  translator_ids.emplace_back(translator->GetTranslatorId());
+  while (translator->IsCountersPassThrough()) {
+    translator = translator->GetParentTranslator();
+    translator_ids.emplace_back(translator->GetTranslatorId());
+  }
+
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
     TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
+    bool same_translator = std::find(translator_ids.cbegin(), translator_ids.cend(), itr->second.GetTranslatorId()) !=
+                           translator_ids.cend();
     if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
-        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type)) {
+        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type) && same_translator) {
       itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
       itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
       itr->second.AddMemFactor(mem_factor);
@@ -239,7 +250,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
+  auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
+                                               cardinality, mem_factor, num_loops);
   pipeline_features_.emplace(type, std::move(feature));
 }
 
@@ -265,7 +277,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
           " AND S_QUANTITY < $6" &&
       (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 200;
+      *num_rows = 20;
       *cardinality = 1;
     }
 
@@ -359,13 +371,11 @@ void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   // For a sequential scan:
   // - # keys is how mahy columns are scanned (either # cols in table OR plan->GetColumnOids().size()
   // - Total key size is the size of the columns scanned
-  size_t key_size = 0;
+  size_t key_size;
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
-    // We are likely doing an update/delete -- so record key_size = 4; num_keys = 1
-    // This mimics the mini_runners
-    key_size = 4;
-    num_keys = 1;
+    key_size = ComputeKeySize(plan->GetTableOid(), plan->GetColumnOids(), &num_keys);
+    num_keys = plan->GetColumnOids().size();
   } else {
     auto &schema = accessor_->GetSchema(plan->GetTableOid());
     num_keys = schema.GetColumns().size();
@@ -410,9 +420,8 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
-      plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
-    // Right side stiches together outputs
+      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY) {
+    // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
   }
 }
@@ -455,12 +464,12 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     auto num_key = plan->GetRightHashKeys().size();
     auto key_size = ComputeKeySize(plan->GetRightHashKeys(), &num_key);
     AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, key_size, num_key, plan, 1, 1);
-  }
 
-  // Computes against OutputSchema/Join predicate which will
-  // use the rows/cardinalities of what the HJ plan produces
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+    // Computes against OutputSchema/Join predicate which will
+    // use the rows/cardinalities of what the HJ plan produces
+    VisitAbstractJoinPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
@@ -642,11 +651,11 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
-    RecordAggregateTranslator(translator, plan);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+  if (plan->IsStaticAggregation()) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
   }
 }
