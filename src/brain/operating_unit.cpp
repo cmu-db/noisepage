@@ -31,26 +31,29 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
         }
         default:
           TERRIER_ASSERT(false, "Invalid feature attribute.");
+          return;
       }
     }
   }
 
   TERRIER_ASSERT(value != nullptr, "feature_id could not be found");
-  switch (mode) {
-    case brain::ExecutionOperatingUnitFeatureUpdateMode::SET: {
-      *value = val;
-      break;
+  if (value != nullptr) {
+    switch (mode) {
+      case brain::ExecutionOperatingUnitFeatureUpdateMode::SET: {
+        *value = val;
+        break;
+      }
+      case brain::ExecutionOperatingUnitFeatureUpdateMode::ADD: {
+        *value = *value + val;
+        break;
+      }
+      case brain::ExecutionOperatingUnitFeatureUpdateMode::MULT: {
+        *value = *value * val;
+        break;
+      }
+      default:
+        TERRIER_ASSERT(false, "Invalid feature update mode");
     }
-    case brain::ExecutionOperatingUnitFeatureUpdateMode::ADD: {
-      *value = *value + val;
-      break;
-    }
-    case brain::ExecutionOperatingUnitFeatureUpdateMode::MULT: {
-      *value = *value * val;
-      break;
-    }
-    default:
-      TERRIER_ASSERT(false, "Invalid feature update mode");
   }
 }
 

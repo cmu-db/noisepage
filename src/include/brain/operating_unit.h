@@ -85,7 +85,7 @@ class ExecutionOperatingUnitFeature {
   friend class execution::sql::AggregationHashTable;
 
  public:
-  ExecutionOperatingUnitFeature() {}
+  ExecutionOperatingUnitFeature() = default;
 
   /**
    * Constructor for ExecutionOperatingUnitFeature

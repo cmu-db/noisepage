@@ -56,7 +56,7 @@ class EXPORT ExecutionContext {
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
         mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
         schema_(schema),
-        callback_(callback),
+        callback_(std::move(callback)),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor),
         metrics_manager_(metrics_manager) {}
@@ -76,7 +76,7 @@ class EXPORT ExecutionContext {
 
     // Use C++ placement new
     auto size = sizeof(OutputBuffer);
-    OutputBuffer *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
+    auto *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
     new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
     return buffer;
   }

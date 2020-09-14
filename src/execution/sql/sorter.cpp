@@ -185,10 +185,12 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
 
     exec_ctx->StartPipelineTracker(pipeline_id);
-    ouvec.pipeline_features_.erase(
-        std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(), [](const auto &feature) {
-          return feature.GetExecutionOperatingUnitType() != brain::ExecutionOperatingUnitType::SORT_BUILD;
-        }));
+    ouvec.pipeline_features_.erase(std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(),
+                                                  [](const auto &feature) {
+                                                    return feature.GetExecutionOperatingUnitType() !=
+                                                           brain::ExecutionOperatingUnitType::SORT_BUILD;
+                                                  }),
+                                   ouvec.pipeline_features_.end());
 
     // Reserve room for all tuples
     tuples_.reserve(num_tuples);
@@ -257,10 +259,12 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     exec_ctx->RegisterThread();
     exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
     exec_ctx->StartPipelineTracker(pipeline_id);
-    ouvec.pipeline_features_.erase(
-        std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(), [](const auto &feature) {
-          return feature.GetExecutionOperatingUnitType() != brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
-        }));
+    ouvec.pipeline_features_.erase(std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(),
+                                                  [](const auto &feature) {
+                                                    return feature.GetExecutionOperatingUnitType() !=
+                                                           brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+                                                  }),
+                                   ouvec.pipeline_features_.end());
 
     sorter->Sort();
 
@@ -391,10 +395,12 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     exec_ctx->RegisterThread();
     exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
     exec_ctx->StartPipelineTracker(pipeline_id);
-    ouvec.pipeline_features_.erase(
-        std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(), [](const auto &feature) {
-          return feature.GetExecutionOperatingUnitType() != brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
-        }));
+    ouvec.pipeline_features_.erase(std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(),
+                                                  [](const auto &feature) {
+                                                    return feature.GetExecutionOperatingUnitType() !=
+                                                           brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+                                                  }),
+                                   ouvec.pipeline_features_.end());
 
     std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
         heap_cmp, work.input_ranges_);
