@@ -33,16 +33,18 @@ TEST_F(StringFunctionsTests, Concat) {
   // Nulls
   {
     auto result = StringVal("");
-    StringVal args[2] = {StringVal::Null(), StringVal::Null()};
+    auto null_string = StringVal::Null();
+    const StringVal *args[2] = {&null_string, &null_string};
     StringFunctions::Concat(&result, Ctx(), 2, args);
     EXPECT_TRUE(result.is_null_);
 
-    args[1] = StringVal("xy");
+    auto xy_string = StringVal("xy");
+    args[1] = &xy_string;
     StringFunctions::Concat(&result, Ctx(), 2, args);
     EXPECT_EQ(StringVal("xy"), result);
 
-    args[0] = StringVal("xy");
-    args[1] = StringVal::Null();
+    args[0] = &xy_string;
+    args[1] = &null_string;
     StringFunctions::Concat(&result, Ctx(), 2, args);
     EXPECT_EQ(StringVal("xy"), result);
   }
@@ -50,7 +52,9 @@ TEST_F(StringFunctionsTests, Concat) {
   // Simple Case
   {
     auto result = StringVal("");
-    StringVal args[2] = {StringVal("xyz"), StringVal("abc")};
+    auto xyz = StringVal("xyz");
+    auto abc = StringVal("abc");
+    const StringVal *args[2] = {&xyz, &abc};
     StringFunctions::Concat(&result, Ctx(), 2, args);
     EXPECT_TRUE(StringVal("xyzabc") == result);
   }
@@ -58,7 +62,8 @@ TEST_F(StringFunctionsTests, Concat) {
   // Single arg
   {
     auto result = StringVal("");
-    StringVal args[1] = {StringVal("xyz")};
+    auto xyz = StringVal("xyz");
+    const StringVal *args[1] = {&xyz};
     StringFunctions::Concat(&result, Ctx(), 1, args);
     EXPECT_EQ(StringVal("xyz"), result);
   }
@@ -66,7 +71,10 @@ TEST_F(StringFunctionsTests, Concat) {
   // Multiple arg
   {
     auto result = StringVal("");
-    StringVal args[3] = {StringVal("xyz"), StringVal("666"), StringVal("towel")};
+    auto xyz = StringVal("xyz");
+    auto sixsixsix = StringVal("666");
+    auto towel = StringVal("towel");
+    const StringVal *args[3] = {&xyz, &sixsixsix, &towel};
     StringFunctions::Concat(&result, Ctx(), 3, args);
     EXPECT_EQ(StringVal("xyz666towel"), result);
   }

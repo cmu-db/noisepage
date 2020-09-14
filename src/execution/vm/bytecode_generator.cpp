@@ -2355,8 +2355,17 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       LocalVar num_inputs_var =
           GetCurrentFunction()->NewLocal(ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::Int64));
       GetEmitter()->EmitAssignImm8(num_inputs_var, static_cast<int64_t>(num_inputs));
-      auto string_type = ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::StringVal);
-      LocalVar args = CreateArgumentArray(call->Arguments(), 1, call->NumArgs(), string_type);
+
+      const auto string_type = ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::StringVal);
+      const auto array_type = ast::ArrayType::Get(num_inputs, string_type->PointerTo());
+
+      LocalVar args = GetCurrentFunction()->NewLocal(array_type);
+      auto arr_elem_ptr = GetCurrentFunction()->NewLocal(string_type->PointerTo()->PointerTo());
+      for (uint32_t i = 0; i < num_inputs; i++) {
+        GetEmitter()->EmitLea(arr_elem_ptr, args, i * 8);
+        LocalVar input_string = VisitExpressionForLValue(call->Arguments()[i + 1]);
+        GetEmitter()->EmitAssign(Bytecode::Assign8, arr_elem_ptr.ValueOf(), input_string);
+      }
 
       GetEmitter()->Emit(Bytecode::Concat, ret, exec_ctx, num_inputs_var, args);
       break;
@@ -3494,20 +3503,6 @@ LocalVar BytecodeGenerator::NewStaticString(ast::Context *ctx, const ast::Identi
   static_string_cache_.emplace(string, static_local);
 
   return static_local;
-}
-
-LocalVar BytecodeGenerator::CreateArgumentArray(const util::RegionVector<execution::ast::Expr *> &arguments,
-                                                const uint32_t start, const uint32_t end, execution::ast::Type *type) {
-  auto num_args = end - start;
-  const auto array_type = ast::ArrayType::Get(num_args, type->PointerTo());
-  LocalVar args = GetCurrentFunction()->NewLocal(array_type);
-  auto arr_elem_ptr = GetCurrentFunction()->NewLocal(type->PointerTo()->PointerTo());
-  for (uint32_t i = 0; i < num_args; i++) {
-    GetEmitter()->EmitLea(arr_elem_ptr, args, i * 8);
-    LocalVar input_string = VisitExpressionForLValue(arguments[i + start]);
-    GetEmitter()->EmitAssign(Bytecode::Assign8, arr_elem_ptr.ValueOf(), input_string);
-  }
-  return args;
 }
 
 LocalVar BytecodeGenerator::VisitExpressionForLValue(ast::Expr *expr) {
