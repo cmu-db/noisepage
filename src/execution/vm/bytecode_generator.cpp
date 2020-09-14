@@ -2352,22 +2352,19 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::Concat: {
       const auto num_inputs = call->NumArgs() - 1;
-      LocalVar num_inputs_var =
-          GetCurrentFunction()->NewLocal(ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::Int64));
-      GetEmitter()->EmitAssignImm8(num_inputs_var, static_cast<int64_t>(num_inputs));
 
       const auto string_type = ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::StringVal);
       const auto array_type = ast::ArrayType::Get(num_inputs, string_type->PointerTo());
 
-      LocalVar args = GetCurrentFunction()->NewLocal(array_type);
+      LocalVar inputs = GetCurrentFunction()->NewLocal(array_type);
       auto arr_elem_ptr = GetCurrentFunction()->NewLocal(string_type->PointerTo()->PointerTo());
       for (uint32_t i = 0; i < num_inputs; i++) {
-        GetEmitter()->EmitLea(arr_elem_ptr, args, i * 8);
+        GetEmitter()->EmitLea(arr_elem_ptr, inputs, i * 8);
         LocalVar input_string = VisitExpressionForLValue(call->Arguments()[i + 1]);
         GetEmitter()->EmitAssign(Bytecode::Assign8, arr_elem_ptr.ValueOf(), input_string);
       }
 
-      GetEmitter()->Emit(Bytecode::Concat, ret, exec_ctx, num_inputs_var, args);
+      GetEmitter()->EmitConcat(ret, exec_ctx, inputs, num_inputs);
       break;
     }
     default:

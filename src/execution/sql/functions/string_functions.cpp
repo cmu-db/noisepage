@@ -9,19 +9,19 @@
 
 namespace terrier::execution::sql {
 
-void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const int64_t num_inputs,
+void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const uint32_t num_inputs,
                              const StringVal *inputs[]) {
   TERRIER_ASSERT(num_inputs != 0, "Concat should have at least one argument");
 
   std::size_t length = 0;
-  for (int64_t i = 0; i < num_inputs; i++) {
+  for (std::size_t i = 0; i < num_inputs; i++) {
     if (!inputs[i]->is_null_) {
       length += inputs[i]->GetLength();
     }
   }
 
   char *const ptr = ctx->GetStringAllocator()->PreAllocate(length);
-  for (int64_t i = 0, offset = 0; i < num_inputs; i++) {
+  for (std::size_t i = 0, offset = 0; i < num_inputs; i++) {
     if (!inputs[i]->is_null_) {
       std::memcpy(ptr + offset, inputs[i]->GetContent(), inputs[i]->GetLength());
       offset += inputs[i]->GetLength();
