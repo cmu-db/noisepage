@@ -77,6 +77,9 @@ class EXPORT StorageInterface {
    */
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
+  /** @return The size of the current index. */
+  uint64_t IndexGetSize() const;
+
   /**
    * Delete item from the current index.
    * @param table_tuple_slot slot corresponding to the item.
@@ -102,6 +105,11 @@ class EXPORT StorageInterface {
    * @return Whether insertion was successful.
    */
   bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
+
+  /**
+   * @returns index heap size
+   */
+  uint32_t GetIndexHeapSize();
 
  protected:
   /**

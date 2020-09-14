@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "optimizer/optimizer_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"

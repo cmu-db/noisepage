@@ -226,6 +226,13 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {result_type, left, right};
   }
 
+  // TODO(pmenon): revisit with a fix for down/up-casting integers #1174
+  // If both input types are integers, we don't need to do any work.
+  if (left->GetType()->IsIntegerType() && right->GetType()->IsIntegerType()) {
+    ast::Type *result_type = ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool);
+    return {result_type, left, right};
+  }
+
   // Check SQL comparisons separately.
   if (left->GetType()->IsSqlValueType() || right->GetType()->IsSqlValueType()) {
     return CheckSqlComparisonOperands(op, pos, left, right);

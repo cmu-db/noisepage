@@ -17,10 +17,9 @@
 //
 // Modified from the Apache Arrow project for the Terrier project.
 
-#include <common/macros.h>
-
 #include "benchmark/benchmark.h"
 #include "benchmark_util/benchmark_config.h"
+#include "common/macros.h"
 #include "loggers/loggers_util.h"
 
 int main(int argc, char **argv) {

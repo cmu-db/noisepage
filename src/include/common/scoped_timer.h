@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>  // NOLINT
+
 #include "common/macros.h"
 
 namespace terrier::common {
