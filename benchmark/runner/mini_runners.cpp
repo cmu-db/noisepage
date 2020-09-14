@@ -739,6 +739,22 @@ static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
 
   for (auto thread : num_threads) {
     for (auto arg : args) {
+      auto row = arg[4];
+      auto arg_car = arg[5];
+      if (row > create_index_small_limit) {
+        // For these, we get a memory explosion if the cardinality is too low.
+        int64_t car = 1;
+        while (car < row) {
+          car *= 2;
+        }
+
+        // This car is the ceiling
+        car = car / (pow(2, create_index_large_cardinality_num));
+        if (arg_car < car) {
+          continue;
+        }
+      }
+
       arg.push_back(thread);
       b->Args(arg);
     }
@@ -2646,16 +2662,9 @@ int main(int argc, char **argv) {
     std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
     if (filter_info.found_) {
-      auto modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
-      for (auto mode : modes) {
-        terrier::runner::MiniRunners::mode = mode;
-
-        // Pass straight through to gbenchmark
-        benchmark::Initialize(&argc, argv);
-        benchmark::RunSpecifiedBenchmarks();
-        terrier::runner::InvokeGC();
-      }
-
+      // Pass straight through to gbenchmark
+      benchmark::Initialize(&argc, argv);
+      benchmark::RunSpecifiedBenchmarks();
       terrier::runner::EndRunnersState();
     } else {
       RunMiniRunners();
