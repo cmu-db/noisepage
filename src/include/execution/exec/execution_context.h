@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "brain/brain_defs.h"
+#include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
@@ -16,11 +18,11 @@
 
 namespace terrier::brain {
 class PipelineOperatingUnits;
-}
+}  // namespace terrier::brain
 
 namespace terrier::catalog {
 class CatalogAccessor;
-}
+}  // namespace terrier::catalog
 
 namespace terrier::execution::exec {
 
@@ -106,11 +108,37 @@ class EXPORT ExecutionContext {
   void EndResourceTracker(const char *name, uint32_t len);
 
   /**
+   * Start the resource tracker for a pipeline.
+   * @param pipeline_id id of the pipeline
+   */
+  void StartPipelineTracker(pipeline_id_t pipeline_id);
+
+  /**
    * End the resource tracker for a pipeline and record the metrics
    * @param query_id query identifier
    * @param pipeline_id id of the pipeline
    */
   void EndPipelineTracker(query_id_t query_id, pipeline_id_t pipeline_id);
+
+  /**
+   * Get the specified feature.
+   * @param value The destination for the value of the feature's attribute.
+   * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
+   * @param feature_id The ID of the feature to be recorded.
+   * @param feature_attribute The attribute of the feature to record.
+   */
+  void GetFeature(uint32_t *value, pipeline_id_t pipeline_id, feature_id_t feature_id,
+                  brain::ExecutionOperatingUnitFeatureAttribute feature_attribute);
+
+  /**
+   * Record the specified feature.
+   * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
+   * @param feature_id The ID of the feature to be recorded.
+   * @param feature_attribute The attribute of the feature to record.
+   * @param value The value for the feature's attribute.
+   */
+  void RecordFeature(pipeline_id_t pipeline_id, feature_id_t feature_id,
+                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute, uint32_t value);
 
   /**
    * @return the db oid
@@ -184,6 +212,10 @@ class EXPORT ExecutionContext {
   // TODO(WAN): EXEC PORT we used to push the memory tracker into the string allocator, do this
   sql::VarlenHeap string_allocator_;
   common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
+
+  pipeline_id_t current_pipeline_features_id_;
+  std::vector<brain::ExecutionOperatingUnitFeature> current_pipeline_features_;
+
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
