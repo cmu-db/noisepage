@@ -245,14 +245,14 @@ TEST_F(MetricsTests, QueryCSVTest) {
   const auto aggregated_data = reinterpret_cast<QueryTraceMetricRawData *>(
       metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::QUERY_TRACE)).get());
   EXPECT_NE(aggregated_data, nullptr);
-  EXPECT_GE(aggregated_data->query_trace_.size(), 2);  // 2 data point recorded
+  EXPECT_EQ(aggregated_data->query_trace_.size(), 2);  // 2 data point recorded
   if (!(aggregated_data->query_trace_.empty())) {
-    EXPECT_GE(aggregated_data->query_trace_.begin()->timestamp_, 2);  // 2 records: insert, select
+    EXPECT_EQ(aggregated_data->query_trace_.begin()->timestamp_, 2);  // 2 records: insert, select
   }
-  EXPECT_GE(aggregated_data->query_text_.size(), 2);  // 2 data point recorded
+  EXPECT_EQ(aggregated_data->query_text_.size(), 2);  // 2 data point recorded
   if (!(aggregated_data->query_text_.empty())) {
     EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_,
-              "INSERT INTO TableA VALUES (1, 'abc');"); 
+              "INSERT INTO TableA VALUES (1, 'abc');");
   }
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->query_trace_.size(), 0);
