@@ -150,9 +150,6 @@ class CompilationContext {
   // The code generator instance.
   CodeGen codegen_;
 
-  // Whether counters are enabled.
-  bool counters_enabled_;
-
   // Cached identifiers.
   ast::Identifier query_state_var_;
   ast::Identifier query_state_type_;
@@ -167,6 +164,9 @@ class CompilationContext {
 
   // The pipelines in this context in no specific order.
   std::vector<Pipeline *> pipelines_;
+
+  // Whether counters are enabled.
+  bool counters_enabled_;
 };
 
 }  // namespace terrier::execution::compiler

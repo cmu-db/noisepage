@@ -83,10 +83,10 @@ CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogA
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
-      counters_enabled_(counters_enabled),
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
-      query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }) {}
+      query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
+      counters_enabled_(counters_enabled) {}
 
 ast::FunctionDecl *CompilationContext::GenerateInitFunction() {
   const auto name = codegen_.MakeIdentifier(GetFunctionPrefix() + "_Init");
