@@ -2662,16 +2662,9 @@ int main(int argc, char **argv) {
     std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
     if (filter_info.found_) {
-      auto modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
-      for (auto mode : modes) {
-        terrier::runner::MiniRunners::mode = mode;
-
-        // Pass straight through to gbenchmark
-        benchmark::Initialize(&argc, argv);
-        benchmark::RunSpecifiedBenchmarks();
-        terrier::runner::InvokeGC();
-      }
-
+      // Pass straight through to gbenchmark
+      benchmark::Initialize(&argc, argv);
+      benchmark::RunSpecifiedBenchmarks();
       terrier::runner::EndRunnersState();
     } else {
       RunMiniRunners();
