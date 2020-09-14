@@ -287,6 +287,9 @@ class EXPORT ExecOUFeatureVector {
 
   ~ExecOUFeatureVector() { Destroy(); }
 
+  /**
+   * Destroys the pipeline_features_
+   */
   void Destroy() {
     // This assumes shrink_to_fit() will remove memory.
     // Otherwise we can possibly leak memory on "exceptional execution"
