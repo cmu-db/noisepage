@@ -8,6 +8,7 @@
 #include "brain/brain_defs.h"
 #include "brain/operating_unit.h"
 #include "common/managed_pointer.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/exec/output.h"
 #include "execution/exec_defs.h"
 #include "execution/sql/memory_tracker.h"
@@ -241,7 +242,7 @@ class EXPORT ExecutionContext {
 
  private:
   query_id_t query_id_{execution::query_id_t(0)};
-  const exec::ExecutionSettings &exec_settings_;
+  exec::ExecutionSettings exec_settings_;
   catalog::db_oid_t db_oid_;
   common::ManagedPointer<transaction::TransactionContext> txn_;
   std::unique_ptr<sql::MemoryTracker> mem_tracker_;
