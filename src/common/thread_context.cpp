@@ -9,7 +9,6 @@ thread_local common::ThreadContext thread_context;
 
 ThreadContext::~ThreadContext() {
   if (metrics_store_ != nullptr) {
-    TERRIER_ASSERT(!resource_tracker_.IsRunning(), "ResourceTracker should be stopped");
     metrics_store_->MetricsManager()->UnregisterThread();
   }
 }
