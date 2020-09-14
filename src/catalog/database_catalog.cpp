@@ -3001,8 +3001,9 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
       bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
       storage::VarlenEntry index_all_arg_types = *reinterpret_cast<storage::VarlenEntry *>(
           table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
-      // variadic functions will match any argument types
-      if (index_all_arg_types == all_arg_types_varlen || index_all_arg_types == variadic_varlen) {
+      // variadic functions will match any argument types as long as there one or more arguments
+      if (index_all_arg_types == all_arg_types_varlen ||
+          (index_all_arg_types == variadic_varlen && !arg_types.empty())) {
         proc_oid_t proc_oid = *reinterpret_cast<proc_oid_t *>(
             table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
         matching_functions.push_back(proc_oid);
