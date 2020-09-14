@@ -109,11 +109,11 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     var table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids : [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker, 0, 0)
 
     // Parallel build the join hash table
     var off: uint32 = 0
-    @joinHTBuildParallel(&state.jht, tls, off)
+    @joinHTBuildParallel(&state.jht, execCtx, 0, tls, off)
 
     // Cleanup
     @tlsClear(tls)
@@ -127,7 +127,7 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
     var table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids : [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline2_worker)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline2_worker, 0, 0)
 
     // Collect results
     @tlsIterate(tls, state, pipeline2_finalize)

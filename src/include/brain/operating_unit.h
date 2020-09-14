@@ -347,6 +347,13 @@ class PipelineOperatingUnits {
     return itr->second;
   }
 
+  /**
+   * Checks whether a certain pipeline exists
+   * @param pipeline Pipeline Identifier
+   * @returns if exist or not
+   */
+  bool HasPipelineFeatures(execution::pipeline_id_t pipeline) const { return units_.find(pipeline) != units_.end(); }
+
  private:
   std::unordered_map<execution::pipeline_id_t, ExecutionOperatingUnitFeatureVector> units_{};
 };

@@ -162,7 +162,8 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   // Register a CREATE_INDEX_MAIN for the memory
   bool is_create_idx = false;
-  {
+  if (exec_ctx->GetPipelineOperatingUnits() &&
+      exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id)) {
     brain::ExecOUFeatureVector ouvec;
     exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
     for (auto &feature : ouvec.pipeline_features_) {

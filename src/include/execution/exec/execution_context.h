@@ -197,6 +197,13 @@ class EXPORT ExecutionContext {
     pipeline_operating_units_ = op;
   }
 
+  /**
+   * @returns PipelineOperatingUnits
+   */
+  common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
+    return pipeline_operating_units_;
+  }
+
   /** Increment or decrement the number of rows affected. */
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
@@ -255,7 +262,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;
   // TODO(WAN): EXEC PORT we used to push the memory tracker into the string allocator, do this
   sql::VarlenHeap string_allocator_;
-  common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_;
+  common::ManagedPointer<brain::PipelineOperatingUnits> pipeline_operating_units_{nullptr};
 
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;

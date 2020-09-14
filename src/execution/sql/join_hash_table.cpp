@@ -551,6 +551,9 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
 
 void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
                                   const ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
+  bool has_pipeline =
+      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
+
   // Collect thread-local hash tables
   std::vector<JoinHashTable *> tl_join_tables;
   thread_state_container->CollectThreadLocalStateElementsAs(&tl_join_tables, jht_offset);
@@ -579,18 +582,22 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
 
     brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    exec_ctx->StartPipelineTracker(pipeline_id);
+    if (has_pipeline) {
+      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+      exec_ctx->StartPipelineTracker(pipeline_id);
+    }
 
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
 
-    // Reach in and modify the feature directly
-    // # rows is number of tuples
-    // Cardinality is number of hash tables merging from
-    ouvec.pipeline_features_[0].SetNumRows(num_elem_estimate);
-    ouvec.pipeline_features_[0].SetCardinality(owned_.size());
-    ouvec.pipeline_features_[0].SetNumConcurrent(0);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    if (has_pipeline) {
+      // Reach in and modify the feature directly
+      // # rows is number of tuples
+      // Cardinality is number of hash tables merging from
+      ouvec.pipeline_features_[0].SetNumRows(num_elem_estimate);
+      ouvec.pipeline_features_[0].SetCardinality(owned_.size());
+      ouvec.pipeline_features_[0].SetNumConcurrent(0);
+      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    }
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
@@ -598,23 +605,27 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = tl_join_tables.size();
     auto estimate = std::min(num_threads, num_tasks);
-    tbb::parallel_for_each(tl_join_tables, [this, exec_ctx, pipeline_id, estimate](auto source) {
+    tbb::parallel_for_each(tl_join_tables, [this, exec_ctx, pipeline_id, estimate, has_pipeline](auto source) {
       brain::ExecOUFeatureVector ouvec;
-      exec_ctx->RegisterThread();
-      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-      exec_ctx->StartPipelineTracker(pipeline_id);
+      if (has_pipeline) {
+        exec_ctx->RegisterThread();
+        exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+        exec_ctx->StartPipelineTracker(pipeline_id);
+      }
 
       size_t size = source->entries_.size();
       MergeIncomplete<true>(source);
 
-      // Reach in and modify the feature directly
-      // Just set the cardinality to match # rows for now.
-      ouvec.pipeline_features_[0].SetNumRows(size);
-      ouvec.pipeline_features_[0].SetCardinality(size);
-      ouvec.pipeline_features_[0].SetNumConcurrent(estimate);
-      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-      if (exec_ctx->GetMetricsManager()) {
-        exec_ctx->GetMetricsManager()->Aggregate();
+      if (has_pipeline) {
+        // Reach in and modify the feature directly
+        // Just set the cardinality to match # rows for now.
+        ouvec.pipeline_features_[0].SetNumRows(size);
+        ouvec.pipeline_features_[0].SetCardinality(size);
+        ouvec.pipeline_features_[0].SetNumConcurrent(estimate);
+        exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+        if (exec_ctx->GetMetricsManager()) {
+          exec_ctx->GetMetricsManager()->Aggregate();
+        }
       }
     });
   }

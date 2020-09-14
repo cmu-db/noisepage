@@ -62,7 +62,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids: [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker, 0, 0)
 
     // Collect results
     @tlsIterate(tls, state, pipeline1_finalize)
