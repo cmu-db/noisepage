@@ -87,7 +87,7 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
       // Cannot dereference if the next block is end(), so just use nullptr to denote
       {
         // TODO(WAN): Lin, does this latch still need to be temporarily commented out for TPCH?
-        common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
+        //common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
         if (block_index_ >= table_->blocks_.size()) {
           current_slot_ = DataTable::SlotIterator::InvalidTupleSlot();
         } else {
@@ -107,7 +107,7 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
 DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
   //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  //common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 
   // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
