@@ -181,10 +181,10 @@ class MetricsStore {
    * @param query_id id of the query
    * @param query_text text of the query
    */
-  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text) {
+  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text, const uint64_t timestamp) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     TERRIER_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryText(query_id, query_text);
+    query_trace_metric_->RecordQueryText(query_id, query_text, timestamp);
   }
 
   /**

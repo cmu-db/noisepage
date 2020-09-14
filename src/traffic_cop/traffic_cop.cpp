@@ -372,7 +372,8 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
   if (query_trace_metrics_enabled) {
     common::thread_context.metrics_store_->RecordQueryText(exec_query->GetQueryId(),
-                                                           portal->GetStatement()->GetQueryText());
+                                                           portal->GetStatement()->GetQueryText(),
+                                                           metrics::MetricsUtil::Now());
   }
 
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
