@@ -37,11 +37,9 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
   /**
-   * Does nothing.
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
+   * Initialize the counters.
    */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+  void InitializeQueryState(FunctionBuilder *function) const override;
 
   /**
    * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct
@@ -50,6 +48,9 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
+
+  /** Record the counters. */
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Unreachable.
@@ -88,6 +89,9 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
 
   // Column oids of the table we are deleting from.
   ast::Identifier col_oids_;
+
+  // The number of deletes that are performed.
+  StateDescriptor::Entry num_deletes_;
 };
 
 }  // namespace terrier::execution::compiler
