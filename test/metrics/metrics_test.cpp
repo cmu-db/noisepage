@@ -251,8 +251,7 @@ TEST_F(MetricsTests, QueryCSVTest) {
   }
   EXPECT_EQ(aggregated_data->query_text_.size(), 2);  // 2 data point recorded
   if (!(aggregated_data->query_text_.empty())) {
-    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_,
-              "INSERT INTO TableA VALUES (1, 'abc');");
+    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_, "INSERT INTO TableA VALUES (1, 'abc');");
   }
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->query_trace_.size(), 0);
