@@ -9,8 +9,8 @@
 
 namespace terrier::execution::sql {
 
-void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const uint32_t num_inputs,
-                             const StringVal *inputs[]) {
+void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[],
+                             uint32_t num_inputs) {
   TERRIER_ASSERT(num_inputs != 0, "Concat should have at least one argument");
 
   std::size_t length = 0;

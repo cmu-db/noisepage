@@ -581,7 +581,7 @@ namespace terrier::execution::vm {
   F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(CharLength, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ASCII, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Like, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
