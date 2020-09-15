@@ -41,7 +41,11 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
       compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
+
+  num_inserts_ = CounterDeclare("num_inserts");
 }
+
+void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_inserts_, 0); }
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
@@ -66,6 +70,14 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
       GenIndexInsert(context, function, index_oid);
     }
   }
+
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+                CounterVal(num_inserts_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+                CounterVal(num_inserts_));
+  FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_inserts_));
 
   GenInserterFree(function);
 }
@@ -151,6 +163,8 @@ void InsertTranslator::GenTableInsert(FunctionBuilder *builder) const {
   const auto &insert_slot = GetCodeGen()->MakeFreshIdentifier("insert_slot");
   auto *insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert, {GetCodeGen()->AddressOf(inserter_)});
   builder->Append(GetCodeGen()->DeclareVar(insert_slot, nullptr, insert_call));
+
+  CounterAdd(builder, num_inserts_, 1);
 }
 
 void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *builder,

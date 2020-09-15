@@ -11,6 +11,9 @@ class ConnectionDispatcherTask;
 class ConnectionHandleFactory;
 class ProtocolInterpreterProvider;
 
+// The name is based on https://www.postgresql.org/docs/9.3/runtime-config-connection.html
+constexpr std::string_view UNIX_DOMAIN_SOCKET_FORMAT_STRING = "{0}/.s.PGSQL.{1}";
+
 /** TerrierServer is the entry point to the network layer. */
 class TerrierServer : public common::DedicatedThreadOwner {
  public:
@@ -18,7 +21,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
-                uint16_t connection_thread_count);
+                uint16_t connection_thread_count, std::string socket_directory);
 
   /** @brief Destructor. */
   ~TerrierServer() override = default;
@@ -43,6 +46,9 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // threads can be safely taken away, but I don't understand the networking stuff well enough to say for sure what
   // that assertion is
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
+  enum SocketType { UNIX_DOMAIN_SOCKET, NETWORKED_SOCKET };
+  template <SocketType type>
+  void RegisterSocket();
 
   std::mutex running_mutex_;
   bool running_;
@@ -54,6 +60,8 @@ class TerrierServer : public common::DedicatedThreadOwner {
   int listen_fd_ = -1;
   /** The maximum number of connections to the server. */
   const uint32_t max_connections_;
+  /** The directory to store the Unix domain socket. */
+  const std::string socket_directory_;
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   common::ManagedPointer<ProtocolInterpreterProvider> provider_;

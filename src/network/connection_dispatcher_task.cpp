@@ -13,10 +13,11 @@ constexpr uint32_t MAIN_THREAD_ID = -1;
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
-    uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+    uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-    common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
+    common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+    std::initializer_list<int> file_descriptors)
     : NotifiableTask(MAIN_THREAD_ID),
       num_handlers_(num_handlers),
       dedicated_thread_owner_(dedicated_thread_owner),
@@ -41,10 +42,12 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
 
   // Specific events are then associated with their respective libevent callback functions.
 
-  // Dispatch a new connection every time the file descriptor becomes readable again.
-  //   EV_READ : Wait until the file descriptor becomes readable.
-  //   EV_PERSIST : Non-persistent events are removed upon activation (single-use), the server should be persistent.
-  RegisterEvent(listen_fd, EV_READ | EV_PERSIST, connection_dispatcher_fn, this);
+  for (auto listen_fd : file_descriptors) {
+    // Dispatch a new connection every time the file descriptor becomes readable again.
+    //   EV_READ : Wait until the file descriptor becomes readable.
+    //   EV_PERSIST : Non-persistent events are removed upon activation (single-use), the server should be persistent.
+    RegisterEvent(listen_fd, EV_READ | EV_PERSIST, connection_dispatcher_fn, this);
+  }
   // Exit the event loop if the terminal launching the server process is closed.
   RegisterSignalEvent(SIGHUP, loop_exit_fn, this);
 }

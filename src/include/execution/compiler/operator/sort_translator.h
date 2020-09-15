@@ -156,6 +156,11 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
 
   // For minirunners.
   ast::StructDecl *struct_decl_;
+
+  // The number of rows that are inserted into the sorter.
+  StateDescriptor::Entry num_sort_build_rows_;
+  // The number of rows that are iterated over by the sorter.
+  StateDescriptor::Entry num_sort_iterate_rows_;
 };
 
 }  // namespace terrier::execution::compiler

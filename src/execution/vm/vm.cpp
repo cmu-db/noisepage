@@ -481,8 +481,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecutionContextStartResourceTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto cmp = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
-    OpExecutionContextStartResourceTracker(exec_ctx, cmp);
+    auto metrics_component = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));
+    OpExecutionContextStartResourceTracker(exec_ctx, metrics_component);
     DISPATCH_NEXT();
   }
 
@@ -500,11 +500,40 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextStartPipelineTracker) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    OpExecutionContextStartPipelineTracker(exec_ctx, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextEndPipelineTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto query_id = execution::query_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     OpExecutionContextEndPipelineTracker(exec_ctx, query_id, pipeline_id);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextGetFeature) : {
+    auto *value = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_attribute =
+        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    OpExecutionContextGetFeature(value, exec_ctx, pipeline_id, feature_id, feature_attribute);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextRecordFeature) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_id = execution::feature_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
+    auto feature_attribute =
+        static_cast<brain::ExecutionOperatingUnitFeatureAttribute>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    auto value = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpExecutionContextRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value);
     DISPATCH_NEXT();
   }
 
@@ -576,6 +605,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(TableVectorIteratorFree) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     OpTableVectorIteratorFree(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(TableVectorIteratorGetVPINumTuples) : {
+    auto *num_tuples_vpi = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    OpTableVectorIteratorGetVPINumTuples(num_tuples_vpi, iter);
     DISPATCH_NEXT();
   }
 
@@ -1122,6 +1158,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(AggregationHashTableGetTupleCount) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
+    OpAggregationHashTableGetTupleCount(result, agg_hash_table);
+    DISPATCH_NEXT();
+  }
+
   OP(AggregationHashTableAllocTuple) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
@@ -1460,6 +1503,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(JoinHashTableGetTupleCount) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    OpJoinHashTableGetTupleCount(result, join_hash_table);
+    DISPATCH_NEXT();
+  }
+
   OP(JoinHashTableBuild) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     OpJoinHashTableBuild(join_hash_table);
@@ -1514,6 +1564,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
     auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(module_->GetRawFunctionImpl(cmp_func_id));
     OpSorterInit(sorter, memory, cmp_fn, tuple_size);
+    DISPATCH_NEXT();
+  }
+
+  OP(SorterGetTupleCount) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
+    OpSorterGetTupleCount(result, sorter);
     DISPATCH_NEXT();
   }
 
@@ -1690,6 +1747,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(IndexIteratorPerformInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorPerformInit(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorGetSize) : {
+    auto *index_size = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetSize(index_size, iter);
     DISPATCH_NEXT();
   }
 
@@ -1908,6 +1972,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(StorageInterfaceIndexGetSize) : {
+    auto *result = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
+    OpStorageInterfaceIndexGetSize(result, storage_interface);
+    DISPATCH_NEXT();
+  }
+
   OP(StorageInterfaceGetIndexHeapSize) : {
     auto *size = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto *storage_interface = frame->LocalAt<sql::StorageInterface *>(READ_LOCAL_ID());
@@ -2112,9 +2183,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(Concat) : {
     auto *result = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *left = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    auto *right = frame->LocalAt<const sql::StringVal *>(READ_LOCAL_ID());
-    OpConcat(result, exec_ctx, left, right);
+    auto **inputs = frame->LocalAt<const sql::StringVal **>(READ_LOCAL_ID());
+    auto num_inputs = READ_UIMM4();
+    OpConcat(result, exec_ctx, inputs, num_inputs);
     DISPATCH_NEXT();
   }
 

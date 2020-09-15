@@ -35,16 +35,17 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @brief Create a new ConnectionDispatcherTask.
    *
    * @param num_handlers The number of handler tasks to spawn.
-   * @param listen_fd The server socket file descriptor to listen on.
    * @param dedicated_thread_owner The DedicatedThreadOwner associated with this task.
    * @param interpreter_provider Provider that constructs protocol interpreters.
    * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers.
    * @param thread_registry DedicatedThreadRegistry, needed because it eventually spawns more threads in RunTask.
+   * @param file_descriptors The list of file descriptors to listen on.
    */
-  ConnectionDispatcherTask(uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+  ConnectionDispatcherTask(uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-                           common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
+                           common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                           std::initializer_list<int> file_descriptors);
 
   /**
    * @brief Dispatches the supplied client connection to a handler.
