@@ -210,9 +210,9 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input_tpcc_large',
+    aparser.add_argument('--input_path', default='global_runner_input_tpch_index',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results_tpcc',
+    aparser.add_argument('--model_results_path', default='global_model_results_tpch_index',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
     aparser.add_argument('--mini_model_file', default='trained_model_varchar/mini_model_map.pickle',
