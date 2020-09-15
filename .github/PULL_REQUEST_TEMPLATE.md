@@ -47,7 +47,7 @@ If your PR has the potential to greatly affect the performance of the system, pl
 ## Further Work
 If your PR unlocked the potential for further improvement, please note them here and create additional issues! Do the same if you discovered bugs in the process of development. An [example](https://github.com/cmu-db/noisepage/pull/1109) from a PR by @gonzalezjo follows:
 
-###Investigating loopback and TCP overhead
+### Investigating loopback and TCP overhead
 
 This is probably a dead end, but less of a dead end than libevent/epoll stuff.
 
