@@ -593,9 +593,9 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
       // Reach in and modify the feature directly
       // # rows is number of tuples
       // Cardinality is number of hash tables merging from
-      ouvec.pipeline_features_[0].SetNumRows(num_elem_estimate);
-      ouvec.pipeline_features_[0].SetCardinality(owned_.size());
-      ouvec.pipeline_features_[0].SetNumConcurrent(0);
+      (*ouvec.pipeline_features_)[0].SetNumRows(num_elem_estimate);
+      (*ouvec.pipeline_features_)[0].SetCardinality(owned_.size());
+      (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
       exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
     }
   } else {
@@ -619,9 +619,9 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
       if (has_pipeline) {
         // Reach in and modify the feature directly
         // Just set the cardinality to match # rows for now.
-        ouvec.pipeline_features_[0].SetNumRows(size);
-        ouvec.pipeline_features_[0].SetCardinality(size);
-        ouvec.pipeline_features_[0].SetNumConcurrent(estimate);
+        (*ouvec.pipeline_features_)[0].SetNumRows(size);
+        (*ouvec.pipeline_features_)[0].SetCardinality(size);
+        (*ouvec.pipeline_features_)[0].SetNumConcurrent(estimate);
         exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
         if (exec_ctx->GetMetricsManager()) {
           exec_ctx->GetMetricsManager()->Aggregate();

@@ -270,8 +270,14 @@ class EXPORT ExecOUFeatureVector {
    */
   execution::pipeline_id_t pipeline_id_{0};
 
-  /** Features for a given pipeline */
-  ExecutionOperatingUnitFeatureVector pipeline_features_{};
+  /**
+   * Features for a given pipeline
+   *
+   * This is a pointer because we need to be able to explicitly delete the
+   * vector on all control flow paths. A standard std::vector may not be
+   * properly cleaned up if execution encounters an "exception".
+   */
+  ExecutionOperatingUnitFeatureVector *pipeline_features_ = nullptr;
 
   /**
    * Function used to update a feature's metadata information
@@ -291,10 +297,8 @@ class EXPORT ExecOUFeatureVector {
    * Destroys the pipeline_features_
    */
   void Destroy() {
-    // This assumes shrink_to_fit() will remove memory.
-    // Otherwise we can possibly leak memory on "exceptional execution"
-    pipeline_features_.clear();
-    pipeline_features_.shrink_to_fit();
+    delete pipeline_features_;
+    pipeline_features_ = nullptr;
   }
 };
 

@@ -152,6 +152,8 @@ struct MergeWork {
 void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
                           const ThreadStateContainer *thread_state_container, std::size_t sorter_offset) {
   const auto comp = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
+  bool has_pipeline =
+      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
 
   // -------------------------------------------------------
   // First, collect all non-empty thread-local sorters
@@ -182,15 +184,16 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
 
     // Start the tracker
     brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
-
-    exec_ctx->StartPipelineTracker(pipeline_id);
-    ouvec.pipeline_features_.erase(std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(),
-                                                  [](const auto &feature) {
-                                                    return feature.GetExecutionOperatingUnitType() !=
-                                                           brain::ExecutionOperatingUnitType::SORT_BUILD;
-                                                  }),
-                                   ouvec.pipeline_features_.end());
+    if (has_pipeline) {
+      exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
+      ouvec.pipeline_features_->erase(std::remove_if(ouvec.pipeline_features_->begin(), ouvec.pipeline_features_->end(),
+                                                     [](const auto &feature) {
+                                                       return feature.GetExecutionOperatingUnitType() !=
+                                                              brain::ExecutionOperatingUnitType::SORT_BUILD;
+                                                     }),
+                                      ouvec.pipeline_features_->end());
+      exec_ctx->StartPipelineTracker(pipeline_id);
+    }
 
     // Reserve room for all tuples
     tuples_.reserve(num_tuples);
@@ -203,10 +206,12 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     // Single-threaded sort
     Sort();
 
-    ouvec.pipeline_features_[0].SetNumRows(num_tuples);
-    ouvec.pipeline_features_[0].SetCardinality(num_tuples);
-    ouvec.pipeline_features_[0].SetNumConcurrent(0);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    if (has_pipeline) {
+      (*ouvec.pipeline_features_)[0].SetNumRows(num_tuples);
+      (*ouvec.pipeline_features_)[0].SetCardinality(num_tuples);
+      (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
+      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+    }
 
     // Finish
     return;
@@ -254,27 +259,31 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     num_concurrent = std::min(num_threads, num_tasks);
   }
 
-  tbb::parallel_for_each(tl_sorters, [exec_ctx, pipeline_id, num_concurrent](Sorter *sorter) {
+  tbb::parallel_for_each(tl_sorters, [exec_ctx, pipeline_id, num_concurrent, has_pipeline](Sorter *sorter) {
     brain::ExecOUFeatureVector ouvec;
-    exec_ctx->RegisterThread();
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    exec_ctx->StartPipelineTracker(pipeline_id);
-    ouvec.pipeline_features_.erase(std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(),
-                                                  [](const auto &feature) {
-                                                    return feature.GetExecutionOperatingUnitType() !=
-                                                           brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
-                                                  }),
-                                   ouvec.pipeline_features_.end());
+    if (has_pipeline) {
+      exec_ctx->RegisterThread();
+      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+      ouvec.pipeline_features_->erase(std::remove_if(ouvec.pipeline_features_->begin(), ouvec.pipeline_features_->end(),
+                                                     [](const auto &feature) {
+                                                       return feature.GetExecutionOperatingUnitType() !=
+                                                              brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
+                                                     }),
+                                      ouvec.pipeline_features_->end());
+      exec_ctx->StartPipelineTracker(pipeline_id);
+    }
 
     sorter->Sort();
 
-    size_t num_tuples = sorter->GetTupleCount();
-    ouvec.pipeline_features_[0].SetNumRows(num_tuples);
-    ouvec.pipeline_features_[0].SetCardinality(num_tuples);
-    ouvec.pipeline_features_[0].SetNumConcurrent(num_concurrent);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    if (exec_ctx->GetMetricsManager()) {
-      exec_ctx->GetMetricsManager()->Aggregate();
+    if (has_pipeline) {
+      size_t num_tuples = sorter->GetTupleCount();
+      (*ouvec.pipeline_features_)[0].SetNumRows(num_tuples);
+      (*ouvec.pipeline_features_)[0].SetCardinality(num_tuples);
+      (*ouvec.pipeline_features_)[0].SetNumConcurrent(num_concurrent);
+      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+      if (exec_ctx->GetMetricsManager()) {
+        exec_ctx->GetMetricsManager()->Aggregate();
+      }
     }
   });
 
@@ -389,42 +398,47 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     concurrent = std::min(num_threads, num_tasks);
   }
 
-  tbb::parallel_for_each(merge_work, [&heap_cmp, exec_ctx, pipeline_id,
-                                      concurrent](const MergeWork<SeqTypeIter> &work) {
-    brain::ExecOUFeatureVector ouvec;
-    exec_ctx->RegisterThread();
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    exec_ctx->StartPipelineTracker(pipeline_id);
-    ouvec.pipeline_features_.erase(std::remove_if(ouvec.pipeline_features_.begin(), ouvec.pipeline_features_.end(),
-                                                  [](const auto &feature) {
-                                                    return feature.GetExecutionOperatingUnitType() !=
-                                                           brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
-                                                  }),
-                                   ouvec.pipeline_features_.end());
+  tbb::parallel_for_each(
+      merge_work, [&heap_cmp, exec_ctx, pipeline_id, concurrent, has_pipeline](const MergeWork<SeqTypeIter> &work) {
+        brain::ExecOUFeatureVector ouvec;
+        if (has_pipeline) {
+          exec_ctx->RegisterThread();
+          exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+          ouvec.pipeline_features_->erase(
+              std::remove_if(ouvec.pipeline_features_->begin(), ouvec.pipeline_features_->end(),
+                             [](const auto &feature) {
+                               return feature.GetExecutionOperatingUnitType() !=
+                                      brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
+                             }),
+              ouvec.pipeline_features_->end());
+          exec_ctx->StartPipelineTracker(pipeline_id);
+        }
 
-    std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
-        heap_cmp, work.input_ranges_);
-    SeqTypeIter dest = work.destination_;
-    size_t num_iters = 0;
-    while (!heap.empty()) {
-      num_iters++;
+        std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
+            heap_cmp, work.input_ranges_);
+        SeqTypeIter dest = work.destination_;
+        size_t num_iters = 0;
+        while (!heap.empty()) {
+          num_iters++;
 
-      auto top = heap.top();
-      heap.pop();
-      *dest++ = *top.first;
-      if (top.first + 1 != top.second) {
-        heap.emplace(top.first + 1, top.second);
-      }
-    }
+          auto top = heap.top();
+          heap.pop();
+          *dest++ = *top.first;
+          if (top.first + 1 != top.second) {
+            heap.emplace(top.first + 1, top.second);
+          }
+        }
 
-    ouvec.pipeline_features_[0].SetNumRows(num_iters);
-    ouvec.pipeline_features_[0].SetCardinality(num_iters);
-    ouvec.pipeline_features_[0].SetNumConcurrent(concurrent);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    if (exec_ctx->GetMetricsManager()) {
-      exec_ctx->GetMetricsManager()->Aggregate();
-    }
-  });
+        if (has_pipeline) {
+          (*ouvec.pipeline_features_)[0].SetNumRows(num_iters);
+          (*ouvec.pipeline_features_)[0].SetCardinality(num_iters);
+          (*ouvec.pipeline_features_)[0].SetNumConcurrent(concurrent);
+          exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+          if (exec_ctx->GetMetricsManager()) {
+            exec_ctx->GetMetricsManager()->Aggregate();
+          }
+        }
+      });
 
   timer.ExitStage();
 

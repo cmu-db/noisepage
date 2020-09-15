@@ -89,13 +89,18 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
 
     TERRIER_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
-                                                              std::move(ouvec->pipeline_features_), resource_metrics);
+                                                              std::move(*ouvec->pipeline_features_), resource_metrics);
   }
 }
 
 void ExecutionContext::InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
+  if (ouvec->pipeline_features_ != nullptr) {
+    ouvec->Destroy();
+  }
+
   ouvec->pipeline_id_ = pipeline_id;
-  ouvec->pipeline_features_ = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
+  ouvec->pipeline_features_ =
+      new brain::ExecutionOperatingUnitFeatureVector(pipeline_operating_units_->GetPipelineFeatures(pipeline_id));
 }
 
 void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
@@ -117,19 +122,20 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
     return;
   }
 
+  ouvec->pipeline_features_ = new brain::ExecutionOperatingUnitFeatureVector();
   switch (feature.GetExecutionOperatingUnitType()) {
     case brain::ExecutionOperatingUnitType::HASHJOIN_BUILD:
-      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN, feature);
+      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN, feature);
       break;
     case brain::ExecutionOperatingUnitType::AGGREGATE_BUILD:
-      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD, feature);
+      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD, feature);
       break;
     case brain::ExecutionOperatingUnitType::SORT_BUILD:
-      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
-      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
+      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
+      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
       break;
     case brain::ExecutionOperatingUnitType::CREATE_INDEX:
-      ouvec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
+      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
       break;
     default:
       TERRIER_ASSERT(false, "Unsupported parallel OU");
