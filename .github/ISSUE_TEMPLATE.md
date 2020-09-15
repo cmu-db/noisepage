@@ -27,7 +27,7 @@ ___
 Please provide a short summary of the bug observed.
 
 ## Steps to Reproduce
-Whenever possible, retrace how you came about the problem and describe so here. An [example](https://github.com/cmu-db/noisepage/issues/1117) from an issue by @jksoh44 follows:
+Whenever possible, retrace how you came about the problem and describe so here. An [example](https://github.com/cmu-db/noisepage/issues/1117) from an issue by @jkosh44 follows:
 1. Compile with the following args: -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON
 2. Run terrier with parallel execution turned off terrier -parallel_execution=false
 3. Run a built in function with an empty string (ex: SELECT STARTS_WITH('HELLO', '');)
