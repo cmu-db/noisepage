@@ -28,7 +28,7 @@ Again, you should only create PR once you are reasonably confident you are near 
 
 ## Performance
 If your PR has the potential to greatly affect the performance of the system, please address these by benchmarking your changes with respect to master, or profiling the performance. You may do this in one of the following ways:
-1. Inline a table outlining performance results. An [example](https://github.com/cmu-db/noisepage/pull/1109) from a PR @gonzalesjo follows:
+1. Inline a table outlining performance results. An [example](https://github.com/cmu-db/noisepage/pull/1109) from a PR @gonzalezjo follows:
 
     | Machine Type 	| Terminals 	| Scale Factor 	| Socket Type 	| Transactions / Second 	|
     |--------------	|-----------	|--------------	|-------------	|-----------------------	|
