@@ -47,6 +47,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // that assertion is
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
   enum SocketType { UNIX_DOMAIN_SOCKET, NETWORKED_SOCKET };
+
   template <SocketType type>
   void RegisterSocket();
 
@@ -56,12 +57,14 @@ class TerrierServer : public common::DedicatedThreadOwner {
 
   /** The port number of the server. */
   uint16_t port_;
-  /** The socket file descriptor that the server is listening on. */
-  int listen_fd_ = -1;
-  /** The maximum number of connections to the server. */
-  const uint32_t max_connections_;
+  /** The networked socket file descriptor that the server is listening on. */
+  int network_socket_fd_ = -1;
+  /** The unix-based local socket file descriptor that the server may be listening on. */
+  int unix_domain_socket_fd_ = -1;
   /** The directory to store the Unix domain socket. */
   const std::string socket_directory_;
+  /** The maximum number of connections to the server. */
+  const uint32_t max_connections_;
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   common::ManagedPointer<ProtocolInterpreterProvider> provider_;

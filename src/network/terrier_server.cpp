@@ -1,7 +1,7 @@
 #include "network/terrier_server.h"
 
-#include <arpa/inet.h>
 #include <event2/thread.h>
+#include <sys/un.h>
 
 #include <csignal>
 
@@ -63,12 +63,14 @@ void TerrierServer::RegisterSocket() {
 
       // Validate the path name, which must be at most the Unix socket path length.
       if (socket_path.length() > sizeof(sun.sun_path)) {
-        NETWORK_LOG_ERROR(fmt::format("Domain socket name too long (must be <= {} characters)", sizeof(sun.sun_path)));
-        throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to name {} socket.", socket_description));
+        throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to name {} socket (must have length <= {} characters).",
+                                                    socket_description, sizeof(sun.sun_path)));
       }
 
       sun.sun_family = AF_UNIX;
-      std::memcpy(sun.sun_path, socket_path.c_str(), sizeof(sun.sun_path));
+      const char *socket_path_cstr = socket_path.c_str();
+      auto min_len = std::min(sizeof(sun.sun_path), strlen(socket_path_cstr));
+      std::memcpy(sun.sun_path, socket_path_cstr, min_len);
 
       return sun;
     }
@@ -121,11 +123,12 @@ void TerrierServer::RegisterSocket() {
     }
   }
 
-  // Prepare to listen to the socket, allowing at most CONNECTION_BACKLOG connection requests
-  // to be queued. Any additional requests are dropped.
+  // Listen on the socket, allowing at most CONNECTION_BACKLOG connection requests to be queued.
+  // Any additional requests are dropped.
   status = listen(socket_fd, conn_backlog);
   if (status < 0) {
-    throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to listen on {} socket: {}", socket_description, strerror(errno)));
+    throw NETWORK_PROCESS_EXCEPTION(
+        fmt::format("Failed to listen on {} socket: {}", socket_description, strerror(errno)));
   }
 
   NETWORK_LOG_INFO("Listening on {} socket with port {} [PID={}]", socket_description, port_, ::getpid());
@@ -158,17 +161,6 @@ void TerrierServer::StopServer() {
   const bool is_task_stopped UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(is_task_stopped, "Failed to stop ConnectionDispatcherTask.");
-
-  // Close the network socket
-  TerrierClose(network_socket_fd_);
-
-  // Close the Unix domain socket if it exists
-  if (unix_domain_socket_fd_ >= 0) {
-    std::remove(fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_).c_str());
-  }
-
-  TerrierClose(listen_fd_);
-  TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
 
   // Close the network socket
   TerrierClose(network_socket_fd_);
