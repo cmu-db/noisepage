@@ -1616,7 +1616,9 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   return true;
 }
 
-type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) { return type_oid_t(static_cast<uint8_t>(type)); }
+type_oid_t DatabaseCatalog::GetTypeOidForType(const type::TypeId type) {
+  return type_oid_t(static_cast<uint8_t>(type));
+}
 
 void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::TransactionContext> txn, type_oid_t type_oid,
                                  const std::string &name, const namespace_oid_t namespace_oid, const int16_t len,

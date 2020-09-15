@@ -617,7 +617,8 @@ class DatabaseCatalog {
   void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
 
   /**
-   * Internal helper method to reduce copy-paste code for populating proc contexts. Allocates the FunctionContext and inserts the pointer.
+   * Internal helper method to reduce copy-paste code for populating proc contexts. Allocates the FunctionContext and
+   * inserts the pointer.
    * @param txn transaction to insert into catalog with
    * @param proc_oid oid to associate with this proc's and its context
    * @param func_name Name of function
