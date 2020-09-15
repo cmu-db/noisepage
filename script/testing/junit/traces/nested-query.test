@@ -217,20 +217,3 @@ SELECT pno FROM shipment WHERE sno < (SELECT max(sno) FROM supplier WHERE subdge
 ----
 1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
-statement ok
-
-
-statement ok
--- Test TypeJA, equal to max
-
-query I nosort
-SELECT pno FROM shipment WHERE sno = (SELECT min(sno) FROM supplier WHERE subdget = qty);
-----
-2 values hashing to cb0e93933b5e2202825f38da7587cf07
-
-statement ok
-
-
-statement ok
-
-

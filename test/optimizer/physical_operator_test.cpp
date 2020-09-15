@@ -763,6 +763,14 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerHashJoin
   //===--------------------------------------------------------------------===//
+  auto timestamp_manager = transaction::TimestampManager();
+  auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(
+      common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+      common::ManagedPointer(&buffer_pool), false, nullptr);
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
   parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
   parser::AbstractExpression *expr_b_2 =
@@ -780,15 +788,24 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator semi_hash_join_1 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator semi_hash_join_2 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator semi_hash_join_3 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
-  Operator semi_hash_join_4 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
-  Operator semi_hash_join_5 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
-  Operator semi_hash_join_6 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
-  Operator semi_hash_join_7 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
-  Operator semi_hash_join_8 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
-  Operator semi_hash_join_9 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
+  Operator semi_hash_join_1 =
+      LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_2 =
+      LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_3 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_4 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_5 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_6 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_7 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_8 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_9 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3})
+                                  .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(semi_hash_join_1.GetOpType(), OpType::LEFTSEMIHASHJOIN);
   EXPECT_EQ(semi_hash_join_3.GetOpType(), OpType::LEFTSEMIHASHJOIN);
@@ -823,6 +840,9 @@ TEST(OperatorTests, LeftSemiHashJoinTest) {
   delete expr_b_1;
   delete expr_b_2;
   delete expr_b_3;
+
+  txn_manager.Abort(txn_context);
+  delete txn_context;
 }
 
 // NOLINTNEXTLINE
