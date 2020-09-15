@@ -45,8 +45,6 @@ struct TransactionEndActionFunc {
   void operator()(DeferredActionManager * deferred_action_manager) { endFunc_(deferred_action_manager); }
 };
 
-//using TransactionEndAction = TransactionEndActionFunc;
-
 /**
  * A DeferredAction is an action that can only be safely performed after all transactions that could
  * have access to something has finished. (e.g. pruning of version chains)
