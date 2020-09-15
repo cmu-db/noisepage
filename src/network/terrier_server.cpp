@@ -74,7 +74,7 @@ void TerrierServer::RegisterSocket() {
       }
 
       sun.sun_family = AF_UNIX;
-      std::memcpy(sun.sun_path, socket_path.c_str(), sizeof(sun.sun_path));
+      socket_path.copy(sun.sun_path, sizeof(sun.sun_path));
 
       return sun;
     }
@@ -107,12 +107,16 @@ void TerrierServer::RegisterSocket() {
       if (errno == EADDRINUSE) {
         // I find this disgusting, but it's the approach favored by a bunch of software that uses Unix domain sockets.
         // BSD syslogd, for example, does this in *every* case--error handling or not--and I'm not one to question it.
+        // To elaborate, I strongly dislike the idea of overwriting existing domain sockets. The idea is that in some
+        // edge cases (say, the process gets kill -9'd or crashes) the OS will not remove the existing Unix socket, so
+        // we have to delete it ourselves. You would think there'd be a better way to handle such cases--and technically
+        // there is, with Linux abstract namespace sockets--but it's non-portable and it's incompatible with psql.
         recovered = !std::remove(fmt::format(UNIX_DOMAIN_SOCKET_FORMAT_STRING, socket_directory_, port_).c_str()) &&
                     bind(socket_fd, reinterpret_cast<struct sockaddr *>(&socket_addr), sizeof(socket_addr)) >= 0;
       }
 
       if (recovered) {
-        NETWORK_LOG_INFO("Recovered! Managed to bind {} socket by purging a pre-existing bind.", socket_description)
+        NETWORK_LOG_INFO("Recovered! Managed to bind {} socket by purging a pre-existing bind.", socket_description);
       } else {
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to bind and recover {} socket.", socket_description));
       }

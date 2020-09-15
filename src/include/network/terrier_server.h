@@ -27,6 +27,8 @@
 namespace terrier::network {
 
 // The name is based on https://www.postgresql.org/docs/9.3/runtime-config-connection.html
+// {0}: Directory for the socket from -uds_file_directory on the command line.
+// {1}: Port number from -port on the command line.
 constexpr std::string_view UNIX_DOMAIN_SOCKET_FORMAT_STRING = "{0}/.s.PGSQL.{1}";
 
 /**
