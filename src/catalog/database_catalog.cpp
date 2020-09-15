@@ -2000,8 +2000,8 @@ void DatabaseCatalog::BootstrapProcContext(const common::ManagedPointer<transact
                                            const proc_oid_t proc_oid, std::string &&func_name,
                                            const type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
                                            const execution::ast::Builtin builtin, const bool is_exec_ctx_required) {
-  auto func_context =
-      new execution::functions::FunctionContext(std::move(func_name), func_ret_type, std::move(args_type), builtin);
+  const auto *const func_context = new execution::functions::FunctionContext(
+      std::move(func_name), func_ret_type, std::move(args_type), builtin, is_exec_ctx_required);
   const auto retval UNUSED_ATTRIBUTE = SetProcCtxPtr(txn, proc_oid, func_context);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
