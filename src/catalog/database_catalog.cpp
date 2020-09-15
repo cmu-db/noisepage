@@ -2072,13 +2072,13 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER}, execution::ast::Builtin::Repeat, true);
 
   BootstrapProcContext(txn, postgres::TRIM_PRO_OID, "btrim", type::TypeId::VARCHAR,
-                       {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Trim, true);
+                       {type::TypeId::VARCHAR}, execution::ast::Builtin::Trim, true);
 
   BootstrapProcContext(txn, postgres::TRIM2_PRO_OID, "btrim", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::VARCHAR}, execution::ast::Builtin::Trim2, true);
 
   BootstrapProcContext(txn, postgres::CONCAT_PRO_OID, "concat", type::TypeId::VARCHAR,
-                       {type::TypeId::VARIADIC, type::TypeId::VARIADIC}, execution::ast::Builtin::Concat, true);
+                       {type::TypeId::VARIADIC}, execution::ast::Builtin::Concat, true);
 
   BootstrapProcContext(txn, postgres::LPAD_PRO_OID, "lpad", type::TypeId::VARCHAR,
                        {type::TypeId::VARCHAR, type::TypeId::INTEGER, type::TypeId::VARCHAR},
