@@ -86,6 +86,9 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
   TERRIER_ASSERT(
       result,
       "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
+  // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
+  // a better way
+  common::SpinLatch::ScopedSpinLatch guard(&transaction_context_latch_);
   // Register an abort action with the txn context in case of rollback
   txn->RegisterAbortAction([=]() {
     const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
@@ -116,6 +119,9 @@ bool BwTreeIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction
   TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
 
   if (result) {
+    // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
+    // a better way
+    common::SpinLatch::ScopedSpinLatch guard(&transaction_context_latch_);
     // Register an abort action with the txn context in case of rollback
     txn->RegisterAbortAction([=]() {
       const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
@@ -260,6 +266,11 @@ void BwTreeIndex<KeyType>::ScanLimitDescending(const transaction::TransactionCon
   }
 }
 
+template <typename KeyType>
+uint64_t BwTreeIndex<KeyType>::GetSize() const {
+  return bwtree_->GetSize();
+}
+
 template class BwTreeIndex<CompactIntsKey<8>>;
 template class BwTreeIndex<CompactIntsKey<16>>;
 template class BwTreeIndex<CompactIntsKey<24>>;
@@ -268,5 +279,6 @@ template class BwTreeIndex<CompactIntsKey<32>>;
 template class BwTreeIndex<GenericKey<64>>;
 template class BwTreeIndex<GenericKey<128>>;
 template class BwTreeIndex<GenericKey<256>>;
+template class BwTreeIndex<GenericKey<512>>;
 
 }  // namespace terrier::storage::index

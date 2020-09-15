@@ -1,4 +1,5 @@
 #include "catalog/schema.h"
+
 #include "common/json.h"
 
 namespace terrier::catalog {

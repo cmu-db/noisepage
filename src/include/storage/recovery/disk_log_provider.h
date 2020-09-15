@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
 

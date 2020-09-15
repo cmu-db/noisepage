@@ -1,10 +1,11 @@
+#include "catalog/database_catalog.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
@@ -1871,6 +1872,7 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   auto real_type = GetTypeOidForType(type::TypeId::DECIMAL);
   auto date_type = GetTypeOidForType(type::TypeId::DATE);
   auto bool_type = GetTypeOidForType(type::TypeId::BOOLEAN);
+  auto variadic_type = GetTypeOidForType(type::TypeId::VARIADIC);
 
   CreateProcedure(
       txn, postgres::NP_RUNNERS_EMIT_INT_PRO_OID, "nprunnersemitint", postgres::INTERNAL_LANGUAGE_OID,
@@ -1962,6 +1964,11 @@ void DatabaseCatalog::BootstrapProcs(const common::ManagedPointer<transaction::T
   CreateProcedure(txn, postgres::TRIM2_PRO_OID, "btrim", postgres::INTERNAL_LANGUAGE_OID,
                   postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str", "str"}, {str_type, str_type}, {str_type, str_type},
                   {}, str_type, "", true);
+
+  // concat
+  CreateProcedure(txn, postgres::CONCAT_PRO_OID, "concat", postgres::INTERNAL_LANGUAGE_OID,
+                  postgres::NAMESPACE_DEFAULT_NAMESPACE_OID, {"str"}, {variadic_type}, {variadic_type}, {}, str_type,
+                  "", true);
 
   // date_part
   CreateProcedure(txn, postgres::DATE_PART_PRO_OID, "date_part", postgres::INTERNAL_LANGUAGE_OID,
@@ -2216,6 +2223,12 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
                                                            {type::TypeId::VARCHAR, type::TypeId::VARCHAR},
                                                            execution::ast::Builtin::Trim2, true);
   SetProcCtxPtr(txn, postgres::TRIM2_PRO_OID, func_context);
+  txn->RegisterAbortAction([=]() { delete func_context; });
+
+  func_context = new execution::functions::FunctionContext("concat", type::TypeId::VARCHAR,
+                                                           {type::TypeId::VARIADIC, type::TypeId::VARIADIC},
+                                                           execution::ast::Builtin::Concat, true);
+  SetProcCtxPtr(txn, postgres::CONCAT_PRO_OID, func_context);
   txn->RegisterAbortAction([=]() { delete func_context; });
 
   func_context = new execution::functions::FunctionContext(
@@ -2907,10 +2920,8 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   *(reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)]))) = procns;
   *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)]))) =
       name_varlen;
-  *(reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)]))) =
-      all_arg_types_varlen;
 
-  auto result UNUSED_ATTRIBUTE = procs_name_index_->InsertUnique(txn, *name_pr, tuple_slot);
+  auto result = procs_name_index_->Insert(txn, *name_pr, tuple_slot);
   if (!result) {
     delete[] buffer;
     return false;
@@ -2965,8 +2976,6 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAME_COL_OID]));
   auto proc_ns = *reinterpret_cast<namespace_oid_t *>(
       table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PRONAMESPACE_COL_OID]));
-  auto all_args_types_varlen = *reinterpret_cast<storage::VarlenEntry *>(
-      table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
 
   auto ctx_ptr = table_pr->AccessWithNullCheck(pg_proc_all_cols_prm_[postgres::PRO_CTX_PTR_COL_OID]);
 
@@ -2975,8 +2984,6 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
   auto name_map = procs_name_index_->GetKeyOidToOffsetMap();
   *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = proc_ns;
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) =
-      all_args_types_varlen;
 
   procs_name_index_->Delete(txn, *name_pr, to_delete_slot);
 
@@ -3012,22 +3019,34 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   auto all_arg_types_varlen = storage::StorageUtil::CreateVarlen(arg_types);
   *reinterpret_cast<namespace_oid_t *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(1)])) = procns;
   *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(2)])) = name_varlen;
-  *reinterpret_cast<storage::VarlenEntry *>(name_pr->AccessForceNotNull(name_map[indexkeycol_oid_t(3)])) =
-      all_arg_types_varlen;
 
   std::vector<storage::TupleSlot> results;
   procs_name_index_->ScanKey(*txn, *name_pr, &results);
 
   proc_oid_t ret = INVALID_PROC_OID;
+  std::vector<proc_oid_t> matching_functions;
   if (!results.empty()) {
-    TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+    const std::vector<type_oid_t> variadic = {GetTypeOidForType(type::TypeId::VARIADIC)};
+    auto variadic_varlen = storage::StorageUtil::CreateVarlen(variadic);
 
-    auto found_slot = results[0];
-
-    auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
-    bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, found_slot, table_pr);
-    ret =
-        *reinterpret_cast<proc_oid_t *>(table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+    // Search through results and see if any match the parsed function by argument types
+    for (auto &tuple : results) {
+      auto table_pr = pg_proc_all_cols_pri_.InitializeRow(buffer);
+      bool UNUSED_ATTRIBUTE visible = procs_->Select(txn, tuple, table_pr);
+      storage::VarlenEntry index_all_arg_types = *reinterpret_cast<storage::VarlenEntry *>(
+          table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROALLARGTYPES_COL_OID]));
+      // variadic functions will match any argument types as long as there one or more arguments
+      if (index_all_arg_types == all_arg_types_varlen ||
+          (index_all_arg_types == variadic_varlen && !arg_types.empty())) {
+        proc_oid_t proc_oid = *reinterpret_cast<proc_oid_t *>(
+            table_pr->AccessForceNotNull(pg_proc_all_cols_prm_[postgres::PROOID_COL_OID]));
+        matching_functions.push_back(proc_oid);
+        break;
+      }
+    }
+    if (variadic_varlen.NeedReclaim()) {
+      delete[] variadic_varlen.Content();
+    }
   }
 
   if (name_varlen.NeedReclaim()) {
@@ -3039,6 +3058,19 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   }
 
   delete[] buffer;
+
+  if (matching_functions.size() == 1) {
+    ret = matching_functions[0];
+  } else if (matching_functions.size() > 1) {
+    // TODO(Joe Koshakow) would be nice to to include the parsed arg types of the function and the arg types that it
+    // matches with
+    throw BINDER_EXCEPTION(
+        fmt::format(
+            "Ambiguous function \"{}\", with given types. It matches multiple function signatures in the catalog",
+            procname),
+        common::ErrorCode::ERRCODE_DUPLICATE_FUNCTION);
+  }
+
   return ret;
 }
 

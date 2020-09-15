@@ -23,6 +23,9 @@ using hash_t = uint64_t;
  * Generic hashing utility class. The main entry point are the HashUtil::Hash() functions. There are
  * overloaded specialized versions for arithmetic values (integers and floats), and generic versions
  * for longer buffers (strings, c-strings, and opaque buffers).
+ *
+ * @warning If you change any of this functionality, compare stable performance numbers of varlen_entry_benchmark before
+ * and after. It is not currently part of CI because it can be noisy.
  */
 class EXPORT HashUtil {
  public:

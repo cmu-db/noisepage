@@ -2,6 +2,7 @@
 
 #include <random>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
 #include "test_util/multithread_test_util.h"
