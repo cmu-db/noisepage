@@ -73,6 +73,7 @@ class MiniTrainer:
         min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -105,13 +106,17 @@ class MiniTrainer:
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
 
+                    eval_error = percentage_error[elapsed_us_index]
+                    if data.opunit in data_info.MEM_EVALUATE_OPUNITS:
+                        eval_error = percentage_error[memory_b_index]
+
                     # Record the model with the lowest elapsed time prediction (since that might be the most
                     # important prediction)
                     # Only use linear regression for the arithmetic operating units
-                    if (j == 1 and percentage_error[elapsed_us_index] < min_percentage_error
+                    if (j == 1 and eval_error < min_percentage_error
                             and y_transformer == y_transformers[-1]
                             and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
-                        min_percentage_error = percentage_error[elapsed_us_index]
+                        min_percentage_error = eval_error
                         if self.expose_all:
                             best_y_transformer = i
                             best_method = m
