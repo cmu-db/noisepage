@@ -15,7 +15,7 @@ from type import Target, OpUnit, ConcurrentCountingMode
 
 
 def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack,
-             ee_sample_interval, txn_sample_interval):
+             ee_sample_interval, txn_sample_interval, network_sample_interval):
     """Get the data for the global models
 
     Read from the cache if exists, otherwise save the constructed data to the cache.
@@ -27,6 +27,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     :param tpcc_hack: whether to manually fix the tpcc features
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs
+    :param network_sample_interval: sampling interval for the network OUs
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
@@ -36,7 +37,8 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
                                                              warmup_period, tpcc_hack,
-                                                             ee_sample_interval, txn_sample_interval)
+                                                             ee_sample_interval, txn_sample_interval,
+                                                             network_sample_interval)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
@@ -46,7 +48,8 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
 
 
 def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period,
-                                             tpcc_hack, ee_sample_interval, txn_sample_interval):
+                                             tpcc_hack, ee_sample_interval, txn_sample_interval,
+                                             network_sample_interval):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -55,7 +58,8 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval)
+    data_list = _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval,
+                               network_sample_interval)
     _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
@@ -185,7 +189,8 @@ def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
+def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval,
+                   network_sample_interval):
     """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
 
     :param input_path: input data file path
@@ -197,7 +202,8 @@ def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
         data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period, tpcc_hack,
-                                                                   ee_sample_interval, txn_sample_interval)
+                                                                   ee_sample_interval, txn_sample_interval,
+                                                                   network_sample_interval)
         logging.info("Loaded file: {}".format(filename))
 
     return data_list
@@ -214,7 +220,8 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
     pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
-    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us", "Us Error", "Absolute Us", "Assolute Us %"])
+    io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us",
+                                            "Us Error", "Absolute Us", "Assolute Us %"])
 
     # Track pipeline cumulative numbers
     num_pipelines = 0
@@ -239,7 +246,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
         logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
 
         pipeline_y_pred = 0
-        x = None
         for opunit_feature in data.opunit_features:
             opunit = opunit_feature[0]
             opunit_model = mini_model_map[opunit]
@@ -355,4 +361,3 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     io_util.write_csv_result(pipeline_path, "Total Pipeline", [num_pipelines, 1, total_actual[-1],
                              total_predicted[-1], ratio_error[-1], total_elapsed_err, 1] +
                              [""] + list(total_actual) + [""] + list(total_predicted) + [""] + list(ratio_error))
-

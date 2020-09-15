@@ -88,7 +88,7 @@ class GlobalTrainer:
     """
 
     def __init__(self, input_path, model_results_path, ml_models, test_ratio, impact_model_ratio, mini_model_map,
-                 warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
+                 warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval, network_sample_interval):
         self.input_path = input_path
         self.model_results_path = model_results_path
         self.ml_models = ml_models
@@ -99,6 +99,7 @@ class GlobalTrainer:
         self.tpcc_hack = tpcc_hack
         self.ee_sample_interval = ee_sample_interval
         self.txn_sample_interval = txn_sample_interval
+        self.network_sample_interval = network_sample_interval
 
     def train(self):
         """Train the mini-models
@@ -111,7 +112,8 @@ class GlobalTrainer:
                                                                                       self.warmup_period,
                                                                                       self.tpcc_hack,
                                                                                       self.ee_sample_interval,
-                                                                                      self.txn_sample_interval)
+                                                                                      self.txn_sample_interval,
+                                                                                      self.network_sample_interval)
 
         return self._train_global_models(resource_data_list, impact_data_list)
 
@@ -226,8 +228,10 @@ if __name__ == '__main__':
     aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
     aparser.add_argument('--ee_sample_interval', type=int, default=9,
                          help='Sampling interval for the execution engine OUs')
-    aparser.add_argument('--txn_sample_interval', type=int, default=0,
+    aparser.add_argument('--txn_sample_interval', type=int, default=9,
                          help='Sampling interval for the transaction OUs')
+    aparser.add_argument('--txn_sample_interval', type=int, default=9,
+                         help='Sampling interval for the network OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
@@ -239,7 +243,7 @@ if __name__ == '__main__':
         model_map = pickle.load(pickle_file)
     trainer = GlobalTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio,
                             args.impact_model_ratio, model_map, args.warmup_period, args.tpcc_hack,
-                            args.ee_sample_interval, args.txn_sample_interval)
+                            args.ee_sample_interval, args.txn_sample_interval, args.network_sample_interval)
     resource_model, impact_model, direct_model = trainer.train()
     with open(args.save_path + '/global_resource_model.pickle', 'wb') as file:
         pickle.dump(resource_model, file)

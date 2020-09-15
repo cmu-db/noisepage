@@ -14,7 +14,8 @@ import global_model_config
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
+def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval,
+                             network_sample_interval):
     """Get the training data from the global model
 
     :param filename: the input data file
@@ -22,12 +23,13 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_inter
     :param tpcc_hack: whether to manually fix the tpcc features
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs
+    :param network_sample_interval: sampling interval for the network OUs
     :return: the list of global model data
     """
 
     if "txn" in filename:
         # Cannot handle the transaction manager data yet
-        return []
+        return _txn_get_mini_runner_data(filename, txn_sample_interval)
     if "execution" in filename:
         # Special handle of the execution data
         return _execution_get_grouped_op_unit_data(filename, ee_sample_interval)
@@ -37,8 +39,86 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_inter
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
+    if "command" in filename:
+        # Handle networking OUs
+        return _default_get_global_data(filename, network_sample_interval)
 
     return _default_get_global_data(filename)
+
+
+def _default_get_global_data(filename, sample_interval=0):
+    # In the default case, the data does not need any pre-processing and the file name indicates the opunit
+    df = pd.read_csv(filename)
+    file_name = os.path.splitext(os.path.basename(filename))[0]
+
+    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
+
+    # Construct the new data
+    opunit = OpUnit[file_name.upper()]
+    data_list = []
+
+    for i in range(x.shape[0]):
+        data_list.append(GroupedOpUnitData("{}".format(file_name), [(opunit, x[i])], y[i], sample_interval))
+    return data_list
+
+
+def _txn_get_mini_runner_data(filename, txn_sample_interval):
+    # In the default case, the data does not need any pre-processing and the file name indicates the opunit
+    df = pd.read_csv(filename)
+    file_name = os.path.splitext(os.path.basename(filename))[0]
+
+    # prepending a column of ones as the base transaction data feature
+    base_x = pd.DataFrame(data=np.ones((df.shape[0], 1), dtype=int))
+    df = pd.concat([base_x, df], axis=1)
+    x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
+    y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
+    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.START_TIME]].values
+    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.CPU_ID]].values
+
+    logging.info("Loaded file: {}".format(OpUnit[file_name.upper()]))
+
+    interval = data_info.CONTENDING_OPUNIT_INTERVAL
+
+    # Map from interval start time to the data in this interval
+    interval_x_map = {}
+    interval_y_map = {}
+    interval_cpu_id_map = {}
+    interval_start_time_map = {}
+    n = x.shape[0]
+    for i in tqdm.tqdm(list(range(n)), desc="Group data by interval"):
+        rounded_time = data_util.round_to_interval(start_times[i], interval)
+        if rounded_time not in interval_x_map:
+            interval_x_map[rounded_time] = []
+            interval_y_map[rounded_time] = []
+            interval_cpu_id_map[rounded_time] = []
+            interval_start_time_map[rounded_time] = []
+        interval_x_map[rounded_time].append(x[i])
+        interval_y_map[rounded_time].append(y[i])
+        interval_cpu_id_map[rounded_time].append(cpu_ids[i])
+        interval_start_time_map[rounded_time].append(start_times[i])
+
+    # Construct the new data
+    opunit = OpUnit[file_name.upper()]
+    data_list = []
+    for rounded_time in interval_x_map:
+        # Sum the features
+        x_new = np.sum(interval_x_map[rounded_time], axis=0)
+        # Concatenate the number of different threads
+        x_new = np.concatenate((x_new, [len(set(interval_cpu_id_map[rounded_time]))]))
+        x_new *= txn_sample_interval + 1
+        # Change all the opunits in the group for this interval to be the new feature
+        opunits = [(opunit, x_new)]
+        # The prediction is the average behavior
+        y_new = np.average(interval_y_map[rounded_time], axis=0)
+        n = len(interval_x_map[rounded_time])
+        for i in range(n):
+            metrics = np.concatenate(([interval_start_time_map[rounded_time][i]],
+                                      [interval_cpu_id_map[rounded_time][i]],
+                                      y_new))
+            data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics, txn_sample_interval))
+
+    return data_list
 
 
 def _execution_get_grouped_op_unit_data(filename, ee_sample_interval):
@@ -173,11 +253,6 @@ def _interval_get_grouped_op_unit_data(filename):
             data_list.append(GroupedOpUnitData("{}".format(file_name), opunits, metrics))
 
     return data_list
-
-
-def _default_get_global_data(filename):
-    # In the default case, the data does not need any pre-processing and the file name indicates the opunit
-    return []
 
 
 class GroupedOpUnitData:

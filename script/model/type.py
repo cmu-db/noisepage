@@ -55,6 +55,10 @@ class OpUnit(enum.IntEnum):
     DELETE = 25,
     CREATE_INDEX = 26,
 
+    # Networking opunits
+    BIND_COMMAND = 30,
+    EXECUTE_COMMAND = 31
+
 
 class ArithmeticFeature(enum.Enum):
     """The input fields of the arithmetic operating units

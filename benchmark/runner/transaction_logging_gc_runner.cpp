@@ -68,7 +68,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 49);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
@@ -156,14 +156,14 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
 static void UNUSED_ATTRIBUTE TransactionArguments(benchmark::internal::Benchmark *b) {
   std::vector<uint32_t> txn_lengths = {2};
   // submit interval between two transactions (us)
-  std::vector<uint32_t> txn_intervals = {1, 10, 100};
-  std::vector<uint32_t> num_threads = {4, 2, 1, 8, 14, 20};
+  std::vector<uint32_t> txn_intervals = {1, 5, 10, 50, 100};
+  std::vector<uint32_t> num_threads = {4, 2, 1, 8, 12, 16, 20};
 
   for (uint32_t txn_length : txn_lengths)
     for (uint32_t txn_interval : txn_intervals)
       for (uint32_t num_thread : num_threads)
         for (uint32_t insert = 0; insert <= 50; insert += 25)
-          for (uint32_t update = insert; update <= insert; update += 20) {
+          for (uint32_t update = insert; update <= 50; update += 25) {
             b->Args({txn_length, txn_interval, num_thread, insert, update, 100 - insert - update});
           }
 }

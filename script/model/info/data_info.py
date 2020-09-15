@@ -70,3 +70,6 @@ RECORD_METRICS_START = MINI_MODEL_TARGET_NUM
 
 # Interval for opunits that wake up periodically (us)
 PERIODIC_OPUNIT_INTERVAL = 1000000
+
+# Interval for contending opunits (us)
+CONTENDING_OPUNIT_INTERVAL = 3000000

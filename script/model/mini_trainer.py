@@ -27,7 +27,7 @@ class MiniTrainer:
     Trainer for the mini models
     """
 
-    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all):
+    def __init__(self, input_path, model_metrics_path, ml_models, test_ratio, trim, expose_all, txn_sample_interval):
         self.input_path = input_path
         self.model_metrics_path = model_metrics_path
         self.ml_models = ml_models
@@ -36,6 +36,7 @@ class MiniTrainer:
         self.stats_map = {}
         self.trim = trim
         self.expose_all = expose_all
+        self.txn_sample_interval = txn_sample_interval
 
     def _train_specific_model(self, data, y_transformer_idx, method_idx):
         methods = self.ml_models
@@ -149,8 +150,8 @@ class MiniTrainer:
         # First get the data for all mini runners
         for filename in sorted(glob.glob(os.path.join(self.input_path, '*.csv'))):
             print(filename)
-            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.model_map,
-                                                         self.stats_map, self.trim)
+            data_list = opunit_data.get_mini_runner_data(filename, self.model_metrics_path, self.txn_sample_interval,
+                                                         self.model_map, self.stats_map, self.trim)
             for data in data_list:
                 best_y_transformer, best_method = self._train_data(data, summary_file)
                 if self.expose_all:
@@ -164,22 +165,25 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input_varchar_agg',
+    aparser.add_argument('--input_path', default='mini_runner_input_testing',
                          help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_model_varchar', help='Path to save the mini models')
+    aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
                          default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')
     aparser.add_argument('--expose_all', default=True, help='Should expose all data to the model')
+    aparser.add_argument('--txn_sample_interval', type=int, default=49,
+                         help='Sampling interval for the transaction OUs')
     aparser.add_argument('--log', default='info', help='The logging level')
     args = aparser.parse_args()
 
     logging_util.init_logging(args.log)
-    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim, args.expose_all)
+    trainer = MiniTrainer(args.input_path, args.model_results_path, args.ml_models, args.test_ratio, args.trim,
+                          args.expose_all, args.txn_sample_interval)
     trained_model_map = trainer.train()
     with open(args.save_path + '/mini_model_map.pickle', 'wb') as file:
         pickle.dump(trained_model_map, file)
