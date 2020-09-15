@@ -9,7 +9,7 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
                                         ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t val) {
   TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
   size_t *value = nullptr;
-  for (auto &feature : pipeline_features_) {
+  for (auto &feature : *pipeline_features_) {
     if (feature.GetFeatureId() == feature_id) {
       TERRIER_ASSERT(value == nullptr, "Duplicate feature found");
       switch (modifier) {

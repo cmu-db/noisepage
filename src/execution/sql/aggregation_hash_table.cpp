@@ -538,9 +538,13 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
                                                        execution::pipeline_id_t pipeline_id,
                                                        ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                                        MergePartitionFn merge_partition_fn) {
+  bool has_pipeline =
+      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
   brain::ExecOUFeatureVector ouvec;
-  exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-  exec_ctx->StartPipelineTracker(pipeline_id);
+  if (has_pipeline) {
+    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
+    exec_ctx->StartPipelineTracker(pipeline_id);
+  }
 
   // Set the partition merging function. This function tells us how to merge a
   // set of overflow partitions into an AggregationHashTable.
@@ -589,12 +593,14 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
     }
   }
 
-  // Set # rows to be total number of entries in all agg tables
-  // Set cardinality to be # of per-task tables being built from
-  ouvec.pipeline_features_[0].SetNumRows(tuple_count);
-  ouvec.pipeline_features_[0].SetCardinality(tl_agg_ht.size());
-  ouvec.pipeline_features_[0].SetNumConcurrent(0);
-  exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+  if (has_pipeline) {
+    // Set # rows to be total number of entries in all agg tables
+    // Set cardinality to be # of per-task tables being built from
+    (*ouvec.pipeline_features_)[0].SetNumRows(tuple_count);
+    (*ouvec.pipeline_features_)[0].SetCardinality(tl_agg_ht.size());
+    (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
+    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
+  }
 }
 
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,
