@@ -939,6 +939,7 @@ class MiniRunners : public benchmark::Fixture {
     settings.is_parallel_execution_enabled_ = (num_threads != 0);
     settings.number_of_threads_ = num_threads;
     settings.is_counters_enabled_ = counters;
+    settings.is_static_partitioner_enabled_ = true;
     return settings;
   }
 
