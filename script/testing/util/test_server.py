@@ -8,10 +8,10 @@ import time
 import traceback
 import errno
 import psutil
-
+import signal
 from util import constants
 from util.test_case import TestCase
-from util.common import *
+from util.common import run_command, kill_pids_on_port
 from util.constants import LOG
 
 
@@ -78,12 +78,7 @@ class TestServer:
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
             # Kill any other terrier processes that our listening on our target port
-            for other_pid in check_port(self.db_port):
-                LOG.info(
-                    "Killing existing server instance listening on port {} [PID={}]"
-                    .format(self.db_port, other_pid))
-                os.kill(other_pid, signal.SIGKILL)
-            # FOR
+            kill_pids_on_port(self.db_port)
 
             self.db_output_fd = open(self.db_output_file, "w+")
             self.db_process = subprocess.Popen(self.db_path,

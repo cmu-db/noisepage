@@ -33,7 +33,17 @@ def run_command(command,
     return rc, p.stdout, p.stderr
 
 
-def check_port(port):
+def kill_pids_on_port(port):
+    for proc in psutil.process_iter():
+        for conns in proc.connections(kind='inet'):
+            if conns.laddr.port == port:
+                LOG.info(
+                    "Killing existing server instance listening on port {} [PID={}]"
+                    .format(port, proc.proc.id))
+                proc.send_signal(signal.SIGKILL)
+
+
+def get_pids_on_port(port):
     """Get the list of PIDs (if any) listening on the target port"""
 
     pids = []
