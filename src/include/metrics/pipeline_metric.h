@@ -60,6 +60,7 @@ class PipelineMetricRawData : public AbstractRawData {
       outfile << data.GetCardinalityVectorString() << ", ";
       outfile << data.GetMemFactorsVectorString() << ", ";
       outfile << data.GetNumLoopsVectorString() << ", ";
+      outfile << data.GetNumConcurrentVectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
@@ -78,7 +79,7 @@ class PipelineMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
       "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
-      "est_cardinalities, mem_factor, num_loops"};
+      "est_cardinalities, mem_factor, num_loops, num_concurrent"};
 
  private:
   friend class PipelineMetric;
@@ -167,6 +168,14 @@ class PipelineMetricRawData : public AbstractRawData {
         num_loops.emplace_back(feature.GetNumLoops());
       }
       return ConcatVectorToString<size_t>(num_loops);
+    }
+
+    std::string GetNumConcurrentVectorString() {
+      std::vector<size_t> num_concurrent;
+      for (auto &feature : features_) {
+        num_concurrent.emplace_back(feature.GetNumConcurrent());
+      }
+      return ConcatVectorToString<size_t>(num_concurrent);
     }
 
     const execution::query_id_t query_id_;

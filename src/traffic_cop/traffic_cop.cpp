@@ -358,6 +358,10 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   // TODO(WAN): see #1047
   execution::exec::ExecutionSettings exec_settings{};
+  if (settings_manager_ && settings_manager_->GetBool(settings::Param::override_num_threads)) {
+    exec_settings.number_of_threads_ = settings_manager_->GetInt(settings::Param::num_threads);
+  }
+
   auto exec_query = execution::compiler::CompilationContext::Compile(
       *physical_plan, exec_settings, connection_ctx->Accessor().Get(),
       execution::compiler::CompilationMode::Interleaved,
@@ -383,9 +387,18 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
   execution::exec::ExecutionSettings exec_settings{};
+  if (settings_manager_ && settings_manager_->GetBool(settings::Param::override_num_threads)) {
+    exec_settings.number_of_threads_ = settings_manager_->GetInt(settings::Param::num_threads);
+  }
+
+  common::ManagedPointer<metrics::MetricsManager> metrics = nullptr;
+  if (common::thread_context.metrics_store_ != nullptr) {
+    metrics = common::thread_context.metrics_store_->MetricsManager();
+  }
+
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
-      connection_ctx->Accessor(), exec_settings);
+      connection_ctx->Accessor(), exec_settings, metrics);
 
   exec_ctx->SetParams(portal->Parameters());
 
@@ -420,8 +433,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
   // etc.) I suspect we would stash that in the ExecutionContext.
-  return {ResultType::ERROR,
-          common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.", common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.",
+                                               common::ErrorCode::ERRCODE_T_R_SERIALIZATION_FAILURE)};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(

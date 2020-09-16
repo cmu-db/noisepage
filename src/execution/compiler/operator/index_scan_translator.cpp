@@ -48,10 +48,10 @@ IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
     }
   }
 
-  num_scans_index_ = CounterDeclare("num_scans_index");
+  num_scans_index_ = CounterDeclare("num_scans_index", pipeline);
 }
 
-void IndexScanTranslator::InitializeQueryState(FunctionBuilder *function) const {
+void IndexScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   CounterSet(function, num_scans_index_, 0);
 }
 

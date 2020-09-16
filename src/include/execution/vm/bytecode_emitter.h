@@ -321,7 +321,7 @@ class BytecodeEmitter {
 
   /** Emit a parallel table scan. */
   void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
-                             LocalVar exec_ctx, FunctionId scan_fn);
+                             LocalVar exec_ctx, FunctionId scan_fn, LocalVar pipeline_id, LocalVar index_oid);
 
   /** Reading values from an iterator. */
   void EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint32_t col_idx);
@@ -340,7 +340,8 @@ class BytecodeEmitter {
                                     FunctionId init_agg_fn, FunctionId merge_agg_fn, LocalVar partitioned);
 
   /** Emit code to move thread-local data into main agg table. */
-  void EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset, FunctionId merge_part_fn);
+  void EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar exec_ctx, LocalVar pipeline_id, LocalVar tls,
+                                      LocalVar aht_offset, FunctionId merge_part_fn);
 
   /** Emit code to scan an agg table in parallel. */
   void EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,
@@ -403,6 +404,15 @@ class BytecodeEmitter {
    * Emits bytecode to abort the current transaction
    */
   void EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx);
+
+  /**
+   * @brief Emits a concat instruction
+   * @param ret where to store the result of concat instruction
+   * @param exec_ctx execution context
+   * @param inputs string inputs to concat
+   * @param num_inputs length of inputs
+   */
+  void EmitConcat(LocalVar ret, LocalVar exec_ctx, LocalVar inputs, uint32_t num_inputs);
 
  private:
   /** Copy a scalar immediate value into the bytecode stream */

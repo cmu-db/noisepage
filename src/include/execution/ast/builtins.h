@@ -43,6 +43,9 @@ namespace terrier::execution::ast {
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
   F(ThreadStateContainerClear, tlsClear)                                \
+  F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
+  F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
+  F(ExecOUFeatureVectorDestroy, execOUFeatureVectorDestroy)             \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
@@ -51,6 +54,7 @@ namespace terrier::execution::ast {
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
+  F(TableIterCreateIndexParallel, iterateTableCreateIndexParallel)      \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
@@ -131,6 +135,7 @@ namespace terrier::execution::ast {
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
   F(AggHashTableGetTupleCount, aggHTGetTupleCount)                      \
+  F(AggHashTableGetInsertCount, aggHTGetInsertCount)                    \
   F(AggHashTableInsert, aggHTInsert)                                    \
   F(AggHashTableLinkEntry, aggHTLink)                                   \
   F(AggHashTableLookup, aggHTLookup)                                    \
@@ -185,8 +190,10 @@ namespace terrier::execution::ast {
   F(SorterIterClose, sorterIterClose)                                   \
                                                                         \
   /* Output */                                                          \
+  F(ResultBufferNew, resultBufferNew)                                   \
   F(ResultBufferAllocOutRow, resultBufferAllocRow)                      \
   F(ResultBufferFinalize, resultBufferFinalize)                         \
+  F(ResultBufferFree, resultBufferFree)                                 \
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
@@ -328,6 +335,7 @@ namespace terrier::execution::ast {
   F(Ltrim, ltrim)                                                       \
   F(Rpad, rpad)                                                         \
   F(Rtrim, rtrim)                                                       \
+  F(Concat, concat)                                                     \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \
@@ -349,8 +357,10 @@ namespace terrier::execution::ast {
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
-  F(ExecutionContextGetFeature, execCtxGetFeature)                      \
-  F(ExecutionContextRecordFeature, execCtxRecordFeature)                \
+                                                                        \
+  F(RegisterMetricsThread, registerMetricsThread)                       \
+  F(CheckTrackersStopped, checkTrackersStopped)                         \
+  F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \

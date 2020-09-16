@@ -552,11 +552,12 @@ ast::Expr *CodeGen::TableIterClose(ast::Expr *table_iter) {
   return call;
 }
 
-ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
-                                         ast::Expr *query_state, ast::Expr *exec_ctx, ast::Identifier worker_name) {
-  ast::Expr *call = CallBuiltin(
-      ast::Builtin::TableIterParallel,
-      {Const32(table_oid.UnderlyingValue()), MakeExpr(col_oids), query_state, exec_ctx, MakeExpr(worker_name)});
+ast::Expr *CodeGen::IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids, ast::Expr *query_state,
+                                         ast::Expr *exec_ctx, ast::Identifier worker_name, ast::Expr *pipeline_id,
+                                         ast::Expr *index_oid) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::TableIterParallel, {Const32(table_oid.UnderlyingValue()), col_oids, query_state,
+                                                    exec_ctx, MakeExpr(worker_name), pipeline_id, index_oid});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -736,13 +737,15 @@ ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows
   return call;
 }
 
-ast::Expr *CodeGen::ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                         brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                         ast::Expr *value) {
+ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(ast::Expr *ouvec, pipeline_id_t pipeline_id,
+                                                     feature_id_t feature_id,
+                                                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                                     brain::ExecutionOperatingUnitFeatureUpdateMode mode,
+                                                     ast::Expr *value) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::ExecutionContextRecordFeature,
-                  {exec_ctx, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
-                   Const32(static_cast<int32_t>(feature_attribute)), value});
+      CallBuiltin(ast::Builtin::ExecOUFeatureVectorRecordFeature,
+                  {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
+                   Const32(static_cast<int32_t>(feature_attribute)), Const32(static_cast<int32_t>(mode)), value});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -820,10 +823,10 @@ ast::Expr *CodeGen::JoinHashTableBuild(ast::Expr *join_hash_table) {
   return call;
 }
 
-ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *thread_state_container,
-                                               ast::Expr *offset) {
-  ast::Expr *call =
-      CallBuiltin(ast::Builtin::JoinHashTableBuildParallel, {join_hash_table, thread_state_container, offset});
+ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                               ast::Expr *thread_state_container, ast::Expr *offset) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableBuildParallel,
+                                {join_hash_table, exec_ctx, pipeline_id, thread_state_container, offset});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -883,9 +886,11 @@ ast::Expr *CodeGen::AggHashTableLinkEntry(ast::Expr *agg_ht, ast::Expr *entry) {
   return call;
 }
 
-ast::Expr *CodeGen::AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
+ast::Expr *CodeGen::AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                               ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
                                                ast::Identifier merge_partitions_fn_name) {
-  std::initializer_list<ast::Expr *> args = {agg_ht, tls, tl_agg_ht_offset, MakeExpr(merge_partitions_fn_name)};
+  std::initializer_list<ast::Expr *> args = {agg_ht, exec_ctx,         pipeline_id,
+                                             tls,    tl_agg_ht_offset, MakeExpr(merge_partitions_fn_name)};
   ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableMovePartitions, args);
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
@@ -1033,14 +1038,17 @@ ast::Expr *CodeGen::SorterSort(ast::Expr *sorter) {
   return call;
 }
 
-ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortParallel, {sorter, tls, offset});
+ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
+                                 ast::Expr *offset) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortParallel, {sorter, exec_ctx, pipeline_id, tls, offset});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
 
-ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, tls, offset, Const64(top_k)});
+ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
+                                     ast::Expr *offset, std::size_t top_k) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, exec_ctx, pipeline_id, tls, offset, Const64(top_k)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

@@ -83,6 +83,11 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   /** Launch work for parallel execution */
   void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override;
 
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
  private:
   // Initialization for serial and parallel
   void SetGlobalOids(FunctionBuilder *function, ast::Expr *global_col_oids) const;
@@ -127,5 +132,8 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   std::vector<catalog::col_oid_t> all_oids_;
 
   catalog::index_oid_t index_oid_;
+
+  // The number of rows that are inserted.
+  StateDescriptor::Entry num_inserts_;
 };
 }  // namespace terrier::execution::compiler

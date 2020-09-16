@@ -3,7 +3,9 @@
 #include <random>
 #include <vector>
 
+#include "brain/operating_unit.h"
 #include "common/hash_util.h"
+#include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/thread_state_container.h"
@@ -185,8 +187,18 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
     PopulateJoinHashTable(jht, num_tuples, 1);
   });
 
+  auto db = catalog::db_oid_t(0);
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db, nullptr, nullptr, nullptr, nullptr,
+                                                                      exec_settings, nullptr);
+  auto units = std::make_unique<brain::PipelineOperatingUnits>();
+  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, 1, 4, 1, 1,
+                         1, 0, 0);
+  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
+  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
+
   JoinHashTable main_jht(exec_settings, &memory, sizeof(Tuple), false);
-  main_jht.MergeParallel(&container, 0);
+  main_jht.MergeParallel(exec_ctx.get(), execution::pipeline_id_t(1), &container, 0);
 
   // Each of the thread-local tables inserted the same data, i.e., tuples whose
   // keys are in the range [0, num_tuples). Thus, in the final table there

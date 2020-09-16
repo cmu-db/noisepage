@@ -701,9 +701,11 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
   // The fifth argument is the scan function as an identifier.
   const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
+  LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[5]);
+  LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
   // Emit the bytecode.
   GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
+                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), pipeline_id, index_oid);
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1003,6 +1005,13 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
       GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
+    case ast::Builtin::AggHashTableGetInsertCount: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableGetInsertCount, dest, agg_ht);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
     case ast::Builtin::AggHashTableInsert: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
@@ -1048,10 +1057,12 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
     }
     case ast::Builtin::AggHashTableMovePartitions: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar aht_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      auto merge_part_fn = LookupFuncIdByName(call->Arguments()[3]->As<ast::IdentifierExpr>()->Name().GetData());
-      GetEmitter()->EmitAggHashTableMovePartitions(agg_ht, tls, aht_offset, merge_part_fn);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar aht_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      auto merge_part_fn = LookupFuncIdByName(call->Arguments()[5]->As<ast::IdentifierExpr>()->Name().GetData());
+      GetEmitter()->EmitAggHashTableMovePartitions(agg_ht, exec_ctx, pipeline_id, tls, aht_offset, merge_part_fn);
       break;
     }
     case ast::Builtin::AggHashTableParallelPartitionedScan: {
@@ -1365,9 +1376,11 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::JoinHashTableBuildParallel: {
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar jht_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, tls, jht_offset);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar jht_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, exec_ctx, pipeline_id, tls, jht_offset);
       break;
     }
     case ast::Builtin::JoinHashTableLookup: {
@@ -1455,17 +1468,21 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::SorterSortParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::SorterSortParallel, sorter, tls, sorter_offset);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      GetEmitter()->Emit(Bytecode::SorterSortParallel, sorter, exec_ctx, pipeline_id, tls, sorter_offset);
       break;
     }
     case ast::Builtin::SorterSortTopKParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, tls, sorter_offset, top_k);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[4]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[5]);
+      GetEmitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, exec_ctx, pipeline_id, tls, sorter_offset, top_k);
       break;
     }
     case ast::Builtin::SorterFree: {
@@ -1521,15 +1538,26 @@ void BytecodeGenerator::VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Bui
 }
 
 void BytecodeGenerator::VisitResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar input = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
+    case ast::Builtin::ResultBufferNew: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::ResultBufferNew, dest, input);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
     case ast::Builtin::ResultBufferAllocOutRow: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      GetEmitter()->Emit(Bytecode::ResultBufferAllocOutputRow, dest, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ResultBufferAllocOutputRow, dest, input);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::ResultBufferFinalize: {
-      GetEmitter()->Emit(Bytecode::ResultBufferFinalize, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ResultBufferFinalize, input);
+      break;
+    }
+    case ast::Builtin::ResultBufferFree: {
+      GetEmitter()->Emit(Bytecode::ResultBufferFree, input);
       break;
     }
     default: {
@@ -1611,26 +1639,14 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       LocalVar query_id = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
+      LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id, ouvec);
       break;
     }
-    case ast::Builtin::ExecutionContextGetFeature: {
-      LocalVar value = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextGetFeature, value, exec_ctx, pipeline_id, feature_id,
-                         feature_attribute);
-      GetExecutionResult()->SetDestination(value.ValueOf());
-      break;
-    }
-    case ast::Builtin::ExecutionContextRecordFeature: {
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar value = VisitExpressionForRValue(call->Arguments()[4]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextRecordFeature, exec_ctx, pipeline_id, feature_id, feature_attribute,
-                         value);
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id);
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
@@ -2205,6 +2221,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar unique = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, tuple_slot, unique);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::IndexDelete: {
@@ -2408,6 +2425,23 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       }
       break;
     }
+    case ast::Builtin::Concat: {
+      const auto num_inputs = call->NumArgs() - 1;
+
+      const auto string_type = ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::StringVal);
+      const auto array_type = ast::ArrayType::Get(num_inputs, string_type->PointerTo());
+
+      LocalVar inputs = GetCurrentFunction()->NewLocal(array_type);
+      auto arr_elem_ptr = GetCurrentFunction()->NewLocal(string_type->PointerTo()->PointerTo());
+      for (uint32_t i = 0; i < num_inputs; i++) {
+        GetEmitter()->EmitLea(arr_elem_ptr, inputs, i * 8);
+        LocalVar input_string = VisitExpressionForLValue(call->Arguments()[i + 1]);
+        GetEmitter()->EmitAssign(Bytecode::Assign8, arr_elem_ptr.ValueOf(), input_string);
+      }
+
+      GetEmitter()->EmitConcat(ret, exec_ctx, inputs, num_inputs);
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string function!");
   }
@@ -2452,6 +2486,21 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
+    case ast::Builtin::RegisterMetricsThread: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::RegisterMetricsThread, exec_ctx);
+      break;
+    }
+    case ast::Builtin::CheckTrackersStopped: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::CheckTrackersStopped, exec_ctx);
+      break;
+    }
+    case ast::Builtin::AggregateMetricsThread: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::AggregateMetricsThread, exec_ctx);
+      break;
+    }
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -2460,9 +2509,24 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
-    case ast::Builtin::ExecutionContextGetFeature:
-    case ast::Builtin::ExecutionContextRecordFeature: {
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
       VisitExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorDestroy: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorDestroy, ouvector);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
+      LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar mode = VisitExpressionForRValue(call->Arguments()[4]);
+      LocalVar value = VisitExpressionForRValue(call->Arguments()[5]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorRecordFeature, ouvec, pipeline_id, feature_id, feature_attribute,
+                         mode, value);
       break;
     }
     case ast::Builtin::ThreadStateContainerIterate:
@@ -2567,6 +2631,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::AggHashTableInit:
     case ast::Builtin::AggHashTableGetTupleCount:
+    case ast::Builtin::AggHashTableGetInsertCount:
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLinkEntry:
     case ast::Builtin::AggHashTableLookup:
@@ -2637,8 +2702,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinSorterIterCall(call, builtin);
       break;
     }
+    case ast::Builtin::ResultBufferNew:
     case ast::Builtin::ResultBufferAllocOutRow:
-    case ast::Builtin::ResultBufferFinalize: {
+    case ast::Builtin::ResultBufferFinalize:
+    case ast::Builtin::ResultBufferFree: {
       VisitResultBufferCall(call, builtin);
       break;
     }
@@ -2807,7 +2874,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Lpad:
     case ast::Builtin::Ltrim:
     case ast::Builtin::Rpad:
-    case ast::Builtin::Rtrim: {
+    case ast::Builtin::Rtrim:
+    case ast::Builtin::Concat: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }

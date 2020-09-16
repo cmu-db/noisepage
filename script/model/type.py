@@ -54,6 +54,11 @@ class OpUnit(enum.IntEnum):
     UPDATE = 24,
     DELETE = 25,
     CREATE_INDEX = 26,
+    CREATE_INDEX_MAIN = 27,
+    PARALLEL_MERGE_HASHJOIN = 28,
+    PARALLEL_MERGE_AGGBUILD = 29,
+    PARALLEL_SORT_STEP = 30,
+    PARALLEL_SORT_MERGE_STEP = 31
 
     # Networking opunits
     BIND_COMMAND = 30,

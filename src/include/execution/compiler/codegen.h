@@ -577,11 +577,14 @@ class CodeGen {
    * @param query_state The query state pointer.
    * @param exec_ctx The execution context that we are running in.
    * @param worker_name The work function name.
+   * @param pipeline_id Pipeline ID
+   * @param index_oid Index OID
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
+  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                ast::Identifier worker_name);
+                                                ast::Identifier worker_name, ast::Expr *pipeline_id,
+                                                ast::Expr *index_oid);
 
   /**
    * Call \@abortTxn(exec_ctx).
@@ -752,16 +755,18 @@ class CodeGen {
 
   /**
    * Call \@execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value).
-   * @param exec_ctx The execution context to modify.
+   * @param ouvec OU feature vector to update
    * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
    * @param feature_id The ID of the feature to be recorded.
    * @param feature_attribute The attribute of the feature to record.
+   * @param mode Update mode
    * @param value The value to be recorded.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                                brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                                ast::Expr *value);
+  [[nodiscard]] ast::Expr *ExecOUFeatureVectorRecordFeature(
+      ast::Expr *ouvec, pipeline_id_t pipeline_id, feature_id_t feature_id,
+      brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+      brain::ExecutionOperatingUnitFeatureUpdateMode mode, ast::Expr *value);
 
   /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.
@@ -871,11 +876,14 @@ class CodeGen {
    * on the provided global join hash table (expected to be a *JoinHashTable), and a pointer to the
    * thread state container where thread-local join hash tables are stored at the given offset.
    * @param join_hash_table The global join hash table.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID of build
    * @param thread_state_container The thread state container.
    * @param offset The offset in the thread state container where thread-local tables are.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *thread_state_container,
+  [[nodiscard]] ast::Expr *JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *exec_ctx,
+                                                      ast::Expr *pipeline_id, ast::Expr *thread_state_container,
                                                       ast::Expr *offset);
 
   /**
@@ -969,6 +977,8 @@ class CodeGen {
    * tables at the given offset inside the provided thread state container into the global hash
    * table.
    * @param agg_ht A pointer to the global aggregation hash table.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID
    * @param tls A pointer to the thread state container.
    * @param tl_agg_ht_offset The offset in the state container where the thread-local aggregation
    *                         hash tables.
@@ -976,7 +986,8 @@ class CodeGen {
    *                                 into the global hash table.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
+  [[nodiscard]] ast::Expr *AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                                      ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
                                                       ast::Identifier merge_partitions_fn_name);
 
   /**
@@ -1160,22 +1171,28 @@ class CodeGen {
    * provided thread-state  container at the given offset, merging sorter results into a central
    * sorter instance.
    * @param sorter The central sorter instance that will contain the results of the sort.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID containing the sort
    * @param tls The thread state container.
    * @param offset The offset within the container where the thread-local sorter is.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset);
+  [[nodiscard]] ast::Expr *SortParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
+                                        ast::Expr *offset);
 
   /**
    * Call \@sorterSortTopKParallel(). Perform a parallel top-k sort of all sorter instances contained
    * in the provided thread-local container at the given offset.
    * @param sorter The central sorter instance that will contain the results of the sort.
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID containing the sort
    * @param tls The thread-state container.
    * @param offset The offset within the container where the thread-local sorters are.
    * @param top_k The top-K value.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k);
+  [[nodiscard]] ast::Expr *SortTopKParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
+                                            ast::Expr *tls, ast::Expr *offset, std::size_t top_k);
 
   /**
    * Call \@sorterFree(). Destroy the provided sorter instance.

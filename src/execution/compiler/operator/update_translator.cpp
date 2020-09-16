@@ -37,10 +37,12 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
     }
   }
 
-  num_updates_ = CounterDeclare("num_updates");
+  num_updates_ = CounterDeclare("num_updates", pipeline);
 }
 
-void UpdateTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_updates_, 0); }
+void UpdateTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_updates_, 0);
+}
 
 void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32

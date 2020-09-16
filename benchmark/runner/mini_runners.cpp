@@ -684,42 +684,82 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
 /**
  * Arg <0, 1, 2, 3, 4, 5>
  * 0 - # integers to scan
- * 1 - # bigints to scan
+ * 1 - # mixed type to scan
  * 2 - # integers in table
- * 3 - # bigints in table
+ * 3 - # mixed type in table
  * 4 - row
  * 5 - cardinality
+ * 6 - mixed type is a varchar or not
+ * 7 - # possible threads
  */
 static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  // 0 is a special argument used to indicate serial
+  auto num_threads = {0, 1, 2, 4, 8, 16};
+  auto num_cols = {1, 2, 3, 4, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        int64_t car = 1;
-        if (row > create_index_small_limit) {
-          // For these, we get a memory explosion if the cardinality is too low.
+  for (auto thread : num_threads) {
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          int64_t car = 1;
+          if (row > create_index_small_limit) {
+            // For these, we get a memory explosion if the cardinality is too low.
+            while (car < row) {
+              car *= 2;
+            }
+            car = car / (pow(2, create_index_large_cardinality_num));
+          }
+
           while (car < row) {
+            if (type == type::TypeId::INTEGER)
+              b->Args({col, 0, 15, 0, row, car, 0, thread});
+            else if (type == type::TypeId::BIGINT)
+              b->Args({0, col, 0, 15, row, car, 0, thread});
             car *= 2;
           }
-          car = car / (pow(2, create_index_large_cardinality_num));
-        }
 
-        while (car < row) {
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, car});
+            b->Args({col, 0, 15, 0, row, row, 0, thread});
           else if (type == type::TypeId::BIGINT)
-            b->Args({0, col, 0, 15, row, car});
+            b->Args({0, col, 0, 15, row, row, 0, thread});
+        }
+      }
+    }
+  }
+}
+
+static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
+  // 0 is a special argument used to indicate serial
+  auto num_threads = {0, 1, 2, 4, 8, 16};
+  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+
+  // Generates INTEGER + VARCHAR
+  std::vector<std::vector<int64_t>> args;
+  GenerateMixedArguments(&args, row_nums, false, 1);
+
+  for (auto thread : num_threads) {
+    for (auto arg : args) {
+      auto row = arg[4];
+      auto arg_car = arg[5];
+      if (row > create_index_small_limit) {
+        // For these, we get a memory explosion if the cardinality is too low.
+        int64_t car = 1;
+        while (car < row) {
           car *= 2;
         }
 
-        if (type == type::TypeId::INTEGER)
-          b->Args({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::BIGINT)
-          b->Args({0, col, 0, 15, row, row});
+        // This car is the ceiling
+        car = car / (pow(2, create_index_large_cardinality_num));
+        if (arg_car < car) {
+          continue;
+        }
       }
+
+      arg.push_back(thread);
+      b->Args(arg);
     }
   }
 }
@@ -740,6 +780,7 @@ class MiniRunners : public benchmark::Fixture {
   void ExecuteInsert(benchmark::State *state);
   void ExecuteUpdate(benchmark::State *state);
   void ExecuteDelete(benchmark::State *state);
+  void ExecuteCreateIndex(benchmark::State *state);
 
   std::string ConstructIndexScanPredicate(int64_t key_num, int64_t num_rows, int64_t lookup_size,
                                           bool parameter = false) {
@@ -896,6 +937,15 @@ class MiniRunners : public benchmark::Fixture {
     return settings;
   }
 
+  static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads, bool counters) {
+    execution::exec::ExecutionSettings settings;
+    settings.is_parallel_execution_enabled_ = (num_threads != 0);
+    settings.number_of_threads_ = num_threads;
+    settings.is_counters_enabled_ = counters;
+    settings.is_static_partitioner_enabled_ = true;
+    return settings;
+  }
+
   std::pair<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::OutputSchema>>
   OptimizeSqlStatement(
       const std::string &query, std::unique_ptr<optimizer::AbstractCostModel> cost_model,
@@ -906,7 +956,8 @@ class MiniRunners : public benchmark::Fixture {
               common::ManagedPointer<transaction::TransactionContext>, std::unique_ptr<planner::AbstractPlanNode>)>(
               PassthroughPlanChecker),
       common::ManagedPointer<std::vector<parser::ConstantValueExpression>> params = nullptr,
-      common::ManagedPointer<std::vector<type::TypeId>> param_types = nullptr) {
+      common::ManagedPointer<std::vector<type::TypeId>> param_types = nullptr,
+      execution::exec::ExecutionSettings *settings = nullptr) {
     auto txn = txn_manager_->BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
@@ -934,13 +985,33 @@ class MiniRunners : public benchmark::Fixture {
     }
 
     auto exec_settings = GetExecutionSettings();
+    if (settings != nullptr) {
+      exec_settings = *settings;
+    }
+
     auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings);
+        common::ManagedPointer(accessor), exec_settings, metrics_manager_);
 
     execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                        execution::compiler::CompilationMode::OneShot);
+
+    // Since we don't have duplicate features in a pipeline, this works
+    // to override the feature_ids so counters can work.
+    auto pipeline = exec_query->GetPipelineOperatingUnits();
+    for (auto &info : pipeline_units->units_) {
+      auto other_feature = pipeline->units_[info.first];
+      for (auto &oufeature : info.second) {
+        for (auto other_oufeature : other_feature) {
+          if (oufeature.GetExecutionOperatingUnitType() == other_oufeature.GetExecutionOperatingUnitType()) {
+            oufeature.feature_id_ = other_oufeature.feature_id_;
+            break;
+          }
+        }
+      }
+    }
+
     exec_query->SetPipelineOperatingUnits(std::move(pipeline_units));
 
     auto ret_val = std::make_pair(std::move(exec_query), out_plan->GetOutputSchema()->Copy());
@@ -956,8 +1027,9 @@ class MiniRunners : public benchmark::Fixture {
     auto txn = txn_manager->BeginTransaction();
     auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_settings = MiniRunners::GetExecutionSettings();
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
+                                                                        nullptr, common::ManagedPointer(accessor),
+                                                                        exec_settings, metrics_manager_);
 
     execution::sql::TableGenerator table_generator(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
     if (is_build) {
@@ -975,7 +1047,8 @@ class MiniRunners : public benchmark::Fixture {
 
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
                           planner::OutputSchema *out_schema, bool commit,
-                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params) {
+                          std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
+                          execution::exec::ExecutionSettings *settings = nullptr) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
@@ -988,9 +1061,13 @@ class MiniRunners : public benchmark::Fixture {
       accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
       auto exec_settings = GetExecutionSettings();
+      if (settings != nullptr) {
+        exec_settings = *settings;
+      }
+
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
-          common::ManagedPointer(accessor), exec_settings);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager_);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -1016,70 +1093,75 @@ class MiniRunners : public benchmark::Fixture {
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto exec_settings = GetExecutionSettings();
-    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings);
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
+                                                                        nullptr, common::ManagedPointer(accessor),
+                                                                        exec_settings, metrics_manager_);
     exec_ctx->SetExecutionMode(static_cast<uint8_t>(mode));
 
     brain::PipelineOperatingUnits units;
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
     exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
-    pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0);
+    pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
+
+    brain::ExecOUFeatureVector ouvec{
+        execution::pipeline_id_t(1),
+        new brain::ExecutionOperatingUnitFeatureVector(units.GetPipelineFeatures(execution::pipeline_id_t(1)))};
 
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_PLUS(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_MULTIPLY: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_MULTIPLY(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_DIVIDE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_DIVIDE(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t ret = __uint32_t_GEQ(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_PLUS(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_MULTIPLY(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_DIVIDE(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
-        exec_ctx->StartResourceTracker(metrics::MetricsComponent::EXECUTION_PIPELINE);
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_GEQ(num_elem);
-        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1));
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;
       }
@@ -1186,60 +1268,83 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
 
 void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
   std::ostream null{nullptr};
+  std::vector<int> num_threads = {1, 2, 4, 8, 16};
   std::vector<uint32_t> num_cols = {1, 2, 4, 8, 15};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
                                     10000, 20000, 50000, 100000, 300000, 500000, 1000000};
 
-  bool metrics_enabled = true;
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        // Scale # iterations accordingly
-        // Want to warmup the first query
-        int iters = 1;
-        if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
-          iters += warmup_iterations_num;
-        }
+  const common::action_id_t action_id(1);
+  auto callback = [](common::ManagedPointer<common::ActionContext> action UNUSED_ATTRIBUTE) {};
+  settings::setter_callback_fn setter_callback = callback;
+  auto settings = db_main->GetSettingsManager();
 
-        for (int i = 0; i < iters; i++) {
-          if (i != iters - 1 && metrics_enabled) {
-            db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
-            metrics_enabled = false;
-          } else if (i == iters - 1 && !metrics_enabled) {
-            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
-            metrics_enabled = true;
+  bool metrics_enabled = true;
+  for (auto thread : num_threads) {
+    {
+      auto action_context = std::make_unique<common::ActionContext>(action_id);
+      settings->SetBool(settings::Param::override_num_threads, true, common::ManagedPointer(action_context),
+                        setter_callback);
+    }
+
+    {
+      auto action_context = std::make_unique<common::ActionContext>(action_id);
+      settings->SetInt(settings::Param::num_threads, thread, common::ManagedPointer(action_context), setter_callback);
+    }
+
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          // Scale # iterations accordingly
+          // Want to warmup the first query
+          int iters = 1;
+          if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
+            iters += warmup_iterations_num;
           }
 
-          std::string create_query;
-          {
-            std::stringstream query_ss;
-            auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
-            query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
-            for (size_t j = 1; j <= col; j++) {
-              query_ss << "col" << j;
-              if (j != col) {
-                query_ss << ",";
-              } else {
-                query_ss << ")";
-              }
+          for (int i = 0; i < iters; i++) {
+            if (i != iters - 1 && metrics_enabled) {
+              db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+              metrics_enabled = false;
+            } else if (i == iters - 1 && !metrics_enabled) {
+              db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+              metrics_enabled = true;
             }
 
-            create_query = query_ss.str();
-          }
-          txn->exec(create_query);
+            std::string create_query;
+            {
+              std::stringstream query_ss;
+              auto table_name = execution::sql::TableGenerator::GenerateTableIndexName(type, row);
+              query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
+              for (size_t j = 1; j <= col; j++) {
+                query_ss << "col" << j;
+                if (j != col) {
+                  query_ss << ",";
+                } else {
+                  query_ss << ")";
+                }
+              }
 
-          std::string delete_query;
-          {
-            std::stringstream query_ss;
-            query_ss << "DROP INDEX minirunners__" << row;
-            delete_query = query_ss.str();
+              create_query = query_ss.str();
+            }
+            txn->exec(create_query);
+
+            std::string delete_query;
+            {
+              std::stringstream query_ss;
+              query_ss << "DROP INDEX minirunners__" << row;
+              delete_query = query_ss.str();
+            }
+            txn->exec(delete_query);
           }
-          txn->exec(delete_query);
         }
       }
     }
   }
+
+  auto action_context = std::make_unique<common::ActionContext>(action_id);
+  settings->SetBool(settings::Param::override_num_threads, false, common::ManagedPointer(action_context),
+                    setter_callback);
 }
 
 // NOLINTNEXTLINE
@@ -1256,10 +1361,12 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "}\n";
 
   output << "struct QueryState {\nexecCtx: *ExecutionContext\n}\n";
-  output << "struct P1_State {\n}\n";
+  output << "struct P1_State {\noutput_buffer: *OutputBuffer\nexecFeatures: ExecOUFeatureVector\n}\n";
   output << "fun Query0_Init(queryState: *QueryState) -> nil {\nreturn}\n";
-  output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
-            "{\nreturn\n}\n";
+  output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+  output << "\tpipelineState.output_buffer = @resultBufferNew(queryState.execCtx)\n";
+  output << "\treturn\n";
+  output << "}\n";
   output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
             "{\nreturn\n}\n";
 
@@ -1268,7 +1375,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   if (num_col > 0) {
     output << "\tvar out: *OutputStruct\n";
     output << "\tfor(var it = 0; it < " << row_num << "; it = it + 1) {\n";
-    output << "\t\tout = @ptrCast(*OutputStruct, @resultBufferAllocRow(queryState.execCtx))\n";
+    output << "\t\tout = @ptrCast(*OutputStruct, @resultBufferAllocRow(pipelineState.output_buffer))\n";
     output << "\t}\n";
   }
   output << "}\n";
@@ -1281,12 +1388,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "}\n";
 
   output << "fun Query0_Pipeline1_Run(queryState: *QueryState) -> nil {\n";
-  output << "\t@execCtxStartResourceTracker(queryState.execCtx, 4)\n";
   output
       << "\tvar pipelineState = @ptrCast(*P1_State, @tlsGetCurrentThreadState(@execCtxGetTLS(queryState.execCtx)))\n";
+  output << "\t@execOUFeatureVectorInit(queryState.execCtx, &pipelineState.execFeatures, 1)\n";
+  output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
   output << "\tQuery0_Pipeline1_SerialWork(queryState, pipelineState)\n";
-  output << "\t@resultBufferFinalize(queryState.execCtx)\n";
-  output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1)\n";
+  output << "\t@resultBufferFinalize(pipelineState.output_buffer)\n";
+  output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
   output << "\treturn\n";
   output << "}\n";
 
@@ -1329,7 +1437,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
       db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
-      common::ManagedPointer(accessor), exec_settings);
+      common::ManagedPointer(accessor), exec_settings, metrics_manager_);
 
   auto exec_query =
       execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
@@ -1337,7 +1445,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, row_num, tuple_size,
-                         num_col, 0, 1, 0);
+                         num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
   exec_query.SetPipelineOperatingUnits(std::move(units));
 
@@ -1380,9 +1488,9 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size,
-                         num_col, 0, 1, 0);
+                         num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::string query_final;
@@ -1449,9 +1557,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, lookup_size,
-                         tuple_size, key_num, 0, 1, 0);
+                         tuple_size, key_num, 0, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::IDX_SCAN, num_rows,
-                         tuple_size, key_num, lookup_size, 1, 0);
+                         tuple_size, key_num, lookup_size, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::string cols;
@@ -1530,15 +1638,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   // We only ever emit min(outer, inner) # of tuples
   // Even though there are no matches, it still might be a good idea to see what the relation is
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT,
-                         std::min(inner, outer), tuple_size, key_num, 0, 1, 0);
+                         std::min(inner, outer), tuple_size, key_num, 0, 1, 0, 0);
 
   // Outer table scan happens
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, outer, tuple_size,
-                         key_num, outer, 1, 0);
+                         key_num, outer, 1, 0, 0);
 
   // For each in outer, match 1 tuple in inner
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::IDX_SCAN, inner, tuple_size,
-                         key_num, 1, 1, outer);
+                         key_num, 1, 1, outer, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::string cols;
@@ -1657,7 +1765,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::INSERT, num_rows, tuple_size,
-                         num_cols, num_rows, 1, 0);
+                         num_cols, num_rows, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   auto equery = OptimizeSqlStatement(query, std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
@@ -1759,9 +1867,9 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::UPDATE, car, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::vector<parser::ConstantValueExpression> params;
@@ -1843,9 +1951,9 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::DELETE, car, tbl_size,
-                         tbl_col, car, 1, 0);
+                         tbl_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::IDX_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::vector<parser::ConstantValueExpression> params;
@@ -1904,13 +2012,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_BUILD, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_ITERATE, row,
-                         tuple_size, num_col, car, 1, 0);
+                         tuple_size, num_col, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size,
-                         num_col, 0, 1, 0);
+                         num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -1954,15 +2062,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, row,
-                         tuple_size, num_col, car, 1, 0);
+                         tuple_size, num_col, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, row,
-                         tuple_size, num_col, hj_output, 1, 0);
+                         tuple_size, num_col, hj_output, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, hj_output,
-                         tuple_size, num_col, 0, 1, 0);
+                         tuple_size, num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -2006,15 +2114,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, build_row,
-                         tuple_size, num_col, build_car, 1, 0);
+                         tuple_size, num_col, build_car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, build_row,
-                         tuple_size, num_col, build_car, 1, 0);
+                         tuple_size, num_col, build_car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, probe_row,
-                         tuple_size, num_col, probe_car, 1, 0);
+                         tuple_size, num_col, probe_car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::HASHJOIN_PROBE, probe_row,
-                         tuple_size, num_col, matched_car, 1, 0);
+                         tuple_size, num_col, matched_car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, matched_car,
-                         tuple_size, num_col, 0, 1, 0);
+                         tuple_size, num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -2067,13 +2175,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row,
-                         tuple_size, num_col, car, 1, 0);
+                         tuple_size, num_col, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, car,
-                         out_size, out_cols, car, 1, 0);
+                         out_size, out_cols, car, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, car, out_size,
-                         out_cols, 0, 1, 0);
+                         out_cols, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -2116,13 +2224,13 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
-                         num_col, car, 1, 0);
+                         num_col, car, 1, 0, 0);
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, row, 0,
-                         num_col, 1, 1, 0);
+                         num_col, 1, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE, 1,
-                         out_size, out_cols, 1, 1, 0);
+                         out_size, out_cols, 1, 1, 0, 0);
   pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, 1, out_size,
-                         out_cols, 0, 1, 0);
+                         out_cols, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
@@ -2151,37 +2259,47 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
     ->Iterations(1)
     ->Apply(GenAggregateKeylessArguments);
 
-// NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) {
-  auto num_integers = state.range(0);
-  auto num_bigints = state.range(1);
-  auto tbl_ints = state.range(2);
-  auto tbl_bigints = state.range(3);
-  auto row = state.range(4);
-  auto car = state.range(5);
+void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
+  auto num_integers = state->range(0);
+  auto num_mix = state->range(1);
+  auto tbl_ints = state->range(2);
+  auto tbl_mix = state->range(3);
+  auto row = state->range(4);
+  auto car = state->range(5);
+  auto varchar_mix = state->range(6);
+  auto num_threads = state->range(7);
 
   if (rerun_start || (row > warmup_rows_limit && skip_large_rows_runs)) {
     return;
   }
 
+  // Only generate counters if executing in parallel
+  auto settings = GetParallelExecutionSettings(num_threads, num_threads != 0);
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
-  auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
-  auto num_col = num_integers + num_bigints;
+  size_t mix_size;
+  type::TypeId mix_type;
+  if (varchar_mix == 1)
+    mix_type = type::TypeId::VARCHAR;
+  else
+    mix_type = type::TypeId::DECIMAL;
+  mix_size = type::TypeUtil::GetTypeTrueSize(mix_type);
+  auto tuple_size = int_size * num_integers + mix_size * num_mix;
+  auto num_col = num_integers + num_mix;
 
-  auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::BIGINT, num_integers, num_bigints);
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::BIGINT, tbl_ints, tbl_bigints, row, car);
+  auto cols = ConstructColumns("", type::TypeId::INTEGER, mix_type, num_integers, num_mix);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, mix_type, tbl_ints, tbl_mix, row, car);
 
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::CREATE_INDEX, row,
-                         tuple_size, num_col, car, 1, 0);
+                         tuple_size, num_col, car, 1, 0, num_threads);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::stringstream query;
   query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
-  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
-  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params);
+  auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
+                                     PassthroughPlanChecker, nullptr, nullptr, &settings);
+  BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
 
   {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -2189,15 +2307,57 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
   }
 
   InvokeGC();
-  state.SetItemsProcessed(row);
+  state->SetItemsProcessed(row);
 }
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ9_1_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Apply(GenCreateIndexArguments);
 
+BENCHMARK_REGISTER_F(MiniRunners, SEQ9_1_CreateIndexRunners)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Apply(GenCreateIndexMixedArguments);
+
 void InitializeRunnersState() {
+  std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+  settings::SettingsManager::ConstructParamMap(param_map);
+
+  size_t limit = 1000000000;
+  auto sql_val = execution::sql::Integer(limit);
+  auto sql_false = execution::sql::BoolVal(false);
+  param_map.find(settings::Param::block_store_size)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::block_store_reuse)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::record_buffer_segment_size)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::record_buffer_segment_reuse)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, sql_val);
+  param_map.find(settings::Param::block_store_size)->second.max_value_ = limit;
+  param_map.find(settings::Param::block_store_reuse)->second.max_value_ = limit;
+  param_map.find(settings::Param::record_buffer_segment_size)->second.max_value_ = limit;
+  param_map.find(settings::Param::record_buffer_segment_reuse)->second.max_value_ = limit;
+
+  // Set Network Port
+  param_map.find(settings::Param::port)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(port));
+
+  // Need to disable metrics thread
+  param_map.find(settings::Param::metrics_thread)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::BOOLEAN, sql_false);
+
+  // Need to disable WAL
+  param_map.find(settings::Param::wal_enable)->second.value_ =
+      parser::ConstantValueExpression(type::TypeId::BOOLEAN, sql_false);
+
   auto db_main_builder = DBMain::Builder()
                              .SetUseGC(true)
                              .SetUseCatalog(true)
@@ -2210,6 +2370,8 @@ void InitializeRunnersState() {
                              .SetUseExecution(true)
                              .SetUseTrafficCop(true)
                              .SetUseNetwork(true)
+                             .SetUseSettingsManager(true)
+                             .SetSettingsParameterMap(std::move(param_map))
                              .SetNetworkPort(terrier::runner::port);
 
   db_main = db_main_builder.Build().release();
@@ -2226,8 +2388,9 @@ void InitializeRunnersState() {
   // Load the database
   auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
   auto exec_settings = MiniRunners::GetExecutionSettings();
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings);
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
+                                                                      nullptr, common::ManagedPointer(accessor),
+                                                                      exec_settings, db_main->GetMetricsManager());
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
   table_gen.GenerateTestTables(true);
@@ -2336,16 +2499,9 @@ void RunBenchmarkSequence(int rerun_counter) {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
-                                                   {"SEQ1_0", "SEQ1_1"},
-                                                   {"SEQ2_0", "SEQ2_1"},
-                                                   {"SEQ3"},
-                                                   {"SEQ4"},
-                                                   {"SEQ5_0", "SEQ5_1"},
-                                                   {"SEQ6_0", "SEQ6_1"},
-                                                   {"SEQ7_2"},
-                                                   {"SEQ8_2"},
-                                                   {"SEQ9_0"}};
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},   {"SEQ1_0", "SEQ1_1"}, {"SEQ2_0", "SEQ2_1"}, {"SEQ3"},
+                                                   {"SEQ4"},   {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"}, {"SEQ7_2"},
+                                                   {"SEQ8_2"}, {"SEQ9_0", "SEQ9_1"}};
   std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
                                      "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
 
@@ -2453,21 +2609,12 @@ int main(int argc, char **argv) {
   Arg rerun_info{"--rerun=", false};
   Arg updel_info{"--updel_limit=", false};
   Arg warm_limit_info{"--warm_limit=", false};
-  Arg compiled_info{"--compiled=", false};
   Arg gen_test_data{"--gen_test=", false};
   Arg create_index_small_data{"--create_index_small_limit=", false};
   Arg create_index_car_data{"--create_index_large_car_num=", false};
-  Arg *args[] = {&port_info,
-                 &filter_info,
-                 &skip_large_rows_runs_info,
-                 &warm_num_info,
-                 &rerun_info,
-                 &updel_info,
-                 &warm_limit_info,
-                 &compiled_info,
-                 &gen_test_data,
-                 &create_index_small_data,
-                 &create_index_car_data};
+  Arg *args[] = {
+      &port_info,       &filter_info,   &skip_large_rows_runs_info, &warm_num_info,        &rerun_info, &updel_info,
+      &warm_limit_info, &gen_test_data, &create_index_small_data,   &create_index_car_data};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -2503,7 +2650,6 @@ int main(int argc, char **argv) {
                     terrier::runner::create_index_large_cardinality_num);
   SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, terrier::runner::warmup_rows_limit);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
-  SETTINGS_LOG_INFO("Compiled ({}): {}", compiled_info.match_, compiled_info.found_);
   SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 
   // Benchmark Config Environment Variables
@@ -2521,10 +2667,6 @@ int main(int argc, char **argv) {
     std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
     if (filter_info.found_) {
-      if (compiled_info.found_) {
-        terrier::runner::MiniRunners::mode = terrier::execution::vm::ExecutionMode::Compiled;
-      }
-
       // Pass straight through to gbenchmark
       benchmark::Initialize(&argc, argv);
       benchmark::RunSpecifiedBenchmarks();

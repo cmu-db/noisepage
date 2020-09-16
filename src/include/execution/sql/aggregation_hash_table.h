@@ -7,6 +7,7 @@
 
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/vector.h"
@@ -20,6 +21,7 @@ class HLL;
 
 namespace terrier::execution::exec {
 class ExecutionSettings;
+class ExecutionContext;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
@@ -93,7 +95,7 @@ class EXPORT AggregationHashTable {
    * Convention: First argument is query state, second argument is thread-local state, last argument
    *             is the aggregation hash table to scan.
    */
-  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *);
+  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *, uint32_t);
 
   /**
    * Small class to capture various usage stats
@@ -103,6 +105,8 @@ class EXPORT AggregationHashTable {
     uint64_t num_growths_ = 0;
     /** Number of times that the hash table has been flushed. */
     uint64_t num_flushes_ = 0;
+    /** Number of times insert into hash table. */
+    uint64_t num_inserts_ = 0;
   };
 
   // -------------------------------------------------------
@@ -190,11 +194,14 @@ class EXPORT AggregationHashTable {
    * end of the build-portion of a parallel aggregation before the thread state container is reset
    * for the next pipeline's thread-local state.
    *
+   * @param exec_ctx ExecutionContext
+   * @param pipeline_id Pipeline ID
    * @param thread_states Container for all thread-local tables.
    * @param agg_ht_offset The offset in the container to find the table.
    * @param merge_partition_fn The function to use for merging partitions.
    */
-  void TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+  void TransferMemoryAndPartitions(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
+                                   ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                    MergePartitionFn merge_partition_fn);
 
   /**
@@ -254,6 +261,14 @@ class EXPORT AggregationHashTable {
    * @return The total number of tuples in this table.
    */
   uint64_t GetTupleCount() const { return hash_table_.GetElementCount(); }
+
+  /**
+   * @return Number of insertions into the aggregation hash table
+   *
+   * @note this function differs from GetTupleCount() in that it is not affected
+   * by the behavior of overflow partitions.
+   */
+  uint64_t GetInsertCount() const { return stats_.num_inserts_; }
 
   /**
    * @return A read-only view of this aggregation table's statistics.

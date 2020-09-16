@@ -28,7 +28,7 @@ SETTING_int(
     "The maximum number of record buffer segments in the system. (default: 100000)",
     100000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolSizeLimit
 )
@@ -39,7 +39,7 @@ SETTING_int(
     "The minimum number of record buffer segments to keep allocated in the system (default: 10000)",
     10000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolReuseLimit
 )
@@ -50,7 +50,7 @@ SETTING_int(
     "The maximum number of storage blocks for the catalog. (default: 100000)",
     100000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BlockStoreSizeLimit
 )
@@ -61,7 +61,7 @@ SETTING_int(
     "The minimum number of storage blocks for the catalog to keep allocated (default: 1000)",
     1000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BlockStoreReuseLimit
 )
@@ -173,6 +173,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_thread,
+    "Use a thread for the metrics sub-system (default: true).",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     metrics_logging,
     "Metrics collection for the Logging component (default: false).",
     false,
@@ -256,6 +264,24 @@ SETTING_string(
     transaction_isolation,
     "The default isolation level (default: TRANSACTION_READ_COMMITTED)",
     "TRANSACTION_READ_COMMITTED",
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    override_num_threads,
+    "Overrides the number of threads to use rather than the hardware concurrency",
+    false,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_int(
+    num_threads,
+    "Number of threads",
+    1,
+    1,
+    128,
     true,
     terrier::settings::Callbacks::NoOp
 )

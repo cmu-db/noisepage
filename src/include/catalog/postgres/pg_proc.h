@@ -114,8 +114,9 @@ constexpr proc_oid_t RPAD_PRO_OID = proc_oid_t(131);
 constexpr proc_oid_t RPAD2_PRO_OID = proc_oid_t(132);
 constexpr proc_oid_t RTRIM2ARG_PRO_OID = proc_oid_t(133);
 constexpr proc_oid_t RTRIM1ARG_PRO_OID = proc_oid_t(134);
-constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(135);
-constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(136);
+constexpr proc_oid_t CONCAT_PRO_OID = proc_oid_t(135);
+constexpr proc_oid_t VERSION_PRO_OID = proc_oid_t(136);
+constexpr proc_oid_t DATE_PART_PRO_OID = proc_oid_t(137);
 
 constexpr proc_oid_t NP_RUNNERS_EMIT_INT_PRO_OID = proc_oid_t(900);
 constexpr proc_oid_t NP_RUNNERS_EMIT_REAL_PRO_OID = proc_oid_t(901);
