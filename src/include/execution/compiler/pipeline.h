@@ -176,6 +176,9 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
+  /** @return The unique ID of this pipeline. */
+  pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
+
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization
@@ -209,10 +212,8 @@ class Pipeline {
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
-  /** @return The unique ID of this pipeline. */
-  pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
-  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
 
   void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 

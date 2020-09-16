@@ -1,5 +1,12 @@
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "connection_thread_count": 32
+    },
+    "continue_on_error": true,
+    "env":{
+        "wal_device":"HDD"
+    },
     "testcases": [
         {
             "base": {
@@ -8,7 +15,6 @@
                 "query_mode": "extended",
                 "scale_factor": 1,
                 "terminals": 1,
-                "loader_threads": 4,
                 "client_time": 60
             },
             "loop": [
@@ -16,7 +22,8 @@
                 {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
-                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false}
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
             ]
         },
         {
@@ -26,7 +33,6 @@
                 "query_mode": "extended",
                 "scale_factor": 1,
                 "terminals": 1,
-                "loader_threads": 4,
                 "client_time": 60
             },
             "loop": [
@@ -34,7 +40,8 @@
                 {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
-                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false}
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
             ]
         },
         {
@@ -51,7 +58,8 @@
                 {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
-                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false}
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
             ]
         },
         {
@@ -61,7 +69,6 @@
                 "query_mode": "extended",
                 "scale_factor": 1,
                 "terminals": 1,
-                "loader_threads": 4,
                 "client_time": 60
             },
             "loop": [
@@ -69,7 +76,8 @@
                 {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
                 {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
-                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false}
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
             ]
         },
         {
@@ -79,15 +87,15 @@
                 "query_mode": "extended",
                 "scale_factor": 4,
                 "terminals": 1,
-                "loader_threads": 4,
                 "client_time": 60
             },
             "loop": [
-                {"terminals":1},
-                {"terminals":2},
-                {"terminals":4},
-                {"terminals":8},
-                {"terminals":16}
+                {"terminals":1, "scale_factor":1},
+                {"terminals":2, "scale_factor":2},
+                {"terminals":4, "scale_factor":4},
+                {"terminals":8, "scale_factor":8},
+                {"terminals":16,"scale_factor":16},
+                {"terminals":32,"scale_factor":32}
             ]
         },
         {
@@ -95,8 +103,7 @@
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
                 "query_mode": "extended",
-                "terminals": 8,
-                "loader_threads": 4,
+                "terminals": 32,
                 "client_time": 600
             }
         }

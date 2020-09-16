@@ -47,6 +47,7 @@ namespace terrier::execution::ast {
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
   F(TableIterAdvance, tableIterAdvance)                                 \
+  F(TableIterGetVPINumTuples, tableIterGetVPINumTuples)                 \
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
@@ -129,6 +130,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
+  F(AggHashTableGetTupleCount, aggHTGetTupleCount)                      \
   F(AggHashTableInsert, aggHTInsert)                                    \
   F(AggHashTableLinkEntry, aggHTLink)                                   \
   F(AggHashTableLookup, aggHTLookup)                                    \
@@ -157,6 +159,7 @@ namespace terrier::execution::ast {
   F(JoinHashTableInsert, joinHTInsert)                                  \
   F(JoinHashTableBuild, joinHTBuild)                                    \
   F(JoinHashTableBuildParallel, joinHTBuildParallel)                    \
+  F(JoinHashTableGetTupleCount, joinHTGetTupleCount)                    \
   F(JoinHashTableLookup, joinHTLookup)                                  \
   F(JoinHashTableFree, joinHTFree)                                      \
                                                                         \
@@ -166,6 +169,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Sorting */                                                         \
   F(SorterInit, sorterInit)                                             \
+  F(SorterGetTupleCount, sorterGetTupleCount)                           \
   F(SorterInsert, sorterInsert)                                         \
   F(SorterInsertTopK, sorterInsertTopK)                                 \
   F(SorterInsertTopKFinish, sorterInsertTopKFinish)                     \
@@ -186,6 +190,7 @@ namespace terrier::execution::ast {
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
+  F(IndexIteratorGetSize, indexIteratorGetSize)                         \
   F(IndexIteratorScanKey, indexIteratorScanKey)                         \
   F(IndexIteratorScanAscending, indexIteratorScanAscending)             \
   F(IndexIteratorScanDescending, indexIteratorScanDescending)           \
@@ -254,6 +259,7 @@ namespace terrier::execution::ast {
   F(TableDelete, tableDelete)                                           \
   F(TableUpdate, tableUpdate)                                           \
   F(GetIndexPR, getIndexPR)                                             \
+  F(IndexGetSize, indexGetSize)                                         \
   F(IndexInsert, indexInsert)                                           \
   F(IndexInsertUnique, indexInsertUnique)                               \
   F(IndexInsertWithSlot, indexInsertWithSlot)                           \
@@ -322,6 +328,7 @@ namespace terrier::execution::ast {
   F(Ltrim, ltrim)                                                       \
   F(Rpad, rpad)                                                         \
   F(Rtrim, rtrim)                                                       \
+  F(Concat, concat)                                                     \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \
@@ -341,7 +348,10 @@ namespace terrier::execution::ast {
   F(ExecutionContextStartResourceTracker, execCtxStartResourceTracker)  \
   F(ExecutionContextSetMemoryUseOverride, execCtxSetMemoryUseOverride)  \
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
+  F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
+  F(ExecutionContextGetFeature, execCtxGetFeature)                      \
+  F(ExecutionContextRecordFeature, execCtxRecordFeature)                \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \
