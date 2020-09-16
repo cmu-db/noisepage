@@ -9,7 +9,6 @@
 #include "common/hash_util.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/table_stats.h"
 

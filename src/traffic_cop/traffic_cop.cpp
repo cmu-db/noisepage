@@ -347,6 +347,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   const auto query_type UNUSED_ATTRIBUTE = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
 
@@ -376,6 +377,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   const auto query_type = portal->GetStatement()->GetQueryType();
   const auto physical_plan = portal->PhysicalPlan();
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_SELECT || query_type == network::QueryType::QUERY_INSERT ||
+                     query_type == network::QueryType::QUERY_CREATE_INDEX ||
                      query_type == network::QueryType::QUERY_UPDATE || query_type == network::QueryType::QUERY_DELETE,
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
@@ -389,7 +391,20 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  try {
+    exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  } catch (ExecutionException &e) {
+    /*
+     * An ExecutionException is thrown in the case of some failure caused by a software bug or caused by some data
+     * exception. In either case we abort the current transaction and return an error to the client.
+     */
+    // TODO(Matt): evict this plan from the statement cache when the functionality is available
+    connection_ctx->Transaction()->SetMustAbort();
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
@@ -405,8 +420,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
   // etc.) I suspect we would stash that in the ExecutionContext.
-  return {ResultType::ERROR,
-          common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.", common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.",
+                                               common::ErrorCode::ERRCODE_T_R_SERIALIZATION_FAILURE)};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(

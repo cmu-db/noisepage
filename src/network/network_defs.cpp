@@ -1,4 +1,5 @@
 #include "network/network_defs.h"
+
 #include "common/strong_typedef_body.h"
 
 namespace terrier::network {

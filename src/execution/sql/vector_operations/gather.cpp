@@ -9,7 +9,8 @@ namespace {
 void CheckGatherArguments(const Vector &pointers, UNUSED_ATTRIBUTE Vector *result) {
   if (pointers.GetTypeId() != TypeId::Pointer) {
     throw EXECUTION_EXCEPTION(
-        fmt::format("Gather only works on pointer inputs, input type {}.", TypeIdToString(pointers.GetTypeId())));
+        fmt::format("Gather only works on pointer inputs, input type {}.", TypeIdToString(pointers.GetTypeId())),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 
