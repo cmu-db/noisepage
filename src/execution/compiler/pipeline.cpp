@@ -247,7 +247,6 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
 
     InjectStartPipelineTracker(&builder);
 
-
     // Launch pipeline work.
     if (IsParallel()) {
       // TODO(wz2): When can track parallel work, insert trackers
