@@ -701,52 +701,52 @@ statement ok
 
 
 statement ok
-CREATE TABLE tab0(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+CREATE TABLE tab3(col0 INTEGER, col1 INTEGER, col2 INTEGER);
 
 statement ok
-CREATE TABLE tab1(col0 INTEGER, col1 INTEGER);
+CREATE TABLE tab4(col0 INTEGER, col1 INTEGER);
 
 statement ok
-INSERT INTO tab0 VALUES(967,14,399);
+INSERT INTO tab3 VALUES(967,14,399);
 
 statement ok
-INSERT INTO tab0 VALUES(115,281,437);
+INSERT INTO tab3 VALUES(115,281,437);
 
 statement ok
-INSERT INTO tab0 VALUES(847,221,102);
+INSERT INTO tab3 VALUES(847,221,102);
 
 statement ok
-INSERT INTO tab0 VALUES(653, 573, 733);
+INSERT INTO tab3 VALUES(653, 573, 733);
 
 statement ok
-INSERT INTO tab1 VALUES(51, 14);
+INSERT INTO tab4 VALUES(51, 14);
 
 statement ok
-INSERT INTO tab1 VALUES(854,5);
+INSERT INTO tab4 VALUES(854,5);
 
 statement ok
-INSERT INTO tab1 VALUES(967, 399);
+INSERT INTO tab4 VALUES(967, 399);
 
 statement ok
-INSERT INTO tab1 VALUES(653, 239);
+INSERT INTO tab4 VALUES(653, 239);
 
 query IIIII nosort
-SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 ORDER BY tab0.col0 ASC;
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col0 = tab4.col0 ORDER BY tab3.col0 ASC;
 ----
 20 values hashing to 05444ccc4114ea58ea81c4d7265ce0cf
 
 query IIIII nosort
-SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col1 = tab1.col1 ORDER BY tab0.col1 ASC;
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col1 = tab4.col1 ORDER BY tab3.col1 ASC;
 ----
 20 values hashing to e020bd906325b64a85b01baac93ca8f5
 
 query IIIII nosort
-SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col2 = tab1.col1 ORDER BY tab0.col1 ASC;
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col2 = tab4.col1 ORDER BY tab3.col1 ASC;
 ----
 20 values hashing to 79503262d3189fbafe4a8a9697104c7c
 
 statement ok
-DROP TABLE tab0;
+DROP TABLE tab3;
 
 statement ok
-DROP TABLE tab1;
+DROP TABLE tab4;
