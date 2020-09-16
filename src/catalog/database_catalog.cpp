@@ -2136,6 +2136,12 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
   TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
                  "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
                  "should already have the lock.");
+
+  // The catalog owns this pointer now, so if the txn ends up aborting, we need to make sure it gets freed.
+  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() { delete func_context; });
+  });
+
   // Do not need to store the projection map because it is only a single column
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
 
