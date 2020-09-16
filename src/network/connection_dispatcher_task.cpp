@@ -10,10 +10,11 @@
 namespace terrier::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
-    uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
+    uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
     common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
-    common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
+    common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+    std::initializer_list<int> file_descriptors)
     : NotifiableTask(MASTER_THREAD_ID),
       num_handlers_(num_handlers),
       dedicated_thread_owner_(dedicated_thread_owner),
@@ -21,8 +22,13 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       thread_registry_(thread_registry),
       interpreter_provider_(interpreter_provider),
       next_handler_(0) {
-  RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
-                this);
+  for (int listen_fd : file_descriptors) {
+    if (listen_fd >= 0) {
+      RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
+                    this);
+    }
+  }
+
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 }
 
