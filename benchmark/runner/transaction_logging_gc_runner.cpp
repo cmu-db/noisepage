@@ -42,7 +42,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
   const double select = static_cast<double>(state.range(5)) / 100;
 
   // scale up num_txns by the number of threads since it counts for all threads
-  const uint32_t num_txns = (log2(num_thread) + 1) * 2000000 / txn_interval;
+  const uint32_t num_txns = (log2(num_thread) + 1) * 3000000 / txn_interval;
 
   uint64_t abort_count = 0;
   const std::vector<double> insert_update_select_ratio = {insert, update, select};
@@ -157,7 +157,7 @@ static void UNUSED_ATTRIBUTE TransactionArguments(benchmark::internal::Benchmark
   std::vector<uint32_t> txn_lengths = {2};
   // submit interval between two transactions (us)
   std::vector<uint32_t> txn_intervals = {1, 5, 10, 50, 100};
-  std::vector<uint32_t> num_threads = {4, 2, 1, 8, 12, 16, 20};
+  std::vector<uint32_t> num_threads = {4, 2, 1, 8, 12, 16};
 
   for (uint32_t txn_length : txn_lengths)
     for (uint32_t txn_interval : txn_intervals)
