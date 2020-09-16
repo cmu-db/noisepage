@@ -1,14 +1,19 @@
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "connection_thread_count": 32
+    },
+    "env":{
+        "wal_device":"HDD"
+    },
     "testcases": [
         {
             "base": {
                 "benchmark": "tpcc",
                 "weights": "45,43,4,4,4",
                 "query_mode": "extended",
-                "terminals": 4,
-                "scale_factor": 4,
-                "loader_threads": 4,
+                "terminals": 32,
+                "scale_factor": 32,
                 "client_time": 60
             }
         }

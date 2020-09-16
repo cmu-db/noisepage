@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {

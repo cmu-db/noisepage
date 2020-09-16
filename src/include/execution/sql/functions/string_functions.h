@@ -29,8 +29,8 @@ class StringFunctions {
     Length(result, ctx, str);
   }
 
-  /** Compute CONCAT(left, right). */
-  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &left, const StringVal &right);
+  /** Compute CONCAT(str1, str2, str3, ...). */
+  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[], uint32_t num_inputs);
 
   /** Compute LEFT(str, n). */
   static void Left(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);

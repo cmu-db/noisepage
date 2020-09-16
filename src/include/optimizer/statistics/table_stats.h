@@ -7,7 +7,6 @@
 #include "catalog/catalog_defs.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-
 #include "optimizer/statistics/column_stats.h"
 
 namespace terrier::optimizer {

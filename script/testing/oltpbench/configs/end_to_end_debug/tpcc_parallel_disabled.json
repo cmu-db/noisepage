@@ -1,0 +1,18 @@
+{
+    "type": "oltpbenchmark",
+    "server_args":{
+        "parallel_execution": false
+    },
+    "testcases": [
+        {
+            "base": {
+                "benchmark": "tpcc",
+                "weights": "45,43,4,4,4",
+                "query_mode": "extended",
+                "terminals": 4,
+                "scale_factor": 4,
+                "client_time": 60
+            }
+        }
+    ]
+}

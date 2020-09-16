@@ -89,11 +89,11 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
 }
 
-void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
-  // Inject StartResourceTracker()
+void Pipeline::InjectStartPipelineTracker(FunctionBuilder *builder) const {
+  // Inject StartPipelineTracker()
   std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
-                                codegen_->Const64(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
-  auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartResourceTracker, args);
+                                codegen_->Const64(GetPipelineId().UnderlyingValue())};
+  auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartPipelineTracker, args);
   builder->Append(codegen_->MakeStmt(start_call));
 }
 
@@ -226,7 +226,6 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
 }
 
 ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) const {
-  bool started_tracker = false;
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
@@ -246,14 +245,14 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
     auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
     builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
 
+    InjectStartPipelineTracker(&builder);
+
+
     // Launch pipeline work.
     if (IsParallel()) {
       // TODO(wz2): When can track parallel work, insert trackers
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
-      InjectStartResourceTracker(&builder);
-      started_tracker = true;
-
       // SerialWork(queryState, pipelineState)
       builder.Append(
           codegen_->Call(GetWorkFunctionName(), {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)}));
@@ -266,9 +265,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) co
       (*iter)->FinishPipelineWork(*this, &builder);
     }
 
-    if (started_tracker) {
-      InjectEndResourceTracker(&builder, query_id);
-    }
+    InjectEndResourceTracker(&builder, query_id);
   }
   return builder.Finish();
 }
