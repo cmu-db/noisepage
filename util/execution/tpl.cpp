@@ -105,8 +105,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Make the execution context
   exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
-  exec::ExecutionContext exec_ctx{db_oid,        common::ManagedPointer(txn),      printer,
-                                  output_schema, common::ManagedPointer(accessor), exec_settings};
+  exec::ExecutionContext exec_ctx{
+      db_oid,        common::ManagedPointer(txn), printer, output_schema, common::ManagedPointer(accessor),
+      exec_settings, db_main->GetMetricsManager()};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, sql::Integer(37));

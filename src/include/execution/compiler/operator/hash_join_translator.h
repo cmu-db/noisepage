@@ -99,6 +99,10 @@ class HashJoinTranslator : public OperatorTranslator {
     UNREACHABLE("Hash-joins do not produce columns from base tables.");
   }
 
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
  private:
   friend class brain::OperatingUnitRecorder;
 

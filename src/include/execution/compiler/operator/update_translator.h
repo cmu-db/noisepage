@@ -39,15 +39,10 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
 
   /**
    * Initialize the counters.
-   */
-  void InitializeQueryState(FunctionBuilder *function) const override;
-
-  /**
-   * Does nothing.
    * @param pipeline The current pipeline.
    * @param function The pipeline generating function.
    */
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement update logic where it fills in the update PR obtained from the StorageInterface struct

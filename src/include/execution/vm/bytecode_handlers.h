@@ -25,6 +25,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector_filter_executor.h"
+#include "metrics/metrics_manager.h"
 #include "parser/expression/constant_value_expression.h"
 
 // #include "execution/util/csv_reader.h" Fix later.
@@ -232,24 +233,26 @@ VM_OP_HOT void OpExecutionContextStartPipelineTracker(terrier::execution::exec::
 
 VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     terrier::execution::query_id_t query_id,
-                                                    terrier::execution::pipeline_id_t pipeline_id) {
-  exec_ctx->EndPipelineTracker(query_id, pipeline_id);
+                                                    terrier::execution::pipeline_id_t pipeline_id,
+                                                    terrier::brain::ExecOUFeatureVector *const ouvec) {
+  exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
 }
 
-VM_OP_HOT void OpExecutionContextGetFeature(uint32_t *value, terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                            terrier::execution::pipeline_id_t pipeline_id,
-                                            terrier::execution::feature_id_t feature_id,
-                                            terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute) {
-  exec_ctx->GetFeature(value, pipeline_id, feature_id, feature_attribute);
+VM_OP_HOT void OpExecOUFeatureVectorRecordFeature(
+    terrier::brain::ExecOUFeatureVector *ouvec, terrier::execution::pipeline_id_t pipeline_id,
+    terrier::execution::feature_id_t feature_id,
+    terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+    terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
+  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
 }
 
-VM_OP_HOT void OpExecutionContextRecordFeature(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                               terrier::execution::pipeline_id_t pipeline_id,
-                                               terrier::execution::feature_id_t feature_id,
-                                               terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                               uint32_t value) {
-  exec_ctx->RecordFeature(pipeline_id, feature_id, feature_attribute, value);
+VM_OP_HOT void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                               terrier::brain::ExecOUFeatureVector *const ouvec,
+                                               terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->InitializeExecOUFeatureVector(ouvec, pipeline_id);
 }
+
+VM_OP_HOT void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Destroy(); }
 
 VM_OP_WARM
 void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,
@@ -278,6 +281,18 @@ VM_OP_WARM void OpThreadStateContainerIterate(terrier::execution::sql::ThreadSta
 
 VM_OP_WARM void OpThreadStateContainerClear(terrier::execution::sql::ThreadStateContainer *thread_state_container) {
   thread_state_container->Clear();
+}
+
+VM_OP_WARM void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->RegisterThread();
+}
+
+VM_OP_WARM void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->CheckTrackersStopped();
+}
+
+VM_OP_WARM void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->AggregateMetricsThread();
 }
 
 // ---------------------------------------------------------
@@ -309,9 +324,11 @@ VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjec
 
 VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
                                    terrier::execution::exec::ExecutionContext *exec_ctx,
-                                   const terrier::execution::sql::TableVectorIterator::ScanFn scanner) {
+                                   const terrier::execution::sql::TableVectorIterator::ScanFn scanner,
+                                   terrier::execution::pipeline_id_t pipeline_id,
+                                   terrier::catalog::index_oid_t index_oid) {
   terrier::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, query_state, exec_ctx,
-                                                             scanner);
+                                                             scanner, pipeline_id, index_oid);
 }
 
 // ---------------------------------------------------------
@@ -778,6 +795,9 @@ VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTa
 VM_OP void OpAggregationHashTableGetTupleCount(uint32_t *result,
                                                terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
+VM_OP void OpAggregationHashTableGetInsertCount(uint32_t *result,
+                                                terrier::execution::sql::AggregationHashTable *agg_hash_table);
+
 VM_OP_HOT void OpAggregationHashTableAllocTuple(terrier::byte **result,
                                                 terrier::execution::sql::AggregationHashTable *agg_hash_table,
                                                 const terrier::hash_t hash_val) {
@@ -812,10 +832,12 @@ VM_OP_HOT void OpAggregationHashTableProcessBatch(
 }
 
 VM_OP_HOT void OpAggregationHashTableTransferPartitions(
+    terrier::execution::exec::ExecutionContext *exec_ctx, terrier::execution::pipeline_id_t pipeline_id,
     terrier::execution::sql::AggregationHashTable *const agg_hash_table,
     terrier::execution::sql::ThreadStateContainer *const thread_state_container, const uint32_t agg_ht_offset,
     const terrier::execution::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
-  agg_hash_table->TransferMemoryAndPartitions(thread_state_container, agg_ht_offset, merge_partition_fn);
+  agg_hash_table->TransferMemoryAndPartitions(exec_ctx, pipeline_id, thread_state_container, agg_ht_offset,
+                                              merge_partition_fn);
 }
 
 VM_OP void OpAggregationHashTableBuildAllHashTablePartitions(
@@ -1238,6 +1260,8 @@ VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result, terrier::execution
 VM_OP void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);
 
 VM_OP void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
+                                        terrier::execution::exec::ExecutionContext *exec_ctx,
+                                        terrier::execution::pipeline_id_t pipeline_id,
                                         terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                         uint32_t jht_offset);
 
@@ -1285,10 +1309,14 @@ VM_OP_HOT void OpSorterAllocTupleTopKFinish(terrier::execution::sql::Sorter *sor
 VM_OP void OpSorterSort(terrier::execution::sql::Sorter *sorter);
 
 VM_OP void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
+                                terrier::execution::exec::ExecutionContext *exec_ctx,
+                                terrier::execution::pipeline_id_t pipeline_id,
                                 terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                 uint32_t sorter_offset);
 
 VM_OP void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
+                                    terrier::execution::exec::ExecutionContext *exec_ctx,
+                                    terrier::execution::pipeline_id_t pipeline_id,
                                     terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                     uint32_t sorter_offset, uint64_t top_k);
 
@@ -1316,12 +1344,21 @@ VM_OP void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter);
 // Output
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpResultBufferAllocOutputRow(terrier::byte **result, terrier::execution::exec::ExecutionContext *ctx) {
-  *result = ctx->GetOutputBuffer()->AllocOutputSlot();
+VM_OP_WARM void OpResultBufferNew(terrier::execution::exec::OutputBuffer **out,
+                                  terrier::execution::exec::ExecutionContext *ctx) {
+  *out = ctx->OutputBufferNew();
 }
 
-VM_OP_WARM void OpResultBufferFinalize(terrier::execution::exec::ExecutionContext *ctx) {
-  ctx->GetOutputBuffer()->Finalize();
+VM_OP_WARM void OpResultBufferAllocOutputRow(terrier::byte **result, terrier::execution::exec::OutputBuffer *out) {
+  *result = out->AllocOutputSlot();
+}
+
+VM_OP_WARM void OpResultBufferFinalize(terrier::execution::exec::OutputBuffer *out) { out->Finalize(); }
+
+VM_OP_WARM void OpResultBufferFree(terrier::execution::exec::OutputBuffer *out) {
+  auto *mem_pool = out->GetMemoryPool();
+  out->~OutputBuffer();
+  mem_pool->Deallocate(out, sizeof(terrier::execution::exec::OutputBuffer));
 }
 
 // ---------------------------------------------------------

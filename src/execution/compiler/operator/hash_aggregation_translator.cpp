@@ -62,8 +62,13 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
     local_agg_ht_ = build_pipeline_.DeclarePipelineStateEntry("aggHashTable", agg_ht_type);
   }
 
-  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
-  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
+  if (pipeline->IsParallel()) {
+    iterate_agg_ht_ = pipeline->DeclarePipelineStateEntry("iterateAggHashTable", codegen->PointerType(agg_ht_type));
+  }
+
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
+  agg_count_ = CounterDeclare("agg_count", &build_pipeline_);
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
 }
 
 ast::StructDecl *HashAggregationTranslator::GeneratePayloadStruct() {
@@ -250,9 +255,6 @@ void HashAggregationTranslator::TearDownAggregationHashTable(FunctionBuilder *fu
 
 void HashAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
   InitializeAggregationHashTable(function, global_agg_ht_.GetPtr(GetCodeGen()));
-
-  CounterSet(function, num_agg_inputs_, 0);
-  CounterSet(function, num_agg_outputs_, 0);
 }
 
 void HashAggregationTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -260,14 +262,89 @@ void HashAggregationTranslator::TearDownQueryState(FunctionBuilder *function) co
 }
 
 void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    InitializeAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      InitializeAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+      CounterSet(function, agg_count_, 0);
+    }
+  }
+
+  InitializeCounters(pipeline, function);
+}
+
+void HashAggregationTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    CounterSet(function, num_agg_inputs_, 0);
+  } else {
+    CounterSet(function, num_agg_outputs_, 0);
   }
 }
 
 void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    TearDownAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      TearDownAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+    }
+  }
+}
+
+void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  if (IsBuildPipeline(pipeline)) {
+    const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
+
+    if (build_pipeline_.IsParallel()) {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+
+      // In parallel mode, we subtract from the insert count of the last task that might
+      // have been run with the current thread. This is to more correctly model the
+      // amount of work performed by the current task.
+      auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
+      auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
+    } else {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                    codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
+    }
+
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
+  } else {
+    ast::Expr *agg_ht;
+    if (pipeline.IsParallel()) {
+      agg_ht = iterate_agg_ht_.Get(codegen);
+    } else {
+      agg_ht = global_agg_ht_.GetPtr(codegen);
+    }
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
+
+    if (pipeline.IsParallel()) {
+      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+    }
+
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
+  }
+}
+
+void HashAggregationTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
+
+  if (IsBuildPipeline(pipeline)) {
+    auto *codegen = GetCodeGen();
+    const auto &agg_ht = local_agg_ht_;
+    auto *tuple_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
+    function->Append(codegen->Assign(agg_count_.Get(codegen), tuple_count));
   }
 }
 
@@ -438,12 +515,16 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
     if (GetPipeline()->IsParallel()) {
+      function->Append(
+          codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
+
       // In parallel-mode, we would've issued a parallel partitioned scan. In
       // this case, the aggregation hash table we're to scan is provided as a
       // function parameter; specifically, the last argument in the worker
       // function which we're generating right now. Pull it out.
       auto agg_ht_param_position = GetPipeline()->PipelineParams().size();
       agg_ht = function->GetParameterByPosition(agg_ht_param_position);
+      function->Append(codegen->Assign(iterate_agg_ht_.Get(codegen), agg_ht));
       ScanAggregationHashTable(context, function, agg_ht);
     } else {
       agg_ht = global_agg_ht_.GetPtr(codegen);
@@ -453,31 +534,21 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
 }
 
 void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
-  const auto &agg_ht = build_pipeline_.IsParallel() ? local_agg_ht_ : global_agg_ht_;
-
   if (IsBuildPipeline(pipeline)) {
     if (build_pipeline_.IsParallel()) {
+      auto *codegen = GetCodeGen();
       auto global_agg_ht = global_agg_ht_.GetPtr(codegen);
       auto thread_state_container = GetThreadStateContainer();
       auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
-      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
+      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
+      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, GetExecutionContext(), pipeline_id,
+                                                           thread_state_container, tl_agg_ht_offset,
                                                            merge_partitions_fn_));
+    } else {
+      RecordCounters(pipeline, function);
     }
-
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
-    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
-  } else {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht.GetPtr(codegen)}));
-    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
+  } else if (!pipeline.IsParallel()) {
+    RecordCounters(pipeline, function);
   }
 }
 
@@ -496,8 +567,10 @@ ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint3
 util::RegionVector<ast::FieldDecl *> HashAggregationTranslator::GetWorkerParams() const {
   TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto *codegen = GetCodeGen();
+  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
   return codegen->MakeFieldList({codegen->MakeField(codegen->MakeIdentifier("aggHashTable"),
-                                                    codegen->PointerType(ast::BuiltinType::AggregationHashTable))});
+                                                    codegen->PointerType(ast::BuiltinType::AggregationHashTable)),
+                                 codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
 }
 
 void HashAggregationTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const {

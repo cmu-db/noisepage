@@ -42,10 +42,12 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
     }
   }
 
-  num_inserts_ = CounterDeclare("num_inserts");
+  num_inserts_ = CounterDeclare("num_inserts", pipeline);
 }
 
-void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_inserts_, 0); }
+void InsertTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_inserts_, 0);
+}
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32

@@ -43,12 +43,12 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode &plan,
   }
 
   compilation_context->Prepare(*GetPlan().GetChild(0), pipeline);
-  index_size_ = CounterDeclare("index_size");
-  num_scans_index_ = CounterDeclare("num_scans_index");
-  num_loops_ = CounterDeclare("num_loops");
+  index_size_ = CounterDeclare("index_size", pipeline);
+  num_scans_index_ = CounterDeclare("num_scans_index", pipeline);
+  num_loops_ = CounterDeclare("num_loops", pipeline);
 }
 
-void IndexJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
+void IndexJoinTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   CounterSet(function, index_size_, 0);
   CounterSet(function, num_scans_index_, 0);
   CounterSet(function, num_loops_, 0);

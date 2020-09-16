@@ -27,6 +27,7 @@ class SqlBasedTest : public TplTest {
     // Initialize terrier objects
 
     db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
+    metrics_manager_ = db_main_->GetMetricsManager();
 
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -50,9 +51,15 @@ class SqlBasedTest : public TplTest {
   common::ManagedPointer<storage::BlockStore> BlockStore() { return block_store_; }
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
-                                                      const planner::OutputSchema *schema = nullptr) {
+                                                      const planner::OutputSchema *schema = nullptr,
+                                                      bool force_serial = false) {
+    exec::ExecutionSettings settings = *exec_settings_;
+    if (force_serial) {
+      settings.is_parallel_execution_enabled_ = false;
+    }
+
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback, schema,
-                                                    common::ManagedPointer(accessor_), *exec_settings_);
+                                                    common::ManagedPointer(accessor_), settings, metrics_manager_);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
@@ -70,6 +77,7 @@ class SqlBasedTest : public TplTest {
 
  private:
   std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;

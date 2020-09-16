@@ -118,11 +118,12 @@ class CompilationContext {
   CompilationMode GetCompilationMode() const { return mode_; }
 
   /** @return True if we should collect counters in TPL, used for Lin's models. */
-  bool IsCountersEnabled() const { return false; }
+  bool IsCountersEnabled() const { return counters_enabled_; }
 
  private:
   // Private to force use of static Compile() function.
-  explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode);
+  explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode,
+                              bool counters_enabled);
 
   // Given a plan node, compile it into a compiled query object.
   void GeneratePlan(const planner::AbstractPlanNode &plan);
@@ -163,6 +164,9 @@ class CompilationContext {
 
   // The pipelines in this context in no specific order.
   std::vector<Pipeline *> pipelines_;
+
+  // Whether counters are enabled.
+  bool counters_enabled_;
 };
 
 }  // namespace terrier::execution::compiler

@@ -35,6 +35,7 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
     compilation_context->Prepare(*index_col.StoredExpression());
   }
   pipeline->RegisterSource(this, Pipeline::Parallelism::Parallel);
+
   // col_oids is a global array
   ast::Expr *arr_type = codegen_->ArrayType(all_oids_.size(), ast::BuiltinType::Kind::Uint32);
   global_col_oids_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen_, "global_col_oids", arr_type);
@@ -48,6 +49,35 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   // TODO(wuwenw): do we really need a local copy of tuple slot?
   ast::Expr *tuple_slot_type = codegen_->BuiltinType(ast::BuiltinType::TupleSlot);
   local_tuple_slot_ = pipeline->DeclarePipelineStateEntry("local_tuple_slot", tuple_slot_type);
+
+  num_inserts_ = CounterDeclare("num_inserts", pipeline);
+}
+
+void IndexCreateTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_inserts_, 0);
+}
+
+void IndexCreateTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_inserts_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_inserts_));
+
+  if (pipeline.IsParallel()) {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+  }
+}
+
+void IndexCreateTranslator::BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+  auto val = codegen->MakeExpr(codegen->MakeIdentifier("concurrent"));
+  function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), val));
+  InitializeCounters(pipeline, function);
+}
+
+void IndexCreateTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
 }
 
 void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,
@@ -86,16 +116,18 @@ void IndexCreateTranslator::TearDownPipelineState(const Pipeline &pipeline, Func
 
 util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() const {
   // Parameters for the scanner
-  auto *tvi_type = codegen_->PointerType(ast::BuiltinType::TableVectorIterator);
-  return codegen_->MakeFieldList({codegen_->MakeField(tvi_var_, tvi_type)});
+  auto *codegen = GetCodeGen();
+  auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
+  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  return codegen->MakeFieldList(
+      {codegen->MakeField(tvi_var_, tvi_type), codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  ast::Expr *iter_table_parallel = codegen_->CallBuiltin(
-      ast::Builtin::TableIterParallel, {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_),
-                                        GetQueryStatePtr(), GetExecutionContext(), codegen_->MakeExpr(work_func)});
-  iter_table_parallel->SetType(ast::BuiltinType::Get(codegen_->GetAstContext().Get(), ast::BuiltinType::Nil));
-  function->Append(iter_table_parallel);
+  auto pipeline_id = codegen_->Const32(GetPipeline()->GetPipelineId().UnderlyingValue());
+  auto index_oid = codegen_->Const32(index_oid_.UnderlyingValue());
+  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
+                                                      GetExecutionContext(), work_func, pipeline_id, index_oid));
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -119,6 +151,14 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
           codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
       function->Append(codegen->MakeStmt(record));
     }
+    RecordCounters(*GetPipeline(), function);
+  } else {
+    // For parallel, just record 0 --- for the memory use.
+    // The model should be able to identify that for non-zero concurrent, memory = 0
+    auto *zero = codegen_->Const32(0);
+    auto *record =
+        codegen_->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), zero});
+    function->Append(codegen_->MakeStmt(record));
   }
 }
 
@@ -186,6 +226,7 @@ void IndexCreateTranslator::ScanVPI(WorkContext *ctx, FunctionBuilder *function,
       function->Append(assign);
       IndexInsert(ctx, function);
       // We expect create index to be the end of a pipeline, so no need to push to parent
+      CounterAdd(function, num_inserts_, 1);
     }
     vpi_loop.EndLoop();
   };

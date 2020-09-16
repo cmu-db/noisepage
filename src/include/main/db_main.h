@@ -694,7 +694,8 @@ class DBMain {
             static_cast<uint64_t>(settings_manager->GetInt64(settings::Param::wal_persist_threshold));
       }
 
-      use_metrics_ = use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics);
+      use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
+      use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics_thread);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
@@ -725,6 +726,8 @@ class DBMain {
      */
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
+
+      // TODO(wz2): If using parallel, we might want to record all per-task recordings.
       if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 9);
       if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
       if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);

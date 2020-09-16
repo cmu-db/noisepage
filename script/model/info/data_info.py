@@ -41,6 +41,9 @@ ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPL
 # Operating units that need memory adjustment
 MEM_ADJUST_OPUNITS = {OpUnit.SORT_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.AGG_BUILD}
 
+# Operating units that should evaluate with memory
+MEM_EVALUATE_OPUNITS = {OpUnit.CREATE_INDEX_MAIN}
+
 # Index for tuple_num in the model input feature vector
 TUPLE_NUM_INDEX = 0
 
@@ -48,7 +51,7 @@ TUPLE_NUM_INDEX = 0
 CARDINALITY_INDEX = 3
 
 # Index for execution mode in the model input feature vector
-EXECUTION_MODE_INDEX = 6
+EXECUTION_MODE_INDEX = 7
 
 # Size of a pointer on the target architecture
 POINTER_SIZE = 8
@@ -60,10 +63,13 @@ RAW_FEATURES_VECTOR_INDEX = 4
 RAW_EXECUTION_MODE_INDEX = 2
 
 # Index of cpu time in the raw input from CSV
-RAW_CPU_TIME_INDEX = 11
+RAW_CPU_TIME_INDEX = 12
 
 # End index of model input feature vector
-RECORD_FEATURES_END = 7
+RECORD_FEATURES_END = 8
+
+# Memory Scaling factor location in feature
+RECORD_MEM_SCALE_OFFSET = -4
 
 # Start index of metrics
 RECORD_METRICS_START = MINI_MODEL_TARGET_NUM
