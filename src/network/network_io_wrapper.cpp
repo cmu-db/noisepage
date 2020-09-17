@@ -5,7 +5,6 @@
 #include <sys/file.h>
 
 #include <memory>
-#include <utility>
 
 #include "network/terrier_server.h"
 
