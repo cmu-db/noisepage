@@ -2290,7 +2290,9 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
 
   {
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+    auto drop_query = OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(),
+        std::move(units));
+    BenchmarkExecQuery(1, drop_query.first.get(), drop_query.second.get(), true, &empty_params, &settings);
   }
 
   InvokeGC();
