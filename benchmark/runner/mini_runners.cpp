@@ -91,7 +91,7 @@ int64_t warmup_rows_limit{1000};
 int64_t create_index_small_limit{10000};
 
 /**
- * Number of cardinalities to vary for CREATE INDEX large builds.
+ * The degree of power (of 2) to adjust the cardinality number for CREATE INDEX
  */
 int64_t create_index_large_cardinality_num{3};
 
@@ -695,35 +695,25 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
 static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
   // 0 is a special argument used to indicate serial
   auto num_threads = {0, 1, 2, 4, 8, 16};
-  auto num_cols = {1, 2, 3, 4, 5, 7, 9, 11, 13, 15};
-  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
+  auto num_cols = {1, 2, 3, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER};
+  std::vector<int64_t> row_nums = {//1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto thread : num_threads) {
     for (auto type : types) {
       for (auto col : num_cols) {
         for (auto row : row_nums) {
+          // Only use one cardinality since we can't track any cardinality now anyway
           int64_t car = 1;
-          if (row > create_index_small_limit) {
-            // For these, we get a memory explosion if the cardinality is too low.
-            while (car < row) {
-              car *= 2;
-            }
-            car = car / (pow(2, create_index_large_cardinality_num));
-          }
-
           while (car < row) {
-            if (type == type::TypeId::INTEGER)
-              b->Args({col, 0, 15, 0, row, car, 0, thread});
-            else if (type == type::TypeId::BIGINT)
-              b->Args({0, col, 0, 15, row, car, 0, thread});
             car *= 2;
           }
+          car = car / (pow(2, create_index_large_cardinality_num));
 
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, row, 0, thread});
+            b->Args({col, 0, 15, 0, row, car, 0, thread});
           else if (type == type::TypeId::BIGINT)
-            b->Args({0, col, 0, 15, row, row, 0, thread});
+            b->Args({0, col, 0, 15, row, car, 0, thread});
         }
       }
     }
@@ -732,9 +722,9 @@ static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
 
 static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
   // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 1, 2, 4, 8, 16};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  auto num_threads = {0, 1, 2, 3, 4, 8, 10, 16};
+  std::vector<int64_t> row_nums = {//1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
+                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 10000000};
 
   // Generates INTEGER + VARCHAR
   std::vector<std::vector<int64_t>> args;
@@ -744,18 +734,15 @@ static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
     for (auto arg : args) {
       auto row = arg[4];
       auto arg_car = arg[5];
-      if (row > create_index_small_limit) {
-        // For these, we get a memory explosion if the cardinality is too low.
-        int64_t car = 1;
-        while (car < row) {
-          car *= 2;
-        }
+      int64_t car = 1;
+      // Only use one cardinality since we can't track any cardinality now anyway
+      while (car < row) {
+        car *= 2;
+      }
 
-        // This car is the ceiling
-        car = car / (pow(2, create_index_large_cardinality_num));
-        if (arg_car < car) {
-          continue;
-        }
+      car = car / (pow(2, create_index_large_cardinality_num));
+      if (arg_car != car) {
+        continue;
       }
 
       arg.push_back(thread);
