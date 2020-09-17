@@ -406,7 +406,6 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
 
 void TableGenerator::GenerateMiniRunnerIndexTables() {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
   std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
                                     10000, 20000, 50000, 100000, 300000, 500000, 1000000};
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
@@ -545,7 +544,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
       {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
   std::vector<std::vector<std::vector<uint32_t>>> mixed_dists = {
       {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}, {15, 0, 0}, {0, 0, 15}},
-      {{0, 5}, {2, 3}, {3, 2}, {4, 1}}};
+      {{0, 5}, {3, 2}, {4, 1}}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 5000000};
   for (size_t idx = 0; idx < mixed_types.size(); ++idx) {

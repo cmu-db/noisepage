@@ -126,7 +126,7 @@ void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::
     step_size = 2;
   } else {
     /* Vector of table distributions <INTEGER, VARCHAR> */
-    mixed_dist = {{2, 3}, {3, 2}, {4, 1}};
+    mixed_dist = {{3, 2}, {4, 1}};
     step_size = 1;
   } /* Always generate full table scans for all row_num and cardinalities. */
   for (auto col_dist : mixed_dist) {
