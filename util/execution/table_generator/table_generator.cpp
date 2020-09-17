@@ -545,7 +545,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
       {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
   std::vector<std::vector<std::vector<uint32_t>>> mixed_dists = {
       {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}, {15, 0, 0}, {0, 0, 15}},
-      {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}}};
+      {{0, 5}, {2, 3}, {3, 2}, {4, 1}}};
   std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                     2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 5000000};
   for (size_t idx = 0; idx < mixed_types.size(); ++idx) {
@@ -554,7 +554,7 @@ std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerT
     for (auto col_dist : mixed_dist) {
       for (uint32_t row_num : row_nums) {
         // Only create 10M table with varchars now
-        if (types[1] != type::TypeId::VARCHAR and row_num > 1000000) continue;
+        if ((types[1] != type::TypeId::VARCHAR || col_dist[0] == 0) && row_num > 1000000) continue;
         // Cardinality of the last column
         std::vector<uint32_t> cardinalities;
         // Generate different cardinalities exponentially
