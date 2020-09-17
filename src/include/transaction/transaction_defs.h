@@ -36,13 +36,17 @@ using callback_fn = void (*)(void *);
  */
 using TransactionEndAction = std::function<void(DeferredActionManager *)>;
 
+/**
+ * Functor to capture the derred action function
+ */
 struct TransactionEndActionFunc {
   //
-  std::function<void(DeferredActionManager *)> endFunc_;
+  std::function<void(DeferredActionManager *)> end_func_;
 
-  TransactionEndActionFunc(std::function<void(DeferredActionManager *)> endFunction) : endFunc_(endFunction) {};
+  explicit TransactionEndActionFunc(std::function<void(DeferredActionManager *)> end_func)
+      : end_func_(std::move(end_func)) {}
 
-  void operator()(DeferredActionManager * deferred_action_manager) { endFunc_(deferred_action_manager); }
+  void operator()(DeferredActionManager *deferred_action_manager) { end_func_(deferred_action_manager); }
 };
 
 /**
