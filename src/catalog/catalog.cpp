@@ -100,11 +100,8 @@ bool Catalog::CreateDatabase(const common::ManagedPointer<transaction::Transacti
                              const bool bootstrap, const catalog::db_oid_t db_oid) {
   // Instantiate the DatabaseCatalog
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid, garbage_collector_);
-  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    dbc->TearDown(txn);
-    delete dbc;
-  });
-  bool success = Catalog::CreateDatabaseEntry(common::ManagedPointer(txn), db_oid, name, dbc);
+  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) { delete dbc; });
+  const bool success = Catalog::CreateDatabaseEntry(common::ManagedPointer(txn), db_oid, name, dbc);
   if (bootstrap) dbc->Bootstrap(txn);  // Bootstrap the created database
   return success;
 }

@@ -328,6 +328,7 @@ namespace terrier::execution::ast {
   F(Ltrim, ltrim)                                                       \
   F(Rpad, rpad)                                                         \
   F(Rtrim, rtrim)                                                       \
+  F(Concat, concat)                                                     \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \

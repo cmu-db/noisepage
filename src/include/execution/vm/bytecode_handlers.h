@@ -1528,9 +1528,8 @@ VM_OP_WARM void OpCharLength(terrier::execution::sql::Integer *result, terrier::
 }
 
 VM_OP_WARM void OpConcat(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                         const terrier::execution::sql::StringVal *left,
-                         const terrier::execution::sql::StringVal *right) {
-  terrier::execution::sql::StringFunctions::Concat(result, ctx, *left, *right);
+                         const terrier::execution::sql::StringVal *inputs[], const int64_t num_inputs) {
+  terrier::execution::sql::StringFunctions::Concat(result, ctx, inputs, num_inputs);
 }
 
 VM_OP_WARM void OpLeft(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
