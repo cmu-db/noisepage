@@ -105,6 +105,7 @@ void InvokeGC() {
   auto gc = terrier::runner::db_main->GetStorageLayer()->GetGarbageCollector();
   gc->PerformGarbageCollection();
   gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection();
 }
 
 /**
