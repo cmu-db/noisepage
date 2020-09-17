@@ -12,12 +12,6 @@ constexpr char ENV_NUM_THREADS[] = "TERRIER_BENCHMARK_THREADS";
 
 /**
  * This string specifies the environment variable that we will use to set the
- * number of daf threads to use for benchmarks.
- */
-constexpr char ENV_NUM_DAF_THREADS[] = "TERRIER_BENCHMARK_DAF_THREADS";
-
-/**
- * This string specifies the environment variable that we will use to set the
  * file path of the logfile for benchmarks.
  */
 constexpr char ENV_LOGFILE_PATH[] = "TERRIER_BENCHMARK_LOGFILE_PATH";
@@ -36,14 +30,6 @@ class BenchmarkConfig {
    * @see terrier::ENV_NUM_THREADS
    */
   static uint32_t num_threads;
-
-  /**
-   * This is a global variable that we use to specify the number of threads to use
-   * for a microbenchmark. The default value is '1' but you can override it with
-   * an environment variable.
-   * @see terrier::ENV_NUM_DAF_THREADS
-   */
-  static uint32_t num_daf_threads;
 
   /**
    * The path to use for the DBMS's WAL in benchmark runs.

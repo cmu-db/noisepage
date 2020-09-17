@@ -108,8 +108,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
 
     // Let GC clean up
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
-                                                     BenchmarkConfig::num_daf_threads);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -201,8 +200,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
     log_manager_->ForceFlush();
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
-                                                     BenchmarkConfig::num_daf_threads);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -303,8 +301,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     log_manager_->ForceFlush();
 
     // Let GC clean up
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
-                                                     BenchmarkConfig::num_daf_threads);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -398,8 +395,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
-    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr,
-                                                     BenchmarkConfig::num_daf_threads);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_, nullptr);
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
     bool shut_down UNUSED_ATTRIBUTE = false;
@@ -457,8 +453,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
-  // record experiment elapsed time and average num_txns processed
-  std::string_view expr_result_file_name = "./expr_results.csv";
 
   // record actual number of txns processed
   uint32_t num_txns_processed = 0;
@@ -466,7 +460,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(expr_result_file_name.data());
     unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
@@ -496,9 +489,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
 
     // populate the tables and indexes
     Loader::PopulateDatabase(common::ManagedPointer(&txn_manager), tpcc_db, &workers, &thread_pool);
-    gc_thread_ =
-        new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                            common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                                     common::ManagedPointer(metrics_manager));
 
     gc_thread_->StopGC();
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let GC clean up
@@ -525,13 +517,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let MetricThread clean up
-
-    std::ofstream expr_result_file(expr_result_file_name.data());
-    // num_daf_threads, num_worker_thread, time_elapsed
-    expr_result_file << BenchmarkConfig::num_threads << ", " << static_cast<double>(elapsed_ms) / 1000.0 << std::endl;
-    expr_result_file.close();
-
-    num_txns_processed += num_actual_processed.load();
 
     // cleanup
     catalog.TearDown();
@@ -570,8 +555,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
-  // record experiment elapsed time and average num_txns processed
-  std::string_view expr_result_file_name = "./expr_results.csv";
 
   // record actual number of txns processed
   uint32_t num_txns_processed = 0;
@@ -579,7 +562,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(expr_result_file_name.data());
     unlink(terrier::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
@@ -619,9 +601,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     log_manager_->ForceFlush();
 
     // Let GC clean up
-    gc_thread_ =
-        new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
-                                            common::ManagedPointer(metrics_manager), BenchmarkConfig::num_daf_threads);
+    gc_thread_ = new storage::GarbageCollectorThread(common::ManagedPointer(gc_), gc_period_,
+                                                     common::ManagedPointer(metrics_manager));
     gc_thread_->StopGC();
 
     // run the TPCC workload to completion, timing the execution
@@ -646,12 +627,6 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     std::this_thread::sleep_for(std::chrono::seconds(10));  // Let MetricThread clean up
-
-    std::ofstream expr_result_file(expr_result_file_name.data());
-    // num_daf_threads, num_worker_thread, time_elapsed
-    expr_result_file << BenchmarkConfig::num_daf_threads << ", " << BenchmarkConfig::num_threads << ", "
-                     << static_cast<double>(elapsed_ms) / 1000.0 << std::endl;
-    expr_result_file.close();
 
     num_txns_processed += num_actual_processed.load();
 
