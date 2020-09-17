@@ -26,6 +26,15 @@ ___
 ## Summary
 Please provide a short summary of the bug observed.
 
+## Environment
+To address the bug, especially if it environment specific, we need to know what kind of configuration you are running on. Please include the following:
+
+**OS**: Ubuntu 18.04 (LTS) or macOS 10.14+ (specify version).
+
+**Compiler**: GCC 7.0+ or Clang 8.0+. 
+
+**Note:** we do not support any other toolchains at the moment, so please do not create bug reports if you are building on other environments. Please see the [wiki page](https://github.com/cmu-db/noisepage/wiki/System-Setup) on our supported systems.
+
 ## Steps to Reproduce
 Whenever possible, retrace how you came about the problem and describe so here. An [example](https://github.com/cmu-db/noisepage/issues/1117) from an issue by @jkosh44 follows:
 1. Compile with the following args: -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON
