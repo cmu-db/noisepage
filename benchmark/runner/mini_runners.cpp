@@ -694,8 +694,8 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
   // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 1, 2, 4, 8, 16};
-  auto num_cols = {1, 2, 3, 5, 7, 9, 11, 13, 15};
+  auto num_threads = {0, 2, 3, 4, 8, 10, 16};
+  auto num_cols = {1, 2, 3, 4, 5, 9, 13};
   auto types = {type::TypeId::INTEGER};
   std::vector<int64_t> row_nums = {//1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
@@ -722,7 +722,7 @@ static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
 
 static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
   // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 1, 2, 3, 4, 8, 10, 16};
+  auto num_threads = {0, 2, 3, 4, 8, 10, 16};
   std::vector<int64_t> row_nums = {//1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 10000000};
 
