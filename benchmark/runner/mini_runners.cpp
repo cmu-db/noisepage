@@ -1032,6 +1032,21 @@ class MiniRunners : public benchmark::Fixture {
     InvokeGC();
   }
 
+  // Used for the CREATE INDEX mini-runner
+  void DropIndexByName(const std::string &name) {
+    auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+    auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
+
+    auto txn = txn_manager->BeginTransaction();
+    auto accessor = catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+
+    auto index_oid = accessor->GetIndexOid(name);
+    accessor->DropIndex(index_oid);
+
+    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    InvokeGC();
+  }
+
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
                           planner::OutputSchema *out_schema, bool commit,
                           std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
@@ -2283,16 +2298,14 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
   std::stringstream query;
-  query << "CREATE INDEX idx ON " << tbl_name << " (" << cols << ")";
+  std::string idx_name("runner_idx");
+  query << "CREATE INDEX " << idx_name << " ON " << tbl_name << " (" << cols << ")";
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
                                      PassthroughPlanChecker, nullptr, nullptr, &settings);
   BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
 
   {
-    auto units = std::make_unique<brain::PipelineOperatingUnits>();
-    auto drop_query = OptimizeSqlStatement("DROP INDEX idx", std::make_unique<optimizer::TrivialCostModel>(),
-        std::move(units));
-    BenchmarkExecQuery(1, drop_query.first.get(), drop_query.second.get(), true, &empty_params, &settings);
+    DropIndexByName(idx_name);
   }
 
   InvokeGC();
