@@ -89,11 +89,11 @@ class EXPORT Sorter {
   /**
    * Construct a sorter using @em memory as the memory allocator, storing tuples @em tuple_size
    * size in bytes, and using the comparison function @em cmp_fn.
-   * @param memory The memory pool to allocate memory from
+   * @param exec_ctx ExecutionContext
    * @param cmp_fn The sorting comparison function
    * @param tuple_size The sizes of the input tuples in bytes
    */
-  Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size);
+  Sorter(exec::ExecutionContext *exec_ctx, ComparisonFunction cmp_fn, uint32_t tuple_size);
 
   /**
    * Destructor.
@@ -188,6 +188,7 @@ class EXPORT Sorter {
   friend class SorterIterator;
   friend class SorterVectorIterator;
 
+  exec::ExecutionContext *exec_ctx_;
   // Memory pool
   MemoryPool *memory_;
 

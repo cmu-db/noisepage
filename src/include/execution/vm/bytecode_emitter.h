@@ -348,7 +348,7 @@ class BytecodeEmitter {
                                                FunctionId scan_part_fn);
 
   /** Initialize a sorter instance. */
-  void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn, LocalVar tuple_size);
+  void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar exec_ctx, FunctionId cmp_fn, LocalVar tuple_size);
 
   /** Initialize a CSV reader. */
   // void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);

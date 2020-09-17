@@ -151,10 +151,12 @@ void AggregationHashTable::BatchProcessState::Reset(VectorProjectionIterator *in
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
-AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
-                                           const std::size_t payload_size, const uint32_t initial_size)
+AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings,
+                                           exec::ExecutionContext *exec_ctx, const std::size_t payload_size,
+                                           const uint32_t initial_size)
     : exec_settings_(exec_settings),
-      memory_(memory),
+      exec_ctx_(exec_ctx),
+      memory_(exec_ctx->GetMemoryPool()),
       payload_size_(payload_size),
       entries_(HashTableEntry::ComputeEntrySize(payload_size_), MemoryPoolAllocator<byte>(memory_)),
       owned_entries_(memory_),
@@ -166,7 +168,7 @@ AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_s
       partition_estimates_(nullptr),
       partition_tables_(nullptr),
       partition_shift_bits_(util::BitUtil::CountLeadingZeros(uint64_t(DEFAULT_NUM_PARTITIONS) - 1)) {
-  hash_table_.SetSize(initial_size, memory->GetTracker());
+  hash_table_.SetSize(initial_size, memory_->GetTracker());
   max_fill_ = std::llround(hash_table_.GetCapacity() * hash_table_.GetLoadFactor());
 
   // Compute flush threshold. In partitioned mode, we want the thread-local
@@ -176,9 +178,9 @@ AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_s
   flush_threshold_ = std::max(uint64_t{256}, common::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
-AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
-                                           std::size_t payload_size)
-    : AggregationHashTable(exec_settings, memory, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
+AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings,
+                                           exec::ExecutionContext *exec_ctx, std::size_t payload_size)
+    : AggregationHashTable(exec_settings, exec_ctx, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
 
 AggregationHashTable::~AggregationHashTable() {
   if (batch_state_ != nullptr) {
@@ -619,7 +621,7 @@ AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *q
   // Create it
   auto estimated_size = partition_estimates_[partition_idx]->Estimate();
   auto *agg_table = new (memory_->AllocateAligned(sizeof(AggregationHashTable), alignof(AggregationHashTable), false))
-      AggregationHashTable(exec_settings_, memory_, payload_size_, estimated_size);
+      AggregationHashTable(exec_settings_, exec_ctx_, payload_size_, estimated_size);
 
   util::Timer<std::milli> timer;
   timer.Start();

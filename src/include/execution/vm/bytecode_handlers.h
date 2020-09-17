@@ -789,8 +789,7 @@ VM_OP_HOT void OpModReal(terrier::execution::sql::Real *const result, const terr
 // ---------------------------------------------------------
 
 VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table,
-                                      terrier::execution::exec::ExecutionContext *exec_ctx,
-                                      terrier::execution::sql::MemoryPool *memory, uint32_t payload_size);
+                                      terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t payload_size);
 
 VM_OP void OpAggregationHashTableGetTupleCount(uint32_t *result,
                                                terrier::execution::sql::AggregationHashTable *agg_hash_table);
@@ -1244,8 +1243,7 @@ VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { 
 // ---------------------------------------------------------
 
 VM_OP void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
-                               terrier::execution::exec::ExecutionContext *exec_ctx,
-                               terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size);
+                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t tuple_size);
 
 VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
                                          terrier::execution::sql::JoinHashTable *join_hash_table,
@@ -1287,7 +1285,7 @@ VM_OP_HOT void OpHashTableEntryIteratorGetRow(const terrier::byte **row,
 // Sorting
 // ---------------------------------------------------------
 
-VM_OP void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::MemoryPool *memory,
+VM_OP void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::exec::ExecutionContext *exec_ctx,
                         terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, uint32_t tuple_size);
 
 VM_OP_HOT void OpSorterGetTupleCount(uint32_t *result, terrier::execution::sql::Sorter *sorter) {

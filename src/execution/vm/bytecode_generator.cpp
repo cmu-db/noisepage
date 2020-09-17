@@ -993,9 +993,8 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
     case ast::Builtin::AggHashTableInit: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, memory, entry_size);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::AggHashTableGetTupleCount: {
@@ -1353,9 +1352,8 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, memory, entry_size);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::JoinHashTableInsert: {
@@ -1427,10 +1425,11 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
       // TODO(pmenon): Fix me so that the comparison function doesn't have be
       // listed by name.
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       const std::string cmp_func_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name().GetData();
       LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, memory, LookupFuncIdByName(cmp_func_name), entry_size);
+      GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, exec_ctx, LookupFuncIdByName(cmp_func_name),
+                                   entry_size);
       break;
     }
     case ast::Builtin::SorterGetTupleCount: {

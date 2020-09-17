@@ -246,7 +246,7 @@ void HashAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::Fu
 }
 
 void HashAggregationTranslator::InitializeAggregationHashTable(FunctionBuilder *function, ast::Expr *agg_ht) const {
-  function->Append(GetCodeGen()->AggHashTableInit(agg_ht, GetExecutionContext(), GetMemoryPool(), agg_payload_type_));
+  function->Append(GetCodeGen()->AggHashTableInit(agg_ht, GetExecutionContext(), agg_payload_type_));
 }
 
 void HashAggregationTranslator::TearDownAggregationHashTable(FunctionBuilder *function, ast::Expr *agg_ht) const {

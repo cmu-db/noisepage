@@ -22,16 +22,17 @@
 
 namespace terrier::execution::sql {
 
-JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, uint32_t tuple_size,
-                             bool use_concise_ht)
+JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                             uint32_t tuple_size, bool use_concise_ht)
     : exec_settings_(exec_settings),
-      entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(memory)),
-      owned_(memory),
+      exec_ctx_(exec_ctx),
+      entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(exec_ctx->GetMemoryPool())),
+      owned_(exec_ctx->GetMemoryPool()),
       concise_hash_table_(0),
       hll_estimator_(libcount::HLL::Create(DEFAULT_HLL_PRECISION)),
       built_(false),
       use_concise_ht_(use_concise_ht),
-      tracker_(memory->GetTracker()) {}
+      tracker_(exec_ctx->GetMemoryPool()->GetTracker()) {}
 
 // Needed because we forward-declared HLL from libcount
 JoinHashTable::~JoinHashTable() = default;

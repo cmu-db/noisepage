@@ -1177,9 +1177,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto payload_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpAggregationHashTableInit(agg_hash_table, exec_ctx, memory, payload_size);
+    OpAggregationHashTableInit(agg_hash_table, exec_ctx, payload_size);
     DISPATCH_NEXT();
   }
 
@@ -1524,9 +1523,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(JoinHashTableInit) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<sql::MemoryPool *>(READ_LOCAL_ID());
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpJoinHashTableInit(join_hash_table, exec_ctx, memory, tuple_size);
+    OpJoinHashTableInit(join_hash_table, exec_ctx, tuple_size);
     DISPATCH_NEXT();
   }
 
@@ -1595,12 +1593,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<terrier::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(module_->GetRawFunctionImpl(cmp_func_id));
-    OpSorterInit(sorter, memory, cmp_fn, tuple_size);
+    OpSorterInit(sorter, exec_ctx, cmp_fn, tuple_size);
     DISPATCH_NEXT();
   }
 

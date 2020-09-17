@@ -109,8 +109,8 @@ void SortTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl 
 }
 
 void SortTranslator::InitializeSorter(FunctionBuilder *function, ast::Expr *sorter_ptr) const {
-  ast::Expr *mem_pool = GetMemoryPool();
-  function->Append(GetCodeGen()->SorterInit(sorter_ptr, mem_pool, compare_func_, sort_row_type_));
+  auto ctx = GetExecutionContext();
+  function->Append(GetCodeGen()->SorterInit(sorter_ptr, ctx, compare_func_, sort_row_type_));
 }
 
 void SortTranslator::TearDownSorter(FunctionBuilder *function, ast::Expr *sorter_ptr) const {

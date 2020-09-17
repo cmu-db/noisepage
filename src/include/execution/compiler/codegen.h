@@ -845,11 +845,10 @@ class CodeGen {
    * the build-row structures with the provided name.
    * @param join_hash_table The join hash table.
    * @param exec_ctx The execution context.
-   * @param mem_pool The memory pool.
    * @param build_row_type_name The name of the materialized build-side row in the hash table.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *mem_pool,
+  [[nodiscard]] ast::Expr *JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx,
                                              ast::Identifier build_row_type_name);
 
   /**
@@ -931,12 +930,10 @@ class CodeGen {
    * Call \@aggHTInit(). Initializes an aggregation hash table.
    * @param agg_ht A pointer to the aggregation hash table.
    * @param exec_ctx The execution context.
-   * @param mem_pool A pointer to the memory pool.
    * @param agg_payload_type The name of the struct representing the aggregation payload.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *mem_pool,
-                                            ast::Identifier agg_payload_type);
+  [[nodiscard]] ast::Expr *AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Identifier agg_payload_type);
 
   /**
    * Call \@aggHTLookup(). Performs a single key lookup in an aggregation hash table. The hash value
@@ -1125,12 +1122,12 @@ class CodeGen {
    * Call \@sorterInit(). Initialize the provided sorter instance using a memory pool, comparison
    * function and the struct that will be materialized into the sorter instance.
    * @param sorter The sorter instance.
-   * @param mem_pool The memory pool instance.
+   * @param exec_ctx ExecutionContext
    * @param cmp_func_name The name of the comparison function to use.
    * @param sort_row_type_name The name of the materialized sort-row type.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SorterInit(ast::Expr *sorter, ast::Expr *mem_pool, ast::Identifier cmp_func_name,
+  [[nodiscard]] ast::Expr *SorterInit(ast::Expr *exec_ctx, ast::Expr *mem_pool, ast::Identifier cmp_func_name,
                                       ast::Identifier sort_row_type_name);
 
   /**

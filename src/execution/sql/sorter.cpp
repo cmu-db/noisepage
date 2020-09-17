@@ -25,12 +25,13 @@ namespace terrier::execution::sql {
 //
 //===----------------------------------------------------------------------===//
 
-Sorter::Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size)
-    : memory_(memory),
-      tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(memory)),
-      owned_tuples_(memory),
+Sorter::Sorter(exec::ExecutionContext *exec_ctx, ComparisonFunction cmp_fn, uint32_t tuple_size)
+    : exec_ctx_(exec_ctx),
+      memory_(exec_ctx->GetMemoryPool()),
+      tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(exec_ctx->GetMemoryPool())),
+      owned_tuples_(exec_ctx->GetMemoryPool()),
       cmp_fn_(cmp_fn),
-      tuples_(memory),
+      tuples_(exec_ctx->GetMemoryPool()),
       sorted_(false) {}
 
 Sorter::~Sorter() = default;

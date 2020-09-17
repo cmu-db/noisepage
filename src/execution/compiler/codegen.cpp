@@ -802,10 +802,10 @@ ast::Expr *CodeGen::Hash(const std::vector<ast::Expr *> &values) {
 // Joins
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *mem_pool,
+ast::Expr *CodeGen::JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx,
                                       ast::Identifier build_row_type_name) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::JoinHashTableInit, {join_hash_table, exec_ctx, mem_pool, SizeOf(build_row_type_name)});
+      CallBuiltin(ast::Builtin::JoinHashTableInit, {join_hash_table, exec_ctx, SizeOf(build_row_type_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -859,9 +859,8 @@ ast::Expr *CodeGen::HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type)
 // Hash aggregations
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *mem_pool,
-                                     ast::Identifier agg_payload_type) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableInit, {agg_ht, exec_ctx, mem_pool, SizeOf(agg_payload_type)});
+ast::Expr *CodeGen::AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Identifier agg_payload_type) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableInit, {agg_ht, exec_ctx, SizeOf(agg_payload_type)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -1002,10 +1001,10 @@ ast::Expr *CodeGen::AggregatorResult(ast::Expr *agg) { return CallBuiltin(ast::B
 // Sorters
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::SorterInit(ast::Expr *sorter, ast::Expr *mem_pool, ast::Identifier cmp_func_name,
+ast::Expr *CodeGen::SorterInit(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Identifier cmp_func_name,
                                ast::Identifier sort_row_type_name) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::SorterInit, {sorter, mem_pool, MakeExpr(cmp_func_name), SizeOf(sort_row_type_name)});
+      CallBuiltin(ast::Builtin::SorterInit, {sorter, exec_ctx, MakeExpr(cmp_func_name), SizeOf(sort_row_type_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

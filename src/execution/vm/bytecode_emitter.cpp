@@ -335,9 +335,9 @@ void BytecodeEmitter::EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, L
   EmitAll(Bytecode::AggregationHashTableParallelPartitionedScan, agg_ht, context, tls, scan_part_fn);
 }
 
-void BytecodeEmitter::EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn,
+void BytecodeEmitter::EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar exec_ctx, FunctionId cmp_fn,
                                      LocalVar tuple_size) {
-  EmitAll(bytecode, sorter, region, cmp_fn, tuple_size);
+  EmitAll(bytecode, sorter, exec_ctx, cmp_fn, tuple_size);
 }
 
 #if 0

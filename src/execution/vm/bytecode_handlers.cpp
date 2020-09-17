@@ -71,9 +71,8 @@ void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager)
 // ---------------------------------------------------------
 
 void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
-                         terrier::execution::exec::ExecutionContext *exec_ctx,
-                         terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size) {
-  new (join_hash_table) terrier::execution::sql::JoinHashTable(exec_ctx->GetExecutionSettings(), memory, tuple_size);
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t tuple_size) {
+  new (join_hash_table) terrier::execution::sql::JoinHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, tuple_size);
 }
 
 void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
@@ -93,10 +92,9 @@ void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table
 // ---------------------------------------------------------
 
 void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *const agg_hash_table,
-                                terrier::execution::exec::ExecutionContext *exec_ctx,
-                                terrier::execution::sql::MemoryPool *const memory, const uint32_t payload_size) {
+                                terrier::execution::exec::ExecutionContext *exec_ctx, const uint32_t payload_size) {
   new (agg_hash_table)
-      terrier::execution::sql::AggregationHashTable(exec_ctx->GetExecutionSettings(), memory, payload_size);
+      terrier::execution::sql::AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, payload_size);
 }
 
 void OpAggregationHashTableGetTupleCount(uint32_t *result,
@@ -141,9 +139,10 @@ void OpAggregationHashTableIteratorFree(terrier::execution::sql::AHTIterator *it
 // Sorters
 // ---------------------------------------------------------
 
-void OpSorterInit(terrier::execution::sql::Sorter *const sorter, terrier::execution::sql::MemoryPool *const memory,
+void OpSorterInit(terrier::execution::sql::Sorter *const sorter,
+                  terrier::execution::exec::ExecutionContext *const exec_ctx,
                   const terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, const uint32_t tuple_size) {
-  new (sorter) terrier::execution::sql::Sorter(memory, cmp_fn, tuple_size);
+  new (sorter) terrier::execution::sql::Sorter(exec_ctx, cmp_fn, tuple_size);
 }
 
 void OpSorterSort(terrier::execution::sql::Sorter *sorter) { sorter->Sort(); }

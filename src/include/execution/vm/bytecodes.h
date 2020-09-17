@@ -331,7 +331,7 @@ namespace terrier::execution::vm {
   F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
                                                                                                                       \
   /* Aggregation Hash Table */                                                                                        \
-  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(AggregationHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                        \
   F(AggregationHashTableGetInsertCount, OperandType::Local, OperandType::Local)                                       \
   F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                       \
@@ -446,7 +446,7 @@ namespace terrier::execution::vm {
   F(AvgAggregateFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
-  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                \
+  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \

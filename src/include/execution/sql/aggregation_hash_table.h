@@ -120,19 +120,20 @@ class EXPORT AggregationHashTable {
    * @param memory The memory pool to allocate memory from.
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
-  AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, std::size_t payload_size);
+  AggregationHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                       std::size_t payload_size);
 
   /**
    * Construct an aggregation hash table using the provided memory pool, configured to store
    * aggregates of size @em payload_size in bytes, and whose initial size allows for
    * @em initial_size aggregates.
    * @param exec_settings The execution settings to run with.
-   * @param memory The memory pool to allocate memory from.
+   * @param exec_ctx ExecutionContext
    * @param payload_size The size of the elements in the hash table, in bytes.
    * @param initial_size The initial number of aggregates to support.
    */
-  AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, std::size_t payload_size,
-                       uint32_t initial_size);
+  AggregationHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                       std::size_t payload_size, uint32_t initial_size);
 
   /**
    * This class cannot be copied or moved.
@@ -376,6 +377,8 @@ class EXPORT AggregationHashTable {
  private:
   // Execution context
   const exec::ExecutionSettings &exec_settings_;
+
+  exec::ExecutionContext *exec_ctx_;
 
   // Memory allocator.
   MemoryPool *memory_;
