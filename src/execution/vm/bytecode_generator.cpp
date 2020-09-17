@@ -2408,6 +2408,23 @@ void BytecodeGenerator::VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin
       }
       break;
     }
+    case ast::Builtin::Concat: {
+      const auto num_inputs = call->NumArgs() - 1;
+
+      const auto string_type = ast::BuiltinType::Get(call->GetType()->GetContext(), ast::BuiltinType::StringVal);
+      const auto array_type = ast::ArrayType::Get(num_inputs, string_type->PointerTo());
+
+      LocalVar inputs = GetCurrentFunction()->NewLocal(array_type);
+      auto arr_elem_ptr = GetCurrentFunction()->NewLocal(string_type->PointerTo()->PointerTo());
+      for (uint32_t i = 0; i < num_inputs; i++) {
+        GetEmitter()->EmitLea(arr_elem_ptr, inputs, i * 8);
+        LocalVar input_string = VisitExpressionForLValue(call->Arguments()[i + 1]);
+        GetEmitter()->EmitAssign(Bytecode::Assign8, arr_elem_ptr.ValueOf(), input_string);
+      }
+
+      GetEmitter()->EmitConcat(ret, exec_ctx, inputs, num_inputs);
+      break;
+    }
     default:
       UNREACHABLE("Unimplemented string function!");
   }
@@ -2825,7 +2842,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Lpad:
     case ast::Builtin::Ltrim:
     case ast::Builtin::Rpad:
-    case ast::Builtin::Rtrim: {
+    case ast::Builtin::Rtrim:
+    case ast::Builtin::Concat: {
       VisitBuiltinStringCall(call, builtin);
       break;
     }

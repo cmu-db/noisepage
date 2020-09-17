@@ -2961,23 +2961,20 @@ void Sema::CheckBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin) {
       sql_type = ast::BuiltinType::Integer;
       break;
     }
-    case ast::Builtin::Trim2: {
+    case ast::Builtin::Trim2:
+    case ast::Builtin::Concat: {
       // check to make sure this function has three arguments
-      if (!CheckArgCount(call, 3)) {
+      if (!CheckArgCountAtLeast(call, 2)) {
         return;
       }
 
-      // checking to see if the second argument is a string
-      auto *resolved_type = call->Arguments()[1]->GetType();
-      if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
-        return;
-      }
-
-      // checking to see if the third argument is a string
-      if (!call->Arguments()[2]->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
-        return;
+      // checking to see if the arguments are strings
+      for (uint32_t i = 1; i < call->NumArgs(); i++) {
+        auto *resolved_type = call->Arguments()[i]->GetType();
+        if (!resolved_type->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
+          ReportIncorrectCallArg(call, i, ast::StringType::Get(GetContext()));
+          return;
+        }
       }
 
       // this function returns a string
@@ -3693,7 +3690,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::Lpad:
     case ast::Builtin::Rpad:
     case ast::Builtin::Ltrim:
-    case ast::Builtin::Rtrim: {
+    case ast::Builtin::Rtrim:
+    case ast::Builtin::Concat: {
       CheckBuiltinStringCall(call, builtin);
       break;
     }
