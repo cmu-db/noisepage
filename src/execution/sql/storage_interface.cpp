@@ -73,6 +73,8 @@ bool StorageInterface::TableUpdate(storage::TupleSlot table_tuple_slot) {
   return table_->Update(exec_ctx_->GetTxn(), table_redo_);
 }
 
+uint64_t StorageInterface::IndexGetSize() const { return curr_index_->GetSize(); }
+
 bool StorageInterface::IndexInsert() {
   TERRIER_ASSERT(need_indexes_, "Index PR not allocated!");
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());

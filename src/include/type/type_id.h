@@ -30,7 +30,8 @@ enum class TypeId : uint8_t {
   DATE,
   VARCHAR,
   VARBINARY,
-  PARAMETER_OFFSET
+  PARAMETER_OFFSET,
+  VARIADIC,
 };
 
 }  // namespace terrier::type
