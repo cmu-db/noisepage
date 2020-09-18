@@ -13,6 +13,7 @@ class TPCHRunner : public benchmark::Fixture {
   const uint64_t execution_us_per_worker_ = 20000000;  // Time (us) to run per terminal (worker thread)
   std::vector<uint64_t> avg_interval_us_ = {10, 20, 50, 100, 200, 500, 1000};
   const execution::vm::ExecutionMode mode_ = execution::vm::ExecutionMode::Interpret;
+  const bool single_test_run_ = false;
 
   std::unique_ptr<DBMain> db_main_;
   std::unique_ptr<tpch::Workload> workload_;
@@ -66,10 +67,21 @@ BENCHMARK_DEFINE_F(TPCHRunner, Runner)(benchmark::State &state) {
   workload_ = std::make_unique<tpch::Workload>(common::ManagedPointer<DBMain>(db_main_), tpch_database_name_,
                                                table_root, type_);
 
+  uint32_t query_num_start, num_thread_start, repeat_num;
+  if (single_test_run_) {
+    query_num_start = workload_->GetQueryNum();
+    num_thread_start = total_num_threads_;
+    repeat_num = 1;
+  } else {
+    query_num_start = 1;
+    num_thread_start = 1;
+    repeat_num = 2;
+  }
+
   auto total_query_num = workload_->GetQueryNum() + 1;
-  for (uint32_t query_num = 1; query_num < total_query_num; query_num += 4)
-    for (auto num_threads = 1; num_threads <= total_num_threads_; num_threads += 3)
-      for (uint32_t repeat = 0; repeat < 2; ++repeat)
+  for (uint32_t query_num = query_num_start; query_num < total_query_num; query_num += 4)
+    for (auto num_threads = num_thread_start; num_threads <= total_num_threads_; num_threads += 3)
+      for (uint32_t repeat = 0; repeat < repeat_num; ++repeat)
         for (auto avg_interval_us : avg_interval_us_) {
           std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
           common::WorkerPool thread_pool{static_cast<uint32_t>(num_threads), {}};

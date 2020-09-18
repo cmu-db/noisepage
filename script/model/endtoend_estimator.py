@@ -63,7 +63,7 @@ class EndtoendEstimator:
         # Predict
         y_pred = self.global_resource_model.predict(x)
 
-        self._record_results(x, y, y_pred, None, None, "resource")
+        self._record_results(x, y, y_pred, None, None, "resource", None)
 
         # Put the prediction global resource util back to the GlobalImpactData
         for i, data in enumerate(resource_data_list):
@@ -79,11 +79,13 @@ class EndtoendEstimator:
         y = []
         mini_model_y_pred = []  # The labels directly predicted from the mini models
         raw_y = []  # The actual labels
+        data_list = []
         # The input feature is (normalized mini model prediction, predicted global resource util, the predicted
         # resource util on the same core that the opunit group runs)
         # The output target is the ratio between the actual resource util (including the elapsed time) and the
         # normalized mini model prediction
         for d in tqdm.tqdm(impact_data_list, desc="Construct data for the {} model".format(model_name)):
+            data_list.append(d.target_grouped_op_unit_data)
             mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
             raw_y.append(d.target_grouped_op_unit_data.y)
             predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
@@ -108,9 +110,9 @@ class EndtoendEstimator:
         y_pred = model.predict(x)
 
         # Record results
-        self._record_results(x, y, y_pred, raw_y, mini_model_y_pred, model_name)
+        self._record_results(x, y, y_pred, raw_y, mini_model_y_pred, model_name, data_list)
 
-    def _record_results(self, x, y, y_pred, raw_y, mini_model_y_pred, label):
+    def _record_results(self, x, y, y_pred, raw_y, mini_model_y_pred, label, data_list):
         """Record the prediction results
 
         :param x: the input data
@@ -146,7 +148,8 @@ class EndtoendEstimator:
             accumulated_raw_y = np.sum(raw_y, axis=0)
             accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
             original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + epsilon), axis=0)
-            ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + epsilon), axis=0)
+            ratio_error = np.abs(raw_y - raw_y_pred) / (raw_y + epsilon)
+            avg_ratio_error = np.average(ratio_error, axis=0)
             accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (
                         accumulated_raw_y + epsilon)
             original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
@@ -154,8 +157,8 @@ class EndtoendEstimator:
 
             logging.info('Original Ratio Error: {}'.format(original_ratio_error))
             io_util.write_csv_result(metrics_path, "Original Ratio Error", original_ratio_error)
-            logging.info('Ratio Error: {}'.format(ratio_error))
-            io_util.write_csv_result(metrics_path, "Ratio Error", ratio_error)
+            logging.info('Ratio Error: {}'.format(avg_ratio_error))
+            io_util.write_csv_result(metrics_path, "Ratio Error", avg_ratio_error)
             logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
             io_util.write_csv_result(metrics_path, "Original Accumulated Ratio Error",
                                      original_accumulated_percentage_error)
@@ -164,6 +167,29 @@ class EndtoendEstimator:
             logging.info('Accumulated Actual: {}'.format(accumulated_raw_y))
             logging.info('Original Accumulated Predict: {}'.format(np.sum(mini_model_y_pred, axis=0)))
             logging.info('Accumulated Predict: {}'.format(accumulated_raw_y_pred))
+
+            prediction_path = "{}/grouped_opunit_prediction.csv".format(self.model_results_path)
+            io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
+            for i, data in enumerate(data_list):
+                io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
+                                         list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
+            mark_list = _generate_mark_list(data_list)
+
+
+def _generate_mark_list(data_list):
+    """Generate a mark list to filter a specific operation
+
+    :param data_list:
+    :return:
+    """
+    mark_list = []
+    for d in data_list:
+        if d.name[0] == 'q':
+            mark_list.append(1)
+        else:
+            mark_list.append(0)
+
+    return mark_list
 
 
 # ==============================================

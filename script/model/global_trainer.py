@@ -212,19 +212,19 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input_index',
+    aparser.add_argument('--input_path', default='global_runner_input_tpch_concurrent',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results',
+    aparser.add_argument('--model_results_path', default='global_model_results_tpch_concurrent',
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
-    aparser.add_argument('--mini_model_file', default='trained_model_testing/mini_model_map.pickle',
+    aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
                          help='File of the saved mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["nn"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--impact_model_ratio', type=float, default=0.1,
                          help='Sample ratio to train the global impact model')
-    aparser.add_argument('--warmup_period', type=float, default=-1, help='OLTPBench warmup period')
+    aparser.add_argument('--warmup_period', type=float, default=1, help='OLTPBench warmup period')
     aparser.add_argument('--tpcc_hack', default=False, help='Should do feature correction for TPCC')
     aparser.add_argument('--ee_sample_interval', type=int, default=0,
                          help='Sampling interval for the execution engine OUs')

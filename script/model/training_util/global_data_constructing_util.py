@@ -277,7 +277,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
                 pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
                 if pred_mem <= buffer_size:
-                    logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
+                    logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
                                     .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                 adj_mem = (pred_mem - buffer_size) * opunit_feature[1][data_info.RECORD_MEM_SCALE_OFFSET] + buffer_size

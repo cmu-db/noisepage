@@ -13,7 +13,6 @@ def convert_string_to_numeric(value):
     try:
         return int(value)
     finally:
-        # Scientific notation
         return float(value)
 
 
