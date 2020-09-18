@@ -141,7 +141,7 @@ bool RewritePushExplicitFilterThroughJoin::Check(common::ManagedPointer<Abstract
 
 void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
                                                      std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
-                                                     UNUSED_ATTRIBUTE OptimizationContext *context) const {
+                                                     OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePushExplicitFilterThroughJoin::Transform");
   // input is LOGICALFILTER
   auto &memo = context->GetOptimizerContext()->GetMemo();
@@ -222,8 +222,13 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
     // COMPARE_IN is handled by left semi join
     if (join_predicate.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
       semi_join = true;
-      join_predicate.GetExpr()->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
-      semi_join_predicates.push_back(join_predicate);
+      // Construct a new annotated expression and set its expression type to equal
+      auto new_join_expr = join_predicate.GetExpr()->Copy();
+      new_join_expr->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
+      auto table_alias = join_predicate.GetTableAliasSet();
+      auto semi_join_predicate = AnnotatedExpression(
+          common::ManagedPointer<parser::AbstractExpression>(new_join_expr.release()), std::move(table_alias));
+      semi_join_predicates.push_back(semi_join_predicate);
     } else {
       semi_join_predicates.push_back(join_predicate);
     }
