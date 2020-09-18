@@ -35,20 +35,20 @@ OSX_TEST_PACKAGES=(\
 # also change it in the Dockerfile in the root directory of the repository!
 LINUX_BUILD_PACKAGES=(\
   "build-essential" \
-  "clang-8" \
-  "clang-format-8" \
-  "clang-tidy-8" \
+  "clang-10" \
+  "clang-format-10" \
+  "clang-tidy-10" \
   "cmake" \
   "doxygen" \
   "git" \
-  "g++-7" \
+  "g++-10" \
   "libevent-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
   "libssl-dev" \
   "libtbb-dev" \
   "zlib1g-dev" \
-  "llvm-8" \
+  "llvm-10" \
   "pkg-config" \
   "postgresql-client" \
   "wget" \
@@ -179,7 +179,7 @@ install_mac() {
   fi
   
   # Special case for llvm
-  (brew ls --versions llvm@8 | grep 8) || brew install llvm@8
+  (brew ls --versions llvm@10 | grep 8) || brew install llvm@10
   
   # Always install Python stuff
   python3 -m pip --version || install_pip
