@@ -2164,7 +2164,8 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
 
   // The catalog owns this pointer now, so if the txn ends up aborting, we need to make sure it gets freed.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() { delete func_context; }, transaction::DafId::MEMORY_DEALLOCATION);
+    deferred_action_manager->RegisterDeferredAction([=]() { delete func_context; },
+                                                    transaction::DafId::MEMORY_DEALLOCATION);
   });
 
   // Do not need to store the projection map because it is only a single column
