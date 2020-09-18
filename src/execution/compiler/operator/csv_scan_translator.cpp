@@ -18,7 +18,7 @@ constexpr const char FIELD_PREFIX[] = "field";
 
 CSVScanTranslator::CSVScanTranslator(const planner::CSVScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CSV_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       base_row_type_(GetCodeGen()->MakeFreshIdentifier("CSVRow")) {
   // CSV scans are serial, for now.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);

@@ -1,13 +1,18 @@
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "connection_thread_count": 32
+    },
+    "env":{
+        "wal_device":"HDD"
+    },
     "testcases": [
         {
             "base": {
                 "benchmark": "tatp",
                 "weights": "2,35,10,35,2,14,2",
                 "query_mode": "extended",
-                "terminals": 8,
-                "loader_threads": 4,
+                "terminals": 16,
                 "client_time": 60
             }
         }

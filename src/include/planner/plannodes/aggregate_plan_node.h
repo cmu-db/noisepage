@@ -162,6 +162,9 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::AGGREGATE; }
 
+  /** @return True if this plan node can be executed with a static aggregation. */
+  bool IsStaticAggregation() const { return GetGroupByTerms().empty(); }
+
   /**
    * @return the hashed value of this plan node
    */

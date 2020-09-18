@@ -1,0 +1,23 @@
+{
+    "type": "oltpbenchmark",
+    "server_args":{
+        "connection_thread_count": 32,
+        "wal_file_path": "/mnt/ramdisk/wal.log",
+        "record_buffer_segment_size": 10000000    
+    },
+    "env":{
+        "wal_device":"RAM disk"
+    },
+    "testcases": [
+        {
+            "base": {
+                "benchmark": "tpcc",
+                "weights": "45,43,4,4,4",
+                "query_mode": "extended",
+                "terminals": 32,
+                "scale_factor": 32,
+                "client_time": 60
+            }
+        }
+    ]
+}

@@ -1,11 +1,11 @@
+#include "network/network_io_wrapper.h"
+
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <sys/file.h>
 
 #include <memory>
-#include <utility>
 
-#include "network/network_io_wrapper.h"
 #include "network/terrier_server.h"
 
 namespace terrier::network {
