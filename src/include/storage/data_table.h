@@ -63,6 +63,7 @@ class DataTable {
     SlotIterator &operator++() {
       RawBlock *b = current_slot_.GetBlock();
       slot_num_++;
+
       if (LIKELY(slot_num_ < b->GetInsertHead())) {
         current_slot_ = {b, slot_num_};
       } else {
@@ -118,12 +119,15 @@ class DataTable {
     SlotIterator(const DataTable *table) : table_(table), block_index_(0), is_end_(false) {  // NOLINT
       end_index_ = table_->blocks_size_;
       TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+
+      // only 1 empty block
       if (end_index_ == 1) {
         common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
         if (table_->blocks_[0]->GetInsertHead() == 0) {
           end_index_ = 0;
         }
       }
+
       UpdateFromNextBlock();
     }
 
@@ -233,6 +237,16 @@ class DataTable {
     SlotIterator it(this);
     it.end_index_ = std::min<uint64_t>(it.end_index_, end);
     it.block_index_ = start;
+
+    // only 1 empty block
+    if (it.end_index_ == 1) {
+      common::SharedLatch::ScopedSharedLatch latch(&it.table_->blocks_latch_);
+      if (it.table_->blocks_[0]->GetInsertHead() == 0) {
+        it.end_index_ = 0;
+      }
+    }
+
+    it.UpdateFromNextBlock();
     return it;
   }
 

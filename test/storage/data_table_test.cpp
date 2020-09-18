@@ -376,4 +376,38 @@ TEST_F(DataTableTests, InsertNoWrap) {
     delete txn;
   }
 }
+
+// tests to make sure that the correct number of tuple slots are iterated through by slot iterator
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 10;
+  const uint64_t max_tuples_inserted = 10000;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    transaction::timestamp_t timestamp(0);
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
+    uint64_t size;
+    // number of tuples in the table
+    for (uint64_t i = 0; i < max_tuples_inserted; i++) {
+      // check that table is correct size
+      size = 0;
+      for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
+      EXPECT_EQ(size, i);
+
+      // add new table and make sure that expected element is in table
+      auto slot = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_);
+      auto it = tested.GetTable().begin();
+      for (uint64_t ith = 0; it != tested.GetTable().end() && ith < size; ith++) it++;
+      EXPECT_EQ(slot, *it);
+    }
+
+    size = 0;
+    for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
+    EXPECT_EQ(size, max_tuples_inserted);
+
+    delete txn;
+  }
+}
 }  // namespace terrier
