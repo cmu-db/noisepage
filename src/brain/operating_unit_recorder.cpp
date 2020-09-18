@@ -363,6 +363,15 @@ void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
   size_t num_keys = schema->GetColumns().size();
   size_t key_size =
       ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema>(schema.Get()), false, keys, &num_keys);
+
+  // TODO(lin): further adjust the key size of VARCHAR keys for CREATE INDEX becuase of some irregularity in the
+  //  training data. Needs further investigation.
+  for (auto &col : schema->GetColumns()) {
+    if (col.Type() == type::TypeId::VARCHAR) {
+      key_size += 8;
+    }
+  }
+
   AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
 }
 
