@@ -1056,8 +1056,10 @@ class MiniRunners : public benchmark::Fixture {
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
     for (auto i = 0; i < num_iters; i++) {
+      common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
       if (i == num_iters - 1) {
         metrics_manager_->RegisterThread();
+        metrics_manager = metrics_manager_;
       }
 
       txn = txn_manager_->BeginTransaction();
@@ -1070,7 +1072,7 @@ class MiniRunners : public benchmark::Fixture {
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
-          common::ManagedPointer(accessor), exec_settings, metrics_manager_);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
