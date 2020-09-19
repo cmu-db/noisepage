@@ -183,6 +183,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
             # Get the opunits located within
             opunits = []
             features = line[features_vector_index].split(';')
+            concurrency = 0
             for idx, feature in enumerate(features):
                 if feature == 'LIMIT':
                     continue
@@ -198,12 +199,20 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                     logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
                     continue
 
+                # TODO(lin): skip the main thing for interference model for now
+                if opunit == OpUnit.CREATE_INDEX and concurrency == 0:
+                    concurrency = x_loc[data_info.CONCURRENCY_INDEX]
+
+                if opunit == OpUnit.CREATE_INDEX_MAIN:
+                    continue
+
                 opunits.append((opunit, x_loc))
 
             if len(opunits) == 0:
                 continue
+
             data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits, np.array(metrics),
-                                               ee_sample_interval))
+                                               ee_sample_interval, concurrency))
 
     return data_list
 
@@ -259,12 +268,13 @@ class GroupedOpUnitData:
     """
     The class that stores the information about a group of operating units measured together
     """
-    def __init__(self, name, opunit_features, metrics, sample_interval=0):
+    def __init__(self, name, opunit_features, metrics, sample_interval=0, concurrency=0):
         """
         :param name: The name of the data point (e.g., could be the pipeline identifier)
         :param opunit_features: The list of opunits and their inputs for this event
         :param metrics: The runtime metrics
         :param sample_interval: The sampling interval for this OU group
+        :param concurrency: The number of concurrency for this contending (parallel) OU group
         """
         self.name = name
         self.opunit_features = opunit_features
@@ -275,6 +285,7 @@ class GroupedOpUnitData:
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
         self.sample_interval = sample_interval
+        self.concurrency = concurrency
 
     def get_start_time(self, concurrent_counting_mode):
         """Get the start time for this group for counting the concurrent operations

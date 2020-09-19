@@ -90,10 +90,15 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
         # For each data, find the intervals that might overlap with it
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.EXACT) -
                                                global_model_config.INTERVAL_SIZE + global_model_config.INTERVAL_SEGMENT)
+        print(data.name)
+        print(interval_start_time)
         while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
             if interval_start_time in interval_data_map:
                 interval_data_map[interval_start_time].append(data)
             interval_start_time += global_model_config.INTERVAL_SEGMENT
+
+        print(interval_start_time)
+        print()
 
     # Get the global resource data
     resource_data_map = {}
@@ -103,13 +108,15 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
 
     # Now construct the global impact data
     impact_data_list = []
-    physical_core_num = hardware_info.PHYSICAL_CORE_NUM
     for data in data_list:
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.INTERVAL))
-        resource_data = resource_data_map[interval_start_time]
-        cpu_id = data.cpu_id
-        same_core_x = resource_data.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id]
-        impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data, same_core_x))
+        resource_data_list = []
+        while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
+            if interval_start_time in resource_data_map:
+                resource_data_list.append(resource_data_map[interval_start_time])
+            interval_start_time += global_model_config.INTERVAL_SIZE
+
+        impact_data_list.append(global_model_data.GlobalImpactData(data, resource_data_list))
 
     return list(resource_data_map.values()), impact_data_list
 
@@ -150,7 +157,8 @@ def _get_global_resource_data(start_time, concurrent_data_list, log_path):
         data_start_time = data.get_start_time(ConcurrentCountingMode.ESTIMATED)
         data_end_time = data.get_end_time(ConcurrentCountingMode.ESTIMATED)
         ratio = _calculate_range_overlap(start_time, end_time, data_start_time, data_end_time) / (data_end_time -
-                                                                                                  data_start_time + 1)
+                                                                                                  data_start_time + 2)
+        #print(start_time, end_time, data_start_time, data_end_time, data_end_time - data_start_time + 1)
         sample_interval = data.sample_interval
         logging.debug("{} {} {}".format(data_start_time, data_end_time, ratio))
         logging.debug("{} {}".format(data.y, data.y_pred))
@@ -300,7 +308,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                                              list(abs(query_y - query_y_pred) / (query_y + 1)))
 
                 current_query_id = query_id
-                query_y = y
+                query_y = y.copy()
                 query_y_pred = pipeline_y_pred
             else:
                 query_y += y

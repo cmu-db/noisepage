@@ -517,8 +517,8 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
   auto key_sizes = {1, 2, 4, 8, 15};
   auto idx_sizes = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
-  std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 1000, 10000, 13000, 15000, 17000,
-                                       20000, 25000, 30000, 35000};
+  std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 1000, 10000, 20000,
+                                       30000, 40000, 50000};
   for (auto type : types) {
     for (auto key_size : key_sizes) {
       // Only handle varchar up to 5 keys for size concerns

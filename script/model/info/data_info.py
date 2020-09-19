@@ -50,6 +50,9 @@ TUPLE_NUM_INDEX = 0
 # Index for cardinality in the model input feature vector
 CARDINALITY_INDEX = 3
 
+# Index for concurrency in the model input feature vector
+CONCURRENCY_INDEX = 6
+
 # Index for execution mode in the model input feature vector
 EXECUTION_MODE_INDEX = 7
 

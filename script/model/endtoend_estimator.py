@@ -43,7 +43,7 @@ class EndtoendEstimator:
         resource_data_list, impact_data_list = global_data_constructing_util.get_data(self.input_path,
                                                                                       self.mini_model_map,
                                                                                       self.model_results_path,
-                                                                                      0,
+                                                                                      -10,
                                                                                       False,
                                                                                       self.ee_sample_interval,
                                                                                       self.txn_sample_interval,
@@ -91,16 +91,21 @@ class EndtoendEstimator:
             predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
-                predicted_resource_util = d.resource_data.y_pred
+                predicted_resource_util = d.get_y_pred()
             if model_name == "direct":
-                predicted_resource_util = d.resource_data.x
+                predicted_resource_util = d.x
             # Remove the OU group itself from the total resource data
-            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= (mini_model_y_pred[-1] /
-                                                                         global_model_config.INTERVAL_SIZE)
+            self_resource = (mini_model_y_pred[-1] * max(1, d.target_grouped_op_unit_data.concurrency) /
+                             len(d.resource_data_list) / global_model_config.INTERVAL_SIZE)
+            print(mini_model_y_pred[-1])
+            print(len(d.resource_data_list))
+            print(global_model_config.INTERVAL_SIZE)
+            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
             predicted_resource_util[predicted_resource_util < 0] = 0
-            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
-                                     d.resource_util_same_core_x)))
-            # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, d.global_resource_util_y_pred)))
+            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
+                                    predicted_resource_util,
+                                    d.resource_util_same_core_x)))
+            #x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
             y.append(d.target_grouped_op_unit_data.y / (d.target_grouped_op_unit_data.y_pred +
                                                         global_model_config.RATIO_DIVISION_EPSILON))
 
@@ -197,9 +202,9 @@ def _generate_mark_list(data_list):
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='End-to-end Estimator')
-    aparser.add_argument('--input_path', default='endtoend_input',
+    aparser.add_argument('--input_path', default='endtoend_input_tpch_index8',
                          help='Input file path for the endtoend estimator')
-    aparser.add_argument('--model_results_path', default='endtoend_estimation_results',
+    aparser.add_argument('--model_results_path', default='endtoend_estimation_results_tpch_index8',
                          help='Prediction results of the mini models')
     aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
                          help='File of the saved mini models')
@@ -209,7 +214,7 @@ if __name__ == '__main__':
                          help='File of the saved global impact model')
     aparser.add_argument('--global_direct_model_file', default='trained_model/global_direct_model.pickle',
                          help='File of the saved global impact model')
-    aparser.add_argument('--ee_sample_interval', type=int, default=9,
+    aparser.add_argument('--ee_sample_interval', type=int, default=0,
                          help='Sampling interval for the execution engine OUs')
     aparser.add_argument('--txn_sample_interval', type=int, default=9,
                          help='Sampling interval for the transaction OUs')

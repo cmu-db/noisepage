@@ -4,6 +4,7 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
+
 class Target(enum.Enum):
     """The output targets for the operating units
     """

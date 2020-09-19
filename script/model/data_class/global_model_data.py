@@ -1,22 +1,46 @@
+import numpy as np
+
+from info import hardware_info
+
+
 class GlobalImpactData:
     """
     The class used to store the information for the global impact model training and prediction
     """
-    def __init__(self, data, resource_data, same_core_x):
+
+    def __init__(self, data, resource_data_list):
         """
         :param data: The target GroupedOpUnitData to measure and predict
-        :param resource_data: The GlobalResourceData in the interval that the target GroupedOpUnitData belongs to
-        :param same_core_x: the estimated resource utilization feature on the same core as the target GroupedOpUnitData
+        :param resource_data_list: The GlobalResourceData list in the interval that the target GroupedOpUnitData
+                overlap with
         """
         self.target_grouped_op_unit_data = data
-        self.resource_data = resource_data
+        self.resource_data_list = resource_data_list
+
+        # Derive the same_core_x feature
+        cpu_id = data.cpu_id
+        physical_core_num = hardware_info.PHYSICAL_CORE_NUM
+        same_core_x_list = [d.x_list[cpu_id - physical_core_num if cpu_id > physical_core_num else cpu_id] for d
+                            in resource_data_list]
+        same_core_x = np.average(same_core_x_list, axis=0)
         self.resource_util_same_core_x = same_core_x
+
+        # Derive the x feature
+        x_list = [d.x for d in resource_data_list]
+        x = np.average(x_list, axis=0)
+        self.x = x
+
+    def get_y_pred(self):
+        y_pred_list = [d.y_pred for d in self.resource_data_list]
+        y_pred = np.average(y_pred_list, axis=0)
+        return y_pred
 
 
 class GlobalResourceData:
     """
     The class used to store the information for the global resource model training and prediction
     """
+
     def __init__(self, start_time, x_list, x, y):
         """
         :param start_time: for the interval to measure the resource

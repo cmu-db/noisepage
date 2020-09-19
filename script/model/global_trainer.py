@@ -47,6 +47,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
         # Train the model
         logging.info("Training the global model with {}".format(method))
         regressor = model.Model(method)
+        # print(x_train)
         regressor.train(x_train, y_train)
 
         # Evaluate on both the training and test set
@@ -165,14 +166,18 @@ class GlobalTrainer:
             predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
-                predicted_resource_util = d.resource_data.y_pred.copy()
+                predicted_resource_util = d.get_y_pred().copy()
             if model_name == "direct":
-                predicted_resource_util = d.resource_data.x.copy()
+                predicted_resource_util = d.x.copy()
             # Remove the OU group itself from the total resource data
-            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= mini_model_y_pred[-1] / global_model_config.INTERVAL_SIZE
-            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util,
+            self_resource = (mini_model_y_pred[-1] * max(1, d.target_grouped_op_unit_data.concurrency) /
+                             len(d.resource_data_list) / global_model_config.INTERVAL_SIZE)
+            predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
+            predicted_resource_util[predicted_resource_util < 0] = 0
+            x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
+                                     predicted_resource_util,
                                      d.resource_util_same_core_x)))
-            # x.append(np.concatenate((mini_model_y_pred / predicted_elapsed_us, predicted_resource_util)))
+            #x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us, predicted_resource_util)))
             raw_y.append(d.target_grouped_op_unit_data.y)
             y.append(raw_y[-1] / (mini_model_y_pred[-1] + epsilon))
             # Do not adjust memory consumption since it shouldn't change
@@ -195,7 +200,8 @@ class GlobalTrainer:
         accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
         original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + epsilon), axis=0)
         ratio_error = np.average(np.abs(raw_y - raw_y_pred) / (raw_y + epsilon), axis=0)
-        accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (accumulated_raw_y + epsilon)
+        accumulated_percentage_error = (np.abs(accumulated_raw_y - accumulated_raw_y_pred) /
+                                        (accumulated_raw_y + epsilon))
         original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                 accumulated_raw_y + epsilon)
 
@@ -212,12 +218,12 @@ class GlobalTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Global Trainer')
-    aparser.add_argument('--input_path', default='global_runner_input_tpch_concurrent',
+    aparser.add_argument('--input_path', default='global_runner_input_tpcc_noindex',
                          help='Input file path for the global runners')
-    aparser.add_argument('--model_results_path', default='global_model_results_tpch_concurrent',
+    aparser.add_argument('--model_results_path', default='global_model_results_tpcc_noindex',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_model', help='Path to save the trained models')
-    aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
+    aparser.add_argument('--save_path', default='trained_model_testing', help='Path to save the trained models')
+    aparser.add_argument('--mini_model_file', default='trained_model_testing/mini_model_map.pickle',
                          help='File of the saved mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str, default=["nn"],
                          help='ML models for the mini trainer to evaluate')
