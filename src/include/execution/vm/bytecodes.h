@@ -101,6 +101,7 @@ namespace terrier::execution::vm {
   F(ExecutionContextAddRowsAffected, OperandType::Local, OperandType::Local)                                          \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
   F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
+  F(ExecutionContextGetNumConcurrent, OperandType::Local, OperandType::Local)                                         \
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
   F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
@@ -132,7 +133,7 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorGetVPINumTuples, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
-    OperandType::Local, OperandType::FunctionId, OperandType::Local, OperandType::Local)                              \
+    OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
   /* Vector Projection Iterator (VPI) */                                                                              \
   F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
@@ -342,7 +343,7 @@ namespace terrier::execution::vm {
   F(AggregationHashTableProcessBatch, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, \
     OperandType::FunctionId, OperandType::FunctionId, OperandType::Local)                                             \
   F(AggregationHashTableTransferPartitions, OperandType::Local, OperandType::Local, OperandType::Local,               \
-    OperandType::Local, OperandType::Local, OperandType::FunctionId)                                                  \
+    OperandType::FunctionId)                                                                                          \
   F(AggregationHashTableBuildAllHashTablePartitions, OperandType::Local, OperandType::Local)                          \
   F(AggregationHashTableRepartition, OperandType::Local)                                                              \
   F(AggregationHashTableMergePartitions, OperandType::Local, OperandType::Local, OperandType::Local,                  \
@@ -450,8 +451,7 @@ namespace terrier::execution::vm {
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
-  F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,       \
-    OperandType::Local)                                                                                               \
+  F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(JoinHashTableLookup, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(JoinHashTableFree, OperandType::Local)                                                                            \
   F(HashTableEntryIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
@@ -464,10 +464,8 @@ namespace terrier::execution::vm {
   F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \
   F(SorterSort, OperandType::Local)                                                                                   \
-  F(SorterSortParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,               \
-    OperandType::Local)                                                                                               \
-  F(SorterSortTopKParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,           \
-    OperandType::Local, OperandType::Local)                                                                           \
+  F(SorterSortParallel, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(SorterSortTopKParallel, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
   F(SorterFree, OperandType::Local)                                                                                   \
   F(SorterIteratorInit, OperandType::Local, OperandType::Local)                                                       \
   F(SorterIteratorGetRow, OperandType::Local, OperandType::Local)                                                     \

@@ -113,13 +113,10 @@ class EXPORT JoinHashTable {
   /**
    * Merge all thread-local hash tables stored in the state contained into this table. Perform the
    * merge in parallel.
-   * @param exec_ctx ExecutionContext
-   * @param pipeline_id Pipeline containing build
    * @param thread_state_container The container for all thread-local tables.
    * @param jht_offset The offset in the state where the hash table is.
    */
-  void MergeParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
-                     const ThreadStateContainer *thread_state_container, std::size_t jht_offset);
+  void MergeParallel(const ThreadStateContainer *thread_state_container, std::size_t jht_offset);
 
   /**
    * @return The total number of bytes used to materialize tuples. This excludes space required for

@@ -290,6 +290,7 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
 
 void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
+  auto *ctx = GetExecutionContext();
   if (IsBuildPipeline(pipeline)) {
     const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
@@ -297,7 +298,8 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
 
     if (build_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    codegen->ExecCtxGetNumConcurrent(ctx));
 
       // In parallel mode, we subtract from the insert count of the last task that might
       // have been run with the current thread. This is to more correctly model the
@@ -330,7 +332,8 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
 
     if (pipeline.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    codegen->ExecCtxGetNumConcurrent(ctx));
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
@@ -515,9 +518,6 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
     if (GetPipeline()->IsParallel()) {
-      function->Append(
-          codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
-
       // In parallel-mode, we would've issued a parallel partitioned scan. In
       // this case, the aggregation hash table we're to scan is provided as a
       // function parameter; specifically, the last argument in the worker
@@ -540,9 +540,7 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
       auto global_agg_ht = global_agg_ht_.GetPtr(codegen);
       auto thread_state_container = GetThreadStateContainer();
       auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
-      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
-      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, GetExecutionContext(), pipeline_id,
-                                                           thread_state_container, tl_agg_ht_offset,
+      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
                                                            merge_partitions_fn_));
     } else {
       RecordCounters(pipeline, function);
@@ -567,10 +565,8 @@ ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint3
 util::RegionVector<ast::FieldDecl *> HashAggregationTranslator::GetWorkerParams() const {
   TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto *codegen = GetCodeGen();
-  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
   return codegen->MakeFieldList({codegen->MakeField(codegen->MakeIdentifier("aggHashTable"),
-                                                    codegen->PointerType(ast::BuiltinType::AggregationHashTable)),
-                                 codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
+                                                    codegen->PointerType(ast::BuiltinType::AggregationHashTable))});
 }
 
 void HashAggregationTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const {

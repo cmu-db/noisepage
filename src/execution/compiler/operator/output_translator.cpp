@@ -71,7 +71,8 @@ void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder 
 
   if (pipeline.IsParallel()) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                  GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
   }
 
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));

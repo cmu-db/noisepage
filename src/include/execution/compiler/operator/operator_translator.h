@@ -178,7 +178,9 @@ class OperatorTranslator : public ColumnValueProvider {
    * @param pipeline The pipeline whose post parallel work logic is being generated.
    * @param function The function being built.
    */
-  virtual void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
+  virtual void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+    RecordCounters(pipeline, function);
+  }
 
   /**
    * Perform the primary logic of a pipeline. This is where the operator's logic should be

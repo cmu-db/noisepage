@@ -260,6 +260,12 @@ void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **co
   *thread_state_container = exec_ctx->GetThreadStateContainer();
 }
 
+VM_OP_WARM
+void OpExecutionContextGetNumConcurrent(uint32_t *num_concurrent,
+                                        terrier::execution::exec::ExecutionContext *const exec_ctx) {
+  *num_concurrent = exec_ctx->GetNumConcurrentEstimate();
+}
+
 VM_OP_WARM void OpThreadStateContainerAccessCurrentThreadState(
     terrier::byte **state, terrier::execution::sql::ThreadStateContainer *thread_state_container) {
   *state = thread_state_container->AccessCurrentThreadState();
@@ -324,11 +330,9 @@ VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjec
 
 VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
                                    terrier::execution::exec::ExecutionContext *exec_ctx,
-                                   const terrier::execution::sql::TableVectorIterator::ScanFn scanner,
-                                   terrier::execution::pipeline_id_t pipeline_id,
-                                   terrier::catalog::index_oid_t index_oid) {
+                                   const terrier::execution::sql::TableVectorIterator::ScanFn scanner) {
   terrier::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, query_state, exec_ctx,
-                                                             scanner, pipeline_id, index_oid);
+                                                             scanner);
 }
 
 // ---------------------------------------------------------
@@ -831,12 +835,10 @@ VM_OP_HOT void OpAggregationHashTableProcessBatch(
 }
 
 VM_OP_HOT void OpAggregationHashTableTransferPartitions(
-    terrier::execution::exec::ExecutionContext *exec_ctx, terrier::execution::pipeline_id_t pipeline_id,
     terrier::execution::sql::AggregationHashTable *const agg_hash_table,
     terrier::execution::sql::ThreadStateContainer *const thread_state_container, const uint32_t agg_ht_offset,
     const terrier::execution::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
-  agg_hash_table->TransferMemoryAndPartitions(exec_ctx, pipeline_id, thread_state_container, agg_ht_offset,
-                                              merge_partition_fn);
+  agg_hash_table->TransferMemoryAndPartitions(thread_state_container, agg_ht_offset, merge_partition_fn);
 }
 
 VM_OP void OpAggregationHashTableBuildAllHashTablePartitions(
@@ -1258,8 +1260,6 @@ VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result, terrier::execution
 VM_OP void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);
 
 VM_OP void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
-                                        terrier::execution::exec::ExecutionContext *exec_ctx,
-                                        terrier::execution::pipeline_id_t pipeline_id,
                                         terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                         uint32_t jht_offset);
 
@@ -1307,14 +1307,10 @@ VM_OP_HOT void OpSorterAllocTupleTopKFinish(terrier::execution::sql::Sorter *sor
 VM_OP void OpSorterSort(terrier::execution::sql::Sorter *sorter);
 
 VM_OP void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
-                                terrier::execution::exec::ExecutionContext *exec_ctx,
-                                terrier::execution::pipeline_id_t pipeline_id,
                                 terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                 uint32_t sorter_offset);
 
 VM_OP void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
-                                    terrier::execution::exec::ExecutionContext *exec_ctx,
-                                    terrier::execution::pipeline_id_t pipeline_id,
                                     terrier::execution::sql::ThreadStateContainer *thread_state_container,
                                     uint32_t sorter_offset, uint64_t top_k);
 

@@ -88,15 +88,14 @@ namespace {
 class ScanTask {
  public:
   ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner, size_t concurrent_estimate)
+           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_oid_(table_oid),
         col_oids_(col_oids),
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanner_(scanner),
-        concurrent_estimate_(concurrent_estimate) {}
+        scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
@@ -110,7 +109,7 @@ class ScanTask {
     // Pull out the thread-local state
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
     // Call scanning function
-    scanner_(query_state_, thread_state, &iter, concurrent_estimate_);
+    scanner_(query_state_, thread_state, &iter);
   }
 
  private:
@@ -121,15 +120,13 @@ class ScanTask {
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_ = nullptr;
-  uint32_t concurrent_estimate_;
 };
 
 }  // namespace
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                        void *const query_state, exec::ExecutionContext *exec_ctx,
-                                       const TableVectorIterator::ScanFn scan_fn, execution::pipeline_id_t pipeline_id,
-                                       catalog::index_oid_t index_oid, const uint32_t min_grain_size) {
+                                       const TableVectorIterator::ScanFn scan_fn, const uint32_t min_grain_size) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {
@@ -141,25 +138,26 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   timer.Start();
 
   // Execute parallel scan
-  size_t num_threads = exec_ctx->GetExecutionSettings().GetNumberofThreads();
-  const bool is_static_partitioned = exec_ctx->GetExecutionSettings().GetIsStaticPartitionerEnabled();
-  tbb::task_arena limited_arena(num_threads);
-  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
+  size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberofThreads(), 0);
   size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
+  exec_ctx->SetNumConcurrentEstimate(concurrent);
 
-  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn,
-                         is_static_partitioned, concurrent] {
-    is_static_partitioned
-        ? tbb::parallel_for(block_range,
-                            ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, concurrent),
-                            tbb::static_partitioner())
-        : tbb::parallel_for(block_range,
-                            ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, concurrent));
-  });
+  tbb::task_arena limited_arena(num_threads);
+  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
+  const bool is_static_partitioned = exec_ctx->GetExecutionSettings().GetIsStaticPartitionerEnabled();
+  limited_arena.execute(
+      [&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn, is_static_partitioned] {
+        is_static_partitioned
+            ? tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn),
+                                tbb::static_partitioner())
+            : tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
+      });
 
+  exec_ctx->SetNumConcurrentEstimate(0);
   timer.Stop();
 
+  /*
   // Register a CREATE_INDEX_MAIN for the memory
   bool is_create_idx = false;
   if (exec_ctx->GetPipelineOperatingUnits() &&
@@ -190,6 +188,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
     exec_ctx->StartPipelineTracker(pipeline_id);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
   }
+  */
 
   double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),

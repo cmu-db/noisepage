@@ -283,21 +283,11 @@ void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder
 
   if (pipeline.IsParallel()) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                  GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
   }
 
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
-}
-
-void SeqScanTranslator::BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
-  auto val = codegen->MakeExpr(codegen->MakeIdentifier("concurrent"));
-  function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), val));
-  InitializeCounters(pipeline, function);
-}
-
-void SeqScanTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  RecordCounters(pipeline, function);
 }
 
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -343,11 +333,8 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   auto *codegen = GetCodeGen();
   DeclareColOids(function);
-  auto pipeline_id = codegen->Const32(GetPipeline()->GetPipelineId().UnderlyingValue());
-  auto index_oid = codegen->Const32(0);
   auto col_oid = codegen->MakeExpr(col_oids_var_);
-  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oid, GetQueryStatePtr(), GetExecutionContext(),
-                                                      work_func, pipeline_id, index_oid));
+  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oid, GetQueryStatePtr(), work_func));
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {

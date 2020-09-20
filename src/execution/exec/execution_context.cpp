@@ -101,6 +101,11 @@ void ExecutionContext::InitializeExecOUFeatureVector(brain::ExecOUFeatureVector 
   ouvec->pipeline_id_ = pipeline_id;
   ouvec->pipeline_features_ =
       new brain::ExecutionOperatingUnitFeatureVector(pipeline_operating_units_->GetPipelineFeatures(pipeline_id));
+
+  // Update num_concurrent
+  for (auto &feature : *ouvec->pipeline_features_) {
+    feature.SetNumConcurrent(num_concurrent_estimate_);
+  }
 }
 
 void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
@@ -139,6 +144,11 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
       break;
     default:
       TERRIER_ASSERT(false, "Unsupported parallel OU");
+  }
+
+  // Update num_concurrent
+  for (auto &feature : *ouvec->pipeline_features_) {
+    feature.SetNumConcurrent(num_concurrent_estimate_);
   }
 }
 

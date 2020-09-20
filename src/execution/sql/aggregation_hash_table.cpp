@@ -536,10 +536,9 @@ void AggregationHashTable::ProcessBatch(VectorProjectionIterator *input_batch, c
   AdvanceGroups(input_batch, advance_agg_fn);
 }
 
-void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *exec_ctx,
-                                                       execution::pipeline_id_t pipeline_id,
-                                                       ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                                        MergePartitionFn merge_partition_fn) {
+  /*
   bool has_pipeline =
       exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
   brain::ExecOUFeatureVector ouvec;
@@ -547,6 +546,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
     exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
     exec_ctx->StartPipelineTracker(pipeline_id);
   }
+  */
 
   // Set the partition merging function. This function tells us how to merge a
   // set of overflow partitions into an AggregationHashTable.
@@ -595,6 +595,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
     }
   }
 
+  /*
   if (has_pipeline) {
     // Set # rows to be total number of entries in all agg tables
     // Set cardinality to be # of per-task tables being built from
@@ -603,6 +604,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
     (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
     exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
   }
+  */
 }
 
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,
@@ -652,7 +654,7 @@ void AggregationHashTable::ExecutePartitionedScan(void *query_state, Aggregation
       // Get or build the table on the partition.
       auto agg_table_partition = GetOrBuildTableOverPartition(query_state, part_idx);
       // Scan the partition.
-      scan_fn(query_state, nullptr, agg_table_partition, 0);
+      scan_fn(query_state, nullptr, agg_table_partition);
     }
   }
 }
@@ -686,6 +688,8 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   size_t num_threads = tbb::task_scheduler_init::default_num_threads();
   size_t num_tasks = nonempty_parts.size();
   size_t concurrent_estimate = std::min(num_threads, num_tasks);
+  exec_ctx_->SetNumConcurrentEstimate(concurrent_estimate);
+
   tbb::parallel_for_each(nonempty_parts, [&](const uint32_t part_idx) {
     // TODO(wz2): Resource trackers are started and stopped within scan_fn. It might be more correct
     // to start the trackers here manually -- or have TransferMemoryAndPartitions build all the tables
@@ -698,9 +702,10 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
     auto thread_state = thread_states->AccessCurrentThreadState();
 
     // Scan the partition
-    scan_fn(query_state, thread_state, agg_table_partition, concurrent_estimate);
+    scan_fn(query_state, thread_state, agg_table_partition);
   });
 
+  exec_ctx_->SetNumConcurrentEstimate(0);
   timer.Stop();
 
   const uint64_t tuple_count =

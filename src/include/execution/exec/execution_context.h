@@ -247,6 +247,9 @@ class EXPORT ExecutionContext {
     memory_use_override_value_ = memory_use;
   }
 
+  void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
+  uint32_t GetNumConcurrentEstimate() const { return num_concurrent_estimate_; }
+
  private:
   query_id_t query_id_{execution::query_id_t(0)};
   exec::ExecutionSettings exec_settings_;
@@ -272,5 +275,6 @@ class EXPORT ExecutionContext {
 
   bool memory_use_override_ = false;
   uint32_t memory_use_override_value_ = 0;
+  uint32_t num_concurrent_estimate_ = 0;
 };
 }  // namespace terrier::execution::exec

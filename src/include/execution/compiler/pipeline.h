@@ -202,11 +202,6 @@ class Pipeline {
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 
-  /**
-   * @returns state indicating # cnocurrent in the pipeline state
-   */
-  ast::Expr *ConcurrentState() const { return concurrent_state_.Get(codegen_); }
-
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization
@@ -267,7 +262,6 @@ class Pipeline {
   // Query Identifier
   query_id_t query_id_ = query_id_t(0);
   StateDescriptor::Entry oufeatures_;
-  StateDescriptor::Entry concurrent_state_;
 };
 
 }  // namespace terrier::execution::compiler

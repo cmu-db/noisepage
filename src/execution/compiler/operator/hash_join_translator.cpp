@@ -112,6 +112,7 @@ void HashJoinTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBu
 }
 
 void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *ctx = GetExecutionContext();
   if (IsLeftPipeline(pipeline)) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
@@ -120,7 +121,8 @@ void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilde
 
     if (left_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    GetCodeGen()->ExecCtxGetNumConcurrent(ctx));
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
@@ -132,7 +134,8 @@ void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilde
 
     if (pipeline.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    GetCodeGen()->ExecCtxGetNumConcurrent(ctx));
     }
 
     FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
@@ -332,8 +335,7 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     if (left_pipeline_.IsParallel()) {
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
-      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
-      function->Append(codegen->JoinHashTableBuildParallel(jht, GetExecutionContext(), pipeline_id, tls, offset));
+      function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
       RecordCounters(pipeline, function);

@@ -216,7 +216,8 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
 
     if (pipeline.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));

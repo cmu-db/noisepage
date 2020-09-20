@@ -154,7 +154,8 @@ void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *f
 
     if (build_pipeline_.IsParallel()) {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
@@ -276,14 +277,11 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
       // a SortParallel() or a SortParallelTopK() depending on whether a limit
       // was provided in the plan.
       ast::Expr *offset = local_sorter_.OffsetFromState(codegen);
-      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
-      auto ctx = GetExecutionContext();
       if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
         const std::size_t top_k = plan.GetOffset() + plan.GetLimit();
-        function->Append(
-            codegen->SortTopKParallel(sorter_ptr, ctx, pipeline_id, GetThreadStateContainer(), offset, top_k));
+        function->Append(codegen->SortTopKParallel(sorter_ptr, GetThreadStateContainer(), offset, top_k));
       } else {
-        function->Append(codegen->SortParallel(sorter_ptr, ctx, pipeline_id, GetThreadStateContainer(), offset));
+        function->Append(codegen->SortParallel(sorter_ptr, GetThreadStateContainer(), offset));
       }
     } else {
       function->Append(codegen->SorterSort(sorter_ptr));

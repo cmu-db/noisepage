@@ -65,19 +65,9 @@ void IndexCreateTranslator::RecordCounters(const Pipeline &pipeline, FunctionBui
 
   if (pipeline.IsParallel()) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                  GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
   }
-}
-
-void IndexCreateTranslator::BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
-  auto val = codegen->MakeExpr(codegen->MakeIdentifier("concurrent"));
-  function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), val));
-  InitializeCounters(pipeline, function);
-}
-
-void IndexCreateTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  RecordCounters(pipeline, function);
 }
 
 void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,
@@ -118,16 +108,12 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
   // Parameters for the scanner
   auto *codegen = GetCodeGen();
   auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
-  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  return codegen->MakeFieldList(
-      {codegen->MakeField(tvi_var_, tvi_type), codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
+  return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  auto pipeline_id = codegen_->Const32(GetPipeline()->GetPipelineId().UnderlyingValue());
-  auto index_oid = codegen_->Const32(index_oid_.UnderlyingValue());
-  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
-                                                      GetExecutionContext(), work_func, pipeline_id, index_oid));
+  function->Append(
+      GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(), work_func));
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {

@@ -54,8 +54,6 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
 
   void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
-  void BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
-  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Generate the scan.
