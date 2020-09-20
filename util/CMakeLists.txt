@@ -19,7 +19,7 @@ configure_file(
 )
 
 # Common names for Clang
-set(SUPPORTED_CLANGS "clang++-8" "clang++")
+set(SUPPORTED_CLANGS "clang++-10" "clang++")
 
 # On macOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
 if (APPLE)

@@ -79,7 +79,7 @@ if (CLANG_TOOLS_VERSION)
   endif()
 else()
   find_program(CLANG_TIDY_BIN
-      NAMES clang-tidy-8
+      NAMES clang-tidy-${CLANG_TOOLS_VERSION}
       clang-tidy
       PATHS ${ClangTools_PATH} $ENV{CLANG_TOOLS_PATH} /usr/local/bin /usr/bin "${HOMEBREW_PREFIX}/bin"
       NO_DEFAULT_PATH
