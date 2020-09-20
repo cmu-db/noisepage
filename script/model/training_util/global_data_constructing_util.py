@@ -90,15 +90,10 @@ def _construct_interval_based_global_model_data(data_list, model_results_path):
         # For each data, find the intervals that might overlap with it
         interval_start_time = _round_to_second(data.get_start_time(ConcurrentCountingMode.EXACT) -
                                                global_model_config.INTERVAL_SIZE + global_model_config.INTERVAL_SEGMENT)
-        print(data.name)
-        print(interval_start_time)
         while interval_start_time <= data.get_end_time(ConcurrentCountingMode.ESTIMATED):
             if interval_start_time in interval_data_map:
                 interval_data_map[interval_start_time].append(data)
             interval_start_time += global_model_config.INTERVAL_SEGMENT
-
-        print(interval_start_time)
-        print()
 
     # Get the global resource data
     resource_data_map = {}
@@ -248,55 +243,66 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     # Have to use a prediction cache when having lots of global data...
     prediction_cache = {}
 
+    # use a prediction cache based on queries to accelerate
+    use_query_cache = True
+    query_prediction_cache = {}
+
     # First run a prediction on the global running data with the mini model results
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
-        logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
+        if data.name[0] != 'q' or (data.name not in query_prediction_cache) or not use_query_cache:
+            logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
 
-        pipeline_y_pred = 0
-        for opunit_feature in data.opunit_features:
-            opunit = opunit_feature[0]
-            opunit_model = mini_model_map[opunit]
-            x = np.array(opunit_feature[1]).reshape(1, -1)
-            key = (opunit, x.tobytes())
-            if key not in prediction_cache:
-                y_pred = opunit_model.predict(x)
-                y_pred = np.clip(y_pred, 0, None)
-                prediction_cache[key] = y_pred
-            else:
-                y_pred = prediction_cache[key]
-            logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
-                                                                                 x[0], y_pred[0, -1]))
+            pipeline_y_pred = 0
+            for opunit_feature in data.opunit_features:
+                opunit = opunit_feature[0]
+                opunit_model = mini_model_map[opunit]
+                x = np.array(opunit_feature[1]).reshape(1, -1)
 
-            if opunit in data_info.MEM_ADJUST_OPUNITS:
-                # Compute the number of "slots" (based on row feature or cardinality feature
-                num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
-                if opunit == OpUnit.AGG_BUILD:
-                    num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
+                key = (opunit, x.tobytes())
+                if key not in prediction_cache:
+                    y_pred = opunit_model.predict(x)
+                    y_pred = np.clip(y_pred, 0, None)
+                    prediction_cache[key] = y_pred
+                else:
+                    y_pred = prediction_cache[key]
+                logging.debug("Predicted {} elapsed time with feature {}: {}".format(opunit_feature[0].name,
+                                                                                     x[0], y_pred[0, -1]))
 
-                # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
-                # that contains the first pow2 larger than num_tuple entries
-                pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
-                buffer_size = pow_high * data_info.POINTER_SIZE
-                if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
-                    # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
-                    # the buffer is not recorded as part of the pipeline
-                    buffer_size = 0
+                if opunit in data_info.MEM_ADJUST_OPUNITS:
+                    # Compute the number of "slots" (based on row feature or cardinality feature
+                    num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
+                    if opunit == OpUnit.AGG_BUILD:
+                        num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
 
-                pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
-                if pred_mem <= buffer_size:
-                    logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
-                                    .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
+                    # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
+                    # that contains the first pow2 larger than num_tuple entries
+                    pow_high = 2 ** math.ceil(math.log(num_tuple, 2))
+                    buffer_size = pow_high * data_info.POINTER_SIZE
+                    if opunit == OpUnit.AGG_BUILD and num_tuple <= 256:
+                        # For AGG_BUILD, if slots <= AggregationHashTable::K_DEFAULT_INITIAL_TABLE_SIZE
+                        # the buffer is not recorded as part of the pipeline
+                        buffer_size = 0
 
-                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][data_info.RECORD_MEM_SCALE_OFFSET] + buffer_size
+                    pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
+                    if pred_mem <= buffer_size:
+                        logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
+                                        .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
-                # Don't modify prediction cache
-                y_pred = copy.deepcopy(y_pred)
-                y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+                    adj_mem = (pred_mem - buffer_size) * opunit_feature[1][data_info.RECORD_MEM_SCALE_OFFSET] + buffer_size
 
-            pipeline_y_pred += y_pred[0]
+                    # Don't modify prediction cache
+                    y_pred = copy.deepcopy(y_pred)
+                    y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
 
-        pipeline_y = copy.deepcopy(pipeline_y_pred)
+                pipeline_y_pred += y_pred[0]
+
+            pipeline_y = copy.deepcopy(pipeline_y_pred)
+
+            query_prediction_cache[data.name] = pipeline_y
+        else:
+            pipeline_y_pred = query_prediction_cache[data.name]
+            pipeline_y = copy.deepcopy(pipeline_y_pred)
 
         # Grouping when we're predicting queries
         if data.name[0] == 'q':
@@ -308,8 +314,8 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                                              list(abs(query_y - query_y_pred) / (query_y + 1)))
 
                 current_query_id = query_id
-                query_y = y.copy()
-                query_y_pred = pipeline_y_pred
+                query_y = copy.deepcopy(y)
+                query_y_pred = copy.deepcopy(pipeline_y_pred)
             else:
                 query_y += y
                 query_y_pred += pipeline_y_pred
@@ -334,6 +340,10 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
             actual_pipelines[data.name] += y
             predicted_pipelines[data.name] += pipeline_y
             count_pipelines[data.name] += 1
+
+        if predicted_pipelines[data.name][-1] > 10000000:
+            print(data.name)
+            print(pipeline_y)
 
         # Update totals
         if total_actual is None:

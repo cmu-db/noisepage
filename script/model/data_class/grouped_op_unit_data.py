@@ -173,6 +173,8 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
             if int(cpu_time) - int(start_time) < warmup_period * 1000000:
                 continue
 
+            sample_interval = ee_sample_interval
+
             # drop query_id, pipeline_id, num_features, features_vector
             record = [d for i,d in enumerate(line) if i > features_vector_index]
             record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])
@@ -187,7 +189,6 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
             for idx, feature in enumerate(features):
                 if feature == 'LIMIT':
                     continue
-                opunit = OpUnit[feature]
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
 
                 q_id = int(line[0])
@@ -195,14 +196,21 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                 if tpcc_hack:
                     x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
+                x_loc = tpcc_fixer.fix_idx_scan_with_varchar(feature, q_id, p_id, x_loc)
+                feature = tpcc_fixer.fix_sort_feature(feature,  q_id, p_id, x_loc)
+                opunit = OpUnit[feature]
+
                 if x_loc[data_info.TUPLE_NUM_INDEX] == 0:
                     logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
                     continue
 
-                # TODO(lin): skip the main thing for interference model for now
-                if opunit == OpUnit.CREATE_INDEX and concurrency == 0:
+                if opunit == OpUnit.CREATE_INDEX:
                     concurrency = x_loc[data_info.CONCURRENCY_INDEX]
+                    # TODO(lin): we won't do sampling for CREATE_INDEX. We probably should encapsulate this when
+                    #  generating the data
+                    sample_interval = 0
 
+                # TODO(lin): skip the main thing for interference model for now
                 if opunit == OpUnit.CREATE_INDEX_MAIN:
                     continue
 
@@ -211,8 +219,13 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
             if len(opunits) == 0:
                 continue
 
+            # TODO(lin): Again, we won't do sampling for TPCH queries (with the assumption that the query id < 10).
+            #  Should encapsulate this wit the metrics
+            if int(line[0]) < 10:
+                sample_interval = 0
+
             data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits, np.array(metrics),
-                                               ee_sample_interval, concurrency))
+                                               sample_interval, concurrency))
 
     return data_list
 

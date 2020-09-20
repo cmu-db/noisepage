@@ -97,9 +97,9 @@ class EndtoendEstimator:
             # Remove the OU group itself from the total resource data
             self_resource = (mini_model_y_pred[-1] * max(1, d.target_grouped_op_unit_data.concurrency) /
                              len(d.resource_data_list) / global_model_config.INTERVAL_SIZE)
-            print(mini_model_y_pred[-1])
-            print(len(d.resource_data_list))
-            print(global_model_config.INTERVAL_SIZE)
+            #print(mini_model_y_pred[-1])
+            #print(len(d.resource_data_list))
+            #print(global_model_config.INTERVAL_SIZE)
             predicted_resource_util[:mini_model_y_pred[-1].shape[0]] -= self_resource
             predicted_resource_util[predicted_resource_util < 0] = 0
             x.append(np.concatenate((mini_model_y_pred[-1] / predicted_elapsed_us,
@@ -173,12 +173,13 @@ class EndtoendEstimator:
             logging.info('Original Accumulated Predict: {}'.format(np.sum(mini_model_y_pred, axis=0)))
             logging.info('Accumulated Predict: {}'.format(accumulated_raw_y_pred))
 
-            prediction_path = "{}/grouped_opunit_prediction.csv".format(self.model_results_path)
-            io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
-            for i, data in enumerate(data_list):
-                io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
-                                         list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
-            mark_list = _generate_mark_list(data_list)
+            if label == 'direct':
+                prediction_path = "{}/grouped_opunit_prediction.csv".format(self.model_results_path)
+                io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
+                for i, data in enumerate(data_list):
+                    io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
+                                             list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
+                mark_list = _generate_mark_list(data_list)
 
 
 def _generate_mark_list(data_list):
@@ -206,15 +207,15 @@ if __name__ == '__main__':
                          help='Input file path for the endtoend estimator')
     aparser.add_argument('--model_results_path', default='endtoend_estimation_results_tpch_index8',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--mini_model_file', default='trained_model/mini_model_map.pickle',
+    aparser.add_argument('--mini_model_file', default='trained_model_testing/mini_model_map.pickle',
                          help='File of the saved mini models')
-    aparser.add_argument('--global_resource_model_file', default='trained_model/global_resource_model.pickle',
+    aparser.add_argument('--global_resource_model_file', default='trained_model_combined/global_resource_model.pickle',
                          help='File of the saved global resource model')
-    aparser.add_argument('--global_impact_model_file', default='trained_model/global_impact_model.pickle',
+    aparser.add_argument('--global_impact_model_file', default='trained_model_combined/global_impact_model.pickle',
                          help='File of the saved global impact model')
-    aparser.add_argument('--global_direct_model_file', default='trained_model/global_direct_model.pickle',
+    aparser.add_argument('--global_direct_model_file', default='trained_model_combined/global_direct_model.pickle',
                          help='File of the saved global impact model')
-    aparser.add_argument('--ee_sample_interval', type=int, default=0,
+    aparser.add_argument('--ee_sample_interval', type=int, default=9,
                          help='Sampling interval for the execution engine OUs')
     aparser.add_argument('--txn_sample_interval', type=int, default=9,
                          help='Sampling interval for the transaction OUs')
