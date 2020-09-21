@@ -128,7 +128,11 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
-  tbb::parallel_for_each(impl_->states_, [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.second->State()); });
+  tbb::parallel_for_each(
+  		impl_->states_.begin(),
+  		impl_->states_.end(),
+  		[&](auto &tls_handle) { iterate_fn(ctx, tls_handle.second->State()); }
+  );
 }
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
