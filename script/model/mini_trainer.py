@@ -174,7 +174,7 @@ if __name__ == '__main__':
                          help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_model_testing', help='Path to save the mini models')
+    aparser.add_argument('--save_path', default='trained_model_index_car', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
                          default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
                          help='ML models for the mini trainer to evaluate')

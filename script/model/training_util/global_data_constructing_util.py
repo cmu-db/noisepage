@@ -244,8 +244,13 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     prediction_cache = {}
 
     # use a prediction cache based on queries to accelerate
-    use_query_cache = True
+    use_query_cache = False
     query_prediction_cache = {}
+
+    # Indicate whether to introduce noise to the cardinality estimation
+    add_noise = True
+    ous_with_noise = {OpUnit.AGG_BUILD, OpUnit.AGG_ITERATE, OpUnit.HASHJOIN_BUILD, OpUnit.HASHJOIN_PROBE,
+                      OpUnit.SORT_BUILD, OpUnit.SORT_ITERATE}
 
     # First run a prediction on the global running data with the mini model results
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
@@ -258,6 +263,23 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 opunit = opunit_feature[0]
                 opunit_model = mini_model_map[opunit]
                 x = np.array(opunit_feature[1]).reshape(1, -1)
+
+                if add_noise:
+                    if opunit in ous_with_noise:
+                        tuple_num = x[0][data_info.TUPLE_NUM_INDEX]
+                        if tuple_num > 1000:
+                            print(x[0][data_info.TUPLE_NUM_INDEX])
+                            x[0][data_info.TUPLE_NUM_INDEX] += np.random.normal(0, tuple_num * 0.3)
+                            x[0][data_info.TUPLE_NUM_INDEX] = max(1, x[0][data_info.TUPLE_NUM_INDEX])
+                            print(x[0][data_info.TUPLE_NUM_INDEX])
+                            print("Changing Tuple Num")
+                        cardinality = x[0][data_info.CARDINALITY_INDEX]
+                        if cardinality > 1000:
+                            print(x[0][data_info.CARDINALITY_INDEX])
+                            x[0][data_info.CARDINALITY_INDEX] += np.random.normal(0, cardinality * 0.3)
+                            x[0][data_info.CARDINALITY_INDEX] = max(1, x[0][data_info.CARDINALITY_INDEX])
+                            print("Changing Cardinality")
+                            print(x[0][data_info.CARDINALITY_INDEX])
 
                 key = (opunit, x.tobytes())
                 if key not in prediction_cache:
@@ -340,10 +362,6 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
             actual_pipelines[data.name] += y
             predicted_pipelines[data.name] += pipeline_y
             count_pipelines[data.name] += 1
-
-        if predicted_pipelines[data.name][-1] > 10000000:
-            print(data.name)
-            print(pipeline_y)
 
         # Update totals
         if total_actual is None:

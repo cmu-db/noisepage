@@ -129,9 +129,9 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.OP_DECIMAL_COMPARE: _tuple_num_linear_transformer,
     OpUnit.OUTPUT: _tuple_num_linear_transformer,
 
-    OpUnit.IDX_SCAN: _tuple_num_log_transformer,
+    #OpUnit.IDX_SCAN: _tuple_num_log_transformer,
     # Another possible alternative
-    # OpUnit.IDX_SCAN: _tuple_num_log_cardinality_linear_transformer,
+    OpUnit.IDX_SCAN: _tuple_num_log_cardinality_linear_transformer,
     OpUnit.SORT_BUILD: _tuple_num_linear_log_transformer,
     OpUnit.CREATE_INDEX: _tuple_num_linear_log_transformer,
     OpUnit.CREATE_INDEX_MAIN: _tuple_num_linear_log_transformer,

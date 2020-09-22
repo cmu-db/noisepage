@@ -137,10 +137,10 @@ class EndtoendEstimator:
 
         # Print Error summary to command line
         if label == "resource":
-            original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
+            avg_original_ratio_error = np.average(np.abs(y - x[:, :y.shape[1]]) / (y + 1e-6), axis=0)
         else:
-            original_ratio_error = np.average(np.abs(1 / (y + 1e-6) - 1), axis=0)
-        logging.info('Model Original Ratio Error ({}): {}'.format(label, original_ratio_error))
+            avg_original_ratio_error = np.average(np.abs(1 / (y + 1e-6) - 1), axis=0)
+        logging.info('Model Original Ratio Error ({}): {}'.format(label, avg_original_ratio_error))
         logging.info('Model Ratio Error ({}): {}'.format(label, ratio_error))
         logging.info('')
 
@@ -152,7 +152,8 @@ class EndtoendEstimator:
             raw_y_pred = (mini_model_y_pred + epsilon) * y_pred
             accumulated_raw_y = np.sum(raw_y, axis=0)
             accumulated_raw_y_pred = np.sum(raw_y_pred, axis=0)
-            original_ratio_error = np.average(np.abs(raw_y - mini_model_y_pred) / (raw_y + epsilon), axis=0)
+            original_ratio_error = np.abs(raw_y - mini_model_y_pred) / (raw_y + epsilon)
+            avg_original_ratio_error = np.average(original_ratio_error, axis=0)
             ratio_error = np.abs(raw_y - raw_y_pred) / (raw_y + epsilon)
             avg_ratio_error = np.average(ratio_error, axis=0)
             accumulated_percentage_error = np.abs(accumulated_raw_y - accumulated_raw_y_pred) / (
@@ -160,8 +161,8 @@ class EndtoendEstimator:
             original_accumulated_percentage_error = np.abs(accumulated_raw_y - np.sum(mini_model_y_pred, axis=0)) / (
                     accumulated_raw_y + epsilon)
 
-            logging.info('Original Ratio Error: {}'.format(original_ratio_error))
-            io_util.write_csv_result(metrics_path, "Original Ratio Error", original_ratio_error)
+            logging.info('Original Ratio Error: {}'.format(avg_original_ratio_error))
+            io_util.write_csv_result(metrics_path, "Original Ratio Error", avg_original_ratio_error)
             logging.info('Ratio Error: {}'.format(avg_ratio_error))
             io_util.write_csv_result(metrics_path, "Ratio Error", avg_ratio_error)
             logging.info('Original Accumulated Ratio Error: {}'.format(original_accumulated_percentage_error))
@@ -177,9 +178,48 @@ class EndtoendEstimator:
                 prediction_path = "{}/grouped_opunit_prediction.csv".format(self.model_results_path)
                 io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
                 for i, data in enumerate(data_list):
-                    io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
-                                             list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
-                mark_list = _generate_mark_list(data_list)
+                        io_util.write_csv_result(prediction_path, data.name, [""] + list(raw_y[i]) + [""] +
+                                                 list(raw_y_pred[i]) + [""] + list(ratio_error[i]))
+
+                average_result_path = "{}/interval_average_prediction.csv".format(self.model_results_path)
+                io_util.create_csv_file(average_result_path,
+                                        ["Timestamp", "Actual Average", "Predicted Average"])
+
+                interval_y_map = {}
+                interval_y_pred_map = {}
+                mark_list = None
+                #mark_list = _generate_mark_list(data_list)
+                for i, data in enumerate(data_list):
+                    # Don't count the create index OU
+                    # TODO(lin): needs better way to evaluate... maybe add a id_query field to GroupedOpunitData
+                    if data.concurrency > 0:
+                        continue
+                    if mark_list is not None and not mark_list[i]:
+                        continue
+                    interval_time = _round_to_interval(data.start_time, global_model_config.AVERAGING_INTERVAL)
+                    if interval_time not in interval_y_map:
+                        interval_y_map[interval_time] = []
+                        interval_y_pred_map[interval_time] = []
+                    interval_y_map[interval_time].append(raw_y[i][-5])
+                    interval_y_pred_map[interval_time].append(raw_y_pred[i][-5])
+
+                for time in sorted(interval_y_map.keys()):
+                    if mark_list is None:
+                        io_util.write_csv_result(average_result_path, time,
+                                                 [np.average(interval_y_map[time]),
+                                                  np.average(interval_y_pred_map[time])])
+                    else:
+                        io_util.write_csv_result(average_result_path, time,
+                                                 [np.sum(interval_y_map[time]),
+                                                  np.sum(interval_y_pred_map[time])])
+
+
+def _round_to_interval(time, interval):
+    """
+    :param time: in us
+    :return: time in us rounded to the earliest interval
+    """
+    return time - time % interval
 
 
 def _generate_mark_list(data_list):
@@ -189,11 +229,12 @@ def _generate_mark_list(data_list):
     :return:
     """
     mark_list = []
+    name_set = {'q3007', 'q2994', 'q3006', 'q2972', 'q3003', 'q2963', 'q2989', 'q2901', 'q2994', 'q3001'}
     for d in data_list:
-        if d.name[0] == 'q':
-            mark_list.append(1)
+        if d.name[:5] in name_set:
+            mark_list.append(True)
         else:
-            mark_list.append(0)
+            mark_list.append(False)
 
     return mark_list
 
@@ -209,13 +250,16 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--mini_model_file', default='trained_model_testing/mini_model_map.pickle',
                          help='File of the saved mini models')
-    aparser.add_argument('--global_resource_model_file', default='trained_model_combined/global_resource_model.pickle',
+    aparser.add_argument('--global_resource_model_file',
+                         default='trained_model/global_resource_model.pickle',
                          help='File of the saved global resource model')
-    aparser.add_argument('--global_impact_model_file', default='trained_model_combined/global_impact_model.pickle',
+    aparser.add_argument('--global_impact_model_file',
+                         default='trained_model/global_impact_model.pickle',
                          help='File of the saved global impact model')
-    aparser.add_argument('--global_direct_model_file', default='trained_model_combined/global_direct_model.pickle',
+    aparser.add_argument('--global_direct_model_file',
+                         default='trained_model/global_direct_model.pickle',
                          help='File of the saved global impact model')
-    aparser.add_argument('--ee_sample_interval', type=int, default=9,
+    aparser.add_argument('--ee_sample_interval', type=int, default=49,
                          help='Sampling interval for the execution engine OUs')
     aparser.add_argument('--txn_sample_interval', type=int, default=9,
                          help='Sampling interval for the transaction OUs')
