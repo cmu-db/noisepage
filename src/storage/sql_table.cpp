@@ -30,7 +30,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
 
   ColumnMap col_map;
   // Build the map from Schema columns to underlying columns
-  StorageUtil::PopulateColumnMap(col_map, schema.GetColumns(), offsets);
+  StorageUtil::PopulateColumnMap(&col_map, schema.GetColumns(), &offsets);
 
   auto layout = storage::BlockLayout(attr_sizes);
   table_ = {new DataTable(store, layout, layout_version_t(0)), layout, col_map};

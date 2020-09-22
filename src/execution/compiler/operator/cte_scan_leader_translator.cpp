@@ -32,7 +32,7 @@ CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, 0);
 
   // Build the map from Schema columns to underlying columns
-  storage::StorageUtil::PopulateColumnMap(table_pm_, plan.GetTableSchema()->GetColumns(), offsets);
+  storage::StorageUtil::PopulateColumnMap(&table_pm_, plan.GetTableSchema()->GetColumns(), &offsets);
 }
 
 void CteScanLeaderTranslator::TearDownQueryState(FunctionBuilder *function) const {

@@ -256,7 +256,7 @@ class StorageUtil {
    * @param columns Schema columns to build from
    * @param offsets storage offsets for attributes
    */
-  static void PopulateColumnMap(ColumnMap &col_map, const std::vector<catalog::Schema::Column> &columns,
-                                std::vector<uint16_t> &offsets);
+  static void PopulateColumnMap(ColumnMap *col_map, const std::vector<catalog::Schema::Column> &columns,
+                                std::vector<uint16_t> *offsets);
 };
 }  // namespace terrier::storage

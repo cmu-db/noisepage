@@ -216,24 +216,24 @@ void StorageUtil::DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &
   }
 }
 
-void StorageUtil::PopulateColumnMap(ColumnMap &col_map, const std::vector<catalog::Schema::Column> &columns,
-                                    std::vector<uint16_t> &offsets) {
+void StorageUtil::PopulateColumnMap(ColumnMap *col_map, const std::vector<catalog::Schema::Column> &columns,
+                                    std::vector<uint16_t> *offsets) {
   for (const auto &column : columns) {
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:
-        col_map[column.Oid()] = {col_id_t(offsets[0]++), column.Type()};
+        (*col_map)[column.Oid()] = {col_id_t((*offsets)[0]++), column.Type()};
         break;
       case 8:
-        col_map[column.Oid()] = {col_id_t(offsets[1]++), column.Type()};
+        (*col_map)[column.Oid()] = {col_id_t((*offsets)[1]++), column.Type()};
         break;
       case 4:
-        col_map[column.Oid()] = {col_id_t(offsets[2]++), column.Type()};
+        (*col_map)[column.Oid()] = {col_id_t((*offsets)[2]++), column.Type()};
         break;
       case 2:
-        col_map[column.Oid()] = {col_id_t(offsets[3]++), column.Type()};
+        (*col_map)[column.Oid()] = {col_id_t((*offsets)[3]++), column.Type()};
         break;
       case 1:
-        col_map[column.Oid()] = {col_id_t(offsets[4]++), column.Type()};
+        (*col_map)[column.Oid()] = {col_id_t((*offsets)[4]++), column.Type()};
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
