@@ -40,18 +40,19 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  * Functor to capture the derred action function
  */
 struct TransactionEndActionFunc {
-  /*
+  /**
    * Function withe the end action
    */
   std::function<void(DeferredActionManager *)> end_func_;
 
-  /*
+  /**
    * Constructor takes as arguments a function which will be stored in this functor
+   * @param end_func function to execute upon end action
    */
   explicit TransactionEndActionFunc(std::function<void(DeferredActionManager *)> end_func)
       : end_func_(std::move(end_func)) {}
 
-  /*
+  /**
    * Callback the carries out the deferred action
    */
   void operator()(DeferredActionManager *deferred_action_manager) { end_func_(deferred_action_manager); }
