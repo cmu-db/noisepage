@@ -1,4 +1,5 @@
 #include "brain/brain_util.h"
+
 #include "execution/util/execution_common.h"
 
 namespace terrier::brain {

@@ -107,7 +107,6 @@ class HashIndex final : public Index {
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
                std::vector<TupleSlot> *value_list) final;
 
-
   /** @return The number of keys in the index. */
   uint64_t GetSize() const final;
 };
