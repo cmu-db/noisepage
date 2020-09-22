@@ -91,7 +91,7 @@ byte *ThreadStateContainer::AccessCurrentThreadState() {
   auto iter = impl_->states_.find(std::this_thread::get_id());
   byte *state = nullptr;
   if (iter == impl_->states_.end()) {
-    TLSHandle *tls_handle = new TLSHandle(this);
+    auto *tls_handle = new TLSHandle(this);
     impl_->states_.insert(std::make_pair(std::this_thread::get_id(), tls_handle));
     state = tls_handle->State();
   } else {
@@ -128,8 +128,11 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
-  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(),
-                         [&](auto &tls_handle) { iterate_fn(ctx, tls_handle.second->State()); });
+  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(), [&](auto &tls_handle) {
+    if (tls_handle.second != nullptr && tls_handle.second->State() != nullptr) {
+      iterate_fn(ctx, tls_handle.second->State());
+    }
+  });
 }
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
