@@ -75,7 +75,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
   friend class QueryTraceMetric;
   FRIEND_TEST(MetricsTests, QueryCSVTest);
 
-  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text, const uint64_t timestamp) {
+  void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
     query_text_.emplace_back(query_id, query_text, timestamp);
   }
 
@@ -84,11 +84,11 @@ class QueryTraceMetricRawData : public AbstractRawData {
   }
 
   struct QueryText {
-    QueryText(const execution::query_id_t query_id, const std::string query_text, const uint64_t timestamp)
-        : query_id_(query_id), query_text_(query_text), timestamp_(timestamp) {}
+    QueryText(const execution::query_id_t query_id, std::string query_text, const uint64_t timestamp)
+        : query_id_(query_id), timestamp_(timestamp), query_text_(std::move(query_text)) {}
     const execution::query_id_t query_id_;
-    const std::string query_text_;
     const uint64_t timestamp_;
+    std::string query_text_;
   };
 
   struct QueryTrace {
@@ -110,7 +110,7 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordQueryText(const execution::query_id_t query_id, const std::string query_text, const uint64_t timestamp) {
+  void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
     GetRawData()->RecordQueryText(query_id, query_text, timestamp);
   }
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp) {
