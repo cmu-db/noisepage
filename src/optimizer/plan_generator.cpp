@@ -898,12 +898,14 @@ void PlanGenerator::Visit(const CreateIndex *create_index) {
   }
   auto idx_schema = std::make_unique<catalog::IndexSchema>(std::move(cols), schema->Type(), schema->Unique(),
                                                            schema->Primary(), schema->Exclusion(), schema->Immediate());
+  auto out_schema = std::make_unique<planner::OutputSchema>();
 
   output_plan_ = planner::CreateIndexPlanNode::Builder()
                      .SetNamespaceOid(create_index->GetNamespaceOid())
                      .SetTableOid(create_index->GetTableOid())
                      .SetIndexName(create_index->GetIndexName())
                      .SetSchema(std::move(idx_schema))
+                     .SetOutputSchema(std::move(out_schema))
                      .Build();
 }
 

@@ -1,6 +1,7 @@
 #include "metrics/metrics_manager.h"
 
 #include <sys/stat.h>
+
 #include <fstream>
 #include <memory>
 #include <string>

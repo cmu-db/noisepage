@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+
 #include "network/postgres/postgres_network_commands.h"
 
 #define MAKE_POSTGRES_COMMAND(type) \

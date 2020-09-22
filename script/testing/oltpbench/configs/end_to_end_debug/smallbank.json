@@ -5,9 +5,9 @@
             "base": {
                 "benchmark": "smallbank",
                 "weights": "15,15,15,25,15,15",
+                "terminals": 2,
                 "query_mode": "extended",
-                "scale_factor": 0.01,
-                "loader_threads": 4
+                "scale_factor": 0.01
             }
         }
     ]

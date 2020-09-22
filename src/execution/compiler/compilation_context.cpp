@@ -27,6 +27,7 @@
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
@@ -52,6 +53,7 @@
 #include "parser/expression/star_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/create_index_plan_node.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
@@ -149,15 +151,17 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   std::vector<Pipeline *> execution_order;
   main_pipeline.CollectDependencies(&execution_order);
   for (auto *pipeline : execution_order) {
-    pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
-
     // Extract and record the translators.
+    // Pipelines require obtaining feature IDs, but features don't exist until translators are extracted.
+    // Therefore translator extraction must happen before pipelines are generated.
     brain::OperatingUnitRecorder recorder(common::ManagedPointer(codegen_.GetCatalogAccessor()),
                                           common::ManagedPointer(codegen_.GetAstContext()),
                                           common::ManagedPointer(pipeline), query_->GetQueryText());
     auto features = recorder.RecordTranslators(pipeline->GetTranslators());
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
+
+    pipeline->Prepare(query_->GetExecutionSettings());
+    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
   }
 
   // Register the tear-down function.
@@ -211,7 +215,7 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
       if (aggregation.GetAggregateStrategyType() == planner::AggregateStrategyType::SORTED) {
         throw NOT_IMPLEMENTED_EXCEPTION("Code generation for sort-based aggregations.");
       }
-      if (aggregation.GetGroupByTerms().empty()) {
+      if (aggregation.IsStaticAggregation()) {
         translator = std::make_unique<StaticAggregationTranslator>(aggregation, this, pipeline);
       } else {
         translator = std::make_unique<HashAggregationTranslator>(aggregation, this, pipeline);
@@ -276,6 +280,11 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INDEXNLJOIN: {
       const auto &index_join = dynamic_cast<const planner::IndexJoinPlanNode &>(plan);
       translator = std::make_unique<IndexJoinTranslator>(index_join, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::CREATE_INDEX: {
+      const auto &create_index = dynamic_cast<const planner::CreateIndexPlanNode &>(plan);
+      translator = std::make_unique<IndexCreateTranslator>(create_index, this, pipeline);
       break;
     }
     default: {

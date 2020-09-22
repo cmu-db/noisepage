@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
+#include "execution/ast/builtins.h"
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
@@ -379,7 +380,7 @@ class DatabaseCatalog {
       common::ManagedPointer<transaction::TransactionContext> txn, catalog::proc_oid_t proc_oid);
 
   /**
-   * Gets the proc context pointer column of proc_oid to func_context
+   * Gets the proc context pointer column of proc_oid
    * @param txn transaction to use
    * @param proc_oid The proc_oid whose pointer column we are getting here
    * @return nullptr if proc_oid is either invalid or there is no context object set for this proc_oid
@@ -614,6 +615,21 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapProcContexts(common::ManagedPointer<transaction::TransactionContext> txn);
+
+  /**
+   * Internal helper method to reduce copy-paste code for populating proc contexts. Allocates the FunctionContext and
+   * inserts the pointer.
+   * @param txn transaction to insert into catalog with
+   * @param proc_oid oid to associate with this proc's and its context
+   * @param func_name Name of function
+   * @param func_ret_type Return type of function
+   * @param args_type Vector of argument types
+   * @param builtin Which builtin this context refers to
+   * @param is_exec_ctx_required true if this function requires an execution context var as its first argument
+   */
+  void BootstrapProcContext(common::ManagedPointer<transaction::TransactionContext> txn, proc_oid_t proc_oid,
+                            std::string &&func_name, type::TypeId func_ret_type, std::vector<type::TypeId> &&args_type,
+                            execution::ast::Builtin builtin, bool is_exec_ctx_required);
 
   /**
    * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the

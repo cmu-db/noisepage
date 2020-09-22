@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <memory>
+
 #include "common/allocator.h"
 #include "common/container/bitmap.h"
 #include "common/strong_typedef.h"
@@ -168,7 +169,8 @@ class RawConcurrentBitmap {
    */
   void UnsafeClear(const uint32_t num_bits) {
     auto size = RawBitmap::SizeInBytes(num_bits);
-    std::memset(bits_, 0, size);
+    // Recast bits_ as workaround for -Wclass-memaccess
+    std::memset(static_cast<void *>(bits_), 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and

@@ -2,12 +2,10 @@
 
 #include <cmath>
 
-#include "execution/util/arithmetic_overflow.h"
-
 #include "execution/sql/operators/numeric_binary_operators.h"
 #include "execution/sql/operators/numeric_operators.h"
-
 #include "execution/sql/value.h"
+#include "execution/util/arithmetic_overflow.h"
 
 namespace terrier::execution::sql {
 
@@ -225,9 +223,9 @@ class EXPORT ArithmeticFunctions {
   static void Round(Real *result, const Real &v);
 
   /**
-   * Rounding with scale
+   * Rounding with precision
    */
-  static void RoundUpTo(Real *result, const Real &v, const Integer &scale);
+  static void Round2(Real *result, const Real &v, const Integer &precision);
 
   /**
    * Logarithm with base
@@ -340,12 +338,12 @@ inline void ArithmeticFunctions::Atan2(Real *result, const Real &a, const Real &
   *result = Real(terrier::execution::sql::Atan2<double>{}(a.val_, b.val_));
 }
 
-inline void ArithmeticFunctions::RoundUpTo(Real *result, const Real &v, const Integer &scale) {
-  if (v.is_null_ || scale.is_null_) {
+inline void ArithmeticFunctions::Round2(Real *result, const Real &v, const Integer &precision) {
+  if (v.is_null_ || precision.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(terrier::execution::sql::RoundUpTo<double, int64_t>{}(v.val_, scale.val_));
+  *result = Real(terrier::execution::sql::RoundUpTo<double, int64_t>{}(v.val_, precision.val_));
 }
 
 inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real &val) {

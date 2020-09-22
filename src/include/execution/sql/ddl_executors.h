@@ -16,10 +16,6 @@ class DropTablePlanNode;
 class DropIndexPlanNode;
 }  // namespace terrier::planner
 
-namespace terrier::execution::exec {
-class Executionaccessor;
-}
-
 namespace terrier::catalog {
 class CatalogAccessor;
 class IndexSchema;
