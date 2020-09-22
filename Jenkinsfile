@@ -32,7 +32,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-10 (Debug/format/lint/censored)') {
+                stage('ubuntu-20.04/g++-10 (Debug/format/lint/censored)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -116,12 +116,16 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-10 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/g++-10 (Debug/ASAN/unittest)') {
                     agent {
                         docker {
                             image 'terrier:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
+                    }
+                    environment {
+                        CC="/usr/bin/gcc-10"
+                        CXX="/usr/bin/g++-10"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -145,7 +149,7 @@ pipeline {
                     }
                 }
 
-//                 stage('ubuntu-20.04/gcc-10 (Debug/Coverage/unittest)') {
+//                 stage('ubuntu-20.04/g++-10 (Debug/Coverage/unittest)') {
 //                     agent {
 //                         docker {
 //                             image 'terrier:focal'
@@ -153,6 +157,8 @@ pipeline {
 //                         }
 //                     }
 //                     environment {
+//                         CC="/usr/bin/gcc-10"
+//                         CXX="/usr/bin/g++-10"
 //                         CODECOV_TOKEN=credentials('codecov-token')
 //                     }
 //                     steps {
@@ -250,7 +256,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-10 (Release/unittest)') {
+                stage('ubuntu-20.04/g++-10 (Release/unittest)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -343,7 +349,7 @@ pipeline {
                         }
                     }
                 }
-                stage('ubuntu-20.04/gcc-10 (Debug/e2etest/oltpbench)') {
+                stage('ubuntu-20.04/g++-10 (Debug/e2etest/oltpbench)') {
                     agent {
                         docker {
                             image 'terrier:focal'
