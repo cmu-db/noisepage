@@ -233,7 +233,7 @@ class DBMain {
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
-                 const uint16_t connection_thread_count, const std::string socket_directory) {
+                 const uint16_t connection_thread_count, const std::string &socket_directory) {
       connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
