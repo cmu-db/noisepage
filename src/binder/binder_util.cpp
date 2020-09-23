@@ -182,7 +182,13 @@ void BinderUtil::CheckAndTryPromoteType(const common::ManagedPointer<parser::Con
 
 template <typename Output, typename Input>
 bool BinderUtil::IsRepresentable(const Input int_val) {
-  return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
+  // Fixes this hideously obscure bug: https://godbolt.org/z/M14jdb
+  if constexpr (std::numeric_limits<Output>::is_integer && !std::numeric_limits<Input>::is_integer) {  // NOLINT
+    return std::numeric_limits<Output>::lowest() <= int_val &&
+           static_cast<Output>(int_val) < std::numeric_limits<Output>::max();
+  } else {  // NOLINT
+    return std::numeric_limits<Output>::lowest() <= int_val && int_val <= std::numeric_limits<Output>::max();
+  }
 }
 
 /**
