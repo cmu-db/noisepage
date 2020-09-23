@@ -2,6 +2,7 @@
 
 #include <condition_variable>  // NOLINT
 #include <mutex>               // NOLINT
+#include <string>
 
 #include "common/dedicated_thread_owner.h"
 
