@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "common/dedicated_thread_owner.h"
@@ -24,6 +25,11 @@
 #include "network/network_types.h"
 
 namespace terrier::network {
+
+// The name is based on https://www.postgresql.org/docs/9.3/runtime-config-connection.html
+// {0}: Directory for the socket from -uds_file_directory on the command line.
+// {1}: Port number from -port on the command line.
+constexpr std::string_view UNIX_DOMAIN_SOCKET_FORMAT_STRING = "{0}/.s.PGSQL.{1}";
 
 /**
  * TerrierServer is the entry point of the network layer
@@ -36,7 +42,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   TerrierServer(common::ManagedPointer<ProtocolInterpreter::Provider> protocol_provider,
                 common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                 common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
-                uint16_t connection_thread_count);
+                uint16_t connection_thread_count, std::string socket_directory);
 
   ~TerrierServer() override = default;
 
@@ -78,6 +84,9 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // threads can be safely taken away, but I don't understand the networking stuff well enough to say for sure what
   // that assertion is
   bool OnThreadRemoval(common::ManagedPointer<common::DedicatedThreadTask> task) override { return true; }
+  enum SocketType { UNIX_DOMAIN_SOCKET, NETWORKED_SOCKET };
+  template <SocketType type>
+  void RegisterSocket();
 
   std::mutex running_mutex_;
   bool running_;
@@ -86,9 +95,11 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  uint16_t port_;                   // port number
-  int listen_fd_ = -1;              // server socket fd that TerrierServer is listening on
-  const uint32_t max_connections_;  // maximum number of connections
+  uint16_t port_;                       // port number
+  int network_socket_fd_ = -1;          // networked server socket fd that TerrierServer is listening on
+  int unix_domain_socket_fd_ = -1;      // unix-based local socket fd that TerrierServer may listen on
+  const std::string socket_directory_;  // Where to store the Unix domain socket
+  const uint32_t max_connections_;      // maximum number of connections
 
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   common::ManagedPointer<ProtocolInterpreter::Provider> provider_;

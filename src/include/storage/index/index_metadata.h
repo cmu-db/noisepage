@@ -8,7 +8,6 @@
 
 #include "catalog/index_schema.h"
 #include "common/macros.h"
-
 #include "storage/block_layout.h"
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"

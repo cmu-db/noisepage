@@ -215,9 +215,19 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
   exec_ctx->StartResourceTracker(component);
 }
 
+VM_OP_HOT void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      uint32_t memory_use) {
+  exec_ctx->SetMemoryUseOverride(memory_use);
+}
+
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
+}
+
+VM_OP_HOT void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                      terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->StartPipelineTracker(pipeline_id);
 }
 
 VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
@@ -226,8 +236,24 @@ VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::Ex
   exec_ctx->EndPipelineTracker(query_id, pipeline_id);
 }
 
-VM_OP_WARM void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,
-                                         terrier::execution::exec::ExecutionContext *const exec_ctx) {
+VM_OP_HOT void OpExecutionContextGetFeature(uint32_t *value, terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                            terrier::execution::pipeline_id_t pipeline_id,
+                                            terrier::execution::feature_id_t feature_id,
+                                            terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute) {
+  exec_ctx->GetFeature(value, pipeline_id, feature_id, feature_attribute);
+}
+
+VM_OP_HOT void OpExecutionContextRecordFeature(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                               terrier::execution::pipeline_id_t pipeline_id,
+                                               terrier::execution::feature_id_t feature_id,
+                                               terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                               uint32_t value) {
+  exec_ctx->RecordFeature(pipeline_id, feature_id, feature_attribute, value);
+}
+
+VM_OP_WARM
+void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,
+                              terrier::execution::exec::ExecutionContext *const exec_ctx) {
   *thread_state_container = exec_ctx->GetThreadStateContainer();
 }
 
@@ -270,6 +296,12 @@ VM_OP_HOT void OpTableVectorIteratorNext(bool *has_more, terrier::execution::sql
 
 VM_OP void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter);
 
+VM_OP_HOT void OpTableVectorIteratorGetVPINumTuples(uint32_t *result,
+                                                    terrier::execution::sql::TableVectorIterator *iter) {
+  // TODO(WAN): result should be uint64_t, see #1049
+  *result = iter->GetVectorProjectionIteratorNumTuples();
+}
+
 VM_OP_HOT void OpTableVectorIteratorGetVPI(terrier::execution::sql::VectorProjectionIterator **vpi,
                                            terrier::execution::sql::TableVectorIterator *iter) {
   *vpi = iter->GetVectorProjectionIterator();
@@ -286,12 +318,14 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 // Vector Projection Iterator
 // ---------------------------------------------------------
 
-void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi, terrier::execution::sql::VectorProjection *vp);
+VM_OP void OpVPIInit(terrier::execution::sql::VectorProjectionIterator *vpi,
+                     terrier::execution::sql::VectorProjection *vp);
 
-void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
-                       terrier::execution::sql::VectorProjection *vp, terrier::execution::sql::TupleIdList *tid_list);
+VM_OP void OpVPIInitWithList(terrier::execution::sql::VectorProjectionIterator *vpi,
+                             terrier::execution::sql::VectorProjection *vp,
+                             terrier::execution::sql::TupleIdList *tid_list);
 
-void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
+VM_OP void OpVPIFree(terrier::execution::sql::VectorProjectionIterator *vpi);
 
 VM_OP_HOT void OpVPIIsFiltered(bool *is_filtered, const terrier::execution::sql::VectorProjectionIterator *vpi) {
   *is_filtered = vpi->IsFiltered();
@@ -740,6 +774,9 @@ VM_OP_HOT void OpModReal(terrier::execution::sql::Real *const result, const terr
 VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table,
                                       terrier::execution::exec::ExecutionContext *exec_ctx,
                                       terrier::execution::sql::MemoryPool *memory, uint32_t payload_size);
+
+VM_OP void OpAggregationHashTableGetTupleCount(uint32_t *result,
+                                               terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
 VM_OP_HOT void OpAggregationHashTableAllocTuple(terrier::byte **result,
                                                 terrier::execution::sql::AggregationHashTable *agg_hash_table,
@@ -1194,6 +1231,10 @@ VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
   *result = join_hash_table->AllocInputTuple(hash);
 }
 
+VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result, terrier::execution::sql::JoinHashTable *join_hash_table) {
+  *result = join_hash_table->GetTupleCount();
+}
+
 VM_OP void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);
 
 VM_OP void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
@@ -1224,6 +1265,10 @@ VM_OP_HOT void OpHashTableEntryIteratorGetRow(const terrier::byte **row,
 
 VM_OP void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::MemoryPool *memory,
                         terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, uint32_t tuple_size);
+
+VM_OP_HOT void OpSorterGetTupleCount(uint32_t *result, terrier::execution::sql::Sorter *sorter) {
+  *result = sorter->GetTupleCount();
+}
 
 VM_OP_HOT void OpSorterAllocTuple(terrier::byte **result, terrier::execution::sql::Sorter *sorter) {
   *result = sorter->AllocInputTuple();
@@ -1483,9 +1528,8 @@ VM_OP_WARM void OpCharLength(terrier::execution::sql::Integer *result, terrier::
 }
 
 VM_OP_WARM void OpConcat(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
-                         const terrier::execution::sql::StringVal *left,
-                         const terrier::execution::sql::StringVal *right) {
-  terrier::execution::sql::StringFunctions::Concat(result, ctx, *left, *right);
+                         const terrier::execution::sql::StringVal *inputs[], const int64_t num_inputs) {
+  terrier::execution::sql::StringFunctions::Concat(result, ctx, inputs, num_inputs);
 }
 
 VM_OP_WARM void OpLeft(terrier::execution::sql::StringVal *result, terrier::execution::exec::ExecutionContext *ctx,
@@ -1624,6 +1668,8 @@ VM_OP void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
                                terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs,
                                uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
 VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
+
+VM_OP void OpIndexIteratorGetSize(uint32_t *index_size, terrier::execution::sql::IndexIterator *iter);
 
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
 
@@ -1842,6 +1888,12 @@ VM_OP void OpStorageInterfaceTableInsert(terrier::storage::TupleSlot *tuple_slot
 VM_OP void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
                                         terrier::execution::sql::StorageInterface *storage_interface,
                                         uint32_t index_oid);
+
+VM_OP void OpStorageInterfaceIndexGetSize(uint32_t *result,
+                                          terrier::execution::sql::StorageInterface *storage_interface);
+
+VM_OP void OpStorageInterfaceGetIndexHeapSize(uint32_t *size,
+                                              terrier::execution::sql::StorageInterface *storage_interface);
 
 VM_OP void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface);
 

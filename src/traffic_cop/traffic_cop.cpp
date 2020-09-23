@@ -170,7 +170,7 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
     return {ResultType::ERROR, error};
   }
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, 0u};
 }
 
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
@@ -189,28 +189,28 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
       if (execution::sql::DDLExecutors::CreateTableExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateTablePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_DB: {
       if (execution::sql::DDLExecutors::CreateDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateDatabasePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_INDEX: {
       if (execution::sql::DDLExecutors::CreateIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
     case network::QueryType::QUERY_CREATE_SCHEMA: {
       if (execution::sql::DDLExecutors::CreateNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::CreateNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
@@ -242,7 +242,7 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
     case network::QueryType::QUERY_DROP_TABLE: {
       if (execution::sql::DDLExecutors::DropTableExecutor(
               physical_plan.CastManagedPointerTo<planner::DropTablePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
@@ -250,21 +250,21 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
       if (execution::sql::DDLExecutors::DropDatabaseExecutor(
               physical_plan.CastManagedPointerTo<planner::DropDatabasePlanNode>(), connection_ctx->Accessor(),
               connection_ctx->GetDatabaseOid())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_INDEX: {
       if (execution::sql::DDLExecutors::DropIndexExecutor(
               physical_plan.CastManagedPointerTo<planner::DropIndexPlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
     case network::QueryType::QUERY_DROP_SCHEMA: {
       if (execution::sql::DDLExecutors::DropNamespaceExecutor(
               physical_plan.CastManagedPointerTo<planner::DropNamespacePlanNode>(), connection_ctx->Accessor())) {
-        return {ResultType::COMPLETE, 0};
+        return {ResultType::COMPLETE, 0u};
       }
       break;
     }
@@ -335,7 +335,7 @@ TrafficCopResult TrafficCop::BindQuery(
     return {ResultType::ERROR, error};
   }
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, 0u};
 }
 
 TrafficCopResult TrafficCop::CodegenPhysicalPlan(
@@ -353,7 +353,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
 
   if (portal->GetStatement()->GetExecutableQuery() != nullptr && use_query_cache_) {
     // We've already codegen'd this, move on...
-    return {ResultType::COMPLETE, 0};
+    return {ResultType::COMPLETE, 0u};
   }
 
   // TODO(WAN): see #1047
@@ -366,7 +366,7 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
   // TODO(Matt): handle code generation failing
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
-  return {ResultType::COMPLETE, 0};
+  return {ResultType::COMPLETE, 0u};
 }
 
 TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
@@ -391,7 +391,20 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   const auto exec_query = portal->GetStatement()->GetExecutableQuery();
 
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  try {
+    exec_query->Run(common::ManagedPointer(exec_ctx), execution_mode_);
+  } catch (ExecutionException &e) {
+    /*
+     * An ExecutionException is thrown in the case of some failure caused by a software bug or caused by some data
+     * exception. In either case we abort the current transaction and return an error to the client.
+     */
+    // TODO(Matt): evict this plan from the statement cache when the functionality is available
+    connection_ctx->Transaction()->SetMustAbort();
+    auto error = common::ErrorData(common::ErrorSeverity::ERROR, e.what(), e.code_);
+    error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
+    error.AddField(common::ErrorField::FILE, e.GetFile());
+    return {ResultType::ERROR, error};
+  }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
     // Execution didn't set us to FAIL state, go ahead and return command complete
@@ -407,8 +420,8 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   // TODO(Matt): We need a more verbose way to say what happened during execution (INSERT failed for key conflict,
   // etc.) I suspect we would stash that in the ExecutionContext.
-  return {ResultType::ERROR,
-          common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.", common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
+  return {ResultType::ERROR, common::ErrorData(common::ErrorSeverity::ERROR, "Query failed.",
+                                               common::ErrorCode::ERRCODE_T_R_SERIALIZATION_FAILURE)};
 }
 
 std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
