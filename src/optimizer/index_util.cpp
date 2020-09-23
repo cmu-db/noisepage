@@ -1,3 +1,5 @@
+#include "optimizer/index_util.h"
+
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -6,7 +8,6 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
-#include "optimizer/index_util.h"
 #include "optimizer/properties.h"
 #include "parser/expression_util.h"
 

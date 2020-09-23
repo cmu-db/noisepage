@@ -1,8 +1,10 @@
 #include "planner/plannodes/create_namespace_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "common/json.h"
 #include "parser/parser_defs.h"
 

@@ -1,10 +1,11 @@
+#include "optimizer/property_enforcer.h"
+
 #include <utility>
 #include <vector>
 
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property.h"
-#include "optimizer/property_enforcer.h"
 
 namespace terrier::optimizer {
 

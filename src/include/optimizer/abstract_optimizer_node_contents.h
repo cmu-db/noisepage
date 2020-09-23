@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"

@@ -9,11 +9,16 @@ The `run_oltpbench` script will run all test cases in the configuration file seq
 
 The `loop` key in the configuration file is used to duplicate the test case with different options.
 
+The `server_args` filed in the configuration specify the server commandline args.
 ## Example:
 
 <pre>
 {
     "type": "oltpbenchmark",
+    "server_args":{
+        "connection_thread_count": 32,
+        "wal_file_path": "/mnt/ramdisk/wal.log"    
+    },
     "testcases": [
         {
             "base": {

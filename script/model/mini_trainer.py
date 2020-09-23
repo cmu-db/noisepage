@@ -58,7 +58,7 @@ class MiniTrainer:
         # Write the first header rwo to the result file
         metrics_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
         prediction_path = "{}/{}_prediction.csv".format(self.model_metrics_path, data.opunit.name.lower())
-        result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
+        result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path, False)
 
         methods = self.ml_models
 

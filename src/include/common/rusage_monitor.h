@@ -2,6 +2,7 @@
 
 #include <sys/resource.h>
 #include <sys/time.h>
+
 #include "common/macros.h"
 
 namespace terrier::common {

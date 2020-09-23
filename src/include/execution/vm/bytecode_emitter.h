@@ -404,6 +404,15 @@ class BytecodeEmitter {
    */
   void EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx);
 
+  /**
+   * @brief Emits a concat instruction
+   * @param ret where to store the result of concat instruction
+   * @param exec_ctx execution context
+   * @param inputs string inputs to concat
+   * @param num_inputs length of inputs
+   */
+  void EmitConcat(LocalVar ret, LocalVar exec_ctx, LocalVar inputs, uint32_t num_inputs);
+
  private:
   /** Copy a scalar immediate value into the bytecode stream */
   template <typename T>
