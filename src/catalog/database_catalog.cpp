@@ -444,7 +444,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
   // Step 4: Cascading deletes
   // Get the objects in this namespace
   auto ns_objects = GetNamespaceClassOids(txn, ns_oid);
-  for (const auto object : ns_objects) {
+  for (const auto &object : ns_objects) {
     // Delete all of the tables. This should get most of the indexes
     if (object.second == postgres::ClassKind::REGULAR_TABLE) {
       result = DeleteTable(txn, static_cast<table_oid_t>(object.first));
@@ -461,7 +461,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
   // advantage of existing PRIs and indexes and expecting that deleting a namespace isn't that common of an operation,
   // so we can be slightly less efficient than optimal.
   ns_objects = GetNamespaceClassOids(txn, ns_oid);
-  for (const auto object : ns_objects) {
+  for (const auto &object : ns_objects) {
     // Delete all of the straggler indexes that may have been built on tables in other namespaces. We shouldn't get any
     // double-deletions because indexes on tables will already be invisible to us (logically deleted already).
     if (object.second == postgres::ClassKind::INDEX) {
