@@ -119,8 +119,8 @@ class TestCaseOLTPBench(TestCase):
 
         # publish results
         if self.publish_results:
-            report(self.publish_results, self.server_data,os.path.join(
-                os.getcwd(), "oltp_result",self.filename_suffix),self.publish_username,self.publish_password,self.query_mode)
+            report(self.publish_results, self.server_data, os.path.join(
+                os.getcwd(), "oltp_result",self.filename_suffix), self.publish_username, self.publish_password, self.query_mode)
 
     def create_result_dir(self):
         if not os.path.exists(self.test_result_dir):
