@@ -120,14 +120,14 @@ ConnectionHandle::StateMachine::TransitionResult ConnectionHandle::StateMachine:
 }
 
 void ConnectionHandle::StateMachine::Accept(Transition action,
-                                            const common::ManagedPointer<ConnectionHandle> connection) {
+                                            const common::ManagedPointer<ConnectionHandle> handle) {
   Transition next = action;
   // Transition until there are no more transitions.
   while (next != Transition::NONE) {
     TransitionResult result = Delta(current_state_, next);
     current_state_ = result.first;
     try {
-      next = result.second(connection);
+      next = result.second(handle);
     } catch (const NetworkProcessException &e) {
       // If an error occurs, the error is logged and the connection is terminated.
       NETWORK_LOG_ERROR("{0}\n", e.what());
