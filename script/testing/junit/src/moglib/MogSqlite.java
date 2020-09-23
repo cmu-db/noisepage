@@ -52,7 +52,8 @@ public class MogSqlite {
         String line;
         while (null != (line = br.readLine())) {
             readLine = true;
-            if (line.startsWith(Constants.HASHTAG)) {
+            if (line.startsWith(Constants.HASHTAG)||line.startsWith(Constants.SKIPIF)
+                    ||(line.startsWith(Constants.ONLYIF))) {
                 /* Ignore comments. */
                 lineCounter++;
                 comments.add(line);
@@ -309,7 +310,8 @@ public class MogSqlite {
             line = this.br.readLine();
 
             if (null == line || line.startsWith(Constants.QUERY) || line.startsWith(Constants.STATEMENT_OK)
-                    || line.startsWith(Constants.STATEMENT_ERROR) ||line.startsWith(Constants.HASHTAG)) {
+                    || line.startsWith(Constants.STATEMENT_ERROR) ||line.startsWith(Constants.HASHTAG)
+                    || line.startsWith(Constants.SKIPIF) || line.startsWith(Constants.ONLYIF)) {
                 /* End of SQL query reached. */
                 this.br.reset();
                 this.sql = this.sb.toString();
@@ -392,7 +394,10 @@ public class MogSqlite {
         return null == line
                 || line.startsWith(Constants.QUERY)
                 || line.startsWith(Constants.STATEMENT_OK)
-                || line.startsWith(Constants.STATEMENT_ERROR);
+                || line.startsWith(Constants.STATEMENT_ERROR)
+                || line.startsWith(Constants.HASHTAG)
+                || line.startsWith(Constants.SKIPIF)
+                || line.startsWith(Constants.ONLYIF);
     }
 
 }

@@ -3,11 +3,14 @@ import org.junit.jupiter.api.function.Executable;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import moglib.*;
 
 /**
@@ -56,7 +59,7 @@ public class TracefileTest {
             lineCounter++;
             String cur_sql = mog.sql.trim();
             int num = queryLine.get(lineCounter);
-            if (mog.queryFirstLine.equals(Constants.STATEMENT_ERROR) || mog.queryFirstLine.equals(Constants.STATEMENT_OK)) {
+            if (mog.queryFirstLine.contains(Constants.STATEMENT_ERROR) || mog.queryFirstLine.contains(Constants.STATEMENT_OK)) {
                 DynamicTest cur = executeNonSelectQuery(num, cur_sql);
                 dTest.add(cur);
             } else {
@@ -80,8 +83,10 @@ public class TracefileTest {
         String parsed_hash;
         int parsed_num_result = 0;
         boolean check_expected = false;
+        boolean onlyResult = false;
         if (mog.queryResults.size() == 0 || (!mog.queryResults.get(0).contains(Constants.VALUES))) {
             parsed_hash = TestUtility.getHashFromDb(mog.queryResults);
+            onlyResult = true;
         } else {
             // parse the line from test file to get the hash
             String[] sentence = mog.queryResults.get(0).split(" ");
@@ -104,18 +109,44 @@ public class TracefileTest {
             ResultSet rs = statement.getResultSet();
             res = mog.processResults(rs);
             // create an executable for the query
-            String hash2 = TestUtility.getHashFromDb(res);
-            String message = "Failure at Line " + num + ": " + "\n" + cur_sql + "\n" +
-                    "Query expected " + parsed_num_result + " results, got " + res.size() + " results"
-                    + "\n" + res;
-            boolean len_match = getCheckLength(check_expected, parsed_num_result, res.size());
-            exec = () -> checkResultMatch(parsed_hash, hash2, message, len_match, res);
+            if(onlyResult){
+                List<String> temp = new ArrayList<>(mog.queryResults);
+                exec = () -> checkEquals(res,temp);
+            }else{
+                String hash2 = TestUtility.getHashFromDb(res);
+                String message = "Failure at Line " + num + ": " + "\n" + cur_sql + "\n" +
+                        "Query expected " + parsed_num_result + " results, got " + res.size() + " results"
+                        + "\n" + res+"\n"+mog.queryResults;
+                boolean len_match = getCheckLength(check_expected, parsed_num_result, res.size());
+                exec = () -> checkResultMatch(parsed_hash, hash2, message, len_match, res);
+            }
         } catch (Throwable e) {
             String message = "Failure at Line " + num + ": " + e.getMessage() + "\n" + cur_sql;
             exec = () -> checkAlwaysFail(message);
         }
         DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
         return cur;
+    }
+
+    public static void checkEquals(List<String> res, List<String> queryResult) throws Exception {
+        double precision = 0.000001;
+        for(int i=0;i<res.size();i++){
+            if(res.get(i)==null){
+                if(queryResult.get(i)!=null){
+                    throw new Exception("Value null Mismatch");
+                }
+            }else if(res.get(i).equals("")){
+                if(!queryResult.get(i).equals("")){
+                    throw new Exception("Value '' Mismatch");
+                }
+            }else{
+                double one = Double.parseDouble(res.get(i));
+                double two = Double.parseDouble(queryResult.get(i));
+                if(Math.abs(one-two)>precision){
+                    throw new Exception("Expected " + queryResult + " but have " + res);
+                }
+            }
+        }
     }
 
     public static boolean getCheckLength(boolean check_expected, int parsed_num_result, int actual_result){
@@ -145,19 +176,33 @@ public class TracefileTest {
         try {
             statement = conn.createStatement();
             statement.execute(cur_sql);
-            if(mog.queryFirstLine.equals(Constants.STATEMENT_ERROR)){
+            if(mog.queryFirstLine.contains(Constants.STATEMENT_ERROR)){
                 String message = "Failure at Line " + num + ": Expected failure but success"  + "\n " + cur_sql;
                 exec = () -> checkAlwaysFail(message);
             }else{
                 exec = () -> assertEquals(true, true);
             }
         }
-        catch (Throwable e) {
-            if(mog.queryFirstLine.equals(Constants.STATEMENT_OK)){
+        catch (SQLException e) {
+            String code = e.getSQLState();
+            if(mog.queryFirstLine.contains(Constants.STATEMENT_OK)){
                 String message = "Failure at Line " + num + ": Expected success but failure"  + "\n " + cur_sql;
                 exec = () -> checkAlwaysFail(message);
             }else{
-                exec = () -> assertEquals(true, true);
+                // statement error case, with optional error code flag
+                String[] arr = mog.queryFirstLine.split(" ");
+                String parsed_code = arr[arr.length-1];
+                int code2 = -1;
+                try{
+                    code2 = Integer.parseInt(parsed_code);
+                    if(Integer.parseInt(code)!=code2){
+                        exec = () -> checkAlwaysFail("Error code mismatch");
+                    }else{
+                        exec = () -> assertEquals(true, true);
+                    }
+                }catch(Exception e1){
+                    exec = () -> checkAlwaysFail("No error code specified");
+                }
             }
         }
         DynamicTest cur = DynamicTest.dynamicTest(testName, exec);
@@ -184,14 +229,18 @@ public class TracefileTest {
                 List<String> new_res = new ArrayList<>();
                 for(String i:res){
                     try{
-                        int cur = (int)Double.parseDouble(i);
+                        int cur = (int)Math.round(Double.parseDouble(i));
                         new_res.add(cur+"");
                     }catch(Exception e1){
                         new_res.add(i);
                     }
                 }
                 String new_hash = TestUtility.getHashFromDb(new_res);
-                assertEquals(hash1, new_hash);
+                try{
+                    assertEquals(hash1, new_hash);
+                }catch (AssertionError e1){
+                    throw new Exception(message+"\n"+e.getMessage()+res);
+                }
             }else{
                 throw new Exception(message + "\n" + e.getMessage());
             }
