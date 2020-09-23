@@ -187,7 +187,7 @@ Transition ConnectionHandle::Process() {
 Transition ConnectionHandle::GetResult() {
   // Wait until a network event happens.
   EventUtil::EventAdd(network_event_, EventUtil::WAIT_FOREVER);
-  // TODO(WAN): It is absolutely not clear to me wtf is this doing. Nothing?
+  // TODO(WAN): It is not clear to me what this function is doing. If someone figures it out, please update comment.
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
   return Transition::PROCEED;
 }
