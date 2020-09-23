@@ -102,9 +102,9 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 10s python3 ../script/testing/kill_server_on_port.py 15721'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && gtimeout 10s sudo python3 ../script/testing/kill_server_on_port.py 15721'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -132,8 +132,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -163,8 +163,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -208,8 +208,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -237,9 +237,9 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 10s python3 ../script/testing/kill_server_on_port 15721'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && gtimeout 10s sudo python3 ../script/testing/kill_server_on_port 15721'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -266,8 +266,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -298,8 +298,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -329,16 +329,16 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
-                        sh 'cd build && gtimeout 10s python3 ../script/testing/kill_server_on_port 15721'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug'
-                        sh 'cd build && gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug'
-                        sh 'cd build && gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug' 
-                        sh 'cd build && gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug' 
+                        sh 'cd build && gtimeout 10s sudo python3 ../script/testing/kill_server_on_port 15721'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug'
+                        sh 'cd build && gtimeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug'
+                        sh 'cd build && gtimeout 5m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug'
+                        sh 'cd build && gtimeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug' 
+                        sh 'cd build && gtimeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug' 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
-                        // sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug'
+                        // sh 'cd build && gtimeout 1h sudo python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug'
                     }
                     post {
                         cleanup {
@@ -358,15 +358,15 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug'
-                        sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug'
-                        sh 'cd build && timeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug'
-                        sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug' 
-                        sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug' 
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug'
+                        sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug'
+                        sh 'cd build && timeout 5m sudo python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug'
+                        sh 'cd build && timeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug' 
+                        sh 'cd build && timeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug' 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
-                        // sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
+                        // sh 'cd build && timeout 1h sudo python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
                     }
                     post {
                         cleanup {
@@ -383,12 +383,12 @@ pipeline {
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
-                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release' 
-                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release' 
-                sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release' 
-                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
-                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release' 
-                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release' 
+                sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release' 
+                sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release' 
+                sh 'cd build && timeout 10m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release' 
+                sh 'cd build && timeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
+                sh 'cd build && timeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release' 
+                sh 'cd build && timeout 30m sudo python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release' 
             }
         }
         stage('Microbenchmark') {
