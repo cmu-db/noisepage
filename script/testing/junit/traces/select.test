@@ -579,3 +579,52 @@ SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NU
 
 statement ok
 DROP TABLE like_tbl;
+
+# index-join
+statement ok
+CREATE TABLE xxx (idx INT PRIMARY KEY, valx INT);
+
+statement ok
+CREATE TABLE yyy (idy INT PRIMARY KEY, valy INT);
+
+statement ok
+INSERT INTO xxx VALUES (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (3, 3), (4,4);
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > yyy.idy;
+----
+12 values hashing to 5411f476c4907debb6739c004a33651a
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < yyy.idy;
+----
+4 values hashing to 5411f476c4907debb6739c004a33651a
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 5 > yyy.idy;
+----
+24 values hashing to 5411f476c4907debb6739c004a33651a
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 2 < yyy.idy;
+----
+24 values hashing to 5411f476c4907debb6739c004a33651a
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < 6;
+----
+24 values hashing to 5411f476c4907debb6739c004a33651a
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
+----
+16 values hashing to 5411f476c4907debb6739c004a33651a
+
+statement ok
+DROP TABLE xxx
+
+statement ok
+DROP TABLE yyy
