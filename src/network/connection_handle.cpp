@@ -119,8 +119,7 @@ ConnectionHandle::StateMachine::TransitionResult ConnectionHandle::StateMachine:
   // clang-format on
 }
 
-void ConnectionHandle::StateMachine::Accept(Transition action,
-                                            const common::ManagedPointer<ConnectionHandle> handle) {
+void ConnectionHandle::StateMachine::Accept(Transition action, const common::ManagedPointer<ConnectionHandle> handle) {
   Transition next = action;
   // Transition until there are no more transitions.
   while (next != Transition::NONE) {
