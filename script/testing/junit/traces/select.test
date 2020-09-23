@@ -596,32 +596,32 @@ INSERT INTO yyy VALUES (3, 3), (4,4);
 query I nosort
 SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > yyy.idy;
 ----
-12 values hashing to 5411f476c4907debb6739c004a33651a
+12 values hashing to bbebff83ff36d086b664e0c8c8b11a5f
 
 query I nosort
 SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < yyy.idy;
 ----
-4 values hashing to 5411f476c4907debb6739c004a33651a
+4 values hashing to 78ebd17527f557a57704ea0c0ee12ff6
 
 query I nosort
 SELECT * FROM xxx INNER JOIN yyy ON 5 > yyy.idy;
 ----
-24 values hashing to 5411f476c4907debb6739c004a33651a
+24 values hashing to b6165897b2f15c69b833a9d36db6596d
 
 query I nosort
 SELECT * FROM xxx INNER JOIN yyy ON 2 < yyy.idy;
 ----
-24 values hashing to 5411f476c4907debb6739c004a33651a
+24 values hashing to b6165897b2f15c69b833a9d36db6596d
 
 query I nosort
 SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < 6;
 ----
-24 values hashing to 5411f476c4907debb6739c004a33651a
+24 values hashing to 7264e81a224cdf086c90aceb3426b6cb
 
 query I nosort
 SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
 ----
-16 values hashing to 5411f476c4907debb6739c004a33651a
+16 values hashing to 277f6f8fdb1a85b3b589002d0910f9b2
 
 statement ok
 DROP TABLE xxx
