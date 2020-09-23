@@ -660,5 +660,15 @@ SELECT ltrim(str_a_val, 'Ef') AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+query T nosort
+SELECT CONCAT(str_i_val, str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5900c055286e2b2f3c143b056ea685eb
+
+query T nosort
+SELECT CONCAT(str_i_val, str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
 statement ok
 DROP TABLE functions1
