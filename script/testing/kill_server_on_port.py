@@ -1,32 +1,15 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 import sys
+import argparse
 from util.constants import LOG
 from util.common import kill_pids_on_port
 
-
-def usage():
-    LOG.info("python3 kill_server_on_port.py [PORT] ([PORT_2] [PORT_3]...])")
-    exit(1)
-
-
-def sanitize_args():
-    if len(sys.argv) < 2:
-        LOG.error("You need to provide at least 1 port number")
-        usage()
-
-    ports = []
-    for arg in sys.argv[1:]:
-        try:
-            ports.append(int(arg))
-        except ValueError:
-            LOG.error("Invalid port value '{}'".format(arg))
-            usage()
-    return ports
-
-
 def main():
-    ports = sanitize_args()
-    for port in ports:
+    aparser = argparse.ArgumentParser(description="Kill any processes listening on these ports!")
+    aparser.add_argument("ports", type=int, nargs="+", help="Ports to check")
+    args = vars(aparser.parse_args())
+
+    for port in args["ports"]:
         LOG.info(
             "****** start killing processes on port {} ******".format(port))
         kill_pids_on_port(port)
