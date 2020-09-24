@@ -1,12 +1,12 @@
 #!/usr/local/bin/python3
 import sys
-from util.constants import LOG
+from util.constants import LOG, ErrorCode
 from util.common import kill_pids_on_port
 
 
 def usage():
-    LOG.info("python3 kill_server_on_port.py [PORT] ([PORT_2] [PORT_3]...])")
-    exit(1)
+    LOG.error("python3 kill_server_on_port.py [PORT] ([PORT_2] [PORT_3]...])")
+    exit(ErrorCode.ERROR)
 
 
 def sanitize_args():
