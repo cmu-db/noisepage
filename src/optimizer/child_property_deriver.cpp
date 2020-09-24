@@ -114,7 +114,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) { DeriveForJoin(); }
 
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {}
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) { DeriveForJoin(); }
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {}
 
