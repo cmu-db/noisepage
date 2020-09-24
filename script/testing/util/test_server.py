@@ -10,7 +10,7 @@ from typing import List
 from util import constants
 from util.test_case import TestCase
 from util.common import run_command, print_output, run_check_pid_exists, run_kill_pids_on_port
-from util.constants import LOG
+from util.constants import LOG, ErrorCode
 
 
 class TestServer:
@@ -97,7 +97,7 @@ class TestServer:
                 #TODO use Ben's new logging function
                 LOG.error("+" * 100)
                 LOG.error("DATABASE OUTPUT")
-                self.print_output(self.db_output_file)
+                print_output(self.db_output_file)
                 if attempt + 1 == constants.DB_START_ATTEMPTS:
                     raise
                 traceback.print_exc(file=sys.stdout)
@@ -151,13 +151,14 @@ class TestServer:
         if self.db_process.returncode is not None:
             # Db terminated already
             self.db_output_fd.close()
-            self.print_output(self.db_output_file)
+            print_output(self.db_output_file)
             msg = "DB terminated with return code {}".format(
                 self.db_process.returncode)
-            raise RuntimeError(msg)
-
-        # still (correctly) running, terminate it
-        self.db_process.terminate()
+            if self.db_process.returncode != ErrorCode.SUCCESS:
+                raise RuntimeError(msg)
+        else:
+            # still (correctly) running, terminate it
+            self.db_process.terminate()
         self.db_process = None
         return
 
@@ -165,15 +166,6 @@ class TestServer:
         """ Restart the DB """
         self.stop_db()
         self.run_db()
-
-    def print_output(self, filename):
-        """ Print out contents of a file """
-        fd = open(filename)
-        lines = fd.readlines()
-        for line in lines:
-            LOG.info(line.strip())
-        fd.close()
-        return
 
     def run_test(self, test_case: TestCase):
         """ Run the tests """
