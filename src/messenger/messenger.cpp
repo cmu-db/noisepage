@@ -60,9 +60,9 @@ namespace terrier::messenger {
 class ZmqMessage {
  public:
   /** The routing ID of the message sender. */
-  std::string_view identity_;
+  std::string identity_;
   /** The payload in the message. */
-  std::string_view payload_;
+  std::string payload_;
 };
 
 }  // namespace terrier::messenger
@@ -214,7 +214,7 @@ ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std:
   return ConnectionId(&zmq_ctx_, target, identity);
 }
 
-void Messenger::SendMessage(ConnectionId *connection_id, std::string_view message) {
+void Messenger::SendMessage(ConnectionId *connection_id, std::string message) {
   ZmqMessage msg{connection_id->routing_id_, message};
   ZmqUtil::SendMsg(&connection_id->socket_, msg);
 }

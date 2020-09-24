@@ -54,7 +54,7 @@ class Messenger : public common::DedicatedThreadTask {
    */
   ConnectionId MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity);
 
-  void SendMessage(ConnectionId *connection_id, std::string_view message);
+  void SendMessage(ConnectionId *connection_id, std::string message);
 
  private:
   static constexpr int MESSENGER_PORT = 9022;
