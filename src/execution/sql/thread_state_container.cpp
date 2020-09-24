@@ -1,13 +1,13 @@
 #include "execution/sql/thread_state_container.h"
 
-#include <tbb/mutex.h>
 #include <tbb/parallel_for_each.h>
 
-#include <map>
 #include <memory>
 #include <thread>  //NOLINT
+#include <unordered_map>
 
 #include "common/constants.h"
+#include "common/spin_latch.h"
 
 namespace terrier::execution::sql {
 
@@ -48,7 +48,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   common::SpinLatch states_latch_;
-  std::map<std::thread::id, TLSHandle *> states_;
+  std::unordered_map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -63,16 +63,13 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       init_fn_(nullptr),
       destroy_fn_(nullptr),
       ctx_(nullptr),
-      impl_(std::make_unique<ThreadStateContainer::Impl>()) {}
+      impl_(std::make_unique<ThreadStateContainer::Impl>()) {
+  impl_->states_.reserve(2 * std::thread::hardware_concurrency());
+}
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }
 
-void ThreadStateContainer::Clear() {
-  for (auto &it : impl_->states_) {
-    delete it.second;
-  }
-  impl_->states_.clear();
-}
+void ThreadStateContainer::Clear() { impl_->states_.clear(); }
 
 void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadStateContainer::InitFn init_fn,
                                  const ThreadStateContainer::DestroyFn destroy_fn, void *const ctx) {
@@ -88,24 +85,19 @@ void ThreadStateContainer::Reset(const std::size_t state_size, const ThreadState
 
 byte *ThreadStateContainer::AccessCurrentThreadState() {
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
-  auto iter = impl_->states_.find(std::this_thread::get_id());
-  byte *state = nullptr;
-  if (iter == impl_->states_.end()) {
-    auto *tls_handle = new TLSHandle(this);
-    impl_->states_.insert(std::make_pair(std::this_thread::get_id(), tls_handle));
-    state = tls_handle->State();
-  } else {
-    state = iter->second->State();
+  auto &tls_handle = impl_->states_[std::this_thread::get_id()];
+  if (!tls_handle) {
+    tls_handle = std::make_unique<TLSHandle>(this);
   }
-  return state;
+  return tls_handle->State();
 }
 
 void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *container) const {
   container->clear();
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   container->reserve(impl_->states_.size());
-  for (auto &tls_handle : impl_->states_) {
-    container->push_back(tls_handle.second->State());
+  for (auto &[tid, tls_handle] : impl_->states_) {
+    container->push_back(tls_handle->State());
   }
 }
 
@@ -114,25 +106,21 @@ void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *
   container->clear();
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   container->reserve(impl_->states_.size());
-  for (auto &tls_handle : impl_->states_) {
-    container->push_back(tls_handle.second->State() + element_offset);
+  for (auto &[tid, tls_handle] : impl_->states_) {
+    container->push_back(tls_handle->State() + element_offset);
   }
 }
 
 void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
-  for (auto &tls_handle : impl_->states_) {
-    iterate_fn(ctx, tls_handle.second->State());
+  for (auto &[tid, tls_handle] : impl_->states_) {
+    iterate_fn(ctx, tls_handle->State());
   }
 }
 
 void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
-  common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
-  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(), [&](auto &tls_handle) {
-    if (tls_handle.second != nullptr && tls_handle.second->State() != nullptr) {
-      iterate_fn(ctx, tls_handle.second->State());
-    }
-  });
+  tbb::parallel_for_each(impl_->states_.begin(), impl_->states_.end(),
+                         [&](auto &entry) { iterate_fn(ctx, entry.second->State()); });
 }
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
