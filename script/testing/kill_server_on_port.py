@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 import sys
 from util.constants import LOG, ErrorCode
 from util.common import kill_pids_on_port
@@ -25,8 +25,12 @@ def sanitize_args():
 
 
 def main():
-    ports = sanitize_args()
-    for port in ports:
+    aparser = argparse.ArgumentParser(
+        description="Kill any processes listening on these ports!")
+    aparser.add_argument("ports", type=int, nargs="+", help="Ports to check")
+    args = vars(aparser.parse_args())
+
+    for port in args["ports"]:
         LOG.info(
             "****** start killing processes on port {} ******".format(port))
         kill_pids_on_port(port)
