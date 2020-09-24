@@ -1408,6 +1408,44 @@ void BytecodeGenerator::VisitBuiltinHashTableEntryIteratorCall(ast::CallExpr *ca
   }
 }
 
+void BytecodeGenerator::VisitBuiltinJoinHashTableIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::JoinHashTableIterInit: {
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar ht = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorInit, ht_iter, ht);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterHasNext: {
+      LocalVar has_more = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorHasNext, has_more, ht_iter);
+      GetExecutionResult()->SetDestination(has_more.ValueOf());
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterNext: {
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorNext, ht_iter);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterGetRow: {
+      LocalVar row_ptr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorGetRow, row_ptr, ht_iter);
+      GetExecutionResult()->SetDestination(row_ptr.ValueOf());
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterFree: {
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorFree, ht_iter);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible hash table naive iteration bytecode");
+    }
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::SorterInit: {
@@ -2631,6 +2669,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::HashTableEntryIterHasNext:
     case ast::Builtin::HashTableEntryIterGetRow: {
       VisitBuiltinHashTableEntryIteratorCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterInit:
+    case ast::Builtin::JoinHashTableIterHasNext:
+    case ast::Builtin::JoinHashTableIterNext:
+    case ast::Builtin::JoinHashTableIterGetRow:
+    case ast::Builtin::JoinHashTableIterFree: {
+      VisitBuiltinJoinHashTableIteratorCall(call, builtin);
       break;
     }
     case ast::Builtin::SorterInit:

@@ -192,6 +192,11 @@ class BinderContext {
   std::unordered_map<std::string, TableMetadata> regular_table_alias_map_;
 
   /**
+   * Tracks the order in which table alias's were entered
+   */
+  std::vector<std::string> regular_table_alias_list_;
+
+  /**
    * Map the table alias to maps which is from table alias to the value type
    */
   std::unordered_map<std::string, std::unordered_map<std::string, type::TypeId>> nested_table_alias_map_;
