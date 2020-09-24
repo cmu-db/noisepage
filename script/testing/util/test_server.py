@@ -13,7 +13,7 @@ import shlex
 from typing import List
 from util import constants
 from util.test_case import TestCase
-from util.common import run_command, kill_pids_on_port
+from util.common import run_command, kill_pids_on_port, print_output
 from util.constants import LOG
 
 
@@ -91,10 +91,8 @@ class TestServer:
             # Kill any other terrier processes that our listening on our target port
             kill_pids_on_port(self.db_port)
 
-            self.db_output_fd = open(self.db_output_file, "w+")
-            self.db_process = subprocess.Popen(self.db_path,
-                                               stdout=self.db_output_fd,
-                                               stderr=self.db_output_fd)
+            self.db_output_fd, self.db_process = start_db(
+                self.db_path, self.db_output_file)
             try:
                 self.wait_for_db()
                 break
@@ -191,13 +189,12 @@ class TestServer:
         test_case.run_pre_test()
 
         # run the actual test
-        self.test_output_fd = open(test_case.test_output_file, "w+")
-        ret_val, _, _ = run_command(test_case.test_command,
-                                    test_case.test_error_msg,
-                                    stdout=self.test_output_fd,
-                                    stderr=self.test_output_fd,
-                                    cwd=test_case.test_command_cwd)
-        self.test_output_fd.close()
+        with open(test_case.test_output_file, "w+") as test_output_fd:
+            ret_val, _, _ = run_command(test_case.test_command,
+                                        test_case.test_error_msg,
+                                        stdout=test_output_fd,
+                                        stderr=test_output_fd,
+                                        cwd=test_case.test_command_cwd)
 
         # run the post test tasks
         test_case.run_post_test()
@@ -282,14 +279,6 @@ def start_db(db_path, db_output_file):
                                   stdout=db_output_fd,
                                   stderr=db_output_fd)
     return db_output_fd, db_process
-
-
-def print_output(filename):
-    """ Print out contents of a file """
-    with open(filename) as file:
-        lines = file.readlines()
-        for line in lines:
-            LOG.info(line.strip())
 
 
 def check_db_process_exists(db_pid):

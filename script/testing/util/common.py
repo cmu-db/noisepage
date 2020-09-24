@@ -34,6 +34,14 @@ def run_command(command,
     return rc, p.stdout, p.stderr
 
 
+def print_output(filename):
+    """ Print out contents of a file """
+    with open(filename) as file:
+        lines = file.readlines()
+        for line in lines:
+            LOG.info(line.strip())
+
+
 def format_time(timestamp):
     return datetime.datetime.fromtimestamp(timestamp).strftime(
         "%Y-%m-%d %H:%M:%S")
