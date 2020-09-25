@@ -51,7 +51,7 @@ class BwTreeIndex final : public Index {
   IndexType Type() const final { return IndexType::BWTREE; }
 
   /**
-   * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
+   * Invoke garbage collection on the index.
    */
   void PerformGarbageCollection() final;
 

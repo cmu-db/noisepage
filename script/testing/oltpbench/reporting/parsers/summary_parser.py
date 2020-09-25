@@ -70,5 +70,5 @@ def parse_latency_data(latency_dict):
     latency = {}
     for key, pattern in LATENCY_ATTRIBUTE_MAPPING:
         value = get_value_by_pattern(latency_dict, pattern, None)
-        latency[key] = int(value) if value else value
+        latency[key] = float("{:.4}".format(value)) if value else value
     return latency
