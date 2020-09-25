@@ -192,6 +192,11 @@ class Pipeline {
    */
   std::vector<ast::Expr *> CallRunPipelineFunction() const;
 
+  /**
+   * @return Pipeline state variable
+   */
+  ast::Identifier GetPipelineStateVar() { return state_var_; }
+
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 

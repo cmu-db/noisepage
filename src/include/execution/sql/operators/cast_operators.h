@@ -243,7 +243,13 @@ struct EXPORT TryCast<
     constexpr OutType k_max = std::numeric_limits<OutType>::max();
 
     *output = static_cast<OutType>(input);
-    return input >= k_min && input <= k_max;
+
+    // Fixes this hideously obscure bug: https://godbolt.org/z/M14jdb
+    if constexpr (std::numeric_limits<OutType>::is_integer && !std::numeric_limits<InType>::is_integer) {  // NOLINT
+      return k_min <= input && static_cast<OutType>(input) < k_max;
+    } else {  // NOLINT
+      return k_min <= input && input <= k_max;
+    }
   }
 };
 
