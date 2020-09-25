@@ -857,7 +857,10 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         // into the struct as the last GEP index.
         llvm::Type *pointee_type = args[1]->getType()->getPointerElementType();
         if (auto struct_type = llvm::dyn_cast<llvm::StructType>(pointee_type)) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
           llvm::Value *addr = ir_builder->CreateInBoundsGEP(args[1], {args[2]});
+#pragma GCC diagnostic pop
           const uint64_t elem_offset = llvm::cast<llvm::ConstantInt>(args[4])->getZExtValue();
           if (elem_offset != 0) {
             const uint32_t elem_index =
