@@ -45,10 +45,12 @@ LINUX_BUILD_PACKAGES=(\
   "libevent-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
+  "libspdlog-dev" \
   "libssl-dev" \
   "libtbb-dev" \
   "zlib1g-dev" \
   "llvm-8" \
+  "nlohmann-json3-dev" \
   "pkg-config" \
   "postgresql-client" \
   "wget" \
