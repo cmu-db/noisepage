@@ -37,11 +37,20 @@ class HashJoinTranslator : public OperatorTranslator {
                      Pipeline *pipeline);
 
   /**
-   * Declare the build-row struct used to materialized tuples from the build side of the join.
-   * @param decls The top-level declarations for the query. The build-row struct will be
-   *                        registered here after it's been constructed.
+   * Declare the build-row struct used to materialize tuples from the build side of the join. In the
+   * case of left outer joins additionally declare a probe-row struct which lets us
+   * materialize tuples from the probe side of the join.
+   * @param decls The top-level declarations for the query. The declared structs will be registered
+   *              here after they've been constructed.
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
+
+  /**
+   * Only for left outer joins - declare a function joinConsumer which encapsulates the parent translator's
+   * functionality
+   * @param decls
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
    * Initialize the global hash table.
@@ -114,8 +123,8 @@ class HashJoinTranslator : public OperatorTranslator {
   // Clean up and destroy the given join hash table instance, provided as a *JHT.
   void TearDownJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const;
 
-  // Access an attribute at the given index in the provided build row.
-  ast::Expr *GetBuildRowAttribute(ast::Expr *build_row, uint32_t attr_idx) const;
+  // Access an attribute at the given index in the provided row.
+  ast::Expr *GetRowAttribute(ast::Expr *row, uint32_t attr_idx) const;
 
   // Evaluate the provided hash keys in the provided context and return the
   // results in the provided results output vector.
@@ -124,6 +133,9 @@ class HashJoinTranslator : public OperatorTranslator {
 
   // Fill the build row with the columns from the given context.
   void FillBuildRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *build_row) const;
+
+  // Fill the probe row with the columns from the given context.
+  void FillProbeRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *probe_row) const;
 
   // Input the tuple(s) in the provided context into the join hash table.
   void InsertIntoJoinHashTable(WorkContext *ctx, FunctionBuilder *function) const;
@@ -137,16 +149,28 @@ class HashJoinTranslator : public OperatorTranslator {
   // Check the join predicate.
   void CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *function) const;
 
+  // Only for left outer joins - iterate the hash table and output unmatched left rows
+  void CollectUnmatchedLeftRows(FunctionBuilder *function) const;
+
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
  private:
-  // The name of the materialized row when inserting or probing into join hash
-  // table.
+  // Flag to indicate whether or not we are in the joinConsumer function
+  bool join_consumer_flag_;
+
+  // The name of the materialized row when inserting into join hash table.
   ast::Identifier build_row_var_;
   ast::Identifier build_row_type_;
   // For mark-based joins.
   ast::Identifier build_mark_;
+
+  // The name of the materialized probe row
+  ast::Identifier probe_row_var_;
+  ast::Identifier probe_row_type_;
+
+  // The name of the function which encapuslates the join conumser
+  ast::Identifier join_consumer_;
 
   // The left build-side pipeline.
   Pipeline left_pipeline_;
