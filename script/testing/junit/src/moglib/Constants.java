@@ -12,7 +12,7 @@ public class Constants {
     public static final String VALUES = "value";
     public static final String SKIPIF = "skipif";
     public static final String ONLYIF = "onlyif";
-    public static final String NUM_OUTPUT_FLAG = "No of outputs";
+    public static final String NUM_OUTPUT_FLAG = "Num of outputs";
     public static final String FAIL_FLAG = "Fail";
     public static final String EXPECTED_OUTPUT_FLAG = "Include Outputs";
     public static final int DISPLAY_RESULT_SIZE = 100;

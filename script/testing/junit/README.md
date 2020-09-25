@@ -87,13 +87,13 @@ ant generate-trace -Dpath=traces/select.sql -Ddb-url=jdbc:postgresql://localhost
  
 Comments are supported for input files (line starting with "#")
 Inlucde "Fail" in comment if you expect the query to fail
-Use the format "No of outputs" to specify the expected number of outputs; if a number is specified,
+Use the format "Num of outputs" to specify the expected number of outputs; if a number is specified,
 then in TracefileTest the queryresult length are checked as well.
 Use the format "Include Outputs" to specify that you want to store the exact query result instead
 of hash
 
 Example input line for GenerateTrace: 
-# No of outputs: 2
+# Num of outputs: 2
 SELECT t1 FROM TableA
 
 Then in TracefileTest, the sql statement will be executed and in addition to checking if the hash
