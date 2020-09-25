@@ -97,11 +97,10 @@ message(STATUS "[FOUND] nlohmann_json ${nlohmann_json_VERSION}")
 
 # libpg_query.
 add_subdirectory(
-    ${PROJECT_SOURCE_DIR}/third_party/libpg_query/
-    EXCLUDE_FROM_ALL
+        ${PROJECT_SOURCE_DIR}/third_party/libpg_query/
+        EXCLUDE_FROM_ALL
 )
 message(STATUS "[FOUND] libpq_query (DIY wrapper)")
-
 
 # LLVM 8.0.
 find_package(LLVM 8.0 REQUIRED CONFIG)
@@ -109,8 +108,8 @@ if (${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0")
     message(FATAL_ERROR "LLVM 8.0 or newer is required.")
 endif ()
 message(STATUS "[FOUND] LLVM ${LLVM_PACKAGE_VERSION}")
-# TODO(WAN): Matt, what is this?
-llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native ipo)
+# Explicitly request all of the LLVM components that we want.
+llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen native support)
 
 # spdlog : ...
 
@@ -121,7 +120,6 @@ add_subdirectory(
         ${PROJECT_SOURCE_DIR}/third_party/xbyak/                        # Include header-only xbyak.
         EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
 )
-
 
 # xxHash : ...
 set(XXHASH_BUILD_XXHSUM OFF)                                            # Disable the xxHash command line binary.
@@ -169,10 +167,12 @@ add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
 
 target_compile_options(
         noisepage_objlib
+        PRIVATE
+        "-fsanitize=address"
+        "-Werror"
+        "-Wall"
         PUBLIC
         "-march=native"
-        "-Wall"
-        "-Werror"
 )
 
 target_compile_features(
@@ -184,13 +184,17 @@ target_compile_features(
 set_target_properties(noisepage_objlib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(
         noisepage_objlib
-        PUBLIC
+        PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
+)
+target_include_directories(
+        noisepage_objlib
+        SYSTEM PRIVATE
         ${LLVM_INCLUDE_DIRS}
 )
 target_link_libraries(
         noisepage_objlib
-        PUBLIC
+        PRIVATE
         gflags
         xxHash::xxhash
         nlohmann_json::nlohmann_json
