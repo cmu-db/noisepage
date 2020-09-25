@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <sys/file.h>
 
+#include <condition_variable>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>

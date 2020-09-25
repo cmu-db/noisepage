@@ -31,7 +31,7 @@ add_library(${PROJECT_NAME}::pg_query ALIAS pg_query)
 # Specify all the necessary includes.
 target_include_directories(
     pg_query
-    PUBLIC
+    SYSTEM PUBLIC
         # These includes are exposed to the users of this library.
         ${CMAKE_CURRENT_SOURCE_DIR}/../src/postgres/include
         ${CMAKE_CURRENT_SOURCE_DIR}/..

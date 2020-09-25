@@ -1,3 +1,5 @@
+# Modified by the NoisePage project to make xxhash SYSTEM PUBLIC instead of PUBLIC.
+
 # To the extent possible under law, the author(s) have dedicated all
 # copyright and related and neighboring rights to this software to
 # the public domain worldwide. This software is distributed without
@@ -71,7 +73,7 @@ add_library(xxhash "${XXHASH_DIR}/xxhash.c")
 add_library(${PROJECT_NAME}::xxhash ALIAS xxhash)
 
 target_include_directories(xxhash
-  PUBLIC
+  SYSTEM PUBLIC
     $<BUILD_INTERFACE:${XXHASH_DIR}>
     $<INSTALL_INTERFACE:include/>)
 if (BUILD_SHARED_LIBS)

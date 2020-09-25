@@ -13,7 +13,7 @@ add_library(${PROJECT_NAME}::xbyak ALIAS xbyak)
 # Specify all the necessary includes.
 target_include_directories(
     xbyak
-    INTERFACE
+    SYSTEM INTERFACE
         # These includes are exposed to the users of this library.
         ${CMAKE_CURRENT_SOURCE_DIR}/..
 )

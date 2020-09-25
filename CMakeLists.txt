@@ -88,26 +88,19 @@ macro(VARS_AFTER)
     endforeach ()
 endmacro()
 
-# nlohmann json
+find_package(gflags REQUIRED)
+message(STATUS "[FOUND] gflags ${gflags_VERSION_STRING}")
+
+# nlohmann json : used for JSON serialization throughout the system.
 find_package(nlohmann_json REQUIRED)
 message(STATUS "[FOUND] nlohmann_json ${nlohmann_json_VERSION}")
 
-# xxHash.
-set(XXHASH_BUILD_XXHSUM OFF)                                            # Disable the xxHash command line binary.
-add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/xxHash/cmake_unofficial/      # The directory specifying CMake magic.
-        ${PROJECT_SOURCE_DIR}/third_party/xxHash/build/                 # The directory to build in.
-        EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
-)
-get_target_property(XXHASH_VERSION xxhash VERSION)
-message(STATUS "[FOUND] xxHash ${XXHASH_VERSION}")
-
 # libpg_query.
 add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/libpg_query/
-        libpg_query.a
-        EXCLUDE_FROM_ALL
+    ${PROJECT_SOURCE_DIR}/third_party/libpg_query/
+    EXCLUDE_FROM_ALL
 )
+message(STATUS "[FOUND] libpq_query (DIY wrapper)")
 
 
 # LLVM 8.0.
@@ -119,14 +112,27 @@ message(STATUS "[FOUND] LLVM ${LLVM_PACKAGE_VERSION}")
 # TODO(WAN): Matt, what is this?
 llvm_map_components_to_libnames(LLVM_LIBRARIES core mcjit nativecodegen native ipo)
 
-# spdlog.
+# spdlog : ...
+
 find_package(spdlog REQUIRED)
 
-# libpg_query.
+# xbyak : ...
 add_subdirectory(
         ${PROJECT_SOURCE_DIR}/third_party/xbyak/                        # Include header-only xbyak.
         EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
 )
+
+
+# xxHash : ...
+set(XXHASH_BUILD_XXHSUM OFF)                                            # Disable the xxHash command line binary.
+add_subdirectory(
+        ${PROJECT_SOURCE_DIR}/third_party/xxHash/cmake_unofficial/      # The directory specifying CMake magic.
+        ${PROJECT_SOURCE_DIR}/third_party/xxHash/build/                 # The directory to build in.
+        EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
+)
+get_target_property(XXHASH_VERSION xxhash VERSION)
+message(STATUS "[FOUND] xxHash ${XXHASH_VERSION}")
+
 
 message(STATUS "\n==========================================\nDependencies: All found!\n")
 
@@ -165,6 +171,8 @@ target_compile_options(
         noisepage_objlib
         PUBLIC
         "-march=native"
+        "-Wall"
+        "-Werror"
 )
 
 target_compile_features(
@@ -183,6 +191,7 @@ target_include_directories(
 target_link_libraries(
         noisepage_objlib
         PUBLIC
+        gflags
         xxHash::xxhash
         nlohmann_json::nlohmann_json
         spdlog::spdlog

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <gflags/gflags.h>
-
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,6 +9,7 @@
 #include "common/action_context.h"
 #include "common/error/exception.h"
 #include "common/shared_latch.h"
+#include "gflags/gflags.h"
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
 
