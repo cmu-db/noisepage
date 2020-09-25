@@ -82,7 +82,7 @@ class ZmqUtil {
   static constexpr int MAX_ROUTING_ID_LEN = 255;
 
   /** @return The routing ID of the socket. */
-  static std::string GetRoutingId(zmq::socket_t *socket) {
+  static std::string GetRoutingId(common::ManagedPointer<zmq::socket_t> socket) {
     char buf[MAX_ROUTING_ID_LEN];
     size_t routing_id_len;
     socket->getsockopt(ZMQ_ROUTING_ID, &buf, &routing_id_len);
@@ -90,7 +90,7 @@ class ZmqUtil {
   }
 
   /** @return The next string read off the socket. */
-  static std::string Recv(zmq::socket_t *socket, zmq::recv_flags flags) {
+  static std::string Recv(common::ManagedPointer<zmq::socket_t> socket, zmq::recv_flags flags) {
     zmq::message_t message;
     auto received = socket->recv(message, flags);
     if (!received.has_value()) {
@@ -100,7 +100,7 @@ class ZmqUtil {
   }
 
   /** @return The next ZmqMessage (identity and payload) read off the socket. */
-  static messenger::ZmqMessage RecvMsg(zmq::socket_t *socket) {
+  static messenger::ZmqMessage RecvMsg(common::ManagedPointer<zmq::socket_t> socket) {
     std::string identity = Recv(socket, zmq::recv_flags::none);
     std::string delimiter = Recv(socket, zmq::recv_flags::none);
     std::string payload = Recv(socket, zmq::recv_flags::none);
@@ -109,7 +109,7 @@ class ZmqUtil {
   }
 
   /** @return Send the specified ZmqMessage (identity and payload) over the socket. */
-  static void SendMsg(zmq::socket_t *socket, const messenger::ZmqMessage &msg) {
+  static void SendMsg(common::ManagedPointer<zmq::socket_t> socket, const messenger::ZmqMessage &msg) {
     zmq::message_t identity_msg(msg.identity_.data(), msg.identity_.size());
     zmq::message_t delimiter_msg("", 0);
     zmq::message_t payload_msg(msg.payload_.data(), msg.payload_.size());
@@ -129,32 +129,21 @@ class ZmqUtil {
 
 namespace terrier::messenger {
 
-/** An abstraction around successful connections made through ZeroMQ. */
-class ConnectionId {
- public:
-  /** Create a new ConnectionId that wraps the specified ZMQ socket. */
-  explicit ConnectionId(zmq::context_t *zmq_ctx, ConnectionDestination target,
-                        std::optional<std::string_view> identity) {
-    // Create a new DEALER socket and connect to the server.
-    // TODO(WAN): justify DEALER socket.
-    socket_ = zmq::socket_t(*zmq_ctx, ZMQ_DEALER);
+ConnectionId::ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, ConnectionDestination target,
+                           std::optional<std::string_view> identity) {
+  // Create a new DEALER socket and connect to the server.
+  // TODO(WAN): justify DEALER socket.
+  socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx, ZMQ_DEALER);
 
-    if (identity.has_value()) {
-      socket_.setsockopt(ZMQ_ROUTING_ID, identity.value().data(), identity.value().size());
-    }
-    routing_id_ = ZmqUtil::GetRoutingId(&socket_);
-
-    socket_.connect(target.GetDestination());
+  if (identity.has_value()) {
+    socket_->setsockopt(ZMQ_ROUTING_ID, identity.value().data(), identity.value().size());
   }
+  routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
 
- private:
-  friend Messenger;
+  socket_->connect(target.GetDestination());
+}
 
-  /** The ZMQ socket. */
-  zmq::socket_t socket_;
-  /** The ZMQ socket routing ID. */
-  std::string routing_id_;
-};
+ConnectionId::~ConnectionId() = default;
 
 ConnectionDestination ConnectionDestination::MakeTCP(std::string_view hostname, int port) {
   return ConnectionDestination(fmt::format("tcp://{}:{}", hostname, port).c_str());
@@ -173,20 +162,21 @@ Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : m
   // The ZMQ context is also the transport for in-process ("inproc") sockets.
   // Generally speaking, a single process should only have a single ZMQ context.
   // To have two ZMQ contexts is to have two separate ZMQ instances running, which is unlikely to be desired behavior.
+  zmq_ctx_ = std::make_unique<zmq::context_t>();
 
   // Register a ROUTER socket on the default Messenger port.
   // A ROUTER socket is an async server process.
   // TODO(WAN): elaborate yadadada
-  zmq_default_socket_ = zmq::socket_t(zmq_ctx_, ZMQ_ROUTER);
+  zmq_default_socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx_, ZMQ_ROUTER);
   // By default, the ROUTER socket silently discards messages that cannot be routed.
   // By setting ZMQ_ROUTER_MANDATORY, the ROUTER socket errors with EHOSTUNREACH instead.
-  zmq_default_socket_.setsockopt(ZMQ_ROUTER_MANDATORY, 1);
+  zmq_default_socket_->setsockopt(ZMQ_ROUTER_MANDATORY, 1);
 
   // Bind the same ZeroMQ socket over the default TCP, IPC, and in-process channels.
   {
-    zmq_default_socket_.bind(MESSENGER_DEFAULT_TCP);
-    zmq_default_socket_.bind(MESSENGER_DEFAULT_IPC);
-    zmq_default_socket_.bind(MESSENGER_DEFAULT_INPROC);
+    zmq_default_socket_->bind(MESSENGER_DEFAULT_TCP);
+    zmq_default_socket_->bind(MESSENGER_DEFAULT_IPC);
+    zmq_default_socket_->bind(MESSENGER_DEFAULT_INPROC);
   }
 
   // The following block of code is dead code that contains useful background information on ZMQ defaults.
@@ -200,6 +190,8 @@ Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : m
   messenger_running_ = true;
 }
 
+Messenger::~Messenger() = default;
+
 void Messenger::RunTask() {
   // Run the server loop.
   ServerLoop();
@@ -211,16 +203,16 @@ void Messenger::Terminate() {
 }
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity) {
-  return ConnectionId(&zmq_ctx_, target, identity);
+  return ConnectionId(common::ManagedPointer(zmq_ctx_), target, identity);
 }
 
-void Messenger::SendMessage(ConnectionId *connection_id, std::string message) {
+void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message) {
   ZmqMessage msg{connection_id->routing_id_, message};
-  ZmqUtil::SendMsg(&connection_id->socket_, msg);
+  ZmqUtil::SendMsg(common::ManagedPointer(connection_id->socket_), msg);
 }
 
 void Messenger::ServerLoop() {
-  zmq::socket_t *socket = &zmq_default_socket_;
+  common::ManagedPointer<zmq::socket_t> socket{zmq_default_socket_};
 
   while (messenger_running_) {
     ZmqMessage msg = ZmqUtil::RecvMsg(socket);
