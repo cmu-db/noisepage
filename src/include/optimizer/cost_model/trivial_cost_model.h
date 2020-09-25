@@ -106,7 +106,7 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a InnerHashJoin operator
    * @param op operator
    */
-  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = NLJOIN_COST + 1.0f; }
+  void Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) override { output_cost_ = NLJOIN_COST - 1.0f; }
 
   /**
    * Visit a LeftHashJoin operator

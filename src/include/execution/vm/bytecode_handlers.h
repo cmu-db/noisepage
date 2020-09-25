@@ -206,6 +206,11 @@ VM_OP_HOT void OpExecutionContextAddRowsAffected(terrier::execution::exec::Execu
   exec_ctx->AddRowsAffected(rows_affected);
 }
 
+VM_OP_HOT void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx,
+                                              terrier::execution::exec::ExecutionContext::HookFn hook) {
+  exec_ctx->RegisterHook(hook);
+}
+
 VM_OP_WARM void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPool **const memory,
                                                 terrier::execution::exec::ExecutionContext *const exec_ctx) {
   *memory = exec_ctx->GetMemoryPool();

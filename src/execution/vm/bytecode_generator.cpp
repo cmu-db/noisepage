@@ -1605,6 +1605,11 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::ExecutionContextAddRowsAffected, exec_ctx, rows_affected);
       break;
     }
+    case ast::Builtin::ExecutionContextRegisterHook: {
+      const auto hook_fn_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name();
+      GetEmitter()->EmitRegisterHook(exec_ctx, LookupFuncIdByName(hook_fn_name.GetData()));
+      break;
+    }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
       LocalVar metrics_component = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, metrics_component);
@@ -2497,6 +2502,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::ExecutionContextAddRowsAffected:
+    case ast::Builtin::ExecutionContextRegisterHook:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextGetNumConcurrent:

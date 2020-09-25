@@ -575,11 +575,13 @@ class CodeGen {
    * @param table_oid The OID of the table to be scanned.
    * @param col_oids The column OIDs from the table that should be scanned.
    * @param query_state The query state pointer.
+   * @param exec_ctx ExecutionContext
    * @param worker_name The work function name.
    * @return The call.
    */
   [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
-                                                ast::Expr *query_state, ast::Identifier worker_name);
+                                                ast::Expr *query_state, ast::Expr *exec_ctx,
+                                                ast::Identifier worker_name);
 
   /**
    * Call \@abortTxn(exec_ctx).

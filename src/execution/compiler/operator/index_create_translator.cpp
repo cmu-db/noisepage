@@ -112,8 +112,8 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  function->Append(
-      GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(), work_func));
+  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
+                                                      GetExecutionContext(), work_func));
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -127,7 +127,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
   // Close TVI, if need be.
   if (declare_local_tvi) {
     function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
-    {
+    if (IsPipelineMetricsEnabled()) {
       auto *codegen = GetCodeGen();
 
       // Get Memory Use
@@ -136,9 +136,9 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
       auto *record =
           codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
       function->Append(codegen->MakeStmt(record));
+      RecordCounters(*GetPipeline(), function);
     }
-    RecordCounters(*GetPipeline(), function);
-  } else {
+  } else if (IsPipelineMetricsEnabled()) {
     // For parallel, just record 0 --- for the memory use.
     // The model should be able to identify that for non-zero concurrent, memory = 0
     auto *zero = codegen_->Const32(0);

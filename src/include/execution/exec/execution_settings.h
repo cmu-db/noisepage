@@ -3,7 +3,12 @@
 #include <thread>  // NOLINT
 
 #include "common/constants.h"
+#include "common/managed_pointer.h"
 #include "execution/util/execution_common.h"
+
+namespace terrier::settings {
+class SettingsManager;
+}  // namespace terrier::settings
 
 namespace terrier::runner {
 class MiniRunners;
@@ -33,6 +38,12 @@ namespace terrier::execution::exec {
  */
 class EXPORT ExecutionSettings {
  public:
+  /**
+   * Updates flags from SettingsManager
+   * @param settings SettingsManager
+   */
+  void UpdateFromSettingsManager(common::ManagedPointer<settings::SettingsManager> settings);
+
   /** @return The vector active element threshold past which full auto-vectorization is done on vectors. */
   constexpr double GetSelectOptThreshold() const { return select_opt_threshold_; }
 
@@ -53,7 +64,10 @@ class EXPORT ExecutionSettings {
   constexpr bool GetIsParallelQueryExecutionEnabled() const { return is_parallel_execution_enabled_; }
 
   /** @return True if counters are enabled. */
-  bool GetIsCountersEnabled() const { return is_counters_enabled_; }
+  bool GetIsCountersEnabled() const { return true; }
+
+  /** @return True if pipeline metrics are enabled */
+  bool GetIsPipelineMetricsEnabled() const { return true; }
 
   /** @return number of threads used for parallel execution. */
   int GetNumberofThreads() const { return number_of_threads_; }
@@ -68,6 +82,7 @@ class EXPORT ExecutionSettings {
   float adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ};
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
   bool is_counters_enabled_{common::Constants::IS_COUNTERS_ENABLED};
+  bool is_pipeline_metrics_enabled_{common::Constants::IS_PIPELINE_METRICS_ENABLED};
   size_t number_of_threads_{std::thread::hardware_concurrency()};
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 

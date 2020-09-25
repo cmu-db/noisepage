@@ -90,37 +90,41 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
 }
 
 void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
-  // Initialize the feature vector, register and start tracker
-  std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
-                                oufeatures_.GetPtr(codegen_), codegen_->Const64(GetPipelineId().UnderlyingValue())};
-  auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorInitialize, args);
-  builder->Append(codegen_->MakeStmt(call));
+  if (compilation_context_->IsPipelineMetricsEnabled()) {
+    // Initialize the feature vector, register and start tracker
+    std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
+                                  oufeatures_.GetPtr(codegen_), codegen_->Const64(GetPipelineId().UnderlyingValue())};
+    auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorInitialize, args);
+    builder->Append(codegen_->MakeStmt(call));
 
-  args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
-  call = codegen_->CallBuiltin(ast::Builtin::RegisterMetricsThread, args);
-  builder->Append(codegen_->MakeStmt(call));
+    args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
+    call = codegen_->CallBuiltin(ast::Builtin::RegisterMetricsThread, args);
+    builder->Append(codegen_->MakeStmt(call));
 
-  // Inject StartPipelineTracker()
-  args = {compilation_context_->GetExecutionContextPtrFromQueryState(),
-          codegen_->Const64(GetPipelineId().UnderlyingValue())};
-  auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartPipelineTracker, args);
-  builder->Append(codegen_->MakeStmt(start_call));
+    // Inject StartPipelineTracker()
+    args = {compilation_context_->GetExecutionContextPtrFromQueryState(),
+            codegen_->Const64(GetPipelineId().UnderlyingValue())};
+    auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartPipelineTracker, args);
+    builder->Append(codegen_->MakeStmt(start_call));
+  }
 }
 
 void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const {
-  // Inject EndPipelineTracker();
-  std::vector<ast::Expr *> args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
-  args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
-  args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
-  args.push_back(oufeatures_.GetPtr(codegen_));
-  auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
-  builder->Append(codegen_->MakeStmt(end_call));
+  if (compilation_context_->IsPipelineMetricsEnabled()) {
+    // Inject EndPipelineTracker();
+    std::vector<ast::Expr *> args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
+    args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
+    args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
+    args.push_back(oufeatures_.GetPtr(codegen_));
+    auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
+    builder->Append(codegen_->MakeStmt(end_call));
 
-  // Aggregate
-  if (IsParallel()) {
-    std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState()};
-    auto call = codegen_->CallBuiltin(ast::Builtin::AggregateMetricsThread, args);
-    builder->Append(codegen_->MakeStmt(call));
+    // Aggregate
+    if (IsParallel()) {
+      std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState()};
+      auto call = codegen_->CallBuiltin(ast::Builtin::AggregateMetricsThread, args);
+      builder->Append(codegen_->MakeStmt(call));
+    }
   }
 }
 
@@ -204,10 +208,12 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
       op->TearDownPipelineState(*this, &builder);
     }
 
-    // Destroy the pipeline features
-    std::vector<ast::Expr *> args{oufeatures_.GetPtr(codegen_)};
-    auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorDestroy, args);
-    builder.Append(codegen_->MakeStmt(call));
+    if (compilation_context_->IsPipelineMetricsEnabled()) {
+      // Destroy the pipeline features
+      std::vector<ast::Expr *> args{oufeatures_.GetPtr(codegen_)};
+      auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorDestroy, args);
+      builder.Append(codegen_->MakeStmt(call));
+    }
   }
   return builder.Finish();
 }

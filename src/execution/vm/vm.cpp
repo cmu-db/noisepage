@@ -472,6 +472,16 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextRegisterHook) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+
+    auto fn_id = READ_FUNC_ID();
+    auto fn = reinterpret_cast<exec::ExecutionContext::HookFn>(module_->GetRawFunctionImpl(fn_id));
+
+    OpExecutionContextRegisterHook(exec_ctx, fn);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextGetTLS) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer **>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());

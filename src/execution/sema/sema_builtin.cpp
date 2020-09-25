@@ -840,6 +840,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       expected_arg_count = 1;
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
+    case ast::Builtin::ExecutionContextRegisterHook:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextSetMemoryUseOverride:
@@ -884,6 +885,20 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       // Number of rows affected, can be negative.
       if (!call_args[1]->GetType()->IsIntegerType()) {
         ReportIncorrectCallArg(call, 1, "Second argument should be an integer type.");
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextRegisterHook: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      auto *hook_fn_type = call_args[1]->GetType()->SafeAs<ast::FunctionType>();
+      if (hook_fn_type == nullptr) {
+        GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadHookFunction, call_args[1]->GetType());
         return;
       }
 
@@ -1114,7 +1129,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 7)) {
+  if (!CheckArgCount(call, 5)) {
     return;
   }
 
@@ -1834,7 +1849,7 @@ void Sema::CheckBuiltinPtrCastCall(ast::CallExpr *call) {
 }
 
 void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 3)) {
+  if (!CheckArgCount(call, 4)) {
     return;
   }
 
@@ -1854,7 +1869,7 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
     return;
   }
 
-  // Second argument must be a function
+  // Third argument must be a function
   auto *const cmp_func_type = args[2]->GetType()->SafeAs<ast::FunctionType>();
   if (cmp_func_type == nullptr || cmp_func_type->GetNumParams() != 2 ||
       !cmp_func_type->GetReturnType()->IsSpecificBuiltin(ast::BuiltinType::Int32) ||
@@ -1863,7 +1878,7 @@ void Sema::CheckBuiltinSorterInit(ast::CallExpr *call) {
     return;
   }
 
-  // Third and last argument must be a 32-bit number representing the tuple size
+  // Fourth and last argument must be a 32-bit number representing the tuple size
   const auto uint_kind = ast::BuiltinType::Uint32;
   if (!args[3]->GetType()->IsSpecificBuiltin(uint_kind)) {
     ReportIncorrectCallArg(call, 3, GetBuiltinType(uint_kind));
@@ -1952,45 +1967,35 @@ void Sema::CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::SorterSortParallel:
     case ast::Builtin::SorterSortTopKParallel: {
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      // pipeline_id
-      if (!call_args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
-        return;
-      }
       // Second argument is the *ThreadStateContainer.
       const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-      if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), tls_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(tls_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tls_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tls_kind)->PointerTo());
         return;
       }
 
       // Third argument must be a 32-bit integer representing the offset.
       ast::Type *uint_type = GetBuiltinType(ast::BuiltinType::Uint32);
-      if (call_args[4]->GetType() != uint_type) {
-        ReportIncorrectCallArg(call, 4, uint_type);
+      if (call_args[2]->GetType() != uint_type) {
+        ReportIncorrectCallArg(call, 2, uint_type);
         return;
       }
 
       // If it's for top-k, the last argument must be the top-k value
       if (builtin == ast::Builtin::SorterSortParallel) {
-        if (!CheckArgCount(call, 5)) {
+        if (!CheckArgCount(call, 3)) {
           return;
         }
       } else {
-        if (!CheckArgCount(call, 6)) {
+        if (!CheckArgCount(call, 4)) {
           return;
         }
-        if (!call_args[5]->GetType()->IsIntegerType()) {
-          ReportIncorrectCallArg(call, 5, uint_type);
+        if (!call_args[3]->GetType()->IsIntegerType()) {
+          ReportIncorrectCallArg(call, 3, uint_type);
           return;
         }
-        if (call_args[5]->GetType() != uint_type) {
-          call->SetArgument(5, ImplCastExprToType(call_args[5], uint_type, ast::CastKind::IntegralCast));
+        if (call_args[3]->GetType() != uint_type) {
+          call->SetArgument(3, ImplCastExprToType(call_args[3], uint_type, ast::CastKind::IntegralCast));
         }
       }
       break;

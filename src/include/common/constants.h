@@ -110,6 +110,11 @@ struct Constants {
   static constexpr const bool IS_COUNTERS_ENABLED = false;
 
   /**
+   * Flag indicating if pipeline metrics are enabled
+   */
+  static constexpr const bool IS_PIPELINE_METRICS_ENABLED = true;
+
+  /**
    * Flag indicating if static partitioner is used
    */
   static constexpr const bool IS_STATIC_PARTITIONER_ENABLED = false;

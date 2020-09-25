@@ -147,16 +147,13 @@ size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<const catalo
     }
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
 size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
                                              const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
   auto &schema = accessor_->GetIndexSchema(idx_oid);
-  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
-  return key_size;
+  return ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
 }
 
 void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,

@@ -156,4 +156,11 @@ const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t
   return (*params_)[param_idx];
 }
 
+void ExecutionContext::RegisterHook(HookFn hook) { hooks_.push_back(hook); }
+
+void ExecutionContext::InvokeHook(size_t hookIndex, void *query_state, void *tls) {
+  TERRIER_ASSERT(hookIndex < hooks_.size(), "Invoking unknown hook");
+  hooks_[hookIndex](query_state, tls);
+}
+
 }  // namespace terrier::execution::exec

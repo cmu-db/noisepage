@@ -1,4 +1,5 @@
 #include "execution/compiler/compiler.h"
+#include <iostream>
 
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
@@ -61,6 +62,8 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
     callbacks->OnError(Phase::Parsing, this);
     return;
   }
+
+  ast::AstPrettyPrint::Dump(std::cout, root_);
 
   // -------------------------------------------------------
   // Phase 2 : Semantic Analysis (i.e., type-checking)

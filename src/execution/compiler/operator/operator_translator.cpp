@@ -93,6 +93,8 @@ void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, con
 
 bool OperatorTranslator::IsCountersEnabled() const { return compilation_context_->IsCountersEnabled(); }
 
+bool OperatorTranslator::IsPipelineMetricsEnabled() const { return compilation_context_->IsPipelineMetricsEnabled(); }
+
 StateDescriptor::Entry OperatorTranslator::CounterDeclare(const std::string &counter_name, Pipeline *pipeline) const {
   auto *codegen = GetCodeGen();
 
@@ -163,7 +165,7 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::Executi
                                        ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
-  if (IsCountersEnabled()) {
+  if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
@@ -179,7 +181,7 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
                                                     execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
-  if (IsCountersEnabled()) {
+  if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
@@ -203,7 +205,7 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
                                                     execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
-  if (IsCountersEnabled()) {
+  if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val * old_feature_val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);

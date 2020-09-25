@@ -301,13 +301,15 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
                     brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
                     codegen->ExecCtxGetNumConcurrent(ctx));
 
-      // In parallel mode, we subtract from the insert count of the last task that might
-      // have been run with the current thread. This is to more correctly model the
-      // amount of work performed by the current task.
-      auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
-      auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
+      if (IsCountersEnabled()) {
+        // In parallel mode, we subtract from the insert count of the last task that might
+        // have been run with the current thread. This is to more correctly model the
+        // amount of work performed by the current task.
+        auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
+        auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
+        FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                      brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
+      }
     } else {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
@@ -343,7 +345,7 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
 void HashAggregationTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   RecordCounters(pipeline, function);
 
-  if (IsBuildPipeline(pipeline)) {
+  if (IsBuildPipeline(pipeline) && IsCountersEnabled()) {
     auto *codegen = GetCodeGen();
     const auto &agg_ht = local_agg_ht_;
     auto *tuple_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});

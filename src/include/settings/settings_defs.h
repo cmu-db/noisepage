@@ -279,7 +279,7 @@ SETTING_string(
 
 SETTING_bool(
     override_num_threads,
-    "Overrides the number of threads to use rather than the hardware concurrency",
+    "Overrides the number of threads to use",
     false,
     true,
     terrier::settings::Callbacks::NoOp
@@ -291,6 +291,22 @@ SETTING_int(
     1,
     1,
     128,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    use_counters,
+    "Whether to use counters",
+    false,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    use_pipeline_metrics,
+    "Whether to gather per-pipeline execution metrics",
+    false,
     true,
     terrier::settings::Callbacks::NoOp
 )

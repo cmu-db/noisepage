@@ -36,6 +36,15 @@ namespace terrier::execution::exec {
 class EXPORT ExecutionContext {
  public:
   /**
+   * Scan function callback used to scan a partition of the table.
+   * Convention: First argument is the opaque query state (that must contain execCtx as a member),
+   *             second argument is the thread state,
+   *             The first two arguments are void because their types are only known at runtime
+   *             (i.e., defined in generated code).
+   */
+  using HookFn = void (*)(void *, void *);
+
+  /**
    * Constructor
    * @param db_oid oid of the database
    * @param txn transaction used by this query
@@ -250,6 +259,9 @@ class EXPORT ExecutionContext {
   void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
   uint32_t GetNumConcurrentEstimate() const { return num_concurrent_estimate_; }
 
+  void InvokeHook(size_t hookIndex, void *query_state, void *tls);
+  void RegisterHook(HookFn hook);
+
  private:
   query_id_t query_id_{execution::query_id_t(0)};
   exec::ExecutionSettings exec_settings_;
@@ -276,5 +288,6 @@ class EXPORT ExecutionContext {
   bool memory_use_override_ = false;
   uint32_t memory_use_override_value_ = 0;
   uint32_t num_concurrent_estimate_ = 0;
+  std::vector<HookFn> hooks_{};
 };
 }  // namespace terrier::execution::exec

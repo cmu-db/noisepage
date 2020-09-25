@@ -78,7 +78,7 @@ std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
-                                       const CompilationMode mode, bool counters_enabled)
+                                       const CompilationMode mode, bool counters_enabled, bool pipeline_metrics_enabled)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
@@ -86,7 +86,8 @@ CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogA
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
       query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
-      counters_enabled_(counters_enabled) {}
+      counters_enabled_(counters_enabled),
+      pipeline_metrics_enabled_(pipeline_metrics_enabled) {}
 
 ast::FunctionDecl *CompilationContext::GenerateInitFunction() {
   const auto name = codegen_.MakeIdentifier(GetFunctionPrefix() + "_Init");
@@ -189,7 +190,8 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode, exec_settings.GetIsCountersEnabled());
+  CompilationContext ctx(query.get(), accessor, mode, exec_settings.GetIsCountersEnabled(),
+                         exec_settings.GetIsPipelineMetricsEnabled());
   ctx.GeneratePlan(plan);
 
   // Done
