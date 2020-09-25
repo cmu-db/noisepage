@@ -57,7 +57,11 @@ message(STATUS
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+
+
 # Dependencies.
+message(STATUS "\nDependencies: Locating...\n==========================================\n")
 
 # This pair of VARS_BEFORE() and VARS_AFTER() macros helps you to figure out what variables external code has defined.
 # For example, suppose you want to include the nlohmann_json library with
@@ -124,6 +128,8 @@ add_subdirectory(
         EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
 )
 
+message(STATUS "\n==========================================\nDependencies: All found!\n")
+
 # A crash course on CMake's GLOB.
 # CMake is not a build system -- CMake will not build your files.
 # CMake is a build system generator -- CMake will generate something (make, ninja, etc.) that can build your files.
@@ -154,6 +160,12 @@ list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 
 # Create an object library, which is a collection of .o's.
 add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
+
+target_compile_options(
+        noisepage_objlib
+        PUBLIC
+        "-march=native"
+)
 
 target_compile_features(
         noisepage_objlib
