@@ -146,7 +146,7 @@ ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<Connectio
   context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
 }
 
-ConnectionHandle::~ConnectionHandle() { context_.Reset(); }
+ConnectionHandle::~ConnectionHandle() = default;
 
 void ConnectionHandle::RegisterToReceiveEvents() {
   workpool_event_ = conn_handler_task_->RegisterManualEvent(
@@ -158,11 +158,12 @@ void ConnectionHandle::RegisterToReceiveEvents() {
 }
 
 void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
-  // TODO(WAN): convince myself that this is correct. Why should it be TERMINATE?
   Transition t;
   if ((flags & EV_TIMEOUT) != 0) {
+    // If the event was a timeout, this implies that the connection timed out. Terminate to disconnect.
     t = Transition::TERMINATE;
   } else {
+    // Otherwise, something happened, so the state machine should wake up.
     t = Transition::WAKEUP;
   }
   state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
