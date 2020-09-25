@@ -43,6 +43,7 @@ LINUX_BUILD_PACKAGES=(\
   "git" \
   "g++-7" \
   "libevent-dev" \
+  "libgflags-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
   "libspdlog-dev" \
