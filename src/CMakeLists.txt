@@ -4,6 +4,7 @@
 
 file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
 list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+set_property(SOURCE ${PROJECT_SOURCE_DIR}/src/execution/exec_defs.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
 ###############################################
 # Third party sources
@@ -77,4 +78,5 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 add_executable(terrier main/terrier.cpp)
 set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
+set_target_properties(terrier_objlib PROPERTIES UNITY_BUILD ON)
 target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})
