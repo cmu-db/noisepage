@@ -1,38 +1,17 @@
 #!/usr/local/bin/python3
 import sys
+import argparse
 from util.constants import LOG, CommandLineStr, ErrorCode
 from util.common import check_pid_exists
 
+if __name__ == "__main__":
+    aparser = argparse.ArgumentParser(
+        description="Check if the given pids exist.")
+    aparser.add_argument("pids", type=int, nargs="+", help="Pids to check")
+    args = vars(aparser.parse_args())
 
-def usage():
-    LOG.info("python3 check_pid_exists.py [PID] ([PID_2] [PID_3]...])")
-    exit(ErrorCode.ERROR)
-
-
-def sanitize_args():
-    if len(sys.argv) < 2:
-        LOG.error("You need to provide at least 1 process id")
-        usage()
-
-    pids = []
-    for arg in sys.argv[1:]:
-        try:
-            pids.append(int(arg))
-        except ValueError:
-            LOG.error("Invalid port value '{}'".format(arg))
-            usage()
-    return pids
-
-
-def main():
-    pids = sanitize_args()
-    res = []
-    for pid in pids:
+    for pid in args.get("pids", []):
         if check_pid_exists(pid):
             print(CommandLineStr.TRUE)
         else:
             print(CommandLineStr.FALSE)
-
-
-if __name__ == "__main__":
-    main()

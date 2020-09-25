@@ -159,6 +159,7 @@ class TestServer:
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
+            self.db_output_fd.close()
         self.db_process = None
         return
 

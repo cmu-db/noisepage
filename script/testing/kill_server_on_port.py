@@ -4,8 +4,7 @@ import argparse
 from util.constants import LOG
 from util.common import kill_pids_on_port
 
-
-def main():
+if __name__ == "__main__":
     aparser = argparse.ArgumentParser(
         description="Kill any processes listening on these ports!")
     aparser.add_argument("ports", type=int, nargs="+", help="Ports to check")
@@ -17,7 +16,3 @@ def main():
         kill_pids_on_port(port)
         LOG.info(
             "****** finish killing processes on port {} ******".format(port))
-
-
-if __name__ == "__main__":
-    main()

@@ -8,7 +8,8 @@ import signal
 import errno
 import psutil
 import datetime
-from util.constants import LOG, FILE_CHECK_PID_EXISTS, FILE_KILL_SERVER_ON_PORT, CommandLineStr, ErrorCode
+from util.constants import LOG
+from util import constants
 
 
 def run_command(command,
@@ -36,6 +37,19 @@ def run_command(command,
     return rc, p.stdout, p.stderr
 
 
+def run_as_root(command, printable=True):
+    """
+    General purpose wrapper for running a subprocess as root user
+    """
+    sudo_command = "sudo {}".format(command)
+    return run_command(sudo_command,
+                       error_msg="",
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE,
+                       cwd=None,
+                       printable=printable)
+
+
 def print_output(filename):
     """ Print out contents of a file """
     with open(filename) as file:
@@ -50,6 +64,11 @@ def format_time(timestamp):
 
 
 def kill_pids_on_port(port):
+    """Kill all the PIDs (if any) listening on the target port"""
+
+    if os.getuid() != 0:
+        raise Exception("Cannot call this function unless running as root!")
+
     for proc in psutil.process_iter():
         try:
             for conns in proc.connections(kind="inet"):
@@ -67,6 +86,9 @@ def kill_pids_on_port(port):
 def get_pids_on_port(port):
     """Get the list of PIDs (if any) listening on the target port"""
 
+    if os.getuid() != 0:
+        raise Exception("Cannot call this function unless running as root!")
+
     pids = []
     for proc in psutil.process_iter():
         try:
@@ -81,28 +103,42 @@ def get_pids_on_port(port):
 
 def check_pid_exists(pid):
     """ Checks to see if the pid exists """
+
+    if os.getuid() != 0:
+        raise Exception("Cannot call this function unless running as root!")
+
     return psutil.pid_exists(pid)
 
 
 def run_check_pid_exists(pid):
-    cmd = "sudo python3 {SCRIPT} {PID}".format(SCRIPT=FILE_CHECK_PID_EXISTS,
-                                               PID=pid)
-    rc, stdout, _ = run_command(cmd,
-                                error_msg="",
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                cwd=None,
-                                printable=False)
-    if rc != ErrorCode.SUCCESS:
+    """ 
+    Fork a subprocess with sudo privilege to check if the given pid exists,
+    because psutil requires sudo privilege.
+    """
+
+    cmd = "python3 {SCRIPT} {PID}".format(
+        SCRIPT=constants.FILE_CHECK_PID_EXISTS, PID=pid)
+    rc, stdout, _ = run_as_root(cmd, printable=False)
+
+    if rc != constants.ErrorCode.SUCCESS:
         LOG.error(
             "Error occured in run_check_pid_exists for [PID={}]".format(pid))
         return False
+
     res_str = stdout.readline().decode("utf-8").rstrip("\n")
-    return res_str == CommandLineStr.TRUE
+    return res_str == constants.CommandLineStr.TRUE
 
 
 def run_kill_pids_on_port(port):
-    cmd = "sudo python3 {SCRIPT} {PORT}".format(
-        SCRIPT=FILE_KILL_SERVER_ON_PORT, PORT=port)
-    rc, _, _ = run_command(cmd)
-    return rc
+    """ 
+    Fork a subprocess with sudo privilege to kill all the processes listening 
+    to the given port, because psutil requires sudo privilege.
+    """
+
+    cmd = "python3 {SCRIPT} {PORT}".format(
+        SCRIPT=constants.FILE_KILL_SERVER_ON_PORT, PORT=port)
+    rc, _, _ = run_as_root(cmd)
+
+    if rc != constants.ErrorCode.SUCCESS:
+        raise Exception(
+            "Error occured in run_check_pid_exists for port {}]".format(port))
