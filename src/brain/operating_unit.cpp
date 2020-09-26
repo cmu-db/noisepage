@@ -21,10 +21,6 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
           value = &feature.GetCardinality();
           break;
         }
-        case brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT: {
-          value = &feature.GetNumConcurrent();
-          break;
-        }
         case brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS: {
           value = &feature.GetNumLoops();
           break;

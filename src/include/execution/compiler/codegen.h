@@ -780,13 +780,6 @@ class CodeGen {
   [[nodiscard]] ast::Expr *ExecCtxGetTLS(ast::Expr *exec_ctx);
 
   /**
-   * Call \@execCtxGetNumConcurrent(). Return number of concurrent estimate from execution context.
-   * @param exec_ctx The name of the execution context variable.
-   * @return The call.
-   */
-  [[nodiscard]] ast::Expr *ExecCtxGetNumConcurrent(ast::Expr *exec_ctx);
-
-  /**
    * Call \@tlsGetCurrentThreadState(). Retrieves the current threads state in the state container.
    * It's assumed a previous call to \@tlsReset() was made to specify the state parameters.
    * @param tls The state container pointer.

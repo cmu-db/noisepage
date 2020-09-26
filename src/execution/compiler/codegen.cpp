@@ -760,12 +760,6 @@ ast::Expr *CodeGen::ExecCtxGetTLS(ast::Expr *exec_ctx) {
   return call;
 }
 
-ast::Expr *CodeGen::ExecCtxGetNumConcurrent(ast::Expr *exec_ctx) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextGetNumConcurrent, {exec_ctx});
-  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint32)->PointerTo());
-  return call;
-}
-
 ast::Expr *CodeGen::TLSAccessCurrentThreadState(ast::Expr *tls, ast::Identifier state_type_name) {
   ast::Expr *call = CallBuiltin(ast::Builtin::ThreadStateContainerGetState, {tls});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint8)->PointerTo());

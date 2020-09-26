@@ -112,32 +112,17 @@ void HashJoinTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBu
 }
 
 void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *ctx = GetExecutionContext();
   if (IsLeftPipeline(pipeline)) {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_build_rows_));
-
-    if (left_pipeline_.IsParallel()) {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    GetCodeGen()->ExecCtxGetNumConcurrent(ctx));
-    }
-
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
   } else {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
-
-    if (pipeline.IsParallel()) {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    GetCodeGen()->ExecCtxGetNumConcurrent(ctx));
-    }
-
     FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
   }
 }

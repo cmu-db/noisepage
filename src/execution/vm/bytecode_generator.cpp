@@ -1655,12 +1655,6 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetExecutionResult()->SetDestination(result.ValueOf());
       break;
     }
-    case ast::Builtin::ExecutionContextGetNumConcurrent: {
-      LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      GetEmitter()->Emit(Bytecode::ExecutionContextGetNumConcurrent, result, exec_ctx);
-      GetExecutionResult()->SetDestination(result.ValueOf());
-      break;
-    }
     default: {
       UNREACHABLE("Impossible execution context call");
     }
@@ -2505,7 +2499,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextRegisterHook:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
-    case ast::Builtin::ExecutionContextGetNumConcurrent:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:

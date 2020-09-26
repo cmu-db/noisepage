@@ -489,13 +489,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(ExecutionContextGetNumConcurrent) : {
-    auto *num_concurrent = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpExecutionContextGetNumConcurrent(num_concurrent, exec_ctx);
-    DISPATCH_NEXT();
-  }
-
   OP(ExecutionContextStartResourceTracker) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto metrics_component = static_cast<metrics::MetricsComponent>(frame->LocalAt<uint64_t>(READ_LOCAL_ID()));

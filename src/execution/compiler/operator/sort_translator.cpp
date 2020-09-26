@@ -151,13 +151,6 @@ void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *f
     FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   CounterVal(num_sort_build_rows_));
-
-    if (build_pipeline_.IsParallel()) {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
-    }
-
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));
   } else {
     ast::Expr *sorter_ptr = global_sorter_.GetPtr(codegen);

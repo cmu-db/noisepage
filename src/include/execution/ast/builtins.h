@@ -39,7 +39,6 @@ namespace terrier::execution::ast {
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
-  F(ExecutionContextGetNumConcurrent, execCtxGetNumConcurrent)          \
   F(ExecutionContextRegisterHook, execCtxRegisterHook)                  \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \

@@ -62,12 +62,6 @@ void IndexCreateTranslator::RecordCounters(const Pipeline &pipeline, FunctionBui
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_inserts_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_inserts_));
-
-  if (pipeline.IsParallel()) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                  GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
-  }
 }
 
 void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,

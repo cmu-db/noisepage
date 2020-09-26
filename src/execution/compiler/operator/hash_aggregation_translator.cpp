@@ -290,26 +290,19 @@ void HashAggregationTranslator::TearDownPipelineState(const Pipeline &pipeline, 
 
 void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-  auto *ctx = GetExecutionContext();
   if (IsBuildPipeline(pipeline)) {
     const auto &agg_ht = pipeline.IsParallel() ? local_agg_ht_ : global_agg_ht_;
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
 
-    if (build_pipeline_.IsParallel()) {
+    if (build_pipeline_.IsParallel() && IsCountersEnabled()) {
+      // In parallel mode, we subtract from the insert count of the last task that might
+      // have been run with the current thread. This is to more correctly model the
+      // amount of work performed by the current task.
+      auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
+      auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    codegen->ExecCtxGetNumConcurrent(ctx));
-
-      if (IsCountersEnabled()) {
-        // In parallel mode, we subtract from the insert count of the last task that might
-        // have been run with the current thread. This is to more correctly model the
-        // amount of work performed by the current task.
-        auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
-        auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
-        FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                      brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
-      }
+                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
     } else {
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
@@ -331,13 +324,6 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
                   codegen->CallBuiltin(ast::Builtin::AggHashTableGetTupleCount, {agg_ht}));
-
-    if (pipeline.IsParallel()) {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                    codegen->ExecCtxGetNumConcurrent(ctx));
-    }
-
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
 }

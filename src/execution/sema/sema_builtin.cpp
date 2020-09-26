@@ -836,7 +836,6 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
-    case ast::Builtin::ExecutionContextGetNumConcurrent:
       expected_arg_count = 1;
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
@@ -911,10 +910,6 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     }
     case ast::Builtin::ExecutionContextGetTLS: {
       call->SetType(GetBuiltinType(ast::BuiltinType::ThreadStateContainer)->PointerTo());
-      break;
-    }
-    case ast::Builtin::ExecutionContextGetNumConcurrent: {
-      call->SetType(GetBuiltinType(ast::BuiltinType::Uint32)->PointerTo());
       break;
     }
     case ast::Builtin::ExecutionContextEndResourceTracker: {
@@ -3034,7 +3029,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextRegisterHook:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
-    case ast::Builtin::ExecutionContextGetNumConcurrent:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:

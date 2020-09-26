@@ -265,12 +265,6 @@ void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **co
   *thread_state_container = exec_ctx->GetThreadStateContainer();
 }
 
-VM_OP_WARM
-void OpExecutionContextGetNumConcurrent(uint32_t *num_concurrent,
-                                        terrier::execution::exec::ExecutionContext *const exec_ctx) {
-  *num_concurrent = exec_ctx->GetNumConcurrentEstimate();
-}
-
 VM_OP_WARM void OpThreadStateContainerAccessCurrentThreadState(
     terrier::byte **state, terrier::execution::sql::ThreadStateContainer *thread_state_container) {
   *state = thread_state_container->AccessCurrentThreadState();

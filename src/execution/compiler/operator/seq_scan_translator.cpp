@@ -280,13 +280,6 @@ void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
-
-  if (pipeline.IsParallel()) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
-                  GetCodeGen()->ExecCtxGetNumConcurrent(GetExecutionContext()));
-  }
-
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
 }
 
