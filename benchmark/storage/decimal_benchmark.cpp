@@ -7,12 +7,6 @@
 
 namespace terrier {
 
-/**
- * This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
- * reference to other fast data structures (indexes) to compare against. We are interested in the DataTable's raw
- * performance, so the tuple's contents are intentionally left garbage and we don't verify correctness. That's the job
- * of the Google Tests.
- */
 class DecimalBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
