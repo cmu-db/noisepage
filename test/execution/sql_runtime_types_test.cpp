@@ -7,6 +7,244 @@ namespace terrier::execution::sql::test {
 class RuntimeTypesTest : public TplTest {};
 
 // NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, StringToDecimalTest) {
+Decimal128 d(0);
+
+d.RoundUpAndSet(std::string("1234.567"), 4);
+Decimal128 a_1(12345670);
+EXPECT_EQ(1, a_1 == d);
+
+d.RoundUpAndSet(std::string("1234.56"), 4);
+Decimal128 a_2(12345600);
+EXPECT_EQ(1, a_2 == d);
+
+d.RoundUpAndSet(std::string("1234."), 4);
+Decimal128 a_3(12340000);
+EXPECT_EQ(1, a_3 == d);
+
+d.RoundUpAndSet(std::string("1234"), 4);
+Decimal128 a_4(12340000);
+EXPECT_EQ(1, a_4 == d);
+
+d.RoundUpAndSet(std::string("123"), 4);
+Decimal128 a_5(1230000);
+EXPECT_EQ(1, a_5 == d);
+
+d.RoundUpAndSet(std::string("123.5"), 4);
+Decimal128 a_6(1235000);
+EXPECT_EQ(1, a_6 == d);
+
+d.RoundUpAndSet(std::string("1234.568"), 4);
+Decimal128 a_7(12345680);
+EXPECT_EQ(1, a_7 == d);
+
+d.RoundUpAndSet(std::string("1234.5678"), 4);
+Decimal128 a_8(12345678);
+EXPECT_EQ(1, a_8 == d);
+
+d.RoundUpAndSet(std::string("1234.56789"), 4);
+Decimal128 a_9(12345679);
+EXPECT_EQ(1, a_9 == d);
+
+d.RoundUpAndSet(std::string("1234.56785"), 4);
+Decimal128 a_10(12345678);
+EXPECT_EQ(1, a_10 == d);
+
+d.RoundUpAndSet(std::string("1234.56784"), 4);
+Decimal128 a_11(12345678);
+EXPECT_EQ(1, a_11 == d);
+
+d.RoundUpAndSet(std::string("1234.56779"), 4);
+Decimal128 a_12(12345678);
+EXPECT_EQ(1, a_12 == d);
+
+d.RoundUpAndSet(std::string("1234.56775"), 4);
+Decimal128 a_13(12345678);
+EXPECT_EQ(1, a_13 == d);
+
+d.RoundUpAndSet(std::string("1234.56774"), 4);
+Decimal128 a_14(12345677);
+EXPECT_EQ(1, a_14 == d);
+}
+
+TEST_F(RuntimeTypesTest, StringToNegativeDecimalTest) {
+Decimal128 d(0);
+
+d.RoundUpAndSet(std::string("-1234.567"), 4);
+Decimal128 a_1(-12345670);
+EXPECT_EQ(1, a_1 == d);
+
+d.RoundUpAndSet(std::string("-1234.56"), 4);
+Decimal128 a_2(-12345600);
+EXPECT_EQ(1, a_2 == d);
+
+d.RoundUpAndSet(std::string("-1234."), 4);
+Decimal128 a_3(-12340000);
+EXPECT_EQ(1, a_3 == d);
+
+d.RoundUpAndSet(std::string("-1234"), 4);
+Decimal128 a_4(-12340000);
+EXPECT_EQ(1, a_4 == d);
+
+d.RoundUpAndSet(std::string("-123"), 4);
+Decimal128 a_5(-1230000);
+EXPECT_EQ(1, a_5 == d);
+
+d.RoundUpAndSet(std::string("-123.5"), 4);
+Decimal128 a_6(-1235000);
+EXPECT_EQ(1, a_6 == d);
+
+d.RoundUpAndSet(std::string("-1234.568"), 4);
+Decimal128 a_7(-12345680);
+EXPECT_EQ(1, a_7 == d);
+
+d.RoundUpAndSet(std::string("-1234.5678"), 4);
+Decimal128 a_8(-12345678);
+EXPECT_EQ(1, a_8 == d);
+
+d.RoundUpAndSet(std::string("-1234.56789"), 4);
+Decimal128 a_9(-12345679);
+EXPECT_EQ(1, a_9 == d);
+
+d.RoundUpAndSet(std::string("-1234.56785"), 4);
+Decimal128 a_10(-12345678);
+EXPECT_EQ(1, a_10 == d);
+
+d.RoundUpAndSet(std::string("-1234.56784"), 4);
+Decimal128 a_11(-12345678);
+EXPECT_EQ(1, a_11 == d);
+
+d.RoundUpAndSet(std::string("-1234.56779"), 4);
+Decimal128 a_12(-12345678);
+EXPECT_EQ(1, a_12 == d);
+
+d.RoundUpAndSet(std::string("-1234.56775"), 4);
+Decimal128 a_13(-12345678);
+EXPECT_EQ(1, a_13 == d);
+
+d.RoundUpAndSet(std::string("-1234.56774"), 4);
+Decimal128 a_14(-12345677);
+EXPECT_EQ(1, a_14 == d);
+}
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, DecimalAdditionTest) {
+// Valid date
+Decimal128 d_1(0);
+Decimal128 d_2(0);
+
+d_1.RoundUpAndSet(std::string("1234.5678"), 4);
+d_2.RoundUpAndSet(std::string("1234.6429"), 4);
+Decimal128 d(24692107);
+d_1 += d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string(".00012345000098765"), 17);
+d_2.RoundUpAndSet(std::string("123.45"), 17);
+d.RoundUpAndSet("123.45012345000098765", 17);
+d_1 += d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("1234500009876.5"), 17);
+d_2.RoundUpAndSet(std::string(".00012345000098765"), 17);
+d.RoundUpAndSet("1234500009876.50012345000098765", 17);
+d_1 += d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("9999909999999.5"), 3);
+d_2.RoundUpAndSet(std::string(".555"), 3);
+d.RoundUpAndSet("9999910000000.055", 3);
+d_1 += d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("-12345"), 2);
+d_2.RoundUpAndSet(std::string("-123.45"), 2);
+d.RoundUpAndSet("-12468.45", 2);
+d_1 += d_2;
+EXPECT_EQ(1, d == d_1);
+}
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, DecimalSubtractionTest) {
+// Valid date
+Decimal128 d_1(0);
+Decimal128 d_2(0);
+
+d_1.RoundUpAndSet(std::string("1234.5678"), 4);
+d_2.RoundUpAndSet(std::string("2469.2107"), 4);
+Decimal128 d(-12346429);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("1234.5678"), 4);
+d_2.RoundUpAndSet(std::string("1234.5679"), 4);
+d.RoundUpAndSet("-00000.0001",4);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string(".00012345000098765"), 17);
+d_2.RoundUpAndSet(std::string("123.45"), 17);
+d.RoundUpAndSet("-123.44987654999901235",17);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("1234500009876.5"), 17);
+d_2.RoundUpAndSet(std::string(".00012345000098765"), 17);
+d.RoundUpAndSet("1234500009876.49987654999901235",17);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("9999900000000.5"), 3);
+d_2.RoundUpAndSet(std::string(".555"), 3);
+d.RoundUpAndSet("9999899999999.945",3);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("1111.5551"), 4);
+d_2.RoundUpAndSet(std::string("1111.555"), 4);
+d.RoundUpAndSet("0.0001",4);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+d_1.RoundUpAndSet(std::string("1000001000"), 1);
+d_2.RoundUpAndSet(std::string("0.1"), 1);
+d.RoundUpAndSet("1000000999.9",1);
+d_1 -= d_2;
+EXPECT_EQ(1, d == d_1);
+
+
+}
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, StringToDecimalMultiPrecisionTest) {
+Decimal128 d(0);
+
+d.RoundUpAndSet(std::string("1234.567"), 4);
+Decimal128 a_1(12345670);
+EXPECT_EQ(1, a_1 == d);
+
+d.RoundUpAndSet(std::string("1234.567"), 3);
+Decimal128 a_2(1234567);
+EXPECT_EQ(1, a_2 == d);
+
+d.RoundUpAndSet(std::string("1234.567"), 5);
+Decimal128 a_3(123456700);
+EXPECT_EQ(1, a_3 == d);
+
+d.RoundUpAndSet(std::string("1234.567"), 2);
+Decimal128 a_4(123457);
+EXPECT_EQ(1, a_4 == d);
+
+d.RoundUpAndSet(std::string("1234.567"), 1);
+Decimal128 a_5(12346);
+EXPECT_EQ(1, a_5 == d);
+
+d.RoundUpAndSet(std::string("1234.567"), 0);
+Decimal128 a_6(1234);
+EXPECT_EQ(1, a_6 == d);
+}
+
+// NOLINTNEXTLINE
 TEST_F(RuntimeTypesTest, ExtractDateParts) {
   // Valid date
   Date d;

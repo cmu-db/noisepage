@@ -655,4 +655,124 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
   return Timestamp(result);
 }
 
+//===----------------------------------------------------------------------===//
+//
+// Decimal
+//
+//===----------------------------------------------------------------------===//
+
+template <typename T>
+void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision)  {
+  this->value_ = 0;
+
+  if(input.size() == 0) return;
+
+  unsigned pos = 0;
+
+  bool is_negative = false;
+  if(input[pos] == '-') {
+    pos++;
+    is_negative = true;
+  }
+
+  while(pos < input.size() && input[pos] != '.') {
+    this->value_ += input[pos] - '0';
+    this->value_ *= 10;
+    pos++;
+  }
+
+  if(precision == 0) {
+    this->value_ /= 10;
+    if(pos != input.size()) {
+      if(pos + 1 < input.size()) {
+        pos++;
+        if(input[pos] - '0' > 5) {
+          this->value_ += 1;
+        } else if(input[pos] - '0' == 5 &&
+                   this->value_ % 2 == 1) {
+          this->value_ += 1;
+        }
+      }
+    }
+    if(is_negative) {
+      this->value_ = -this->value_;
+    }
+    return;
+  }
+
+  // No decimal point case
+  if(pos == input.size()) {
+    for(unsigned i = 0; i < precision - 1; i++) {
+      this->value_ *= 10;
+    }
+    if(is_negative) {
+      this->value_ = -this->value_;
+    }
+    return;
+  }
+  // Skip decimal point
+  pos++;
+  // Nothing after decimal point case
+  if(pos == input.size()) {
+    for(unsigned i = 0; i < precision - 1; i++) {
+      this->value_ *= 10;
+    }
+    if(is_negative) {
+      this->value_ = -this->value_;
+    }
+    return;
+  }
+
+  for(unsigned i = 1; i < precision; i++) {
+    if(pos < input.size()) {
+      this->value_ += input[pos] - '0';
+      this->value_ *= 10;
+      pos++;
+    } else {
+      for(unsigned j = i; j < precision; j++) {
+        this->value_ *= 10;
+      }
+      if(is_negative) {
+        this->value_ = -this->value_;
+      }
+      return;
+    }
+  }
+
+  if(pos == input.size()) {
+    if(is_negative) {
+      this->value_ = -this->value_;
+    }
+    return;
+  }
+
+  if(pos == input.size() - 1) {
+    // No Rounding required
+    this->value_ += input[pos] - '0';
+  } else {
+    if(input[pos + 1] - '0' > 5) {
+      // Round Up
+      this->value_ += input[pos] - '0' + 1;
+    } else if(input[pos + 1] - '0' < 5) {
+      // No Rounding will happen
+      this->value_ += input[pos] - '0';
+    } else {
+      if((input[pos] - '0') % 2 == 0) {
+        // Round up if ODD
+        this->value_ += input[pos] - '0';
+      } else {
+        // Round up if ODD
+        this->value_ += input[pos] - '0' + 1;
+      }
+    }
+  }
+
+  if(is_negative) {
+    this->value_ = -this->value_;
+  }
+}
+
+template class Decimal<int128_t>;
+template class Decimal<int64_t>;
+template class Decimal<int32_t>;
 }  // namespace terrier::execution::sql

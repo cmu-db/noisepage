@@ -412,6 +412,9 @@ class EXPORT Timestamp {
 template <typename T>
 class EXPORT Decimal {
  public:
+
+  void RoundUpAndSet(std::string input, unsigned precision);
+
   /** Underlying native data type. */
   using NativeType = T;
 
