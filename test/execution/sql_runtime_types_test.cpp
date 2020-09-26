@@ -211,8 +211,6 @@ d_2.RoundUpAndSet(std::string("0.1"), 1);
 d.RoundUpAndSet("1000000999.9",1);
 d_1 -= d_2;
 EXPECT_EQ(1, d == d_1);
-
-
 }
 
 // NOLINTNEXTLINE
