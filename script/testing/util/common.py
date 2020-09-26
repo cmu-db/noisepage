@@ -110,14 +110,14 @@ def check_pid_exists(pid):
     return psutil.pid_exists(pid)
 
 
-def run_check_pid_exists(pid):
+def run_check_pids(pid):
     """ 
     Fork a subprocess with sudo privilege to check if the given pid exists,
     because psutil requires sudo privilege.
     """
 
-    cmd = "python3 {SCRIPT} {PID}".format(
-        SCRIPT=constants.FILE_CHECK_PID_EXISTS, PID=pid)
+    cmd = "python3 {SCRIPT} {PID}".format(SCRIPT=constants.FILE_CHECK_PIDS,
+                                          PID=pid)
     rc, stdout, _ = run_as_root(cmd, printable=False)
 
     if rc != constants.ErrorCode.SUCCESS:
@@ -129,16 +129,16 @@ def run_check_pid_exists(pid):
     return res_str == constants.CommandLineStr.TRUE
 
 
-def run_kill_pids_on_port(port):
+def run_kill_server(port):
     """ 
     Fork a subprocess with sudo privilege to kill all the processes listening 
     to the given port, because psutil requires sudo privilege.
     """
 
-    cmd = "python3 {SCRIPT} {PORT}".format(
-        SCRIPT=constants.FILE_KILL_SERVER_ON_PORT, PORT=port)
+    cmd = "python3 {SCRIPT} {PORT}".format(SCRIPT=constants.FILE_KILL_SERVER,
+                                           PORT=port)
     rc, _, _ = run_as_root(cmd)
 
     if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
-            "Error occured in run_check_pid_exists for port {}]".format(port))
+            "Error occured in run_check_pid_exists for [PORT={}]".format(port))

@@ -9,7 +9,7 @@ import shlex
 from typing import List
 from util import constants
 from util.test_case import TestCase
-from util.common import run_command, print_output, run_check_pid_exists, run_kill_pids_on_port
+from util.common import run_command, print_output, run_check_pids, run_kill_server
 from util.constants import LOG, ErrorCode
 
 
@@ -85,7 +85,7 @@ class TestServer:
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
             # Kill any other terrier processes that our listening on our target port
-            run_kill_pids_on_port(self.db_port)
+            run_kill_server(self.db_port)
 
             self.db_output_fd, self.db_process = start_db(
                 self.db_path, self.db_output_file)
@@ -272,7 +272,7 @@ def start_db(db_path, db_output_file):
 
 def check_db_process_exists(db_pid):
     """ Checks to see if the db_pid exists """
-    if not run_check_pid_exists(db_pid):
+    if not run_check_pids(db_pid):
         raise RuntimeError("Unable to find DBMS PID {}".format(db_pid))
     else:
         LOG.info("DBMS running on PID {}".format(db_pid))

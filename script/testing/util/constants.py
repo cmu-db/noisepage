@@ -41,8 +41,8 @@ LOG.addHandler(LOG_handler)
 LOG.setLevel(logging.INFO)
 
 # Scripts with psutils
-FILE_CHECK_PID_EXISTS = os.path.join(DIR_TESTING, "check_pid_exists.py")
-FILE_KILL_SERVER_ON_PORT = os.path.join(DIR_TESTING, "kill_server_on_port.py")
+FILE_CHECK_PIDS = os.path.join(DIR_TESTING, "check_pids.py")
+FILE_KILL_SERVER = os.path.join(DIR_TESTING, "kill_server.py")
 
 
 # error code
