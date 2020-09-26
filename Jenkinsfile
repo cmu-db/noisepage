@@ -178,10 +178,10 @@ pipeline {
                         sh 'cd build && /bin/bash ./codecov.sh -X gcov'
                     }
                     post {
-                        always {
+//                         always {
 //                             archiveArtifacts(artifacts: 'build/Testing/**/*.xml', fingerprint: true)
 //                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
-                        }
+//                         }
                         cleanup {
                             deleteDir()
                         }
