@@ -5,53 +5,88 @@
 #include "common/dedicated_thread_registry.h"
 #include "common/error/exception.h"
 #include "loggers/messenger_logger.h"
+#include "messenger/connection_destination.h"
 #include "messenger/messenger_logic.h"
-#include "spdlog/fmt/fmt.h"
 
 /*
  * A crash course on ZeroMQ (ZMQ).
+ * To find out more about ZeroMQ, the best resource I've found is the official book: http://zguide.zeromq.org/
  *
  * # What is ZeroMQ?
  *
- *   To quote the ZMQ documentation,
- *     In the ZeroMQ universe, sockets are doorways to fast little background communications engines
- *     that manage a whole set of connections automagically for you.
+ *    To quote the ZMQ documentation,
+ *      In the ZeroMQ universe, sockets are doorways to fast little background communications engines
+ *      that manage a whole set of connections automagically for you.
  *
  * # Why use ZeroMQ?
  *
+ *    The Messenger is meant to solve the following problem:
+ *    1.  I have a message.
+ *    2.  I want to send this message to another target. I don't care if this target is on the same process, on the
+ *        same machine but a different process, or on a different machine over the network. The Messenger should
+ *        figure it out and pick the best way of sending the message there.
+ *
+ *    This is exactly ZeroMQ's use case!
  *
  * # What benefits does ZeroMQ guarantee?
  *
- *   - talk about async io
- *   - talk about automatic reconnect
- *   - talk about easy tcp/ipc/inproc
- *   - talk about multipart messages
- *   - talk about atomic message delivery, including for multipart messages
- *   - talk about automatic message buffering (up to a configurable limit)
- *   - talk about message format being more or less low overhead
+ *    1.  ZeroMQ handles switching between tcp, ipc, and in-process communications very easily.
+ *    2.  ZeroMQ performs IO asynchronously in the background. Alongside automatic message buffering,
+ *        i.e., you can send() from a connected client before the server starts up, and the server will still get it!,
+ *        this keeps Messenger from being bottlenecked on sending data over the network.
+ *    3.  ZeroMQ automatically reconnects, as long as the dropped node comes back up eventually.
+ *    4.  ZeroMQ has support for multipart message delivery.
+ *    5.  ZeroMQ has atomic message delivery. This includes for multipart messages.
+ *    6.  ZeroMQ has a very light message format that looks like (size | data), where data's format is up to you.
  *
  * # What pitfalls does ZeroMQ have?
  *
- *
+ *    1.  ZeroMQ is not truly zero-copy, copies are performed between userspace and kernelspace.
  *
  * # How does NoisePage use ZeroMQ?
  *
- * - talk about communication patterns
+ *    ZeroMQ has established communication patterns that cover common use cases.
+ *    These communication patterns are better described in the ZeroMQ book, linked above.
  *
- *   There are established ZMQ communication patterns.
- *   The Messenger uses a ROUTER-DEALER pattern.
- *   This is ZeroMQ terminology for saying that:
- *   1. The server process exposes one main ROUTER socket.
- *   2. The ROUTER socket is a "server" socket that asynchronously sends and receives messages to "clients".
- *      To help the ROUTER route messages, every message is expected to be multipart and of the following form:
+ *    The Messenger does NOT use the REQUEST-REPLY pattern, but discussing it will provide useful context.
+ *    REQUEST-REPLY (also known as REQ-REP) is the simplest pattern available in ZeroMQ.
+ *    There are two types of sockets:
+ *      1.  The REQUEST (client) socket, and
+ *      2.  The REPLY (server) socket.
+ *    All communication must be initiated by the REQUEST socket. In particular, all communication must look like:
+ *      REQUEST.send() REPLY.recv() REPLY.send() REQUEST.recv() REQUEST.send() REPLY.recv() ...
+ *    Otherwise, if send (or receive) is called twice in a row, an exception is thrown.
+ *    This is clearly limiting. However, the reason this restriction exists is because the "one at a time" nature
+ *    of send-recv-send-recv simplifies identity management, hiding it completely from the users of ZeroMQ.
+ *    To remove the restriction, it is necessary for each message to contain some identity information.
+ *
+ *    This motivates the ROUTER-DEALER pattern.
+ *        ROUTER = async servers.
+ *        DEALER = async clients.
+ *
+ *    The Messenger uses a ROUTER-DEALER pattern.
+ *    This is ZeroMQ terminology for saying that:
+ *    1.  The server process exposes one main ROUTER socket.
+ *    2.  The ROUTER socket is a "server" socket that asynchronously sends and receives messages to "clients".
+ *        To help the ROUTER route messages, every message is expected to be multipart and of the following form:
  *        ROUTING_IDENTIFIER DELIMITER PAYLOAD
  *        where:
  *          - ROUTING_IDENTIFIER is controlled by setsockopt or getsockopt on ZMQ_ROUTING_ID.
  *          - DELIMITER is an empty message with size 0.
  *          - PAYLOAD is the message itself.
- *   3. ...
+ *    3.  The DEALER socket must send messages in the same format as well.
  *
- * To find out more about ZeroMQ, the best resource I've found is the official book: http://zguide.zeromq.org/
+ * # Interfacing with the Messenger from Python.
+ *
+ *    This is an example of how you connect to the Messenger from Python.
+ *      import zmq                                    # Use the ZeroMQ library.
+ *      ctx = zmq.Context()                           # Create a ZeroMQ context for our entire process.
+ *      sock = ctx.socket(zmq.DEALER)                 # We want an async DEALER socket for reasons described above.
+ *      sock.setsockopt(zmq.IDENTITY, b'snek')        # Set the name of our Python program,
+ *      sock.connect('ipc:///tmp/noisepage-ipc0')     # Connect to NoisePage on the same machine over IPC.
+ *      sock.send(b'', flags=zmq.SNDMORE)             # Start building a message. This is the empty delimiter packet.
+ *      s.send(b'PThis is the message payload.')      # Finish the message and send it. P is a prefix for Print.
+ *
  */
 
 namespace terrier::messenger {
@@ -71,11 +106,11 @@ namespace terrier {
 
 /**
  * Useful ZeroMQ utility functions implemented in a naive manner. Most functions have wasteful copies.
- * If performance indicates that these functions are a bottleneck, switch to the zero-copy messages of ZeroMQ.
+ * If perf indicates that these functions are a bottleneck, switch to the zero-copy messages of ZeroMQ.
  */
 class ZmqUtil {
  public:
-  /** Static utility class. */
+  /** ZmqUtil is a static utility class that should not be instantiated. */
   ZmqUtil() = delete;
 
   /** The maximum length of a routing ID. Specified by ZeroMQ. */
@@ -89,7 +124,7 @@ class ZmqUtil {
     return std::string(buf, routing_id_len);
   }
 
-  /** @return The next string read off the socket. */
+  /** @return The next string to be read off the socket. */
   static std::string Recv(common::ManagedPointer<zmq::socket_t> socket, zmq::recv_flags flags) {
     zmq::message_t message;
     auto received = socket->recv(message, flags);
@@ -129,10 +164,9 @@ class ZmqUtil {
 
 namespace terrier::messenger {
 
-ConnectionId::ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, ConnectionDestination target,
+ConnectionId::ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, const ConnectionDestination &target,
                            std::optional<std::string_view> identity) {
   // Create a new DEALER socket and connect to the server.
-  // TODO(WAN): justify DEALER socket.
   socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx, ZMQ_DEALER);
 
   if (identity.has_value()) {
@@ -141,20 +175,6 @@ ConnectionId::ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, Conne
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
 
   socket_->connect(target.GetDestination());
-}
-
-ConnectionId::~ConnectionId() = default;
-
-ConnectionDestination ConnectionDestination::MakeTCP(std::string_view hostname, int port) {
-  return ConnectionDestination(fmt::format("tcp://{}:{}", hostname, port).c_str());
-}
-
-ConnectionDestination ConnectionDestination::MakeIPC(std::string_view pathname) {
-  return ConnectionDestination(fmt::format("ipc://{}", pathname).c_str());
-}
-
-ConnectionDestination ConnectionDestination::MakeInProc(std::string_view endpoint) {
-  return ConnectionDestination(fmt::format("inproc://{}", endpoint).c_str());
 }
 
 Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : messenger_logic_(messenger_logic) {
@@ -166,7 +186,6 @@ Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : m
 
   // Register a ROUTER socket on the default Messenger port.
   // A ROUTER socket is an async server process.
-  // TODO(WAN): elaborate yadadada
   zmq_default_socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx_, ZMQ_ROUTER);
   // By default, the ROUTER socket silently discards messages that cannot be routed.
   // By setting ZMQ_ROUTER_MANDATORY, the ROUTER socket errors with EHOSTUNREACH instead.
@@ -200,6 +219,10 @@ void Messenger::RunTask() {
 void Messenger::Terminate() {
   messenger_running_ = false;
   // TODO(WAN): zmq cleanup? or is that all handled with RAII?
+}
+
+void Messenger::ListenForConnection(const ConnectionDestination &target) {
+  zmq_default_socket_->bind(target.GetDestination());
 }
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity) {

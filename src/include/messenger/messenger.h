@@ -9,6 +9,9 @@
 #include "common/managed_pointer.h"
 #include "messenger/messenger_logic.h"
 
+// All zmq objects are forward-declared and allocated on the heap.
+// This is to avoid leaking zmq headers into the rest of the system.
+// The prediction is that doing this won't hurt performance too much.
 namespace zmq {
 class context_t;
 class socket_t;
@@ -16,37 +19,20 @@ class socket_t;
 
 namespace terrier::messenger {
 
-class MessengerLogic;
+class ConnectionDestination;
 
-class ConnectionDestination {
- public:
-  /** @return A TCP destination in ZMQ format. */
-  static ConnectionDestination MakeTCP(std::string_view hostname, int port);
-  /** @return An IPC destination in ZMQ format. Pathname must be a valid filesystem path, e.g., /tmp/noisepage/ipc/0. */
-  static ConnectionDestination MakeIPC(std::string_view pathname);
-  /** @return An in-process destination in ZMQ format. */
-  static ConnectionDestination MakeInProc(std::string_view endpoint);
-
-  /** @return The destination in ZMQ format. */
-  const char *GetDestination() const { return zmq_address_; }
-
- private:
-  /** Construct a new ConnectionDestination with the specified address. */
-  explicit ConnectionDestination(const char *zmq_address) : zmq_address_(zmq_address) {}
-  const char *zmq_address_;
-};
-
-/** An abstraction around successful connections made through ZeroMQ. */
+/** ConnectionId is an abstraction around establishing connections. */
 class ConnectionId {
- public:
-  /** Create a new ConnectionId that wraps the specified ZMQ socket. */
-  explicit ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, ConnectionDestination target,
-                        std::optional<std::string_view> identity);
-
-  ~ConnectionId();
-
  private:
   friend Messenger;
+  /**
+   * Create a new ConnectionId that is connected to the specified target.
+   * @param zmq_ctx     The ZeroMQ context that holds this connection.
+   * @param target      The target to be connected to.
+   * @param identity    The name of the connection, if it exists.
+   */
+  explicit ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, const ConnectionDestination &target,
+                        std::optional<std::string_view> identity);
 
   /** The ZMQ socket. */
   std::unique_ptr<zmq::socket_t> socket_;
@@ -55,20 +41,43 @@ class ConnectionId {
 };
 
 /**
+ * Messenger handles all the network aspects of sending and receiving messages.
+ * Logic based on the messages is is deferred to MessengerLogic.
  *
  * @see messenger.cpp for a crash course on ZeroMQ, the current backing implementation.
  */
 class Messenger : public common::DedicatedThreadTask {
  public:
+  /**
+   * Create a new Messenger that uses the given logic layer.
+   * @param messenger_logic The logic layer of the messenger.
+   */
   explicit Messenger(common::ManagedPointer<MessengerLogic> messenger_logic);
 
+  /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~Messenger();
 
+  /** Run the main server loop, which dispatches messages received to the MessengerLogic layer. */
   void RunTask() override;
 
+  /** Terminate the Messenger. */
   void Terminate() override;
 
   /**
+   * Listen for new connections on the specified target destination.
+   *
+   * @warning           TODO(WAN): figure out what bad things happen if you give it a ConnectionDestination that is
+   *                     already in use. I don't think this is a problem that is likely to occur because all our
+   *                     destinations are known at compile time and we don't have too many right now, but I should
+   *                     fix this at some point. I am reluctant to add a set of destinations just for this though..
+   *
+   * @param target      The destination to listen on for new connections.
+   */
+  void ListenForConnection(const ConnectionDestination &target);
+
+  /**
+   * Connect to the specified target destination, optionally providing an identity that we want to be known by.
+   *
    * @param target      The destination to be connected to.
    * @param identity    An optional string to identify the connection by. See warning!
    * @return            A new ConnectionId. See warning!
@@ -79,6 +88,14 @@ class Messenger : public common::DedicatedThreadTask {
    */
   ConnectionId MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity);
 
+  /**
+   * Send a message through the specified connection id.
+   *
+   * @warning   Remember that ConnectionId can only be used from the same thread that created it!
+   *
+   * @param connection_id   The connection to send the message over.
+   * @param message         The message to be sent.
+   */
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message);
 
  private:
@@ -96,10 +113,20 @@ class Messenger : public common::DedicatedThreadTask {
   bool messenger_running_ = false;
 };
 
+/**
+ * MessengerOwner is the entry point to the Messenger system.
+ * MessengerOwner is responsible for instantiating the Messenger and "owning" it.
+ * TODO(WAN): owning is a bad term, the Messenger is actually owned by the DedicatedThreadRegistry.
+ */
 class MessengerOwner : public common::DedicatedThreadOwner {
  public:
+  /**
+   * Create and run a new Messenger (which is a DedicatedThreadTask) on the specified thread registry.
+   * @param thread_registry The registry in which the Messenger will be registered.
+   */
   explicit MessengerOwner(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
 
+  /** @return The owned messenger. */
   common::ManagedPointer<Messenger> GetMessenger() const { return messenger_; }
 
  private:
