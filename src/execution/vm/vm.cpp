@@ -474,11 +474,19 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecutionContextRegisterHook) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     auto fn_id = READ_FUNC_ID();
     auto fn = reinterpret_cast<exec::ExecutionContext::HookFn>(module_->GetRawFunctionImpl(fn_id));
 
-    OpExecutionContextRegisterHook(exec_ctx, fn);
+    OpExecutionContextRegisterHook(exec_ctx, idx, fn);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextInitHooks) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpExecutionContextInitHooks(exec_ctx, size);
     DISPATCH_NEXT();
   }
 
@@ -542,7 +550,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id);
+    auto is_parallel = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id, is_parallel);
     DISPATCH_NEXT();
   }
 

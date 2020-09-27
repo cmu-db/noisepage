@@ -743,6 +743,23 @@ class CodeGen {
   [[nodiscard]] ast::Expr *FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr *vpi, ast::Expr *exec_ctx);
 
   /**
+   * Call \@execCtxRegisterHook(exec_ctx, hook_idx, hook).
+   * @param exec_ctx The execution context to modify.
+   * @param hook_idx Index to install hook at
+   * @param hook Hook function to register
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxRegisterHook(ast::Expr *exec_ctx, ast::Expr *hook_idx, ast::Identifier hook);
+
+  /**
+   * Call \@execCtxInitHooks(exec_ctx, num_hooks).
+   * @param exec_ctx The execution context to modify.
+   * @param num_hooks Number of hooks
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxInitHooks(ast::Expr *exec_ctx, ast::Expr *num_hooks);
+
+  /**
    * Call \@execCtxAddRowsAffected(exec_ctx, num_rows_affected).
    * @param exec_ctx The execution context to modify.
    * @param num_rows_affected The amount to increment or decrement the number of rows affected.

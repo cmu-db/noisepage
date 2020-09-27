@@ -171,6 +171,8 @@ class Pipeline {
    */
   util::RegionVector<ast::FieldDecl *> PipelineParams() const;
 
+  ast::FieldDecl *GetPipelineState() const;
+
   /**
    * @return A unique name for a function local to this pipeline.
    */
@@ -182,15 +184,17 @@ class Pipeline {
   /**
    * Inject start resource tracker into function
    * @param builder Function being built
+   * @param is_hook Injecting into a hook function
    */
-  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+  void InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook) const;
 
   /**
    * Inject end resource tracker into function
    * @param builder Function being built
    * @param query_id Query ID that we're ending trackers for
+   * @param is_hook Injecting into a hook function
    */
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
+  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id, bool is_hook) const;
 
   /**
    * @returns query identifier that we're codegen-ing for
@@ -201,6 +205,12 @@ class Pipeline {
    * @returns pointer to the OU feature vector in the pipeline state
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
+
+  /**
+   * Declare Function that depends on thread-local state
+   * @param fn Function
+   */
+  void DeclareTLSDependentFunction(ast::FunctionDecl *fn) const;
 
  private:
   // Return the thread-local state initialization and tear-down function names.
@@ -262,6 +272,7 @@ class Pipeline {
   // Query Identifier
   query_id_t query_id_ = query_id_t(0);
   StateDescriptor::Entry oufeatures_;
+  ExecutableQueryFragmentBuilder *pipeline_builder_ = nullptr;
 };
 
 }  // namespace terrier::execution::compiler

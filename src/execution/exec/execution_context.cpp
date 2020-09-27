@@ -93,7 +93,7 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
   }
 }
 
-void ExecutionContext::InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
+void ExecutionContext::InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
   if (ouvec->pipeline_features_ != nullptr) {
     ouvec->Destroy();
   }
@@ -156,11 +156,20 @@ const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t
   return (*params_)[param_idx];
 }
 
-void ExecutionContext::RegisterHook(HookFn hook) { hooks_.push_back(hook); }
+void ExecutionContext::RegisterHook(size_t hook_idx, HookFn hook) {
+  TERRIER_ASSERT(hook_idx < hooks_.capacity(), "Incorrect number of reserved hooks");
+  hooks_[hook_idx] = hook;
+}
 
-void ExecutionContext::InvokeHook(size_t hookIndex, void *query_state, void *tls) {
+void ExecutionContext::InvokeHook(size_t hookIndex, void *exec_ctx, void *tls, void *arg) {
   TERRIER_ASSERT(hookIndex < hooks_.size(), "Invoking unknown hook");
-  hooks_[hookIndex](query_state, tls);
+  if (hooks_[hookIndex] != nullptr) {
+    hooks_[hookIndex](exec_ctx, tls, arg);
+  }
+}
+
+void ExecutionContext::InitHooks(size_t num_hooks) {
+  hooks_.resize(num_hooks);
 }
 
 }  // namespace terrier::execution::exec

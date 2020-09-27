@@ -839,18 +839,21 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       expected_arg_count = 1;
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
-    case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextStartResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
       expected_arg_count = 2;
       break;
+    case ast::Builtin::ExecutionContextRegisterHook:
+      expected_arg_count = 3;
+      break;
     case ast::Builtin::ExecutionContextEndPipelineTracker:
       expected_arg_count = 4;
       break;
     case ast::Builtin::ExecOUFeatureVectorInitialize:
-      expected_arg_count = 3;
+      expected_arg_count = 4;
       break;
     default:
       UNREACHABLE("Impossible execution context call");
@@ -891,13 +894,33 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       break;
     }
     case ast::Builtin::ExecutionContextRegisterHook: {
+      if (!CheckArgCount(call, 3)) {
+        return;
+      }
+
+      // Hook Index
+      if (!call_args[1]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 1, "Second argument should be an integer type.");
+        return;
+      }
+
+      auto *hook_fn_type = call_args[2]->GetType()->SafeAs<ast::FunctionType>();
+      if (hook_fn_type == nullptr) {
+        GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadHookFunction, call_args[2]->GetType());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextInitHooks: {
       if (!CheckArgCount(call, 2)) {
         return;
       }
 
-      auto *hook_fn_type = call_args[1]->GetType()->SafeAs<ast::FunctionType>();
-      if (hook_fn_type == nullptr) {
-        GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadHookFunction, call_args[1]->GetType());
+      // Number of hooks
+      if (!call_args[1]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 1, "Second argument should be an integer type.");
         return;
       }
 
@@ -979,6 +1002,13 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
       if (!call_args[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint32));
         return;
+      }
+      // is_parallel
+      ast::Expr *is_parallel_arg = call_args[3];
+      if (is_parallel_arg->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+        is_parallel_arg =
+            ImplCastExprToType(is_parallel_arg, GetBuiltinType(ast::BuiltinType::Bool), ast::CastKind::SqlBoolToBool);
+        call->SetArgument(3, is_parallel_arg);
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
@@ -3027,6 +3057,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:

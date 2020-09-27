@@ -206,10 +206,12 @@ VM_OP_HOT void OpExecutionContextAddRowsAffected(terrier::execution::exec::Execu
   exec_ctx->AddRowsAffected(rows_affected);
 }
 
-VM_OP_HOT void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx,
-                                              terrier::execution::exec::ExecutionContext::HookFn hook) {
-  exec_ctx->RegisterHook(hook);
-}
+VM_OP_COLD void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx,
+    uint32_t hook_idx,
+                                               terrier::execution::exec::ExecutionContext::HookFn hook);
+
+VM_OP_COLD void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx,
+                                            uint32_t num_hooks);
 
 VM_OP_WARM void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPool **const memory,
                                                 terrier::execution::exec::ExecutionContext *const exec_ctx) {
@@ -231,33 +233,25 @@ VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::Ex
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
 }
 
-VM_OP_HOT void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                                      terrier::execution::pipeline_id_t pipeline_id) {
-  exec_ctx->StartPipelineTracker(pipeline_id);
-}
+VM_OP_COLD void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                       terrier::execution::pipeline_id_t pipeline_id);
 
-VM_OP_HOT void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                                    terrier::execution::query_id_t query_id,
-                                                    terrier::execution::pipeline_id_t pipeline_id,
-                                                    terrier::brain::ExecOUFeatureVector *const ouvec) {
-  exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
-}
+VM_OP_COLD void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                     terrier::execution::query_id_t query_id,
+                                                     terrier::execution::pipeline_id_t pipeline_id,
+                                                     terrier::brain::ExecOUFeatureVector *const ouvec);
 
-VM_OP_HOT void OpExecOUFeatureVectorRecordFeature(
+VM_OP_COLD void OpExecOUFeatureVectorRecordFeature(
     terrier::brain::ExecOUFeatureVector *ouvec, terrier::execution::pipeline_id_t pipeline_id,
     terrier::execution::feature_id_t feature_id,
     terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-    terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
-  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
-}
+    terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value);
 
-VM_OP_HOT void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                               terrier::brain::ExecOUFeatureVector *const ouvec,
-                                               terrier::execution::pipeline_id_t pipeline_id) {
-  exec_ctx->InitializeExecOUFeatureVector(ouvec, pipeline_id);
-}
+VM_OP_COLD void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                terrier::brain::ExecOUFeatureVector *const ouvec,
+                                                terrier::execution::pipeline_id_t pipeline_id, bool is_parallel);
 
-VM_OP_HOT void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Destroy(); }
+VM_OP_COLD void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec);
 
 VM_OP_WARM
 void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,

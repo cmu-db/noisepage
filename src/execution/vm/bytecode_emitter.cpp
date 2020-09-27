@@ -296,8 +296,8 @@ void BytecodeEmitter::EmitParallelTableScan(LocalVar table_oid, LocalVar col_oid
   EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
 }
 
-void BytecodeEmitter::EmitRegisterHook(LocalVar exec_ctx, FunctionId scan_fn) {
-  EmitAll(Bytecode::ExecutionContextRegisterHook, exec_ctx, scan_fn);
+void BytecodeEmitter::EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn) {
+  EmitAll(Bytecode::ExecutionContextRegisterHook, exec_ctx, hook_idx, hook_fn);
 }
 
 void BytecodeEmitter::EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint32_t col_idx) {

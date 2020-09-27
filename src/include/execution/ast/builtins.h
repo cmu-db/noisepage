@@ -40,6 +40,7 @@ namespace terrier::execution::ast {
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
   F(ExecutionContextRegisterHook, execCtxRegisterHook)                  \
+  F(ExecutionContextInitHooks, execCtxInitHooks)                  \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \

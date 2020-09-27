@@ -179,10 +179,14 @@ class OperatingUnitUtil {
    * @param f OperatingUnitType to consider
    * @returns blocking or not
    */
-  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f) {
-    return f == ExecutionOperatingUnitType::HASHJOIN_BUILD || f == ExecutionOperatingUnitType::SORT_BUILD ||
-           f == ExecutionOperatingUnitType::AGGREGATE_BUILD || f == ExecutionOperatingUnitType::CREATE_INDEX;
-  }
+  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f);
+
+  /**
+   * Gets the non-parallel type for the OU f
+   * @param f Parallel OU
+   * @returns Corresponding non-parallel OU or INVALID
+   */
+  static ExecutionOperatingUnitType GetNonParallelType(ExecutionOperatingUnitType f);
 
   /** @return The ExecutionOperatingUnitFeature that has the corresponding type. It must be unique in the vector. */
   static const ExecutionOperatingUnitFeature &GetFeature(execution::translator_id_t translator_id,

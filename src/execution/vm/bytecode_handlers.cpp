@@ -263,4 +263,46 @@ void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { 
 
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
+void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx,
+            uint32_t hook_idx,
+                                    terrier::execution::exec::ExecutionContext::HookFn hook) {
+  exec_ctx->RegisterHook(hook_idx, hook);
+}
+
+void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx,
+                                 uint32_t num_hooks) {
+  exec_ctx->InitHooks(num_hooks);
+}
+
+void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                            terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->StartPipelineTracker(pipeline_id);
+}
+
+void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                          terrier::execution::query_id_t query_id,
+                                          terrier::execution::pipeline_id_t pipeline_id,
+                                          terrier::brain::ExecOUFeatureVector *const ouvec) {
+  exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
+}
+
+void OpExecOUFeatureVectorRecordFeature(terrier::brain::ExecOUFeatureVector *ouvec,
+                                        terrier::execution::pipeline_id_t pipeline_id,
+                                        terrier::execution::feature_id_t feature_id,
+                                        terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                        terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
+  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
+}
+
+void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                     terrier::brain::ExecOUFeatureVector *const ouvec,
+                                     terrier::execution::pipeline_id_t pipeline_id, bool is_parallel) {
+  if (is_parallel)
+    exec_ctx->InitializeParallelOUFeatureVector(ouvec, pipeline_id);
+  else
+    exec_ctx->InitializeOUFeatureVector(ouvec, pipeline_id);
+}
+
+void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Destroy(); }
+
 }  //

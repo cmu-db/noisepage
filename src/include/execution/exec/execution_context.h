@@ -36,13 +36,12 @@ namespace terrier::execution::exec {
 class EXPORT ExecutionContext {
  public:
   /**
-   * Scan function callback used to scan a partition of the table.
-   * Convention: First argument is the opaque query state (that must contain execCtx as a member),
-   *             second argument is the thread state,
-   *             The first two arguments are void because their types are only known at runtime
-   *             (i.e., defined in generated code).
+   * Hook Function
+   * Convention: First argument is the execution context.
+   *             second argument is the thread state.
+   *             Third is opaque function argument.
    */
-  using HookFn = void (*)(void *, void *);
+  using HookFn = void (*)(void *, void *, void *);
 
   /**
    * Constructor
@@ -150,7 +149,7 @@ class EXPORT ExecutionContext {
    * @param ouvec OU Feature Vector to initialize
    * @param pipeline_id Pipeline to initialize with
    */
-  void InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
    * Initializes an OU feature vector for a given parallel step (i.e hashjoin_build, sort_build, agg_build)
@@ -259,8 +258,9 @@ class EXPORT ExecutionContext {
   void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
   uint32_t GetNumConcurrentEstimate() const { return num_concurrent_estimate_; }
 
-  void InvokeHook(size_t hookIndex, void *query_state, void *tls);
-  void RegisterHook(HookFn hook);
+  void InvokeHook(size_t hookIndex, void *exec_ctx, void *tls, void *arg);
+  void RegisterHook(size_t hook_idx, HookFn hook);
+  void InitHooks(size_t num_hooks);
 
  private:
   query_id_t query_id_{execution::query_id_t(0)};

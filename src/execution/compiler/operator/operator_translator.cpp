@@ -166,6 +166,10 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::Executi
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
+    auto non_parallel_type = brain::OperatingUnitUtil::GetNonParallelType(feature_type);
+    bool is_parallel = non_parallel_type != brain::ExecutionOperatingUnitType::INVALID;
+    feature_type = (is_parallel) ? non_parallel_type : feature_type;
+
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);

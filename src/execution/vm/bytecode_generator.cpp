@@ -1606,8 +1606,14 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::ExecutionContextRegisterHook: {
+      auto hook_idx = VisitExpressionForRValue(call->Arguments()[1]);
       const auto hook_fn_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name();
-      GetEmitter()->EmitRegisterHook(exec_ctx, LookupFuncIdByName(hook_fn_name.GetData()));
+      GetEmitter()->EmitRegisterHook(exec_ctx, hook_idx, LookupFuncIdByName(hook_fn_name.GetData()));
+      break;
+    }
+    case ast::Builtin::ExecutionContextInitHooks: {
+      auto num_hooks = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextInitHooks, exec_ctx, num_hooks);
       break;
     }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
@@ -1640,7 +1646,8 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id);
+      LocalVar is_parallel = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id, is_parallel);
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
@@ -2497,6 +2504,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:

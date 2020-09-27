@@ -550,12 +550,7 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   owned_.emplace_back(std::move(source->entries_));
 }
 
-void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
-  /*
-  bool has_pipeline =
-      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
-      */
-
+void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
   // Collect thread-local hash tables
   std::vector<JoinHashTable *> tl_join_tables;
   thread_state_container->CollectThreadLocalStateElementsAs(&tl_join_tables, jht_offset);
@@ -583,27 +578,14 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements < {} element parallel threshold. Using serial merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
 
-    /*
-    brain::ExecOUFeatureVector ouvec;
-    if (has_pipeline) {
-      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-      exec_ctx->StartPipelineTracker(pipeline_id);
-    }
-    */
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    this->exec_ctx_->InvokeHook(pre_hook, this->exec_ctx_, tls, nullptr);
 
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
 
-    /*
-    if (has_pipeline) {
-      // Reach in and modify the feature directly
-      // # rows is number of tuples
-      // Cardinality is number of hash tables merging from
-      (*ouvec.pipeline_features_)[0].SetNumRows(num_elem_estimate);
-      (*ouvec.pipeline_features_)[0].SetCardinality(owned_.size());
-      (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    }
-    */
+    this->exec_ctx_->InvokeHook(post_hook, this->exec_ctx_, tls, reinterpret_cast<void*>(num_elem_estimate));
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
@@ -612,32 +594,15 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
     size_t num_tasks = tl_join_tables.size();
     auto estimate = std::min(num_threads, num_tasks);
     exec_ctx_->SetNumConcurrentEstimate(estimate);
-    tbb::parallel_for_each(tl_join_tables, [this](auto source) {
-      /*
-    brain::ExecOUFeatureVector ouvec;
-    if (has_pipeline) {
-      exec_ctx->RegisterThread();
-      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-      exec_ctx->StartPipelineTracker(pipeline_id);
-    }
-    */
+    tbb::parallel_for_each(tl_join_tables, [this, thread_state_container](auto source) {
+      auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+      auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+      auto *tls = thread_state_container->AccessCurrentThreadState();
+      this->exec_ctx_->InvokeHook(pre_hook, this->exec_ctx_, tls, nullptr);
 
-      // size_t size = source->entries_.size();
+      size_t size = source->entries_.size();
       MergeIncomplete<true>(source);
-
-      /*
-      if (has_pipeline) {
-        // Reach in and modify the feature directly
-        // Just set the cardinality to match # rows for now.
-        (*ouvec.pipeline_features_)[0].SetNumRows(size);
-        (*ouvec.pipeline_features_)[0].SetCardinality(size);
-        (*ouvec.pipeline_features_)[0].SetNumConcurrent(estimate);
-        exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-        if (exec_ctx->GetMetricsManager()) {
-          exec_ctx->GetMetricsManager()->Aggregate();
-        }
-      }
-      */
+      this->exec_ctx_->InvokeHook(post_hook, this->exec_ctx_, tls, reinterpret_cast<void*>(size));
     });
     exec_ctx_->SetNumConcurrentEstimate(0);
   }

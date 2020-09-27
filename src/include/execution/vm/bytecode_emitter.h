@@ -324,7 +324,7 @@ class BytecodeEmitter {
                              LocalVar exec_ctx, FunctionId scan_fn);
 
   /** Emit a register hook function. */
-  void EmitRegisterHook(LocalVar exec_ctx, FunctionId hook_fn);
+  void EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn);
 
   /** Reading values from an iterator. */
   void EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint32_t col_idx);

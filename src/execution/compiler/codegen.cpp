@@ -729,6 +729,18 @@ ast::Expr *CodeGen::FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr
   return call;
 }
 
+ast::Expr *CodeGen::ExecCtxRegisterHook(ast::Expr *exec_ctx, ast::Expr *hook_idx, ast::Identifier hook) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextRegisterHook, {exec_ctx, hook_idx, MakeExpr(hook)});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::ExecCtxInitHooks(ast::Expr *exec_ctx, ast::Expr *num_hooks) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextInitHooks, {exec_ctx, num_hooks});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows_affected) {
   ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextAddRowsAffected, {exec_ctx, Const64(num_rows_affected)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));

@@ -6,6 +6,7 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "execution/compiler/work_context.h"
+#include "execution/sql/join_hash_table.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -53,6 +54,13 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   num_build_rows_ = CounterDeclare("num_build_rows", &left_pipeline_);
   num_probe_rows_ = CounterDeclare("num_probe_rows", pipeline);
   num_match_rows_ = CounterDeclare("num_match_rows", pipeline);
+
+  if (left_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    parallel_build_pre_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(left_pipeline_.CreatePipelineFunctionName("PreHook"));
+    parallel_build_post_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(left_pipeline_.CreatePipelineFunctionName("PostHook"));
+  }
 }
 
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -65,6 +73,57 @@ void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl 
   ast::StructDecl *struct_decl = codegen->DeclareStruct(build_row_type_, std::move(fields));
   struct_decl_ = struct_decl;
   decls->push_back(struct_decl);
+}
+
+ast::FunctionDecl *HashJoinTranslator::GenerateStartHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &left_pipeline_;
+
+  util::RegionVector<ast::FieldDecl *> params = codegen->MakeFieldList({});
+  auto exec_ctx_id = codegen->MakeIdentifier("execCtx");
+  auto exec_ctx_type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::ExecutionContext));
+  params.push_back(codegen->MakeField(exec_ctx_id, exec_ctx_type));
+  params.push_back(pipeline->GetPipelineState());
+
+  auto override_value = codegen->MakeIdentifier("overrideValue");
+  auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  params.push_back(codegen->MakeField(override_value, int32_type));
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_build_pre_hook_fn_, std::move(params), ret_type);
+  { pipeline->InjectStartResourceTracker(&builder, true); }
+  return builder.Finish();
+}
+
+ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &left_pipeline_;
+
+  util::RegionVector<ast::FieldDecl *> params = codegen->MakeFieldList({});
+  auto exec_ctx_id = codegen->MakeIdentifier("execCtx");
+  auto exec_ctx_type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::ExecutionContext));
+  params.push_back(codegen->MakeField(exec_ctx_id, exec_ctx_type));
+  params.push_back(pipeline->GetPipelineState());
+
+  auto override_value = codegen->MakeIdentifier("overrideValue");
+  auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  params.push_back(codegen->MakeField(override_value, int32_type));
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
+  {
+    // FeatureRecord with the overrideValue
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  codegen->MakeExpr(override_value));
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+  }
+  return builder.Finish();
 }
 
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
@@ -88,6 +147,11 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
   if (IsLeftPipeline(pipeline)) {
     if (left_pipeline_.IsParallel()) {
       InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+
+      if (IsPipelineMetricsEnabled()) {
+        left_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
+        left_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
+      }
     }
   }
 
@@ -318,6 +382,15 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     ast::Expr *jht = global_join_ht_.GetPtr(codegen);
 
     if (left_pipeline_.IsParallel()) {
+      // Setup the hooks
+      auto *exec_ctx = GetExecutionContext();
+      auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::NUM_HOOKS));
+      auto *pre = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::StartHook));
+      auto *post = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::EndHook));
+      function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
+      function->Append(codegen->ExecCtxRegisterHook(exec_ctx, pre, parallel_build_pre_hook_fn_));
+      function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
+
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
       function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));

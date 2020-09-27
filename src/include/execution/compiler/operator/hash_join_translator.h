@@ -144,6 +144,9 @@ class HashJoinTranslator : public OperatorTranslator {
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
+  ast::FunctionDecl *GenerateStartHookFunction() const;
+  ast::FunctionDecl *GenerateEndHookFunction() const;
+
  private:
   // The name of the materialized row when inserting or probing into join hash
   // table.
@@ -169,6 +172,9 @@ class HashJoinTranslator : public OperatorTranslator {
 
   // Struct declaration for minirunner.
   ast::StructDecl *struct_decl_;
+
+  ast::Identifier parallel_build_pre_hook_fn_;
+  ast::Identifier parallel_build_post_hook_fn_;
 };
 
 }  // namespace terrier::execution::compiler
