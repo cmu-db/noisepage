@@ -85,7 +85,10 @@ class TestServer:
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
             # Kill any other terrier processes that our listening on our target port
-            run_kill_server(self.db_port)
+            try:
+                run_kill_server(self.db_port)
+            except:
+                return constants.ErrorCode.ERROR
 
             self.db_output_fd, self.db_process = start_db(
                 self.db_path, self.db_output_file)
