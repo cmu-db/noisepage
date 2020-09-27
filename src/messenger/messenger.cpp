@@ -165,17 +165,16 @@ class ZmqUtil {
 namespace terrier::messenger {
 
 ConnectionId::ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, const ConnectionDestination &target,
-                           std::optional<std::string_view> identity) {
+                           std::string_view identity) {
   // Create a new DEALER socket and connect to the server.
   socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx, ZMQ_DEALER);
-
-  if (identity.has_value()) {
-    socket_->setsockopt(ZMQ_ROUTING_ID, identity.value().data(), identity.value().size());
-  }
+  socket_->setsockopt(ZMQ_ROUTING_ID, identity.data(), identity.size());
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
 
   socket_->connect(target.GetDestination());
 }
+
+ConnectionId::~ConnectionId() = default;
 
 Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : messenger_logic_(messenger_logic) {
   // Create a ZMQ context. A ZMQ context abstracts away all of the in-process and networked sockets that ZMQ uses.
@@ -226,7 +225,8 @@ void Messenger::ListenForConnection(const ConnectionDestination &target) {
 }
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity) {
-  return ConnectionId(common::ManagedPointer(zmq_ctx_), target, identity);
+  const auto &identifier = identity.has_value() ? identity.value() : fmt::format("conn{}", connection_id_count_++);
+  return ConnectionId(common::ManagedPointer(zmq_ctx_), target, identifier);
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message) {
