@@ -283,22 +283,24 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
 
+    // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
+    // after issue #1154 is fixed
     // Let the operators perform some initialization work in this pipeline.
-    for (auto op : steps_) {
-      op->BeginPipelineWork(*this, &builder);
+    for (auto iter = Begin(), end = End(); iter != end; ++iter) {
+      (*iter)->BeginPipelineWork(*this, &builder);
     }
+
+    // var pipelineState = @tlsGetCurrentThreadState(...)
+    auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
+    auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
+    auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
+    builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
 
     // Launch pipeline work.
     if (IsParallel()) {
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
-      auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-      auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
-      auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
-      // var pipelineState = @tlsGetCurrentThreadState(...)
       // SerialWork(queryState, pipelineState)
-      builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
-
       InjectStartResourceTracker(&builder, false);
       started_tracker = true;
 
@@ -306,9 +308,11 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() {
           codegen_->Call(GetWorkFunctionName(), {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)}));
     }
 
+    // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
+    // after issue #1154 is fixed
     // Let the operators perform some completion work in this pipeline.
-    for (auto op : steps_) {
-      op->FinishPipelineWork(*this, &builder);
+    for (auto iter = Begin(), end = End(); iter != end; ++iter) {
+      (*iter)->FinishPipelineWork(*this, &builder);
     }
 
     if (started_tracker) {

@@ -214,9 +214,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
 
 void InputColumnDeriver::Visit(const InnerHashJoin *op) { JoinHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {
-  TERRIER_ASSERT(0, "LeftHashJoin not supported");
-}
+void InputColumnDeriver::Visit(const LeftHashJoin *op) { JoinHelper(op); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {
   TERRIER_ASSERT(0, "RightHashJoin not supported");
@@ -360,6 +358,11 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
   if (op->GetOpType() == OpType::INNERHASHJOIN) {
     auto join_op = reinterpret_cast<const InnerHashJoin *>(op);
+    join_conds = join_op->GetJoinPredicates();
+    left_keys = join_op->GetLeftKeys();
+    right_keys = join_op->GetRightKeys();
+  } else if (op->GetOpType() == OpType::LEFTHASHJOIN) {
+    auto join_op = reinterpret_cast<const LeftHashJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
     left_keys = join_op->GetLeftKeys();
     right_keys = join_op->GetRightKeys();
