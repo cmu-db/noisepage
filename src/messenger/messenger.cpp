@@ -119,7 +119,7 @@ class ZmqUtil {
   /** @return The routing ID of the socket. */
   static std::string GetRoutingId(common::ManagedPointer<zmq::socket_t> socket) {
     char buf[MAX_ROUTING_ID_LEN];
-    size_t routing_id_len;
+    size_t routing_id_len = MAX_ROUTING_ID_LEN;
     socket->getsockopt(ZMQ_ROUTING_ID, &buf, &routing_id_len);
     return std::string(buf, routing_id_len);
   }
