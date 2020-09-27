@@ -164,6 +164,9 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // For minirunners.
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
+  ast::FunctionDecl *GenerateStartHookFunction() const;
+  ast::FunctionDecl *GenerateEndHookFunction() const;
+
  private:
   friend class brain::OperatingUnitRecorder;
   // The name of the variable used to:
@@ -198,6 +201,9 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
 
   // The number of rows in the agg hash table at end of previous task
   StateDescriptor::Entry agg_count_;
+
+  ast::Identifier parallel_build_pre_hook_fn_;
+  ast::Identifier parallel_build_post_hook_fn_;
 };
 
 }  // namespace terrier::execution::compiler

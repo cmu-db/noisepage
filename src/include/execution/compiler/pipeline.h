@@ -171,8 +171,6 @@ class Pipeline {
    */
   util::RegionVector<ast::FieldDecl *> PipelineParams() const;
 
-  ast::FieldDecl *GetPipelineState() const;
-
   /**
    * @return A unique name for a function local to this pipeline.
    */

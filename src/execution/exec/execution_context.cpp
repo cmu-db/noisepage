@@ -161,15 +161,12 @@ void ExecutionContext::RegisterHook(size_t hook_idx, HookFn hook) {
   hooks_[hook_idx] = hook;
 }
 
-void ExecutionContext::InvokeHook(size_t hookIndex, void *exec_ctx, void *tls, void *arg) {
-  TERRIER_ASSERT(hookIndex < hooks_.size(), "Invoking unknown hook");
-  if (hooks_[hookIndex] != nullptr) {
-    hooks_[hookIndex](exec_ctx, tls, arg);
+void ExecutionContext::InvokeHook(size_t hookIndex, void *tls, void *arg) {
+  if (hookIndex < hooks_.size() && hooks_[hookIndex] != nullptr) {
+    hooks_[hookIndex](this->query_state_, tls, arg);
   }
 }
 
-void ExecutionContext::InitHooks(size_t num_hooks) {
-  hooks_.resize(num_hooks);
-}
+void ExecutionContext::InitHooks(size_t num_hooks) { hooks_.resize(num_hooks); }
 
 }  // namespace terrier::execution::exec

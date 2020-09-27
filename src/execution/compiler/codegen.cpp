@@ -735,6 +735,12 @@ ast::Expr *CodeGen::ExecCtxRegisterHook(ast::Expr *exec_ctx, ast::Expr *hook_idx
   return call;
 }
 
+ast::Expr *CodeGen::ExecCtxClearHooks(ast::Expr *exec_ctx) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextClearHooks, {exec_ctx});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 ast::Expr *CodeGen::ExecCtxInitHooks(ast::Expr *exec_ctx, ast::Expr *num_hooks) {
   ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextInitHooks, {exec_ctx, num_hooks});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));

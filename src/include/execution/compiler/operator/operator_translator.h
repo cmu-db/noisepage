@@ -317,6 +317,9 @@ class OperatorTranslator : public ColumnValueProvider {
   void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
                                   execution::translator_id_t translator_id, ast::Expr *val) const;
 
+  util::RegionVector<ast::FieldDecl *> GetHookParams(const Pipeline &pipeline, ast::Identifier *arg,
+                                                     ast::Expr *arg_type) const;
+
  private:
   // For mini-runner stuff.
   friend class Pipeline;

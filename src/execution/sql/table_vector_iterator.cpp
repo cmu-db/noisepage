@@ -157,38 +157,9 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   exec_ctx->SetNumConcurrentEstimate(0);
   timer.Stop();
 
-  /*
-  // Register a CREATE_INDEX_MAIN for the memory
-  bool is_create_idx = false;
-  if (exec_ctx->GetPipelineOperatingUnits() &&
-      exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id)) {
-    brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
-    for (auto &feature : *ouvec.pipeline_features_) {
-      if (feature.GetExecutionOperatingUnitType() == brain::ExecutionOperatingUnitType::CREATE_INDEX) {
-        is_create_idx = true;
-        break;
-      }
-    }
-  }
-
-  if (is_create_idx && common::thread_context.metrics_store_ != nullptr) {
-    brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    auto index = exec_ctx->GetAccessor()->GetIndex(index_oid);
-    size_t tuples = index->GetSize();
-    (*ouvec.pipeline_features_)[0].SetNumRows(tuples);
-
-    // Without more significant overhead, we actually don't have the cardinality
-    // of the input tuples. As an unfortunate approximation, we just use the
-    // number of tuples inserted into the index.
-    (*ouvec.pipeline_features_)[0].SetCardinality(tuples);
-    (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-    exec_ctx->SetMemoryUseOverride(index->EstimateHeapUsage());
-    exec_ctx->StartPipelineTracker(pipeline_id);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-  }
-  */
+  auto *tsc = exec_ctx->GetThreadStateContainer();
+  auto *tls = tsc->AccessCurrentThreadState();
+  exec_ctx->InvokeHook(static_cast<uint32_t>(HookOffsets::EndHook), tls, nullptr);
 
   double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),

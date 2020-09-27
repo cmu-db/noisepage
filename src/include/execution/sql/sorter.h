@@ -71,6 +71,16 @@ class VectorProjectionIterator;
  */
 class EXPORT Sorter {
  public:
+  enum class HookOffsets : uint32_t {
+    StartTLSortHook = 0,
+    StartTLMergeHook,
+    EndTLSortHook,
+    EndTLMergeHook,
+    EndSingleSorterHook,
+
+    NUM_HOOKS
+  };
+
   /**
    * Minimum number of tuples to have before using a parallel sort. We use a smaller value in DEBUG
    * mode to reduce runtime of tests by not requiring large Sorters when testing parallel sorts.
@@ -142,7 +152,7 @@ class EXPORT Sorter {
    * @param thread_state_container The container holding all thread-local sorter instances.
    * @param sorter_offset The offset into the container where the sorter instance is.
    */
-  void SortParallel(const ThreadStateContainer *thread_state_container, std::size_t sorter_offset);
+  void SortParallel(ThreadStateContainer *thread_state_container, std::size_t sorter_offset);
 
   /**
    * Perform a parallel Top-K of all sorter instances stored in the thread state container object.
@@ -153,7 +163,7 @@ class EXPORT Sorter {
    * @param sorter_offset The offset into the container where the sorter instance is.
    * @param top_k The number entries at the top the caller cares for.
    */
-  void SortTopKParallel(const ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
+  void SortTopKParallel(ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
 
   /**
    * @return The number of tuples currently in this sorter.

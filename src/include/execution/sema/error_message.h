@@ -78,7 +78,7 @@ namespace sema {
     "received '%0'",                                                                                                  \
     (ast::Type *))                                                                                                    \
   F(BadHookFunction,                                                                                                  \
-    "hook function must have type (*ExecutionContext, *TLS, *)->nil, "                                                \
+    "hook function must have type (*QueryState, *TLS, *)->nil, "                                                      \
     "received '%0'",                                                                                                  \
     (ast::Type *))                                                                                                    \
   F(BadKeyEqualityCheckFunctionForJoinTableLookup,                                                                    \

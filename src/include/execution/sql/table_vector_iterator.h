@@ -25,6 +25,12 @@ class ThreadStateContainer;
  */
 class EXPORT TableVectorIterator {
  public:
+  enum class HookOffsets : uint32_t {
+    EndHook = 0,
+
+    NUM_HOOKS
+  };
+
   /**
    * Minimum block range
    */

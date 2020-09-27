@@ -107,10 +107,12 @@ namespace terrier::execution::vm {
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local,                   \
     OperandType::Local)                                                                                               \
   F(ExecutionContextInitHooks, OperandType::Local, OperandType::Local)                                                \
-  F(ExecutionContextRegisterHook, OperandType::Local, OperandType::Local, OperandType::FunctionId)                                        \
+  F(ExecutionContextRegisterHook, OperandType::Local, OperandType::Local, OperandType::FunctionId)                    \
+  F(ExecutionContextClearHooks, OperandType::Local)                                                                   \
   F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
     OperandType::Local, OperandType::Local)                                                                           \
   F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
+  F(ExecOUFeatureVectorFilter, OperandType::Local, OperandType::Local)                                                \
   F(ExecOUFeatureVectorDestroy, OperandType::Local)                                                                   \
                                                                                                                       \
   F(RegisterMetricsThread, OperandType::Local)                                                                        \

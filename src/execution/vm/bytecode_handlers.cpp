@@ -1,5 +1,6 @@
 #include "execution/vm/bytecode_handlers.h"
 
+#include "brain/brain_defs.h"
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/index_iterator.h"
@@ -263,14 +264,14 @@ void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { 
 
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
-void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx,
-            uint32_t hook_idx,
+void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t hook_idx,
                                     terrier::execution::exec::ExecutionContext::HookFn hook) {
   exec_ctx->RegisterHook(hook_idx, hook);
 }
 
-void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx,
-                                 uint32_t num_hooks) {
+void OpExecutionContextClearHooks(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->ClearHooks(); }
+
+void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_hooks) {
   exec_ctx->InitHooks(num_hooks);
 }
 
@@ -304,5 +305,21 @@ void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext 
 }
 
 void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Destroy(); }
+
+void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                            uint32_t memory_use) {
+  exec_ctx->SetMemoryUseOverride(memory_use);
+}
+
+void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouvec,
+                                 terrier::brain::ExecutionOperatingUnitType filter) {
+  ouvec->pipeline_features_->erase(
+      std::remove_if(ouvec->pipeline_features_->begin(), ouvec->pipeline_features_->end(),
+                     [filter](const auto &feature) {
+                       return (filter != terrier::brain::ExecutionOperatingUnitType::INVALID) &&
+                              (filter != feature.GetExecutionOperatingUnitType());
+                     }),
+      ouvec->pipeline_features_->end());
+}
 
 }  //

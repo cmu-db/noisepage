@@ -92,15 +92,10 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
 void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook) const {
   if (compilation_context_->IsPipelineMetricsEnabled()) {
     auto *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-    if (is_hook) {
-      // ExecutionContext is first argument of hook function
-      exec_ctx = builder->GetParameterByPosition(0);
-    }
 
     // Initialize the feature vector, register and start tracker
-    std::vector<ast::Expr *> args{exec_ctx,
-                                  oufeatures_.GetPtr(codegen_), codegen_->Const64(GetPipelineId().UnderlyingValue()),
-                                  codegen_->ConstBool(is_hook)};
+    std::vector<ast::Expr *> args{exec_ctx, oufeatures_.GetPtr(codegen_),
+                                  codegen_->Const64(GetPipelineId().UnderlyingValue()), codegen_->ConstBool(is_hook)};
     auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorInitialize, args);
     builder->Append(codegen_->MakeStmt(call));
 
@@ -118,10 +113,6 @@ void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook
 void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id, bool is_hook) const {
   if (compilation_context_->IsPipelineMetricsEnabled()) {
     auto *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-    if (is_hook) {
-      // ExecutionContext is first argument of hook function
-      exec_ctx = builder->GetParameterByPosition(0);
-    }
 
     // Inject EndPipelineTracker();
     std::vector<ast::Expr *> args = {exec_ctx};
@@ -147,11 +138,6 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
   ast::Expr *pipeline_state = codegen_->PointerType(codegen_->MakeExpr(state_.GetTypeName()));
   query_params.push_back(codegen_->MakeField(state_var_, pipeline_state));
   return query_params;
-}
-
-ast::FieldDecl *Pipeline::GetPipelineState() const {
-  ast::Expr *pipeline_state = codegen_->PointerType(codegen_->MakeExpr(state_.GetTypeName()));
-  return codegen_->MakeField(state_var_, pipeline_state);
 }
 
 void Pipeline::LinkSourcePipeline(Pipeline *dependency) {

@@ -40,13 +40,15 @@ namespace terrier::execution::ast {
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
   F(ExecutionContextRegisterHook, execCtxRegisterHook)                  \
-  F(ExecutionContextInitHooks, execCtxInitHooks)                  \
+  F(ExecutionContextClearHooks, execCtxClearHooks)                      \
+  F(ExecutionContextInitHooks, execCtxInitHooks)                        \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
   F(ThreadStateContainerClear, tlsClear)                                \
   F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
   F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
+  F(ExecOUFeatureVectorFilter, execOUFeatureVectorFilter)               \
   F(ExecOUFeatureVectorDestroy, execOUFeatureVectorDestroy)             \
                                                                         \
   /* Table scans */                                                     \

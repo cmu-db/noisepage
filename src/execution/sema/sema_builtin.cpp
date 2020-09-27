@@ -836,6 +836,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
+    case ast::Builtin::ExecutionContextClearHooks:
       expected_arg_count = 1;
       break;
     case ast::Builtin::ExecutionContextAddRowsAffected:
@@ -890,6 +891,13 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
 
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecutionContextClearHooks: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -3057,6 +3065,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::AggregateMetricsThread:
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextClearHooks:
     case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -3067,6 +3076,21 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndPipelineTracker:
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       CheckBuiltinExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorFilter: {
+      const auto &call_args = call->Arguments();
+      auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
+      if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), ou_kind)) {
+        ReportIncorrectCallArg(call, 0, GetBuiltinType(ou_kind)->PointerTo());
+        return;
+      }
+      // Filter
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::ExecOUFeatureVectorDestroy: {

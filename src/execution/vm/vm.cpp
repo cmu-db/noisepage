@@ -483,6 +483,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextClearHooks) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpExecutionContextClearHooks(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextInitHooks) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
@@ -552,6 +558,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto is_parallel = frame->LocalAt<bool>(READ_LOCAL_ID());
     OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id, is_parallel);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecOUFeatureVectorFilter) : {
+    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    auto type = static_cast<brain::ExecutionOperatingUnitType>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    OpExecOUFeatureVectorFilter(ouvec, type);
     DISPATCH_NEXT();
   }
 

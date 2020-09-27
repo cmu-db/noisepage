@@ -85,6 +85,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:
   // Initialization for serial and parallel
@@ -133,5 +134,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   // The number of rows that are inserted.
   StateDescriptor::Entry num_inserts_;
+
+  ast::Identifier parallel_build_post_hook_fn_;
 };
 }  // namespace terrier::execution::compiler

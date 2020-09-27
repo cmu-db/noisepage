@@ -111,6 +111,11 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
+  ast::FunctionDecl *GenerateStartTLHookFunction(bool is_sort) const;
+  ast::FunctionDecl *GenerateEndTLSortHookFunction() const;
+  ast::FunctionDecl *GenerateEndTLMergeHookFunction() const;
+  ast::FunctionDecl *GenerateEndSingleSorterHookFunction() const;
+
  private:
   friend class brain::OperatingUnitRecorder;
 
@@ -165,6 +170,12 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry num_sort_build_rows_;
   // The number of rows that are iterated over by the sorter.
   StateDescriptor::Entry num_sort_iterate_rows_;
+
+  ast::Identifier parallel_starttlsort_hook_fn_;
+  ast::Identifier parallel_starttlmerge_hook_fn_;
+  ast::Identifier parallel_endtlsort_hook_fn_;
+  ast::Identifier parallel_endtlmerge_hook_fn_;
+  ast::Identifier parallel_endsinglesorter_hook_fn_;
 };
 
 }  // namespace terrier::execution::compiler

@@ -752,6 +752,13 @@ class CodeGen {
   [[nodiscard]] ast::Expr *ExecCtxRegisterHook(ast::Expr *exec_ctx, ast::Expr *hook_idx, ast::Identifier hook);
 
   /**
+   * Call \@execCtxClearHooks(exec_ctx).
+   * @param exec_ctx The execution context to modify.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxClearHooks(ast::Expr *exec_ctx);
+
+  /**
    * Call \@execCtxInitHooks(exec_ctx, num_hooks).
    * @param exec_ctx The execution context to modify.
    * @param num_hooks Number of hooks

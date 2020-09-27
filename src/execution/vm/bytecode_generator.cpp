@@ -1611,6 +1611,10 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->EmitRegisterHook(exec_ctx, hook_idx, LookupFuncIdByName(hook_fn_name.GetData()));
       break;
     }
+    case ast::Builtin::ExecutionContextClearHooks: {
+      GetEmitter()->Emit(Bytecode::ExecutionContextClearHooks, exec_ctx);
+      break;
+    }
     case ast::Builtin::ExecutionContextInitHooks: {
       auto num_hooks = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextInitHooks, exec_ctx, num_hooks);
@@ -2504,6 +2508,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::ExecutionContextAddRowsAffected:
     case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextClearHooks:
     case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
@@ -2514,6 +2519,12 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndPipelineTracker:
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       VisitExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorFilter: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar filter = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorFilter, ouvector, filter);
       break;
     }
     case ast::Builtin::ExecOUFeatureVectorDestroy: {

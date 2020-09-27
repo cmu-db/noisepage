@@ -538,15 +538,10 @@ void AggregationHashTable::ProcessBatch(VectorProjectionIterator *input_batch, c
 
 void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                                        MergePartitionFn merge_partition_fn) {
-  /*
-  bool has_pipeline =
-      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
-  brain::ExecOUFeatureVector ouvec;
-  if (has_pipeline) {
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    exec_ctx->StartPipelineTracker(pipeline_id);
-  }
-  */
+  auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+  auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+  auto *tls = thread_states->AccessCurrentThreadState();
+  exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
   // Set the partition merging function. This function tells us how to merge a
   // set of overflow partitions into an AggregationHashTable.
@@ -558,7 +553,6 @@ void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thr
 
   // If, by chance, we have some un-flushed aggregate data, flush it out now to
   // ensure partitioned build captures it.
-  size_t tuple_count = stats_.num_inserts_;
   if (GetTupleCount() > 0) {
     FlushToOverflowPartitions();
   }
@@ -570,7 +564,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thr
   for (auto *table : tl_agg_ht) {
     // Flush each table to ensure their hash tables are empty and their overflow
     // partitions contain all partial aggregates
-    tuple_count += table->stats_.num_inserts_;
+    stats_.num_inserts_ += table->stats_.num_inserts_;
     table->FlushToOverflowPartitions();
 
     // Now, move over their memory
@@ -595,16 +589,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thr
     }
   }
 
-  /*
-  if (has_pipeline) {
-    // Set # rows to be total number of entries in all agg tables
-    // Set cardinality to be # of per-task tables being built from
-    (*ouvec.pipeline_features_)[0].SetNumRows(tuple_count);
-    (*ouvec.pipeline_features_)[0].SetCardinality(tl_agg_ht.size());
-    (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-  }
-  */
+  exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(tl_agg_ht.size()));
 }
 
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,

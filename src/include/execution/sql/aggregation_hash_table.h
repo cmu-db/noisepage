@@ -45,6 +45,13 @@ class AHTOverflowPartitionIterator;
  */
 class EXPORT AggregationHashTable {
  public:
+  enum class HookOffsets : uint32_t {
+    StartHook = 0,
+    EndHook,
+
+    NUM_HOOKS
+  };
+
   /** The default load factor we allow the hash table to reach before resizing. */
   static constexpr const float DEFAULT_LOAD_FACTOR = 0.7f;
 

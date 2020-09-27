@@ -10,6 +10,7 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/work_context.h"
 #include "execution/sql/ddl_executors.h"
+#include "execution/sql/table_vector_iterator.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -51,6 +52,11 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   local_tuple_slot_ = pipeline->DeclarePipelineStateEntry("local_tuple_slot", tuple_slot_type);
 
   num_inserts_ = CounterDeclare("num_inserts", pipeline);
+
+  if (GetPipeline()->IsParallel() && IsPipelineMetricsEnabled()) {
+    parallel_build_post_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("PostHook"));
+  }
 }
 
 void IndexCreateTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -92,6 +98,10 @@ void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, Fu
   // Thread local member
   InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
   DeclareIndexPR(function);
+
+  if (pipeline.IsParallel() && IsPipelineMetricsEnabled()) {
+    pipeline.DeclareTLSDependentFunction(GenerateEndHookFunction());
+  }
 }
 
 void IndexCreateTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -106,8 +116,21 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
 }
 
 void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
+  auto *exec_ctx = GetExecutionContext();
+  auto *codegen = GetCodeGen();
+  if (IsPipelineMetricsEnabled()) {
+    auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::TableVectorIterator::HookOffsets::NUM_HOOKS));
+    auto *post = codegen->Const32(static_cast<int32_t>(sql::TableVectorIterator::HookOffsets::EndHook));
+    function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
+    function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
+  }
+
   function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
-                                                      GetExecutionContext(), work_func));
+                                                      exec_ctx, work_func));
+
+  if (IsPipelineMetricsEnabled()) {
+    function->Append(codegen->ExecCtxClearHooks(exec_ctx));
+  }
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -255,6 +278,39 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
+}
+
+ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = GetPipeline();
+  auto params = GetHookParams(*pipeline, nullptr, nullptr);
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
+  {
+    auto *exec_ctx = GetExecutionContext();
+    pipeline->InjectStartResourceTracker(&builder, true);
+
+    auto num_tuples = codegen->MakeFreshIdentifier("num_tuples");
+    auto *idx_size = codegen->CallBuiltin(ast::Builtin::IndexGetSize, {local_storage_interface_.GetPtr(codegen_)});
+    builder.Append(codegen->DeclareVarWithInit(num_tuples, idx_size));
+
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
+
+    auto heap = codegen->MakeFreshIdentifier("heap_size");
+    auto *heap_size = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,
+                                           {local_storage_interface_.GetPtr(codegen_)});
+    builder.Append(codegen->DeclareVarWithInit(heap, heap_size));
+    builder.Append(
+        codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {exec_ctx, codegen->MakeExpr(heap)}));
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+  }
+  return builder.Finish();
 }
 
 }  // namespace terrier::execution::compiler

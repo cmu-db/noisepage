@@ -206,12 +206,12 @@ VM_OP_HOT void OpExecutionContextAddRowsAffected(terrier::execution::exec::Execu
   exec_ctx->AddRowsAffected(rows_affected);
 }
 
-VM_OP_COLD void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx,
-    uint32_t hook_idx,
+VM_OP_COLD void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t hook_idx,
                                                terrier::execution::exec::ExecutionContext::HookFn hook);
 
-VM_OP_COLD void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx,
-                                            uint32_t num_hooks);
+VM_OP_COLD void OpExecutionContextClearHooks(terrier::execution::exec::ExecutionContext *exec_ctx);
+
+VM_OP_COLD void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_hooks);
 
 VM_OP_WARM void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPool **const memory,
                                                 terrier::execution::exec::ExecutionContext *const exec_ctx) {
@@ -223,10 +223,8 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
   exec_ctx->StartResourceTracker(component);
 }
 
-VM_OP_HOT void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                                      uint32_t memory_use) {
-  exec_ctx->SetMemoryUseOverride(memory_use);
-}
+VM_OP_COLD void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                                       uint32_t memory_use);
 
 VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
@@ -250,6 +248,9 @@ VM_OP_COLD void OpExecOUFeatureVectorRecordFeature(
 VM_OP_COLD void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                                 terrier::brain::ExecOUFeatureVector *const ouvec,
                                                 terrier::execution::pipeline_id_t pipeline_id, bool is_parallel);
+
+VM_OP_COLD void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouvec,
+                                            terrier::brain::ExecutionOperatingUnitType filter);
 
 VM_OP_COLD void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec);
 

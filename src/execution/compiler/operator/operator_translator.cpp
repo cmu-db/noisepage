@@ -229,4 +229,20 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
   }
 }
 
+util::RegionVector<ast::FieldDecl *> OperatorTranslator::GetHookParams(const Pipeline &pipeline, ast::Identifier *arg,
+                                                                       ast::Expr *arg_type) const {
+  auto *codegen = GetCodeGen();
+
+  auto params = pipeline.PipelineParams();
+  if (arg != nullptr) {
+    params.push_back(codegen->MakeField(*arg, arg_type));
+  } else {
+    ast::Identifier dummy = codegen->MakeIdentifier("dummyArg");
+    auto *type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::Nil));
+    params.push_back(codegen->MakeField(dummy, type));
+  }
+
+  return params;
+}
+
 }  // namespace terrier::execution::compiler

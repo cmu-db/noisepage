@@ -37,7 +37,7 @@ class EXPORT ExecutionContext {
  public:
   /**
    * Hook Function
-   * Convention: First argument is the execution context.
+   * Convention: First argument is the query state.
    *             second argument is the thread state.
    *             Third is opaque function argument.
    */
@@ -255,12 +255,15 @@ class EXPORT ExecutionContext {
     memory_use_override_value_ = memory_use;
   }
 
+  void SetQueryState(void *query_state) { query_state_ = query_state; }
+
   void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
   uint32_t GetNumConcurrentEstimate() const { return num_concurrent_estimate_; }
 
-  void InvokeHook(size_t hookIndex, void *exec_ctx, void *tls, void *arg);
+  void InvokeHook(size_t hookIndex, void *tls, void *arg);
   void RegisterHook(size_t hook_idx, HookFn hook);
   void InitHooks(size_t num_hooks);
+  void ClearHooks() { hooks_.clear(); }
 
  private:
   query_id_t query_id_{execution::query_id_t(0)};
@@ -289,5 +292,6 @@ class EXPORT ExecutionContext {
   uint32_t memory_use_override_value_ = 0;
   uint32_t num_concurrent_estimate_ = 0;
   std::vector<HookFn> hooks_{};
+  void *query_state_;
 };
 }  // namespace terrier::execution::exec

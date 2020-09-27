@@ -115,6 +115,8 @@ class ExecutionOperatingUnitFeature {
 
   /**
    * Constructor for ExecutionOperatingUnitFeature from an existing feature
+   * @note Does not copy num_rows, cardinality
+   *
    * @param feature Newly created OU type
    * @param other Existing OU to copy information from
    */
@@ -122,10 +124,10 @@ class ExecutionOperatingUnitFeature {
       : translator_id_(other.translator_id_),
         feature_id_(other.feature_id_),
         feature_(feature),
-        num_rows_(other.num_rows_),
+        num_rows_(0),
         key_size_(other.key_size_),
         num_keys_(other.num_keys_),
-        cardinality_(other.cardinality_),
+        cardinality_(0),
         mem_factors_(other.mem_factors_),
         num_loops_(other.num_loops_),
         num_concurrent_(other.num_concurrent_) {}

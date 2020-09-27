@@ -79,16 +79,7 @@ ast::FunctionDecl *HashJoinTranslator::GenerateStartHookFunction() const {
   auto *codegen = GetCodeGen();
   auto *pipeline = &left_pipeline_;
 
-  util::RegionVector<ast::FieldDecl *> params = codegen->MakeFieldList({});
-  auto exec_ctx_id = codegen->MakeIdentifier("execCtx");
-  auto exec_ctx_type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::ExecutionContext));
-  params.push_back(codegen->MakeField(exec_ctx_id, exec_ctx_type));
-  params.push_back(pipeline->GetPipelineState());
-
-  auto override_value = codegen->MakeIdentifier("overrideValue");
-  auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  params.push_back(codegen->MakeField(override_value, int32_type));
-
+  auto params = GetHookParams(left_pipeline_, nullptr, nullptr);
   auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
   FunctionBuilder builder(codegen, parallel_build_pre_hook_fn_, std::move(params), ret_type);
   { pipeline->InjectStartResourceTracker(&builder, true); }
@@ -99,15 +90,9 @@ ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
   auto *codegen = GetCodeGen();
   auto *pipeline = &left_pipeline_;
 
-  util::RegionVector<ast::FieldDecl *> params = codegen->MakeFieldList({});
-  auto exec_ctx_id = codegen->MakeIdentifier("execCtx");
-  auto exec_ctx_type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::ExecutionContext));
-  params.push_back(codegen->MakeField(exec_ctx_id, exec_ctx_type));
-  params.push_back(pipeline->GetPipelineState());
-
   auto override_value = codegen->MakeIdentifier("overrideValue");
   auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  params.push_back(codegen->MakeField(override_value, int32_type));
+  auto params = GetHookParams(left_pipeline_, &override_value, int32_type);
 
   auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
   FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
@@ -382,18 +367,25 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     ast::Expr *jht = global_join_ht_.GetPtr(codegen);
 
     if (left_pipeline_.IsParallel()) {
-      // Setup the hooks
-      auto *exec_ctx = GetExecutionContext();
-      auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::NUM_HOOKS));
-      auto *pre = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::StartHook));
-      auto *post = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::EndHook));
-      function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
-      function->Append(codegen->ExecCtxRegisterHook(exec_ctx, pre, parallel_build_pre_hook_fn_));
-      function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
+      if (IsPipelineMetricsEnabled()) {
+        // Setup the hooks
+        auto *exec_ctx = GetExecutionContext();
+        auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::NUM_HOOKS));
+        auto *pre = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::StartHook));
+        auto *post = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::EndHook));
+        function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, pre, parallel_build_pre_hook_fn_));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
+      }
 
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
       function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));
+
+      if (IsPipelineMetricsEnabled()) {
+        auto *exec_ctx = GetExecutionContext();
+        function->Append(codegen->ExecCtxClearHooks(exec_ctx));
+      }
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
       RecordCounters(pipeline, function);
