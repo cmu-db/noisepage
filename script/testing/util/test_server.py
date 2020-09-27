@@ -156,12 +156,14 @@ class TestServer:
         if self.db_process.returncode is not None:
             # Db terminated already
             print_output(self.db_output_file)
-            LOG.error("DB terminated with return code {}".format(
-                self.db_process.returncode))
+            msg = "DB terminated with return code {}".format(
+                self.db_process.returncode)
+            raise RuntimeError(msg)
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
         self.db_process = None
+        self.db_output_fd = None
         return
 
     def restart_db(self):
@@ -216,10 +218,18 @@ class TestServer:
         """ Execute all the tests in the test suite """
         test_suite_ret_vals = {}
         for test_case in test_suite:
-            if test_case.db_restart:
-                self.restart_db()
-            elif not self.db_process:
-                self.run_db()
+            try:
+                # catch the exception from run_db(), stop_db(), and restart_db()
+                # in case the db is unable to start/stop/restart
+                if test_case.db_restart:
+                    self.restart_db()
+                elif not self.db_process:
+                    self.run_db()
+            except:
+                traceback.print_exc(file=sys.stdout)
+                test_suite_ret_vals[test_case] = constants.ErrorCode.ERROR
+                # early termination in case of db is unable to start/stop/restart
+                break
 
             try:
                 test_case_ret_val = self.run_test(test_case)
