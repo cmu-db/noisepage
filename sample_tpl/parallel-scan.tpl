@@ -36,7 +36,7 @@ fun pipeline1_finalize(qs: *State, ts: *ThreadState_1) -> nil {
     qs.count = qs.count + ts.count
 }
 
-fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator, concurrent: uint32) -> nil {
+fun pipeline1_worker(query_state: *State, state: *ThreadState_1, tvi: *TableVectorIterator) -> nil {
     var filter = &state.filter
     for (@tableIterAdvance(tvi)) {
         var vpi = @tableIterGetVPI(tvi)
@@ -62,7 +62,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     table_oid = @testCatalogLookup(execCtx, "test_1", "")
     var col_oids: [1]uint32
     col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker, 0, 0)
+    @iterateTableParallel(table_oid, col_oids, state, execCtx, pipeline1_worker)
 
     // Collect results
     @tlsIterate(tls, state, pipeline1_finalize)

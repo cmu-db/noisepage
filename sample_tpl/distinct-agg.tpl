@@ -24,7 +24,7 @@ fun distinctKeyCheck(old: *DistinctEntry, new: *Values) -> bool {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggInit(&state.sum)
-  @aggHTInit(&state.distinct_table, execCtx, @execCtxGetMem(execCtx), @sizeOf(DistinctEntry))
+  @aggHTInit(&state.distinct_table, execCtx, @sizeOf(DistinctEntry))
   state.count = 0
 }
 

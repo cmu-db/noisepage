@@ -13,7 +13,7 @@ struct Agg {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
     state.count = 0
-    @aggHTInit(&state.table, execCtx, @execCtxGetMem(execCtx), @sizeOf(Agg))
+    @aggHTInit(&state.table, execCtx, @sizeOf(Agg))
 }
 
 fun tearDownState(state: *State) -> nil {

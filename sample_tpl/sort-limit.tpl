@@ -20,7 +20,7 @@ fun compareFn(lhs: *Row, rhs: *Row) -> int32 {
 }
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
-    @sorterInit(&state.sorter, @execCtxGetMem(execCtx), compareFn, @sizeOf(Row))
+    @sorterInit(&state.sorter, execCtx, compareFn, @sizeOf(Row))
     state.count = 0
 }
 
