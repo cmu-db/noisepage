@@ -151,18 +151,16 @@ class TestServer:
 
         # get exit code, if any
         self.db_process.poll()
+        self.db_output_fd.flush()
+        self.db_output_fd.close()
         if self.db_process.returncode is not None:
             # Db terminated already
-            self.db_output_fd.close()
             print_output(self.db_output_file)
-            msg = "DB terminated with return code {}".format(
-                self.db_process.returncode)
-            if self.db_process.returncode != ErrorCode.SUCCESS:
-                raise RuntimeError(msg)
+            LOG.error("DB terminated with return code {}".format(
+                self.db_process.returncode))
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
-            self.db_output_fd.close()
         self.db_process = None
         return
 
