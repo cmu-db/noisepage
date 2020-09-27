@@ -68,9 +68,7 @@ void TerrierServer::RegisterSocket() {
       }
 
       sun.sun_family = AF_UNIX;
-      const char *socket_path_cstr = socket_path.c_str();
-      auto min_len = std::min(sizeof(sun.sun_path), strlen(socket_path_cstr));
-      std::memcpy(sun.sun_path, socket_path_cstr, min_len);
+      socket_path.copy(sun.sun_path, sizeof(sun.sun_path));
 
       return sun;
     }

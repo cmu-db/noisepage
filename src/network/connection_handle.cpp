@@ -119,15 +119,14 @@ ConnectionHandle::StateMachine::TransitionResult ConnectionHandle::StateMachine:
   // clang-format on
 }
 
-void ConnectionHandle::StateMachine::Accept(Transition action,
-                                            const common::ManagedPointer<ConnectionHandle> connection) {
+void ConnectionHandle::StateMachine::Accept(Transition action, const common::ManagedPointer<ConnectionHandle> handle) {
   Transition next = action;
   // Transition until there are no more transitions.
   while (next != Transition::NONE) {
     TransitionResult result = Delta(current_state_, next);
     current_state_ = result.first;
     try {
-      next = result.second(connection);
+      next = result.second(handle);
     } catch (const NetworkProcessException &e) {
       // If an error occurs, the error is logged and the connection is terminated.
       NETWORK_LOG_ERROR("{0}\n", e.what());
@@ -147,7 +146,7 @@ ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<Connectio
   context_.SetConnectionID(static_cast<connection_id_t>(sock_fd));
 }
 
-ConnectionHandle::~ConnectionHandle() { context_.Reset(); }
+ConnectionHandle::~ConnectionHandle() = default;
 
 void ConnectionHandle::RegisterToReceiveEvents() {
   workpool_event_ = conn_handler_task_->RegisterManualEvent(
@@ -159,11 +158,12 @@ void ConnectionHandle::RegisterToReceiveEvents() {
 }
 
 void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
-  // TODO(WAN): convince myself that this is correct. Why should it be TERMINATE?
   Transition t;
   if ((flags & EV_TIMEOUT) != 0) {
+    // If the event was a timeout, this implies that the connection timed out. Terminate to disconnect.
     t = Transition::TERMINATE;
   } else {
+    // Otherwise, something happened, so the state machine should wake up.
     t = Transition::WAKEUP;
   }
   state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
@@ -187,7 +187,7 @@ Transition ConnectionHandle::Process() {
 Transition ConnectionHandle::GetResult() {
   // Wait until a network event happens.
   EventUtil::EventAdd(network_event_, EventUtil::WAIT_FOREVER);
-  // TODO(WAN): It is absolutely not clear to me wtf is this doing. Nothing?
+  // TODO(WAN): It is not clear to me what this function is doing. If someone figures it out, please update comment.
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
   return Transition::PROCEED;
 }

@@ -49,8 +49,8 @@ class ConnectionHandle {
    * object should be fully initialized at that point, it's never a bad idea
    * to be careful.
    *
-   * TODO(WAN): I'm not sure what I just read in the above paragraph...
-   *  what can you do to a ConnectionHandle that will make it any more initialized than constructing it?
+   * TODO(WAN): Check the design of this API. What needs to happen in between object construction and calling this
+   *   function? If nothing can be done, perhaps this logic should be moved to the constructor.
    */
   void RegisterToReceiveEvents();
 

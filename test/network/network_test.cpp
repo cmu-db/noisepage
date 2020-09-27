@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -54,7 +55,7 @@ class NetworkTests : public TerrierTest {
   std::string socket_directory_ = "/tmp/";
   uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
-  PostgresProtocolInterpreterProvider protocol_provider_{
+  PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
 
   void SetUp() override {

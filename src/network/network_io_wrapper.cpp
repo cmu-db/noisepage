@@ -36,7 +36,6 @@ Transition NetworkIoWrapper::FillReadBuffer() {
   if (!in_->HasMore()) in_->Reset();
   // If the read buffer still has content and the read buffer is full,
   // then the read buffer's contents is moved to the head.
-  // TODO(WAN):
   if (in_->HasMore() && in_->Full()) in_->MoveContentToHead();
 
   // By default, the next action to take is to continue to read.
