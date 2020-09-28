@@ -3,6 +3,7 @@
 #include <memory>
 #include <utility>
 
+#include "common/event_util.h"
 #include "common/managed_pointer.h"
 #include "network/connection_context.h"
 #include "network/network_types.h"
@@ -170,8 +171,9 @@ class ConnectionHandle {
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
 
   StateMachine state_machine_{};
-  struct event *network_event_ = nullptr;
-  struct event *workpool_event_ = nullptr;
+  // These might have memory leaks
+  ev_io *network_event_ = nullptr;
+  ev_async *workpool_event_ = nullptr;
 
   ConnectionContext context_;
 };

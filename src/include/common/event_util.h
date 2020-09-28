@@ -1,13 +1,18 @@
 #pragma once
 
-#include <event2/buffer.h>
+#include <ev.h>
+/*#include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event.h>
-#include <event2/listener.h>
+#include <event2/listener.h>*/
 
 #include "common/error/exception.h"
 
 namespace terrier {
+
+using io_callback = void (*)(struct ev_loop *, struct ev_io *, int);
+using signal_callback = void (*)(struct ev_loop *, struct ev_signal *, int);
+using async_callback = void (*)(struct ev_loop *, struct ev_async *, int);
 
 /**
  * Static utility class with wrappers for libevent functions.
@@ -48,33 +53,33 @@ class EventUtil {
   /**
    * @return A new event_base
    */
-  static struct event_base *EventBaseNew() {
+/*  static struct event_base *EventBaseNew() {
     return Wrap(event_base_new(), NotNull<struct event_base>, "Can't allocate event base");
-  }
+  }*/
 
   /**
    * @param base The event_base to exit
    * @param timeout
    * @return a positive integer or an exception is thrown on failure
    */
-  static int EventBaseLoopExit(struct event_base *base, const struct timeval *timeout) {
+/*  static int EventBaseLoopExit(struct event_base *base, const struct timeval *timeout) {
     return Wrap(event_base_loopexit(base, timeout), IsZero, "Error when exiting loop");
-  }
+  }*/
 
   /**
    * @param event The event to delete
    * @return a positive integer or an exception is thrown on failure
    */
-  static int EventDel(struct event *event) { return Wrap(event_del(event), IsZero, "Error when deleting event"); }
+//  static int EventDel(struct event *event) { return Wrap(event_del(event), IsZero, "Error when deleting event"); }
 
   /**
    * @param event The event to add
    * @param timeout
    * @return a positive integer or an exception is thrown on failure
    */
-  static int EventAdd(struct event *event, const struct timeval *timeout) {
+/*  static int EventAdd(struct event *event, const struct timeval *timeout) {
     return Wrap(event_add(event, timeout), IsZero, "Error when adding event");
-  }
+  }*/
 
   /**
    * @brief Allocates a callback event
@@ -86,18 +91,18 @@ class EventUtil {
    * @param arg Argument to pass to the callback function
    * @return a positive integer or an exception is thrown on failure
    */
-  static int EventAssign(struct event *event, struct event_base *base, int fd, int16_t flags,
+/*  static int EventAssign(struct event *event, struct event_base *base, int fd, int16_t flags,
                          event_callback_fn callback, void *arg) {
     return Wrap(event_assign(event, base, fd, flags, callback, arg), IsZero, "Error when assigning event");
-  }
+  }*/
 
   /**
    * @brief Runs event base dispatch loop
    * @param base The event_base to dispatch on
    * @return a positive integer or an exception is thrown on failure
    */
-  static int EventBaseDispatch(struct event_base *base) {
+/*  static int EventBaseDispatch(struct event_base *base) {
     return Wrap(event_base_dispatch(base), NonNegative, "Error in event base dispatch");
-  }
+  }*/
 };
 }  // namespace terrier

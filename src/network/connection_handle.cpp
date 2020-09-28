@@ -82,20 +82,22 @@ class ConnectionHandleStateMachineTransition {
 
   /** Wait for the connection to become readable. */
   static Transition WaitForRead(const common::ManagedPointer<ConnectionHandle> handle) {
-    handle->UpdateEventFlags(EV_READ | EV_PERSIST);
+    handle->UpdateEventFlags(EV_READ);
     return Transition::NONE;
   }
 
   /** Wait for the connection to become writable. */
   static Transition WaitForWrite(const common::ManagedPointer<ConnectionHandle> handle) {
     // Wait for the connection to become writable.
-    handle->UpdateEventFlags(EV_WRITE | EV_PERSIST);
+    handle->UpdateEventFlags(EV_WRITE);
     return Transition::NONE;
   }
 
   /** Wait for the connection to become readable, or until a timeout happens. */
   static Transition WaitForReadWithTimeout(const common::ManagedPointer<ConnectionHandle> handle) {
-    handle->UpdateEventFlags(EV_READ | EV_PERSIST | EV_TIMEOUT, READ_TIMEOUT);
+    //TODO figure out timeout
+//    handle->UpdateEventFlags(EV_READ | EV_TIMEOUT, READ_TIMEOUT);
+    handle->UpdateEventFlags(EV_READ, READ_TIMEOUT);
     return Transition::NONE;
   }
 
@@ -149,12 +151,16 @@ ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<Connectio
 ConnectionHandle::~ConnectionHandle() = default;
 
 void ConnectionHandle::RegisterToReceiveEvents() {
-  workpool_event_ = conn_handler_task_->RegisterManualEvent(
-      [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
+  workpool_event_ = reinterpret_cast<ev_async *>(malloc(sizeof(ev_async)));
+  workpool_event_->data = this;
+  ev_async_init(workpool_event_, [](struct ev_loop *, ev_async *event, int flags) {static_cast<ConnectionHandle *>(event->data)->HandleEvent(0, flags);});
+  ev_async_start(conn_handler_task_->loop_, workpool_event_);
+  /*workpool_event_ = conn_handler_task_->RegisterManualEvent(
+      [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);*/
 
   network_event_ = conn_handler_task_->RegisterEvent(
-      io_wrapper_->GetSocketFd(), EV_READ | EV_PERSIST,
-      [](int fd, int16_t flags, void *arg) { static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags); }, this);
+      io_wrapper_->GetSocketFd(), EV_READ,
+      [](struct ev_loop *, ev_io *event, int flags) { static_cast<ConnectionHandle *>(event->data)->HandleEvent(event->fd, flags); }, this);
 }
 
 void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
@@ -186,7 +192,8 @@ Transition ConnectionHandle::Process() {
 
 Transition ConnectionHandle::GetResult() {
   // Wait until a network event happens.
-  EventUtil::EventAdd(network_event_, EventUtil::WAIT_FOREVER);
+  //EventUtil::EventAdd(network_event_, EventUtil::WAIT_FOREVER);
+  ev_io_start(conn_handler_task_->loop_, network_event_);
   // TODO(WAN): It is not clear to me what this function is doing. If someone figures it out, please update comment.
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
   return Transition::PROCEED;
@@ -206,15 +213,17 @@ Transition ConnectionHandle::TryCloseConnection() {
 
   // Remove the network and worker pool events.
   conn_handler_task_->UnregisterEvent(network_event_);
-  conn_handler_task_->UnregisterEvent(workpool_event_);
+  ev_async_stop(conn_handler_task_->loop_, workpool_event_);
+  free(workpool_event_);
+  //conn_handler_task_->UnregisterEvent(workpool_event_);
 
   return Transition::NONE;
 }
 
 void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
   // This callback function just calls HandleEvent().
-  event_callback_fn handle_event = [](int fd, int16_t flags, void *arg) {
-    static_cast<ConnectionHandle *>(arg)->HandleEvent(fd, flags);
+  io_callback handle_event = [](struct ev_loop *, ev_io *event, int flags) {
+    static_cast<ConnectionHandle *>(event->data)->HandleEvent(event->fd, flags);
   };
 
   // Update the flags for the event, casing on whether a timeout value needs to be specified.
@@ -231,14 +240,15 @@ void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
   }
 }
 
-void ConnectionHandle::StopReceivingNetworkEvent() { EventUtil::EventDel(network_event_); }
+void ConnectionHandle::StopReceivingNetworkEvent() { ev_io_stop(conn_handler_task_->loop_, network_event_); }
 
 void ConnectionHandle::Callback(void *callback_args) {
   // TODO(WAN): this is currently unused.
   auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
   TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
                  "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
-  event_active(handle->workpool_event_, EV_WRITE, 0);
+  ev_async_send(handle->conn_handler_task_->loop_, handle->workpool_event_);
+  //event_active(handle->workpool_event_, EV_WRITE, 0);
 }
 
 void ConnectionHandle::ResetForReuse(connection_id_t connection_id, common::ManagedPointer<ConnectionHandlerTask> task,
@@ -249,6 +259,7 @@ void ConnectionHandle::ResetForReuse(connection_id_t connection_id, common::Mana
   //  anyway, but if this ever changes then we'll need to revisit this.
   protocol_interpreter_ = std::move(interpreter);
   state_machine_ = ConnectionHandle::StateMachine();
+  // TODO these might be leaking memory
   network_event_ = nullptr;
   workpool_event_ = nullptr;
   context_.Reset();

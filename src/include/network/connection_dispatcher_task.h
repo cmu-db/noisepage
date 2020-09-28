@@ -47,6 +47,8 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
                            common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                            std::initializer_list<int> file_descriptors);
 
+  ~ConnectionDispatcherTask() override;
+
   /**
    * @brief Dispatches the supplied client connection to a handler.
    *
@@ -77,6 +79,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   const common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider_;
   std::vector<common::ManagedPointer<ConnectionHandlerTask>> handlers_;
   std::atomic<uint64_t> next_handler_;
+  ev_signal *sighup_event_;
 };
 
 }  // namespace terrier::network

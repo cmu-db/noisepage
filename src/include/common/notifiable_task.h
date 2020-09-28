@@ -67,7 +67,7 @@ class NotifiableTask : public DedicatedThreadTask {
    *        null which will wait forever
    * @return pointer to the allocated event.
    */
-  struct event *RegisterEvent(int fd, int16_t flags, event_callback_fn callback, void *arg,
+  ev_io *RegisterEvent(int fd, uint16_t flags, io_callback callback, void *arg,
                               const struct timeval *timeout = nullptr);
   /**
    * @brief Register a signal event. This is a wrapper around RegisterEvent()
@@ -79,9 +79,10 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
+//TODO just replace with field on dispatcher
+  /*  struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
     return RegisterEvent(signal, EV_SIGNAL | EV_PERSIST, callback, arg);
-  }
+  }*/
 
   /**
    * @brief Register an event that fires periodically based on the given time
@@ -95,9 +96,9 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
+/*  struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
     return RegisterEvent(-1, EV_TIMEOUT | EV_PERSIST, callback, arg, timeout);
-  }
+  }*/
 
   /**
    * @brief Register an event that can only be fired if someone calls
@@ -110,9 +111,9 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
+/*  struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
     return RegisterEvent(-1, EV_PERSIST, callback, arg);
-  }
+  }*/
 
   /**
    * @brief Updates the callback information for a registered event
@@ -124,12 +125,19 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg Argument to the callback function
    * @param timeout Timeout if any for the event
    */
-  void UpdateEvent(struct event *event, int fd, int16_t flags, event_callback_fn callback, void *arg,
+  void UpdateEvent(ev_io *event, int fd, uint16_t flags, io_callback callback, void *arg,
                    const struct timeval *timeout) {
-    TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
-    EventUtil::EventDel(event);
-    EventUtil::EventAssign(event, base_, fd, flags, callback, arg);
-    EventUtil::EventAdd(event, timeout);
+    //TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
+    // TODO handle timeout
+    ev_io_stop(loop_, event);
+    event->data = arg;
+    ev_io_set(event, fd, flags);
+    ev_set_cb(event, callback);
+    ev_io_start(loop_, event);
+
+//    EventUtil::EventDel(event);
+//    EventUtil::EventAssign(event, loop_, fd, flags, callback, arg);
+//    EventUtil::EventAdd(event, timeout);
   }
 
   /**
@@ -142,13 +150,14 @@ class NotifiableTask : public DedicatedThreadTask {
    *
    * @param event the event to be freed
    */
-  void UnregisterEvent(struct event *event);
+  void UnregisterEvent(ev_io *event);
 
   /**
    * In a loop, make this notifiable task wait and respond to incoming events
    */
   void EventLoop() {
-    EventUtil::EventBaseDispatch(base_);
+    ev_run(loop_, 0);
+    //EventUtil::EventBaseDispatch(loop_);
     COMMON_LOG_TRACE("stop");
   }
 
@@ -165,20 +174,22 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Exits the event loop
    */
-  void ExitLoop() { event_active(terminate_, 0, 0); }
+  void ExitLoop() { ev_async_send(loop_, terminate_); }
 
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
    */
   void ExitLoop(int, int16_t) { ExitLoop(); }  // NOLINT
 
+ // This has got to change
+ public:
+  struct ev_loop *loop_;
+  ev_async *terminate_;
  private:
   const int task_id_;
-  struct event_base *base_;
 
   // struct event and lifecycle management
-  struct event *terminate_;
-  std::unordered_set<struct event *> events_;
+  std::unordered_set<ev_io *> events_;
 };
 
 }  // namespace terrier::common

@@ -29,6 +29,8 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   ConnectionHandlerTask(int task_id, common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
 
+  ~ConnectionHandlerTask() override;
+
   /**
    * @brief Notifies this ConnectionHandlerTask that a new client connection
    * should be handled at socket fd.
@@ -61,7 +63,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * each pair is represents <connection fd, ProtocolInterpreter>
    */
   std::deque<std::pair<int, std::unique_ptr<ProtocolInterpreter>>> jobs_;
-  event *notify_event_;
+  ev_async *notify_event_;
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 };
 

@@ -1,6 +1,7 @@
 #include "network/terrier_server.h"
 
-#include <event2/thread.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <sys/un.h>
 
 #include <csignal>
@@ -134,7 +135,7 @@ void TerrierServer::RegisterSocket() {
 
 void TerrierServer::RunServer() {
   // Initialize thread support for libevent as libevent will be invoked from multiple ConnectionHandlerTask threads.
-  evthread_use_pthreads();
+  //evthread_use_pthreads();
 
   // Register the network socket.
   RegisterSocket<NETWORKED_SOCKET>();
