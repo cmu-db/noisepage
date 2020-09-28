@@ -113,6 +113,10 @@ class ConnectionHandle {
   static void Callback(void *callback_args);
 
  private:
+  static void HandleAsyncEventCallback(ev::async &event, int flags);
+
+  static void HandleIoEventCallback(ev::io &event, int flags);
+
   /** Reset the state of this connection handle for reuse. This should only be called by ConnectionHandleFactory. */
   void ResetForReuse(connection_id_t connection_id, common::ManagedPointer<ConnectionHandlerTask> task,
                      std::unique_ptr<ProtocolInterpreter> interpreter);
@@ -172,8 +176,8 @@ class ConnectionHandle {
 
   StateMachine state_machine_{};
   // These might have memory leaks
-  ev_io *network_event_ = nullptr;
-  ev_async *workpool_event_ = nullptr;
+  ev::io *network_event_ = nullptr;
+  ev::async *workpool_event_ = nullptr;
 
   ConnectionContext context_;
 };

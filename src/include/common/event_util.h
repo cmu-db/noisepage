@@ -1,18 +1,10 @@
 #pragma once
 
-#include <ev.h>
-/*#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/event.h>
-#include <event2/listener.h>*/
+#include <ev++.h>
 
 #include "common/error/exception.h"
 
 namespace terrier {
-
-using io_callback = void (*)(struct ev_loop *, struct ev_io *, int);
-using signal_callback = void (*)(struct ev_loop *, struct ev_signal *, int);
-using async_callback = void (*)(struct ev_loop *, struct ev_async *, int);
 
 /**
  * Static utility class with wrappers for libevent functions.

@@ -54,6 +54,8 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   void HandleDispatch();
 
+  static void HandleDispatchCallback(ev::async &event, int);
+
   /**
    * Using this latch+deque instead of the Common::ConcurrentQueue as the overhead is not worth
    * for the common case where there is no contention
@@ -63,7 +65,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    * each pair is represents <connection fd, ProtocolInterpreter>
    */
   std::deque<std::pair<int, std::unique_ptr<ProtocolInterpreter>>> jobs_;
-  ev_async *notify_event_;
+  ev::async *notify_event_;
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 };
 

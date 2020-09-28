@@ -18,7 +18,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
     common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
     std::initializer_list<int> file_descriptors)
-    : NotifiableTask(MAIN_THREAD_ID),
+    : NotifiableTask(ev::get_default_loop(), MAIN_THREAD_ID),
       num_handlers_(num_handlers),
       dedicated_thread_owner_(dedicated_thread_owner),
       connection_handle_factory_(connection_handle_factory),
@@ -27,53 +27,33 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       next_handler_(0) {
   TERRIER_ASSERT(num_handlers_ > 0, "No workers that connections can be dispatched to.");
 
-  // The libevent callback functions are defined here.
-  // Note that libevent callback functions must have type (int fd, int16_t flags, void *arg) -> void.
-
-  // This callback dispatches client connections at fd to a handler. This uses the dispatcher's protocol interpreter.
-/*  event_callback_fn connection_dispatcher_fn = [](int fd, int16_t flags, void *arg) {
-    auto *dispatcher = static_cast<ConnectionDispatcherTask *>(arg);
-    dispatcher->DispatchConnection(fd, dispatcher->interpreter_provider_);
-  };*/
-  loop_ = EV_DEFAULT;
-
-  // TODO gotta copy this ish to handler for now
-  terminate_ = reinterpret_cast<ev_async *>(malloc(sizeof(ev_async)));
-  terminate_->data = loop_;
-  ev_async_init(terminate_, [](struct ev_loop *, struct ev_async *event, int) {
-    ev_break(static_cast<struct ev_loop *>(event->data), EVBREAK_ALL);
-  });
-  ev_async_start(loop_, terminate_);
-
-  io_callback connection_dispatcher_fn = [](struct ev_loop *, struct ev_io * event, int) {
-    auto *dispatcher = static_cast<ConnectionDispatcherTask *>(event->data);
-    dispatcher->DispatchConnection(event->fd, dispatcher->interpreter_provider_);
-  };
-  // This callback exits the event loop.
-  signal_callback loop_exit_fn = [](struct ev_loop *, ev_signal * event, int) {
-    static_cast<NotifiableTask *>(event->data)->ExitLoop();
-  };
-
   // Specific events are then associated with their respective libevent callback functions.
 
   for (auto listen_fd : file_descriptors) {
     // Dispatch a new connection every time the file descriptor becomes readable again.
     //   EV_READ : Wait until the file descriptor becomes readable.
     //   EV_PERSIST : Non-persistent events are removed upon activation (single-use), the server should be persistent.
-    RegisterEvent(listen_fd, EV_READ, connection_dispatcher_fn, this);
+    RegisterIoEvent<&ConnectionDispatcherTask::DispatchConnectionCallback>(listen_fd, ev::READ, this);
   }
 
-  sighup_event_ = reinterpret_cast<ev_signal *>(malloc(sizeof(ev_signal)));
-  sighup_event_->data = this;
-  ev_signal_init(sighup_event_, loop_exit_fn, SIGHUP);
-  ev_signal_start(loop_, sighup_event_);
   // Exit the event loop if the terminal launching the server process is closed.
-  //RegisterSignalEvent(SIGHUP, loop_exit_fn, this);
+  sighup_event_ = new ev::sig(loop_);
+  sighup_event_->set<&ConnectionDispatcherTask::SighupCallback>(this);
+  sighup_event_->start(SIGHUP);
 }
 
 ConnectionDispatcherTask::~ConnectionDispatcherTask() {
-  ev_signal_stop(loop_, sighup_event_);
-  free(sighup_event_);
+  sighup_event_->stop();
+  delete sighup_event_;
+}
+
+void ConnectionDispatcherTask::DispatchConnectionCallback(ev::io &event, int) {
+  auto *dispatcher = static_cast<ConnectionDispatcherTask *>(event.data);
+  dispatcher->DispatchConnection(event.fd, dispatcher->interpreter_provider_);
+}
+
+void ConnectionDispatcherTask::SighupCallback(ev::sig &event, int) {
+  static_cast<NotifiableTask *>(event.data)->ExitLoop();
 }
 
 void ConnectionDispatcherTask::DispatchConnection(uint32_t fd,

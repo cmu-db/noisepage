@@ -1,6 +1,5 @@
 #pragma once
 
-#include <event2/thread.h>
 
 #include <unordered_set>
 
@@ -37,7 +36,7 @@ namespace terrier::common {
 class NotifiableTask : public DedicatedThreadTask {
  public:
   /** Construct a new NotifiableTask instance with the specified task id. */
-  explicit NotifiableTask(int task_id);
+  explicit NotifiableTask(ev::loop_ref loop, int task_id);
 
   /** Destroy the NotifiableTask, deleting and freeing all of its registered events. */
   ~NotifiableTask() override;
@@ -67,22 +66,24 @@ class NotifiableTask : public DedicatedThreadTask {
    *        null which will wait forever
    * @return pointer to the allocated event.
    */
-  ev_io *RegisterEvent(int fd, uint16_t flags, io_callback callback, void *arg,
-                              const struct timeval *timeout = nullptr);
-  /**
-   * @brief Register a signal event. This is a wrapper around RegisterEvent()
-   *
-   * @see RegisterEvent(), UnregisterEvent()
-   *
-   * @param signal Signal number to listen on
-   * @param callback callback function to be invoked when the event happens
-   * @param arg an argument to be passed to the callback function
-   * @return pointer to the allocated event.
-   */
-//TODO just replace with field on dispatcher
-  /*  struct event *RegisterSignalEvent(int signal, event_callback_fn callback, void *arg) {
-    return RegisterEvent(signal, EV_SIGNAL | EV_PERSIST, callback, arg);
-  }*/
+  template<void (*function)(ev::io &event, int)>
+  ev::io *RegisterIoEvent(int fd, uint16_t flags, void *arg,
+                                          const struct timeval *timeout = nullptr) {
+    auto *event = new ev::io(loop_);
+    event->set<function>(arg);
+    io_events_.insert(event);
+    event->start(fd, flags);
+    return event;
+  }
+
+  template<void (*function)(ev::async &event, int)>
+  ev::async *RegisterAsyncEvent(void *arg) {
+    auto *event = new ev::async(loop_);
+    event->set<function>(arg);
+    async_events_.insert(event);
+    event->start();
+    return event;
+  }
 
   /**
    * @brief Register an event that fires periodically based on the given time
@@ -125,19 +126,13 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg Argument to the callback function
    * @param timeout Timeout if any for the event
    */
-  void UpdateEvent(ev_io *event, int fd, uint16_t flags, io_callback callback, void *arg,
-                   const struct timeval *timeout) {
-    //TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
+  template<void (*function)(ev::io &event, int)>
+  void UpdateIoEvent(ev::io *event, int fd, uint16_t flags, void *arg, const struct timeval *timeout) {
+    TERRIER_ASSERT(!(io_events_.find(event) == io_events_.end()), "Didn't find event");
     // TODO handle timeout
-    ev_io_stop(loop_, event);
-    event->data = arg;
-    ev_io_set(event, fd, flags);
-    ev_set_cb(event, callback);
-    ev_io_start(loop_, event);
-
-//    EventUtil::EventDel(event);
-//    EventUtil::EventAssign(event, loop_, fd, flags, callback, arg);
-//    EventUtil::EventAdd(event, timeout);
+    event->stop();
+    event->set<function>(arg);
+    event->start(fd, flags);
   }
 
   /**
@@ -150,14 +145,15 @@ class NotifiableTask : public DedicatedThreadTask {
    *
    * @param event the event to be freed
    */
-  void UnregisterEvent(ev_io *event);
+  void UnregisterIoEvent(ev::io *event);
+
+  void UnregisterAsyncEvent(ev::async *event);
 
   /**
    * In a loop, make this notifiable task wait and respond to incoming events
    */
   void EventLoop() {
-    ev_run(loop_, 0);
-    //EventUtil::EventBaseDispatch(loop_);
+    loop_.run(0);
     COMMON_LOG_TRACE("stop");
   }
 
@@ -174,22 +170,26 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Exits the event loop
    */
-  void ExitLoop() { ev_async_send(loop_, terminate_); }
+  void ExitLoop() {
+    terminate_->send();
+  }
 
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
    */
   void ExitLoop(int, int16_t) { ExitLoop(); }  // NOLINT
 
- // This has got to change
- public:
-  struct ev_loop *loop_;
-  ev_async *terminate_;
+ protected:
+  ev::loop_ref loop_;
  private:
+  static void TerminateCallback(ev::async &event, int revents);
+
+  ev::async *terminate_;
   const int task_id_;
 
   // struct event and lifecycle management
-  std::unordered_set<ev_io *> events_;
+  std::unordered_set<ev::io *> io_events_;
+  std::unordered_set<ev::async *> async_events_;
 };
 
 }  // namespace terrier::common

@@ -71,6 +71,10 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   /** @return The offset in handlers_ of the next handler to dispatch to. This function mutates internal state. */
   uint64_t NextDispatchHandlerOffset();
 
+  static void DispatchConnectionCallback(ev::io &event, int);
+
+  static void SighupCallback(ev::sig &event, int);
+
   /** The maximum number of handler tasks that will be spawned. */
   const uint32_t num_handlers_;
   common::DedicatedThreadOwner *const dedicated_thread_owner_;
@@ -79,7 +83,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   const common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider_;
   std::vector<common::ManagedPointer<ConnectionHandlerTask>> handlers_;
   std::atomic<uint64_t> next_handler_;
-  ev_signal *sighup_event_;
+  ev::sig *sighup_event_;
 };
 
 }  // namespace terrier::network
