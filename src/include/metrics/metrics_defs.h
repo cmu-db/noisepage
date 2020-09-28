@@ -13,8 +13,9 @@ enum class MetricsComponent : uint8_t {
   EXECUTION_PIPELINE,
   BIND_COMMAND,
   EXECUTE_COMMAND,
+  QUERY_TRACE,
 };
 
-constexpr uint8_t NUM_COMPONENTS = 7;
+constexpr uint8_t NUM_COMPONENTS = 8;
 
 }  // namespace terrier::metrics
