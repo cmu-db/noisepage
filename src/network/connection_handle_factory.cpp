@@ -1,39 +1,32 @@
 #include "network/connection_handle_factory.h"
 
-#include <memory>
-#include <utility>
-
-#include "common/macros.h"
 #include "network/connection_handle.h"
-#include "network/connection_handler_task.h"
+#include "network/protocol_interpreter.h"
 
 namespace terrier::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
                                                                std::unique_ptr<ProtocolInterpreter> interpreter,
-                                                               common::ManagedPointer<ConnectionHandlerTask> handler) {
+                                                               common::ManagedPointer<ConnectionHandlerTask> task) {
+  // Check if a mapping for the file descriptor already exists.
   std::unordered_map<int, ConnectionHandle>::iterator it;
   {
+    // Latch to prevent TOCTOU in between find() and try_emplace().
     common::SpinLatch::ScopedSpinLatch guard(&reusable_handles_latch_);
 
     it = reusable_handles_.find(conn_fd);
+    // If no mapping exists for the file descriptor, a new mapping is created.
     if (it == reusable_handles_.end()) {
-      auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));
-      TERRIER_ASSERT(ret.second, "ret.second false");
+      auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, task, traffic_cop_, std::move(interpreter));
+      TERRIER_ASSERT(ret.second, "TOCTOU bug in reusable_handles_.");
       return ret.first->second;
     }
   }
 
+  // An existing mapping for the file descriptor was found.
+  // It is assumed that the old mapping is no longer in use, so it is reused.
+  // TODO(WAN): How do we check that the mapping is actually no longer in use?
   auto &reused_handle = it->second;
-  reused_handle.conn_handler_ = handler;
-  reused_handle.network_event_ = nullptr;
-  reused_handle.workpool_event_ = nullptr;
-  reused_handle.io_wrapper_->Restart();
-  reused_handle.protocol_interpreter_ = std::move(interpreter);
-  reused_handle.state_machine_ = ConnectionHandle::StateMachine();
-  reused_handle.context_.Reset();
-  reused_handle.context_.SetConnectionID(static_cast<connection_id_t>(conn_fd));
-  TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");
-  TERRIER_ASSERT(reused_handle.workpool_event_ == nullptr, "network_event_ != nullptr");
+  reused_handle.ResetForReuse(connection_id_t(conn_fd), task, std::move(interpreter));
   return reused_handle;
 }
 }  // namespace terrier::network

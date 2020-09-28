@@ -23,7 +23,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   /**
    * The provider encapsulates the creation logic of a protocol interpreter into an object
    */
-  struct Provider : public ProtocolInterpreter::Provider {
+  struct Provider : public ProtocolInterpreterProvider {
    public:
     /**
      * Constructs a new provider
