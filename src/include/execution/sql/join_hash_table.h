@@ -50,6 +50,7 @@ class Vector;
  */
 class EXPORT JoinHashTable {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
   enum class HookOffsets : uint32_t {
     StartHook = 0,
     EndHook,

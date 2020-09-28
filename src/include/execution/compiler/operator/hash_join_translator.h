@@ -159,7 +159,10 @@ class HashJoinTranslator : public OperatorTranslator {
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
+  /** Generate start hook function for parallel build */
   ast::FunctionDecl *GenerateStartHookFunction() const;
+
+  /** Generate end hook function for parallel build */
   ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:

@@ -64,10 +64,10 @@ class EXPORT ExecutionSettings {
   constexpr bool GetIsParallelQueryExecutionEnabled() const { return is_parallel_execution_enabled_; }
 
   /** @return True if counters are enabled. */
-  bool GetIsCountersEnabled() const { return true; }
+  bool GetIsCountersEnabled() const { return is_counters_enabled_; }
 
   /** @return True if pipeline metrics are enabled */
-  bool GetIsPipelineMetricsEnabled() const { return true; }
+  bool GetIsPipelineMetricsEnabled() const { return is_pipeline_metrics_enabled_; }
 
   /** @return number of threads used for parallel execution. */
   int GetNumberofThreads() const { return number_of_threads_; }
@@ -83,7 +83,7 @@ class EXPORT ExecutionSettings {
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
   bool is_counters_enabled_{common::Constants::IS_COUNTERS_ENABLED};
   bool is_pipeline_metrics_enabled_{common::Constants::IS_PIPELINE_METRICS_ENABLED};
-  size_t number_of_threads_{std::thread::hardware_concurrency()};
+  int number_of_threads_{common::Constants::NUM_THREADS};
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.

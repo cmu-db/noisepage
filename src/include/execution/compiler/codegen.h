@@ -1185,7 +1185,7 @@ class CodeGen {
    * @param sort_row_type_name The name of the materialized sort-row type.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *SorterInit(ast::Expr *exec_ctx, ast::Expr *mem_pool, ast::Identifier cmp_func_name,
+  [[nodiscard]] ast::Expr *SorterInit(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Identifier cmp_func_name,
                                       ast::Identifier sort_row_type_name);
 
   /**

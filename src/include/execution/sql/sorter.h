@@ -71,6 +71,7 @@ class VectorProjectionIterator;
  */
 class EXPORT Sorter {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
   enum class HookOffsets : uint32_t {
     StartTLSortHook = 0,
     StartTLMergeHook,

@@ -45,6 +45,7 @@ class AHTOverflowPartitionIterator;
  */
 class EXPORT AggregationHashTable {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
   enum class HookOffsets : uint32_t {
     StartHook = 0,
     EndHook,
@@ -124,7 +125,7 @@ class EXPORT AggregationHashTable {
    * Construct an aggregation hash table using the provided memory pool, and configured to store
    * aggregates of size @em payload_size in bytes.
    * @param exec_settings The execution settings to run with.
-   * @param memory The memory pool to allocate memory from.
+   * @param exec_ctx ExecutionContext
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
   AggregationHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,

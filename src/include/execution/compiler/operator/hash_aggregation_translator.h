@@ -164,7 +164,10 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // For minirunners.
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
+  /** Generate start hook function for parallel merge */
   ast::FunctionDecl *GenerateStartHookFunction() const;
+
+  /** Generate end hook function for parallel merge */
   ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:

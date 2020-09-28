@@ -255,14 +255,43 @@ class EXPORT ExecutionContext {
     memory_use_override_value_ = memory_use;
   }
 
+  /**
+   * Sets the opaque query state pointer for the current query invocation
+   * @param query_state QueryState
+   */
   void SetQueryState(void *query_state) { query_state_ = query_state; }
 
+  /**
+   * Sets the estimated concurrency of a parallel operation.
+   * This value is used when initializing an ExecOUFeatureVector
+   * @param estimate Estimation
+   */
   void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
-  uint32_t GetNumConcurrentEstimate() const { return num_concurrent_estimate_; }
 
+  /**
+   * Invoke a hook function if a hook function is available
+   * @param hookIndex Index of hook futnction to invoke
+   * @param tls TLS argument
+   * @param arg Opaque argument to pass
+   */
   void InvokeHook(size_t hookIndex, void *tls, void *arg);
+
+  /**
+   * Registers a hook function
+   * @param hook_idx Hook index to register function
+   * @param hook Function to register
+   */
   void RegisterHook(size_t hook_idx, HookFn hook);
+
+  /**
+   * Initializes hooks_ to a certain capacity
+   * @param num_hooks Number of hooks needed
+   */
   void InitHooks(size_t num_hooks);
+
+  /**
+   * Clears hooks_
+   */
   void ClearHooks() { hooks_.clear(); }
 
  private:

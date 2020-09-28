@@ -111,9 +111,20 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
+  /**
+   * Generates start thread-local hook function
+   * @param is_sort Whether starting a sort or a merge
+   * @returns function decl
+   */
   ast::FunctionDecl *GenerateStartTLHookFunction(bool is_sort) const;
+
+  /** Generates end thread-local sort hook function */
   ast::FunctionDecl *GenerateEndTLSortHookFunction() const;
+
+  /** Generates end thread-local merge hook function */
   ast::FunctionDecl *GenerateEndTLMergeHookFunction() const;
+
+  /** Generates end hook in the case where main-thread sorts all thread-local sorters */
   ast::FunctionDecl *GenerateEndSingleSorterHookFunction() const;
 
  private:

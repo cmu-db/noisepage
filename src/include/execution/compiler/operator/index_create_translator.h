@@ -85,6 +85,8 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
   void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /** Generates a EndHook function to be invoked after parallel create index has finished */
   ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:

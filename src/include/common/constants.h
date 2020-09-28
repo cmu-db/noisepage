@@ -105,6 +105,11 @@ struct Constants {
   static constexpr const bool IS_PARALLEL_EXECUTION_ENABLED = true;
 
   /**
+   * Number of threads for parallel execution
+   */
+  static constexpr const int NUM_THREADS = -1;
+
+  /**
    * Flag indicating if counters is enabled
    */
   static constexpr const bool IS_COUNTERS_ENABLED = false;

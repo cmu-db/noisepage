@@ -153,11 +153,6 @@ struct MergeWork {
 void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::size_t sorter_offset) {
   const auto comp = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
 
-  /*
-  bool has_pipeline =
-      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
-      */
-
   // -------------------------------------------------------
   // First, collect all non-empty thread-local sorters
   // -------------------------------------------------------

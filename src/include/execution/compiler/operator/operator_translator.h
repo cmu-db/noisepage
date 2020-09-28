@@ -317,6 +317,18 @@ class OperatorTranslator : public ColumnValueProvider {
   void FeatureArithmeticRecordMul(FunctionBuilder *function, const Pipeline &pipeline,
                                   execution::translator_id_t translator_id, ast::Expr *val) const;
 
+  /**
+   * Get arguments for a hook function.
+   *
+   * A hook function takes in 3 arguments. The first argument is the QueryState.
+   * The second argument is the thread-local state. The third argument depends
+   * on the particular hook function.
+   *
+   * @param pipeline Pipeline that the hook is being added for
+   * @param arg Third argument identifier if necessary (nullptr to indicate hook does not use the 3rd arg)
+   * @param arg_type Type of the third argument if arg is specified
+   * @returns hook function arguments
+   */
   util::RegionVector<ast::FieldDecl *> GetHookParams(const Pipeline &pipeline, ast::Identifier *arg,
                                                      ast::Expr *arg_type) const;
 
