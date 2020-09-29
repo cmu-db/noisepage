@@ -281,13 +281,13 @@ Field StructType::CreatePaddingElement(uint32_t size, Context *ctx) {
   ast::Identifier name = ctx->GetIdentifier("__field$0$");
   ast::Type *type = nullptr;
   switch (size) {
-    case 4:
+    case sizeof(int32_t):
       type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int32);
       break;
-    case 2:
+    case sizeof(int16_t):
       type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int16);
       break;
-    case 1:
+    case sizeof(int8_t):
       type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
       break;
     default:
@@ -328,7 +328,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
       if (!common::MathUtil::IsAligned(size, field_align)) {
         uint32_t new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
         if (new_size > size) {
-          // Insert and adjust the iterator idx
+          // Insert and adjust the iterator index.
           fields.insert(fields.begin() + idx, CreatePaddingElement(new_size - size, ctx));
           idx++;
 
