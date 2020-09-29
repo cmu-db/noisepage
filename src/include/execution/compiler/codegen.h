@@ -138,6 +138,11 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *ConstString(std::string_view str) const;
 
+  /**
+   * @return A literal null whose type matches the provided type
+   */
+  [[nodiscard]] ast::Expr *ConstNull(type::TypeId type) const;
+
   // ---------------------------------------------------------------------------
   //
   // Type representations (not full TPL types !!)
@@ -912,6 +917,44 @@ class CodeGen {
    * @return The call.
    */
   [[nodiscard]] ast::Expr *HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type);
+
+  /**
+   * Call \@joinHTIterInit(). Initializes a join hash table iterator which iterates over every element
+   * of the hash table.
+   * @param iter A pointer to the iterator.
+   * @param ht A pointer to the hash table to iterate over.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorInit(ast::Expr *iter, ast::Expr *ht);
+
+  /**
+   * Call \@joinHTIterHasNext(). Determines if the given iterator has more data.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorHasNext(ast::Expr *iter);
+
+  /**
+   * Call \@joinHTIterNext(). Advances the iterator by one element.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorNext(ast::Expr *iter);
+
+  /**
+   * Call \@joinHTIterGetRow(). Returns a pointer to the payload the iterator is currently positioned at.
+   * @param iter A pointer to the iterator.
+   * @param payload_type The type of the payload
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type);
+
+  /**
+   * Call \@joinHTIterFree(). Cleans up and destroys the given iterator.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorFree(ast::Expr *iter);
 
   // -------------------------------------------------------
   //

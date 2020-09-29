@@ -94,6 +94,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinHashTableEntryIteratorCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinJoinHashTableIteratorCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitResultBufferCall(ast::CallExpr *call, ast::Builtin builtin);
