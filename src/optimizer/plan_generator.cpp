@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -614,8 +613,36 @@ void PlanGenerator::Visit(const InnerHashJoin *op) {
   output_plan_ = builder.Build();
 }
 
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {
-  TERRIER_ASSERT(0, "LeftHashJoin not implemented");
+void PlanGenerator::Visit(const LeftHashJoin *op) {
+  auto proj_schema = GenerateProjectionForJoin();
+
+  auto comb_pred = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetJoinPredicates());
+  auto eval_pred =
+      parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred.get()));
+  auto join_predicate =
+      parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred.get()), children_expr_map_).release();
+  RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
+
+  auto builder = planner::HashJoinPlanNode::Builder();
+  builder.SetOutputSchema(std::move(proj_schema));
+
+  for (auto &expr : op->GetLeftKeys()) {
+    auto left_key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
+    RegisterPointerCleanup<parser::AbstractExpression>(left_key, true, true);
+    builder.AddLeftHashKey(common::ManagedPointer(left_key));
+  }
+
+  for (auto &expr : op->GetRightKeys()) {
+    auto right_key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
+    RegisterPointerCleanup<parser::AbstractExpression>(right_key, true, true);
+    builder.AddRightHashKey(common::ManagedPointer(right_key));
+  }
+
+  builder.AddChild(std::move(children_plans_[0]));
+  builder.AddChild(std::move(children_plans_[1]));
+  builder.SetJoinPredicate(common::ManagedPointer(join_predicate));
+  builder.SetJoinType(planner::LogicalJoinType::LEFT);
+  output_plan_ = builder.Build();
 }
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {

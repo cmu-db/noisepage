@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "execution/sql/bloom_filter.h"
@@ -180,6 +181,7 @@ class EXPORT JoinHashTable {
   const BloomFilter *GetBloomFilter() const { return &bloom_filter_; }
 
  private:
+  friend class JoinHashTableIterator;
   FRIEND_TEST(JoinHashTableTest, LazyInsertionTest);
   FRIEND_TEST(JoinHashTableTest, PerfTest);
 
@@ -271,5 +273,84 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
   auto *entry = (found ? EntryAt(idx) : nullptr);
   return HashTableEntryIterator(entry, hash);
 }
+
+//===----------------------------------------------------------------------===//
+//
+// Join Hash Table Iterator
+//
+//===----------------------------------------------------------------------===//
+/**
+ * There are two distinct iterators related to hash tables. The HashTableEntryIterator
+ * defined in hash_table_entry.h takes in a hash value and iterates over all entries in
+ * the hash table whose hash matches the given hash. The iterator defined below simply
+ * iterates over all the entries of the join hash table one tuple at a time.
+ *
+ * The join hash table must be fully built either through a serial call to JoinHashTable::Build()
+ * or merged (in parallel) from other join hash tables through JoinHashTable::MergeParallel().
+ *
+ * Users use the OOP-ish iteration API:
+ * for (JoinHashTableIterator iter(table); iter.HasNext(); iter.Next()) {
+ *   auto row = iter.GetCurrentRowAs<MyFancyAssType>();
+ *   ...
+ * }
+ *
+ * // TODO(pmenon): Vectorized version, too.
+ */
+class JoinHashTableIterator {
+ public:
+  /**
+   * Construct an iterator over the given hash table.
+   * @param table The join hash table to iterate.
+   */
+  explicit JoinHashTableIterator(const JoinHashTable &table);
+  /**
+   * @return True if there is more data in the iterator; false otherwise.
+   */
+  bool HasNext() const noexcept { return entry_iter_ != entry_end_; }
+  /**
+   * Advance to the next tuple.
+   */
+  void Next() noexcept {
+    // Advance the entry iterator by one.
+    ++entry_iter_;
+    // If we've exhausted the current entry list, find another.
+    if (entry_iter_ == entry_end_) {
+      FindNextNonEmptyList();
+    }
+  }
+  /**
+   * Access the row the iterator is currently positioned at.
+   * @pre A previous call to HasNext() must have returned true.
+   * @return A read-only opaque byte pointer to the row at the current iteration position.
+   */
+  const byte *GetCurrentRow() const noexcept {
+    TERRIER_ASSERT(HasNext(), "HasNext() indicates no more data!");
+    const auto entry = reinterpret_cast<const HashTableEntry *>(*entry_iter_);
+    return entry->payload_;
+  }
+
+  /**
+   * Access the row the iterator is currently positioned at as the given template type.
+   * @pre A previous call to HasNext() must have returned true.
+   * @tparam T The type of the row.
+   * @return A typed read-only pointer to row at the current iteration position.
+   */
+  template <typename T>
+  const T *GetCurrentRowAs() const noexcept {
+    return reinterpret_cast<const T *>(GetCurrentRow());
+  }
+
+ private:
+  // Advance past any empty entry lists.
+  void FindNextNonEmptyList();
+
+ private:
+  using EntryListIterator = decltype(JoinHashTable::owned_)::const_iterator;
+  using EntryIterator = decltype(JoinHashTable::entries_)::Iterator;
+  // An iterator over the entry lists owned by the join hash table.
+  EntryListIterator entry_list_iter_, entry_list_end_;
+  // An iterator over the entries in a single entry list.
+  EntryIterator entry_iter_, entry_end_;
+};
 
 }  // namespace terrier::execution::sql
