@@ -223,21 +223,21 @@ VM_OP_HOT void OpExecutionContextStartResourceTracker(terrier::execution::exec::
   exec_ctx->StartResourceTracker(component);
 }
 
-VM_OP_COLD void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+VM_OP_COLD void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *exec_ctx,
                                                        uint32_t memory_use);
 
-VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+VM_OP_HOT void OpExecutionContextEndResourceTracker(terrier::execution::exec::ExecutionContext *exec_ctx,
                                                     const terrier::execution::sql::StringVal &name) {
   exec_ctx->EndResourceTracker(name.GetContent(), name.GetLength());
 }
 
-VM_OP_COLD void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+VM_OP_COLD void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *exec_ctx,
                                                        terrier::execution::pipeline_id_t pipeline_id);
 
-VM_OP_COLD void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+VM_OP_COLD void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *exec_ctx,
                                                      terrier::execution::query_id_t query_id,
                                                      terrier::execution::pipeline_id_t pipeline_id,
-                                                     terrier::brain::ExecOUFeatureVector *const ouvec);
+                                                     terrier::brain::ExecOUFeatureVector *ouvec);
 
 VM_OP_COLD void OpExecOUFeatureVectorRecordFeature(
     terrier::brain::ExecOUFeatureVector *ouvec, terrier::execution::pipeline_id_t pipeline_id,
@@ -245,14 +245,14 @@ VM_OP_COLD void OpExecOUFeatureVectorRecordFeature(
     terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
     terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value);
 
-VM_OP_COLD void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                                terrier::brain::ExecOUFeatureVector *const ouvec,
+VM_OP_COLD void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *exec_ctx,
+                                                terrier::brain::ExecOUFeatureVector **ouvec,
                                                 terrier::execution::pipeline_id_t pipeline_id, bool is_parallel);
 
-VM_OP_COLD void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouvec,
+VM_OP_COLD void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *ouvec,
                                             terrier::brain::ExecutionOperatingUnitType filter);
 
-VM_OP_COLD void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec);
+VM_OP_COLD void OpExecOUFeatureVectorDestroy(terrier::execution::exec::ExecutionContext *exec_ctx, terrier::brain::ExecOUFeatureVector *ouvec);
 
 VM_OP_WARM
 void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,

@@ -906,6 +906,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextSetMemoryUseOverride:
     case ast::Builtin::ExecutionContextEndResourceTracker:
+    case ast::Builtin::ExecOUFeatureVectorDestroy:
       expected_arg_count = 2;
       break;
     case ast::Builtin::ExecutionContextRegisterHook:
@@ -979,6 +980,20 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
         return;
       }
 
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorDestroy: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      const auto &args = call->Arguments();
+      auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
+      if (!IsPointerToSpecificBuiltin(args[1]->GetType(), ou_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ou_kind)->PointerTo());
+        return;
+      }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -1063,8 +1078,11 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     }
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
-      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), ou_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(ou_kind)->PointerTo());
+      auto *outype = call_args[1]->GetType();
+      if (!outype->IsPointerType() ||
+          !outype->GetPointeeType() ||
+          !IsPointerToSpecificBuiltin(outype->GetPointeeType(), ou_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ou_kind)->PointerTo()->PointerTo());
         return;
       }
       // Pipeline ID.
@@ -3135,7 +3153,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
-    case ast::Builtin::ExecOUFeatureVectorInitialize: {
+    case ast::Builtin::ExecOUFeatureVectorInitialize:
+    case ast::Builtin::ExecOUFeatureVectorDestroy: {
       CheckBuiltinExecutionContextCall(call, builtin);
       break;
     }
@@ -3149,16 +3168,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       // Filter
       if (!call_args[1]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
-        return;
-      }
-      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::ExecOUFeatureVectorDestroy: {
-      const auto &args = call->Arguments();
-      auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
-      if (!IsPointerToSpecificBuiltin(args[0]->GetType(), ou_kind)) {
-        ReportIncorrectCallArg(call, 0, GetBuiltinType(ou_kind)->PointerTo());
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));

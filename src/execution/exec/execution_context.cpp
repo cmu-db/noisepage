@@ -88,28 +88,32 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
     TERRIER_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
+    brain::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_.begin(), ouvec->pipeline_features_.end());
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
-                                                              std::move(*ouvec->pipeline_features_), resource_metrics);
+                                                              std::move(features), resource_metrics);
   }
 }
 
-void ExecutionContext::InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
-  if (ouvec->pipeline_features_ != nullptr) {
-    ouvec->Destroy();
-  }
+void ExecutionContext::InitializeOUFeatureVector(brain::ExecOUFeatureVector **ouvec, pipeline_id_t pipeline_id) {
+  void *alloc = GetMemoryPool()->Allocate(sizeof(brain::ExecOUFeatureVector));
+  brain::ExecOUFeatureVector *vec = new (alloc) brain::ExecOUFeatureVector(GetMemoryPool());
+  vec->pipeline_id_ = pipeline_id;
 
-  ouvec->pipeline_id_ = pipeline_id;
-  ouvec->pipeline_features_ =
-      new brain::ExecutionOperatingUnitFeatureVector(pipeline_operating_units_->GetPipelineFeatures(pipeline_id));
+  auto &features = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
+  vec->pipeline_features_.insert(vec->pipeline_features_.end(), features.begin(), features.end());
 
   // Update num_concurrent
-  for (auto &feature : *ouvec->pipeline_features_) {
+  for (auto &feature : vec->pipeline_features_) {
     feature.SetNumConcurrent(num_concurrent_estimate_);
   }
+
+  *ouvec = vec;
 }
 
-void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
-  ouvec->pipeline_id_ = pipeline_id;
+void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector **ouvec, pipeline_id_t pipeline_id) {
+  void *alloc = GetMemoryPool()->Allocate(sizeof(brain::ExecOUFeatureVector));
+  brain::ExecOUFeatureVector *vec = new (alloc) brain::ExecOUFeatureVector(GetMemoryPool());
+  vec->pipeline_id_ = pipeline_id;
 
   bool found_blocking = false;
   brain::ExecutionOperatingUnitFeature feature;
@@ -127,29 +131,30 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
     return;
   }
 
-  ouvec->pipeline_features_ = new brain::ExecutionOperatingUnitFeatureVector();
   switch (feature.GetExecutionOperatingUnitType()) {
     case brain::ExecutionOperatingUnitType::HASHJOIN_BUILD:
-      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN, feature);
+      vec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN, feature);
       break;
     case brain::ExecutionOperatingUnitType::AGGREGATE_BUILD:
-      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD, feature);
+      vec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD, feature);
       break;
     case brain::ExecutionOperatingUnitType::SORT_BUILD:
-      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
-      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
+      vec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP, feature);
+      vec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP, feature);
       break;
     case brain::ExecutionOperatingUnitType::CREATE_INDEX:
-      ouvec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
+      vec->pipeline_features_.emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
       break;
     default:
       TERRIER_ASSERT(false, "Unsupported parallel OU");
   }
 
   // Update num_concurrent
-  for (auto &feature : *ouvec->pipeline_features_) {
+  for (auto &feature : vec->pipeline_features_) {
     feature.SetNumConcurrent(num_concurrent_estimate_);
   }
+
+  *ouvec = vec;
 }
 
 const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t param_idx) const {

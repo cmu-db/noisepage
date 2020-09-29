@@ -1692,6 +1692,11 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id, is_parallel);
       break;
     }
+    case ast::Builtin::ExecOUFeatureVectorDestroy: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorDestroy, exec_ctx, ouvector);
+      break;
+    }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
       LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       GetEmitter()->Emit(Bytecode::ExecutionContextGetMemoryPool, result, exec_ctx);
@@ -2555,6 +2560,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
+    case ast::Builtin::ExecOUFeatureVectorDestroy:
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       VisitExecutionContextCall(call, builtin);
       break;
@@ -2563,11 +2569,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar filter = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorFilter, ouvector, filter);
-      break;
-    }
-    case ast::Builtin::ExecOUFeatureVectorDestroy: {
-      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorDestroy, ouvector);
       break;
     }
     case ast::Builtin::ExecOUFeatureVectorRecordFeature: {

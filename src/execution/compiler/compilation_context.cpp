@@ -128,7 +128,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
   } else {
     Prepare(plan, &main_pipeline);
   }
-  query_state_.ConstructFinalType(&codegen_);
+  query_state_.ConstructFinalType(&codegen_, false);
 
   // Collect top-level structures and declarations.
   util::RegionVector<ast::StructDecl *> top_level_structs(query_->GetContext()->GetRegion());

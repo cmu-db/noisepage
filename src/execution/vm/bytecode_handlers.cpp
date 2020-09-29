@@ -306,7 +306,7 @@ void OpExecOUFeatureVectorRecordFeature(terrier::brain::ExecOUFeatureVector *ouv
 }
 
 void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                     terrier::brain::ExecOUFeatureVector *const ouvec,
+                                     terrier::brain::ExecOUFeatureVector **const ouvec,
                                      terrier::execution::pipeline_id_t pipeline_id, bool is_parallel) {
   if (is_parallel)
     exec_ctx->InitializeParallelOUFeatureVector(ouvec, pipeline_id);
@@ -314,7 +314,11 @@ void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext 
     exec_ctx->InitializeOUFeatureVector(ouvec, pipeline_id);
 }
 
-void OpExecOUFeatureVectorDestroy(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Destroy(); }
+void OpExecOUFeatureVectorDestroy(
+    terrier::execution::exec::ExecutionContext *const exec_ctx,
+    terrier::brain::ExecOUFeatureVector *const ouvec) {
+  exec_ctx->DestroyOUFeatureVector(ouvec);
+}
 
 void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                             uint32_t memory_use) {
@@ -323,13 +327,13 @@ void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionC
 
 void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouvec,
                                  terrier::brain::ExecutionOperatingUnitType filter) {
-  ouvec->pipeline_features_->erase(
-      std::remove_if(ouvec->pipeline_features_->begin(), ouvec->pipeline_features_->end(),
+  ouvec->pipeline_features_.erase(
+      std::remove_if(ouvec->pipeline_features_.begin(), ouvec->pipeline_features_.end(),
                      [filter](const auto &feature) {
                        return (filter != terrier::brain::ExecutionOperatingUnitType::INVALID) &&
                               (filter != feature.GetExecutionOperatingUnitType());
                      }),
-      ouvec->pipeline_features_->end());
+      ouvec->pipeline_features_.end());
 }
 
 }  //

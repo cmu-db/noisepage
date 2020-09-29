@@ -118,7 +118,7 @@ void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t que
     std::vector<ast::Expr *> args = {exec_ctx};
     args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
     args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
-    args.push_back(oufeatures_.GetPtr(codegen_));
+    args.push_back(oufeatures_.Get(codegen_));
     auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
     builder->Append(codegen_->MakeStmt(end_call));
 
@@ -128,6 +128,11 @@ void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t que
       auto call = codegen_->CallBuiltin(ast::Builtin::AggregateMetricsThread, args);
       builder->Append(codegen_->MakeStmt(call));
     }
+
+    // Destroy the pipeline features
+    args = {exec_ctx, oufeatures_.Get(codegen_)};
+    auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorDestroy, args);
+    builder->Append(codegen_->MakeStmt(call));
   }
 }
 
@@ -153,6 +158,13 @@ void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
 }
 
 void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
+  // Finalize the pipeline state.
+  if (compilation_context_->IsPipelineMetricsEnabled()) {
+    ast::Expr *type = codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector));
+    oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
+  }
+  state_.ConstructFinalType(codegen_, true);
+
   // Finalize the execution mode. We choose serial execution if ANY of the below
   // conditions are satisfied:
   //  1. If parallel execution is globally disabled.
@@ -166,11 +178,6 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   } else {
     parallelism_ = Pipeline::Parallelism::Parallel;
   }
-
-  // Finalize the pipeline state.
-  ast::Expr *type = codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector);
-  oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
-  state_.ConstructFinalType(codegen_);
 
   // Pretty print.
   {
@@ -209,13 +216,6 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
     CodeGen::CodeScope code_scope(codegen_);
     for (auto *op : steps_) {
       op->TearDownPipelineState(*this, &builder);
-    }
-
-    if (compilation_context_->IsPipelineMetricsEnabled()) {
-      // Destroy the pipeline features
-      std::vector<ast::Expr *> args{oufeatures_.GetPtr(codegen_)};
-      auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorDestroy, args);
-      builder.Append(codegen_->MakeStmt(call));
     }
   }
   return builder.Finish();

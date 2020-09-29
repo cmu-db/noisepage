@@ -146,17 +146,22 @@ class EXPORT ExecutionContext {
 
   /**
    * Initializes an OU feature vector for a given pipeline
-   * @param ouvec OU Feature Vector to initialize
+   * @param ouvec OU Feature Vector to store initialized vector
    * @param pipeline_id Pipeline to initialize with
    */
-  void InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeOUFeatureVector(brain::ExecOUFeatureVector **ouvec, pipeline_id_t pipeline_id);
 
   /**
    * Initializes an OU feature vector for a given parallel step (i.e hashjoin_build, sort_build, agg_build)
-   * @param ouvec OU Feature Vector to initialize
+   * @param ouvec OU Feature Vector to store initialized vector
    * @param pipeline_id Pipeline to initialize with
    */
-  void InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector **ouvec, pipeline_id_t pipeline_id);
+
+  void DestroyOUFeatureVector(brain::ExecOUFeatureVector *ouvec) {
+    ouvec->~ExecOUFeatureVector();
+    GetMemoryPool()->Deallocate(ouvec, sizeof(brain::ExecOUFeatureVector));
+  }
 
   /**
    * @return the db oid

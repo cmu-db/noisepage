@@ -205,9 +205,9 @@ class Pipeline {
   query_id_t GetQueryId() const { return query_id_; }
 
   /**
-   * @returns pointer to the OU feature vector in the pipeline state
+   * @returns the OUFeatureVector pointer
    */
-  ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
+  ast::Expr *OUFeatureVecPtr() const { return oufeatures_.Get(codegen_); }
 
   /**
    * Declare Function that depends on thread-local state

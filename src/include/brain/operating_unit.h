@@ -7,6 +7,7 @@
 
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::runner {
@@ -279,7 +280,13 @@ class EXPORT ExecOUFeatureVector {
    * vector on all control flow paths. A standard std::vector may not be
    * properly cleaned up if execution encounters an "exception".
    */
-  ExecutionOperatingUnitFeatureVector *pipeline_features_ = nullptr;
+  execution::sql::MemPoolVector<ExecutionOperatingUnitFeature> pipeline_features_;
+
+  /**
+   * Constructor
+   * @param pool Memory Pool
+   */
+  ExecOUFeatureVector(execution::sql::MemoryPool* pool);
 
   /**
    * Function used to update a feature's metadata information
@@ -292,16 +299,6 @@ class EXPORT ExecOUFeatureVector {
   void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
                      ExecutionOperatingUnitFeatureAttribute modifier, ExecutionOperatingUnitFeatureUpdateMode mode,
                      uint32_t val);
-
-  ~ExecOUFeatureVector() { Destroy(); }
-
-  /**
-   * Destroys the pipeline_features_
-   */
-  void Destroy() {
-    delete pipeline_features_;
-    pipeline_features_ = nullptr;
-  }
 };
 
 /**

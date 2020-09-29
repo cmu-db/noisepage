@@ -40,7 +40,7 @@ StateDescriptor::Entry StateDescriptor::DeclareStateEntry(CodeGen *codegen, cons
   return Entry(this, member);
 }
 
-ast::StructDecl *StateDescriptor::ConstructFinalType(CodeGen *codegen) {
+ast::StructDecl *StateDescriptor::ConstructFinalType(CodeGen *codegen, bool allow_reorder) {
   // Early exit if the state is already constructed.
   if (state_type_ != nullptr) {
     return state_type_;
@@ -48,6 +48,14 @@ ast::StructDecl *StateDescriptor::ConstructFinalType(CodeGen *codegen) {
 
   // Collect fields and build the structure type.
   util::RegionVector<ast::FieldDecl *> fields = codegen->MakeEmptyFieldList();
+  if (allow_reorder) {
+    std::sort(slots_.begin(), slots_.end(), [](SlotInfo &a, SlotInfo &b) {
+      auto *a_type = a.type_repr_->GetType();
+      auto *b_type = b.type_repr_->GetType();
+      return a_type->GetSize() > b_type->GetSize();
+    });
+  }
+
   for (auto &slot : slots_) {
     fields.push_back(codegen->MakeField(slot.name_, slot.type_repr_));
   }
