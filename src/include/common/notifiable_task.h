@@ -149,6 +149,7 @@ class NotifiableTask : public DedicatedThreadTask {
   void ExitLoop() { terminate_->send(); }
 
  protected:
+  /** Event loop for the current thread */
   ev::loop_ref loop_;
 
  private:
