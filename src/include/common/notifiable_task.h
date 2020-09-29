@@ -87,10 +87,10 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * @brief Updates the callback information for a registered event
    *
+   * @tparam function callback function to register with event
    * @param event The registered event
    * @param fd The new file descriptor for the event to be assigned to
    * @param flags The new flags for the event
-   * @param callback The callback function for the event
    * @param arg Argument to the callback function
    * @param timeout Timeout if any for the event
    */
