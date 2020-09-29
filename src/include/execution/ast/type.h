@@ -702,9 +702,9 @@ class StructType : public Type {
    * Adds a padding element when creating a struct. Refer to Issue #1210.
    * @param size Size of padding element
    * @param ctx Context
-   * @param fields Fields vector append to
+   * @returns padding element field
    */
-  static void AddPaddingElement(uint32_t size, Context *ctx, util::RegionVector<Field> *fields);
+  static Field CreatePaddingElement(uint32_t size, Context *ctx);
 
   /**
    * Create a structure with the given fields.
