@@ -51,6 +51,14 @@ class NetworkUtil {
 
   /**
    * @param type query type from the parser
+   * @return true if QUERY_EXPLAIN
+   */
+  static bool ExplainQueryType(const QueryType type) {
+    return type == QueryType::QUERY_EXPLAIN;
+  }
+
+  /**
+   * @param type query type from the parser
    * @return true for statement types that aren't run in a txn, currently SET but other internal queries might be added
    */
   static bool NonTransactionalQueryType(const QueryType type) { return type == QueryType::QUERY_SET; }

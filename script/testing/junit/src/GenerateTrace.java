@@ -24,8 +24,8 @@ public class GenerateTrace {
         MogDb db = new MogDb(args[1], args[2], args[3]);
         Connection conn = db.getDbTest().newConn();
         // remove existing table name
-        List<String> tab = getAllExistingTableName(mog,conn);
-        removeExistingTable(tab,conn);
+        //List<String> tab = getAllExistingTableName(mog,conn);
+        //removeExistingTable(tab,conn);
 
         String line;
         String label;
@@ -42,6 +42,7 @@ public class GenerateTrace {
                 statement.execute(line);
                 label = Constants.STATEMENT_OK;
             } catch (Throwable e){
+                System.out.println("yeet are we here?\n");
                 label = Constants.STATEMENT_ERROR;
             }
 
@@ -95,6 +96,7 @@ public class GenerateTrace {
                 // other sql statements
                 int rs = statement.getUpdateCount();
                 if(expected_result_num>=0 && expected_result_num!=rs){
+                    System.out.println("are we here?\n");
                     label = Constants.STATEMENT_ERROR;
                 }
                 writeToFile(writer, label);

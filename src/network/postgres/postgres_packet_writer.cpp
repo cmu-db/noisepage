@@ -26,6 +26,10 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
   BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query, true).EndPacket();
 }
 
+void PostgresPacketWriter::WriteExplain(const std::string &phys_plan) {
+  //BeginPacket().AppendString(phys_plan, true).EndPacket();
+}
+
 void PostgresPacketWriter::WriteError(const common::ErrorData &error) {
   if (error.GetSeverity() <= common::ErrorSeverity::PANIC)
     BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
@@ -157,6 +161,9 @@ void PostgresPacketWriter::WriteCommandComplete(const QueryType query_type, cons
       break;
     case QueryType::QUERY_DROP_SCHEMA:
       WriteCommandComplete("DROP SCHEMA");
+      break;
+    case QueryType::QUERY_EXPLAIN:
+      WriteCommandComplete("EXPLAIN");
       break;
     case QueryType::QUERY_SET:
       WriteCommandComplete("SET");

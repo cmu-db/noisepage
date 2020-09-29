@@ -200,6 +200,19 @@ class TrafficCop {
                                         terrier::network::QueryType query_type) const;
 
   /**
+   * Contains the logic to reason about EXPLAIN execution.
+   * @param connection_ctx context to be used to access the internal txn
+   * @param out packet writer to return results
+   * @param physical_plan to be executed
+   * @param query_type QUERY_EXPLAIN
+   * @return result of the operation
+   */
+  TrafficCopResult ExecuteExplain(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                  common::ManagedPointer<network::PostgresPacketWriter> out,
+                                  common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                  terrier::network::QueryType query_type) const;
+
+  /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
    * (can't) stick it in TrafficCopResult.
    * @param connection_ctx context to be used to access the internal txn

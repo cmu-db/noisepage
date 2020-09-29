@@ -10,6 +10,7 @@
 #include "optimizer/query_to_operator_transformer.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
+#include "parser/explain_statement.h"
 #include "parser/parser_defs.h"
 #include "parser/postgresparser.h"
 #include "parser/transaction_statement.h"
@@ -25,7 +26,13 @@ std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     std::unique_ptr<optimizer::AbstractCostModel> cost_model, const uint64_t optimizer_timeout) {
   // Optimizer transforms annotated ParseResult to logical expressions (ephemeral Optimizer structure)
   optimizer::QueryToOperatorTransformer transformer(accessor, db_oid);
-  auto logical_exprs = transformer.ConvertToOpExpression(query->GetStatement(0), query);
+  common::ManagedPointer<parser::SQLStatement> query_statement = query->GetStatement(0);
+
+  if (query_statement->GetType() == parser::StatementType::EXPLAIN) {
+    const auto exp_st = query_statement.CastManagedPointerTo<parser::ExplainStatement>();
+    query_statement = exp_st->GetSQLStatement();
+  }
+  auto logical_exprs = transformer.ConvertToOpExpression(query_statement, query);
 
   // TODO(Matt): is the cost model to use going to become an arg to this function eventually?
   optimizer::Optimizer optimizer(std::move(cost_model), optimizer_timeout);
