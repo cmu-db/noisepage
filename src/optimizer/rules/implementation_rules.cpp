@@ -682,7 +682,7 @@ void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(
         LeftSemiHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
             .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
         std::move(child), context->GetOptimizerContext()->GetTxn());
-  transformed->emplace_back(std::move(result));
+    transformed->emplace_back(std::move(result));
   }
 }
 
@@ -707,7 +707,6 @@ LogicalLeftJoinToPhysicalLeftHashJoin::LogicalLeftJoinToPhysicalLeftHashJoin() {
 
 bool LogicalLeftJoinToPhysicalLeftHashJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                                   OptimizationContext *context) const {
-
   (void)context;
   (void)plan;
   return true;
