@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <unordered_set>
 
 #include "common/dedicated_thread_task.h"
@@ -66,9 +65,8 @@ class NotifiableTask : public DedicatedThreadTask {
    *        null which will wait forever
    * @return pointer to the allocated event.
    */
-  template<void (*function)(ev::io &event, int)>
-  ev::io *RegisterIoEvent(int fd, uint16_t flags, void *arg,
-                                          const struct timeval *timeout = nullptr) {
+  template <void (*function)(ev::io &event, int)>
+  ev::io *RegisterIoEvent(int fd, uint16_t flags, void *arg, const struct timeval *timeout = nullptr) {
     auto *event = new ev::io(loop_);
     event->set<function>(arg);
     io_events_.insert(event);
@@ -76,7 +74,7 @@ class NotifiableTask : public DedicatedThreadTask {
     return event;
   }
 
-  template<void (*function)(ev::async &event, int)>
+  template <void (*function)(ev::async &event, int)>
   ev::async *RegisterAsyncEvent(void *arg) {
     auto *event = new ev::async(loop_);
     event->set<function>(arg);
@@ -97,9 +95,9 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-/*  struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
-    return RegisterEvent(-1, EV_TIMEOUT | EV_PERSIST, callback, arg, timeout);
-  }*/
+  /*  struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
+      return RegisterEvent(-1, EV_TIMEOUT | EV_PERSIST, callback, arg, timeout);
+    }*/
 
   /**
    * @brief Register an event that can only be fired if someone calls
@@ -112,9 +110,9 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-/*  struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
-    return RegisterEvent(-1, EV_PERSIST, callback, arg);
-  }*/
+  /*  struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
+      return RegisterEvent(-1, EV_PERSIST, callback, arg);
+    }*/
 
   /**
    * @brief Updates the callback information for a registered event
@@ -126,7 +124,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg Argument to the callback function
    * @param timeout Timeout if any for the event
    */
-  template<void (*function)(ev::io &event, int)>
+  template <void (*function)(ev::io &event, int)>
   void UpdateIoEvent(ev::io *event, int fd, uint16_t flags, void *arg, const struct timeval *timeout) {
     TERRIER_ASSERT(!(io_events_.find(event) == io_events_.end()), "Didn't find event");
     // TODO handle timeout
@@ -170,9 +168,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Exits the event loop
    */
-  void ExitLoop() {
-    terminate_->send();
-  }
+  void ExitLoop() { terminate_->send(); }
 
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature
@@ -181,6 +177,7 @@ class NotifiableTask : public DedicatedThreadTask {
 
  protected:
   ev::loop_ref loop_;
+
  private:
   static void TerminateCallback(ev::async &event, int revents);
 

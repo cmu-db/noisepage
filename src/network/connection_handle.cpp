@@ -95,8 +95,8 @@ class ConnectionHandleStateMachineTransition {
 
   /** Wait for the connection to become readable, or until a timeout happens. */
   static Transition WaitForReadWithTimeout(const common::ManagedPointer<ConnectionHandle> handle) {
-    //TODO figure out timeout
-//    handle->UpdateEventFlags(EV_READ | EV_TIMEOUT, READ_TIMEOUT);
+    // TODO figure out timeout
+    //    handle->UpdateEventFlags(EV_READ | EV_TIMEOUT, READ_TIMEOUT);
     handle->UpdateEventFlags(EV_READ, READ_TIMEOUT);
     return Transition::NONE;
   }
@@ -152,8 +152,8 @@ ConnectionHandle::~ConnectionHandle() = default;
 
 void ConnectionHandle::RegisterToReceiveEvents() {
   workpool_event_ = conn_handler_task_->RegisterAsyncEvent<&ConnectionHandle::HandleAsyncEventCallback>(this);
-  network_event_ = conn_handler_task_->RegisterIoEvent<&ConnectionHandle::HandleIoEventCallback>(io_wrapper_->GetSocketFd(),
-                                                                                         ev::READ, this);
+  network_event_ = conn_handler_task_->RegisterIoEvent<&ConnectionHandle::HandleIoEventCallback>(
+      io_wrapper_->GetSocketFd(), ev::READ, this);
 }
 
 void ConnectionHandle::HandleAsyncEventCallback(ev::async &event, int flags) {
@@ -223,13 +223,15 @@ void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
   int conn_fd = io_wrapper_->GetSocketFd();
   if ((flags & EV_TIMEOUT) == 0) {
     // If there is no timeout specified, then the event will wait forever to be activated.
-    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleIoEventCallback>(network_event_, conn_fd, flags, this, nullptr);
+    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleIoEventCallback>(network_event_, conn_fd, flags, this,
+                                                                                nullptr);
   } else {
     // Otherwise if there is a timeout specified, then the event will fire once the timeout has passed.
     struct timeval timeout {
       timeout_secs, 0
     };
-    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleIoEventCallback>(network_event_, conn_fd, flags, this, &timeout);
+    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleIoEventCallback>(network_event_, conn_fd, flags, this,
+                                                                                &timeout);
   }
 }
 

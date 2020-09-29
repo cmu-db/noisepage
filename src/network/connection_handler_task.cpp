@@ -6,9 +6,9 @@ namespace terrier::network {
 
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id,
                                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
-    // For some reason calling ev::dynamic_loop(), which is the C++ API for ev_loop_new(), immediately calls the destructor after the constructor
+    // For some reason calling ev::dynamic_loop(), which is the C++ API for ev_loop_new(), immediately calls the
+    // destructor after the constructor
     : NotifiableTask(ev_loop_new(), task_id), connection_handle_factory_(connection_handle_factory) {
-
   // Register an event that needs to be explicitly activated. When the event is handled, HandleDispatch() is called.
   notify_event_ = new ev::async(loop_);
   notify_event_->set<&ConnectionHandlerTask::HandleDispatchCallback>(this);
