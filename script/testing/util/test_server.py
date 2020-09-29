@@ -98,19 +98,13 @@ class TestServer:
                 # successful case
                 return
             except:
-                try:
-                    self.stop_db()
-                except:
-                    LOG.error("DB early terminated")
-                try:
-                    LOG.error("+" * 100)
-                    LOG.error("DATABASE OUTPUT")
-                    print_output(self.db_output_file)
-                    if attempt + 1 == constants.DB_START_ATTEMPTS:
-                        raise
-                    traceback.print_exc(file=sys.stdout)
-                except:
-                    LOG.error("DB output log file not even created")
+                self.stop_db()
+                LOG.error("+" * 100)
+                LOG.error("DATABASE OUTPUT")
+                print_output(self.db_output_file)
+                if attempt + 1 == constants.DB_START_ATTEMPTS:
+                    raise
+                traceback.print_exc(file=sys.stdout)
 
         msg = "Failed to start DB after {} attempts".format(
             constants.DB_START_ATTEMPTS)

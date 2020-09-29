@@ -52,10 +52,13 @@ def run_as_root(command, printable=True):
 
 def print_output(filename):
     """ Print out contents of a file """
-    with open(filename) as file:
-        lines = file.readlines()
-        for line in lines:
-            LOG.info(line.strip())
+    try:
+        with open(filename) as file:
+            lines = file.readlines()
+            for line in lines:
+                LOG.info(line.strip())
+    except FileNotFoundError:
+        LOG.error("file not exists: '{}'".format(filename))
 
 
 def format_time(timestamp):
