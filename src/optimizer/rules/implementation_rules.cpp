@@ -661,7 +661,7 @@ void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(
   const auto semi_join = input->Contents()->GetContentsAs<LogicalSemiJoin>();
 
   auto children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Left Semi Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Left Semi Join should have two children");
   auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();

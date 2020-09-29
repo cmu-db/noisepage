@@ -219,7 +219,8 @@ void RewritePushExplicitFilterThroughJoin::Transform(common::ManagedPointer<Abst
   bool semi_join = false;
   std::vector<AnnotatedExpression> semi_join_predicates;
   for (auto &join_predicate : join_predicates) {
-    // COMPARE_IN is handled by left semi join
+    // COMPARE_IN is equivalent to EXSITS
+    // semi join is the standard way to implement a EXSITS relation
     if (join_predicate.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
       semi_join = true;
       // Construct a new annotated expression and set its expression type to equal

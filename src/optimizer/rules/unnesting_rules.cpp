@@ -177,40 +177,40 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   for (auto &col : aggregation->GetColumns()) {
     new_groupby_cols.emplace_back(col);
   }
-  std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  c.emplace_back(agg_expr->GetChildren()[0]->Copy());
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> agg_child;
+  agg_child.emplace_back(agg_expr->GetChildren()[0]->Copy());
   std::vector<AnnotatedExpression> new_having = aggregation->GetHaving();
   auto new_aggr = std::make_unique<OperatorNode>(
       LogicalAggregateAndGroupBy::Make(std::move(new_groupby_cols), std::move(new_having))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-      std::move(c), context->GetOptimizerContext()->GetTxn());
+      std::move(agg_child), context->GetOptimizerContext()->GetTxn());
 
   // Create a new inner join node from single join
-  std::vector<std::unique_ptr<AbstractOptimizerNode>> ci;
-  ci.emplace_back(input->GetChildren()[0]->Copy());
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> inner_node;
+  inner_node.emplace_back(input->GetChildren()[0]->Copy());
   if (!descendant_predicates.empty()) {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
     cf.emplace_back(std::move(new_aggr));
     auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(descendant_predicates))
                                                      .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
                                                  std::move(cf), context->GetOptimizerContext()->GetTxn());
-    ci.emplace_back(std::move(filter));
+    inner_node.emplace_back(std::move(filter));
   } else {
-    ci.emplace_back(std::move(new_aggr));
+    inner_node.emplace_back(std::move(new_aggr));
   }
   auto new_inner = std::make_unique<OperatorNode>(
-      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(ci),
+      LogicalInnerJoin::Make().RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()), std::move(inner_node),
       context->GetOptimizerContext()->GetTxn());
 
   std::unique_ptr<OperatorNode> output;
   // Create new filter nodes
   // Construct a top filter if any
   if (!ancestor_predicates.empty()) {
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
-    cf.emplace_back(std::move(new_inner));
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> root_node;
+    root_node.emplace_back(std::move(new_inner));
     output = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(ancestor_predicates))
                                                 .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                            std::move(cf), context->GetOptimizerContext()->GetTxn());
+                                            std::move(root_node), context->GetOptimizerContext()->GetTxn());
 
   } else {
     output = std::move(new_inner);

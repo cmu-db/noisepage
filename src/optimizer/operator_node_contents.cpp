@@ -57,9 +57,10 @@ common::hash_t Operator::Hash() const {
 }
 
 bool Operator::operator==(const Operator &rhs) const {
-  if (IsDefined() && rhs.IsDefined() && contents_ != nullptr && rhs.contents_ != nullptr) {
+  if (IsDefined() && rhs.IsDefined()) {
     return *contents_ == *rhs.contents_;
   }
+
   return !IsDefined() && !rhs.IsDefined();
 }
 
