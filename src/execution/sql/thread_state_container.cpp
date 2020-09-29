@@ -2,9 +2,9 @@
 
 #include <tbb/parallel_for_each.h>
 
+#include <map>
 #include <memory>
 #include <thread>  //NOLINT
-#include <unordered_map>
 
 #include "common/constants.h"
 #include "common/spin_latch.h"
@@ -48,7 +48,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
 // The actual container for all thread-local state for participating threads
 struct ThreadStateContainer::Impl {
   common::SpinLatch states_latch_;
-  std::unordered_map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
+  std::map<std::thread::id, std::unique_ptr<TLSHandle>> states_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -63,9 +63,7 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       init_fn_(nullptr),
       destroy_fn_(nullptr),
       ctx_(nullptr),
-      impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states_.reserve(2 * std::thread::hardware_concurrency());
-}
+      impl_(std::make_unique<ThreadStateContainer::Impl>()) {}
 
 ThreadStateContainer::~ThreadStateContainer() { Clear(); }
 
