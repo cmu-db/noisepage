@@ -184,7 +184,7 @@ Transition ConnectionHandle::Process() {
 
 Transition ConnectionHandle::GetResult() {
   // Wait until a network event happens.
-  network_event_->start();
+  network_event_->Start();
   // TODO(WAN): It is not clear to me what this function is doing. If someone figures it out, please update comment.
   protocol_interpreter_->GetResult(io_wrapper_->GetWriteQueue());
   return Transition::PROCEED;
@@ -216,7 +216,7 @@ void ConnectionHandle::UpdateEventFlags(uint16_t flags, ev_tstamp timeout_secs) 
                                                                             timeout_secs);
 }
 
-void ConnectionHandle::StopReceivingNetworkEvent() { network_event_->stop(); }
+void ConnectionHandle::StopReceivingNetworkEvent() { network_event_->Stop(); }
 
 void ConnectionHandle::Callback(void *callback_args) {
   // TODO(WAN): this is currently unused.

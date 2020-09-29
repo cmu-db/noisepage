@@ -116,7 +116,7 @@ class ConnectionHandle {
  private:
   /** Callback to handle event */
   template <typename E>
-  static void HandleEventCallback(E &event, int flags) {
+  static void HandleEventCallback(E &event, int flags) {  // NOLINT
     static_cast<ConnectionHandle *>(event.data)->HandleEvent(flags);
   }
 

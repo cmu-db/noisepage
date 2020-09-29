@@ -62,7 +62,7 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    *
    * @see HandleDispatch
    */
-  static void HandleDispatchCallback(ev::async &event, int);
+  static void HandleDispatchCallback(ev::async &event, int);  // NOLINT
 
   /**
    * Using this latch+deque instead of the Common::ConcurrentQueue as the overhead is not worth

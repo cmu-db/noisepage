@@ -48,13 +48,13 @@ class NotifiableTask : public DedicatedThreadTask {
    *        null which will wait forever
    * @return pointer to the allocated event.
    */
-  template <void (*function)(ev::io &event, int)>
+  template <void (*function)(ev::io &event, int)>  // NOLINT
   IoTimeoutEvent *RegisterIoEvent(int fd, uint16_t flags, void *arg,
                                   const ev_tstamp timeout = IoTimeoutEvent::WAIT_FOREVER) {
     auto *event = new IoTimeoutEvent(loop_);
-    event->set<function>(arg);
+    event->Set<function>(arg);
     io_events_.insert(event);
-    event->start(fd, flags, timeout);
+    event->Start(fd, flags, timeout);
     return event;
   }
 
@@ -74,7 +74,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
-  template <void (*function)(ev::async &event, int)>
+  template <void (*function)(ev::async &event, int)>  // NOLINT
   ev::async *RegisterAsyncEvent(void *arg) {
     auto *event = new ev::async(loop_);
     event->set<function>(arg);
@@ -93,12 +93,12 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param arg Argument to the callback function
    * @param timeout Timeout if any for the event
    */
-  template <void (*function)(ev::io &event, int)>
+  template <void (*function)(ev::io &event, int)>  // NOLINT
   void UpdateIoEvent(IoTimeoutEvent *event, int fd, uint16_t flags, void *arg, ev_tstamp timeout) {
     TERRIER_ASSERT(!(io_events_.find(event) == io_events_.end()), "Didn't find event");
-    event->stop();
-    event->set<function>(arg);
-    event->start(fd, flags, timeout);
+    event->Stop();
+    event->Set<function>(arg);
+    event->Start(fd, flags, timeout);
   }
 
   /**
@@ -153,17 +153,7 @@ class NotifiableTask : public DedicatedThreadTask {
 
  private:
   /** Callback to terminate event loop */
-  static void TerminateCallback(ev::async &event, int revents);
-
-  /** Helper method to unregister any type of event */
-  template <typename E>
-  void UnregisterEvent(E *event, std::unordered_set<E *> &events) {
-    auto it = events.find(event);
-    if (it == events.end()) return;
-    event->stop();
-    events.erase(event);
-    delete event;
-  }
+  static void TerminateCallback(ev::async &event, int revents);  // NOLINT
 
   ev::async *terminate_;
   const int task_id_;

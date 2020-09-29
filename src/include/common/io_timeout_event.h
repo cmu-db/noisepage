@@ -10,22 +10,22 @@ class IoTimeoutEvent {
 
   explicit IoTimeoutEvent(ev::loop_ref loop);
 
-  void set(ev::loop_ref loop);
+  void Set(ev::loop_ref loop);
 
-  template <void (*function)(ev::io &event, int)>
-  void set(void *data = nullptr) {
+  template <void (*function)(ev::io &event, int)>  // NOLINT
+  void Set(void *data = nullptr) {
     io_event_.set<function>(data);
     timer_event_.set<&TimeoutCallback>(&io_event_);
   }
 
-  void start();
+  void Start();
 
-  void start(int fd, uint16_t flags, ev_tstamp after);
+  void Start(int fd, uint16_t flags, ev_tstamp after);
 
-  void stop();
+  void Stop();
 
  private:
-  static void TimeoutCallback(ev::timer &event, int flags) {
+  static void TimeoutCallback(ev::timer &event, int flags) {  // NOLINT
     auto *io_event = static_cast<ev::io *>(event.data);
     io_event->stop();
     /*

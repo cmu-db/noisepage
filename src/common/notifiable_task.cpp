@@ -12,7 +12,7 @@ NotifiableTask::NotifiableTask(ev::loop_ref loop, int task_id) : loop_(loop), ta
 
 NotifiableTask::~NotifiableTask() {
   for (IoTimeoutEvent *event : io_events_) {
-    event->stop();
+    event->Stop();
     delete event;
   }
   for (ev::async *event : async_events_) {
@@ -29,8 +29,20 @@ void NotifiableTask::TerminateCallback(ev::async &event, int /*unused*/) {
   static_cast<ev::loop_ref *>(event.data)->break_loop(ev::ALL);
 }
 
-void NotifiableTask::UnregisterIoEvent(IoTimeoutEvent *event) { UnregisterEvent(event, io_events_); }
+void NotifiableTask::UnregisterIoEvent(IoTimeoutEvent *event) {
+  auto it = io_events_.find(event);
+  if (it == io_events_.end()) return;
+  event->Stop();
+  io_events_.erase(event);
+  delete event;
+}
 
-void NotifiableTask::UnregisterAsyncEvent(ev::async *event) { UnregisterEvent(event, async_events_); }
+void NotifiableTask::UnregisterAsyncEvent(ev::async *event) {
+  auto it = async_events_.find(event);
+  if (it == async_events_.end()) return;
+  event->stop();
+  async_events_.erase(event);
+  delete event;
+}
 
 }  // namespace terrier::common

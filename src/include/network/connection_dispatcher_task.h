@@ -72,10 +72,10 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   uint64_t NextDispatchHandlerOffset();
 
   /** Callback to dispatch a connection to a connection handler */
-  static void DispatchConnectionCallback(ev::io &event, int);
+  static void DispatchConnectionCallback(ev::io &event, int);  // NOLINT
 
   /** Callback to handle sighup signals by exiting event loop */
-  static void SighupCallback(ev::sig &event, int);
+  static void SighupCallback(ev::sig &event, int);  // NOLINT
 
   /** The maximum number of handler tasks that will be spawned. */
   const uint32_t num_handlers_;
