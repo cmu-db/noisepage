@@ -277,23 +277,23 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
   return map_type;
 }
 
-void StructType::AddPaddingElement(uint32_t size, Context *ctx, util::RegionVector<Field> *fields) {
+Field StructType::CreatePaddingElement(uint32_t size, Context *ctx) {
   ast::Identifier name = ctx->GetIdentifier("__field$0$");
-  ast::Type *byte_type = nullptr;
+  ast::Type *type = nullptr;
   switch (size) {
     case 4:
-      byte_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int32);
+      type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int32);
       break;
     case 2:
-      byte_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int16);
+      type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int16);
       break;
     case 1:
-      byte_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
+      type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
       break;
     default:
       TERRIER_ASSERT(false, "Unspecified padding element size");
   }
-  fields->emplace_back(name, byte_type);
+  return Field(name, type);
 }
 
 // static
@@ -320,14 +320,18 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     uint32_t size = 0;
     uint32_t alignment = 0;
     util::RegionVector<uint32_t> field_offsets(ctx->GetRegion());
-    util::RegionVector<Field> adjusted_fields(ctx->GetRegion());
-    for (const auto &field : fields) {
+    for (size_t idx = 0; idx < fields.size(); idx++) {
+      auto *field_type = fields[idx].type_;
+
       // Check if the type needs to be padded
-      uint32_t field_align = field.type_->GetAlignment();
+      uint32_t field_align = field_type->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
         uint32_t new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
         if (new_size > size) {
-          AddPaddingElement(new_size - size, ctx, &adjusted_fields);
+          // Insert and adjust the iterator idx
+          fields.insert(fields.begin() + idx, CreatePaddingElement(new_size - size, ctx));
+          idx++;
+
           field_offsets.push_back(size);
           size = new_size;
         }
@@ -335,8 +339,8 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
 
       // Update size and calculate alignment
       field_offsets.push_back(size);
-      size += field.type_->GetSize();
-      alignment = std::max(alignment, field.type_->GetAlignment());
+      size += field_type->GetSize();
+      alignment = std::max(alignment, field_type->GetAlignment());
     }
 
     // Empty structs have an alignment of 1 byte
