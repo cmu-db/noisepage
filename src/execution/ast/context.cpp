@@ -278,6 +278,9 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
 }
 
 Field StructType::CreatePaddingElement(uint32_t size, Context *ctx) {
+  // We only need a placeholder name. The identifier for the placeholder
+  // does not have to be unique since TPL code will never refer to a
+  // placeholder field and LLVM IR does not rely on field names.
   ast::Identifier name = ctx->GetIdentifier("__field$0$");
   ast::Type *type = nullptr;
   switch (size) {
