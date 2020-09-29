@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "common/event_util.h"
+#include "common/io_timeout_event.h"
 #include "common/managed_pointer.h"
 #include "network/connection_context.h"
 #include "network/network_types.h"
@@ -97,7 +98,7 @@ class ConnectionHandle {
    * @param timeout_secs number of seconds for timeout for this event, this is ignored if flags doesn't include
    * EV_TIMEOUT
    */
-  void UpdateEventFlags(int16_t flags, int timeout_secs = 0);
+  void UpdateEventFlags(uint16_t flags, ev_tstamp timeout_secs = common::IoTimeoutEvent::WAIT_FOREVER);
 
   /**
    * Stops receiving network events from client connection. This is useful when
@@ -177,7 +178,7 @@ class ConnectionHandle {
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
 
   StateMachine state_machine_{};
-  ev::io *network_event_ = nullptr;
+  common::IoTimeoutEvent *network_event_ = nullptr;
   ev::async *workpool_event_ = nullptr;
 
   ConnectionContext context_;

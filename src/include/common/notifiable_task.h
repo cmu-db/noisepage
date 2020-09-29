@@ -4,6 +4,7 @@
 
 #include "common/dedicated_thread_task.h"
 #include "common/event_util.h"
+#include "common/io_timeout_event.h"
 #include "common/macros.h"
 #include "loggers/common_logger.h"
 
@@ -48,11 +49,12 @@ class NotifiableTask : public DedicatedThreadTask {
    * @return pointer to the allocated event.
    */
   template <void (*function)(ev::io &event, int)>
-  ev::io *RegisterIoEvent(int fd, uint16_t flags, void *arg, const struct timeval *timeout = nullptr) {
-    auto *event = new ev::io(loop_);
+  IoTimeoutEvent *RegisterIoEvent(int fd, uint16_t flags, void *arg,
+                                  const ev_tstamp timeout = IoTimeoutEvent::WAIT_FOREVER) {
+    auto *event = new IoTimeoutEvent(loop_);
     event->set<function>(arg);
     io_events_.insert(event);
-    event->start(fd, flags);
+    event->start(fd, flags, timeout);
     return event;
   }
 
@@ -92,12 +94,11 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param timeout Timeout if any for the event
    */
   template <void (*function)(ev::io &event, int)>
-  void UpdateIoEvent(ev::io *event, int fd, uint16_t flags, void *arg, const struct timeval *timeout) {
+  void UpdateIoEvent(IoTimeoutEvent *event, int fd, uint16_t flags, void *arg, ev_tstamp timeout) {
     TERRIER_ASSERT(!(io_events_.find(event) == io_events_.end()), "Didn't find event");
-    // TODO handle timeout
     event->stop();
     event->set<function>(arg);
-    event->start(fd, flags);
+    event->start(fd, flags, timeout);
   }
 
   /**
@@ -110,7 +111,7 @@ class NotifiableTask : public DedicatedThreadTask {
    *
    * @param event the event to be freed
    */
-  void UnregisterIoEvent(ev::io *event);
+  void UnregisterIoEvent(IoTimeoutEvent *event);
 
   /**
    * @brief Unregister the Async event given. The event is no longer active and its
@@ -168,7 +169,7 @@ class NotifiableTask : public DedicatedThreadTask {
   const int task_id_;
 
   // struct event and lifecycle management
-  std::unordered_set<ev::io *> io_events_;
+  std::unordered_set<IoTimeoutEvent *> io_events_;
   std::unordered_set<ev::async *> async_events_;
 };
 

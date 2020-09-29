@@ -11,7 +11,7 @@ NotifiableTask::NotifiableTask(ev::loop_ref loop, int task_id) : loop_(loop), ta
 }
 
 NotifiableTask::~NotifiableTask() {
-  for (ev::io *event : io_events_) {
+  for (IoTimeoutEvent *event : io_events_) {
     event->stop();
     delete event;
   }
@@ -29,7 +29,7 @@ void NotifiableTask::TerminateCallback(ev::async &event, int /*unused*/) {
   static_cast<ev::loop_ref *>(event.data)->break_loop(ev::ALL);
 }
 
-void NotifiableTask::UnregisterIoEvent(ev::io *event) { UnregisterEvent(event, io_events_); }
+void NotifiableTask::UnregisterIoEvent(IoTimeoutEvent *event) { UnregisterEvent(event, io_events_); }
 
 void NotifiableTask::UnregisterAsyncEvent(ev::async *event) { UnregisterEvent(event, async_events_); }
 
