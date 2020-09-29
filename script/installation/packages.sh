@@ -20,7 +20,7 @@ OSX_BUILD_PACKAGES=(\
   "doxygen" \
   "git" \
   "jemalloc" \
-  "libevent" \
+  "libev" \
   "libpqxx" \
   "openssl@1.1" \
   "tbb" \
@@ -42,7 +42,7 @@ LINUX_BUILD_PACKAGES=(\
   "doxygen" \
   "git" \
   "g++-7" \
-  "libevent-dev" \
+  "libev-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
   "libssl-dev" \
