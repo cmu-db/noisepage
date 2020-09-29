@@ -709,9 +709,11 @@ class DBMain {
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
       use_query_cache_ = settings_manager->GetBool(settings::Param::use_query_cache);
 
-      execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
-                            ? execution::vm::ExecutionMode::Compiled
-                            : execution::vm::ExecutionMode::Interpret;
+      // TODO(Kyle): manually setting exec mode to compiled for testing purposes
+      execution_mode_ = execution::vm::ExecutionMode::Compiled;
+//      execution_mode_ = settings_manager->GetBool(settings::Param::compiled_query_execution)
+//                            ? execution::vm::ExecutionMode::Compiled
+//                            : execution::vm::ExecutionMode::Interpret;
 
       metrics_query_trace_ = settings_manager->GetBool(settings::Param::metrics_query_trace);
       metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
