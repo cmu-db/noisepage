@@ -88,7 +88,8 @@ class TestServer:
             try:
                 run_kill_server(self.db_port)
             except:
-                return constants.ErrorCode.ERROR
+                LOG.error("Exceptions in running kill_server.py")
+                continue
 
             self.db_output_fd, self.db_process = start_db(
                 self.db_path, self.db_output_file)
