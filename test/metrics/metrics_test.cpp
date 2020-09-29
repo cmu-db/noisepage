@@ -40,7 +40,6 @@ class MetricsTests : public TerrierTest {
                    .SetUseSettingsManager(true)
                    .SetUseGC(true)
                    .SetUseCatalog(true)
-                   .SetUseGCThread(true)
                    .SetUseTrafficCop(true)
                    .SetUseStatsStorage(true)
                    .SetUseLogging(true)
