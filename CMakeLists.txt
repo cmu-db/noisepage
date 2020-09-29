@@ -9,8 +9,42 @@
 # Also, if you use CMake syntax for multiline comments, a kitten dies.
 # If you didn't know that CMake has multiline comments, good.
 
+# Explanations of various CMake quirks here.
+
+#   1. A crash course on CMake's GLOB and GLOB_RECURSE.
+#     CMake is not a build system -- CMake will not build your files.
+#     CMake is a build system generator -- CMake will generate something (make, ninja, etc.) that can build your files.
+#
+#     How do you specify what files should get built?
+#     - Well, you can either specify every single file manually, which is as horrible as it sounds. "Best practice".
+#     - The old and not-recommended way is to use a GLOB, which creates a list of files.
+#           Tangent: In CMake, a list is merely a ;-separated string. State of the art 2020 technology right there.
+#
+#     The problem with GLOB and GLOB_RECURSE is that the files are known to the build system _generator_, rather than
+#     the build system. So you run GLOB and give a list of files to CMake. CMake hardcodes all these files when CMake
+#     generates your build system. Much later, you add a new .h or .cpp file, and your build system doesn't pick it up,
+#     because the build system needs to be regenerated! Incidentally, CLion has a File > Reload CMake Project button
+#     handy for this reason. To summarize the problem: "if you're hardcoding a list of files into your build system,
+#     you're not going to pick up new files".
+#
+#     Well, specifying every single source file in CMake still sounds like a pain. Instead, the band-aid hacky "modern"
+#     solution is to specify CONFIGURE_DEPENDS. This means "if the build system supports this feature, if anything in
+#     the GLOB changes, rerun CMake.
+#
+#   2. Footgun warning: target_include_directories
+#       You must specify SYSTEM includes (typically disables warnings and errors from those includes) separately from
+#       non-SYSTEM. In other words, always do
+#           target_include_directories(target_name PUBLIC foo INTERFACE bar PRIVATE baz)
+#           target_include_directories(target_name SYSTEM PUBLIC foo INTERFACE bar PRIVATE baz)
+#       and never do
+#           target_include_directories(target_name PUBLIC foo SYSTEM PRIVATE blah)
+#       because the latter does not do what you think it does.
+
+
 # Ubuntu 20.04 ships with CMake version 3.16.3.
 cmake_minimum_required(VERSION 3.16)
+# Create a compile_commands.json file that can be easily parsed.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # CMake has extremely limited support for multi-line string literals. Therefore an explicit CONCAT call is used here.
 # This description of NoisePage is copied off the website.
@@ -59,6 +93,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
+# Used for dependency finding
+find_package(PkgConfig REQUIRED)
 
 # Dependencies.
 message(STATUS "\nDependencies: Locating...\n==========================================\n")
@@ -88,8 +124,14 @@ macro(VARS_AFTER)
     endforeach ()
 endmacro()
 
+find_package(benchmark REQUIRED)
+message(STATUS "[FOUND] benchmark (Google Benchmark) ${benchmark_VERSION}")
+
 find_package(gflags REQUIRED)
-message(STATUS "[FOUND] gflags ${gflags_VERSION_STRING}")
+message(STATUS "[FOUND] gflags (Google Commandline Flags) ${gflags_VERSION_STRING}")
+
+find_package(GTest REQUIRED)
+message(STATUS "[FOUND] GTest (Google Test) (No simple way to get version number)")
 
 # nlohmann json : used for JSON serialization throughout the system.
 find_package(nlohmann_json REQUIRED)
@@ -101,6 +143,15 @@ add_subdirectory(
         EXCLUDE_FROM_ALL
 )
 message(STATUS "[FOUND] libpq_query (DIY wrapper)")
+
+add_subdirectory(
+        ${PROJECT_SOURCE_DIR}/third_party/libcount/
+        EXCLUDE_FROM_ALL
+)
+message(STATUS "[FOUND] libcount (DIY wrapper)")
+
+pkg_search_module(EVENT REQUIRED libevent)
+pkg_search_module(EVENT_PTHREADS REQUIRED libevent_pthreads)
 
 # LLVM 8.0.
 find_package(LLVM 8.0 REQUIRED CONFIG)
@@ -114,6 +165,10 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen nati
 # spdlog : ...
 
 find_package(spdlog REQUIRED)
+message(STATUS "[FOUND] TBB ${spdlog_VERSION}")
+
+find_package(TBB)
+message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
 # xbyak : ...
 add_subdirectory(
@@ -134,74 +189,199 @@ message(STATUS "[FOUND] xxHash ${XXHASH_VERSION}")
 
 message(STATUS "\n==========================================\nDependencies: All found!\n")
 
-# A crash course on CMake's GLOB.
-# CMake is not a build system -- CMake will not build your files.
-# CMake is a build system generator -- CMake will generate something (make, ninja, etc.) that can build your files.
-#
-# How do you specify what files should get built?
-# - Well, you can either specify every single file manually, which is as horrible as it sounds. This is "best practice".
-# - The old and not-recommended way is to use a GLOB, which creates a list of files.
-#       Tangent: In CMake, a list is merely a ;-separated string. State of the art 2020 technology right there.
-#
-# The problem with GLOB and GLOB_RECURSE is that the files are known to the build system _generator_, rather
-# than the build system. So you run GLOB and give a list of files to CMake. CMake hardcodes all these files when CMake
-# generates your build system. Much later, you add a new .h or .cpp file, and your build system doesn't pick it up,
-# because the build system needs to be regenerated! Incidentally, CLion has a File > Reload CMake Project button
-# handy for this reason. To summarize the problem: "if you're hardcoding a list of files into your build system,
-# you're not going to pick up new files".
-#
-# Well, specifying every single source file in CMake still sounds like a pain. Instead, the band-aid hacky "modern"
-# solution is to specify CONFIGURE_DEPENDS. This means "if the build system supports this feature, if anything in
-# the GLOB changes, rerun CMake.
+#######################################################################################################################
+# noisepage_static      :   All of NoisePage functionality exposed as a static library.
+#######################################################################################################################
+
 file(GLOB_RECURSE
-        NOISEPAGE_SRCS          # Store the list of files into the variable ${NOISEPAGE_SRCS}.
-        CONFIGURE_DEPENDS       # See above. Ask CMake to regenerate the build system (assuming support exists).
+        NOISEPAGE_SRCS                  # Store the list of files into the variable ${NOISEPAGE_SRCS}.
+        CONFIGURE_DEPENDS               # See above. Ask CMake to regenerate the build system if these files change.
         ${PROJECT_SOURCE_DIR}/src/*.cpp
         ${PROJECT_SOURCE_DIR}/src/include/*.h
+        ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.cpp
+        ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
         )
 # Remove the main program from NoisePage sources.
 list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 
-# Create an object library, which is a collection of .o's.
-add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
-
-target_compile_options(
-        noisepage_objlib
-        PRIVATE
-        "-fsanitize=address"
-        "-Werror"
-        "-Wall"
-        PUBLIC
-        "-march=native"
-)
-
-target_compile_features(
-        noisepage_objlib
-        PUBLIC
-        cxx_std_17
-)
-# Require position independent code.
-set_target_properties(noisepage_objlib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(
-        noisepage_objlib
-        PRIVATE
+# Define the noisepage_static CMake target.
+add_library(noisepage_static STATIC ${NOISEPAGE_SRCS})
+target_compile_options(noisepage_static
+        PRIVATE                                     # PRIVATE: only noisepage_static uses the following.
+        "-Werror"                                   # Treat warnings as errors.
+        "-Wall"                                     # Enable "all" warnings. (Not actually all warnings.)
+        )
+target_compile_options(noisepage_static
+        PUBLIC                                      # PUBLIC: all consumers of noisepage_static inherit the following.
+        "-march=native"                             # Enable machine-specific instruction sets and optimizations.
+        "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
+        "-fsanitize=address"                        # Turn on Address Sanitizer.
+        )
+target_link_options(noisepage_static
+        PUBLIC                                      # PUBLIC: all consumers of noisepage_static inherit the following.
+        "-march=native"                             # Enable machine-specific instruction sets and optimizations.
+        "-fsanitize=address"                        # Turn on Address Sanitizer.
+        )
+target_compile_features(noisepage_static PUBLIC
+        cxx_std_17                                  # Require support for C++17.
+        )
+set_target_properties(noisepage_static PROPERTIES
+        POSITION_INDEPENDENT_CODE ON                # Require position-independent code.
+        CXX_EXTENSIONS OFF
+        )
+target_include_directories(noisepage_static PUBLIC
         ${PROJECT_SOURCE_DIR}/src/include
-)
-target_include_directories(
-        noisepage_objlib
-        SYSTEM PRIVATE
+        )
+target_include_directories(noisepage_static SYSTEM PUBLIC
         ${LLVM_INCLUDE_DIRS}
-)
-target_link_libraries(
-        noisepage_objlib
-        PRIVATE
+        )
+target_link_libraries(noisepage_static PUBLIC
         gflags
-        xxHash::xxhash
+        libcount::libcount
         nlohmann_json::nlohmann_json
         spdlog::spdlog
         pg_query::pg_query
         xbyak::xbyak
+        xxHash::xxhash
+        ${EVENT_LINK_LIBRARIES}
+        ${EVENT_PTHREADS_LINK_LIBRARIES}
+        ${LLVM_LIBRARIES}
+        ${TBB_LIBRARIES} # TBB_LIBRARIES_RELEASE
+        )
+
+get_target_property(FOO noisepage_static INCLUDE_DIRECTORIES)
+message(STATUS "foo ${FOO}")
+
+#######################################################################################################################
+# noisepage             :   The main DBMS binary.
+#######################################################################################################################
+
+add_executable(noisepage src/main/terrier.cpp)
+set_target_properties(noisepage PROPERTIES
+        ENABLE_EXPORTS ON
+        CXX_EXTENSIONS OFF)
+target_link_libraries(noisepage noisepage_static)
+
+#######################################################################################################################
+# util_static           :   table_generator and table_reader for tests and benchmarks.
+# TODO(WAN)             :   table_generator and table_reader are hacks, and the remaining cpp files are all TPL targets
+#                           handled elsewhere. Kill this target once we refactor those hacks out of our system.
+#######################################################################################################################
+file(GLOB_RECURSE UTIL_SRCS CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/util/*.cpp
+        ${PROJECT_SOURCE_DIR}/util/include/*.h)
+list(REMOVE_ITEM UTIL_SRCS
+        ${PROJECT_SOURCE_DIR}/util/execution/tpl.cpp
+        ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp
+        ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
+add_library(util_static STATIC ${UTIL_SRCS})
+target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
+target_link_libraries(util_static PUBLIC noisepage_static)
+
+#######################################################################################################################
+# gen_opt_bc            :   Generates optimized bitcode from the LLVM IR file generated as a tpl post-build target.
+#######################################################################################################################
+
+add_executable(gen_opt_bc util/execution/gen_opt_bc.cpp)
+target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
+target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
+
+#######################################################################################################################
+# tpl                   :   Standalone binary for testing .tpl files and commands.
+#                           Also generates bytecode_handlers_ir.bc.
+#######################################################################################################################
+
+# TODO(WAN): I don't see the point of doing this at CMake time. Another folder for what exactly?
+set(TPL_VERSION_MAJOR 0)
+set(TPL_VERSION_MINOR 1)
+configure_file(util/execution/tpl.h.in "${PROJECT_BINARY_DIR}/execution/tpl.h") # Generate the header file.
+add_executable(tpl util/execution/tpl.cpp)
+set_target_properties(tpl PROPERTIES
+        ENABLE_EXPORTS ON
+        CXX_EXTENSIONS OFF
+        )
+# Build gen_opt_bc before building tpl.
+add_dependencies(tpl gen_opt_bc)
+target_include_directories(tpl PRIVATE ${PROJECT_BINARY_DIR} ${LLVM_INCLUDE_DIR})
+target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
+
+# old flags for gen_opt_bc. TODO(WAN): make sure we match.
+# -- /usr/bin/clang++-8 -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O0;-fno-omit-frame-pointer;-fno-optimize-sibling-calls;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-fsanitize=address;-emit-llvm;-c -I/home/kapi/CLionProjects/terrier/cmake-build-debug/googletest_ep-prefix/src/googletest_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gflags_ep-prefix/src/gflags_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/include;-I/usr/include/postgresql;-I/usr/lib/llvm-8/include;-I/home/kapi/CLionProjects/terrier/third_party/flatbuffers/include;-I/home/kapi/CLionProjects/terrier/src/include;-I/home/kapi/CLionProjects/terrier/third_party;-I/home/kapi/CLionProjects/terrier/test/include;-I/home/kapi/CLionProjects/terrier/util/include;-I/home/kapi/CLionProjects/terrier/benchmark/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug
+
+message(STATUS "${CMAKE_BINARY_DIR}/CMakeFiles/bytecode_handlers_ir.dir/util/execution/bytecode_handlers_ir.cpp.o")
+
+# This is a terrible hack because of CMake limitations: there is no way to use a different compiler for a
+# single CMake target, and there is no easy way of grabbing the compiler flags that so-called "modern" CMake
+# will apply. It is less headache overall to just specify all the flags that we want here...
+list(APPEND HACK_CLANG_IR_FLAGS
+        "-emit-llvm"                # Emit LLVM.
+        "-c"                        # Only build an object .o file.
+        "-std=c++17"
+        "-mcx16"
+        "-march=native"
+        )
+
+list(APPEND HACK_CLANG_IR_INCLUDES
+        "-I${PROJECT_SOURCE_DIR}/include"
+        "-I${LLVM_DIRS}"
+        )
+
+if (APPLE)
+    # On macOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
+    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+else ()
+    find_program(CLANG NAMES "clang++-8" "clang++")
+endif ()
+message(STATUS "tpl ${CLANG} ${HACK_CLANG_IR_FLAGS} ${HACK_CLANG_IR_INCLUDES}")
+
+add_custom_command(
+        TARGET tpl
+        POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating Optimized Bitcode ... THIS DOESN'T WORK YET"
+        COMMAND ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.sh ${CMAKE_BINARY_DIR}
+        # ${CLANG} ${HACK_CLANG_IR_FLAGS} ${HACK_CLANG_IR_INCLUDES}
+        # ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp -o bytecode_handlers_ir.bc
+        COMMAND gen_opt_bc bytecode_handlers_ir.bc bytecode_handlers_opt.bc
+        COMMAND mv bytecode_handlers_opt.bc bytecode_handlers_ir.bc
 )
+
+set_target_properties(
+        tpl gen_opt_bc
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+add_custom_target(
+        check-tpl
+        DEPENDS tpl
+        COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
+        -b ${CMAKE_BINARY_DIR}/bin/tpl
+        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
+        -t ${PROJECT_SOURCE_DIR}/sample_tpl
+        -d ${CMAKE_BINARY_DIR}/${BUILD_SUBDIR_NAME}
+)
+
+# end tpl
+
+file(
+        GLOB_RECURSE
+        NOISEPAGE_TEST_UTIL_SRCS        # Store the list of test files into the variable ${NOISEPAGE_TEST_SRCS}.
+        CONFIGURE_DEPENDS               # See above. Ask CMake to regenerate the build system (assuming support exists).
+        ${PROJECT_SOURCE_DIR}/test/include/test_util/*.h
+        ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp
+)
+
+add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
+target_link_libraries(noisepage_test_util noisepage_static)
+#
+#
+#add_library(test_util STATIC ${TEST_UTIL_SRCS})
+#target_link_libraries(test_util terrier_static util_static ${TERRIER_LINK_LIBS})
+#add_dependencies(test_util terrier_static util_static gtest gmock_main)
+
 
 #MESSAGE(FATAL_ERROR "boo")
 #

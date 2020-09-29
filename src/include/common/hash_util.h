@@ -10,7 +10,7 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
-#include "xxh3.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::common {
 
