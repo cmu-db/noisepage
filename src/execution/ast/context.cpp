@@ -329,7 +329,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
       // Check if the type needs to be padded
       uint32_t field_align = field_type->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
-        uint32_t new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
+        auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
         if (new_size > size) {
           // Insert and adjust the iterator index.
           fields.insert(fields.begin() + idx, CreatePaddingElement(new_size - size, ctx));
