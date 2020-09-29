@@ -1,9 +1,6 @@
 #include "common/notifiable_task.h"
 
-#include <cstring>
-
 #include "common/event_util.h"
-#include "loggers/common_logger.h"
 
 namespace terrier::common {
 
@@ -24,28 +21,16 @@ NotifiableTask::~NotifiableTask() {
   }
   terminate_->stop();
   delete terminate_;
-  // Would be nice to have a C++ API version
+  // I was not able to get the C++ API version of non-default loops working
   ev_loop_destroy(loop_);
 }
 
-void NotifiableTask::TerminateCallback(ev::async &event, int revents) {
+void NotifiableTask::TerminateCallback(ev::async &event, int /*unused*/) {
   static_cast<ev::loop_ref *>(event.data)->break_loop(ev::ALL);
 }
 
-void NotifiableTask::UnregisterIoEvent(ev::io *event) {
-  auto it = io_events_.find(event);
-  if (it == io_events_.end()) return;
-  event->stop();
-  io_events_.erase(event);
-  delete event;
-}
+void NotifiableTask::UnregisterIoEvent(ev::io *event) { UnregisterEvent(event, io_events_); }
 
-void NotifiableTask::UnregisterAsyncEvent(ev::async *event) {
-  auto it = async_events_.find(event);
-  if (it == async_events_.end()) return;
-  event->stop();
-  async_events_.erase(event);
-  delete event;
-}
+void NotifiableTask::UnregisterAsyncEvent(ev::async *event) { UnregisterEvent(event, async_events_); }
 
 }  // namespace terrier::common

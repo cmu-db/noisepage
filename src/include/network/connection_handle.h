@@ -56,9 +56,9 @@ class ConnectionHandle {
   void RegisterToReceiveEvents();
 
   /**
-   * Handles a libevent event. This simply delegates to the state machine.
+   * Handles an event. This simply delegates to the state machine.
    */
-  void HandleEvent(int fd, int16_t flags);
+  void HandleEvent(int16_t flags);
 
   /**
    * @brief Tries to read from the event port onto the read buffer
@@ -107,15 +107,17 @@ class ConnectionHandle {
   void StopReceivingNetworkEvent();
 
   /**
-   * issues a libevent to wake up the state machine in the WAIT_ON_TERRIER state
+   * issues an event to wake up the state machine in the WAIT_ON_TERRIER state
    * @param callback_args this for a ConnectionHandle in WAIT_ON_TERRIER state
    */
   static void Callback(void *callback_args);
 
  private:
-  static void HandleAsyncEventCallback(ev::async &event, int flags);
-
-  static void HandleIoEventCallback(ev::io &event, int flags);
+  /** Callback to handle event */
+  template <typename E>
+  static void HandleEventCallback(E &event, int flags) {
+    static_cast<ConnectionHandle *>(event.data)->HandleEvent(flags);
+  }
 
   /** Reset the state of this connection handle for reuse. This should only be called by ConnectionHandleFactory. */
   void ResetForReuse(connection_id_t connection_id, common::ManagedPointer<ConnectionHandlerTask> task,
@@ -175,7 +177,6 @@ class ConnectionHandle {
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
 
   StateMachine state_machine_{};
-  // These might have memory leaks
   ev::io *network_event_ = nullptr;
   ev::async *workpool_event_ = nullptr;
 

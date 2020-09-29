@@ -150,13 +150,13 @@ class ConnectionContext {
   }
 
   /**
-   * @return handle to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * @return handle to the ConnectionHandle callback to issue an event wakeup in the event of WAIT_ON_TERRIER
    * state. Currently not used, but may in the future for asynchronous execution.
    */
   network::NetworkCallback Callback() const { return callback_; }
 
   /**
-   * @return args to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * @return args to the ConnectionHandle callback to issue an event wakeup in the event of WAIT_ON_TERRIER
    * state. Currently not used, but may in the future for asynchronous execution.
    */
   void *CallbackArg() const { return callback_arg_; }
@@ -208,7 +208,7 @@ class ConnectionContext {
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
 
   /**
-   * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_TERRIER state. Currently
+   * ConnectionHandle callback stuff to issue an event wakeup in the event of WAIT_ON_TERRIER state. Currently
    * not used, but may in the future for asynchronous execution.
    */
   network::NetworkCallback callback_;

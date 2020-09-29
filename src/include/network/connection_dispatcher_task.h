@@ -71,8 +71,10 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   /** @return The offset in handlers_ of the next handler to dispatch to. This function mutates internal state. */
   uint64_t NextDispatchHandlerOffset();
 
+  /** Callback to dispatch a connection to a connection handler */
   static void DispatchConnectionCallback(ev::io &event, int);
 
+  /** Callback to handle sighup signals by exiting event loop */
   static void SighupCallback(ev::sig &event, int);
 
   /** The maximum number of handler tasks that will be spawned. */

@@ -151,20 +151,12 @@ ConnectionHandle::ConnectionHandle(int sock_fd, common::ManagedPointer<Connectio
 ConnectionHandle::~ConnectionHandle() = default;
 
 void ConnectionHandle::RegisterToReceiveEvents() {
-  workpool_event_ = conn_handler_task_->RegisterAsyncEvent<&ConnectionHandle::HandleAsyncEventCallback>(this);
-  network_event_ = conn_handler_task_->RegisterIoEvent<&ConnectionHandle::HandleIoEventCallback>(
+  workpool_event_ = conn_handler_task_->RegisterAsyncEvent<&ConnectionHandle::HandleEventCallback>(this);
+  network_event_ = conn_handler_task_->RegisterIoEvent<&ConnectionHandle::HandleEventCallback>(
       io_wrapper_->GetSocketFd(), ev::READ, this);
 }
 
-void ConnectionHandle::HandleAsyncEventCallback(ev::async &event, int flags) {
-  static_cast<ConnectionHandle *>(event.data)->HandleEvent(0, flags);
-}
-
-void ConnectionHandle::HandleIoEventCallback(ev::io &event, int flags) {
-  static_cast<ConnectionHandle *>(event.data)->HandleEvent(event.fd, flags);
-}
-
-void ConnectionHandle::HandleEvent(int fd, int16_t flags) {
+void ConnectionHandle::HandleEvent(int16_t flags) {
   Transition t;
   if ((flags & EV_TIMEOUT) != 0) {
     // If the event was a timeout, this implies that the connection timed out. Terminate to disconnect.
@@ -221,17 +213,18 @@ Transition ConnectionHandle::TryCloseConnection() {
 void ConnectionHandle::UpdateEventFlags(int16_t flags, int timeout_secs) {
   // Update the flags for the event, casing on whether a timeout value needs to be specified.
   int conn_fd = io_wrapper_->GetSocketFd();
+  // TODO handle timeouts
   if ((flags & EV_TIMEOUT) == 0) {
     // If there is no timeout specified, then the event will wait forever to be activated.
-    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleIoEventCallback>(network_event_, conn_fd, flags, this,
-                                                                                nullptr);
+    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleEventCallback>(network_event_, conn_fd, flags, this,
+                                                                              nullptr);
   } else {
     // Otherwise if there is a timeout specified, then the event will fire once the timeout has passed.
     struct timeval timeout {
       timeout_secs, 0
     };
-    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleIoEventCallback>(network_event_, conn_fd, flags, this,
-                                                                                &timeout);
+    conn_handler_task_->UpdateIoEvent<&ConnectionHandle::HandleEventCallback>(network_event_, conn_fd, flags, this,
+                                                                              &timeout);
   }
 }
 

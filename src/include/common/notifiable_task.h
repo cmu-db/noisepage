@@ -10,26 +10,10 @@
 namespace terrier::common {
 
 /**
- * Convenient MACRO to use a method as a libevent callback function. Example
- * usage:
- *
- * (..., METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection), obj)
- *
- * Would call DispatchConnection method on ConnectionDispatcherTask. obj must be
- * an instance
- * of ConnectionDispatcherTask. The method being invoked must have signature
- * void(int, short),
- * where int is the fd and short is the flags supplied by libevent.
- *
- */
-#define METHOD_AS_CALLBACK(type, method) \
-  [](int fd, int16_t flags, void *arg) { static_cast<type *>(arg)->method(fd, flags); }
-
-/**
  * @brief NotifiableTasks can be configured to handle events with callbacks, and
  * executes within an event loop
  *
- * More specifically, NotifiableTasks are backed by libevent, and takes care of
+ * More specifically, NotifiableTasks are backed by libev, and takes care of
  * memory management with the library.
  */
 class NotifiableTask : public DedicatedThreadTask {
@@ -44,7 +28,7 @@ class NotifiableTask : public DedicatedThreadTask {
   size_t Id() const { return task_id_; }
 
   /**
-   * @brief Register an event with the event base associated with this
+   * @brief Register an I/O event with the event loop associated with this
    * notifiable task.
    *
    * After registration, the event firing will result in the callback registered
@@ -53,13 +37,11 @@ class NotifiableTask : public DedicatedThreadTask {
    * return value and have these events be freed on destruction of the task.
    * However, if this is not the case, the caller will need to save the return
    * value and manually unregister the event with the task.
-   * @see UnregisterEvent().
+   * @see UnregisterIoEvent().
    *
    * @param fd the file descriptor or signal to be monitored, or -1. (if manual
    *         or time-based)
-   * @param flags desired events to monitor: bitfield of EV_READ, EV_WRITE,
-   *         EV_SIGNAL, EV_PERSIST, EV_ET.
-   * @param callback callback function to be invoked when the event happens
+   * @param flags desired events to monitor: bitfield of ev::READ, ev::WRITE.
    * @param arg an argument to be passed to the callback function
    * @param timeout the maximum amount of time to wait for an event, defaults to
    *        null which will wait forever
@@ -74,6 +56,22 @@ class NotifiableTask : public DedicatedThreadTask {
     return event;
   }
 
+  /**
+   * @brief Register an event that can only be fired if someone
+   * activates on it manually.
+   *
+   * After registration, the event firing will result in the callback registered
+   * executing on the thread this task is running on. Certain events have the
+   * same life cycle as the task itself, in which case it is safe to ignore the
+   * return value and have these events be freed on destruction of the task.
+   * However, if this is not the case, the caller will need to save the return
+   * value and manually unregister the event with the task.
+   *
+   * @see UnregisterAsyncEvent()
+   *
+   * @param arg an argument to be passed to the callback function
+   * @return pointer to the allocated event.
+   */
   template <void (*function)(ev::async &event, int)>
   ev::async *RegisterAsyncEvent(void *arg) {
     auto *event = new ev::async(loop_);
@@ -82,37 +80,6 @@ class NotifiableTask : public DedicatedThreadTask {
     event->start();
     return event;
   }
-
-  /**
-   * @brief Register an event that fires periodically based on the given time
-   * interval.
-   * This is a wrapper around RegisterEvent()
-   *
-   * @see RegisterEvent(), UnregisterEvent()
-   *
-   * @param timeout period of wait between each firing of this event
-   * @param callback callback function to be invoked when the event happens
-   * @param arg an argument to be passed to the callback function
-   * @return pointer to the allocated event.
-   */
-  /*  struct event *RegisterPeriodicEvent(const struct timeval *timeout, event_callback_fn callback, void *arg) {
-      return RegisterEvent(-1, EV_TIMEOUT | EV_PERSIST, callback, arg, timeout);
-    }*/
-
-  /**
-   * @brief Register an event that can only be fired if someone calls
-   * event_active on it manually.
-   * This is a wrapper around RegisterEvent()
-   *
-   * @see RegisterEvent(), UnregisterEvent()
-   *
-   * @param callback callback function to be invoked when the event happens
-   * @param arg an argument to be passed to the callback function
-   * @return pointer to the allocated event.
-   */
-  /*  struct event *RegisterManualEvent(event_callback_fn callback, void *arg) {
-      return RegisterEvent(-1, EV_PERSIST, callback, arg);
-    }*/
 
   /**
    * @brief Updates the callback information for a registered event
@@ -134,17 +101,27 @@ class NotifiableTask : public DedicatedThreadTask {
   }
 
   /**
-   * @brief Unregister the event given. The event is no longer active and its
+   * @brief Unregister the I/O event given. The event is no longer active and its
    * memory is freed
    *
    * The event pointer must be handed out from an earlier call to RegisterEvent.
    *
-   * @see RegisterEvent()
+   * @see RegisterIoEvent()
    *
    * @param event the event to be freed
    */
   void UnregisterIoEvent(ev::io *event);
 
+  /**
+   * @brief Unregister the Async event given. The event is no longer active and its
+   * memory is freed
+   *
+   * The event pointer must be handed out from an earlier call to RegisterEvent.
+   *
+   * @see RegisterAsyncEvent()
+   *
+   * @param event the event to be freed
+   */
   void UnregisterAsyncEvent(ev::async *event);
 
   /**
@@ -170,16 +147,22 @@ class NotifiableTask : public DedicatedThreadTask {
    */
   void ExitLoop() { terminate_->send(); }
 
-  /**
-   * Wrapper around ExitLoop() to conform to libevent callback signature
-   */
-  void ExitLoop(int, int16_t) { ExitLoop(); }  // NOLINT
-
  protected:
   ev::loop_ref loop_;
 
  private:
+  /** Callback to terminate event loop */
   static void TerminateCallback(ev::async &event, int revents);
+
+  /** Helper method to unregister any type of event */
+  template <typename E>
+  void UnregisterEvent(E *event, std::unordered_set<E *> &events) {
+    auto it = events.find(event);
+    if (it == events.end()) return;
+    event->stop();
+    events.erase(event);
+    delete event;
+  }
 
   ev::async *terminate_;
   const int task_id_;

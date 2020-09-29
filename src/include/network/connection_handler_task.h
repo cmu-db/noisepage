@@ -29,6 +29,9 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   ConnectionHandlerTask(int task_id, common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory);
 
+  /**
+   * Destroys a ConnectionHandlerTask instance
+   */
   ~ConnectionHandlerTask() override;
 
   /**
@@ -54,6 +57,11 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   void HandleDispatch();
 
+  /**
+   * @brief Callback that delegates to HandleDispatch
+   *
+   * @see HandleDispatch
+   */
   static void HandleDispatchCallback(ev::async &event, int);
 
   /**

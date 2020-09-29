@@ -32,7 +32,7 @@ void ConnectionHandlerTask::Notify(int conn_fd, std::unique_ptr<ProtocolInterpre
   notify_event_->send();
 }
 
-void ConnectionHandlerTask::HandleDispatchCallback(ev::async &event, int) {
+void ConnectionHandlerTask::HandleDispatchCallback(ev::async &event, int /*unused*/) {
   static_cast<ConnectionHandlerTask *>(event.data)->HandleDispatch();
 }
 

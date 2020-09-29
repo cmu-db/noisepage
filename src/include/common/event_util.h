@@ -7,7 +7,7 @@
 namespace terrier {
 
 /**
- * Static utility class with wrappers for libevent functions.
+ * Static utility class with wrappers for libev functions.
  *
  * Wrapper functions are functions with the same signature and return
  * value as the c-style functions, but consist of an extra return value

@@ -20,7 +20,7 @@ class ProtocolInterpreter;
  * Reasons for reuse:
  * - ConnectionHandle wraps read and write buffers which are expensive to reallocate. Therefore reuse is desirable.
  * - Moreover, as noted by Tianyu, from a lifetime perspective losing track of a ConnectionHandle leaves the
- *   lost ConnectionHandle completely managed by libevent. libevent does not clean up raw pointers. This leaks memory.
+ *   lost ConnectionHandle completely managed by libev. libev does not clean up raw pointers. This leaks memory.
  *
  * @warning As noted in NewConnectionHandle, the file descriptors provided to this factory should no longer be in use.
  */

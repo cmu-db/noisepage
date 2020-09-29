@@ -134,9 +134,6 @@ void TerrierServer::RegisterSocket() {
 }
 
 void TerrierServer::RunServer() {
-  // Initialize thread support for libevent as libevent will be invoked from multiple ConnectionHandlerTask threads.
-  // evthread_use_pthreads();
-
   // Register the network socket.
   RegisterSocket<NETWORKED_SOCKET>();
 

@@ -27,12 +27,10 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       next_handler_(0) {
   TERRIER_ASSERT(num_handlers_ > 0, "No workers that connections can be dispatched to.");
 
-  // Specific events are then associated with their respective libevent callback functions.
-
+  // Specific events are then associated with their respective callback functions.
   for (auto listen_fd : file_descriptors) {
     // Dispatch a new connection every time the file descriptor becomes readable again.
-    //   EV_READ : Wait until the file descriptor becomes readable.
-    //   EV_PERSIST : Non-persistent events are removed upon activation (single-use), the server should be persistent.
+    //   ev::READ : Wait until the file descriptor becomes readable.
     RegisterIoEvent<&ConnectionDispatcherTask::DispatchConnectionCallback>(listen_fd, ev::READ, this);
   }
 
@@ -47,12 +45,12 @@ ConnectionDispatcherTask::~ConnectionDispatcherTask() {
   delete sighup_event_;
 }
 
-void ConnectionDispatcherTask::DispatchConnectionCallback(ev::io &event, int) {
+void ConnectionDispatcherTask::DispatchConnectionCallback(ev::io &event, int /*unused*/) {
   auto *dispatcher = static_cast<ConnectionDispatcherTask *>(event.data);
   dispatcher->DispatchConnection(event.fd, dispatcher->interpreter_provider_);
 }
 
-void ConnectionDispatcherTask::SighupCallback(ev::sig &event, int) {
+void ConnectionDispatcherTask::SighupCallback(ev::sig &event, int /*unused*/) {
   static_cast<NotifiableTask *>(event.data)->ExitLoop();
 }
 
