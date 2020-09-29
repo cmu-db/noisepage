@@ -97,10 +97,9 @@ class StateDescriptor {
    * Seal the state and build the final structure. After this point, additional state elements
    * cannot be added.
    * @param codegen The code generation instance.
-   * @param allow_reorder Whether the fields can be reordered
    * @return The finalized structure declaration.
    */
-  ast::StructDecl *ConstructFinalType(CodeGen *codegen, bool allow_reorder);
+  ast::StructDecl *ConstructFinalType(CodeGen *codegen);
 
   /**
    * @return The query state pointer from the current code generation context.

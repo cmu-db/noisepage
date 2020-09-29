@@ -163,7 +163,7 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
     ast::Expr *type = codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector));
     oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
   }
-  state_.ConstructFinalType(codegen_, true);
+  state_.ConstructFinalType(codegen_);
 
   // Finalize the execution mode. We choose serial execution if ANY of the below
   // conditions are satisfied:
