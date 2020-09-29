@@ -40,6 +40,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * value and manually unregister the event with the task.
    * @see UnregisterIoEvent().
    *
+   * @tparam function callback function to register with event
    * @param fd the file descriptor or signal to be monitored, or -1. (if manual
    *         or time-based)
    * @param flags desired events to monitor: bitfield of ev::READ, ev::WRITE.
@@ -70,7 +71,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * value and manually unregister the event with the task.
    *
    * @see UnregisterAsyncEvent()
-   *
+   * @tparam function callback function to register with event
    * @param arg an argument to be passed to the callback function
    * @return pointer to the allocated event.
    */
