@@ -44,8 +44,7 @@ def get_mini_runner_data(filename, model_results_path, txn_sample_interval, mode
         return _execution_get_mini_runner_data(filename, model_map, predict_cache, trim)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
-        #return _interval_get_mini_runner_data(filename, model_results_path)
-        return []
+        return _interval_get_mini_runner_data(filename, model_results_path)
 
     return _default_get_mini_runner_data(filename)
 

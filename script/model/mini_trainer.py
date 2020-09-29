@@ -100,7 +100,8 @@ class MiniTrainer:
                     # In order to avoid the percentage error to explode when the actual label is very small,
                     # we omit the data point with the actual label <= 5 when calculating the percentage error (by
                     # essentially giving the data points with small labels a very small weight)
-                    weights = np.where(evaluate_y > 5, np.ones(evaluate_y.shape), np.full(evaluate_y.shape, 1e-6))
+                    evaluate_threshold = 5
+                    weights = np.where(evaluate_y > evaluate_threshold, np.ones(evaluate_y.shape), np.full(evaluate_y.shape, 1e-6))
                     percentage_error = np.average(np.abs(evaluate_y - y_pred) / (evaluate_y + error_bias), axis=0,
                                                   weights=weights)
                     results += list(percentage_error) + [""]
@@ -170,11 +171,11 @@ class MiniTrainer:
 # ==============================================
 if __name__ == '__main__':
     aparser = argparse.ArgumentParser(description='Mini Trainer')
-    aparser.add_argument('--input_path', default='mini_runner_input_index',
+    aparser.add_argument('--input_path', default='mini_runner_input_experiments',
                          help='Input file path for the mini runners')
     aparser.add_argument('--model_results_path', default='mini_runner_model_results',
                          help='Prediction results of the mini models')
-    aparser.add_argument('--save_path', default='trained_model_index_car', help='Path to save the mini models')
+    aparser.add_argument('--save_path', default='trained_model_experiments', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
                          default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
                          help='ML models for the mini trainer to evaluate')
