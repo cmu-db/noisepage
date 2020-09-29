@@ -36,21 +36,13 @@ namespace terrier::common {
  */
 class NotifiableTask : public DedicatedThreadTask {
  public:
-  /**
-   * Constructs a new NotifiableTask instance.
-   * @param task_id a unique id assigned to this task
-   */
+  /** Construct a new NotifiableTask instance with the specified task id. */
   explicit NotifiableTask(int task_id);
 
-  /**
-   * Destructs this NotifiableTask. All events currently registered to its base
-   * are also deleted and freed.
-   */
+  /** Destroy the NotifiableTask, deleting and freeing all of its registered events. */
   ~NotifiableTask() override;
 
-  /**
-   * @return unique id assigned to this task
-   */
+  /** @return The unique ID assigned to the task. */
   size_t Id() const { return task_id_; }
 
   /**
@@ -58,7 +50,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * notifiable task.
    *
    * After registration, the event firing will result in the callback registered
-   * executing on the thread this task is running on. Certain events has the
+   * executing on the thread this task is running on. Certain events have the
    * same life cycle as the task itself, in which case it is safe to ignore the
    * return value and have these events be freed on destruction of the task.
    * However, if this is not the case, the caller will need to save the return
@@ -133,7 +125,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * @param timeout Timeout if any for the event
    */
   void UpdateEvent(struct event *event, int fd, int16_t flags, event_callback_fn callback, void *arg,
-                   const struct timeval *timeout = nullptr) {
+                   const struct timeval *timeout) {
     TERRIER_ASSERT(!(events_.find(event) == events_.end()), "Didn't find event");
     EventUtil::EventDel(event);
     EventUtil::EventAssign(event, base_, fd, flags, callback, arg);
