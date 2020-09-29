@@ -5,8 +5,7 @@ namespace terrier::brain {
 std::atomic<execution::feature_id_t> ExecutionOperatingUnitFeature::feature_id_counter{10000};  // arbitrary number
 
 ExecOUFeatureVector::ExecOUFeatureVector(execution::sql::MemoryPool *pool)
-  : pipeline_id_(execution::pipeline_id_t(0)),
-    pipeline_features_(pool) {}
+    : pipeline_id_(execution::pipeline_id_t(0)), pipeline_features_(pool) {}
 
 void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
                                         ExecutionOperatingUnitFeatureAttribute modifier,

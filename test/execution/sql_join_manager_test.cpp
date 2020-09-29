@@ -41,14 +41,12 @@ void BuildHT(JoinHashTable *jht, bool is_a_key, uint32_t a_max, uint32_t b_max) 
 
 // NOLINTNEXTLINE
 TEST_F(JoinManagerTest, TwoWayJoin) {
-  MemoryPool mem_pool(nullptr);
-  QueryState query_state;
-
   auto exec_ctx = MakeExecCtx();
   auto exec_settings = exec_ctx->GetExecutionSettings();
+  QueryState query_state;
 
-  query_state.jht1_ = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
-  query_state.jht2_ = std::make_unique<JoinHashTable>(exec_settings, &mem_pool, sizeof(JoinRow), false);
+  query_state.jht1_ = std::make_unique<JoinHashTable>(exec_settings, exec_ctx.get(), sizeof(JoinRow), false);
+  query_state.jht2_ = std::make_unique<JoinHashTable>(exec_settings, exec_ctx.get(), sizeof(JoinRow), false);
   query_state.jm_ = std::make_unique<JoinManager>(exec_settings, &query_state);
   // The first join.
   query_state.jm_->InsertJoinStep(*query_state.jht1_, {0}, [](auto exec_ctx, auto vp, auto tids, auto ctx) {

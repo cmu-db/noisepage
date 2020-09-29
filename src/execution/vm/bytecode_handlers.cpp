@@ -314,9 +314,8 @@ void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext 
     exec_ctx->InitializeOUFeatureVector(ouvec, pipeline_id);
 }
 
-void OpExecOUFeatureVectorDestroy(
-    terrier::execution::exec::ExecutionContext *const exec_ctx,
-    terrier::brain::ExecOUFeatureVector *const ouvec) {
+void OpExecOUFeatureVectorDestroy(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                  terrier::brain::ExecOUFeatureVector *const ouvec) {
   exec_ctx->DestroyOUFeatureVector(ouvec);
 }
 

@@ -144,7 +144,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   auto init_count = [](void *ctx, void *tls) { reinterpret_cast<Counter *>(tls)->c_ = 0; };
 
   // Scan function just counts all tuples it sees
-  auto scanner = [](UNUSED_ATTRIBUTE void *state, void *tls, TableVectorIterator *tvi, uint32_t concurrent) {
+  auto scanner = [](UNUSED_ATTRIBUTE void *state, void *tls, TableVectorIterator *tvi) {
     auto *counter = reinterpret_cast<Counter *>(tls);
     while (tvi->Advance()) {
       for (auto *vpi = tvi->GetVectorProjectionIterator(); vpi->HasNext(); vpi->Advance()) {
@@ -166,7 +166,7 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
   TableVectorIterator::ParallelScan(table_oid.UnderlyingValue(), col_oids.data(), col_oids.size(), nullptr,
-                                    exec_ctx_.get(), scanner, execution::pipeline_id_t(1), catalog::index_oid_t(0));
+                                    exec_ctx_.get(), scanner);
 
   // Count total aggregate tuple count seen by all threads
   uint32_t aggregate_tuple_count = 0;

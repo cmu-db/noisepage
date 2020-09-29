@@ -1079,8 +1079,7 @@ void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, ast::Builtin bu
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       auto ou_kind = ast::BuiltinType::ExecOUFeatureVector;
       auto *outype = call_args[1]->GetType();
-      if (!outype->IsPointerType() ||
-          !outype->GetPointeeType() ||
+      if (!outype->IsPointerType() || outype->GetPointeeType() == nullptr ||
           !IsPointerToSpecificBuiltin(outype->GetPointeeType(), ou_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ou_kind)->PointerTo()->PointerTo());
         return;

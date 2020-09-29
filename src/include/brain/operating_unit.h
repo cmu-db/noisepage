@@ -286,7 +286,7 @@ class EXPORT ExecOUFeatureVector {
    * Constructor
    * @param pool Memory Pool
    */
-  ExecOUFeatureVector(execution::sql::MemoryPool* pool);
+  explicit ExecOUFeatureVector(execution::sql::MemoryPool *pool);
 
   /**
    * Function used to update a feature's metadata information

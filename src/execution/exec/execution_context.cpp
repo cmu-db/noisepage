@@ -88,7 +88,8 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
     TERRIER_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
-    brain::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_.begin(), ouvec->pipeline_features_.end());
+    brain::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_.begin(),
+                                                        ouvec->pipeline_features_.end());
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
                                                               std::move(features), resource_metrics);
   }
@@ -96,7 +97,7 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
 
 void ExecutionContext::InitializeOUFeatureVector(brain::ExecOUFeatureVector **ouvec, pipeline_id_t pipeline_id) {
   void *alloc = GetMemoryPool()->Allocate(sizeof(brain::ExecOUFeatureVector));
-  brain::ExecOUFeatureVector *vec = new (alloc) brain::ExecOUFeatureVector(GetMemoryPool());
+  auto *vec = new (alloc) brain::ExecOUFeatureVector(GetMemoryPool());
   vec->pipeline_id_ = pipeline_id;
 
   auto &features = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
@@ -110,9 +111,10 @@ void ExecutionContext::InitializeOUFeatureVector(brain::ExecOUFeatureVector **ou
   *ouvec = vec;
 }
 
-void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector **ouvec, pipeline_id_t pipeline_id) {
+void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector **ouvec,
+                                                         pipeline_id_t pipeline_id) {
   void *alloc = GetMemoryPool()->Allocate(sizeof(brain::ExecOUFeatureVector));
-  brain::ExecOUFeatureVector *vec = new (alloc) brain::ExecOUFeatureVector(GetMemoryPool());
+  auto *vec = new (alloc) brain::ExecOUFeatureVector(GetMemoryPool());
   vec->pipeline_id_ = pipeline_id;
 
   bool found_blocking = false;
