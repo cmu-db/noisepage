@@ -72,17 +72,13 @@ void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder 
 }
 
 void OutputTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto out_buffer = output_buffer_.Get(GetCodeGen());
-  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
-  RecordCounters(pipeline, function);
+  FinishPipelineWork(pipeline, function);
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (!pipeline.IsParallel()) {
-    auto out_buffer = output_buffer_.Get(GetCodeGen());
-    function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
-    RecordCounters(pipeline, function);
-  }
+  auto out_buffer = output_buffer_.Get(GetCodeGen());
+  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
+  RecordCounters(pipeline, function);
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
