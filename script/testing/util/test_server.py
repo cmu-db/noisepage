@@ -94,19 +94,26 @@ class TestServer:
                 self.db_path, self.db_output_file)
             try:
                 self.wait_for_db()
-                break
+                # successful case
+                return
             except:
-                self.stop_db()
-                #TODO use Ben's new logging function
-                LOG.error("+" * 100)
-                LOG.error("DATABASE OUTPUT")
-                print_output(self.db_output_file)
-                if attempt + 1 == constants.DB_START_ATTEMPTS:
-                    raise
-                traceback.print_exc(file=sys.stdout)
-                pass
-        # FOR
-        return
+                try:
+                    self.stop_db()
+                except:
+                    LOG.error("DB early terminated")
+                try:
+                    LOG.error("+" * 100)
+                    LOG.error("DATABASE OUTPUT")
+                    print_output(self.db_output_file)
+                    if attempt + 1 == constants.DB_START_ATTEMPTS:
+                        raise
+                    traceback.print_exc(file=sys.stdout)
+                except:
+                    LOG.error("DB output log file not even created")
+
+        msg = "Failed to start DB after {} attempts".format(
+            constants.DB_START_ATTEMPTS)
+        raise RuntimeError(msg)
 
     def wait_for_db(self):
         """ Wait for the db server to come up """
