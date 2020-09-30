@@ -74,6 +74,7 @@ public class GenerateTrace {
                 // compute the hash
                 String hash = TestUtility.getHashFromDb(res);
                 String queryResult = "";
+                // when include_result is true, set queryResult to be exact result instead of hash
                 if(include_result){
                     for(String i:res){
                         queryResult += i;
@@ -81,12 +82,16 @@ public class GenerateTrace {
                     }
                     queryResult = queryResult.trim();
                 }else{
+                    // if expected number of results is specified
                     if(expected_result_num>=0){
                         queryResult = "Expected " + expected_result_num + " values hashing to " + hash;
                     }else{
                         if(res.size()>0){
+                            // set queryResult to format x values hashing to xxx
                             queryResult = res.size() + " values hashing to " + hash;
                         }
+                        // set queryResult to be exact result instead of hash when
+                        // result size is smaller than Constants.DISPLAY_RESULT_SIZE
                         if(res.size() < Constants.DISPLAY_RESULT_SIZE){
                             queryResult = "";
                             for(String i:res){
@@ -106,16 +111,20 @@ public class GenerateTrace {
             } else if(line.startsWith(Constants.HASHTAG)){
                 writeToFile(writer, line);
                 if(line.contains(Constants.NUM_OUTPUT_FLAG)){
+                    // case for specifying the expected number of outputs
                     String[] arr = line.split(" ");
                     expected_result_num = Integer.parseInt(arr[arr.length-1]);
                 }else if(line.contains(Constants.FAIL_FLAG)){
+                    // case for expecting the query to fail
                     label = Constants.STATEMENT_ERROR;
                 } else if(line.contains(Constants.EXPECTED_OUTPUT_FLAG)){
+                    // case for including exact result in mog.queryResult
                     include_result = true;
                 }
             } else{
                 // other sql statements
                 int rs = statement.getUpdateCount();
+                // check if expected number is equal to update count
                 if(expected_result_num>=0 && expected_result_num!=rs){
                     label = Constants.STATEMENT_ERROR;
                 }

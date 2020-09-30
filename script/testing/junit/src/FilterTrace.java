@@ -31,29 +31,13 @@ public class FilterTrace {
         Connection conn = db.getDbTest().newConn();
         List<String> tab = getAllExistingTableName(mog,conn);
         removeExistingTable(tab,conn);
-        List<String> aggregations = new ArrayList<>();
-        aggregations.add("COUNT");
-        aggregations.add("MAX");
-        aggregations.add("MIN");
-        aggregations.add("AVG");
-        aggregations.add("SUM");
+
         while (mog.next()) {
             String cur_sql = mog.sql.trim();
             for(int i=0; i<mog.comments.size();i++){
                 if(mog.comments.get(i).contains(Constants.SKIPIF)||mog.comments.get(i).contains(Constants.ONLYIF)){
                     skip_flag = true;
                     break;
-                }
-            }
-            if(cur_sql.contains("SELECT")){
-                boolean contain_aggregation = false;
-                for(String i: aggregations){
-                    if(cur_sql.contains(i)){
-                        contain_aggregation = true;
-                    }
-                }
-                if(!contain_aggregation){
-                    skip_flag = true;
                 }
             }
             // filter out nested SELECT statements
@@ -83,7 +67,7 @@ public class FilterTrace {
                     ResultSet rs = statement.getResultSet();
                     List<String> res = mog.processResults(rs);
                     if(res.size()>0){
-                        if(res.size()<5) {
+                        if(res.size()<Constants.DISPLAY_RESULT_SIZE) {
                             for(String i:mog.queryResults){
                                 writeToFile(writer, i);
                             }
