@@ -624,7 +624,7 @@ SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
 16 values hashing to 277f6f8fdb1a85b3b589002d0910f9b2
 
 query I nosort
-SELECT * FROM yyy INNER JOIN xxx ON yyy.idx > xxx.idy;
+SELECT * FROM yyy INNER JOIN xxx ON yyy.idy > xxx.idx;
 ----
 4 values hashing to 78ebd17527f557a57704ea0c0ee12ff6
 
