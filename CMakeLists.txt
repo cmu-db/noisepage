@@ -72,6 +72,10 @@ project(
         LANGUAGES CXX
 )
 
+#######################################################################################################################
+# Safety checks.
+#######################################################################################################################
+
 # People keep running CMake in the wrong folder, completely nuking their project or creating weird bugs.
 # This checks if you're running CMake from a folder that already has CMakeLists.txt.
 # Importantly, this catches the common case of running it from the root directory.
@@ -80,6 +84,30 @@ if (EXISTS "${PATH_TO_CMAKELISTS_TXT}")
     message(FATAL_ERROR "Run CMake from a build subdirectory! \"mkdir build ; cd build ; cmake ..\" \
     Some junk files were created in this folder (CMakeCache.txt, CMakeFiles); you should delete those.")
 endif ()
+
+#######################################################################################################################
+# CMake options, CMake global variables.
+#######################################################################################################################
+
+
+option(NOISEPAGE_GENERATE_COVERAGE
+        "Build with C++ code coverage enabled"
+        OFF)
+
+option(NOISEPAGE_USE_ASAN
+        "Use the address sanitizer."
+        OFF)
+
+option(NOISEPAGE_USE_JEMALLOC
+        "Dynamically link jemalloc as the memory allocator."
+        OFF)
+
+set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
+set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
+
+#######################################################################################################################
+# Project definition.
+#######################################################################################################################
 
 # Print a welcome message with the project's version number.
 message(STATUS
@@ -249,9 +277,6 @@ target_link_libraries(noisepage_static PUBLIC
         ${TBB_LIBRARIES} # TBB_LIBRARIES_RELEASE
         )
 
-get_target_property(FOO noisepage_static INCLUDE_DIRECTORIES)
-message(STATUS "foo ${FOO}")
-
 #######################################################################################################################
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
@@ -286,12 +311,15 @@ add_executable(gen_opt_bc util/execution/gen_opt_bc.cpp)
 target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
 
+add_library(hack_bytecode_handlers_ir util/execution/bytecode_handlers_ir.cpp)
+target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
+
 #######################################################################################################################
 # tpl                   :   Standalone binary for testing .tpl files and commands.
 #                           Also generates bytecode_handlers_ir.bc.
 #######################################################################################################################
 
-# TODO(WAN): I don't see the point of doing this at CMake time. Another folder for what exactly?
+# TODO(WAN): I don't see the point of doing this at CMake time.
 set(TPL_VERSION_MAJOR 0)
 set(TPL_VERSION_MINOR 1)
 configure_file(util/execution/tpl.h.in "${PROJECT_BINARY_DIR}/execution/tpl.h") # Generate the header file.
@@ -301,50 +329,12 @@ set_target_properties(tpl PROPERTIES
         CXX_EXTENSIONS OFF
         )
 # Build gen_opt_bc before building tpl.
-add_dependencies(tpl gen_opt_bc)
+add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)
 target_include_directories(tpl PRIVATE ${PROJECT_BINARY_DIR} ${LLVM_INCLUDE_DIR})
-target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
+target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES} xxHash::xxhash)
 
 # old flags for gen_opt_bc. TODO(WAN): make sure we match.
 # -- /usr/bin/clang++-8 -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O0;-fno-omit-frame-pointer;-fno-optimize-sibling-calls;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-fsanitize=address;-emit-llvm;-c -I/home/kapi/CLionProjects/terrier/cmake-build-debug/googletest_ep-prefix/src/googletest_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gflags_ep-prefix/src/gflags_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/include;-I/usr/include/postgresql;-I/usr/lib/llvm-8/include;-I/home/kapi/CLionProjects/terrier/third_party/flatbuffers/include;-I/home/kapi/CLionProjects/terrier/src/include;-I/home/kapi/CLionProjects/terrier/third_party;-I/home/kapi/CLionProjects/terrier/test/include;-I/home/kapi/CLionProjects/terrier/util/include;-I/home/kapi/CLionProjects/terrier/benchmark/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug
-
-message(STATUS "${CMAKE_BINARY_DIR}/CMakeFiles/bytecode_handlers_ir.dir/util/execution/bytecode_handlers_ir.cpp.o")
-
-# This is a terrible hack because of CMake limitations: there is no way to use a different compiler for a
-# single CMake target, and there is no easy way of grabbing the compiler flags that so-called "modern" CMake
-# will apply. It is less headache overall to just specify all the flags that we want here...
-list(APPEND HACK_CLANG_IR_FLAGS
-        "-emit-llvm"                # Emit LLVM.
-        "-c"                        # Only build an object .o file.
-        "-std=c++17"
-        "-mcx16"
-        "-march=native"
-        )
-
-list(APPEND HACK_CLANG_IR_INCLUDES
-        "-I${PROJECT_SOURCE_DIR}/include"
-        "-I${LLVM_DIRS}"
-        )
-
-if (APPLE)
-    # On macOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
-    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
-else ()
-    find_program(CLANG NAMES "clang++-8" "clang++")
-endif ()
-message(STATUS "tpl ${CLANG} ${HACK_CLANG_IR_FLAGS} ${HACK_CLANG_IR_INCLUDES}")
-
-add_custom_command(
-        TARGET tpl
-        POST_BUILD
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating Optimized Bitcode ... THIS DOESN'T WORK YET"
-        COMMAND ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.sh ${CMAKE_BINARY_DIR}
-        # ${CLANG} ${HACK_CLANG_IR_FLAGS} ${HACK_CLANG_IR_INCLUDES}
-        # ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp -o bytecode_handlers_ir.bc
-        COMMAND gen_opt_bc bytecode_handlers_ir.bc bytecode_handlers_opt.bc
-        COMMAND mv bytecode_handlers_opt.bc bytecode_handlers_ir.bc
-)
 
 set_target_properties(
         tpl gen_opt_bc
@@ -354,17 +344,47 @@ set_target_properties(
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+
+# On MacOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
+if (APPLE)
+    set(GEN_OPT_BC_CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+else ()
+    find_program(GEN_OPT_BC_CLANG NAMES "clang++-8" "clang++")
+endif ()
+
+add_custom_command(
+        TARGET tpl
+        DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
+        POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating optimized bitcode ..."
+        COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.py ${GEN_OPT_BC_CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+        COMMAND ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.py ${GEN_OPT_BC_CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+        COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
+        COMMAND ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc
+        COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+        COMMAND mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+        COMMAND cmake -E echo "Generated optimized bitcode at ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc."
+)
+
 add_custom_target(
         check-tpl
         DEPENDS tpl
+        COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py \
+        -b ${CMAKE_BINARY_DIR}/bin/tpl \
+        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt \
+        -t ${PROJECT_SOURCE_DIR}/sample_tpl \
+        -d ${CMAKE_BINARY_DIR}/bin"
         COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
         -b ${CMAKE_BINARY_DIR}/bin/tpl
         -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
         -t ${PROJECT_SOURCE_DIR}/sample_tpl
-        -d ${CMAKE_BINARY_DIR}/${BUILD_SUBDIR_NAME}
+        -d ${CMAKE_BINARY_DIR}/bin
 )
 
-# end tpl
+#######################################################################################################################
+# Tests.
+#######################################################################################################################
 
 file(
         GLOB_RECURSE
@@ -376,6 +396,21 @@ file(
 
 add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
 target_link_libraries(noisepage_test_util noisepage_static)
+
+
+#######################################################################################################################
+# Benchmarks.
+#######################################################################################################################
+
+#######################################################################################################################
+# Useful some day, maybe.
+#######################################################################################################################
+
+# Some day, CLion will support USE_FOLDERS in the IDE view of CMake targets.
+# When that day comes, clump all the "you shouldn't need to build this manually" targets into a folder like so.
+# set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+# set_target_properties(hack_bytecode_handlers_ir PROPERTIES FOLDER HiddenTargets)
+
 #
 #
 #add_library(test_util STATIC ${TEST_UTIL_SRCS})
