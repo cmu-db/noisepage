@@ -1,9 +1,9 @@
 #pragma once
 
+#include <ev++.h>
 #include <unordered_set>
 
 #include "common/dedicated_thread_task.h"
-#include "common/event_util.h"
 #include "common/io_timeout_event.h"
 #include "common/macros.h"
 #include "loggers/common_logger.h"
@@ -20,7 +20,7 @@ namespace terrier::common {
 class NotifiableTask : public DedicatedThreadTask {
  public:
   /** Construct a new NotifiableTask instance with the specified task id. */
-  explicit NotifiableTask(ev::loop_ref loop, int task_id);
+  explicit NotifiableTask(ev::loop_ref *loop, int task_id);
 
   /** Destroy the NotifiableTask, deleting and freeing all of its registered events. */
   ~NotifiableTask() override;
@@ -52,7 +52,7 @@ class NotifiableTask : public DedicatedThreadTask {
   template <void (*function)(ev::io &event, int)>  // NOLINT
   IoTimeoutEvent *RegisterIoEvent(int fd, uint16_t flags, void *arg,
                                   const ev_tstamp timeout = IoTimeoutEvent::WAIT_FOREVER) {
-    auto *event = new IoTimeoutEvent(loop_);
+    auto *event = new IoTimeoutEvent(*loop_);
     event->Set<function>(arg);
     io_events_.insert(event);
     event->Start(fd, flags, timeout);
@@ -77,7 +77,7 @@ class NotifiableTask : public DedicatedThreadTask {
    */
   template <void (*function)(ev::async &event, int)>  // NOLINT
   ev::async *RegisterAsyncEvent(void *arg) {
-    auto *event = new ev::async(loop_);
+    auto *event = new ev::async(*loop_);
     event->set<function>(arg);
     async_events_.insert(event);
     event->start();
@@ -130,7 +130,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * In a loop, make this notifiable task wait and respond to incoming events
    */
   void EventLoop() {
-    loop_.run(0);
+    loop_->run(0);
     COMMON_LOG_TRACE("stop");
   }
 
@@ -151,7 +151,7 @@ class NotifiableTask : public DedicatedThreadTask {
 
  protected:
   /** Event loop for the current thread */
-  ev::loop_ref loop_;
+  ev::loop_ref *loop_;
 
  private:
   /** Callback to terminate event loop */

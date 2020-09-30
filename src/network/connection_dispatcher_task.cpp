@@ -18,7 +18,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
     common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
     std::initializer_list<int> file_descriptors)
-    : NotifiableTask(ev::get_default_loop(), MAIN_THREAD_ID),
+    : NotifiableTask(new ev::default_loop(), MAIN_THREAD_ID),
       num_handlers_(num_handlers),
       dedicated_thread_owner_(dedicated_thread_owner),
       connection_handle_factory_(connection_handle_factory),
@@ -35,7 +35,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
   }
 
   // Exit the event loop if the terminal launching the server process is closed.
-  sighup_event_ = new ev::sig(loop_);
+  sighup_event_ = new ev::sig(*loop_);
   sighup_event_->set<&ConnectionDispatcherTask::SighupCallback>(this);
   sighup_event_->start(SIGHUP);
 }

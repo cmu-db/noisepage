@@ -1,12 +1,16 @@
 #include "common/notifiable_task.h"
 
-#include "common/event_util.h"
+#include "common/error/exception.h"
 
 namespace terrier::common {
 
-NotifiableTask::NotifiableTask(ev::loop_ref loop, int task_id) : loop_(loop), task_id_(task_id) {
-  terminate_ = new ev::async(loop_);
-  terminate_->set<&NotifiableTask::TerminateCallback>(&loop_);
+NotifiableTask::NotifiableTask(ev::loop_ref *loop, int task_id) : loop_(loop), task_id_(task_id) {
+  if (*loop_ == nullptr) {
+    throw NETWORK_PROCESS_EXCEPTION("Unable to create event loop");
+  }
+
+  terminate_ = new ev::async(*loop_);
+  terminate_->set<&NotifiableTask::TerminateCallback>(loop_);
   terminate_->start();
 }
 
@@ -21,8 +25,8 @@ NotifiableTask::~NotifiableTask() {
   }
   terminate_->stop();
   delete terminate_;
-  // I was not able to get the C++ API version of non-default loops working
-  ev_loop_destroy(loop_);
+  ev_loop_destroy(*loop_);
+  delete loop_;
 }
 
 void NotifiableTask::TerminateCallback(ev::async &event, int /*unused*/) {

@@ -1,9 +1,9 @@
 #pragma once
 
+#include <ev++.h>
 #include <memory>
 #include <utility>
 
-#include "common/event_util.h"
 #include "common/io_timeout_event.h"
 #include "common/managed_pointer.h"
 #include "network/connection_context.h"
