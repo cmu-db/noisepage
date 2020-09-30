@@ -7,8 +7,10 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "metrics/metrics_thread.h"
+#include "network/connection_handle_factory.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
@@ -16,6 +18,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
@@ -220,7 +223,7 @@ class DBMain {
   };
 
   /**
-   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreter::Provider, Server
+   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreterProvider, Server
    */
   class NetworkLayer {
    public:
@@ -252,7 +255,7 @@ class DBMain {
     // Order matters here for destruction order
     std::unique_ptr<network::ConnectionHandleFactory> connection_handle_factory_;
     std::unique_ptr<network::PostgresCommandFactory> command_factory_;
-    std::unique_ptr<network::ProtocolInterpreter::Provider> provider_;
+    std::unique_ptr<network::ProtocolInterpreterProvider> provider_;
     std::unique_ptr<network::TerrierServer> server_;
   };
 

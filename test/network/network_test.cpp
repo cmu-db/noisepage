@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -83,7 +84,7 @@ class NetworkTests : public TerrierTest {
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ = std::make_unique<TerrierServer>(
-          common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
+          common::ManagedPointer<ProtocolInterpreterProvider>(&protocol_provider_),
           common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_,
           connection_thread_count_, socket_directory_);
       server_->RunServer();

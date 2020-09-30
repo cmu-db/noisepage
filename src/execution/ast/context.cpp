@@ -52,7 +52,7 @@ struct StructTypeKeyInfo {
 
     explicit KeyTy(const util::RegionVector<Field> &es) : elements_(es) {}
 
-    explicit KeyTy(const StructType *struct_type) : elements_(struct_type->GetFields()) {}
+    explicit KeyTy(const StructType *struct_type) : elements_(struct_type->GetFieldsWithoutPadding()) {}
 
     bool operator==(const KeyTy &that) const { return elements_ == that.elements_; }
 
@@ -277,26 +277,32 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
   return map_type;
 }
 
-Field StructType::CreatePaddingElement(uint32_t size, Context *ctx) {
+Field StructType::CreatePaddingElement(uint32_t size, Context *ctx, uint32_t *remainder) {
   // We only need a placeholder name. The identifier for the placeholder
   // does not have to be unique since TPL code will never refer to a
   // placeholder field and LLVM IR does not rely on field names.
   ast::Identifier name = ctx->GetIdentifier("__field$0$");
-  ast::Type *type = nullptr;
-  switch (size) {
-    case sizeof(int32_t):
-      type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int32);
-      break;
-    case sizeof(int16_t):
-      type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int16);
-      break;
-    case sizeof(int8_t):
-      type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
-      break;
-    default:
-      TERRIER_ASSERT(false, "Unspecified padding element size");
+
+  // Can always pad with 1 byte
+  ast::BuiltinType::Kind pad_type = ast::BuiltinType::Int8;
+  uint32_t pad_size = 1;
+
+  // We can only create a padding element of this size only if the modulo
+  // is equal to zero. Otherwise we risk violating alignment requirements
+  // with the padding elements.
+  //
+  // For instance, if we need to pad 7 bytes, we want to create a padding
+  // element of size 1, then 2, and finally 4.
+  if (size % sizeof(int32_t) == 0) {
+    pad_type = ast::BuiltinType::Int32;
+    pad_size = sizeof(int32_t);
+  } else if (size % sizeof(int16_t) == 0) {
+    pad_type = ast::BuiltinType::Int16;
+    pad_size = sizeof(int16_t);
   }
-  return Field(name, type);
+
+  *remainder = size - pad_size;
+  return Field(name, ast::BuiltinType::Get(ctx, pad_type));
 }
 
 // static
@@ -322,26 +328,26 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     // struct element.
     uint32_t size = 0;
     uint32_t alignment = 0;
+    util::RegionVector<Field> all_fields(ctx->GetRegion());
     util::RegionVector<uint32_t> field_offsets(ctx->GetRegion());
-    for (size_t idx = 0; idx < fields.size(); idx++) {
-      auto *field_type = fields[idx].type_;
+    for (const auto &field : fields) {
+      auto *field_type = field.type_;
 
       // Check if the type needs to be padded
       uint32_t field_align = field_type->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
-        uint32_t new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
-        if (new_size > size) {
-          // Insert and adjust the iterator index.
-          fields.insert(fields.begin() + idx, CreatePaddingElement(new_size - size, ctx));
-          idx++;
-
+        auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
+        while (new_size > size) {
+          uint32_t remainder = 0;
+          all_fields.emplace_back(CreatePaddingElement(new_size - size, ctx, &remainder));
           field_offsets.push_back(size);
-          size = new_size;
+          size += (new_size - size - remainder);
         }
       }
 
       // Update size and calculate alignment
       field_offsets.push_back(size);
+      all_fields.emplace_back(field);
       size += field_type->GetSize();
       alignment = std::max(alignment, field_type->GetAlignment());
     }
@@ -358,7 +364,8 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     }
 
     // Create type
-    struct_type = new (ctx->GetRegion()) StructType(ctx, size, alignment, std::move(fields), std::move(field_offsets));
+    struct_type = new (ctx->GetRegion())
+        StructType(ctx, size, alignment, std::move(all_fields), std::move(fields), std::move(field_offsets));
     // Set in cache
     *iter = struct_type;
   } else {
