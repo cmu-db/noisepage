@@ -37,6 +37,17 @@ void WorkContext::Push(FunctionBuilder *function) {
 
 void WorkContext::ClearExpressionCache() { cache_.clear(); }
 
+void WorkContext::SetSource(OperatorTranslator *op) {
+  pipeline_iter_ = pipeline_.Begin();
+  while (pipeline_iter_ != pipeline_end_) {
+    if (*pipeline_iter_ == op) {
+      return;
+    }
+    pipeline_iter_++;
+  }
+  TERRIER_ASSERT(false, "The operator given to WorkContext::SetSource is not in the pipeline");
+}
+
 bool WorkContext::IsParallel() const { return pipeline_.IsParallel(); }
 
 }  // namespace terrier::execution::compiler
