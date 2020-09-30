@@ -88,7 +88,7 @@ bool IndexUtil::CheckPredicates(
   // To concatenate/shrink ranges, we would need to be able to compare TransientValues.
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_highs;  // <index, low start>
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_lows;   // <index, high end>
-  int flag = 1;
+  bool left_side = true;
   for (const auto &pred : predicates) {
     auto expr = pred.GetExpr();
     if (expr->HasSubquery()) return false;
@@ -129,11 +129,11 @@ bool IndexUtil::CheckPredicates(
               (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
             tv_expr = lexpr;
             idx_expr = expr->GetChild(1);
-            flag = 1;
+            left_side = true;
           } else {
             tv_expr = rexpr;
             idx_expr = expr->GetChild(0);
-            flag = 0;
+            left_side = false;
           }
         } else {
           // By derivation, all of these predicates should be CONJUNCTIVE_AND
@@ -150,14 +150,14 @@ bool IndexUtil::CheckPredicates(
             open_lows[idxkey] = idx_expr;
           } else if (type == parser::ExpressionType::COMPARE_LESS_THAN ||
                      type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
-            if (flag == 1) {
+            if (left_side) {
               open_lows[idxkey] = idx_expr;
             } else {
               open_highs[idxkey] = idx_expr;
             }
           } else if (type == parser::ExpressionType::COMPARE_GREATER_THAN ||
                      type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO) {
-            if (flag == 1) {
+            if (left_side) {
               open_highs[idxkey] = idx_expr;
             } else {
               open_lows[idxkey] = idx_expr;
