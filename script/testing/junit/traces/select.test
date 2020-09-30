@@ -626,7 +626,7 @@ SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
 query I nosort
 SELECT * FROM yyy INNER JOIN xxx ON yyy.idy > xxx.idx;
 ----
-4 values hashing to 0d3bb445591b380a6dda3e14858bb6d8
+4 values hashing to 78ebd17527f557a57704ea0c0ee12ff6
 
 statement ok
 DROP TABLE xxx
