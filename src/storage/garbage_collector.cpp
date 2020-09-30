@@ -125,8 +125,8 @@ std::tuple<uint32_t, uint32_t, uint32_t> GarbageCollector::ProcessUnlinkQueue(tr
         // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
         // unless the transaction is aborted, and the record holds a version that is still visible.
         if (!txn->Aborted()) {
-          ReclaimSlotIfDeleted(&undo_record);
           ReclaimBufferIfVarlen(txn, &undo_record);
+          ReclaimSlotIfDeleted(&undo_record);
         }
         if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
         buffer_processed++;

@@ -19,20 +19,6 @@ class ConnectionHandle;
 class ProtocolInterpreter {
  public:
   /**
-   * A Provider interface is a strategy object for construction.
-   *
-   * It encapsulates creation logic that can be passed around as polymorphic objects. Inject the
-   * approriate subclass of this object to the connection dispatcher in order to bind them to
-   * the correct protocol type.
-   */
-  struct Provider {
-    virtual ~Provider() = default;
-    /**
-     * @return a constructed instance of protocol interpreter
-     */
-    virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
-  };
-  /**
    * Processes client's input that has been fed into the given ReadBufer
    * @param in The ReadBuffer to read input from
    * @param out The WriteQueue to communicate with the client through
@@ -151,5 +137,21 @@ class ProtocolInterpreter {
     return remaining_bytes <= 0;
   }
 };
-//
+
+/**
+ * A Provider interface is a strategy object for construction.
+ *
+ * It encapsulates creation logic that can be passed around as polymorphic objects. Inject the
+ * approriate subclass of this object to the connection dispatcher in order to bind them to
+ * the correct protocol type.
+ */
+class ProtocolInterpreterProvider {
+ public:
+  virtual ~ProtocolInterpreterProvider() = default;
+  /**
+   * @return a constructed instance of protocol interpreter
+   */
+  virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
+};
+
 }  // namespace terrier::network
