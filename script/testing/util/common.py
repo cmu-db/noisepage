@@ -144,4 +144,4 @@ def run_kill_server(port):
 
     if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
-            "Error occured in run_check_pid_exists for [PORT={}]".format(port))
+            "Error occured in run_kill_server for [PORT={}]".format(port))

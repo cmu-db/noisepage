@@ -85,11 +85,9 @@ class TestServer:
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
             # Kill any other terrier processes that our listening on our target port
-            try:
-                run_kill_server(self.db_port)
-            except:
-                LOG.error("Exceptions in running kill_server.py")
-                continue
+
+            # early terminate the run_db if kill_server.py encounter any exceptions
+            run_kill_server(self.db_port)
 
             self.db_output_fd, self.db_process = start_db(
                 self.db_path, self.db_output_file)
