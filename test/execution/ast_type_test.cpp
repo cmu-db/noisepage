@@ -19,6 +19,22 @@ class TypeTest : public TplTest {
 
   ast::Identifier Name(const std::string &s) { return Ctx()->GetIdentifier(s); }
 
+  void CheckArrayType(StructType *struct_type, const std::string &field, uint32_t length,
+                      ast::BuiltinType::Kind elem_type) {
+    // Check that the field is an ArrayType
+    auto *field_type = struct_type->LookupFieldByName(Name(field));
+    EXPECT_TRUE(field_type != nullptr);
+    EXPECT_EQ(field_type->GetTypeId(), Type::TypeId::ArrayType);
+
+    // Check that the BuiltinType matches
+    auto *type = field_type->As<ArrayType>();
+    EXPECT_EQ(type->GetLength(), length);
+    EXPECT_EQ(type->GetElementType()->GetTypeId(), Type::TypeId::BuiltinType);
+
+    auto *builtin = type->GetElementType()->As<BuiltinType>();
+    EXPECT_EQ(builtin->GetKind(), elem_type);
+  }
+
  private:
   util::Region region_;
   sema::ErrorReporter errors_;
@@ -43,6 +59,7 @@ TEST_F(TypeTest, StructPaddingTest) {
     int8_t   e_;
     int16_t  f_;
     int64_t *g_;
+    int8_t   h_;
   };
   // clang-format on
 
@@ -55,13 +72,15 @@ TEST_F(TypeTest, StructPaddingTest) {
           {Name("e"), ast::BuiltinType::Get(Ctx(), ast::BuiltinType::Int8)},
           {Name("f"), ast::BuiltinType::Get(Ctx(), ast::BuiltinType::Int16)},
           {Name("g"), ast::BuiltinType::Get(Ctx(), ast::BuiltinType::Int64)->PointerTo()},
+          {Name("h"), ast::BuiltinType::Get(Ctx(), ast::BuiltinType::Int8)},
       },
       Region());
 
   auto *type = ast::StructType::Get(std::move(fields));
 
   // Expect: [0-1] b, [2-7] pad, [8-15] int64_t, [16-17] int8_t_1, [18-19] pad,
-  //         [20-23] int32_t, [24-25] int8_t_2, [26-27] int16_t, [28-31] pad, [32-40] p
+  //         [20-23] int32_t, [24-25] int8_t_2, [26-27] int16_t, [28-31] pad, [32-39] p
+  //         [40-41] int8_t, [42-47] pad
   EXPECT_EQ(sizeof(Test), type->GetSize());
   EXPECT_EQ(alignof(Test), type->GetAlignment());
   EXPECT_EQ(offsetof(Test, a_), type->GetOffsetOfFieldByName(Name("a")));
@@ -71,6 +90,22 @@ TEST_F(TypeTest, StructPaddingTest) {
   EXPECT_EQ(offsetof(Test, e_), type->GetOffsetOfFieldByName(Name("e")));
   EXPECT_EQ(offsetof(Test, f_), type->GetOffsetOfFieldByName(Name("f")));
   EXPECT_EQ(offsetof(Test, g_), type->GetOffsetOfFieldByName(Name("g")));
+  EXPECT_EQ(offsetof(Test, h_), type->GetOffsetOfFieldByName(Name("h")));
+
+  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$1$")), 1);
+  CheckArrayType(type, "__field$1$", 7, ast::BuiltinType::Kind::Int8);
+
+  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$17$")), 17);
+  CheckArrayType(type, "__field$17$", 3, ast::BuiltinType::Kind::Int8);
+
+  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$25$")), 25);
+  CheckArrayType(type, "__field$25$", 1, ast::BuiltinType::Kind::Int8);
+
+  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$28$")), 28);
+  CheckArrayType(type, "__field$28$", 4, ast::BuiltinType::Kind::Int8);
+
+  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$41$")), 41);
+  CheckArrayType(type, "__field$41$", 7, ast::BuiltinType::Kind::Int8);
 }
 
 // NOLINTNEXTLINE
