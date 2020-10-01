@@ -317,7 +317,7 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
   }
 
-  bool visible = !accessor.IsNull(slot, VERSION_POINTER_COLUMN_ID);
+  bool visible = !accessor_.IsNull(slot, VERSION_POINTER_COLUMN_ID);
   UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
