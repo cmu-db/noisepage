@@ -66,7 +66,14 @@ def format_time(timestamp):
         "%Y-%m-%d %H:%M:%S")
 
 
-def kill_pids_on_port(port):
+def print_or_log(msg, logger=None):
+    if logger:
+        logger.info(msg)
+    else:
+        print(msg)
+
+
+def kill_pids_on_port(port, logger=None):
     """Kill all the PIDs (if any) listening on the target port"""
 
     if os.getuid() != 0:
@@ -76,13 +83,14 @@ def kill_pids_on_port(port):
         try:
             for conns in proc.connections(kind="inet"):
                 if conns.laddr.port == port:
-                    LOG.info(
+                    print_or_log(
                         "Killing existing server instance listening on port {} [PID={}], created at {}"
                         .format(port, proc.pid,
-                                format_time(proc.create_time())))
+                                format_time(proc.create_time())), logger)
                     proc.send_signal(signal.SIGKILL)
         except psutil.ZombieProcess:
-            LOG.info("Killing zombie process [PID={}]".format(proc.pid))
+            print_or_log("Killing zombie process [PID={}]".format(proc.pid),
+                         logger)
             proc.parent().send_signal(signal.SIGCHLD)
 
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import argparse
-from util.constants import LOG
 from util.common import kill_pids_on_port
 
 if __name__ == "__main__":
@@ -11,8 +10,6 @@ if __name__ == "__main__":
     args = vars(aparser.parse_args())
 
     for port in args.get("ports", []):
-        LOG.info(
-            "****** start killing processes on port {} ******".format(port))
+        print("****** start killing processes on port {} ******".format(port))
         kill_pids_on_port(port)
-        LOG.info(
-            "****** finish killing processes on port {} ******".format(port))
+        print("****** finish killing processes on port {} ******".format(port))

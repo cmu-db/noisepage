@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 import sys
 import argparse
-from util.constants import LOG, CommandLineStr, ErrorCode
+from util.constants import CommandLineStr, ErrorCode
 from util.common import check_pid_exists
 
 if __name__ == "__main__":
