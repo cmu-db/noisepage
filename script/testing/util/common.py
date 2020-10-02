@@ -92,6 +92,10 @@ def kill_pids_on_port(port, logger=None):
             print_or_log("Killing zombie process [PID={}]".format(proc.pid),
                          logger)
             proc.parent().send_signal(signal.SIGCHLD)
+        except Exception as e:
+            # get more generic debug info
+            print_or_log(e)
+            raise
 
 
 def get_pids_on_port(port):
