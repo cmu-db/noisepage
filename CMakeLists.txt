@@ -104,6 +104,12 @@ option(NOISEPAGE_USE_JEMALLOC
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
 
+if (${NOISEPAGE_USE_ASAN})
+    set(NOISEPAGE_ASAN_FLAGS "-fsanitize=address")
+endif ()
+
+message(STATUS "${NOISEPAGE_ASAN_FLAGS}")
+
 #######################################################################################################################
 # Project definition.
 #######################################################################################################################
@@ -285,11 +291,11 @@ target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_ob
 target_compile_options(noisepage_objlib PUBLIC      # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
-        "-fsanitize=address"                        # Turn on Address Sanitizer.
+        ${NOISEPAGE_ASAN_FLAGS}                     # Maybe turn on Address Sanitizer.
         )
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
-        "-fsanitize=address"                        # Turn on Address Sanitizer.
+        ${NOISEPAGE_ASAN_FLAGS}                     # Maybe turn on Address Sanitizer.
         )
 target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of the library inherit the following.
         cxx_std_17                                  # Require support for C++17.
@@ -312,7 +318,7 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${EVENT_LINK_LIBRARIES}
         ${EVENT_PTHREADS_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
-        ${TBB_LIBRARIES} # TBB_LIBRARIES_RELEASE
+        ${TBB_LIBRARIES_RELEASE}
         )
 
 add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)
@@ -336,6 +342,7 @@ install(TARGETS noisepage_shared
 
 add_executable(noisepage src/main/terrier.cpp)
 target_link_libraries(noisepage noisepage_static)
+set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF)
 
 #######################################################################################################################
 # util_static           :   table_generator and table_reader for tests and benchmarks.
@@ -352,6 +359,7 @@ list(REMOVE_ITEM UTIL_SRCS
 add_library(util_static STATIC ${UTIL_SRCS})
 target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
 target_link_libraries(util_static PUBLIC noisepage_static)
+set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF)
 
 #######################################################################################################################
 # gen_opt_bc            :   Generates optimized bitcode from the LLVM IR file generated as a tpl post-build target.
@@ -363,6 +371,7 @@ target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
 
 add_library(hack_bytecode_handlers_ir util/execution/bytecode_handlers_ir.cpp)
 target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
+set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 
 #######################################################################################################################
 # tpl                   :   Standalone binary for testing .tpl files and commands.
@@ -385,6 +394,7 @@ target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES} 
 set_target_properties(
         tpl gen_opt_bc
         PROPERTIES
+        CXX_EXTENSIONS OFF
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -445,6 +455,7 @@ file(GLOB_RECURSE
 add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
 target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock util_static pqxx)
 target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_TESTS "")
 macro(add_noisepage_test TEST_NAME TEST_CPP)
@@ -452,7 +463,7 @@ macro(add_noisepage_test TEST_NAME TEST_CPP)
     target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main noisepage_shared ${ARGN})
     target_link_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR})
     target_compile_options(${TEST_NAME} PRIVATE "-fPIC")
-    set_target_properties(${TEST_NAME} PROPERTIES ENABLE_EXPORTS ON)
+    set_target_properties(${TEST_NAME} PROPERTIES ENABLE_EXPORTS ON CXX_EXTENSIONS OFF)
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
     gtest_discover_tests(${TEST_NAME}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -507,11 +518,55 @@ endforeach ()
 # Benchmarks.
 #######################################################################################################################
 
-message(STATUS ${NOISEPAGE_TESTS})
+file(GLOB_RECURSE
+        NOISEPAGE_BENCHMARK_UTIL_SRCS
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/benchmark/include/benchmark_util/*.h
+        ${PROJECT_SOURCE_DIR}/benchmark/benchmark_util/*.cpp
+        )
 
-#set_target_properties(noisepage_static noisepage_shared tpl ${NOISEPAGE_TESTS} PROPERTIES
-#        CXX_EXTENSIONS OFF
-#        )
+add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
+target_link_libraries(noisepage_benchmark_util PUBLIC noisepage_shared gtest gmock util_static noisepage_test_util pqxx benchmark)
+target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
+set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
+
+set(NOISEPAGE_BENCHMARKS "")
+macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
+    add_executable(${BENCHMARK_NAME} ${BENCHMARK_CPP})
+    target_link_libraries(${BENCHMARK_NAME} PRIVATE gtest gmock gtest_main noisepage_shared noisepage_test_util noisepage_benchmark_util ${ARGN})
+    target_link_directories(${BENCHMARK_NAME} PRIVATE ${CMAKE_BINARY_DIR})
+    target_compile_options(${BENCHMARK_NAME} PRIVATE "-fPIC")
+    set_target_properties(${BENCHMARK_NAME} PROPERTIES ENABLE_EXPORTS ON CXX_EXTENSIONS OFF)
+    target_include_directories(${BENCHMARK_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark/include/)
+
+    set(BENCHMARK_PATH "${CMAKE_BINARY_DIR}/${BENCHMARK_NAME}")
+    add_test(${BENCHMARK_NAME}
+            ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} benchmark ${BENCHMARK_PATH} ${NO_COLOR})
+    set_tests_properties(${BENCHMARK_NAME} PROPERTIES LABELS "benchmark")
+    list(APPEND NOISEPAGE_BENCHMARK ${BENCHMARK_NAME})
+endmacro()
+
+
+file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
+        "benchmark/catalog/*.cpp"
+        "benchmark/common/*.cpp"
+        "benchmark/integration/*.cpp"
+        "benchmark/metrics/*.cpp"
+        "benchmark/parser/*.cpp"
+        "benchmark/storage/*.cpp"
+        "benchmark/transaction/*.cpp"
+        "benchmark/runner/*.cpp"
+        )
+
+add_custom_target(runbenchmark ctest -L benchmark --no-compress-output -T Test)
+foreach (NOISEPAGE_BENCHMARK_CPP ${NOISEPAGE_BENCHMARK_SOURCES})
+    file(RELATIVE_PATH NOISEPAGE_BENCHMARK_CPP_REL "${PROJECT_SOURCE_DIR}/benchmark" ${NOISEPAGE_BENCHMARK_CPP})
+    get_filename_component(NOISEPAGE_BENCHMARK_DIR ${NOISEPAGE_BENCHMARK_CPP_REL} DIRECTORY)
+
+    get_filename_component(NOISEPAGE_BENCHMARK ${NOISEPAGE_BENCHMARK_CPP} NAME_WE)
+    add_noisepage_benchmark(${NOISEPAGE_BENCHMARK} ${NOISEPAGE_BENCHMARK_CPP} ${NOISEPAGE_BENCHMARK_LINKS})
+    add_dependencies(runbenchmark ${NOISEPAGE_BENCHMARK})
+endforeach ()
 
 #######################################################################################################################
 # Useful some day, maybe.
