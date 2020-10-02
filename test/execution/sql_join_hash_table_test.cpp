@@ -23,7 +23,7 @@ struct Tuple {
 
 class JoinHashTableTest : public SqlBasedTest {
  public:
-  JoinHashTableTest() {}
+  JoinHashTableTest() = default;
 };
 
 // NOLINTNEXTLINE

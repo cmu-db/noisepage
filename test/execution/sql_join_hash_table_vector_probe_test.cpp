@@ -34,7 +34,7 @@ void BuildJHT(JoinHashTable *table, const std::vector<BuildRow> &data) {
 
 class JoinHashTableVectorProbeTest : public SqlBasedTest {
  public:
-  JoinHashTableVectorProbeTest() {}
+  JoinHashTableVectorProbeTest() = default;
 };
 
 // NOLINTNEXTLINE

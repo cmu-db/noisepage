@@ -72,7 +72,7 @@ static bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2) {
 
 class AggregationHashTableTest : public SqlBasedTest {
  public:
-  AggregationHashTableTest() {}
+  AggregationHashTableTest() = default;
 
   void Init() {
     exec_ctx_ = MakeExecCtx();
