@@ -169,8 +169,14 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   size_t num_loops = 0;
   size_t num_concurrent = 0;  // Will concurrent data be baked into plan nodes?
   if (type == ExecutionOperatingUnitType::OUTPUT) {
-    // Uses the network result consumer
-    cardinality = 1;
+    if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
+      // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just
+      // special case this when we execute the plans directly from the TPCH runner and use the NoOpResultConsumer
+      cardinality = 0;
+    } else {
+      // Uses the network result consumer
+      cardinality = 1;
+    }
     auto child_translator = current_translator_->GetChildTranslator();
     if (child_translator != nullptr) {
       if (child_translator->Op()->GetPlanNodeType() == planner::PlanNodeType::PROJECTION) {

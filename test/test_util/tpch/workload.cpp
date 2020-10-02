@@ -82,7 +82,6 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
 
 void Workload::LoadQueries(const std::unique_ptr<catalog::CatalogAccessor> &accessor, enum BenchmarkType type) {
   // Executable query and plan node are stored as a tuple as the entry of vector
-  // TODO(wuwenw): add q16 after LIKE PR get merged
   switch (type) {
     case tpch::Workload::BenchmarkType::TPCH:
       query_and_plan_.emplace_back(TPCHQuery::MakeExecutableQ1(accessor, exec_settings_));
