@@ -277,32 +277,10 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
   return map_type;
 }
 
-Field StructType::CreatePaddingElement(uint32_t size, Context *ctx, uint32_t *remainder) {
-  // We only need a placeholder name. The identifier for the placeholder
-  // does not have to be unique since TPL code will never refer to a
-  // placeholder field and LLVM IR does not rely on field names.
-  ast::Identifier name = ctx->GetIdentifier("__field$0$");
-
-  // Can always pad with 1 byte
-  ast::BuiltinType::Kind pad_type = ast::BuiltinType::Int8;
-  uint32_t pad_size = 1;
-
-  // We can only create a padding element of this size only if the modulo
-  // is equal to zero. Otherwise we risk violating alignment requirements
-  // with the padding elements.
-  //
-  // For instance, if we need to pad 7 bytes, we want to create a padding
-  // element of size 1, then 2, and finally 4.
-  if (size % sizeof(int32_t) == 0) {
-    pad_type = ast::BuiltinType::Int32;
-    pad_size = sizeof(int32_t);
-  } else if (size % sizeof(int16_t) == 0) {
-    pad_type = ast::BuiltinType::Int16;
-    pad_size = sizeof(int16_t);
-  }
-
-  *remainder = size - pad_size;
-  return Field(name, ast::BuiltinType::Get(ctx, pad_type));
+Field StructType::CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
+  ast::Identifier name = ctx->GetIdentifier("__field$" + std::to_string(id) + "$");
+  auto *pad_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
+  return Field(name, ast::ArrayType::Get(size, pad_type));
 }
 
 // static
@@ -337,12 +315,9 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
       uint32_t field_align = field_type->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
         auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
-        while (new_size > size) {
-          uint32_t remainder = 0;
-          all_fields.emplace_back(CreatePaddingElement(new_size - size, ctx, &remainder));
-          field_offsets.push_back(size);
-          size += (new_size - size - remainder);
-        }
+        all_fields.emplace_back(CreatePaddingElement(size, new_size - size, ctx));
+        field_offsets.push_back(size);
+        size = new_size;
       }
 
       // Update size and calculate alignment
@@ -360,7 +335,10 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     // Add padding at end so that these structs can be placed compactly in an
     // array and still respect alignment
     if (!common::MathUtil::IsAligned(size, alignment)) {
-      size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, alignment));
+      auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, alignment));
+      all_fields.emplace_back(CreatePaddingElement(size, new_size - size, ctx));
+      field_offsets.push_back(size);
+      size = new_size;
     }
 
     // Create type
