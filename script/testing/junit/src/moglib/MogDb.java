@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import static moglib.MogDb.DbColumnType.*;
+
 /**
  * MogDb is an abstraction around the notion of a "testing database" and "reference database".
  * The "testing database" is the database that is to be tested.
@@ -100,7 +102,7 @@ public class MogDb {
             if (this.jdbc.startsWith("jdbc:postgresql")) {
                 /* Postgres types. */
                 if (typeName.equals("int2") || typeName.equals("int4") || typeName.equals("int8")) {
-                    return DbColumnType.INTEGER;
+                    return INTEGER;
                 } else if (typeName.equals("varchar") || typeName.equals("text")) {
                     return DbColumnType.TEXT;
                 } else if(typeName.equals("float8") || typeName.equals("numeric")){
@@ -109,12 +111,12 @@ public class MogDb {
             } else if (this.jdbc.startsWith("jdbc:sqlite")) {
                 /* SQLite types. */
                 if (typeName.equals("INTEGER") || typeName.equals("NUMERIC")) {
-                    return DbColumnType.INTEGER;
+                    return INTEGER;
                 } else if (typeName.equals("VARCHAR")) {
-                    return DbColumnType.TEXT;
+                    return TEXT;
                 }
             }
-            return DbColumnType.INVALID;
+            return INVALID;
         }
     }
 
