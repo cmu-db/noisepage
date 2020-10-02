@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/macros.h"

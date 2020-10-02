@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <thread>  // NOLINT
 #include <vector>
 
 #include "execution/util/barrier.h"

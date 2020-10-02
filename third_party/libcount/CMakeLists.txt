@@ -19,3 +19,5 @@ target_include_directories(
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+set_target_properties(libcount PROPERTIES POSITION_INDEPENDENT_CODE ON)

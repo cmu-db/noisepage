@@ -89,7 +89,6 @@ endif ()
 # CMake options, CMake global variables.
 #######################################################################################################################
 
-
 option(NOISEPAGE_GENERATE_COVERAGE
         "Build with C++ code coverage enabled"
         OFF)
@@ -124,7 +123,13 @@ message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE
 # Used for dependency finding
 find_package(PkgConfig REQUIRED)
 
+#######################################################################################################################
 # Dependencies.
+#######################################################################################################################
+
+# Used to fetch dependencies.
+include(FetchContent)
+
 message(STATUS "\nDependencies: Locating...\n==========================================\n")
 
 # This pair of VARS_BEFORE() and VARS_AFTER() macros helps you to figure out what variables external code has defined.
@@ -158,12 +163,31 @@ message(STATUS "[FOUND] benchmark (Google Benchmark) ${benchmark_VERSION}")
 find_package(gflags REQUIRED)
 message(STATUS "[FOUND] gflags (Google Commandline Flags) ${gflags_VERSION_STRING}")
 
-find_package(GTest REQUIRED)
-message(STATUS "[FOUND] GTest (Google Test) (No simple way to get version number)")
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.10.0
+)
+
+if (NOT googletest_POPULATED)
+    FetchContent_Populate(googletest)
+    # This is a disgusting hack to compile googletest with -fPIC.
+    set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-fPIC")
+    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+    set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
+    unset(OLD_CMAKE_CXX_FLAGS)
+endif ()
+message(STATUS "[FOUND] googletest (https://github.com/google/googletest.git release-1.10.0)")
 
 # nlohmann json : used for JSON serialization throughout the system.
-find_package(nlohmann_json REQUIRED)
-message(STATUS "[FOUND] nlohmann_json ${nlohmann_json_VERSION}")
+FetchContent_Declare(
+        json
+        GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git
+        GIT_TAG v3.7.3
+)
+FetchContent_MakeAvailable(json)
+message(STATUS "[FOUND] nlohmann_json (https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git v3.7.3)")
 
 # libpg_query.
 add_subdirectory(
@@ -171,6 +195,16 @@ add_subdirectory(
         EXCLUDE_FROM_ALL
 )
 message(STATUS "[FOUND] libpq_query (DIY wrapper)")
+
+# madoka.
+add_subdirectory(
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/
+        EXCLUDE_FROM_ALL
+)
+message(STATUS "[FOUND] madoka (DIY wrapper)")
+
+find_package(PQXX REQUIRED)
+message(STATUS "[FOUND] PQXX (No simple way to get version number)")
 
 add_subdirectory(
         ${PROJECT_SOURCE_DIR}/third_party/libcount/
@@ -193,34 +227,35 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen nati
 # spdlog : ...
 
 find_package(spdlog REQUIRED)
-message(STATUS "[FOUND] TBB ${spdlog_VERSION}")
+message(STATUS "[FOUND] spdlog ${spdlog_VERSION}")
 
 find_package(TBB)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
 # xbyak : ...
 add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/xbyak/                        # Include header-only xbyak.
-        EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
+        ${PROJECT_SOURCE_DIR}/third_party/xbyak/
+        EXCLUDE_FROM_ALL
 )
 
 # xxHash : ...
-set(XXHASH_BUILD_XXHSUM OFF)                                            # Disable the xxHash command line binary.
 add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/xxHash/cmake_unofficial/      # The directory specifying CMake magic.
-        ${PROJECT_SOURCE_DIR}/third_party/xxHash/build/                 # The directory to build in.
-        EXCLUDE_FROM_ALL                                                # Exclude from the ALL target.
+        ${PROJECT_SOURCE_DIR}/third_party/xxHash/
+        EXCLUDE_FROM_ALL
 )
-get_target_property(XXHASH_VERSION xxhash VERSION)
 message(STATUS "[FOUND] xxHash ${XXHASH_VERSION}")
 
 
 message(STATUS "\n==========================================\nDependencies: All found!\n")
 
 #######################################################################################################################
+# noisepage_objlib      :   NoisePage object library, built once and linked into both static and shared targets.
 # noisepage_static      :   All of NoisePage functionality exposed as a static library.
+# noisepage_shared      :   All of NoisePage functionality exposed as a shared library.
 #######################################################################################################################
 
+#####
+# Get the list of all NoisePage sources.
 file(GLOB_RECURSE
         NOISEPAGE_SRCS                  # Store the list of files into the variable ${NOISEPAGE_SRCS}.
         CONFIGURE_DEPENDS               # See above. Ask CMake to regenerate the build system if these files change.
@@ -232,59 +267,74 @@ file(GLOB_RECURSE
 # Remove the main program from NoisePage sources.
 list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 
-# Define the noisepage_static CMake target.
-add_library(noisepage_static STATIC ${NOISEPAGE_SRCS})
-target_compile_options(noisepage_static
-        PRIVATE                                     # PRIVATE: only noisepage_static uses the following.
+#####
+# Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
+# The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
+# This allows both noisepage_static and noisepage_shared to be built with a single compilation.
+add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
+
+set_target_properties(noisepage_objlib PROPERTIES
+        POSITION_INDEPENDENT_CODE ON                # Required for static linking into other shared libraries.
+        CXX_EXTENSIONS OFF                          # Disable compiler extensions (e.g., use c++17 not gnu17).
+        )
+
+target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_objlib uses the following.
         "-Werror"                                   # Treat warnings as errors.
         "-Wall"                                     # Enable "all" warnings. (Not actually all warnings.)
         )
-target_compile_options(noisepage_static
-        PUBLIC                                      # PUBLIC: all consumers of noisepage_static inherit the following.
+target_compile_options(noisepage_objlib PUBLIC      # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
         "-fsanitize=address"                        # Turn on Address Sanitizer.
         )
-target_link_options(noisepage_static
-        PUBLIC                                      # PUBLIC: all consumers of noisepage_static inherit the following.
+target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-fsanitize=address"                        # Turn on Address Sanitizer.
         )
-target_compile_features(noisepage_static PUBLIC
+target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of the library inherit the following.
         cxx_std_17                                  # Require support for C++17.
         )
-set_target_properties(noisepage_static PROPERTIES
-        POSITION_INDEPENDENT_CODE ON                # Require position-independent code.
-        CXX_EXTENSIONS OFF
+target_include_directories(noisepage_objlib PUBLIC  # PUBLIC: all consumers of the library inherit the following.
+        ${PROJECT_SOURCE_DIR}/src/include           # Include NoisePage src/include/ headers.
         )
-target_include_directories(noisepage_static PUBLIC
-        ${PROJECT_SOURCE_DIR}/src/include
+target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inherit without error checking.
+        ${LLVM_INCLUDE_DIRS}                                # Include LLVM headers.
         )
-target_include_directories(noisepage_static SYSTEM PUBLIC
-        ${LLVM_INCLUDE_DIRS}
-        )
-target_link_libraries(noisepage_static PUBLIC
+target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         gflags
         libcount::libcount
+        madoka::madoka
         nlohmann_json::nlohmann_json
-        spdlog::spdlog
         pg_query::pg_query
+        spdlog::spdlog
         xbyak::xbyak
-        xxHash::xxhash
+        xxHash::xxHash
         ${EVENT_LINK_LIBRARIES}
         ${EVENT_PTHREADS_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
         ${TBB_LIBRARIES} # TBB_LIBRARIES_RELEASE
         )
 
+add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)
+target_link_libraries(noisepage_static PUBLIC noisepage_objlib)
+add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)
+target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)
+
+set(RUNTIME_INSTALL_DIR "bin")
+install(TARGETS noisepage_static
+        RUNTIME DESTINATION ${RUNTIME_INSTALL_DIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS noisepage_shared
+        RUNTIME DESTINATION ${RUNTIME_INSTALL_DIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 #######################################################################################################################
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
 add_executable(noisepage src/main/terrier.cpp)
-set_target_properties(noisepage PROPERTIES
-        ENABLE_EXPORTS ON
-        CXX_EXTENSIONS OFF)
 target_link_libraries(noisepage noisepage_static)
 
 #######################################################################################################################
@@ -324,14 +374,10 @@ set(TPL_VERSION_MAJOR 0)
 set(TPL_VERSION_MINOR 1)
 configure_file(util/execution/tpl.h.in "${PROJECT_BINARY_DIR}/execution/tpl.h") # Generate the header file.
 add_executable(tpl util/execution/tpl.cpp)
-set_target_properties(tpl PROPERTIES
-        ENABLE_EXPORTS ON
-        CXX_EXTENSIONS OFF
-        )
 # Build gen_opt_bc before building tpl.
 add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)
 target_include_directories(tpl PRIVATE ${PROJECT_BINARY_DIR} ${LLVM_INCLUDE_DIR})
-target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES} xxHash::xxhash)
+target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES} xxHash::xxHash)
 
 # old flags for gen_opt_bc. TODO(WAN): make sure we match.
 # -- /usr/bin/clang++-8 -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O0;-fno-omit-frame-pointer;-fno-optimize-sibling-calls;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-fsanitize=address;-emit-llvm;-c -I/home/kapi/CLionProjects/terrier/cmake-build-debug/googletest_ep-prefix/src/googletest_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gflags_ep-prefix/src/gflags_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/include;-I/usr/include/postgresql;-I/usr/lib/llvm-8/include;-I/home/kapi/CLionProjects/terrier/third_party/flatbuffers/include;-I/home/kapi/CLionProjects/terrier/src/include;-I/home/kapi/CLionProjects/terrier/third_party;-I/home/kapi/CLionProjects/terrier/test/include;-I/home/kapi/CLionProjects/terrier/util/include;-I/home/kapi/CLionProjects/terrier/benchmark/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug
@@ -386,27 +432,92 @@ add_custom_target(
 # Tests.
 #######################################################################################################################
 
-file(
-        GLOB_RECURSE
-        NOISEPAGE_TEST_UTIL_SRCS        # Store the list of test files into the variable ${NOISEPAGE_TEST_SRCS}.
-        CONFIGURE_DEPENDS               # See above. Ask CMake to regenerate the build system (assuming support exists).
+enable_testing()        # CTest support is built into CMake.
+include(GoogleTest)     # We rely on GoogleTest for all our tests.
+
+file(GLOB_RECURSE
+        NOISEPAGE_TEST_UTIL_SRCS
+        CONFIGURE_DEPENDS
         ${PROJECT_SOURCE_DIR}/test/include/test_util/*.h
         ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp
-)
+        )
 
 add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
-target_link_libraries(noisepage_test_util noisepage_static)
+target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock util_static pqxx)
+target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
 
+set(NOISEPAGE_TESTS "")
+macro(add_noisepage_test TEST_NAME TEST_CPP)
+    add_executable(${TEST_NAME} ${TEST_CPP})
+    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main noisepage_shared ${ARGN})
+    target_link_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR})
+    target_compile_options(${TEST_NAME} PRIVATE "-fPIC")
+    set_target_properties(${TEST_NAME} PROPERTIES ENABLE_EXPORTS ON)
+    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
+    gtest_discover_tests(${TEST_NAME}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            )
+    set(TEST_PATH "${CMAKE_BINARY_DIR}/${TEST_NAME}")
+
+    add_test(${TEST_NAME}
+            ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_PATH})
+    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "unittest")
+    list(APPEND NOISEPAGE_TESTS ${TEST_NAME})
+endmacro()
+
+file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
+        "test/binder/*.cpp"
+        "test/catalog/*.cpp"
+        "test/common/*.cpp"
+        "test/execution/*.cpp"
+        "test/integration/*.cpp"
+        "test/metrics/*.cpp"
+        "test/network/*.cpp"
+        "test/optimizer/*.cpp"
+        "test/parser/*.cpp"
+        "test/planner/*.cpp"
+        "test/settings/*.cpp"
+        "test/storage/*.cpp"
+        "test/traffic_cop/*.cpp"
+        "test/transaction/*.cpp"
+        "test/type/*.cpp"
+        )
+
+add_custom_target(unittest ctest -L unittest --no-compress-output -T Test)
+foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
+    file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
+    get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
+
+    set(NOISEPAGE_TEST_LINKS "")
+
+    if ("${NOISEPAGE_TEST_DIR}" MATCHES "^(network|traffic_cop)$")
+        set(NOISEPAGE_TEST_LINKS "pqxx")
+    endif ()
+
+    if ("${NOISEPAGE_TEST_DIR}" MATCHES "^(execution|integration|optimizer|storage|transaction)$")
+        set(NOISEPAGE_TEST_LINKS "noisepage_test_util")
+    endif ()
+
+    get_filename_component(NOISEPAGE_TEST ${NOISEPAGE_TEST_CPP} NAME_WE)
+    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} ${NOISEPAGE_TEST_LINKS})
+    add_dependencies(unittest ${NOISEPAGE_TEST})
+endforeach ()
 
 #######################################################################################################################
 # Benchmarks.
 #######################################################################################################################
 
+message(STATUS ${NOISEPAGE_TESTS})
+
+#set_target_properties(noisepage_static noisepage_shared tpl ${NOISEPAGE_TESTS} PROPERTIES
+#        CXX_EXTENSIONS OFF
+#        )
+
 #######################################################################################################################
 # Useful some day, maybe.
 #######################################################################################################################
 
-# Some day, CLion will support USE_FOLDERS in the IDE view of CMake targets.
+# Some day, CLion will probably support USE_FOLDERS in the IDE view of CMake targets.
 # When that day comes, clump all the "you shouldn't need to build this manually" targets into a folder like so.
 # set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # set_target_properties(hack_bytecode_handlers_ir PROPERTIES FOLDER HiddenTargets)

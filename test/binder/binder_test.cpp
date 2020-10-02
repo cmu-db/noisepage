@@ -1,9 +1,7 @@
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_proc.h"
@@ -17,9 +15,8 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/statements.h"
-#include "storage/garbage_collector.h"
+#include "storage/sql_table.h"
 #include "test_util/test_harness.h"
-#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
 using std::make_tuple;

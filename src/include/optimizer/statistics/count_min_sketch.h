@@ -1,7 +1,5 @@
 #pragma once
 
-#include <madoka/madoka.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -11,6 +9,7 @@
 
 #include "common/macros.h"
 #include "loggers/optimizer_logger.h"
+#include "madoka/madoka.h"
 
 namespace terrier::optimizer {
 

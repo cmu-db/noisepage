@@ -3,7 +3,6 @@
 #include <utility>
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog.h"
@@ -46,6 +45,7 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
