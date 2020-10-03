@@ -42,6 +42,7 @@ def run_as_root(command, printable=True):
     General purpose wrapper for running a subprocess as root user
     """
     sudo_command = "sudo {}".format(command)
+    LOG.info("sudo command: '{}'".format(sudo_command))
     return run_command(sudo_command,
                        error_msg="",
                        stdout=subprocess.PIPE,
@@ -77,6 +78,7 @@ def kill_pids_on_port(port, logger=None):
     """Kill all the PIDs (if any) listening on the target port"""
 
     if os.getuid() != 0:
+        print_or_log("not root user, uid = {}".format(os.getuid()), logger)
         raise Exception("Cannot call this function unless running as root!")
 
     for proc in psutil.process_iter():
