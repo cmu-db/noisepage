@@ -36,6 +36,10 @@ Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db
       catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
   ns_oid_ = accessor->GetDefaultNamespace();
 
+  // Enable counters and disable the parallel execution for this workload
+  exec_settings_.is_parallel_execution_enabled_ = false;
+  exec_settings_.is_counters_enabled_ = true;
+
   // Make the execution context
   auto exec_ctx = execution::exec::ExecutionContext(
       db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn), nullptr, nullptr,

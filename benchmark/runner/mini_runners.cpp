@@ -337,29 +337,33 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
  * 2 - # integers in table
  * 3 - # decimals in table
  * 4 - row
- * 5 - cardinality
+ * 5 - cardinality (k when doing the topk sort)
+ * 6 - whether to exercise topk sort
  */
 static void GenSortArguments(benchmark::internal::Benchmark *b) {
+  auto is_topks = {0, 1};
   auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
   auto types = {type::TypeId::INTEGER};
   std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-  for (auto type : types) {
-    for (auto col : num_cols) {
-      for (auto row : row_nums) {
-        int64_t car = 1;
-        while (car < row) {
-          if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, car});
-          else if (type == type::TypeId::DECIMAL)
-            b->Args({0, col, 0, 15, row, car});
-          car *= 2;
-        }
+  for (auto is_topk : is_topks) {
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          int64_t car = 1;
+          while (car < row) {
+            if (type == type::TypeId::INTEGER)
+              b->Args({col, 0, 15, 0, row, car});
+            else if (type == type::TypeId::DECIMAL)
+              b->Args({0, col, 0, 15, row, car});
+            car *= 2;
+          }
 
-        if (type == type::TypeId::INTEGER)
-          b->Args({col, 0, 15, 0, row, row});
-        else if (type == type::TypeId::DECIMAL)
-          b->Args({0, col, 0, 15, row, row});
+          if (type == type::TypeId::INTEGER)
+            b->Args({col, 0, 15, 0, row, row});
+          else if (type == type::TypeId::DECIMAL)
+            b->Args({0, col, 0, 15, row, row});
+        }
       }
     }
   }
@@ -2000,6 +2004,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto tbl_decimals = state.range(3);
   auto row = state.range(4);
   auto car = state.range(5);
+  auto is_topk = state.range(6);
 
   int num_iters = 1;
   if (row <= warmup_rows_limit) {
@@ -2016,20 +2021,28 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto units = std::make_unique<brain::PipelineOperatingUnits>();
   brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
   brain::ExecutionOperatingUnitFeatureVector pipe1_vec;
+  auto table_car = car;
+  auto output_num = row;
+  brain::ExecutionOperatingUnitType build_ou_type = brain::ExecutionOperatingUnitType::SORT_BUILD;
+  if (is_topk == 1) {
+    build_ou_type =  brain::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    table_car = row;
+    output_num = car;
+  }
   pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, row, tuple_size,
+                         num_col, table_car, 1, 0, 0);
+  pipe0_vec.emplace_back(execution::translator_id_t(1), build_ou_type, row, tuple_size,
                          num_col, car, 1, 0, 0);
-  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_BUILD, row, tuple_size,
-                         num_col, car, 1, 0, 0);
-  pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_ITERATE, row,
+  pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_ITERATE, output_num,
                          tuple_size, num_col, car, 1, 0, 0);
-  pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, row, tuple_size,
+  pipe1_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::OUTPUT, output_num, tuple_size,
                          num_col, 0, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(2), std::move(pipe0_vec));
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe1_vec));
 
   std::stringstream query;
   auto cols = ConstructColumns("", type::TypeId::INTEGER, type::TypeId::DECIMAL, num_integers, num_decimals);
-  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, car);
+  auto tbl_name = ConstructTableName(type::TypeId::INTEGER, type::TypeId::DECIMAL, tbl_ints, tbl_decimals, row, table_car);
   query << "SELECT " << (cols) << " FROM " << tbl_name << " ORDER BY " << (cols);
   auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);

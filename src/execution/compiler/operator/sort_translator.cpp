@@ -145,16 +145,24 @@ void SortTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilde
 
 void SortTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
+  brain::ExecutionOperatingUnitType build_ou_type;
+  ast::Expr *cardinality_val;
+  if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
+    build_ou_type = brain::ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    cardinality_val = codegen->Const32(plan.GetOffset() + plan.GetLimit());
+  } else {
+    build_ou_type = brain::ExecutionOperatingUnitType::SORT_BUILD;
+    cardinality_val = CounterVal(num_sort_build_rows_);
+  }
   if (IsBuildPipeline(pipeline)) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_sort_build_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+    FeatureRecord(function, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline,
                   CounterVal(num_sort_build_rows_));
+    FeatureRecord(function, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  cardinality_val);
 
     if (build_pipeline_.IsParallel()) {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::SORT_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
+      FeatureRecord(function, build_ou_type, brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline,
+                    pipeline.ConcurrentState());
     }
 
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_sort_build_rows_));

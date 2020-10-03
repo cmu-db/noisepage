@@ -17,6 +17,10 @@ namespace terrier::trafficcop {
 class TrafficCop;
 }  // namespace terrier::trafficcop
 
+namespace terrier::tpch {
+class Workload;
+}  // namespace terrier::tpch
+
 namespace terrier::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
 class IdxJoinTest_MultiPredicateJoin_Test;
@@ -74,6 +78,7 @@ class EXPORT ExecutionSettings {
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class terrier::runner::MiniRunners;
   friend class terrier::trafficcop::TrafficCop;
+  friend class terrier::tpch::Workload;
   friend class terrier::execution::SqlBasedTest;
   friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
   friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoin_Test;

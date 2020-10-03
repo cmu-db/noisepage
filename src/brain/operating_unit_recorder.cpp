@@ -649,7 +649,10 @@ void OperatingUnitRecorder::Visit(const planner::OrderByPlanNode *plan) {
     // Sort build sizes/operations are based on the input (from child)
     const auto *c_plan = plan->GetChild(0);
     RecordArithmeticFeatures(c_plan, 1);
-    AggregateFeatures(ExecutionOperatingUnitType::SORT_BUILD, key_size, num_key, c_plan, 1, scale);
+    ExecutionOperatingUnitType ou_type;
+    if (plan->HasLimit()) ou_type  = ExecutionOperatingUnitType::SORT_BUILD;
+    else ou_type = ExecutionOperatingUnitType::SORT_TOPK_BUILD;
+    AggregateFeatures(ou_type, key_size, num_key, c_plan, 1, scale);
   } else if (translator->IsScanPipeline(*current_pipeline_)) {
     // SORT_ITERATE will do any output computations
     VisitAbstractPlanNode(plan);

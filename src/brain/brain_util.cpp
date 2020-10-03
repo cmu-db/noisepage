@@ -18,6 +18,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "HASHJOIN_PROBE";
     case ExecutionOperatingUnitType::SORT_BUILD:
       return "SORT_BUILD";
+    case ExecutionOperatingUnitType::SORT_TOPK_BUILD:
+      return "SORT_TOPK_BUILD";
     case ExecutionOperatingUnitType::SORT_ITERATE:
       return "SORT_ITERATE";
     case ExecutionOperatingUnitType::SEQ_SCAN:
