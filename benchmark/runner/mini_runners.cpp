@@ -353,16 +353,16 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
           int64_t car = 1;
           while (car < row) {
             if (type == type::TypeId::INTEGER)
-              b->Args({col, 0, 15, 0, row, car});
+              b->Args({col, 0, 15, 0, row, car, is_topk});
             else if (type == type::TypeId::DECIMAL)
-              b->Args({0, col, 0, 15, row, car});
+              b->Args({0, col, 0, 15, row, car, is_topk});
             car *= 2;
           }
 
           if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, row});
+            b->Args({col, 0, 15, 0, row, row, is_topk});
           else if (type == type::TypeId::DECIMAL)
-            b->Args({0, col, 0, 15, row, row});
+            b->Args({0, col, 0, 15, row, row, is_topk});
         }
       }
     }
