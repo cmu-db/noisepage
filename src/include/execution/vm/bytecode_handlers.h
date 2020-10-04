@@ -246,7 +246,7 @@ VM_OP_COLD void OpExecOUFeatureVectorRecordFeature(
     terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value);
 
 VM_OP_COLD void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *exec_ctx,
-                                                terrier::brain::ExecOUFeatureVector **ouvec,
+                                                terrier::brain::ExecOUFeatureVector *ouvec,
                                                 terrier::execution::pipeline_id_t pipeline_id, bool is_parallel);
 
 VM_OP_COLD void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *ouvec,

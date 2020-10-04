@@ -554,7 +554,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(ExecOUFeatureVectorInitialize) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector **>(READ_LOCAL_ID());
+    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto is_parallel = frame->LocalAt<bool>(READ_LOCAL_ID());
     OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id, is_parallel);

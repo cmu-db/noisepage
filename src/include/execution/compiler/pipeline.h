@@ -207,7 +207,7 @@ class Pipeline {
   /**
    * @returns the OUFeatureVector pointer
    */
-  ast::Expr *OUFeatureVecPtr() const { return oufeatures_.Get(codegen_); }
+  ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 
   /**
    * Declare Function that depends on thread-local state
