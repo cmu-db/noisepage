@@ -42,10 +42,9 @@ LINUX_BUILD_PACKAGES=(\
   "doxygen" \
   "git" \
   "g++-7" \
-  "libevent-dev" \          # Libevent is used by the network layer.
+  "libevent-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
-  "libspdlog-dev" \
   "libssl-dev" \
   "libtbb-dev" \
   "zlib1g-dev" \
