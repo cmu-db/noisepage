@@ -140,6 +140,10 @@ option(NOISEPAGE_USE_JEMALLOC
         "Link jemalloc instead of system malloc. https://github.com/jemalloc/jemalloc"
         OFF)
 
+option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
+        "Verbose output for unittests when they fail. Warning: on jumbo, this is VERY verbose!"
+        OFF)
+
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
 
@@ -207,6 +211,8 @@ unset(NOISEPAGE_JEMALLOC_MSG)
 
 list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
 message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
+
+message(STATUS "NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE: ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
 
 #######################################################################################################################
 # Dependencies for finding dependencies. :)
@@ -294,9 +300,14 @@ endfunction()
 function(add_noisepage_dep_singlefile NAME FILE_URL)
     string(TOLOWER "${NAME}" NAME_LOWER)    # For consistency with add_noisepage_dep above, also use lowercase.
     get_filename_component(FILE_NAME ${FILE_URL} NAME)                                  # Get the filename.
-    file(DOWNLOAD ${FILE_URL} ${CMAKE_BINARY_DIR}/_deps/src/${NAME}/${FILE_NAME})       # Download the file.
-    set(${NAME_LOWER}_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/src/${NAME} PARENT_SCOPE)    # Set the expected SOURCE_DIR.
-    message(STATUS "[FOUND] ${NAME} (${FILE_URL})")                                     # Print a success message.
+    set(DOWNLOAD_FOLDER ${CMAKE_BINARY_DIR}/_deps/src/${NAME})                          # Set download folder.
+    if (EXISTS ${DOWNLOAD_FOLDER}/${FILE_NAME})                                         # Only download if required.
+        message(STATUS "[FOUND] ${NAME} (already in ${DOWNLOAD_FOLDER}, skipping download)")
+    else ()
+        file(DOWNLOAD ${FILE_URL} ${DOWNLOAD_FOLDER}/${FILE_NAME})                      # Download the file.
+        message(STATUS "[FOUND] ${NAME} (${FILE_URL})")                                 # Print a success message.
+    endif ()
+    set(${NAME_LOWER}_SOURCE_DIR ${DOWNLOAD_FOLDER} PARENT_SCOPE)                       # Set SOURCE_DIR in parent.
 endfunction()
 
 #######################################################################################################################
@@ -408,6 +419,7 @@ add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
 set_target_properties(noisepage_objlib PROPERTIES
         POSITION_INDEPENDENT_CODE ON                # Required for static linking into other shared libraries.
         CXX_EXTENSIONS OFF                          # Disable compiler extensions (e.g., use c++17 not gnu17).
+        UNITY_BUILD ON
         )
 target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_objlib uses the following.
         "-Werror"                                   # Treat warnings as errors.
@@ -478,7 +490,7 @@ list(REMOVE_ITEM UTIL_SRCS
 add_library(util_static STATIC ${UTIL_SRCS})
 target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
 target_link_libraries(util_static PUBLIC noisepage_static)
-set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ON)
 
 #######################################################################################################################
 # gen_opt_bc            :   Generates optimized bitcode from the LLVM IR file generated as a tpl post-build target.
@@ -558,6 +570,19 @@ enable_testing()        # CTest support is built into CMake.
 include(GoogleTest)     # We rely on GoogleTest for all our tests.
 configure_file(test/CTestCustom.cmake ${PROJECT_BINARY_DIR}/CTestCustom.cmake COPYONLY) # Configure CTest output.
 
+set(UNITTEST_OUTPUT_ON_FAILURE "")
+if (${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE})
+    set(UNITTEST_OUTPUT_ON_FAILURE "--output-on-failure")
+endif ()
+
+# unittest and jumbo_unittest invoke ctest on tests which are labeled "unittest" and "jumbo-unittest" respectively.
+add_custom_target(unittest
+        ctest ${UNITTEST_OUTPUT_ON_FAILURE} -L unittest --no-compress-output -T Test USES_TERMINAL)
+add_custom_target(jumbo_unittest
+        ctest ${UNITTEST_OUTPUT_ON_FAILURE} -L jumbo-unittest --no-compress-output -T Test USES_TERMINAL)
+
+unset(UNITTEST_OUTPUT_ON_FAILURE)
+
 file(GLOB_RECURSE
         NOISEPAGE_TEST_UTIL_SRCS
         CONFIGURE_DEPENDS
@@ -568,12 +593,12 @@ file(GLOB_RECURSE
 add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
 target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock util_static pqxx)
 target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ON)
 
 function(add_noisepage_test TEST_NAME TEST_CPP)
     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
 
-    add_executable(${TEST_NAME} ${TEST_CPP})
+    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_CPP})
     target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared ${ARGN})
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
@@ -604,7 +629,6 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/type/*.cpp"
         )
 
-add_custom_target(unittest ctest -L unittest --no-compress-output -T Test)
 foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
     get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
@@ -623,6 +647,42 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} ${NOISEPAGE_TEST_LINKS})
     add_dependencies(unittest ${NOISEPAGE_TEST})
 endforeach ()
+
+function(add_jumbotest FOLDER_PATH)
+    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
+    get_filename_component(FOLDER_NAME ${FOLDER_PATH} NAME_WE)
+    set(TEST_NAME jumbotest_${FOLDER_NAME})
+    file(GLOB_RECURSE JUMBO_SOURCES ${FOLDER_PATH}/*.cpp)
+    add_executable(${TEST_NAME} ${JUMBO_SOURCES})
+    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
+    set_target_properties(${TEST_NAME} PROPERTIES
+            CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
+            RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
+            UNITY_BUILD ON
+            )
+    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
+    # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
+    add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
+    # Label each test with "unittest" so that ctest can run all the tests under the "unittest" label later.
+    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "jumbo-unittest")
+    add_dependencies(jumbo_unittest ${TEST_NAME})
+endfunction()
+
+add_jumbotest("test/binder")
+add_jumbotest("test/catalog")
+add_jumbotest("test/common")
+add_jumbotest("test/execution")
+add_jumbotest("test/integration")
+add_jumbotest("test/metrics")
+add_jumbotest("test/network")
+add_jumbotest("test/optimizer")
+add_jumbotest("test/parser")
+add_jumbotest("test/planner")
+add_jumbotest("test/settings")
+add_jumbotest("test/storage")
+add_jumbotest("test/traffic_cop")
+add_jumbotest("test/transaction")
+add_jumbotest("test/type")
 
 #######################################################################################################################
 # Benchmarks.
