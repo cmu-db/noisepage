@@ -206,6 +206,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_query_trace,
+    "Metrics collection for Query Traces (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsQueryTrace
+)
+
+SETTING_bool(
     metrics_execution,
     "Metrics collection for the Execution component (default: false).",
     false,

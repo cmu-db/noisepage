@@ -102,8 +102,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -131,8 +131,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -162,8 +162,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -207,8 +207,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
                     }
                     post {
                         always {
@@ -236,8 +236,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
-                        sh 'cd build && gtimeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -264,8 +264,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
@@ -296,8 +296,8 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
-                        sh 'cd build && timeout 10m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
+                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
                     }
                     post {
                         always {
