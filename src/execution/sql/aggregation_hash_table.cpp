@@ -10,6 +10,7 @@
 
 #include "common/error/exception.h"
 #include "common/math_util.h"
+#include "count/hll.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/thread_state_container.h"
@@ -19,7 +20,6 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
-#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -313,8 +313,8 @@ void AggregationHashTable::LookupInitial() {
   //               use SIMD gathers if hashes vector is full. For some reason it
   //               isn't. Investigate why.
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_settings_, *batch_state_->Hashes(),
-      batch_state_->Entries(), [&](const hash_t hash) noexcept { return hash_table_.FindChainHead(hash); });
+      exec_settings_, *batch_state_->Hashes(), batch_state_->Entries(),
+      [&](const hash_t hash) noexcept { return hash_table_.FindChainHead(hash); });
 
   // Find non-null entries whose keys must be checked and place them in the
   // key-not-equal list which is used during key equality checking.

@@ -261,6 +261,9 @@ def main():
     files = [make_absolute(entry['file'], entry['directory'])
              for entry in database]
 
+    # NoisePage hack: don't check third party dependencies.
+    files = [filepath for filepath in files if '/_deps/' not in filepath]
+
     max_task = args.j
     if max_task == 0:
         max_task = multiprocessing.cpu_count()

@@ -1,7 +1,6 @@
 #include <gflags/gflags.h>
 
 #include <csignal>
-#include <memory>
 #include <unordered_map>
 #include <utility>
 
@@ -62,8 +61,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Parse Setting Values
-  ::google::SetUsageMessage("Usage Info: \n");
-  ::google::ParseCommandLineFlags(&argc, &argv, true);
+  ::gflags::SetUsageMessage("Usage Info: \n");
+  ::gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Initialize debug loggers
   terrier::LoggersUtil::Initialize();

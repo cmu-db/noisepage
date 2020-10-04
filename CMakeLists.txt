@@ -86,31 +86,6 @@ if (EXISTS "${PATH_TO_CMAKELISTS_TXT}")
 endif ()
 
 #######################################################################################################################
-# CMake options, CMake global variables.
-#######################################################################################################################
-
-option(NOISEPAGE_GENERATE_COVERAGE
-        "Build with C++ code coverage enabled"
-        OFF)
-
-option(NOISEPAGE_USE_ASAN
-        "Use the address sanitizer."
-        OFF)
-
-option(NOISEPAGE_USE_JEMALLOC
-        "Dynamically link jemalloc as the memory allocator."
-        OFF)
-
-set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
-set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
-
-if (${NOISEPAGE_USE_ASAN})
-    set(NOISEPAGE_ASAN_FLAGS "-fsanitize=address")
-endif ()
-
-message(STATUS "${NOISEPAGE_ASAN_FLAGS}")
-
-#######################################################################################################################
 # Project definition.
 #######################################################################################################################
 
@@ -123,20 +98,98 @@ message(STATUS
 # CMAKE_MODULE_PATH is the search path for the include() and find_package() CMake commands.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
-
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
-# Used for dependency finding
-find_package(PkgConfig REQUIRED)
+#######################################################################################################################
+# CMake options, CMake global variables.
+#######################################################################################################################
+
+# Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif (NOT CMAKE_BUILD_TYPE)
+
+option(NOISEPAGE_GENERATE_COVERAGE
+        "Build with C++ code coverage enabled"
+        OFF)
+
+option(NOISEPAGE_USE_ASAN
+        "Enable ASAN, a fast memory error detector. https://clang.llvm.org/docs/AddressSanitizer.html"
+        OFF)
+
+option(NOISEPAGE_USE_JEMALLOC
+        "Link jemalloc instead of system malloc. https://github.com/jemalloc/jemalloc"
+        OFF)
+
+set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
+set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
+
+# Everything else in this section will populate the following global variables.
+set(NOISEPAGE_COMPILE_OPTIONS "")
+set(NOISEPAGE_LINK_OPTIONS "")
+set(NOISEPAGE_INCLUDE_DIRECTORIES "")
+
+# Add compilation flags to NOISEPAGE_COMPILE_OPTIONS based on the current CMAKE_BUILD_TYPE.
+string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O0" "-fno-omit-frame-pointer" "-fno-optimize-sibling-calls")
+elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "FASTDEBUG")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O1" "-fno-omit-frame-pointer" "-fno-optimize-sibling-calls")
+elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "RELEASE")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-DNDEBUG" "-O3")
+elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "RELWITHDEBINFO")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-DNDEBUG" "-O2")
+else ()
+    message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
+endif ()
+message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+
+# Coverage.
+if (${NOISEPAGE_GENERATE_COVERAGE})
+    if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+        message(FATAL_ERROR "Coverage requires a debug build type!")
+    endif ()
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "--coverage")     # Compile with coverage (compilers alias this).
+    list(APPEND NOISEPAGE_LINK_OPTIONS "--coverage")        # Link coverage libraries (compilers alias this).
+endif ()
+message(STATUS "Coverage: ${NOISEPAGE_GENERATE_COVERAGE}")
+
+# ASAN, which includes LSAN.
+set(NOISEPAGE_ASAN_MSG "${NOISEPAGE_USE_ASAN}")
+if (${NOISEPAGE_USE_ASAN})
+    set(NOISEPAGE_ASAN_FLAGS
+            "-fsanitize=address"                # Enable ASAN.
+            "-fno-omit-frame-pointer"           # Nicer stack traces in error messages.
+            "-fno-optimize-sibling-calls"       # Disable tail call elimination (perfect stack traces if inlining off).
+            )
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS ${NOISEPAGE_ASAN_FLAGS})
+    list(APPEND NOISEPAGE_LINK_OPTIONS ${NOISEPAGE_ASAN_FLAGS})
+    unset(NOISEPAGE_ASAN_FLAGS)
+    # Unfortunately, gcc does not support -fsanitize-blacklist. We ask users to set it manually as an env var.
+    set(NOISEPAGE_ASAN_MSG "On (remember to set env ASAN_OPTIONS=${BUILD_SUPPORT_DATA_DIR}/sanitize_suppressions.txt)")
+endif ()
+message(STATUS "ASAN: ${NOISEPAGE_ASAN_MSG}")
+
+# jemalloc.
+set(NOISEPAGE_JEMALLOC_MSG "${NOISEPAGE_USE_JEMALLOC}")
+if (${NOISEPAGE_USE_JEMALLOC})
+    find_path(JEMALLOC_INCLUDE_DIR NAMES jemalloc/jemalloc.h REQUIRED)
+    find_library(JEMALLOC_LIBRARIES NAMES jemalloc libjemalloc.so.1 libjemalloc.so.2 libjemalloc.dylib REQUIRED)
+    list(APPEND NOISEPAGE_LINK_OPTIONS ${JEMALLOC_LIBRARIES})
+    list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${JEMALLOC_INCLUDE_DIR})
+    unset(JEMALLOC_INCLUDE_DIR)
+    unset(JEMALLOC_LIBRARIES)
+    set(NOISEPAGE_JEMALLOC_MSG "On (dir:${JEMALLOC_INCLUDE_DIR} lib:${JEMALLOC_LIBRARIES})")
+endif ()
+message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
 
 #######################################################################################################################
 # Dependencies.
 #######################################################################################################################
 
-# Used to fetch dependencies.
-include(FetchContent)
-
-message(STATUS "\nDependencies: Locating...\n==========================================\n")
+# Dependencies for finding dependencies : )
+include(FetchContent)                   # FetchContent_ functions.
+find_package(PkgConfig REQUIRED)        # pkg_search_module function.
 
 # This pair of VARS_BEFORE() and VARS_AFTER() macros helps you to figure out what variables external code has defined.
 # For example, suppose you want to include the nlohmann_json library with
@@ -148,109 +201,148 @@ message(STATUS "\nDependencies: Locating...\n===================================
 # And now you know! This is useful if you're adding new libraries and want to print useful messages.
 
 macro(VARS_BEFORE)
-    # Save the current variables to _vars_before.
-    get_directory_property(_vars_before VARIABLES)
+    get_directory_property(_vars_before VARIABLES)      # Save the current variables to _vars_before.
 endmacro()
 
 macro(VARS_AFTER)
-    # Save the current variables to _vars_after.
-    get_directory_property(_vars_after VARIABLES)
-    # Diff _vars_after and _vars_before.
-    list(REMOVE_ITEM _vars_after _vars_before ${_vars_before})
-    # Print out all the variables that remain.
-    foreach (_var IN LISTS _vars_after)
+    get_directory_property(_vars_after VARIABLES)               # Save the current variables to _vars_after.
+    list(REMOVE_ITEM _vars_after _vars_before ${_vars_before})  # Diff _vars_after and _vars_before.
+    foreach (_var IN LISTS _vars_after)                         # Print out all the variables that remain.
         message(STATUS "${_var} = ${${_var}}")
     endforeach ()
 endmacro()
 
-find_package(benchmark REQUIRED)
-message(STATUS "[FOUND] benchmark (Google Benchmark) ${benchmark_VERSION}")
+# Some libraries (cough Google Benchmark cough) just won't shut up, so this redefines the message function.
+set(MESSAGE_QUIET OFF)
+function(message)
+    list(GET ARGV 0 MessageType)
+    if (NOT MESSAGE_QUIET OR
+            MessageType STREQUAL FATAL_ERROR OR
+            MessageType STREQUAL SEND_ERROR OR
+            MessageType STREQUAL WARNING OR
+            MessageType STREQUAL AUTHOR_WARNING)
+        list(REMOVE_AT ARGV 0)
+        _message(${MessageType} "${ARGV}")
+    endif ()
+endfunction()
 
-find_package(gflags REQUIRED)
-message(STATUS "[FOUND] gflags (Google Commandline Flags) ${gflags_VERSION_STRING}")
+function(add_noisepage_dep NAME GIT_URL GIT_TAG)
+    string(TOLOWER "${NAME}" NAME_LOWER)    # The automatically created variables are lowercase. Footgun!
+    FetchContent_Declare(${NAME})           # Declare the resource to be fetched.
+    if (NOT ${NAME}_POPULATED)
+        # The long form of FetchContent_Populate is used since NoisePage requires control of the source folder name.
+        # This is to enable includes like #include "NAME/their_files.h".
+        FetchContent_Populate(${NAME}
+                QUIET                                                   # Don't print verbose output while populating.
+                SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/src/${NAME}        # Source files go here.
+                BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/build/${NAME}      # Build files go here.
+                SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/sub/${NAME}      # Sub-build files go here.
+                GIT_REPOSITORY ${GIT_URL}                               # Download from GIT_URL.
+                GIT_TAG ${GIT_TAG}                                      # Checkout the specific GIT_TAG version.
+                )
 
-FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG release-1.10.0
-)
+        # A lot of libraries don't do modern CMake, or we need custom behavior out of their build.
+        # We overwrite their top-level CMakeLists.txt with our own.
+        set(DEP_CUSTOM_CMAKELISTS ${PROJECT_SOURCE_DIR}/third_party/deps_override/${NAME}_CMakeLists.txt)
+        if (EXISTS ${DEP_CUSTOM_CMAKELISTS})
+            file(COPY ${DEP_CUSTOM_CMAKELISTS} DESTINATION ${${NAME_LOWER}_SOURCE_DIR})
+            file(RENAME ${${NAME_LOWER}_SOURCE_DIR}/${NAME}_CMakeLists.txt ${${NAME_LOWER}_SOURCE_DIR}/CMakeLists.txt)
+            message(STATUS "Copied ${DEP_CUSTOM_CMAKELISTS} -> ${${NAME_LOWER}_SOURCE_DIR}/CMakeLists.txt.")
+        endif ()
+        unset(DEP_CUSTOM_CMAKELISTS)
 
-if (NOT googletest_POPULATED)
-    FetchContent_Populate(googletest)
-    # This is a disgusting hack to compile googletest with -fPIC.
-    set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CXX_FLAGS "-fPIC")
-    add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
-    set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
-    unset(OLD_CMAKE_CXX_FLAGS)
-endif ()
-message(STATUS "[FOUND] googletest (https://github.com/google/googletest.git release-1.10.0)")
+        set(MESSAGE_QUIET ON)                                                       # Silence third party includes.
+        add_subdirectory(${${NAME_LOWER}_SOURCE_DIR} ${${NAME_LOWER}_BINARY_DIR})   # Include the third party library.
+        unset(MESSAGE_QUIET)                                                        # Undo silence.
+    endif ()
 
-# nlohmann json : used for JSON serialization throughout the system.
-FetchContent_Declare(
-        json
-        GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git
-        GIT_TAG v3.7.3
-)
-FetchContent_MakeAvailable(json)
-message(STATUS "[FOUND] nlohmann_json (https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git v3.7.3)")
+    # Get the date of the last git commit for the GIT_TAG branch.
+    execute_process(COMMAND git log -1 --format=%cd --date=short                    # Get the last commit's date.
+            WORKING_DIRECTORY ${${NAME_LOWER}_SOURCE_DIR}                           # From the specified git directory.
+            OUTPUT_VARIABLE GIT_LAST_COMMIT)                                        # Save to GIT_LAST_COMMIT.
+    string(STRIP "${GIT_LAST_COMMIT}" GIT_LAST_COMMIT)                              # Remove any trailing newlines.
 
-# libpg_query.
-add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/libpg_query/
-        EXCLUDE_FROM_ALL
-)
-message(STATUS "[FOUND] libpq_query (DIY wrapper)")
+    message(STATUS "[FOUND] ${NAME} (${GIT_URL} ${GIT_TAG} ${GIT_LAST_COMMIT})")    # Print a success message.
+endfunction()
 
-# madoka.
-add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/madoka/
-        EXCLUDE_FROM_ALL
-)
-message(STATUS "[FOUND] madoka (DIY wrapper)")
+function(add_noisepage_dep_singlefile NAME FILE_URL)
+    get_filename_component(FILE_NAME ${FILE_URL} NAME)                              # Get the filename.
+    file(DOWNLOAD ${FILE_URL} ${CMAKE_BINARY_DIR}/_deps/src/${NAME}/${FILE_NAME})   # Download the file.
+    message(STATUS "[FOUND] ${NAME} (${FILE_URL})")                                 # Print a success message.
+endfunction()
 
-find_package(PQXX REQUIRED)
-message(STATUS "[FOUND] PQXX (No simple way to get version number)")
+message(STATUS "\nDependencies: Locating...\n==========================================\n")
 
-add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/libcount/
-        EXCLUDE_FROM_ALL
-)
-message(STATUS "[FOUND] libcount (DIY wrapper)")
+# DISGUSTING HACK: Annoyingly, -fPIC is required on pretty much every dependency.
+set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")           # Save the current CMAKE_C_FLAGS.
+set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")       # Save the current CMAKE_CXX_FLAGS.
+set(CMAKE_C_FLAGS "-fPIC")                          # Add -fPIC to dependencies.
+set(CMAKE_CXX_FLAGS "-fPIC")                        # Add -fPIC to dependencies.
+
+# Google Benchmark build settings.
+set(BENCHMARK_ENABLE_TESTING OFF)                   # Disable testing of the benchmark library.
+set(BENCHMARK_ENABLE_EXCEPTIONS OFF)                # Enable the use of exceptions in the benchmark library.
+set(BENCHMARK_ENABLE_LTO OFF)                       # Enable link time optimisation of the benchmark library.
+set(BENCHMARK_USE_LIBCXX OFF)                       # Build and test using libc++ as the standard library.
+set(BENCHMARK_BUILD_32_BITS OFF)                    # Build a 32 bit version of the library.
+set(BENCHMARK_ENABLE_INSTALL OFF)                   # Enable installation of benchmark.
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF)            # Download and build google benchmark dependencies.
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF)               # Don't build benchmark unit tests.
+
+# gflags build settings.
+set(GFLAGS_BUILD_SHARED_LIBS OFF)                   # Disable building gflags shared library.
+set(GFLAGS_BUILD_STATIC_LIBS ON)                    # Enable building gflags static library.
+set(GFLAGS_BUILD_gflags_LIB ON)                     # Enable building gflags as a library.
+set(GFLAGS_BUILD_gflags_nothreads_LIB OFF)          # Disable building the nothreads version of gflags.
+set(GFLAGS_BUILD_TESTING OFF)                       # Disable building gflags tests.
+set(GFLAGS_BUILD_PACKAGING OFF)                     # Disable building gflags packaging.
+
+# Fetch the dependencies.
+list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_deps/src/)
+# Single-file dependencies.
+add_noisepage_dep_singlefile(csv https://github.com/vincentlaucsb/csv-parser/blob/92694230ba4863a436b6533788e590fce70b5f44/single_include/csv.hpp)
+add_noisepage_dep_singlefile(portable_endian https://gist.githubusercontent.com/panzi/6856583/raw/1eca2ab34f2301b9641aa73d1016b951fff3fc39/portable_endian.h)
+# Project dependencies.
+add_noisepage_dep(count https://github.com/pmenon/libcount.git 6eef9d048d4577f144506ffc076c1913f8faf3ef)
+add_noisepage_dep(gflags https://github.com/gflags/gflags.git v2.2.2)
+add_noisepage_dep(googlebenchmark https://github.com/google/benchmark.git v1.5.2)
+add_noisepage_dep(googletest https://github.com/google/googletest.git release-1.10.0)
+add_noisepage_dep(ips4o https://github.com/ips4o/ips4o.git cf269199fb1ed91751dbdba032339992decf220d)
+add_noisepage_dep(madoka https://github.com/s-yata/madoka.git 66783ee5b84a432f934517ad65452d54b19230bb)
+add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git v3.7.3)
+add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
+add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
+add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
+
+# Handle the special cases here.
+
+# TODO(WAN): libpg_query is CURSED. Someone else is welcome to fix it. Or I may retry in the future.
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/libpg_query/ EXCLUDE_FROM_ALL)
+
+# libpqxx.
+find_library(PQXX_LIBRARIES NAMES pqxx libpqxx REQUIRED)
+find_path(PQXX_INCLUDE_DIRECTORIES NAMES pqxx/pqxx REQUIRED)
+list(APPEND NOISEPAGE_LINK_OPTIONS ${PQXX_LIBRARIES})
+list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${PQXX_INCLUDE_DIRECTORIES})
+message(STATUS "[FOUND] pqxx (dir:${PQXX_INCLUDE_DIRECTORIES} lib:${PQXX_LIBRARIES})")
 
 pkg_search_module(EVENT REQUIRED libevent)
 pkg_search_module(EVENT_PTHREADS REQUIRED libevent_pthreads)
 
 # LLVM 8.0.
 find_package(LLVM 8.0 REQUIRED CONFIG)
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "8.0")
-    message(FATAL_ERROR "LLVM 8.0 or newer is required.")
-endif ()
 message(STATUS "[FOUND] LLVM ${LLVM_PACKAGE_VERSION}")
 # Explicitly request all of the LLVM components that we want.
 llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen native support)
 
-# spdlog : ...
-
-find_package(spdlog REQUIRED)
-message(STATUS "[FOUND] spdlog ${spdlog_VERSION}")
-
 find_package(TBB)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
-# xbyak : ...
-add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/xbyak/
-        EXCLUDE_FROM_ALL
-)
-
-# xxHash : ...
-add_subdirectory(
-        ${PROJECT_SOURCE_DIR}/third_party/xxHash/
-        EXCLUDE_FROM_ALL
-)
-message(STATUS "[FOUND] xxHash ${XXHASH_VERSION}")
-
+# DISGUSTING HACK: Restore the old CMAKE_C_FLAGS, CMAKE_CXX_FLAGS, and CMAKE_BUILD_TYPE.
+set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")           # Restore the old CMAKE_C_FLAGS.
+set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")       # Restore the old CMAKE_CXX_FLAGS.
+unset(OLD_CMAKE_C_FLAGS)                            # Variable hygiene.
+unset(OLD_CMAKE_CXX_FLAGS)                          # Variable hygiene.
 
 message(STATUS "\n==========================================\nDependencies: All found!\n")
 
@@ -260,7 +352,6 @@ message(STATUS "\n==========================================\nDependencies: All 
 # noisepage_shared      :   All of NoisePage functionality exposed as a shared library.
 #######################################################################################################################
 
-#####
 # Get the list of all NoisePage sources.
 file(GLOB_RECURSE
         NOISEPAGE_SRCS                  # Store the list of files into the variable ${NOISEPAGE_SRCS}.
@@ -273,17 +364,15 @@ file(GLOB_RECURSE
 # Remove the main program from NoisePage sources.
 list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 
-#####
 # Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
 # The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
-# This allows both noisepage_static and noisepage_shared to be built with a single compilation.
+# This allows both noisepage_static and noisepage_shared to be built with a single compilation of translation units.
 add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
 
 set_target_properties(noisepage_objlib PROPERTIES
         POSITION_INDEPENDENT_CODE ON                # Required for static linking into other shared libraries.
         CXX_EXTENSIONS OFF                          # Disable compiler extensions (e.g., use c++17 not gnu17).
         )
-
 target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_objlib uses the following.
         "-Werror"                                   # Treat warnings as errors.
         "-Wall"                                     # Enable "all" warnings. (Not actually all warnings.)
@@ -291,30 +380,31 @@ target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_ob
 target_compile_options(noisepage_objlib PUBLIC      # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
-        ${NOISEPAGE_ASAN_FLAGS}                     # Maybe turn on Address Sanitizer.
+        ${NOISEPAGE_COMPILE_OPTIONS}
         )
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
-        ${NOISEPAGE_ASAN_FLAGS}                     # Maybe turn on Address Sanitizer.
+        ${NOISEPAGE_LINK_OPTIONS}
         )
 target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of the library inherit the following.
         cxx_std_17                                  # Require support for C++17.
         )
 target_include_directories(noisepage_objlib PUBLIC  # PUBLIC: all consumers of the library inherit the following.
         ${PROJECT_SOURCE_DIR}/src/include           # Include NoisePage src/include/ headers.
+        ${NOISEPAGE_INCLUDE_DIRECTORIES}
         )
 target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inherit without error checking.
         ${LLVM_INCLUDE_DIRS}                                # Include LLVM headers.
         )
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
+        count
         gflags
-        libcount::libcount
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
         spdlog::spdlog
         xbyak::xbyak
-        xxHash::xxHash
+        xxHash::xxhash
         ${EVENT_LINK_LIBRARIES}
         ${EVENT_PTHREADS_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
@@ -325,16 +415,6 @@ add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)
 target_link_libraries(noisepage_static PUBLIC noisepage_objlib)
 add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)
 target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)
-
-set(RUNTIME_INSTALL_DIR "bin")
-install(TARGETS noisepage_static
-        RUNTIME DESTINATION ${RUNTIME_INSTALL_DIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS noisepage_shared
-        RUNTIME DESTINATION ${RUNTIME_INSTALL_DIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #######################################################################################################################
 # noisepage             :   The main DBMS binary.
@@ -378,18 +458,10 @@ set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 #                           Also generates bytecode_handlers_ir.bc.
 #######################################################################################################################
 
-# TODO(WAN): I don't see the point of doing this at CMake time.
-set(TPL_VERSION_MAJOR 0)
-set(TPL_VERSION_MINOR 1)
-configure_file(util/execution/tpl.h.in "${PROJECT_BINARY_DIR}/execution/tpl.h") # Generate the header file.
 add_executable(tpl util/execution/tpl.cpp)
-# Build gen_opt_bc before building tpl.
-add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)
+add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)      # Build these before building tpl.
 target_include_directories(tpl PRIVATE ${PROJECT_BINARY_DIR} ${LLVM_INCLUDE_DIR})
-target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES} xxHash::xxHash)
-
-# old flags for gen_opt_bc. TODO(WAN): make sure we match.
-# -- /usr/bin/clang++-8 -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O0;-fno-omit-frame-pointer;-fno-optimize-sibling-calls;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-fsanitize=address;-emit-llvm;-c -I/home/kapi/CLionProjects/terrier/cmake-build-debug/googletest_ep-prefix/src/googletest_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gflags_ep-prefix/src/gflags_ep/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/include;-I/usr/include/postgresql;-I/usr/lib/llvm-8/include;-I/home/kapi/CLionProjects/terrier/third_party/flatbuffers/include;-I/home/kapi/CLionProjects/terrier/src/include;-I/home/kapi/CLionProjects/terrier/third_party;-I/home/kapi/CLionProjects/terrier/test/include;-I/home/kapi/CLionProjects/terrier/util/include;-I/home/kapi/CLionProjects/terrier/benchmark/include;-I/home/kapi/CLionProjects/terrier/cmake-build-debug
+target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
 
 set_target_properties(
         tpl gen_opt_bc
@@ -444,6 +516,7 @@ add_custom_target(
 
 enable_testing()        # CTest support is built into CMake.
 include(GoogleTest)     # We rely on GoogleTest for all our tests.
+configure_file(test/CTestCustom.cmake ${PROJECT_BINARY_DIR}/CTestCustom.cmake COPYONLY) # Configure CTest output.
 
 file(GLOB_RECURSE
         NOISEPAGE_TEST_UTIL_SRCS
@@ -460,16 +533,16 @@ set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF)
 set(NOISEPAGE_TESTS "")
 macro(add_noisepage_test TEST_NAME TEST_CPP)
     add_executable(${TEST_NAME} ${TEST_CPP})
-    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main noisepage_shared ${ARGN})
+    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared ${ARGN})
     target_link_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR})
     target_compile_options(${TEST_NAME} PRIVATE "-fPIC")
-    set_target_properties(${TEST_NAME} PROPERTIES ENABLE_EXPORTS ON CXX_EXTENSIONS OFF)
-    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
-    gtest_discover_tests(${TEST_NAME}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    set_target_properties(${TEST_NAME} PROPERTIES
+            CXX_EXTENSIONS OFF
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test"
             )
+    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
+    # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
     set(TEST_PATH "${CMAKE_BINARY_DIR}/${TEST_NAME}")
-
     add_test(${TEST_NAME}
             ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_PATH})
     set_tests_properties(${TEST_NAME} PROPERTIES LABELS "unittest")
@@ -526,17 +599,20 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
-target_link_libraries(noisepage_benchmark_util PUBLIC noisepage_shared gtest gmock util_static noisepage_test_util pqxx benchmark)
+target_link_libraries(noisepage_benchmark_util PUBLIC noisepage_shared gtest gmock gmock_main util_static noisepage_test_util pqxx benchmark)
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
 set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_BENCHMARKS "")
 macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
     add_executable(${BENCHMARK_NAME} ${BENCHMARK_CPP})
-    target_link_libraries(${BENCHMARK_NAME} PRIVATE gtest gmock gtest_main noisepage_shared noisepage_test_util noisepage_benchmark_util ${ARGN})
+    target_link_libraries(${BENCHMARK_NAME} PRIVATE noisepage_benchmark_util ${ARGN})
     target_link_directories(${BENCHMARK_NAME} PRIVATE ${CMAKE_BINARY_DIR})
     target_compile_options(${BENCHMARK_NAME} PRIVATE "-fPIC")
-    set_target_properties(${BENCHMARK_NAME} PROPERTIES ENABLE_EXPORTS ON CXX_EXTENSIONS OFF)
+    set_target_properties(${BENCHMARK_NAME} PROPERTIES
+            CXX_EXTENSIONS OFF
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/benchmark"
+            )
     target_include_directories(${BENCHMARK_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark/include/)
 
     set(BENCHMARK_PATH "${CMAKE_BINARY_DIR}/${BENCHMARK_NAME}")
@@ -577,398 +653,123 @@ endforeach ()
 # set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # set_target_properties(hack_bytecode_handlers_ir PROPERTIES FOLDER HiddenTargets)
 
-#
-#
-#add_library(test_util STATIC ${TEST_UTIL_SRCS})
-#target_link_libraries(test_util terrier_static util_static ${TERRIER_LINK_LIBS})
-#add_dependencies(test_util terrier_static util_static gtest gmock_main)
+#######################################################################################################################
+# check-lint : Run a python script.
+#######################################################################################################################
+file(GLOB_RECURSE LINT_FILES
+        "${PROJECT_SOURCE_DIR}/src/*.h"
+        "${PROJECT_SOURCE_DIR}/src/*.cpp"
+        "${PROJECT_SOURCE_DIR}/test/*.h"
+        "${PROJECT_SOURCE_DIR}/test/*.cpp"
+        "${PROJECT_SOURCE_DIR}/benchmark/*.h"
+        "${PROJECT_SOURCE_DIR}/benchmark/*.cpp"
+        "${PROJECT_SOURCE_DIR}/util/*.h"
+        "${PROJECT_SOURCE_DIR}/util/*.cpp"
+        )
 
+find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
+message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
 
-#MESSAGE(FATAL_ERROR "boo")
-#
-#
-#
-#add_executable(noisepage src/main/terrier.cpp)
-#target_link_libraries(noisepage PRIVATE noisepage_lib)
-#
-#
-## NoisePage uses C++17.
-## NoisePage does not use special CXX extensions.
-##set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF)
-## Enable position independent code (-fPIC).
-##set_target_properties(lib1 PROPERTIES POSITION_INDEPENDENT_CODE ON)
-## Enable link-time optimization (LTO) which CMake calls inter-procedural optimization (IPO).
-##include(CheckIPOSupported)
-##check_ipo_supported(RESULT result)
-##if(result)
-##    set_target_properties(foo PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-##endif()
-#
-## Improve IDE support by allowing CMake to organize files by folders.
-#set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-#
-#MESSAGE(FATAL_ERROR "boo")
-#
-#
-#include(CMakeParseArguments)
-#include(ExternalProject)
-#
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#
-#include(GNUInstallDirs)
-#
-## Compatibility with CMake 3.1
-#if (POLICY CMP0054)
-#    # http://www.cmake.org/cmake/help/v3.1/policy/CMP0054.html
-#    cmake_policy(SET CMP0054 NEW)
-#endif ()
-#
-#if (APPLE)
-#    cmake_policy(SET CMP0068 NEW)
-#endif ()
-#
-#set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
-#set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
-#
-####################################################
-## CMAKE OPTIONS
-####################################################
-#
-#set(TERRIER_CXXFLAGS "" CACHE STRING
-#        "Compiler flags to append when compiling Terrier")
-#
-#option(TERRIER_BUILD_STATIC
-#        "Build the libterrier static libraries"
-#        ON)
-#
-#option(TERRIER_BUILD_SHARED
-#        "Build the libterrier shared libraries"
-#        ON)
-#
-#option(TERRIER_TEST_MEMCHECK
-#        "Run the test suite using valgrind --tool=memcheck"
-#        OFF)
-#
-#option(TERRIER_BUILD_TESTS
-#        "Build the Terrier googletest unit tests"
-#        ON)
-#
-#option(TERRIER_BUILD_BENCHMARKS
-#        "Build the Terrier micro benchmarks"
-#        ON)
-#
-#option(TERRIER_RPATH_ORIGIN
-#        "Build Terrier libraries with RATH set to \$ORIGIN"
-#        OFF)
-#
-#option(TERRIER_INSTALL_NAME_RPATH
-#        "Build Terrier libraries with install_name set to @rpath"
-#        ON)
-#
-#option(TERRIER_GENERATE_COVERAGE
-#        "Build with C++ code coverage enabled"
-#        OFF)
-#
-#option(TERRIER_USE_JEMALLOC
-#        "Dynamically link jemalloc as the memory allocator."
-#        OFF)
-#
-#option(TERRIER_VERBOSE_THIRDPARTY_BUILD
-#        "If off, output from ExternalProjects will be logged to files rather than shown"
-#        OFF)
-#
-#option(TERRIER_VERBOSE_LINT
-#        "If off, 'quiet' flags will be passed to linting tools"
-#        OFF)
-#
-#if (NOT TERRIER_BUILD_TESTS)
-#    set(NO_TESTS 1)
-#endif ()
-#
-#if (NOT TERRIER_BUILD_BENCHMARKS)
-#    set(NO_BENCHMARKS 1)
-#endif ()
-#
-####################################################
-## COMPILER TOOLS
-####################################################
-#
-#set(CLANG_TOOLS_VERSION "8")
-#find_package(ClangTools)
-#if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
-#    # Generate a Clang compile_commands.json "compilation database" file for use
-#    # with various development tools, such as Vim's YouCompleteMe plugin.
-#    # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
-#    set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-#endif ()
-#
-#############################################################
-## Compiler flags
-#############################################################
-#
-## Determine compiler version
-#include(CompilerInfo)
-#include(SetupCxxFlags)
-#
-## ASAN / TSAN / UBSAN
-#include(san-config)
-#
-############################################################
-## code coverage
-############################################################
-#
-#if (TERRIER_GENERATE_COVERAGE)
-#
-#    if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-#        message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
-#    endif ()
-#
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-#endif ()
-#
-## Add common flags
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
-#
-## For any C code, use the same flags.
-#set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
-#
-## Remove --std=c++17 to avoid errors from C compilers
-#string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
-#
-## Add C++-only flags, like -std=c++17
-#set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
-#
-## CMAKE_CXX_FLAGS now fully assembled
-#message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
-#message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
-#message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
-#message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
-#message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
-#
-#############################################################
-## Dependencies
-#############################################################
-#
-#include(BuildUtils)
-#enable_testing()
-#
-#include(ThirdpartyToolchain)
-#
-############################################################
-## "make check-lint" and "make check-censored" targets
-############################################################
-#if (NOT TERRIER_VERBOSE_LINT)
-#    set(TERRIER_LINT_QUIET "--quiet")
-#endif ()
-#
-#if (UNIX)
-#
-#    file(GLOB_RECURSE LINT_FILES
-#            "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/util/*.h"
-#            "${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp"
-#            )
-#
-#    find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
-#    message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
-#
-#    # Full lint
-#    # Balancing act: cpplint.py takes a non-trivial time to launch,
-#    # so process 12 files per invocation, while still ensuring parallelism
-#    add_custom_target(check-lint echo '${LINT_FILES}' | xargs -n12 -P8
-#            ${CPPLINT_BIN}
-#            --verbose=2 ${TERRIER_LINT_QUIET}
-#            --linelength=120
-#            --filter=-legal/copyright,-build/header_guard
-#            )
-#
-#    set(CENSOR_FILES ${LINT_FILES})
-#
-#    # If whitelisting ALL words becomes necessary, do it here. Make it harder so that people try not to do it.
-#    # file(GLOB_RECURSE UNCENSORED_FILES
-#    #        "${CMAKE_CURRENT_SOURCE_DIR}/src/..."
-#    #        )
-#    # list(REMOVE_ITEM CENSOR_FILES ${UNCENSORED_FILES})
-#
-#    add_custom_target(check-censored
-#            grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
-#            | grep -i -f ${BUILD_SUPPORT_DATA_DIR}/bad_words.txt          # for bad words, not case sensitive
-#            | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
-#            # whitelist-start
-#
-#            # Description: allow usage of 'inline' in execution engine
-#            # Reason: pmenon 2019/08/13
-#            # All the bytecode handler functions have to be inline to ensure one definition.
-#            # gen_opt_bc also cleans up the modules to add the odr to all functions.
-#            # On top of that, many are marked ALWAYS_INLINE to force physical inlining into the VM.
-#            # These are hand-selected by me based on profiling.
-#            | grep --invert-match -e 'src/include/execution/.*:.*inline\\b.*'
-#            | grep --invert-match -e 'src/execution/ast/context.cpp.*:.*inline\\b.*'
-#            | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
-#
-#            # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free
-#            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
-#            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
-#            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'
-#            | grep --invert-match -e 'src/execution/util/region.cpp:.*malloc\(.*'
-#            | grep --invert-match -e 'src/execution/util/region.cpp:.*free\(.*'
-#            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*free\(.*'
-#
-#            # Description: This one is a false positive on the macro Op##AGG_TYPE##Free
-#            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*Free\(.*'
-#
-#            # Description: We're allowing shared_ptr and make_shared in testing folders.
-#            # I don't actually remember the justification.
-#            | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*shared_ptr'
-#            | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*make_shared'
-#
-#            # whitelist-end
-#            || exit 0                                                     # if nothing found, return 0
-#            && exit 1                                                     # else return 1, note || && left-associative
-#            )
-#endif (UNIX)
-#
-############################################################
-## "make format" and "make check-format" targets
-############################################################
-#
-## we modified the format script to take multiple args
-#
-#string(CONCAT FORMAT_DIRS
-#        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
-#        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
-#        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
-#        "${CMAKE_CURRENT_SOURCE_DIR}/util"
-#        )
-#
-## runs clang format and updates files in place.
-#add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-#        ${CLANG_FORMAT_BIN}
-#        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
-#        --source_dirs
-#        ${FORMAT_DIRS}
-#        --fix
-#        ${TERRIER_LINT_QUIET})
-#
-## runs clang format and exits with a non-zero exit code if any files need to be reformatted
-#add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
-#        ${CLANG_FORMAT_BIN}
-#        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
-#        --source_dirs
-#        ${FORMAT_DIRS}
-#        ${TERRIER_LINT_QUIET})
-#
-############################################################
-## "make check-clang-tidy" target
-############################################################
-#if (${CLANG_TIDY_FOUND})
-#    # runs clang-tidy and exits with a non-zero exit code if any errors are found.
-#    # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
-#    add_custom_target(check-clang-tidy
-#            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
-#            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
-#            -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
-#            )
-#    if (TERRIER_BUILD_BENCHMARKS)
-#        add_dependencies(check-clang-tidy benchmark gtest gflags)               # clang-tidy needs their headers to exist
-#    elseif (TERRIER_BUILD_TESTS)
-#        add_dependencies(check-clang-tidy gtest gflags)                         # clang-tidy needs their headers to exist
-#    endif ()
-#
-#endif ()
-#
-############################################################
-## Build properties
-############################################################
-#
-## set compile output directory
-#string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
-#
-## If build in-source, create the latest symlink. If build out-of-source, which is
-## preferred, simply output the binaries in the build folder
-#if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
-#    set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/build/${BUILD_SUBDIR_NAME}/")
-#    # Link build/latest to the current build directory, to avoid developers
-#    # accidentally running the latest debug build when in fact they're building
-#    # release builds.
-#    FILE(MAKE_DIRECTORY ${BUILD_OUTPUT_ROOT_DIRECTORY})
-#    if (NOT APPLE)
-#        set(MORE_ARGS "-T")
-#    endif ()
-#    EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
-#            ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
-#else ()
-#    set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
-#endif ()
-#
-## where to put generated archives (.a files)
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
-#set(ARCHIVE_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
-#
-## where to put generated libraries (.so files)
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
-#set(LIBRARY_OUTPUT_DIRECTORY "${BUILD_OUTPUT_ROOT_DIRECTORY}")
-#
-## where to put generated binaries
-#set(EXECUTABLE_OUTPUT_PATH "${BUILD_OUTPUT_ROOT_DIRECTORY}")
-#
-#include_directories(${PROJECT_SOURCE_DIR}/src/include)
-#if (${COMPILER_FAMILY} STREQUAL "gcc")
-#    include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party)
-#else ()
-#    include_directories(${PROJECT_SOURCE_DIR}/third_party)
-#endif ()
-#include_directories(${PROJECT_SOURCE_DIR}/test/include)
-#include_directories(${PROJECT_SOURCE_DIR}/util/include)
-#include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
-#include_directories(${PROJECT_BINARY_DIR})
-#
-## needed for BwTree
-#if (CMAKE_COMPILER_IS_GNUCXX)
-#    set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic)
-#endif ()
-#
-#set(TERRIER_LINK_LIBS
-#        gflags
-#        ${TERRIER_LINK_LIBS}
-#        pg_query)
-#
-#set(TERRIER_DEPENDENCIES
-#        gflags)
-#
-#set(TERRIER_TEST_LINK_LIBS
-#        test_util
-#        terrier_static
-#        gtest
-#        gmock_main
-#        gflags
-#        ${CMAKE_DL_LIBS})
-#
-#set(TERRIER_BENCHMARK_LINK_LIBS
-#        benchmark_util
-#        test_util
-#        terrier_static
-#        benchmark
-#        gtest
-#        gmock_main
-#        gflags
-#        ${CMAKE_DL_LIBS})
-#
-## configure settings for ctest
-#configure_file(
-#        "test/CTestCustom.cmake"
-#        "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-#        COPYONLY
-#)
-#
-## ---[ Subdirectories
-#add_subdirectory(src)
-#add_subdirectory(test)
-#add_subdirectory(benchmark)
-#add_subdirectory(util)
+# Full lint
+# Balancing act: cpplint.py takes a non-trivial time to launch,
+# so process 12 files per invocation, while still ensuring parallelism
+add_custom_target(check-lint echo '${LINT_FILES}' | xargs -n12 -P8
+        ${CPPLINT_BIN}
+        --verbose=2 ${TERRIER_LINT_QUIET}
+        --linelength=120
+        --filter=-legal/copyright,-build/header_guard
+        )
+
+#######################################################################################################################
+# check-censored : Run a python script.
+#######################################################################################################################
+set(CENSOR_FILES ${LINT_FILES})
+
+# If allowing entire files becomes necessary, do it here. Make it harder so that people try not to do it.
+# file(GLOB_RECURSE UNCENSORED_FILES "${PROJECT_SOURCE_DIR}/src/...")
+# list(REMOVE_ITEM CENSOR_FILES ${UNCENSORED_FILES})
+
+add_custom_target(check-censored                                        # Make the "check-censored" target.
+        grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES}   # Check all uncommented lines with line num.
+        | grep -f ${BUILD_SUPPORT_DATA_DIR}/bad_words.txt               # For bad words, case sensitive.
+        | grep --invert-match -e 'NOLINT'                               # And that are not marked as NOLINT.
+
+        # Start of allowlist.
+
+        # Description: allow usage of 'inline' in execution engine.
+        # Reason: pmenon 2019/08/13
+        # All the bytecode handler functions have to be inline to ensure one definition.
+        # gen_opt_bc also cleans up the modules to add the odr to all functions.
+        # On top of that, many are marked ALWAYS_INLINE to force physical inlining into the VM.
+        # These are hand-selected by Prashanth based on profiling.
+        | grep --invert-match -e 'src/include/execution/.*:.*inline\\b.*'
+        | grep --invert-match -e 'src/execution/ast/context.cpp.*:.*inline\\b.*'
+        | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
+
+        # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free.
+        | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
+        | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
+        | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'
+        | grep --invert-match -e 'src/execution/util/region.cpp:.*malloc\(.*'
+        | grep --invert-match -e 'src/execution/util/region.cpp:.*free\(.*'
+        | grep --invert-match -e 'src/execution/vm/vm.cpp:.*free\(.*'
+
+        # End of allowlist.
+
+        || exit 0                                                     # If nothing found, return 0.
+        && exit 1                                                     # Else return 1, note || && left-associative.
+        )
+
+###########################################################
+# "make format" and "make check-format" targets
+###########################################################
+
+# we modified the format script to take multiple args
+
+string(CONCAT FORMAT_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/util"
+        )
+
+# runs clang format and updates files in place.
+add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
+        ${CLANG_FORMAT_BIN}
+        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
+        --source_dirs
+        ${FORMAT_DIRS}
+        --fix
+        ${TERRIER_LINT_QUIET})
+
+# runs clang format and exits with a non-zero exit code if any files need to be reformatted
+add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
+        ${CLANG_FORMAT_BIN}
+        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
+        --source_dirs
+        ${FORMAT_DIRS}
+        ${TERRIER_LINT_QUIET})
+
+###########################################################
+# "make check-clang-tidy" target
+###########################################################
+
+set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy)
+if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+    message(STATUS "clang-tidy not found.")
+else ()
+    # Run clang-tidy and exit with a non-zero exit code if any errors are found.
+    # clang-tidy automatically searches for a .clang-tidy file in parent directories.
+    add_custom_target(check-clang-tidy
+            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # Run LLVM's clang-tidy script.
+            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # Using the specified clang-tidy binary.
+            -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
+            )
+    if (TERRIER_BUILD_BENCHMARKS)
+        add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
+    elseif (TERRIER_BUILD_TESTS)
+        add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
+    endif ()
+    message("[FOUND] clang-tidy : ${CLANG_TIDY_BIN}")
+endif ()

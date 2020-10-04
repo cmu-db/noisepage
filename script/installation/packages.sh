@@ -42,10 +42,7 @@ LINUX_BUILD_PACKAGES=(\
   "doxygen" \
   "git" \
   "g++-7" \
-  "libbenchmark-dev" \      # GBenchmark is used for benchmarking infrastructure.
   "libevent-dev" \          # Libevent is used by the network layer.
-  "libgflags-dev" \         # GFlags is used by the settings manager.
-  "libgtest-dev" \          # GTest is used for testing infrastructure.
   "libjemalloc-dev" \
   "libpq-dev" \
   "libspdlog-dev" \
@@ -53,7 +50,6 @@ LINUX_BUILD_PACKAGES=(\
   "libtbb-dev" \
   "zlib1g-dev" \
   "llvm-8" \
-  "nlohmann-json3-dev" \
   "pkg-config" \
   "postgresql-client" \
   "wget" \
