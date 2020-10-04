@@ -19,10 +19,15 @@ class TypeTest : public TplTest {
 
   ast::Identifier Name(const std::string &s) { return Ctx()->GetIdentifier(s); }
 
-  void CheckArrayType(StructType *struct_type, const std::string &field, uint32_t length,
+  ast::Identifier PaddingName(uint32_t offset) { return Ctx()->GetIdentifier("__pad$" + std::to_string(offset) + "$"); }
+
+  void CheckArrayType(StructType *struct_type, ast::Identifier name, uint32_t offset, uint32_t length,
                       ast::BuiltinType::Kind elem_type) {
     // Check that the field is an ArrayType
-    auto *field_type = struct_type->LookupFieldByName(Name(field));
+    auto *field_type = struct_type->LookupFieldByName(name);
+
+    // Verify offset is correct
+    EXPECT_EQ(struct_type->GetOffsetOfFieldByName(name), offset);
     EXPECT_TRUE(field_type != nullptr);
     EXPECT_EQ(field_type->GetTypeId(), Type::TypeId::ArrayType);
 
@@ -92,20 +97,11 @@ TEST_F(TypeTest, StructPaddingTest) {
   EXPECT_EQ(offsetof(Test, g_), type->GetOffsetOfFieldByName(Name("g")));
   EXPECT_EQ(offsetof(Test, h_), type->GetOffsetOfFieldByName(Name("h")));
 
-  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$1$")), 1);
-  CheckArrayType(type, "__field$1$", 7, ast::BuiltinType::Kind::Int8);
-
-  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$17$")), 17);
-  CheckArrayType(type, "__field$17$", 3, ast::BuiltinType::Kind::Int8);
-
-  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$25$")), 25);
-  CheckArrayType(type, "__field$25$", 1, ast::BuiltinType::Kind::Int8);
-
-  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$28$")), 28);
-  CheckArrayType(type, "__field$28$", 4, ast::BuiltinType::Kind::Int8);
-
-  EXPECT_EQ(type->GetOffsetOfFieldByName(Name("__field$41$")), 41);
-  CheckArrayType(type, "__field$41$", 7, ast::BuiltinType::Kind::Int8);
+  CheckArrayType(type, PaddingName(1), 1, 7, ast::BuiltinType::Kind::Int8);
+  CheckArrayType(type, PaddingName(17), 17, 3, ast::BuiltinType::Kind::Int8);
+  CheckArrayType(type, PaddingName(25), 25, 1, ast::BuiltinType::Kind::Int8);
+  CheckArrayType(type, PaddingName(28), 28, 4, ast::BuiltinType::Kind::Int8);
+  CheckArrayType(type, PaddingName(41), 41, 7, ast::BuiltinType::Kind::Int8);
 }
 
 // NOLINTNEXTLINE

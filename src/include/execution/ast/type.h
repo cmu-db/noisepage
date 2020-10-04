@@ -706,18 +706,6 @@ class StructType : public Type {
   static StructType *Get(Context *ctx, util::RegionVector<Field> &&fields);
 
   /**
-   * Create a dummy field to be used for padding.
-   *
-   * @note Refer to Issue #1210. At a high level, TPL structs are padded whereas LLVM structs are not.
-   *
-   * @param id Padding field identifier
-   * @param size The size of the padding element in bytes.
-   * @param ctx The context that the padding element should be created in.
-   * @return The padding element as a field.
-   */
-  static Field CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx);
-
-  /**
    * Create a structure with the given fields.
    *
    * @pre The fields vector cannot be empty!
