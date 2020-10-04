@@ -13,7 +13,7 @@ class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
   void ResetErrorReporter() { ErrorReporter()->Reset(); }
 };
 
-struct TestCase {
+struct SemaExprTestCase {
   bool has_errors_;
   std::string msg_;
   ast::AstNode *tree_;
@@ -21,7 +21,7 @@ struct TestCase {
 
 // NOLINTNEXTLINE
 TEST_F(SemaExprTest, LogicalOperationTest) {
-  TestCase tests[] = {
+  SemaExprTestCase tests[] = {
       // Test: 1 and 2
       // Expectation: Error
       {true, "1 and 2 is not a valid logical operation", BinOp<parsing::Token::Type::AND>(IntLit(1), IntLit(2))},
@@ -52,7 +52,7 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
 // NOLINTNEXTLINE
 TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
   // clang-format off
-  TestCase tests[] = {
+  SemaExprTestCase tests[] = {
       // Test: Compare a primitive int32 with a SQL integer
       // Expectation: Valid
       {false, "SQL integers should be comparable to native integers",
@@ -93,7 +93,7 @@ TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
 // NOLINTNEXTLINE
 TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
   // clang-format off
-  TestCase tests[] = {
+  SemaExprTestCase tests[] = {
       // Test: Compare a primitive int32 with an integer
       // Expectation: Invalid
       {true, "Integers should not be comparable to pointers",
@@ -143,7 +143,7 @@ TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
 // NOLINTNEXTLINE
 TEST_F(SemaExprTest, ArrayIndexTest) {
   // clang-format off
-  TestCase tests[] = {
+  SemaExprTestCase tests[] = {
       // Test: Perform an array index using an integer literal
       // Expectation: Valid
       {false, "Array indexes can support literal indexes",
