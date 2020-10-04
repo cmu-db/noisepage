@@ -47,8 +47,6 @@
 
 # Ubuntu 20.04 ships with CMake version 3.16.3.
 cmake_minimum_required(VERSION 3.16)
-# Create a compile_commands.json file that can be easily parsed by build tools, clang-tidy, etc.
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # CMake has extremely limited support for multi-line string literals. Therefore an explicit CONCAT call is used here.
 # This description of NoisePage is copied off the website.
@@ -75,6 +73,9 @@ project(
         # NoisePage is a C++ project.
         LANGUAGES CXX
 )
+
+# Create a compile_commands.json file that can be easily parsed by build tools, clang-tidy, etc.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #######################################################################################################################
 # Safety checks.
@@ -187,6 +188,7 @@ if (${NOISEPAGE_USE_ASAN})
     set(NOISEPAGE_ASAN_MSG "On (remember to set env ASAN_OPTIONS=${BUILD_SUPPORT_DATA_DIR}/sanitize_suppressions.txt)")
 endif ()
 message(STATUS "ASAN: ${NOISEPAGE_ASAN_MSG}")
+unset(NOISEPAGE_ASAN_MSG)
 
 # jemalloc.
 set(NOISEPAGE_JEMALLOC_MSG "${NOISEPAGE_USE_JEMALLOC}")
@@ -201,6 +203,10 @@ if (${NOISEPAGE_USE_JEMALLOC})
     set(NOISEPAGE_JEMALLOC_MSG "On (dir:${JEMALLOC_INCLUDE_DIR} lib:${JEMALLOC_LIBRARIES})")
 endif ()
 message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
+unset(NOISEPAGE_JEMALLOC_MSG)
+
+list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
+message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
 
 #######################################################################################################################
 # Dependencies for finding dependencies. :)
@@ -850,6 +856,6 @@ else ()
     elseif (TERRIER_BUILD_TESTS)
         add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
     endif ()
-    message("[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
+    message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)
