@@ -1,8 +1,31 @@
 #!/usr/bin/env python
+"""
+Usage: tpl_bytecode_handlers_ir_compiler.py LLVM_COMPILER CMAKE_BINARY_DIR BCH_CPP BCH_OUT
+    where
+        LLVM_COMPILER       =   The path to clang++ on the system.
+        CMAKE_BINARY_DIR    =   The build directory, which must contain compile_commands.json.
+        BCH_CPP             =   The path to the bytecode_handlers_ip.cpp file to be compiled.
+        BCH_OUT             =   The output path for the compiled file.
+
+Compiles bytecode_handlers_ir.cpp with clang++.
+This script is necessary because it is not possible to mix compilers in a single CMake project
+without going through some superproject / externalproject shenanigans. Moreover, with "modern"
+target-based CMake, you do not have access to a convenient list of all the CMAKE_CXX_FLAGS
+that another compiler should compile with, and you do not have an easy way of extracting a
+full set of target properties for compilation.
+
+So instead, we parse compile_commands.json to get the flags that bytecode_handlers_ir.cpp
+should be compiled with. Note that we depend on the command being
+    /usr/bin/c++ (WE EXTRACT THIS) -o blah -c blah
+which is the case for at least CMake 3.16 on Ubuntu when generating for both Make and Ninja.
+
+Fortunately, we are only compiling with common flags which are shared by both gcc and clang.
+If this changes, we may need the above superproject / externalproject solutions.
+"""
+
 import os
 import subprocess
 import sys
-
 
 PROGRAM_NAME = sys.argv[0]
 # The Clang compiler that will emit LLVM.

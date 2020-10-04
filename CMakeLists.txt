@@ -529,9 +529,9 @@ set_target_properties(
 
 # On MacOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
 if (APPLE)
-    set(GEN_OPT_BC_CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
 else ()
-    find_program(GEN_OPT_BC_CLANG NAMES "clang++-8" "clang++" REQUIRED)
+    find_program(CLANG NAMES "clang++-8" "clang++" REQUIRED)
 endif ()
 
 add_custom_command(
@@ -540,8 +540,8 @@ add_custom_command(
         POST_BUILD
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMAND cmake -E echo "Generating optimized bitcode ..."
-        COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.py ${GEN_OPT_BC_CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
-        COMMAND ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.py ${GEN_OPT_BC_CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+        COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+        COMMAND ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
         COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
         COMMAND ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc
         COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
