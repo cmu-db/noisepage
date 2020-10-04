@@ -83,6 +83,7 @@ scan-table-2.tpl,true,9950
 scan-table-3.tpl,true,10000
 #scan-table-4.tpl,                  Why do we have nondeterministic tests?
 scan-vpi-iter.tpl,true,500
+struct-padding.tpl,true,500
 sort.tpl,true,2000
 sort-limit.tpl,true,11
 sql-null-check.tpl,true,0
