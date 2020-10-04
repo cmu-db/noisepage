@@ -30,6 +30,16 @@
 // #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
 
+namespace {
+
+terrier::execution::ast::Field CreatePaddingElement(uint32_t id, uint32_t size, terrier::execution::ast::Context *ctx) {
+  terrier::execution::ast::Identifier name = ctx->GetIdentifier("__pad$" + std::to_string(id) + "$");
+  auto *pad_type = terrier::execution::ast::BuiltinType::Get(ctx, terrier::execution::ast::BuiltinType::Int8);
+  return terrier::execution::ast::Field(name, terrier::execution::ast::ArrayType::Get(size, pad_type));
+}
+
+};  // namespace
+
 namespace terrier::execution::ast {
 
 // ---------------------------------------------------------
@@ -277,12 +287,6 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
   return map_type;
 }
 
-Field StructType::CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
-  ast::Identifier name = ctx->GetIdentifier("__field$" + std::to_string(id) + "$");
-  auto *pad_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::Int8);
-  return Field(name, ast::ArrayType::Get(size, pad_type));
-}
-
 // static
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
   // Empty structs get an artificial element
@@ -308,6 +312,8 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     uint32_t alignment = 0;
     util::RegionVector<Field> all_fields(ctx->GetRegion());
     util::RegionVector<uint32_t> field_offsets(ctx->GetRegion());
+    all_fields.reserve(fields.size());
+    field_offsets.reserve(fields.size());
     for (const auto &field : fields) {
       auto *field_type = field.type_;
 
