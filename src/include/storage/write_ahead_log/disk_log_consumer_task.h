@@ -1,6 +1,6 @@
 #pragma once
 
-#include <condition_variable>
+#include <condition_variable>  // NOLINT
 #include <utility>
 #include <vector>
 

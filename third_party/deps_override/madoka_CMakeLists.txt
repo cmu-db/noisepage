@@ -17,6 +17,15 @@ file(GLOB_RECURSE
 add_library(madoka STATIC "${MADOKA_SRCS}")         # Create the madoka library.
 add_library(${PROJECT_NAME}::madoka ALIAS madoka)   # Create a namespaced alias.
 
+execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_SOURCE_DIR}/lib/ ${PROJECT_SOURCE_DIR}/madoka)
+
+target_include_directories(
+        madoka
+        INTERFACE
+        # These includes make up the madoka interface.
+        ${PROJECT_SOURCE_DIR}/
+)
+
 target_include_directories(
         madoka
         PRIVATE

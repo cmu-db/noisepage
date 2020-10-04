@@ -4,7 +4,7 @@
 #include <string>
 
 #include "common/macros.h"
-#include "libcount/hll.h"
+#include "count/hll.h"
 #include "loggers/optimizer_logger.h"
 #include "xxHash/xxh3.h"
 

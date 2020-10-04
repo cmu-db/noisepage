@@ -1,8 +1,8 @@
 # Resources for learning about _modern_ CMake:
 # - https://llvm.org/docs/CMakePrimer.html LLVM's CMake guide. Start here.
-# - https://www.youtube.com/watch?v=eC9-iRN2b04 Talk: CppCon2017 Mathieu Ropert "Using Modern CMake Patterns ...".
-# - https://www.youtube.com/watch?v=bsXLMQ6WgIk Talk: C++Now 2017 Daniel Pfeifer "Effective CMake".
 # - https://gist.github.com/mbinna/c61dbb39bca0e4fb7d1f73b0d66a4fd1 Gist: This is essentially Pfeifer's talk.
+# - https://www.youtube.com/watch?v=bsXLMQ6WgIk Talk: C++Now 2017 Daniel Pfeifer "Effective CMake".
+# - https://www.youtube.com/watch?v=eC9-iRN2b04 Talk: CppCon2017 Mathieu Ropert "Using Modern CMake Patterns ...".
 # - https://cliutils.gitlab.io/modern-cmake/    Book: Modern CMake. Some examples are no longer modern.
 # - The official cmake.org site is full of outdated anti-patterns. Use for documentation, not for inspiration.
 
@@ -12,26 +12,26 @@
 # Explanations of various CMake quirks here.
 
 #   1. A crash course on CMake's GLOB and GLOB_RECURSE.
-#     CMake is not a build system -- CMake will not build your files.
-#     CMake is a build system generator -- CMake will generate something (make, ninja, etc.) that can build your files.
+#       CMake is not a build system -- CMake will not build your files.
+#       CMake is a build system generator -- CMake will generate something (make, ninja, etc.) that builds your files.
 #
-#     How do you specify what files should get built?
-#     - Well, you can either specify every single file manually, which is as horrible as it sounds. "Best practice".
-#     - The old and not-recommended way is to use a GLOB, which creates a list of files.
-#           Tangent: In CMake, a list is merely a ;-separated string. State of the art 2020 technology right there.
+#       How do you specify what files should get built?
+#       - Well, you can either specify every single file manually, which is as horrible as it sounds. "Best practice".
+#       - The old and not-recommended way is to use a GLOB, which creates a list of files.
+#             Tangent: In CMake, a list is merely a ;-separated string. State of the art 2020 technology right there.
 #
-#     The problem with GLOB and GLOB_RECURSE is that the files are known to the build system _generator_, rather than
-#     the build system. So you run GLOB and give a list of files to CMake. CMake hardcodes all these files when CMake
-#     generates your build system. Much later, you add a new .h or .cpp file, and your build system doesn't pick it up,
-#     because the build system needs to be regenerated! Incidentally, CLion has a File > Reload CMake Project button
-#     handy for this reason. To summarize the problem: "if you're hardcoding a list of files into your build system,
-#     you're not going to pick up new files".
+#       The problem with GLOB and GLOB_RECURSE is that the files are known to the build system _generator_, rather than
+#       the build system. So you run GLOB and give a list of files to CMake. CMake hardcodes all these files when CMake
+#       generates your build system. Later, you add a new .h or .cpp file, and your build system doesn't pick it up,
+#       because the build system needs to be regenerated! Incidentally, CLion has a File > Reload CMake Project button
+#       handy for this reason. To summarize the problem: "if you're hardcoding a list of files into your build system,
+#       you're not going to pick up new files".
 #
-#     Well, specifying every single source file in CMake still sounds like a pain. Instead, the band-aid hacky "modern"
-#     solution is to specify CONFIGURE_DEPENDS. This means "if the build system supports this feature, if anything in
-#     the GLOB changes, rerun CMake.
+#       Well, specifying every single source file in CMake still sounds like a pain. Instead, the band-aid hack "modern"
+#       solution is to specify CONFIGURE_DEPENDS. This means "if the build system supports this feature, if anything in
+#       the GLOB changes, rerun CMake". In practice, our build system is Ninja or Make, and both support this.
 #
-#   2. Footgun warning: target_include_directories
+#   2. Footgun warning: target_include_directories.
 #       You must specify SYSTEM includes (typically disables warnings and errors from those includes) separately from
 #       non-SYSTEM. In other words, always do
 #           target_include_directories(target_name PUBLIC foo INTERFACE bar PRIVATE baz)
@@ -39,11 +39,15 @@
 #       and never do
 #           target_include_directories(target_name PUBLIC foo SYSTEM PRIVATE blah)
 #       because the latter does not do what you think it does.
+#
+#   3. Footgun warning: FetchProject_ and friends automatically lowercase the project name.
+#       If you're looking for ${someProject_SOURCE_DIR}, that capital letter will ruin your day.
+#       Try doing string(TOLOWER ${someProject} someProject_LOWER) and using ${${someProject_LOWER}_SOURCE_DIR} instead.
 
 
 # Ubuntu 20.04 ships with CMake version 3.16.3.
 cmake_minimum_required(VERSION 3.16)
-# Create a compile_commands.json file that can be easily parsed.
+# Create a compile_commands.json file that can be easily parsed by build tools, clang-tidy, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # CMake has extremely limited support for multi-line string literals. Therefore an explicit CONCAT call is used here.
@@ -58,10 +62,10 @@ string(
         "workload trends and prepare itself accordingly. "
 )
 
-# Set the name of the CMake project to be noisepage. This also defines various magic variables, such as
-# ${PROJECT_SOURCE_DIR} and ${PROJECT_BINARY_DIR}
+# Set the name of the CMake project to be NoisePage. This also automatically defines various magic variables,
+# such as ${PROJECT_SOURCE_DIR} and ${PROJECT_BINARY_DIR}.
 project(
-        noisepage
+        NoisePage
         # The version number of the NoisePage project.
         # The individual components can be extracted with ${PROJECT_VERSION_MAJOR}, ${PROJECT_VERSION_MINOR},
         # ${PROJECT_VERSION_PATCH}, and ${PROJECT_VERSION_TWEAK} respectively.
@@ -101,7 +105,21 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
 #######################################################################################################################
-# CMake options, CMake global variables.
+# CMake build types, specify with -DCMAKE_BUILD_TYPE={option}.
+#   Debug (default), Release, RelWithDebInfo, FastDebug.
+#   In practice people only use Debug or Release.
+#
+# CMake options, specify with -DNOISEPAGE_{option}=On.
+#   NOISEPAGE_GENERATE_COVERAGE   : Enable C++ code coverage. Default OFF.
+#   NOISEPAGE_USE_ASAN            : Enable ASAN, a fast memory error detector. Default OFF.
+#   NOISEPAGE_USE_JEMALLOC        : Link with jemalloc instead of system malloc. Default OFF.
+#
+# CMake global variables.
+#   BUILD_SUPPORT_DIR             : helper scripts for building belongs here.
+#   BUILD_SUPPORT_DATA_DIR        : helper data for building belongs here.
+#   NOISEPAGE_COMPILE_OPTIONS     : compile options to be added to NoisePage.
+#   NOISEPAGE_LINK_OPTIONS        : link options to be added to NoisePage.
+#   NOISEPAGE_INCLUDE_DIRECTORIES : include directories to be used for NoisePage.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
@@ -110,7 +128,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 option(NOISEPAGE_GENERATE_COVERAGE
-        "Build with C++ code coverage enabled"
+        "Enable C++ code coverage."
         OFF)
 
 option(NOISEPAGE_USE_ASAN
@@ -146,8 +164,8 @@ message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
 # Coverage.
 if (${NOISEPAGE_GENERATE_COVERAGE})
-    if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-        message(FATAL_ERROR "Coverage requires a debug build type!")
+    if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")                     # If coverage is required on non-DEBUG builds,
+        message(FATAL_ERROR "Coverage requires a debug build type!")    # Then error out.
     endif ()
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "--coverage")     # Compile with coverage (compilers alias this).
     list(APPEND NOISEPAGE_LINK_OPTIONS "--coverage")        # Link coverage libraries (compilers alias this).
@@ -173,21 +191,24 @@ message(STATUS "ASAN: ${NOISEPAGE_ASAN_MSG}")
 # jemalloc.
 set(NOISEPAGE_JEMALLOC_MSG "${NOISEPAGE_USE_JEMALLOC}")
 if (${NOISEPAGE_USE_JEMALLOC})
+    # We find jemalloc from the system to avoid building jemalloc from scratch.
     find_path(JEMALLOC_INCLUDE_DIR NAMES jemalloc/jemalloc.h REQUIRED)
     find_library(JEMALLOC_LIBRARIES NAMES jemalloc libjemalloc.so.1 libjemalloc.so.2 libjemalloc.dylib REQUIRED)
-    list(APPEND NOISEPAGE_LINK_OPTIONS ${JEMALLOC_LIBRARIES})
-    list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${JEMALLOC_INCLUDE_DIR})
-    unset(JEMALLOC_INCLUDE_DIR)
-    unset(JEMALLOC_LIBRARIES)
+    list(APPEND NOISEPAGE_LINK_OPTIONS ${JEMALLOC_LIBRARIES})           # Add to NoisePage link libs.
+    list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${JEMALLOC_INCLUDE_DIR})  # Add to NoisePage includes.
+    unset(JEMALLOC_INCLUDE_DIR)                                         # Variable hygiene.
+    unset(JEMALLOC_LIBRARIES)                                           # Variable hygiene.
     set(NOISEPAGE_JEMALLOC_MSG "On (dir:${JEMALLOC_INCLUDE_DIR} lib:${JEMALLOC_LIBRARIES})")
 endif ()
 message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
 
 #######################################################################################################################
-# Dependencies.
+# Dependencies for finding dependencies. :)
+#   VARS_BEFORE() / VARS_AFTER()    : Useful during CMake development to see what new variables got added.
+#   message()                       : Redefined to suppress informational messages when MESSAGE_QUIET is on.
+#   MESSAGE_QUIET                   : Flag controlling message() behavior. ON to suppress informational messages.
 #######################################################################################################################
 
-# Dependencies for finding dependencies : )
 include(FetchContent)                   # FetchContent_ functions.
 find_package(PkgConfig REQUIRED)        # pkg_search_module function.
 
@@ -201,7 +222,7 @@ find_package(PkgConfig REQUIRED)        # pkg_search_module function.
 # And now you know! This is useful if you're adding new libraries and want to print useful messages.
 
 macro(VARS_BEFORE)
-    get_directory_property(_vars_before VARIABLES)      # Save the current variables to _vars_before.
+    get_directory_property(_vars_before VARIABLES)              # Save the current variables to _vars_before.
 endmacro()
 
 macro(VARS_AFTER)
@@ -241,8 +262,7 @@ function(add_noisepage_dep NAME GIT_URL GIT_TAG)
                 GIT_TAG ${GIT_TAG}                                      # Checkout the specific GIT_TAG version.
                 )
 
-        # A lot of libraries don't do modern CMake, or we need custom behavior out of their build.
-        # We overwrite their top-level CMakeLists.txt with our own.
+        # Whenever custom behavior is required, override with NoisePage third_party/deps_override/NAME_CMakeLists.txt.
         set(DEP_CUSTOM_CMAKELISTS ${PROJECT_SOURCE_DIR}/third_party/deps_override/${NAME}_CMakeLists.txt)
         if (EXISTS ${DEP_CUSTOM_CMAKELISTS})
             file(COPY ${DEP_CUSTOM_CMAKELISTS} DESTINATION ${${NAME_LOWER}_SOURCE_DIR})
@@ -251,25 +271,31 @@ function(add_noisepage_dep NAME GIT_URL GIT_TAG)
         endif ()
         unset(DEP_CUSTOM_CMAKELISTS)
 
-        set(MESSAGE_QUIET ON)                                                       # Silence third party includes.
-        add_subdirectory(${${NAME_LOWER}_SOURCE_DIR} ${${NAME_LOWER}_BINARY_DIR})   # Include the third party library.
-        unset(MESSAGE_QUIET)                                                        # Undo silence.
+        set(MESSAGE_QUIET ON)                                                           # Silence third party includes.
+        add_subdirectory(${${NAME_LOWER}_SOURCE_DIR} ${${NAME_LOWER}_BINARY_DIR})       # Include the dependency.
+        unset(MESSAGE_QUIET)                                                            # Undo silence.
     endif ()
 
     # Get the date of the last git commit for the GIT_TAG branch.
-    execute_process(COMMAND git log -1 --format=%cd --date=short                    # Get the last commit's date.
-            WORKING_DIRECTORY ${${NAME_LOWER}_SOURCE_DIR}                           # From the specified git directory.
-            OUTPUT_VARIABLE GIT_LAST_COMMIT)                                        # Save to GIT_LAST_COMMIT.
-    string(STRIP "${GIT_LAST_COMMIT}" GIT_LAST_COMMIT)                              # Remove any trailing newlines.
+    execute_process(COMMAND git log -1 --format=%cd --date=short                        # Get the last commit's date.
+            WORKING_DIRECTORY ${${NAME_LOWER}_SOURCE_DIR}                               # From the specified git dir.
+            OUTPUT_VARIABLE GIT_LAST_COMMIT)                                            # Save to GIT_LAST_COMMIT.
+    string(STRIP "${GIT_LAST_COMMIT}" GIT_LAST_COMMIT)                                  # Remove any trailing newlines.
 
-    message(STATUS "[FOUND] ${NAME} (${GIT_URL} ${GIT_TAG} ${GIT_LAST_COMMIT})")    # Print a success message.
+    message(STATUS "[FOUND] ${NAME} (${GIT_URL} ${GIT_TAG} ${GIT_LAST_COMMIT})")        # Print a success message.
 endfunction()
 
 function(add_noisepage_dep_singlefile NAME FILE_URL)
-    get_filename_component(FILE_NAME ${FILE_URL} NAME)                              # Get the filename.
-    file(DOWNLOAD ${FILE_URL} ${CMAKE_BINARY_DIR}/_deps/src/${NAME}/${FILE_NAME})   # Download the file.
-    message(STATUS "[FOUND] ${NAME} (${FILE_URL})")                                 # Print a success message.
+    string(TOLOWER "${NAME}" NAME_LOWER)    # For consistency with add_noisepage_dep above, also use lowercase.
+    get_filename_component(FILE_NAME ${FILE_URL} NAME)                                  # Get the filename.
+    file(DOWNLOAD ${FILE_URL} ${CMAKE_BINARY_DIR}/_deps/src/${NAME}/${FILE_NAME})       # Download the file.
+    set(${NAME_LOWER}_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/src/${NAME} PARENT_SCOPE)    # Set the expected SOURCE_DIR.
+    message(STATUS "[FOUND] ${NAME} (${FILE_URL})")                                     # Print a success message.
 endfunction()
+
+#######################################################################################################################
+# Dependencies.
+#######################################################################################################################
 
 message(STATUS "\nDependencies: Locating...\n==========================================\n")
 
@@ -281,13 +307,13 @@ set(CMAKE_CXX_FLAGS "-fPIC")                        # Add -fPIC to dependencies.
 
 # Google Benchmark build settings.
 set(BENCHMARK_ENABLE_TESTING OFF)                   # Disable testing of the benchmark library.
-set(BENCHMARK_ENABLE_EXCEPTIONS OFF)                # Enable the use of exceptions in the benchmark library.
-set(BENCHMARK_ENABLE_LTO OFF)                       # Enable link time optimisation of the benchmark library.
-set(BENCHMARK_USE_LIBCXX OFF)                       # Build and test using libc++ as the standard library.
-set(BENCHMARK_BUILD_32_BITS OFF)                    # Build a 32 bit version of the library.
-set(BENCHMARK_ENABLE_INSTALL OFF)                   # Enable installation of benchmark.
-set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF)            # Download and build google benchmark dependencies.
-set(BENCHMARK_ENABLE_GTEST_TESTS OFF)               # Don't build benchmark unit tests.
+set(BENCHMARK_ENABLE_EXCEPTIONS OFF)                # Disable the use of exceptions in the benchmark library.
+set(BENCHMARK_ENABLE_LTO OFF)                       # Disable link time optimisation of the benchmark library.
+set(BENCHMARK_USE_LIBCXX OFF)                       # Disable building and testing using libc++ as the standard library.
+set(BENCHMARK_BUILD_32_BITS OFF)                    # Disable building a 32 bit version of the library.
+set(BENCHMARK_ENABLE_INSTALL OFF)                   # Disable installation of benchmark.
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES OFF)            # Disable downloading and building google benchmark dependencies.
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF)               # Disable building benchmark unit tests.
 
 # gflags build settings.
 set(GFLAGS_BUILD_SHARED_LIBS OFF)                   # Disable building gflags shared library.
@@ -297,24 +323,26 @@ set(GFLAGS_BUILD_gflags_nothreads_LIB OFF)          # Disable building the nothr
 set(GFLAGS_BUILD_TESTING OFF)                       # Disable building gflags tests.
 set(GFLAGS_BUILD_PACKAGING OFF)                     # Disable building gflags packaging.
 
-# Fetch the dependencies.
+# Include the source of the dependencies as sources that NoisePage can include.
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_deps/src/)
-# Single-file dependencies.
-add_noisepage_dep_singlefile(csv https://github.com/vincentlaucsb/csv-parser/blob/92694230ba4863a436b6533788e590fce70b5f44/single_include/csv.hpp)
+
+# Fetch single-file dependencies.
+add_noisepage_dep_singlefile(csv https://raw.githubusercontent.com/vincentlaucsb/csv-parser/92694230ba4863a436b6533788e590fce70b5f44/single_include/csv.hpp)
 add_noisepage_dep_singlefile(portable_endian https://gist.githubusercontent.com/panzi/6856583/raw/1eca2ab34f2301b9641aa73d1016b951fff3fc39/portable_endian.h)
-# Project dependencies.
+
+# Fetch project dependencies.
 add_noisepage_dep(count https://github.com/pmenon/libcount.git 6eef9d048d4577f144506ffc076c1913f8faf3ef)
 add_noisepage_dep(gflags https://github.com/gflags/gflags.git v2.2.2)
 add_noisepage_dep(googlebenchmark https://github.com/google/benchmark.git v1.5.2)
 add_noisepage_dep(googletest https://github.com/google/googletest.git release-1.10.0)
-add_noisepage_dep(ips4o https://github.com/ips4o/ips4o.git cf269199fb1ed91751dbdba032339992decf220d)
+add_noisepage_dep(ips4o https://github.com/ips4o/ips4o.git 2fb65ca11ac1898faee2f146610e6409489d2105)
 add_noisepage_dep(madoka https://github.com/s-yata/madoka.git 66783ee5b84a432f934517ad65452d54b19230bb)
 add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent.git v3.7.3)
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
 
-# Handle the special cases here.
+# Handle other dependencies.
 
 # TODO(WAN): libpg_query is CURSED. Someone else is welcome to fix it. Or I may retry in the future.
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/libpg_query/ EXCLUDE_FROM_ALL)
@@ -326,6 +354,7 @@ list(APPEND NOISEPAGE_LINK_OPTIONS ${PQXX_LIBRARIES})
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${PQXX_INCLUDE_DIRECTORIES})
 message(STATUS "[FOUND] pqxx (dir:${PQXX_INCLUDE_DIRECTORIES} lib:${PQXX_LIBRARIES})")
 
+# libevent.
 pkg_search_module(EVENT REQUIRED libevent)
 pkg_search_module(EVENT_PTHREADS REQUIRED libevent_pthreads)
 
@@ -335,6 +364,7 @@ message(STATUS "[FOUND] LLVM ${LLVM_PACKAGE_VERSION}")
 # Explicitly request all of the LLVM components that we want.
 llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen native support)
 
+# TBB.
 find_package(TBB)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
@@ -399,6 +429,7 @@ target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inh
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
         gflags
+        ips4o::ips4o
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
@@ -411,10 +442,11 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${TBB_LIBRARIES_RELEASE}
         )
 
-add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)
-target_link_libraries(noisepage_static PUBLIC noisepage_objlib)
-add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)
-target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)
+# Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
+add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into static lib.
+target_link_libraries(noisepage_static PUBLIC noisepage_objlib)             # Consumers will inherit this link.
+add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into shared lib.
+target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)             # Consumers will inherit this link.
 
 #######################################################################################################################
 # noisepage             :   The main DBMS binary.
@@ -429,6 +461,7 @@ set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF)
 # TODO(WAN)             :   table_generator and table_reader are hacks, and the remaining cpp files are all TPL targets
 #                           handled elsewhere. Kill this target once we refactor those hacks out of our system.
 #######################################################################################################################
+
 file(GLOB_RECURSE UTIL_SRCS CONFIGURE_DEPENDS
         ${PROJECT_SOURCE_DIR}/util/*.cpp
         ${PROJECT_SOURCE_DIR}/util/include/*.h)
@@ -448,23 +481,8 @@ set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF)
 add_executable(gen_opt_bc util/execution/gen_opt_bc.cpp)
 target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
-
-add_library(hack_bytecode_handlers_ir util/execution/bytecode_handlers_ir.cpp)
-target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
-set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
-
-#######################################################################################################################
-# tpl                   :   Standalone binary for testing .tpl files and commands.
-#                           Also generates bytecode_handlers_ir.bc.
-#######################################################################################################################
-
-add_executable(tpl util/execution/tpl.cpp)
-add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)      # Build these before building tpl.
-target_include_directories(tpl PRIVATE ${PROJECT_BINARY_DIR} ${LLVM_INCLUDE_DIR})
-target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
-
 set_target_properties(
-        tpl gen_opt_bc
+        gen_opt_bc
         PROPERTIES
         CXX_EXTENSIONS OFF
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
@@ -472,12 +490,42 @@ set_target_properties(
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+#######################################################################################################################
+# hack_bytecode_handlers_ir     :   This target is not actually used to build the bytecode handlers, because the
+#                                   bytecode handlers have to be built with clang and it is possible that the current
+#                                   compiler is gcc -- you simply cannot mix two compilers in one CMake project
+#                                   without jumping through SuperProject hoops. The target is created to get the
+#                                   relevant entry in compile_commands.json, which is then parsed and run manually
+#                                   with clang... :(
+#######################################################################################################################
+
+add_library(hack_bytecode_handlers_ir util/execution/bytecode_handlers_ir.cpp)
+target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
+set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
+
+#######################################################################################################################
+# tpl                   :   Standalone binary for testing .tpl files and commands.
+#                           Also generates POST_BUILD bytecode_handlers_ir.bc.
+#######################################################################################################################
+
+add_executable(tpl util/execution/tpl.cpp)
+add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)      # Build these before building tpl.
+target_include_directories(tpl PRIVATE ${LLVM_INCLUDE_DIR})
+target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
+set_target_properties(
+        tpl
+        PROPERTIES
+        CXX_EXTENSIONS OFF
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 # On MacOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
 if (APPLE)
     set(GEN_OPT_BC_CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
 else ()
-    find_program(GEN_OPT_BC_CLANG NAMES "clang++-8" "clang++")
+    find_program(GEN_OPT_BC_CLANG NAMES "clang++-8" "clang++" REQUIRED)
 endif ()
 
 add_custom_command(
@@ -485,7 +533,7 @@ add_custom_command(
         DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
         POST_BUILD
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating optimized bitcode ..."
+        COMMAND cmake -E echo "Generating optimized bitcode ..."
         COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.py ${GEN_OPT_BC_CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
         COMMAND ${PROJECT_SOURCE_DIR}/build-support/gen_opt_bc_runner.py ${GEN_OPT_BC_CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
         COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
@@ -493,21 +541,7 @@ add_custom_command(
         COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
         COMMAND mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
         COMMAND cmake -E echo "Generated optimized bitcode at ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc."
-)
-
-add_custom_target(
-        check-tpl
-        DEPENDS tpl
-        COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py \
-        -b ${CMAKE_BINARY_DIR}/bin/tpl \
-        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt \
-        -t ${PROJECT_SOURCE_DIR}/sample_tpl \
-        -d ${CMAKE_BINARY_DIR}/bin"
-        COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
-        -b ${CMAKE_BINARY_DIR}/bin/tpl
-        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
-        -t ${PROJECT_SOURCE_DIR}/sample_tpl
-        -d ${CMAKE_BINARY_DIR}/bin
+        USES_TERMINAL
 )
 
 #######################################################################################################################
@@ -530,24 +564,21 @@ target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock ut
 target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
 set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF)
 
-set(NOISEPAGE_TESTS "")
-macro(add_noisepage_test TEST_NAME TEST_CPP)
+function(add_noisepage_test TEST_NAME TEST_CPP)
+    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
+
     add_executable(${TEST_NAME} ${TEST_CPP})
     target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared ${ARGN})
-    target_link_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR})
-    target_compile_options(${TEST_NAME} PRIVATE "-fPIC")
     set_target_properties(${TEST_NAME} PROPERTIES
-            CXX_EXTENSIONS OFF
-            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test"
+            CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
+            RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
             )
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
     # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
-    set(TEST_PATH "${CMAKE_BINARY_DIR}/${TEST_NAME}")
-    add_test(${TEST_NAME}
-            ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_PATH})
+    add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
+    # Label each test with "unittest" so that ctest can run all the tests under the "unittest" label later.
     set_tests_properties(${TEST_NAME} PROPERTIES LABELS "unittest")
-    list(APPEND NOISEPAGE_TESTS ${TEST_NAME})
-endmacro()
+endfunction()
 
 file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/binder/*.cpp"
@@ -615,7 +646,7 @@ macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
             )
     target_include_directories(${BENCHMARK_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark/include/)
 
-    set(BENCHMARK_PATH "${CMAKE_BINARY_DIR}/${BENCHMARK_NAME}")
+    set(BENCHMARK_PATH "${CMAKE_BINARY_DIR}/benchmark/${BENCHMARK_NAME}")
     add_test(${BENCHMARK_NAME}
             ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} benchmark ${BENCHMARK_PATH} ${NO_COLOR})
     set_tests_properties(${BENCHMARK_NAME} PROPERTIES LABELS "benchmark")
@@ -654,8 +685,10 @@ endforeach ()
 # set_target_properties(hack_bytecode_handlers_ir PROPERTIES FOLDER HiddenTargets)
 
 #######################################################################################################################
-# check-lint : Run a python script.
+# Global variables for helper scripts.
+# LINT_FILES    :   All the files that are to be linted. Exposed since other tools may want to use them.
 #######################################################################################################################
+
 file(GLOB_RECURSE LINT_FILES
         "${PROJECT_SOURCE_DIR}/src/*.h"
         "${PROJECT_SOURCE_DIR}/src/*.cpp"
@@ -667,62 +700,101 @@ file(GLOB_RECURSE LINT_FILES
         "${PROJECT_SOURCE_DIR}/util/*.cpp"
         )
 
-find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
-message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
-
-# Full lint
-# Balancing act: cpplint.py takes a non-trivial time to launch,
-# so process 12 files per invocation, while still ensuring parallelism
-add_custom_target(check-lint echo '${LINT_FILES}' | xargs -n12 -P8
-        ${CPPLINT_BIN}
-        --verbose=2 ${TERRIER_LINT_QUIET}
-        --linelength=120
-        --filter=-legal/copyright,-build/header_guard
-        )
-
 #######################################################################################################################
 # check-censored : Run a python script.
 #######################################################################################################################
-set(CENSOR_FILES ${LINT_FILES})
 
 # If allowing entire files becomes necessary, do it here. Make it harder so that people try not to do it.
 # file(GLOB_RECURSE UNCENSORED_FILES "${PROJECT_SOURCE_DIR}/src/...")
 # list(REMOVE_ITEM CENSOR_FILES ${UNCENSORED_FILES})
 
-add_custom_target(check-censored                                        # Make the "check-censored" target.
-        grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES}   # Check all uncommented lines with line num.
-        | grep -f ${BUILD_SUPPORT_DATA_DIR}/bad_words.txt               # For bad words, case sensitive.
-        | grep --invert-match -e 'NOLINT'                               # And that are not marked as NOLINT.
+set(BAD_WORDS_FILE ${BUILD_SUPPORT_DATA_DIR}/bad_words.txt)
+if (NOT EXISTS ${BAD_WORDS_FILE})
+    message(STATUS "[MISSING] bad words at ${BUILD_SUPPORT_DATA_DIR}/bad_words.txt, no check-censored.")
+else ()
+    add_custom_target(check-censored                                        # Make the "check-censored" target.
+            grep --invert-match -n -e '^ *//' -e '^ *[*]' ${LINT_FILES}     # Check all uncommented lines with line num.
+            | grep -f ${BAD_WORDS_FILE}                                     # For bad words, case sensitive.
+            | grep --invert-match -e 'NOLINT'                               # And that are not marked as NOLINT.
 
-        # Start of allowlist.
+            # Start of allowlist.
 
-        # Description: allow usage of 'inline' in execution engine.
-        # Reason: pmenon 2019/08/13
-        # All the bytecode handler functions have to be inline to ensure one definition.
-        # gen_opt_bc also cleans up the modules to add the odr to all functions.
-        # On top of that, many are marked ALWAYS_INLINE to force physical inlining into the VM.
-        # These are hand-selected by Prashanth based on profiling.
-        | grep --invert-match -e 'src/include/execution/.*:.*inline\\b.*'
-        | grep --invert-match -e 'src/execution/ast/context.cpp.*:.*inline\\b.*'
-        | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
+            # Description: allow usage of 'inline' in execution engine.
+            # Reason: pmenon 2019/08/13
+            # All the bytecode handler functions have to be inline to ensure one definition.
+            # gen_opt_bc also cleans up the modules to add the odr to all functions.
+            # On top of that, many are marked ALWAYS_INLINE to force physical inlining into the VM.
+            # These are hand-selected by Prashanth based on profiling.
+            | grep --invert-match -e 'src/include/execution/.*:.*inline\\b.*'
+            | grep --invert-match -e 'src/execution/ast/context.cpp.*:.*inline\\b.*'
+            | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
 
-        # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free.
-        | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
-        | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
-        | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'
-        | grep --invert-match -e 'src/execution/util/region.cpp:.*malloc\(.*'
-        | grep --invert-match -e 'src/execution/util/region.cpp:.*free\(.*'
-        | grep --invert-match -e 'src/execution/vm/vm.cpp:.*free\(.*'
+            # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free.
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'
+            | grep --invert-match -e 'src/execution/util/region.cpp:.*malloc\(.*'
+            | grep --invert-match -e 'src/execution/util/region.cpp:.*free\(.*'
+            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*free\(.*'
 
-        # End of allowlist.
+            # End of allowlist.
 
-        || exit 0                                                     # If nothing found, return 0.
-        && exit 1                                                     # Else return 1, note || && left-associative.
-        )
+            || exit 0                                                     # If nothing found, return 0.
+            && exit 1                                                     # Else return 1, note || && left-associative.
+            USES_TERMINAL
+            )
+    message(STATUS "[ADDED] check-censored")
+endif ()
+unset(BAD_WORDS_FILE)
 
-###########################################################
-# "make format" and "make check-format" targets
-###########################################################
+#######################################################################################################################
+# check-lint    :   Run the cpplint python script.
+#######################################################################################################################
+
+add_noisepage_dep_singlefile(cpplint https://raw.githubusercontent.com/cpplint/cpplint/5b4259ef4c94d34e98192f53466c8af5e9d1c259/cpplint.py)
+find_program(CPPLINT_BIN NAMES cpplint.py HINTS ${cpplint_SOURCE_DIR})
+
+if ("${CPPLINT_BIN}" STREQUAL "CPPLINT_BIN-NOTFOUND")
+    message(STATUS "[MISSING] cpplint at ${cpplint_SOURCE_DIR}/cpplint.py, no check-lint.")
+else ()
+    # Balancing act: cpplint.py takes a non-trivial time to launch, so process 12 files per invocation with parallelism.
+    add_custom_target(check-lint
+            COMMENT "Running: echo LINT_FILES | xargs -n12 -P8 python3 ${CPPLINT_BIN} --verbose=2 --linelength=120 --quiet --filter=legal/copyright,-build/header_guard"
+            COMMAND echo '${LINT_FILES}' | xargs -n12 -P8
+            python3 ${CPPLINT_BIN}
+            --verbose=2 --linelength=120 --quiet
+            --filter=-legal/copyright,-build/header_guard
+            USES_TERMINAL
+            )
+    message(STATUS "[ADDED] check-lint (${CPPLINT_BIN})")
+endif ()
+unset(${CPPLINT_BIN})
+
+#######################################################################################################################
+# check-tpl     :   Python script to check core TPL functionality.
+#######################################################################################################################
+
+add_custom_target(
+        check-tpl
+        DEPENDS tpl
+        COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py \
+            -b ${CMAKE_BINARY_DIR}/bin/tpl \
+            -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt \
+            -t ${PROJECT_SOURCE_DIR}/sample_tpl \
+            -d ${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
+        -b ${CMAKE_BINARY_DIR}/bin/tpl
+        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
+        -t ${PROJECT_SOURCE_DIR}/sample_tpl
+        -d ${CMAKE_BINARY_DIR}/bin
+        USES_TERMINAL
+)
+message(STATUS "[ADDED] check-tpl")
+
+#######################################################################################################################
+# format            :   Reformat the codebase according to standards.
+# check-format      :   Check if the codebase is formatted according to standards.
+#######################################################################################################################
 
 # we modified the format script to take multiple args
 
@@ -734,30 +806,37 @@ string(CONCAT FORMAT_DIRS
         )
 
 # runs clang format and updates files in place.
-add_custom_target(format ${BUILD_SUPPORT_DIR}/run_clang_format.py
+add_custom_target(format
+        ${BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
         ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
         --source_dirs
         ${FORMAT_DIRS}
         --fix
-        ${TERRIER_LINT_QUIET})
+        --quiet
+        USES_TERMINAL
+        )
 
 # runs clang format and exits with a non-zero exit code if any files need to be reformatted
-add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
+add_custom_target(check-format
+        ${BUILD_SUPPORT_DIR}/run_clang_format.py
         ${CLANG_FORMAT_BIN}
         ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
         --source_dirs
         ${FORMAT_DIRS}
-        ${TERRIER_LINT_QUIET})
+        --quiet
+        USES_TERMINAL
+        )
 
-###########################################################
-# "make check-clang-tidy" target
-###########################################################
+unset(FORMAT_DIRS)
 
-set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+#######################################################################################################################
+# check-clang-tidy     :   Run clang-tidy static analysis on the codebase.
+#######################################################################################################################
+
 find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy)
 if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
-    message(STATUS "clang-tidy not found.")
+    message(STATUS "[MISSING] clang-tidy not found, no check-clang-tidy.")
 else ()
     # Run clang-tidy and exit with a non-zero exit code if any errors are found.
     # clang-tidy automatically searches for a .clang-tidy file in parent directories.
@@ -771,5 +850,6 @@ else ()
     elseif (TERRIER_BUILD_TESTS)
         add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
     endif ()
-    message("[FOUND] clang-tidy : ${CLANG_TIDY_BIN}")
+    message("[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
+unset(CLANG_TIDY_BIN)

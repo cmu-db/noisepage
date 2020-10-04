@@ -21,5 +21,5 @@ target_include_directories(
         xxHash
         PRIVATE
         # These includes are library-internal and necessary for compilation.
-        ${PROJECT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/
 )

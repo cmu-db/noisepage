@@ -11,7 +11,7 @@
 
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/stage_timer.h"
-#include "ips4o/include/ips4o.hpp"
+#include "ips4o/ips4o.hpp"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {

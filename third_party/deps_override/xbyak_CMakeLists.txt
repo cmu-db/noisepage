@@ -13,5 +13,5 @@ target_include_directories(
         xbyak
         INTERFACE
         # These includes make up the xbyak interface.
-        ${PROJECT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/
 )

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "csv/csv.h"  // NOLINT
+#include "csv/csv.hpp"  // NOLINT
 #include "execution/sql/value.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
