@@ -1103,10 +1103,8 @@ class MiniRunners : public benchmark::Fixture {
     pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    brain::ExecOUFeatureVector *ouvector = nullptr;
-    exec_ctx->InitializeOUFeatureVector(&ouvector, execution::pipeline_id_t(1));
-    auto &ouvec = *ouvector;
-
+    brain::ExecOUFeatureVector ouvec(nullptr);
+    exec_ctx->InitializeOUFeatureVector(&ouvec, execution::pipeline_id_t(1));
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
@@ -1360,7 +1358,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "}\n";
 
   output << "struct QueryState {\nexecCtx: *ExecutionContext\n}\n";
-  output << "struct P1_State {\noutput_buffer: *OutputBuffer\nexecFeatures: *ExecOUFeatureVector\n}\n";
+  output << "struct P1_State {\noutput_buffer: *OutputBuffer\nexecFeatures: ExecOUFeatureVector\n}\n";
   output << "fun Query0_Init(queryState: *QueryState) -> nil {\nreturn}\n";
   output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
   output << "\tpipelineState.output_buffer = @resultBufferNew(queryState.execCtx)\n";
@@ -1393,7 +1391,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
   output << "\tQuery0_Pipeline1_SerialWork(queryState, pipelineState)\n";
   output << "\t@resultBufferFinalize(pipelineState.output_buffer)\n";
-  output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, pipelineState.execFeatures)\n";
+  output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
   output << "\treturn\n";
   output << "}\n";
 
