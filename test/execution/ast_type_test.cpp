@@ -19,25 +19,23 @@ class TypeTest : public TplTest {
 
   ast::Identifier Name(const std::string &s) { return Ctx()->GetIdentifier(s); }
 
-  ast::Identifier PaddingName(uint32_t offset) { return Ctx()->GetIdentifier("__pad$" + std::to_string(offset) + "$"); }
-
-  void CheckArrayType(StructType *struct_type, ast::Identifier name, uint32_t offset, uint32_t length,
-                      ast::BuiltinType::Kind elem_type) {
-    // Check that the field is an ArrayType
-    auto *field_type = struct_type->LookupFieldByName(name);
-
-    // Verify offset is correct
-    EXPECT_EQ(struct_type->GetOffsetOfFieldByName(name), offset);
-    EXPECT_TRUE(field_type != nullptr);
-    EXPECT_EQ(field_type->GetTypeId(), Type::TypeId::ArrayType);
+  void CheckIsArrayType(Type *type, size_t num_elem, Type *elem_type) {
+    EXPECT_EQ(type->GetTypeId(), Type::TypeId::ArrayType);
 
     // Check that the BuiltinType matches
-    auto *type = field_type->As<ArrayType>();
-    EXPECT_EQ(type->GetLength(), length);
-    EXPECT_EQ(type->GetElementType()->GetTypeId(), Type::TypeId::BuiltinType);
+    auto *array_type = type->As<ArrayType>();
+    EXPECT_EQ(array_type->GetLength(), num_elem);
+    EXPECT_EQ(array_type->GetElementType(), elem_type);
+  }
 
-    auto *builtin = type->GetElementType()->As<BuiltinType>();
-    EXPECT_EQ(builtin->GetKind(), elem_type);
+  void CheckIsPadding(StructType *type, size_t offset, size_t expected_length) {
+    auto identifier = Ctx()->GetIdentifier("__pad$" + std::to_string(offset) + "$");
+    auto *field_type = type->LookupFieldByName(identifier);
+
+    // Verify offset is correct
+    EXPECT_TRUE(field_type != nullptr);
+    EXPECT_EQ(type->GetOffsetOfFieldByName(identifier), offset);
+    CheckIsArrayType(field_type, expected_length, ast::BuiltinType::Get(Ctx(), BuiltinType::Kind::Int8));
   }
 
  private:
@@ -97,11 +95,11 @@ TEST_F(TypeTest, StructPaddingTest) {
   EXPECT_EQ(offsetof(Test, g_), type->GetOffsetOfFieldByName(Name("g")));
   EXPECT_EQ(offsetof(Test, h_), type->GetOffsetOfFieldByName(Name("h")));
 
-  CheckArrayType(type, PaddingName(1), 1, 7, ast::BuiltinType::Kind::Int8);
-  CheckArrayType(type, PaddingName(17), 17, 3, ast::BuiltinType::Kind::Int8);
-  CheckArrayType(type, PaddingName(25), 25, 1, ast::BuiltinType::Kind::Int8);
-  CheckArrayType(type, PaddingName(28), 28, 4, ast::BuiltinType::Kind::Int8);
-  CheckArrayType(type, PaddingName(41), 41, 7, ast::BuiltinType::Kind::Int8);
+  CheckIsPadding(type, 1, 7);
+  CheckIsPadding(type, 17, 3);
+  CheckIsPadding(type, 25, 1);
+  CheckIsPadding(type, 28, 4);
+  CheckIsPadding(type, 41, 7);
 }
 
 // NOLINTNEXTLINE
