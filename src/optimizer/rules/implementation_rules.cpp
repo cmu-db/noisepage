@@ -629,8 +629,6 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-<<<<<<< HEAD
-=======
 /// LogicalSemiJoinToPhysicalSemiLeftHashJoin
 ///////////////////////////////////////////////////////////////////////////////
 LogicalSemiJoinToPhysicalSemiLeftHashJoin::LogicalSemiJoinToPhysicalSemiLeftHashJoin() {
@@ -641,7 +639,6 @@ LogicalSemiJoinToPhysicalSemiLeftHashJoin::LogicalSemiJoinToPhysicalSemiLeftHash
 
   // Initialize a pattern for optimizer to match
   match_pattern_ = new Pattern(OpType::LOGICALSEMIJOIN);
-  match_pattern_ = new Pattern(OpType::LOGICALLEFTJOIN);
 
   // Add node - we match join relation R and S as well as the predicate exp
   match_pattern_->AddChild(left_child);
@@ -684,12 +681,11 @@ void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(
         LeftSemiHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
             .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
         std::move(child), context->GetOptimizerContext()->GetTxn());
-  transformed->emplace_back(std::move(result));
+    transformed->emplace_back(std::move(result));
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
->>>>>>> parent of 0e7331e4... fix format
 /// LogicalLeftJoinToPhysicalLeftHashJoin
 ///////////////////////////////////////////////////////////////////////////////
 LogicalLeftJoinToPhysicalLeftHashJoin::LogicalLeftJoinToPhysicalLeftHashJoin() {
@@ -700,7 +696,6 @@ LogicalLeftJoinToPhysicalLeftHashJoin::LogicalLeftJoinToPhysicalLeftHashJoin() {
   auto right_child(new Pattern(OpType::LEAF));
 
   // Initialize a pattern for optimizer to match
-  match_pattern_ = new Pattern(OpType::LOGICALSEMIJOIN);
   match_pattern_ = new Pattern(OpType::LOGICALLEFTJOIN);
 
   // Add node - we match join relation R and S as well as the predicate exp
@@ -710,7 +705,6 @@ LogicalLeftJoinToPhysicalLeftHashJoin::LogicalLeftJoinToPhysicalLeftHashJoin() {
 
 bool LogicalLeftJoinToPhysicalLeftHashJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                                   OptimizationContext *context) const {
-
   (void)context;
   (void)plan;
   return true;
