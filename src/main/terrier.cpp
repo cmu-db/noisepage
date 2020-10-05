@@ -1,10 +1,9 @@
-#include <gflags/gflags.h>
-
 #include <csignal>
 #include <unordered_map>
 #include <utility>
 
 #include "common/managed_pointer.h"
+#include "gflags/gflags.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"

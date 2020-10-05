@@ -501,17 +501,19 @@ target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inh
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
         gflags
-        ips4o::ips4o
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
         spdlog::spdlog
-        xbyak::xbyak
         xxHash::xxhash
         ${EVENT_LINK_LIBRARIES}
         ${EVENT_PTHREADS_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
         ${TBB_LIBRARIES_RELEASE}
+        )
+target_link_libraries(noisepage_objlib PRIVATE      # PRIVATE: only noisepage_objlib uses the following.
+        ips4o::ips4o
+        xbyak::xbyak
         )
 
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
@@ -640,7 +642,7 @@ endif ()
 add_custom_target(unittest
         ctest ${UNITTEST_OUTPUT_ON_FAILURE} -L unittest --no-compress-output -T Test USES_TERMINAL)
 add_custom_target(jumbo_unittest
-        ctest ${UNITTEST_OUTPUT_ON_FAILURE} -L jumbo-unittest --no-compress-output -T Test USES_TERMINAL)
+        ctest ${UNITTEST_OUTPUT_ON_FAILURE} -j14 -L jumbo-unittest --no-compress-output -T Test USES_TERMINAL)
 
 unset(UNITTEST_OUTPUT_ON_FAILURE)
 
@@ -710,42 +712,44 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     add_dependencies(unittest ${NOISEPAGE_TEST})
 endforeach ()
 
-function(add_jumbotest FOLDER_PATH)
-    set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
-    get_filename_component(FOLDER_NAME ${FOLDER_PATH} NAME_WE)
-    set(TEST_NAME jumbotest_${FOLDER_NAME})
-    file(GLOB_RECURSE JUMBO_SOURCES ${FOLDER_PATH}/*.cpp)
-    add_executable(${TEST_NAME} ${JUMBO_SOURCES})
-    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
-    set_target_properties(${TEST_NAME} PROPERTIES
-            CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
-            ENABLE_EXPORTS ON                                   # Export for tpl.
-            RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
-            UNITY_BUILD ${NOISEPAGE_UNITY_BUILD}                # Build multiple cpp files as a single cpp file.
-            )
-    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
-    # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
-    add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
-    # Label each test with "unittest" so that ctest can run all the tests under the "unittest" label later.
-    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "jumbo-unittest")
-    add_dependencies(jumbo_unittest ${TEST_NAME})
-endfunction()
+if (${NOISEPAGE_UNITY_BUILD})
+    function(add_jumbotest FOLDER_PATH)
+        set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
+        get_filename_component(FOLDER_NAME ${FOLDER_PATH} NAME_WE)
+        set(TEST_NAME jumbotest_${FOLDER_NAME})
+        file(GLOB_RECURSE JUMBO_SOURCES ${FOLDER_PATH}/*.cpp)
+        add_executable(${TEST_NAME} ${JUMBO_SOURCES})
+        target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
+        set_target_properties(${TEST_NAME} PROPERTIES
+                CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
+                ENABLE_EXPORTS ON                                   # Export for tpl.
+                RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
+                UNITY_BUILD ${NOISEPAGE_UNITY_BUILD}                # Build multiple cpp files as a single cpp file.
+                )
+        target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
+        # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
+        add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
+        # Label each test with "unittest" so that ctest can run all the tests under the "unittest" label later.
+        set_tests_properties(${TEST_NAME} PROPERTIES LABELS "jumbo-unittest")
+        add_dependencies(jumbo_unittest ${TEST_NAME})
+    endfunction()
 
-add_jumbotest("test/binder")
-add_jumbotest("test/catalog")
-add_jumbotest("test/common")
-add_jumbotest("test/execution")
-add_jumbotest("test/integration")
-add_jumbotest("test/metrics")
-add_jumbotest("test/network")
-add_jumbotest("test/optimizer")
-add_jumbotest("test/parser")
-add_jumbotest("test/planner")
-add_jumbotest("test/settings")
-add_jumbotest("test/storage")
-add_jumbotest("test/traffic_cop")
-add_jumbotest("test/transaction")
-add_jumbotest("test/type")
+    add_jumbotest("test/binder")
+    add_jumbotest("test/catalog")
+    add_jumbotest("test/common")
+    add_jumbotest("test/execution")
+    add_jumbotest("test/integration")
+    add_jumbotest("test/metrics")
+    add_jumbotest("test/network")
+    add_jumbotest("test/optimizer")
+    add_jumbotest("test/parser")
+    add_jumbotest("test/planner")
+    add_jumbotest("test/settings")
+    add_jumbotest("test/storage")
+    add_jumbotest("test/traffic_cop")
+    add_jumbotest("test/transaction")
+    add_jumbotest("test/type")
+endif ()
 
 #######################################################################################################################
 # HEADER Benchmarks.

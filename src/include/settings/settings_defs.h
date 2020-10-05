@@ -1,3 +1,5 @@
+#pragma once
+
 // SETTING_<type>(name, description, default_value, min_value, max_value, is_mutable, callback_fn)
 
 // Terrier port
