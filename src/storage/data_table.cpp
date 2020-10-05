@@ -307,48 +307,18 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
   // This cannot be visible if it's already deallocated.
   if (!accessor_.Allocated(slot)) return false;
 
-  UndoRecord *version_ptr;
-  bool visible;
-  do {
-    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
-    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-    // can potentially happen, and chase the version chain before returning anyway,
-    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should not read the version pointer column.");
-      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
-    }
+  // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
+  // because so long as we set the version ptr before updating in place, the reader will chase the version chain
+  // and apply the pre-image of the writer before returning anyway.  In the worst case, we accidentally overwrite
+  // a good read with the exact same data, but there is no way to detect this.
+  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+    TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                   "Output buffer should not read the version pointer column.");
+    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+  }
 
-    // We still need to check the allocated bit because GC could have flipped it since last check
-    visible = Visible(slot, accessor_);
-
-    // Here we will need to check that the version pointer did not change during our read. If it did, the content
-    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
-    // we will have to loop around to avoid a dirty read.
-    //
-    // There is still an a-b-a problem if aborting transactions unlink themselves. Thus, in the system aborting
-    // transactions still check out a timestamp and "commit" after rolling back their changes to guard against this,
-    // The exact interleaving is this:
-    //
-    //      transaction 1         transaction 2
-    //          begin
-    //    read version_ptr
-    //                                begin
-    //                             write a -> a1
-    //          read a1
-    //                            rollback a1 -> a
-    //    check version_ptr
-    //         return a1
-    //
-    // For this to manifest, there has to be high contention on a given tuple slot, and insufficient CPU resources
-    // (way more threads than there are cores, around 8x seems to work) such that threads are frequently swapped
-    // out. compare-and-swap along with the pointer reduces the probability of this happening to be essentially
-    // infinitesimal, but it's still a probabilistic fix. To 100% prevent this race, we have to wait until no
-    // concurrent transaction with the abort that could have had a dirty read is alive to unlink this. The easiest
-    // way to achieve that is to take a timestamp as well when all changes have been rolled back for an aborted
-    // transaction, and let GC handle the unlinking.
-  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+  bool visible = !accessor_.IsNull(slot, VERSION_POINTER_COLUMN_ID);
+  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
