@@ -104,6 +104,7 @@ message(STATUS
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION}")
 
 #######################################################################################################################
 # CMake build types, specify with -DCMAKE_BUILD_TYPE={option}.
@@ -209,10 +210,21 @@ endif ()
 message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
 unset(NOISEPAGE_JEMALLOC_MSG)
 
-list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
-message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
-
 message(STATUS "NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE: ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
+
+# OS specific configuration.
+if (APPLE)
+    # On OSX, clang complains about this.
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-Wno-braced-scalar-init")
+    message(STATUS "OSX hack, NOISEPAGE_COMPILE_OPTIONS: adding -Wno-braced-scalar-init")
+    # On OSX, using lld causes a linking error because -lz (zlib) cannot be found.
+    message(STATUS "OSX hack, Linker: Will use default system linker.")
+else ()
+    # lld is the fastest linker.
+    list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
+    message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
+endif ()
+
 
 #######################################################################################################################
 # Dependencies for finding dependencies. :)
@@ -316,11 +328,14 @@ endfunction()
 
 message(STATUS "\nDependencies: Locating...\n==========================================\n")
 
-# DISGUSTING HACK: Annoyingly, -fPIC is required on pretty much every dependency.
+# DISGUSTING HACKS:
+# - -fPIC is required on pretty much every dependency.
+# - fvisibility=hidden is required on OSX while building spdlog.
+# - fsanitize=address is required on OSX.
 set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")           # Save the current CMAKE_C_FLAGS.
 set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")       # Save the current CMAKE_CXX_FLAGS.
-set(CMAKE_C_FLAGS "-fPIC")                          # Add -fPIC to dependencies.
-set(CMAKE_CXX_FLAGS "-fPIC")                        # Add -fPIC to dependencies.
+set(CMAKE_C_FLAGS "-fPIC -fvisibility=hidden -fsanitize=address")
+set(CMAKE_CXX_FLAGS "-fPIC -fvisibility=hidden -fsanitize=address")
 
 # Google Benchmark build settings.
 set(BENCHMARK_ENABLE_TESTING OFF)                   # Disable testing of the benchmark library.
@@ -428,10 +443,12 @@ target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_ob
 target_compile_options(noisepage_objlib PUBLIC      # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
+        "-fvisibility=hidden"                       # Hide symbols by default.
         ${NOISEPAGE_COMPILE_OPTIONS}
         )
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
+        "-fvisibility=hidden"                       # Hide symbols by default.
         ${NOISEPAGE_LINK_OPTIONS}
         )
 target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of the library inherit the following.
@@ -770,7 +787,7 @@ file(GLOB_RECURSE LINT_FILES
         )
 
 #######################################################################################################################
-# check-censored : Run a python script.
+# check-censored    :   Grep the repository for some bad keywords. Brittle, but cheap and useful.
 #######################################################################################################################
 
 # If allowing entire files becomes necessary, do it here. Make it harder so that people try not to do it.
@@ -817,7 +834,7 @@ endif ()
 unset(BAD_WORDS_FILE)
 
 #######################################################################################################################
-# check-lint    :   Run the cpplint python script.
+# check-lint        :   Run the cpplint python script.
 #######################################################################################################################
 
 add_noisepage_dep_singlefile(cpplint https://raw.githubusercontent.com/cpplint/cpplint/5b4259ef4c94d34e98192f53466c8af5e9d1c259/cpplint.py)
@@ -840,7 +857,7 @@ endif ()
 unset(${CPPLINT_BIN})
 
 #######################################################################################################################
-# check-tpl     :   Python script to check core TPL functionality.
+# check-tpl         :   Python script to check core TPL functionality.
 #######################################################################################################################
 
 add_custom_target(
@@ -862,42 +879,47 @@ message(STATUS "[ADDED] check-tpl")
 # check-format      :   Check if the codebase is formatted according to standards.
 #######################################################################################################################
 
-# we modified the format script to take multiple args
+find_program(CLANG_FORMAT_BIN NAMES clang-format-8 clang-format)
+if ("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND")
+    message(STATUS "[MISSING] clang-format not found, no format and no check-format.")
+else ()
+    # The directories to be formatted. Note that we modified the format script to take in multiple arguments.
+    string(CONCAT FORMAT_DIRS
+            "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src,"
+            "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+            "${CMAKE_CURRENT_SOURCE_DIR}/util"
+            )
 
-string(CONCAT FORMAT_DIRS
-        "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/test,"
-        "${CMAKE_CURRENT_SOURCE_DIR}/util"
-        )
+    # Run clang-format and update files in place.
+    add_custom_target(format
+            ${BUILD_SUPPORT_DIR}/run_clang_format.py
+            ${CLANG_FORMAT_BIN}
+            ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
+            --source_dirs
+            ${FORMAT_DIRS}
+            --fix
+            --quiet
+            USES_TERMINAL
+            )
 
-# runs clang format and updates files in place.
-add_custom_target(format
-        ${BUILD_SUPPORT_DIR}/run_clang_format.py
-        ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
-        --source_dirs
-        ${FORMAT_DIRS}
-        --fix
-        --quiet
-        USES_TERMINAL
-        )
+    # Run clang-format and exit with a non-zero exit code if any files need to be reformatted.
+    add_custom_target(check-format
+            ${BUILD_SUPPORT_DIR}/run_clang_format.py
+            ${CLANG_FORMAT_BIN}
+            ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
+            --source_dirs
+            ${FORMAT_DIRS}
+            --quiet
+            USES_TERMINAL
+            )
 
-# runs clang format and exits with a non-zero exit code if any files need to be reformatted
-add_custom_target(check-format
-        ${BUILD_SUPPORT_DIR}/run_clang_format.py
-        ${CLANG_FORMAT_BIN}
-        ${BUILD_SUPPORT_DATA_DIR}/clangformat_suppressions.txt
-        --source_dirs
-        ${FORMAT_DIRS}
-        --quiet
-        USES_TERMINAL
-        )
-
-unset(FORMAT_DIRS)
+    unset(FORMAT_DIRS)
+endif ()
+unset(CLANG_FORMAT_BIN)
 
 #######################################################################################################################
-# check-clang-tidy     :   Run clang-tidy static analysis on the codebase.
+# check-clang-tidy  :   Run clang-tidy static analysis on the codebase.
 #######################################################################################################################
 
 find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy)
