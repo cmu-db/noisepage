@@ -82,26 +82,44 @@ def kill_pids_on_port(port, logger=None):
         print_or_log("not root user, uid = {}".format(os.getuid()), logger)
         raise Exception("Cannot call this function unless running as root!")
 
-    count = 0
-    for proc in psutil.process_iter():
-        print("iter {}".format(count))
-        count += 1
-        try:
-            for conns in proc.connections(kind="inet"):
-                if conns.laddr.port == port:
-                    print_or_log(
-                        "Killing existing server instance listening on port {} [PID={}], created at {}"
-                        .format(port, proc.pid,
-                                format_time(proc.create_time())), logger)
-                    proc.send_signal(signal.SIGKILL)
-        except psutil.ZombieProcess:
-            print_or_log("Killing zombie process [PID={}]".format(proc.pid),
-                         logger)
-            proc.parent().send_signal(signal.SIGCHLD)
-        except Exception as e:
-            # get more generic debug info
-            print_or_log(e)
-            raise
+    # count = 0
+    # for proc in psutil.process_iter():
+    #     print("iter {}".format(count))
+    #     count += 1
+    #     try:
+    #         for conns in proc.connections(kind="inet"):
+    #             if conns.laddr.port == port:
+    #                 print_or_log(
+    #                     "Killing existing server instance listening on port {} [PID={}], created at {}"
+    #                     .format(port, proc.pid,
+    #                             format_time(proc.create_time())), logger)
+    #                 proc.send_signal(signal.SIGKILL)
+    #     except psutil.ZombieProcess:
+    #         print_or_log("Killing zombie process [PID={}]".format(proc.pid),
+    #                      logger)
+    #         proc.parent().send_signal(signal.SIGCHLD)
+    #     except Exception as e:
+    #         # get more generic debug info
+    #         print_or_log(e)
+    #         raise
+
+    try:
+        for conns in psutil.net_connections(kind="inet"):
+            proc = psutil.Process(pid=conns.pid)
+            if conns.laddr.port == port:
+                print_or_log(
+                    "Killing existing server instance listening on port {} [PID={}], created at {}"
+                    .format(port, proc.pid,
+                            format_time(proc.create_time())), logger)
+                proc.send_signal(signal.SIGKILL)
+    except psutil.ZombieProcess:
+        print_or_log("Killing zombie process [PID={}]".format(proc.pid),
+                     logger)
+        proc.parent().send_signal(signal.SIGCHLD)
+    except Exception as e:
+        # get more generic debug info
+        print_or_log(e)
+        raise
 
 
 def get_pids_on_port(port):
