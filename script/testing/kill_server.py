@@ -5,7 +5,6 @@ import argparse
 from util.common import kill_pids_on_port
 
 if __name__ == "__main__":
-    print("user id: {}".format(os.getuid()))
     aparser = argparse.ArgumentParser(
         description="Kill any processes listening on these ports!")
     aparser.add_argument("ports", type=int, nargs="+", help="Ports to check")

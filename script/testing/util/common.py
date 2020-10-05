@@ -77,11 +77,15 @@ def print_or_log(msg, logger=None):
 def kill_pids_on_port(port, logger=None):
     """Kill all the PIDs (if any) listening on the target port"""
 
+    print("in kill_pids_on_port: user id = {}".format(os.getuid()))
     if os.getuid() != 0:
         print_or_log("not root user, uid = {}".format(os.getuid()), logger)
         raise Exception("Cannot call this function unless running as root!")
 
+    count = 0
     for proc in psutil.process_iter():
+        print("iter {}".format(count))
+        count += 1
         try:
             for conns in proc.connections(kind="inet"):
                 if conns.laddr.port == port:
@@ -103,6 +107,7 @@ def kill_pids_on_port(port, logger=None):
 def get_pids_on_port(port):
     """Get the list of PIDs (if any) listening on the target port"""
 
+    print("in get_pids_on_port: user id = {}".format(os.getuid()))
     if os.getuid() != 0:
         raise Exception("Cannot call this function unless running as root!")
 
