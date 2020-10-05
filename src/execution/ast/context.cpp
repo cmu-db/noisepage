@@ -30,16 +30,6 @@
 // #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
 
-namespace {
-
-terrier::execution::ast::Field CreatePaddingElement(uint32_t id, uint32_t size, terrier::execution::ast::Context *ctx) {
-  terrier::execution::ast::Identifier name = ctx->GetIdentifier("__pad$" + std::to_string(id) + "$");
-  auto *pad_type = terrier::execution::ast::BuiltinType::Get(ctx, terrier::execution::ast::BuiltinType::Int8);
-  return terrier::execution::ast::Field(name, terrier::execution::ast::ArrayType::Get(size, pad_type));
-}
-
-};  // namespace
-
 namespace terrier::execution::ast {
 
 // ---------------------------------------------------------
@@ -287,6 +277,16 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
   return map_type;
 }
 
+namespace {
+
+Field CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
+  Identifier name = ctx->GetIdentifier("__pad$" + std::to_string(id) + "$");
+  auto *pad_type = BuiltinType::Get(ctx, BuiltinType::Int8);
+  return Field(name, ArrayType::Get(size, pad_type));
+}
+
+};  // namespace
+
 // static
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
   // Empty structs get an artificial element
@@ -318,7 +318,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
       auto *field_type = field.type_;
 
       // Check if the type needs to be padded
-      uint32_t field_align = field_type->GetAlignment();
+      const uint32_t field_align = field_type->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
         auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
         all_fields.emplace_back(CreatePaddingElement(size, new_size - size, ctx));
@@ -330,7 +330,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
       field_offsets.push_back(size);
       all_fields.emplace_back(field);
       size += field_type->GetSize();
-      alignment = std::max(alignment, field_type->GetAlignment());
+      alignment = std::max(alignment, field_align);
     }
 
     // Empty structs have an alignment of 1 byte
