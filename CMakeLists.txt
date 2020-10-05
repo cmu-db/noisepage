@@ -43,7 +43,26 @@
 #   3. Footgun warning: FetchProject_ and friends automatically lowercase the project name.
 #       If you're looking for ${someProject_SOURCE_DIR}, that capital letter will ruin your day.
 #       Try doing string(TOLOWER ${someProject} someProject_LOWER) and using ${${someProject_LOWER}_SOURCE_DIR} instead.
+#
+# Organization of this file. (You can Ctrl-F for these!)
+#   HEADER Project definition.
+#   HEADER Safety checks.
+#   HEADER System info.
+#   HEADER CMake options and global variables.
+#   HEADER Dependencies for finding dependencies.
+#   HEADER Dependencies.
+#   HEADER noisepage libraries.
+#   HEADER noisepage binary.
+#   HEADER gen_opt_bc binary.
+#   HEADER hack_bytecode_handlers_ir target.
+#   HEADER tpl binary.
+#   HEADER Tests.
+#   HEADER Benchmarks.
+#   HEADER Miscellaneous.
 
+#######################################################################################################################
+# HEADER Project definition.
+#######################################################################################################################
 
 # Ubuntu 20.04 ships with CMake version 3.16.3.
 cmake_minimum_required(VERSION 3.16)
@@ -78,7 +97,7 @@ project(
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #######################################################################################################################
-# Safety checks.
+# HEADER Safety checks.
 #######################################################################################################################
 
 # People keep running CMake in the wrong folder, completely nuking their project or creating weird bugs.
@@ -91,7 +110,7 @@ if (EXISTS "${PATH_TO_CMAKELISTS_TXT}")
 endif ()
 
 #######################################################################################################################
-# Project definition.
+# HEADER System info.
 #######################################################################################################################
 
 # Print a welcome message with the project's version number.
@@ -107,6 +126,7 @@ message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE
 message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYSTEM_PROCESSOR}")
 
 #######################################################################################################################
+# HEADER CMake options and global variables.
 # CMake build types, specify with -DCMAKE_BUILD_TYPE={option}.
 #   Debug (default), Release, RelWithDebInfo, FastDebug.
 #   In practice people only use Debug or Release.
@@ -143,6 +163,10 @@ option(NOISEPAGE_USE_JEMALLOC
 
 option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
         "Verbose output for unittests when they fail. Warning: on jumbo, this is VERY verbose!"
+        OFF)
+
+option(NOISEPAGE_UNITY_BUILD
+        "Enable Unity builds for much faster compilation. https://cmake.org/cmake/help/latest/prop_tgt/UNITY_BUILD.html"
         OFF)
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
@@ -210,7 +234,8 @@ endif ()
 message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
 unset(NOISEPAGE_JEMALLOC_MSG)
 
-message(STATUS "NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE: ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
+message(STATUS "Verbose unit tests (NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE): ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
+message(STATUS "Unity builds (NOISEPAGE_UNITY_BUILD): ${NOISEPAGE_UNITY_BUILD}")
 
 # OS specific configuration.
 if (APPLE)
@@ -227,7 +252,7 @@ endif ()
 
 
 #######################################################################################################################
-# Dependencies for finding dependencies. :)
+# HEADER Dependencies for finding dependencies. : )
 #   VARS_BEFORE() / VARS_AFTER()    : Useful during CMake development to see what new variables got added.
 #   message()                       : Redefined to suppress informational messages when MESSAGE_QUIET is on.
 #   MESSAGE_QUIET                   : Flag controlling message() behavior. ON to suppress informational messages.
@@ -266,6 +291,17 @@ function(message)
             MessageType STREQUAL SEND_ERROR OR
             MessageType STREQUAL WARNING OR
             MessageType STREQUAL AUTHOR_WARNING)
+        list(GET ARGV 1 Message)
+        if (Message MATCHES ".*but CMAKE_THREAD_LIBS_INIT ended up being empty.*")
+            # SOME LIBRARIES (cough Google Benchmark cough) ...
+            # Official CMake documentation:
+            #   CMAKE_THREAD_LIBS_INIT
+            #       The thread library to use. This may be empty if the thread functions are provided by the system
+            #       libraries and no special flags are needed to use them.
+            # Therefore we're suppressing that specific warning message.
+            return()
+        endif ()
+
         list(REMOVE_AT ARGV 0)
         _message(${MessageType} "${ARGV}")
     endif ()
@@ -323,7 +359,7 @@ function(add_noisepage_dep_singlefile NAME FILE_URL)
 endfunction()
 
 #######################################################################################################################
-# Dependencies.
+# HEADER Dependencies.
 #######################################################################################################################
 
 message(STATUS "\nDependencies: Locating...\n==========================================\n")
@@ -397,7 +433,7 @@ message(STATUS "[FOUND] LLVM ${LLVM_PACKAGE_VERSION}")
 llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen native support)
 
 # TBB.
-find_package(TBB)
+find_package(TBB REQUIRED)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
 # DISGUSTING HACK: Restore the old CMAKE_C_FLAGS, CMAKE_CXX_FLAGS, and CMAKE_BUILD_TYPE.
@@ -409,6 +445,7 @@ unset(OLD_CMAKE_CXX_FLAGS)                          # Variable hygiene.
 message(STATUS "\n==========================================\nDependencies: All found!\n")
 
 #######################################################################################################################
+# HEADER noisepage libraries.
 # noisepage_objlib      :   NoisePage object library, built once and linked into both static and shared targets.
 # noisepage_static      :   All of NoisePage functionality exposed as a static library.
 # noisepage_shared      :   All of NoisePage functionality exposed as a shared library.
@@ -434,7 +471,7 @@ add_library(noisepage_objlib OBJECT ${NOISEPAGE_SRCS})
 set_target_properties(noisepage_objlib PROPERTIES
         POSITION_INDEPENDENT_CODE ON                # Required for static linking into other shared libraries.
         CXX_EXTENSIONS OFF                          # Disable compiler extensions (e.g., use c++17 not gnu17).
-        UNITY_BUILD ON
+        UNITY_BUILD ${NOISEPAGE_UNITY_BUILD}        # Build multiple cpp files as a single cpp file.
         )
 target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_objlib uses the following.
         "-Werror"                                   # Treat warnings as errors.
@@ -484,6 +521,7 @@ add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)     # Bu
 target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)             # Consumers will inherit this link.
 
 #######################################################################################################################
+# HEADER noisepage binary.
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
@@ -492,6 +530,7 @@ target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
+# HEADER util_static binary.
 # util_static           :   table_generator and table_reader for tests and benchmarks.
 # TODO(WAN)             :   table_generator and table_reader are hacks, and the remaining cpp files are all TPL targets
 #                           handled elsewhere. Kill this target once we refactor those hacks out of our system.
@@ -507,9 +546,10 @@ list(REMOVE_ITEM UTIL_SRCS
 add_library(util_static STATIC ${UTIL_SRCS})
 target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
 target_link_libraries(util_static PUBLIC noisepage_static)
-set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ON)
+set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
 #######################################################################################################################
+# HEADER gen_opt_bc binary.
 # gen_opt_bc            :   Generates optimized bitcode from the LLVM IR file generated as a tpl post-build target.
 #######################################################################################################################
 
@@ -527,6 +567,7 @@ set_target_properties(
 )
 
 #######################################################################################################################
+# HEADER hack_bytecode_handlers_ir target.
 # hack_bytecode_handlers_ir     :   This target is not actually used to build the bytecode handlers, because the
 #                                   bytecode handlers have to be built with clang and it is possible that the current
 #                                   compiler is gcc -- you simply cannot mix two compilers in one CMake project
@@ -540,6 +581,7 @@ target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
 set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 
 #######################################################################################################################
+# HEADER tpl binary.
 # tpl                   :   Standalone binary for testing .tpl files and commands.
 #                           Also generates POST_BUILD bytecode_handlers_ir.bc.
 #######################################################################################################################
@@ -582,7 +624,7 @@ add_custom_command(
 )
 
 #######################################################################################################################
-# Tests.
+# HEADER Tests.
 #######################################################################################################################
 
 enable_testing()        # CTest support is built into CMake.
@@ -612,7 +654,7 @@ file(GLOB_RECURSE
 add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
 target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock util_static pqxx)
 target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ON)
+set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
 function(add_noisepage_test TEST_NAME TEST_CPP)
     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
@@ -621,6 +663,7 @@ function(add_noisepage_test TEST_NAME TEST_CPP)
     target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared ${ARGN})
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
+            ENABLE_EXPORTS ON                                   # Export for tpl.
             RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
             )
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
@@ -676,9 +719,9 @@ function(add_jumbotest FOLDER_PATH)
     target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
+            ENABLE_EXPORTS ON                                   # Export for tpl.
             RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
-            ENABLE_EXPORTS ON
-            UNITY_BUILD ON
+            UNITY_BUILD ${NOISEPAGE_UNITY_BUILD}                # Build multiple cpp files as a single cpp file.
             )
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
     # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
@@ -705,7 +748,7 @@ add_jumbotest("test/transaction")
 add_jumbotest("test/type")
 
 #######################################################################################################################
-# Benchmarks.
+# HEADER Benchmarks.
 #######################################################################################################################
 
 file(GLOB_RECURSE
@@ -739,7 +782,6 @@ macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
     list(APPEND NOISEPAGE_BENCHMARK ${BENCHMARK_NAME})
 endmacro()
 
-
 file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
         "benchmark/catalog/*.cpp"
         "benchmark/common/*.cpp"
@@ -760,6 +802,11 @@ foreach (NOISEPAGE_BENCHMARK_CPP ${NOISEPAGE_BENCHMARK_SOURCES})
     add_noisepage_benchmark(${NOISEPAGE_BENCHMARK} ${NOISEPAGE_BENCHMARK_CPP} ${NOISEPAGE_BENCHMARK_LINKS})
     add_dependencies(runbenchmark ${NOISEPAGE_BENCHMARK})
 endforeach ()
+
+#######################################################################################################################
+# HEADER Miscellaneous.
+# This is where helper scripts and other random CMake stuff goes.
+#######################################################################################################################
 
 #######################################################################################################################
 # Useful some day, maybe.
