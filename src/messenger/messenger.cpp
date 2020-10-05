@@ -150,7 +150,6 @@ class ZmqUtil {
     zmq::message_t payload_msg(msg.payload_.data(), msg.payload_.size());
     bool ok = true;
 
-    ok = ok && socket->send(identity_msg, zmq::send_flags::sndmore);
     ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore);
     ok = ok && socket->send(payload_msg, zmq::send_flags::none);
 
