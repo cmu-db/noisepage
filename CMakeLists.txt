@@ -472,7 +472,7 @@ target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)             # Co
 
 add_executable(noisepage src/main/terrier.cpp)
 target_link_libraries(noisepage noisepage_static)
-set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
 # util_static           :   table_generator and table_reader for tests and benchmarks.
@@ -503,6 +503,7 @@ set_target_properties(
         gen_opt_bc
         PROPERTIES
         CXX_EXTENSIONS OFF
+        ENABLE_EXPORTS ON
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -517,7 +518,7 @@ set_target_properties(
 #                                   with clang... :(
 #######################################################################################################################
 
-add_library(hack_bytecode_handlers_ir util/execution/bytecode_handlers_ir.cpp)
+add_library(hack_bytecode_handlers_ir EXCLUDE_FROM_ALL util/execution/bytecode_handlers_ir.cpp)
 target_link_libraries(hack_bytecode_handlers_ir PRIVATE noisepage_static)
 set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 
@@ -534,6 +535,7 @@ set_target_properties(
         tpl
         PROPERTIES
         CXX_EXTENSIONS OFF
+        ENABLE_EXPORTS ON
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -658,6 +660,7 @@ function(add_jumbotest FOLDER_PATH)
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
             RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
+            ENABLE_EXPORTS ON
             UNITY_BUILD ON
             )
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
@@ -843,16 +846,13 @@ unset(${CPPLINT_BIN})
 add_custom_target(
         check-tpl
         DEPENDS tpl
-        COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py \
-            -b ${CMAKE_BINARY_DIR}/bin/tpl \
-            -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt \
-            -t ${PROJECT_SOURCE_DIR}/sample_tpl \
-            -d ${CMAKE_BINARY_DIR}/bin"
+        COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py -b ${CMAKE_BINARY_DIR}/bin/tpl -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt -t ${PROJECT_SOURCE_DIR}/sample_tpl -d ${CMAKE_BINARY_DIR}/bin"
         COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
         -b ${CMAKE_BINARY_DIR}/bin/tpl
         -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
         -t ${PROJECT_SOURCE_DIR}/sample_tpl
         -d ${CMAKE_BINARY_DIR}/bin
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
         USES_TERMINAL
 )
 message(STATUS "[ADDED] check-tpl")
