@@ -57,7 +57,7 @@ void TypePrinter::VisitPointerType(const PointerType *type) {
 void TypePrinter::VisitStructType(const StructType *type) {
   Os() << "struct{";
   bool first = true;
-  for (const auto &field : type->GetFields()) {
+  for (const auto &field : type->GetAllFields()) {
     if (!first) {
       Os() << ",";
     }
