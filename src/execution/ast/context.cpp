@@ -32,12 +32,6 @@
 
 namespace terrier::execution::ast {
 
-Field CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
-  Identifier name = ctx->GetIdentifier("__pad$" + std::to_string(id) + "$");
-  auto *pad_type = BuiltinType::Get(ctx, BuiltinType::Int8);
-  return Field(name, ArrayType::Get(size, pad_type));
-}
-
 // ---------------------------------------------------------
 // Key type used in the cache for struct types in the context
 // ---------------------------------------------------------
@@ -282,6 +276,16 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
 
   return map_type;
 }
+
+namespace {
+
+Field CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
+  Identifier name = ctx->GetIdentifier("__pad$" + std::to_string(id) + "$");
+  auto *pad_type = BuiltinType::Get(ctx, BuiltinType::Int8);
+  return Field(name, ArrayType::Get(size, pad_type));
+}
+
+};  // namespace
 
 // static
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {

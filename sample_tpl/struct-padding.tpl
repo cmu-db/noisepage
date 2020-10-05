@@ -47,6 +47,10 @@ fun test3() -> int32 {
 
 fun main() -> int32 {
     var sum : int32
+
+    // Invokes each of test1(), test2(), and test3().
+    // Each function is expected to return 500 on success.
+    // A return value of 1500 indicates all 3 functions succeeded.
     sum = test1() + test2() + test3()
     return sum
 }

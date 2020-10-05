@@ -20,7 +20,7 @@ class TypeTest : public TplTest {
   ast::Identifier Name(const std::string &s) { return Ctx()->GetIdentifier(s); }
 
   void CheckIsArrayType(Type *type, size_t num_elem, Type *elem_type) {
-    EXPECT_EQ(type->GetTypeId(), Type::TypeId::ArrayType);
+    EXPECT_TRUE(type->IsArrayType());
 
     // Check that the BuiltinType matches
     auto *array_type = type->As<ArrayType>();
