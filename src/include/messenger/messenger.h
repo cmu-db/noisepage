@@ -20,6 +20,7 @@ class socket_t;
 namespace terrier::messenger {
 
 class ConnectionDestination;
+class MessengerPolledSockets;
 
 /** ConnectionId is an abstraction around establishing connections. */
 class ConnectionId {
@@ -31,11 +32,11 @@ class ConnectionId {
   friend Messenger;
   /**
    * Create a new ConnectionId that is connected to the specified target.
-   * @param zmq_ctx     The ZeroMQ context that holds this connection.
+   * @param messenger   The messenger that owns this connection ID.
    * @param target      The target to be connected to.
    * @param identity    The name that the connection should have.
    */
-  explicit ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, const ConnectionDestination &target,
+  explicit ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                         std::string_view identity);
 
   /** The ZMQ socket. */
@@ -103,6 +104,7 @@ class Messenger : public common::DedicatedThreadTask {
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message);
 
  private:
+  friend ConnectionId;
   static constexpr int MESSENGER_PORT = 9022;
   static constexpr const char *MESSENGER_DEFAULT_TCP = "tcp://*:9022";
   static constexpr const char *MESSENGER_DEFAULT_IPC = "ipc:///tmp/noisepage-ipc0";
@@ -114,6 +116,7 @@ class Messenger : public common::DedicatedThreadTask {
   common::ManagedPointer<MessengerLogic> messenger_logic_;
   std::unique_ptr<zmq::context_t> zmq_ctx_;
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
+  std::unique_ptr<MessengerPolledSockets> polled_sockets_;
   bool messenger_running_ = false;
   uint32_t connection_id_count_ = 0;
 };

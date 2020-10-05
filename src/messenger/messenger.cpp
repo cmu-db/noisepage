@@ -1,5 +1,7 @@
 #include "messenger/messenger.h"
 
+#include <mutex>
+#include <vector>
 #include <zmq.hpp>
 
 #include "common/dedicated_thread_registry.h"
@@ -100,6 +102,55 @@ class ZmqMessage {
   std::string payload_;
 };
 
+/** An abstraction around all the ZeroMQ poll items that the Messenger holds. */
+class MessengerPolledSockets {
+ public:
+  /** Wrapper around deficiency in C++ ZeroMQ poll API which doesn't have typed sockets. */
+  class PollItems {
+   public:
+    /** The items to be polled. */
+    std::vector<zmq::pollitem_t> items_;
+    /** Sockets corresponding to pollitems_. */
+    std::vector<zmq::socket_t *> sockets_;
+  };
+
+  /**
+   * @return    The list of items to be polled on and their corresponding sockets.
+   * @warning   Only one thread should be invoking GetPollItems().
+   */
+  PollItems &GetPollItems() {
+    // If there are pending poll items, add all of them to the main list of poll items.
+    if (!writer_.items_.empty()) {
+      std::scoped_lock lock(mutex_);
+      read_.items_.insert(read_.items_.cend(), writer_.items_.cbegin(), writer_.items_.cend());
+      read_.sockets_.insert(read_.sockets_.cend(), read_.sockets_.cbegin(), read_.sockets_.cend());
+      writer_.items_.clear();
+      writer_.sockets_.clear();
+    }
+    return read_;
+  }
+
+  /** Include the specified @p socket on all subsequent calls to pollitems. */
+  void AddPollItem(zmq::socket_t *socket) {
+    zmq::pollitem_t pollitem;
+    pollitem.socket = socket->operator void *();  // Poll on this raw socket.
+    pollitem.events = ZMQ_POLLIN;                 // Event: at least one message can be received on the socket.
+    {
+      std::scoped_lock lock(mutex_);
+      writer_.items_.emplace_back(pollitem);
+      writer_.sockets_.emplace_back(socket);
+    }
+  }
+
+ private:
+  /** The items to be polled (reader side). */
+  PollItems read_;
+  /** The items to be polled that can't be added yet (writer side). */
+  PollItems writer_;
+  /** Protecting the transfer of poll items from writer side to reader side. */
+  std::mutex mutex_;
+};
+
 }  // namespace terrier::messenger
 
 namespace terrier {
@@ -118,10 +169,7 @@ class ZmqUtil {
 
   /** @return The routing ID of the socket. */
   static std::string GetRoutingId(common::ManagedPointer<zmq::socket_t> socket) {
-    char buf[MAX_ROUTING_ID_LEN];
-    size_t routing_id_len = MAX_ROUTING_ID_LEN;
-    socket->getsockopt(ZMQ_ROUTING_ID, &buf, &routing_id_len);
-    return std::string(buf, routing_id_len);
+    return socket->get(zmq::sockopt::routing_id);
   }
 
   /** @return The next string to be read off the socket. */
@@ -163,14 +211,17 @@ class ZmqUtil {
 
 namespace terrier::messenger {
 
-ConnectionId::ConnectionId(common::ManagedPointer<zmq::context_t> zmq_ctx, const ConnectionDestination &target,
+ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                            std::string_view identity) {
   // Create a new DEALER socket and connect to the server.
-  socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx, ZMQ_DEALER);
-  socket_->setsockopt(ZMQ_ROUTING_ID, identity.data(), identity.size());
+  socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_DEALER);
+  socket_->set(zmq::sockopt::routing_id, identity);
+  // Disable discarding unroutable messages silently.
+  socket_->set(zmq::sockopt::router_mandatory, true);
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
-
   socket_->connect(target.GetDestination());
+  // Add the new socket to the list of sockets that will be polled by the server loop.
+  messenger->polled_sockets_->AddPollItem(socket_.get());
 }
 
 ConnectionId::~ConnectionId() = default;
@@ -187,7 +238,7 @@ Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : m
   zmq_default_socket_ = std::make_unique<zmq::socket_t>(*zmq_ctx_, ZMQ_ROUTER);
   // By default, the ROUTER socket silently discards messages that cannot be routed.
   // By setting ZMQ_ROUTER_MANDATORY, the ROUTER socket errors with EHOSTUNREACH instead.
-  zmq_default_socket_->setsockopt(ZMQ_ROUTER_MANDATORY, 1);
+  zmq_default_socket_->set(zmq::sockopt::router_mandatory, true);
 
   // Bind the same ZeroMQ socket over the default TCP, IPC, and in-process channels.
   {
@@ -204,19 +255,36 @@ Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : m
     // zmq_ctx_set(zmq_ctx_, ZMQ_IO_THREADS, NUM_IO_THREADS);
   }
 
+  polled_sockets_ = std::make_unique<MessengerPolledSockets>();
+  polled_sockets_->AddPollItem(zmq_default_socket_.get());
   messenger_running_ = true;
 }
 
 Messenger::~Messenger() = default;
 
 void Messenger::RunTask() {
-  // Run the server loop.
-  ServerLoop();
+  try {
+    // Run the server loop.
+    ServerLoop();
+  } catch (zmq::error_t &err) {
+    switch (err.num()) {
+      case ETERM:
+        // The ZeroMQ context was terminated, which means the messenger should have shut down. If so, close cleanly.
+        if (!messenger_running_) {
+          MESSENGER_LOG_INFO(fmt::format("Messenger terminated: {}", err.what()));
+          break;
+        }
+      default:
+        // Unknown error, throw it back up.
+        throw err;
+    }
+  }
 }
 
 void Messenger::Terminate() {
   messenger_running_ = false;
-  // TODO(WAN): zmq cleanup? or is that all handled with RAII?
+  // Shut down the ZeroMQ context. This causes all existing sockets to abort with ETERM.
+  zmq_ctx_->shutdown();
 }
 
 void Messenger::ListenForConnection(const ConnectionDestination &target) {
@@ -225,7 +293,7 @@ void Messenger::ListenForConnection(const ConnectionDestination &target) {
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity) {
   const auto &identifier = identity.has_value() ? identity.value() : fmt::format("conn{}", connection_id_count_++);
-  return ConnectionId(common::ManagedPointer(zmq_ctx_), target, identifier);
+  return ConnectionId(common::ManagedPointer(this), target, identifier);
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message) {
@@ -234,17 +302,30 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
 }
 
 void Messenger::ServerLoop() {
-  common::ManagedPointer<zmq::socket_t> socket{zmq_default_socket_};
-
   while (messenger_running_) {
-    ZmqMessage msg = ZmqUtil::RecvMsg(socket);
+    auto poll_items = polled_sockets_->GetPollItems();
+    int num_sockets_with_data = zmq::poll(poll_items.items_, std::chrono::milliseconds::max());
+    for (size_t i = 0; i < poll_items.items_.size(); ++i) {
+      zmq::pollitem_t &item = poll_items.items_[i];
+      // If no more sockets have data, then go back to polling.
+      if (0 == num_sockets_with_data) {
+        break;
+      }
+      // Otherwise, at least some socket has data. Is it the current socket?
+      bool socket_has_data = item.revents & ZMQ_POLLIN;
+      if (socket_has_data) {
+        common::ManagedPointer<zmq::socket_t> socket(poll_items.sockets_[i]);
+        ZmqMessage msg = ZmqUtil::RecvMsg(socket);
 
-    messenger_logic_->ProcessMessage(msg.identity_, msg.payload_);
-    messenger::ZmqMessage reply;
-    reply.identity_ = msg.identity_;
-    reply.payload_ = "pong";
-    ZmqUtil::SendMsg(socket, reply);
-    MESSENGER_LOG_INFO("SEND \"{}\": \"{}\"", reply.identity_, reply.payload_);
+        messenger_logic_->ProcessMessage(msg.identity_, msg.payload_);
+        messenger::ZmqMessage reply;
+        reply.identity_ = msg.identity_;
+        reply.payload_ = "pong";
+        ZmqUtil::SendMsg(socket, reply);
+        MESSENGER_LOG_INFO("SEND \"{}\": \"{}\"", reply.identity_, reply.payload_);
+        --num_sockets_with_data;
+      }
+    }
   }
 }
 
