@@ -169,10 +169,9 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
       // The second child expression shall be evaluated as a part of the new aggregation before the new filter
       if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      }
-      // Otherwise, the first child is a (expr) and the second child is outer_relation.a
-      // The first child expression shall be evaluated as a part of the new aggregation before the new filter
-      else {
+      } else {
+        // Otherwise, the first child is a (expr) and the second child is outer_relation.a
+        // The first child expression shall be evaluated as a part of the new aggregation before the new filter
         new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
       }
     }
