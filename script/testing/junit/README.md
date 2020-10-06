@@ -7,14 +7,16 @@ This directory contains tests using Junit5.
 1. The moglib directory contains modified APIs from Wan's mogjdbc library 
 used to handle database interaction
 
-2. GenerateTrace converts input file consisting of sql statements to trace file format
+2. GenerateTrace converts input file consisting of sql statements to trace file format,
+generate exact result if the number of result is less than Constants.DISPLAY_RESULT_SIZE
 
 3. There are two sets of tests: trace tests and non-trace related junit tests.
 
 * TracefileTest takes in path to a trace file from an environment variable called 
 NOISEPAGE_TRACE_FILE and dynamically generate a test case for each query. 
 (Test case: execute the query, get the result from database and
-check if the hash match)
+check if the hash/result/len match). If a non-select query failed and the error
+code is provided in the trace, the codes will be compared as well.
 
 * TrafficCopTest and WireTest are non-trace related junit tests.
 
@@ -85,16 +87,25 @@ ant generate-trace -Dpath=traces/select.sql -Ddb-url=jdbc:postgresql://localhost
  
 Comments are supported for input files (line starting with "#")
 Inlucde "Fail" in comment if you expect the query to fail
-Use the format "No of outputs" to specify the expected number of outputs; if a number is specified,
+Use the format "Num of outputs" to specify the expected number of outputs; if a number is specified,
 then in TracefileTest the queryresult length are checked as well.
+Use the format "Include Outputs" to specify that you want to store the exact query result instead
+of hash
 
 Example input line for GenerateTrace: 
-# No of outputs: 2
+# Num of outputs: 2
 SELECT t1 FROM TableA
 
 Then in TracefileTest, the sql statement will be executed and in addition to checking if the hash
 match, the number of results will be checked as well. An exception will be thrown if we don't
 get 2 results for the example.
+
+Example input line for GenerateTrace: 
+# Include Outputs
+SELECT t1 FROM TableA
+
+Then, in the tracefile, result from the query, let's say, [1,2,3], will be stored instead of the hash
+
 
 ## Installation and pre-requisites
 
