@@ -1,5 +1,3 @@
-#include <gflags/gflags.h>
-
 #include <cstdio>
 #include <functional>
 #include <pqxx/pqxx>  // NOLINT
@@ -21,6 +19,7 @@
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
+#include "gflags/gflags.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/forced_cost_model.h"

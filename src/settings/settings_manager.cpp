@@ -1,11 +1,10 @@
 #include "settings/settings_manager.h"
 
-#include <gflags/gflags.h>
-
 #include <algorithm>
 
 #include "common/macros.h"
 #include "execution/sql/value_util.h"
+#include "gflags/gflags.h"
 #include "main/db_main.h"
 #include "parser/expression/constant_value_expression.h"
 #include "settings/settings_callbacks.h"
