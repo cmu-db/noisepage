@@ -43,6 +43,7 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
+
   /**
    * If the provided pipeline is the build-side, initialize the declare partial aggregate.
    * @param pipeline The pipeline whose state is being initialized.
@@ -142,6 +143,11 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
 
   // For distinct aggregations
   std::unordered_map<size_t, DistinctAggregationFilter> distinct_filters_;
+  // The number of input rows to the aggregation.
+  StateDescriptor::Entry num_agg_inputs_;
+
+  // The number of output rows from the aggregation.
+  StateDescriptor::Entry num_agg_outputs_;
 };
 
 }  // namespace terrier::execution::compiler

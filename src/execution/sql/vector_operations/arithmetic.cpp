@@ -32,17 +32,20 @@ void CheckBinaryOperation(const Vector &left, const Vector &right, Vector *resul
   if (left.GetTypeId() != right.GetTypeId()) {
     throw EXECUTION_EXCEPTION(
         fmt::format("Left and right vector types to binary operation must be the same, left {} right {}",
-                    TypeIdToString(left.GetTypeId()), TypeIdToString(right.GetTypeId())));
+                    TypeIdToString(left.GetTypeId()), TypeIdToString(right.GetTypeId())),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   if (left.GetTypeId() != result->GetTypeId()) {
     throw EXECUTION_EXCEPTION(
         fmt::format("Result type of binary operation must be the same as input type, input {} result {}.",
-                    TypeIdToString(left.GetTypeId()), TypeIdToString(result->GetTypeId())));
+                    TypeIdToString(left.GetTypeId()), TypeIdToString(result->GetTypeId())),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   if (!left.IsConstant() && !right.IsConstant() && left.GetCount() != right.GetCount()) {
     throw EXECUTION_EXCEPTION(
         fmt::format("Left and right input vectors to binary operation must have the same size, left {} right {}.",
-                    left.GetCount(), right.GetCount()));
+                    left.GetCount(), right.GetCount()),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 
@@ -153,7 +156,8 @@ void DivModOperation(const Vector &left, const Vector &right, Vector *result) {
       break;
     default:
       throw EXECUTION_EXCEPTION(
-          fmt::format("Invalid type for arithmetic operation, {}.", TypeIdToString(left.GetTypeId())));
+          fmt::format("Invalid type for arithmetic operation, {}.", TypeIdToString(left.GetTypeId())),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 
@@ -195,7 +199,8 @@ void BinaryArithmeticOperation(const exec::ExecutionSettings &exec_settings, con
       break;
     default:
       throw EXECUTION_EXCEPTION(
-          fmt::format("Invalid type for arithmetic operation, {}.", TypeIdToString(left.GetTypeId())));
+          fmt::format("Invalid type for arithmetic operation, {}.", TypeIdToString(left.GetTypeId())),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

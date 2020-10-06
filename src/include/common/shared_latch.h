@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tbb/reader_writer_lock.h>
+
 #include "common/macros.h"
 
 namespace terrier::common {

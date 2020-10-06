@@ -1,7 +1,7 @@
-#include "execution/tpl_test.h"
-
 #include "execution/ast/ast.h"
+
 #include "execution/ast/ast_node_factory.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::ast::test {
 

@@ -1,10 +1,10 @@
+#include "optimizer/statistics/histogram.h"
+
 #include <random>
 #include <sstream>
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "optimizer/statistics/histogram.h"
-
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {

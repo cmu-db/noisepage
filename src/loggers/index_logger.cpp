@@ -2,9 +2,6 @@
 
 #include <memory>
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 namespace terrier::storage {
 
 std::shared_ptr<spdlog::logger> index_logger = nullptr;  // NOLINT

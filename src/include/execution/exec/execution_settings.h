@@ -33,12 +33,20 @@ class EXPORT ExecutionSettings {
   /** @return True if parallel query execution is enabled. */
   constexpr bool GetIsParallelQueryExecutionEnabled() const { return is_parallel_execution_enabled_; }
 
+  /** @return number of threads used for parallel execution. */
+  constexpr int GetNumberofThreads() const { return number_of_threads_; }
+
+  /** @return True if static partitioner is enabled. */
+  constexpr bool GetIsStaticPartitionerEnabled() const { return is_static_partitioner_enabled_; }
+
  private:
   double select_opt_threshold_{common::Constants::SELECT_OPT_THRESHOLD};
   double arithmetic_full_compute_opt_threshold_{common::Constants::ARITHMETIC_FULL_COMPUTE_THRESHOLD};
   float min_bit_density_threshold_for_avx_index_decode_{common::Constants::BIT_DENSITY_THRESHOLD_FOR_AVX_INDEX_DECODE};
   float adaptive_predicate_order_sampling_frequency_{common::Constants::ADAPTIVE_PRED_ORDER_SAMPLE_FREQ};
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
+  int number_of_threads_{common::Constants::NUM_THREADS};
+  bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
   friend class terrier::runner::MiniRunners;

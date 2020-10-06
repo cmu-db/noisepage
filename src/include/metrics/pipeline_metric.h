@@ -49,8 +49,8 @@ class PipelineMetricRawData : public AbstractRawData {
     auto &outfile = (*outfiles)[0];
 
     for (auto &data : pipeline_data_) {
-      outfile << (!data.query_id_) << ", ";
-      outfile << (!data.pipeline_id_) << ", ";
+      outfile << data.query_id_.UnderlyingValue() << ", ";
+      outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
@@ -130,11 +130,11 @@ class PipelineMetricRawData : public AbstractRawData {
     }
 
     std::string GetCardinalityVectorString() {
-      std::vector<double> cars;
+      std::vector<size_t> cars;
       for (auto &feature : features_) {
         cars.emplace_back(feature.GetCardinality());
       }
-      return ConcatVectorToString<double>(cars);
+      return ConcatVectorToString<size_t>(cars);
     }
 
     std::string GetKeySizeVectorString() {

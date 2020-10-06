@@ -587,6 +587,8 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
                       use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
                       chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);
+
+  built_ = true;
 }
 
 }  // namespace terrier::execution::sql

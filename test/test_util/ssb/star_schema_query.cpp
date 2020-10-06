@@ -1,8 +1,7 @@
 #include "test_util/ssb/star_schema_query.h"
 
-#include "execution/compiler/compilation_context.h"
-
 #include "catalog/catalog_accessor.h"
+#include "execution/compiler/compilation_context.h"
 #include "execution/compiler/expression_maker.h"
 #include "execution/compiler/output_schema_util.h"
 #include "execution/sql/sql_def.h"

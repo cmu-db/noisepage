@@ -1,3 +1,5 @@
+#include "optimizer/statistics/count_min_sketch.h"
+
 #include <cmath>
 #include <random>
 #include <string>
@@ -6,8 +8,6 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "optimizer/statistics/count_min_sketch.h"
-
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {

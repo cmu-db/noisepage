@@ -147,7 +147,7 @@ class Simple {
 
   ~Simple() { count--; }
 
-  uint32_t id() const noexcept { return id_; }
+  uint32_t Id() const noexcept { return id_; }
 
  private:
   uint32_t id_;
@@ -164,9 +164,9 @@ TEST_F(ChunkedVectorTest, ClearTest) {
   v.emplace_back(3);
 
   EXPECT_EQ(3u, v.size());
-  EXPECT_EQ(1u, v[0].id());
-  EXPECT_EQ(2u, v[1].id());
-  EXPECT_EQ(3u, v[2].id());
+  EXPECT_EQ(1u, v[0].Id());
+  EXPECT_EQ(2u, v[1].Id());
+  EXPECT_EQ(3u, v[2].Id());
 
   v.clear();
 
@@ -177,9 +177,9 @@ TEST_F(ChunkedVectorTest, ClearTest) {
   v.emplace_back(12);
 
   EXPECT_EQ(3u, v.size());
-  EXPECT_EQ(10u, v[0].id());
-  EXPECT_EQ(11u, v[1].id());
-  EXPECT_EQ(12u, v[2].id());
+  EXPECT_EQ(10u, v[0].Id());
+  EXPECT_EQ(11u, v[1].Id());
+  EXPECT_EQ(12u, v[2].Id());
 }
 
 // NOLINTNEXTLINE

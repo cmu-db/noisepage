@@ -3,6 +3,8 @@
 #include <random>
 #include <vector>
 
+#include "common/error/error_code.h"
+#include "common/error/exception.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
@@ -232,6 +234,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
     CHECK_SQL_FUNC(Cosh, std::cosh);
     CHECK_SQL_FUNC(Tanh, std::tanh);
     CHECK_SQL_FUNC(Sinh, std::sinh);
+    CHECK_SQL_FUNC(Round, std::round);
   }
 
   for (const auto input : arc_inputs) {
@@ -272,9 +275,13 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 
   CHECK_SQL_FUNC(Sqrt, std::sqrt, 4.0);
   CHECK_SQL_FUNC(Sqrt, std::sqrt, 1.0);
+  CHECK_SQL_FUNC(Sqrt, std::sqrt, 50.1);
+  CHECK_SQL_FUNC(Sqrt, std::sqrt, 100.234);
 
   CHECK_SQL_FUNC(Cbrt, std::cbrt, 4.0);
-  CHECK_SQL_FUNC(Cbrt, std::cbrt, 1.0);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, -1.0);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, 50.1);
+  CHECK_SQL_FUNC(Cbrt, std::cbrt, -100.234);
 
   CHECK_SQL_FUNC(Exp, std::exp, 4.0);
   CHECK_SQL_FUNC(Exp, std::exp, 1.0);
@@ -298,6 +305,11 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
 
   CHECK_SQL_FUNC(Log10, std::log10, 4.4);
   CHECK_SQL_FUNC(Log10, std::log10, 100.234);
+
+  CHECK_SQL_FUNC(Round, std::round, 100.4);
+  CHECK_SQL_FUNC(Round, std::round, 100.5);
+  CHECK_SQL_FUNC(Round, std::round, -100.4);
+  CHECK_SQL_FUNC(Round, std::round, -100.5);
 
 #undef CHECK_SQL_FUNC
 #undef CHECK_HANDLES_NONNULL
@@ -325,6 +337,61 @@ TEST_F(ArithmeticFunctionsTests, Sign) {
   ArithmeticFunctions::Sign(&result, input);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(0.0, result.val_);
+}
+
+// Round2
+TEST_F(ArithmeticFunctionsTests, Round) {
+  Real input = Real::Null(), result = Real::Null();
+  Integer precision = Integer::Null();
+
+  input = Real::Null();
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_TRUE(result.is_null_);
+
+  input = Real(12.345);
+  precision = Integer::Null();
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_TRUE(result.is_null_);
+
+  input = Real(12.345);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(12.35, result.val_);
+
+  input = Real(12.344);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(12.34, result.val_);
+
+  input = Real(-12.345);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(-12.35, result.val_);
+
+  input = Real(-12.344);
+  precision = Integer(2);
+  ArithmeticFunctions::Round2(&result, input, precision);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_DOUBLE_EQ(-12.34, result.val_);
+}
+
+TEST_F(ArithmeticFunctionsTests, OutOfRangeTest) {
+#define OUT_OF_RANGE(TPL_FUNC)                                                   \
+  {                                                                              \
+    try {                                                                        \
+      Real result = Real::Null();                                                \
+      ArithmeticFunctions::TPL_FUNC(&result, Real(42.0));                        \
+      FAIL();                                                                    \
+    } catch (ExecutionException & e) {                                           \
+      EXPECT_EQ(common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE, e.code_); \
+    }                                                                            \
+  }
+  OUT_OF_RANGE(Asin)
+  OUT_OF_RANGE(Acos)
 }
 
 }  // namespace terrier::execution::sql::test

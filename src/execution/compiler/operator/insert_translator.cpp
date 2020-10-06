@@ -41,7 +41,11 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
       compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
+
+  num_inserts_ = CounterDeclare("num_inserts");
 }
+
+void InsertTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_inserts_, 0); }
 
 void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
@@ -67,6 +71,14 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     }
   }
 
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, context->GetPipeline(),
+                CounterVal(num_inserts_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::INSERT,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, context->GetPipeline(),
+                CounterVal(num_inserts_));
+  FeatureArithmeticRecordMul(function, context->GetPipeline(), GetTranslatorId(), CounterVal(num_inserts_));
+
   GenInserterFree(function);
 }
 
@@ -79,7 +91,8 @@ void InsertTranslator::DeclareInserter(terrier::execution::compiler::FunctionBui
   builder->Append(GetCodeGen()->DeclareVar(inserter_, storage_interface_type, nullptr));
   // @storageInterfaceInit(inserter, execCtx, table_oid, col_oids, true)
   ast::Expr *inserter_setup = GetCodeGen()->StorageInterfaceInit(
-      inserter_, GetExecutionContext(), !GetPlanAs<planner::InsertPlanNode>().GetTableOid(), col_oids_, true);
+      inserter_, GetExecutionContext(), GetPlanAs<planner::InsertPlanNode>().GetTableOid().UnderlyingValue(), col_oids_,
+      true);
   builder->Append(GetCodeGen()->MakeStmt(inserter_setup));
 }
 
@@ -112,7 +125,7 @@ void InsertTranslator::SetOids(FunctionBuilder *builder) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids[i] = col_oid
     ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(!all_oids_[i]);
+    ast::Expr *rhs = GetCodeGen()->Const32(all_oids_[i].UnderlyingValue());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -150,13 +163,16 @@ void InsertTranslator::GenTableInsert(FunctionBuilder *builder) const {
   const auto &insert_slot = GetCodeGen()->MakeFreshIdentifier("insert_slot");
   auto *insert_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableInsert, {GetCodeGen()->AddressOf(inserter_)});
   builder->Append(GetCodeGen()->DeclareVar(insert_slot, nullptr, insert_call));
+
+  CounterAdd(builder, num_inserts_, 1);
 }
 
 void InsertTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *builder,
                                       const catalog::index_oid_t &index_oid) const {
   // var insert_index_pr = @getIndexPR(&inserter, oid)
   const auto &insert_index_pr = GetCodeGen()->MakeFreshIdentifier("insert_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(inserter_), GetCodeGen()->Const32(!index_oid)};
+  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(inserter_),
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(insert_index_pr, nullptr, get_index_pr_call));
 

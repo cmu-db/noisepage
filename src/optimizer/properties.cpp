@@ -1,4 +1,5 @@
 #include "optimizer/properties.h"
+
 #include "common/hash_util.h"
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"

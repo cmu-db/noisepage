@@ -1,6 +1,5 @@
 #pragma once
 
-#include <condition_variable>  // NOLINT
 #include <queue>
 #include <tuple>
 #include <unordered_map>

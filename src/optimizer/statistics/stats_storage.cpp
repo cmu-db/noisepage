@@ -1,9 +1,9 @@
+#include "optimizer/statistics/stats_storage.h"
+
 #include <memory>
 #include <utility>
 
 #include "loggers/optimizer_logger.h"
-
-#include "optimizer/statistics/stats_storage.h"
 
 namespace terrier::optimizer {
 common::ManagedPointer<TableStats> StatsStorage::GetTableStats(catalog::db_oid_t database_id,

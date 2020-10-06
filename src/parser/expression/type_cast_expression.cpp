@@ -1,4 +1,5 @@
 #include "parser/expression/type_cast_expression.h"
+
 #include "common/json.h"
 
 namespace terrier::parser {

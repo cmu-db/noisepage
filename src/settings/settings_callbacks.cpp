@@ -137,4 +137,15 @@ void Callbacks::MetricsExecuteCommand(void *const old_value, void *const new_val
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, DBMain *const db_main,
+                                  common::ManagedPointer<common::ActionContext> action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::QUERY_TRACE, 0);
+  else
+    db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::QUERY_TRACE);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 }  // namespace terrier::settings

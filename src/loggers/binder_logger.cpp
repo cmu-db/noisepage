@@ -2,9 +2,6 @@
 
 #include <memory>
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 namespace terrier::binder {
 
 std::shared_ptr<spdlog::logger> binder_logger = nullptr;  // NOLINT

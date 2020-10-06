@@ -1,10 +1,10 @@
+#include "storage/arrow_serializer.h"
+
 #include <cstring>
 #include <fstream>
 #include <list>
 #include <string>
 #include <vector>
-
-#include "storage/arrow_serializer.h"
 
 namespace terrier::storage {
 
@@ -61,13 +61,13 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
   for (col_id_t col_id : layout.AllColumns()) {
     ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
     // TODO(Yuze): Change column name when we have the information, which we may need from upper layers.
-    auto name = flatbuf_builder->CreateString("Col" + std::to_string(!col_id));
+    auto name = flatbuf_builder->CreateString("Col" + std::to_string(col_id.UnderlyingValue()));
     flatbuf::Type type;
     flatbuffers::Offset<void> type_offset;
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = data_table_.accessor_.GetBlockLayout().AttrSize(col_id);
-      switch ((*col_types)[!col_id]) {
+      switch ((*col_types)[col_id.UnderlyingValue()]) {
         case type::TypeId::BOOLEAN:
           type = flatbuf::Type_Bool;
           type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();

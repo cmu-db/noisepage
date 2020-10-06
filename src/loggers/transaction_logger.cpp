@@ -2,9 +2,6 @@
 
 #include <memory>
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 namespace terrier::transaction {
 
 std::shared_ptr<spdlog::logger> transaction_logger = nullptr;  // NOLINT

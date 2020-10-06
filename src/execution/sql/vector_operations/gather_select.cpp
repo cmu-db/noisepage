@@ -35,16 +35,20 @@ void CheckGatherAndSelect(const Vector &input, const Vector &pointers, UNUSED_AT
                           TupleIdList *result) {
   if (pointers.GetTypeId() != TypeId::Pointer) {
     throw EXECUTION_EXCEPTION(
-        fmt::format("Pointers vector must be TypeId::Pointer, but is type {}.", TypeIdToString(pointers.GetTypeId())));
+        fmt::format("Pointers vector must be TypeId::Pointer, but is type {}.", TypeIdToString(pointers.GetTypeId())),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   if (input.GetSize() != pointers.GetSize()) {
     throw EXECUTION_EXCEPTION(
-        fmt::format("Input vectors have mismatched shapes, {} vs {}.", input.GetSize(), pointers.GetSize()));
+        fmt::format("Input vectors have mismatched shapes, {} vs {}.", input.GetSize(), pointers.GetSize()),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   if (result->GetCapacity() != input.GetSize()) {
-    throw EXECUTION_EXCEPTION(fmt::format(
-        "Result list not large enough to store all TIDs in input vector, input size {} results capacity {}.",
-        input.GetSize(), result->GetCapacity()));
+    throw EXECUTION_EXCEPTION(
+        fmt::format(
+            "Result list not large enough to store all TIDs in input vector, input size {} results capacity {}.",
+            input.GetSize(), result->GetCapacity()),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

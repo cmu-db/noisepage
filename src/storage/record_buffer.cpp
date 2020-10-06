@@ -1,4 +1,5 @@
 #include "storage/record_buffer.h"
+
 #include "storage/write_ahead_log/log_manager.h"
 
 namespace terrier::storage {

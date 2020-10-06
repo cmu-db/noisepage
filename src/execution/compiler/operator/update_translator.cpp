@@ -36,7 +36,11 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
       compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
+
+  num_updates_ = CounterDeclare("num_updates");
 }
+
+void UpdateTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_updates_, 0); }
 
 void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
@@ -77,8 +81,18 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   }
   function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
+  CounterAdd(function, num_updates_, 1);
+
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);
+}
+
+void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 
 void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) const {
@@ -90,7 +104,8 @@ void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuil
   builder->Append(GetCodeGen()->DeclareVar(updater_, storage_interface_type, nullptr));
   // @storageInterfaceInit(updater, execCtx, table_oid, col_oids, true)
   ast::Expr *updater_setup = GetCodeGen()->StorageInterfaceInit(
-      updater_, GetExecutionContext(), !GetPlanAs<planner::UpdatePlanNode>().GetTableOid(), col_oids_, true);
+      updater_, GetExecutionContext(), GetPlanAs<planner::UpdatePlanNode>().GetTableOid().UnderlyingValue(), col_oids_,
+      true);
   builder->Append(GetCodeGen()->MakeStmt(updater_setup));
 }
 
@@ -124,7 +139,7 @@ void UpdateTranslator::SetOids(FunctionBuilder *builder) const {
   for (uint16_t i = 0; i < all_oids_.size(); i++) {
     // col_oids[i] = col_oid
     ast::Expr *lhs = GetCodeGen()->ArrayAccess(col_oids_, i);
-    ast::Expr *rhs = GetCodeGen()->Const32(!all_oids_[i]);
+    ast::Expr *rhs = GetCodeGen()->Const32(all_oids_[i].UnderlyingValue());
     builder->Append(GetCodeGen()->Assign(lhs, rhs));
   }
 }
@@ -198,7 +213,8 @@ void UpdateTranslator::GenIndexInsert(WorkContext *context, FunctionBuilder *bui
                                       const catalog::index_oid_t &index_oid) const {
   // var insert_index_pr = @getIndexPR(&updater, oid)
   const auto &insert_index_pr = GetCodeGen()->MakeFreshIdentifier("insert_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_), GetCodeGen()->Const32(!index_oid)};
+  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_),
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(insert_index_pr, nullptr, get_index_pr_call));
 
@@ -247,7 +263,8 @@ void UpdateTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
                                       const catalog::index_oid_t &index_oid) const {
   // var delete_index_pr = @getIndexPR(&updater, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_), GetCodeGen()->Const32(!index_oid)};
+  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(updater_),
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 

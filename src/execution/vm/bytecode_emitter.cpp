@@ -384,4 +384,8 @@ void BytecodeEmitter::EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar
 
 void BytecodeEmitter::EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx) { EmitAll(bytecode, exec_ctx); }
 
+void BytecodeEmitter::EmitConcat(LocalVar ret, LocalVar exec_ctx, LocalVar inputs, uint32_t num_inputs) {
+  EmitAll(Bytecode::Concat, ret, exec_ctx, inputs, num_inputs);
+}
+
 }  // namespace terrier::execution::vm

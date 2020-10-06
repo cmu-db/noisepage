@@ -1,5 +1,4 @@
 #include "execution/vm/bytecode_handlers.h"
-
 #include "execution/vm/bytecodes.h"
 
 extern "C" {

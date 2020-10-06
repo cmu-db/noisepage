@@ -138,6 +138,11 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *ConstString(std::string_view str) const;
 
+  /**
+   * @return A literal null whose type matches the provided type
+   */
+  [[nodiscard]] ast::Expr *ConstNull(type::TypeId type) const;
+
   // ---------------------------------------------------------------------------
   //
   // Type representations (not full TPL types !!)
@@ -751,6 +756,19 @@ class CodeGen {
   [[nodiscard]] ast::Expr *ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows_affected);
 
   /**
+   * Call \@execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value).
+   * @param exec_ctx The execution context to modify.
+   * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
+   * @param feature_id The ID of the feature to be recorded.
+   * @param feature_attribute The attribute of the feature to record.
+   * @param value The value to be recorded.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
+                                                brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                                ast::Expr *value);
+
+  /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.
    * @param exec_ctx The execution context variable.
    * @return The call.
@@ -899,6 +917,44 @@ class CodeGen {
    * @return The call.
    */
   [[nodiscard]] ast::Expr *HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type);
+
+  /**
+   * Call \@joinHTIterInit(). Initializes a join hash table iterator which iterates over every element
+   * of the hash table.
+   * @param iter A pointer to the iterator.
+   * @param ht A pointer to the hash table to iterate over.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorInit(ast::Expr *iter, ast::Expr *ht);
+
+  /**
+   * Call \@joinHTIterHasNext(). Determines if the given iterator has more data.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorHasNext(ast::Expr *iter);
+
+  /**
+   * Call \@joinHTIterNext(). Advances the iterator by one element.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorNext(ast::Expr *iter);
+
+  /**
+   * Call \@joinHTIterGetRow(). Returns a pointer to the payload the iterator is currently positioned at.
+   * @param iter A pointer to the iterator.
+   * @param payload_type The type of the payload
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type);
+
+  /**
+   * Call \@joinHTIterFree(). Cleans up and destroys the given iterator.
+   * @param iter A pointer to the iterator.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *JoinHTIteratorFree(ast::Expr *iter);
 
   // -------------------------------------------------------
   //

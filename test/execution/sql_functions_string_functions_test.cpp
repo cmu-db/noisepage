@@ -33,24 +33,50 @@ TEST_F(StringFunctionsTests, Concat) {
   // Nulls
   {
     auto result = StringVal("");
-    StringFunctions::Concat(&result, Ctx(), StringVal::Null(), StringVal::Null());
-    EXPECT_TRUE(result.is_null_);
+    auto null_string = StringVal::Null();
+    const StringVal *args[2] = {&null_string, &null_string};
+    StringFunctions::Concat(&result, Ctx(), args, 2);
+    EXPECT_EQ(StringVal(""), result);
 
-    StringFunctions::Concat(&result, Ctx(), StringVal::Null(), StringVal("xy"));
-    EXPECT_TRUE(result.is_null_);
+    auto xy_string = StringVal("xy");
+    args[1] = &xy_string;
+    StringFunctions::Concat(&result, Ctx(), args, 2);
+    EXPECT_EQ(StringVal("xy"), result);
 
-    StringFunctions::Concat(&result, Ctx(), StringVal("xy"), StringVal::Null());
-    EXPECT_TRUE(result.is_null_);
+    args[0] = &xy_string;
+    args[1] = &null_string;
+    StringFunctions::Concat(&result, Ctx(), args, 2);
+    EXPECT_EQ(StringVal("xy"), result);
   }
 
   // Simple Case
   {
     auto result = StringVal("");
-    auto x = StringVal("xyz");
-    auto a = StringVal("abc");
-
-    StringFunctions::Concat(&result, Ctx(), x, a);
+    auto xyz = StringVal("xyz");
+    auto abc = StringVal("abc");
+    const StringVal *args[2] = {&xyz, &abc};
+    StringFunctions::Concat(&result, Ctx(), args, 2);
     EXPECT_TRUE(StringVal("xyzabc") == result);
+  }
+
+  // Single arg
+  {
+    auto result = StringVal("");
+    auto xyz = StringVal("xyz");
+    const StringVal *args[1] = {&xyz};
+    StringFunctions::Concat(&result, Ctx(), args, 1);
+    EXPECT_EQ(StringVal("xyz"), result);
+  }
+
+  // Multiple arg
+  {
+    auto result = StringVal("");
+    auto xyz = StringVal("xyz");
+    auto sixsixsix = StringVal("666");
+    auto towel = StringVal("towel");
+    const StringVal *args[3] = {&xyz, &sixsixsix, &towel};
+    StringFunctions::Concat(&result, Ctx(), args, 3);
+    EXPECT_EQ(StringVal("xyz666towel"), result);
   }
 }
 
@@ -195,6 +221,32 @@ TEST_F(StringFunctionsTests, SplitPart) {
     EXPECT_TRUE(x == result);
   }
 
+  // String continues beyond length
+  {
+    std::string sub = "I only love my bed";
+    // We create a StringVal that only uses a portion of the underlying string
+    auto x = StringVal(test_string_1_, sub.length());
+    auto result = StringVal("");
+
+    const char *delim = " ";
+    auto s = llvm::StringRef(test_string_1_);
+
+    llvm::SmallVector<llvm::StringRef, 4> splits;
+    s.split(splits, delim);
+
+    for (uint32_t i = 0; i < splits.size(); i++) {
+      StringFunctions::SplitPart(&result, Ctx(), x, StringVal(delim), Integer(i + 1));
+      auto split = splits[i].str();
+      if (i <= 4) {
+        // Within the length of x
+        EXPECT_EQ(StringVal(split.c_str()), result);
+      } else {
+        // Outside the length of x
+        EXPECT_EQ(0, result.GetLength());
+      }
+    }
+  }
+
   auto x = StringVal(test_string_1_);
   auto result = StringVal("");
 
@@ -298,6 +350,16 @@ TEST_F(StringFunctionsTests, Lpad) {
     EXPECT_TRUE(StringVal("te") == result);
   }
 
+  // Default pad
+  {
+    auto x = StringVal("test");
+    auto result = StringVal("");
+    auto len = Integer(6);
+
+    StringFunctions::Lpad(&result, Ctx(), x, len);
+    EXPECT_EQ(StringVal("  test"), result);
+  }
+
   auto x = StringVal("hi");
   auto result = StringVal("");
   auto len = Integer(5);
@@ -316,7 +378,7 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(0);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(result.is_null_);
   }
 
@@ -327,7 +389,7 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(4);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(x == result);
   }
 
@@ -338,8 +400,18 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(2);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(StringVal("te") == result);
+  }
+
+  // Default pad
+  {
+    auto x = StringVal("test");
+    auto result = StringVal("");
+    auto len = Integer(6);
+
+    StringFunctions::Rpad(&result, Ctx(), x, len);
+    EXPECT_EQ(StringVal("test  "), result);
   }
 
   auto x = StringVal("hi");
@@ -349,6 +421,34 @@ TEST_F(StringFunctionsTests, Rpad) {
 
   StringFunctions::Rpad(&result, Ctx(), x, len, pad);
   EXPECT_TRUE(StringVal("hixyx") == result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, Length) {
+  // Nulls
+  {
+    auto x = StringVal::Null();
+    auto result = Integer(0);
+
+    StringFunctions::Length(&result, Ctx(), x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // Zero length
+  {
+    auto x = StringVal("");
+    auto result = Integer(0);
+
+    StringFunctions::Length(&result, Ctx(), x);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(0, result.val_);
+  }
+
+  auto x = StringVal("test");
+  auto result = Integer(0);
+  StringFunctions::Length(&result, Ctx(), x);
+  EXPECT_FALSE(result.is_null_);
+  EXPECT_EQ(4, result.val_);
 }
 
 // NOLINTNEXTLINE
@@ -668,6 +768,44 @@ TEST_F(StringFunctionsTests, CharLength) {
   result = Integer(0);
   StringFunctions::CharLength(&result, Ctx(), StringVal("Has a beg"));
   EXPECT_EQ(9, result.val_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringFunctionsTests, InitCap) {
+  // Nulls
+  {
+    auto x = StringVal::Null();
+    auto result = StringVal("");
+
+    StringFunctions::Upper(&result, Ctx(), x);
+    EXPECT_TRUE(result.is_null_);
+  }
+
+  // simple
+  auto x = StringVal("simple test");
+  auto result = StringVal("");
+  StringFunctions::InitCap(&result, Ctx(), x);
+  EXPECT_TRUE(StringVal("Simple Test") == result);
+
+  // one word
+  x = StringVal("zyh");
+  StringFunctions::InitCap(&result, Ctx(), x);
+  EXPECT_TRUE(StringVal("Zyh") == result);
+
+  // spaces
+  x = StringVal("--test--");
+  StringFunctions::InitCap(&result, Ctx(), x);
+  EXPECT_TRUE(StringVal("--Test--") == result);
+
+  // special char
+  x = StringVal("3imple 7est");
+  StringFunctions::InitCap(&result, Ctx(), x);
+  EXPECT_TRUE(StringVal("3imple 7est") == result);
+
+  // complex
+  x = StringVal("-a 3imple   7est  simple t  Test");
+  StringFunctions::InitCap(&result, Ctx(), x);
+  EXPECT_TRUE(StringVal("-A 3imple   7est  Simple T  Test") == result);
 }
 
 }  // namespace terrier::execution::sql::test

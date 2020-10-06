@@ -90,19 +90,19 @@ ast::Identifier Pipeline::GetWorkFunctionName() const {
   return codegen_->MakeIdentifier(CreatePipelineFunctionName(IsParallel() ? "ParallelWork" : "SerialWork"));
 }
 
-void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder) const {
-  // Inject StartResourceTracker()
+void Pipeline::InjectStartPipelineTracker(FunctionBuilder *builder) const {
+  // Inject StartPipelineTracker()
   std::vector<ast::Expr *> args{compilation_context_->GetExecutionContextPtrFromQueryState(),
-                                codegen_->Const64(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))};
-  auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartResourceTracker, args);
+                                codegen_->Const64(GetPipelineId().UnderlyingValue())};
+  auto start_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextStartPipelineTracker, args);
   builder->Append(codegen_->MakeStmt(start_call));
 }
 
 void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const {
   // Inject EndPipelineTracker();
   std::vector<ast::Expr *> args = {compilation_context_->GetExecutionContextPtrFromQueryState()};
-  args.push_back(codegen_->Const64(!query_id));
-  args.push_back(codegen_->Const64(!GetPipelineId()));
+  args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
+  args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
   auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
   builder->Append(codegen_->MakeStmt(end_call));
 }
@@ -227,45 +227,45 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
 }
 
 ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction(query_id_t query_id) const {
-  bool started_tracker = false;
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
 
+    // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
+    // after issue #1154 is fixed
     // Let the operators perform some initialization work in this pipeline.
-    for (auto op : steps_) {
-      op->BeginPipelineWork(*this, &builder);
+    for (auto iter = Begin(), end = End(); iter != end; ++iter) {
+      (*iter)->BeginPipelineWork(*this, &builder);
     }
+
+    // var pipelineState = @tlsGetCurrentThreadState(...)
+    auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
+    auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
+    auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
+    builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
+
+    InjectStartPipelineTracker(&builder);
 
     // Launch pipeline work.
     if (IsParallel()) {
       // TODO(wz2): When can track parallel work, insert trackers
       driver_->LaunchWork(&builder, GetWorkFunctionName());
     } else {
-      auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-      auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
-      auto state = codegen_->TLSAccessCurrentThreadState(tls, state_.GetTypeName());
-      // var pipelineState = @tlsGetCurrentThreadState(...)
       // SerialWork(queryState, pipelineState)
-      builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
-
-      InjectStartResourceTracker(&builder);
-      started_tracker = true;
-
       builder.Append(
           codegen_->Call(GetWorkFunctionName(), {builder.GetParameterByPosition(0), codegen_->MakeExpr(state_var_)}));
     }
 
+    // TODO(abalakum): This shouldn't actually be dependent on order and the loop can be simplified
+    // after issue #1154 is fixed
     // Let the operators perform some completion work in this pipeline.
-    for (auto op : steps_) {
-      op->FinishPipelineWork(*this, &builder);
+    for (auto iter = Begin(), end = End(); iter != end; ++iter) {
+      (*iter)->FinishPipelineWork(*this, &builder);
     }
 
-    if (started_tracker) {
-      InjectEndResourceTracker(&builder, query_id);
-    }
+    InjectEndResourceTracker(&builder, query_id);
   }
   return builder.Finish();
 }

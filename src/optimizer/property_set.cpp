@@ -1,4 +1,5 @@
 #include "optimizer/property_set.h"
+
 #include "common/hash_util.h"
 #include "loggers/optimizer_logger.h"
 

@@ -50,7 +50,7 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContex
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::Execute() {
-  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group " + std::to_string(!group_->GetID()));
+  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group " + std::to_string(group_->GetID().UnderlyingValue()));
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
     return;
@@ -204,7 +204,7 @@ void DeriveStats::Execute() {
   auto children_required_stats =
       deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
   bool derive_children = false;
-  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group " + std::to_string(!gexpr_->GetGroupID()));
+  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group " + std::to_string(gexpr_->GetGroupID().UnderlyingValue()));
 
   // If we haven't got enough stats to compute the current stats, derive them
   // from the child first

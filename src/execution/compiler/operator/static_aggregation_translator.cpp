@@ -15,7 +15,7 @@ constexpr char AGG_ATTR_PREFIX[] = "agg_term_attr";
 
 StaticAggregationTranslator::StaticAggregationTranslator(const planner::AggregatePlanNode &plan,
                                                          CompilationContext *compilation_context, Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::STATIC_AGGREGATE),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       agg_row_var_(GetCodeGen()->MakeFreshIdentifier("aggRow")),
       agg_payload_type_(GetCodeGen()->MakeFreshIdentifier("AggPayload")),
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
@@ -60,6 +60,9 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
   if (build_pipeline_.IsParallel()) {
     local_aggs_ = build_pipeline_.DeclarePipelineStateEntry("aggs", payload_type);
   }
+
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
 }
 
 ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
@@ -85,6 +88,8 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
+    TERRIER_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
+                   "Return value type of child expression is invalid.");
     auto field_name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
@@ -135,6 +140,8 @@ ast::Expr *StaticAggregationTranslator::GetAggregateTermPtr(ast::Expr *agg_row, 
 }
 
 void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  CounterSet(function, num_agg_inputs_, 0);
+  CounterSet(function, num_agg_outputs_, 0);
   auto *codegen = GetCodeGen();
   for (auto &p : distinct_filters_) {
     p.second.Initialize(codegen, function, GetExecutionContext(), GetMemoryPool());
@@ -206,9 +213,9 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
 }
 
 void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
   if (IsProducePipeline(context->GetPipeline())) {
     // var agg_row = &state.aggs
-    auto *codegen = GetCodeGen();
     function->Append(codegen->DeclareVarWithInit(agg_row_var_, global_aggs_.GetPtr(codegen)));
 
     if (const auto having = GetAggPlan().GetHavingClausePredicate(); having != nullptr) {
@@ -218,18 +225,35 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
     } else {
       context->Push(function);
     }
+    CounterAdd(function, num_agg_outputs_, 1);
   } else {
     UpdateGlobalAggregate(context, function);
+    CounterAdd(function, num_agg_inputs_, 1);
   }
 }
 
 void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    // Merge thread-local aggregates into one.
-    auto *codegen = GetCodeGen();
-    ast::Expr *thread_state_container = GetThreadStateContainer();
-    ast::Expr *query_state = GetQueryStatePtr();
-    function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
+  auto *codegen = GetCodeGen();
+
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      // Merge thread-local aggregates into one.
+      ast::Expr *thread_state_container = GetThreadStateContainer();
+      ast::Expr *query_state = GetQueryStatePtr();
+      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
+    }
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
+  } else {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_outputs_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
   }
 }
 

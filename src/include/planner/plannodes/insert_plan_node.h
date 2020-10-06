@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "parser/insert_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"

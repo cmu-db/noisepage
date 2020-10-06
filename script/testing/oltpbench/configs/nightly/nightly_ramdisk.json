@@ -1,0 +1,113 @@
+{
+    "type": "oltpbenchmark",
+    "server_args":{
+        "wal_file_path": "/mnt/ramdisk/wal.log",
+        "connection_thread_count": 32,
+        "record_buffer_segment_size": 10000000
+    },
+    "continue_on_error": true,
+    "env":{
+        "wal_device":"RAM disk"
+    },
+    "testcases": [
+        {
+            "base": {
+                "benchmark": "tatp",
+                "weights": "2,35,10,35,2,14,2",
+                "query_mode": "extended",
+                "scale_factor": 1,
+                "terminals": 1,
+                "client_time": 60
+            },
+            "loop": [
+                {"terminals":1, "db_create":true,"db_load":true},
+                {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
+            ]
+        },
+        {
+            "base": {
+                "benchmark": "smallbank",
+                "weights": "15,15,15,25,15,15",
+                "query_mode": "extended",
+                "scale_factor": 1,
+                "terminals": 1,
+                "client_time": 60
+            },
+            "loop": [
+                {"terminals":1, "db_create":true,"db_load":true},
+                {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
+            ]
+        },
+        {
+            "base": {
+                "benchmark": "noop",
+                "weights": "100",
+                "query_mode": "extended",
+                "scale_factor": 1,
+                "terminals": 1,
+                "client_time": 60
+            },
+            "loop": [
+                {"terminals":1, "db_create":true,"db_load":true},
+                {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
+            ]
+        },
+        {
+            "base": {
+                "benchmark": "ycsb",
+                "weights": "50,5,15,10,10,10",
+                "query_mode": "extended",
+                "scale_factor": 1,
+                "terminals": 1,
+                "client_time": 60
+            },
+            "loop": [
+                {"terminals":1, "db_create":true,"db_load":true},
+                {"terminals":2, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":4, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":8, "db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":16,"db_restart":false,"db_create":false,"db_load":false},
+                {"terminals":32,"db_restart":false,"db_create":false,"db_load":false}
+            ]
+        },
+        {
+            "base": {
+                "benchmark": "tpcc",
+                "weights": "45,43,4,4,4",
+                "query_mode": "extended",
+                "scale_factor": 4,
+                "terminals": 1,
+                "client_time": 60
+            },
+            "loop": [
+                {"terminals":1, "scale_factor":1},
+                {"terminals":2, "scale_factor":2},
+                {"terminals":4, "scale_factor":4},
+                {"terminals":8, "scale_factor":8},
+                {"terminals":16,"scale_factor":16},
+                {"terminals":32,"scale_factor":32}
+            ]
+        },
+        {
+            "base": {
+                "benchmark": "tatp",
+                "weights": "2,35,10,35,2,14,2",
+                "query_mode": "extended",
+                "terminals": 32,
+                "client_time": 600
+            }
+        }
+    ]
+}

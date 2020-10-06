@@ -108,6 +108,7 @@ OPUNIT_Y_TRANSFORMER_MAP = {
 
     OpUnit.IDX_SCAN: _tuple_num_log_transformer,
     OpUnit.SORT_BUILD: _tuple_num_linear_log_transformer,
+    OpUnit.CREATE_INDEX: _tuple_num_linear_log_transformer,
 
     OpUnit.AGG_BUILD: _tuple_num_memory_cardinality_linear_transformer,
 }
@@ -146,6 +147,7 @@ OPUNIT_X_TRANSFORMER_MAP = {
     OpUnit.OP_DECIMAL_COMPARE: None,
     OpUnit.OUTPUT: None,
     OpUnit.IDX_SCAN: None,
+    OpUnit.CREATE_INDEX: None,
 
     # Transform the opunits for which the ratio between the tuple num and the cardinality impacts the behavior
     OpUnit.HASHJOIN_BUILD: _tuple_num_cardinality_linear_train_transform,

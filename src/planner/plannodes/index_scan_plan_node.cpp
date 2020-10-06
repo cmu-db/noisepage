@@ -1,9 +1,10 @@
+#include "planner/plannodes/index_scan_plan_node.h"
+
 #include <memory>
 #include <vector>
 
 #include "common/hash_util.h"
 #include "common/json.h"
-#include "planner/plannodes/index_scan_plan_node.h"
 
 namespace terrier::planner {
 

@@ -55,8 +55,8 @@ namespace terrier::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
-  auto *type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
-  auto &fields = type->Fields();
+  auto *struct_type = reinterpret_cast<execution::ast::StructTypeRepr *>(decl->TypeRepr());
+  auto &fields = struct_type->Fields();
 
   // Rough loop to get an estimate size of entire struct
   size_t total = total_offset;
@@ -66,9 +66,10 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
       total += field_repr->GetType()->GetSize();
     } else if (execution::ast::IdentifierExpr::classof(field_repr)) {
       // Likely built in type
-      auto *type = ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
-      if (type != nullptr) {
-        total += type->GetSize();
+      auto *builtin_type =
+          ast_ctx_->LookupBuiltinType(reinterpret_cast<execution::ast::IdentifierExpr *>(field_repr)->Name());
+      if (builtin_type != nullptr) {
+        total += builtin_type->GetSize();
       }
     }
   }
@@ -81,11 +82,9 @@ double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDec
 
 void OperatingUnitRecorder::AdjustKeyWithType(type::TypeId type, size_t *key_size, size_t *num_key) {
   if (type == type::TypeId::VARCHAR) {
-    // Mini-Runners can't actually model varchars right now.
-    // So we substitute a key_size += 64, num_key += 15 (since already counts 1)
-    // to model varchars.
-    *key_size = *key_size + 64;
-    *num_key = *num_key + 15;
+    // TODO(lin): Some how varchar in execution engine is 24 bytes. I don't really know why, but just special case
+    //  here since it's different than the storage size (16 bytes under inline)
+    *key_size = *key_size + 24;
   } else {
     *key_size = *key_size + storage::AttrSizeBytes(type::TypeUtil::GetTypeSize(type));
   }
@@ -135,19 +134,27 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const
   return key_size;
 }
 
-size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
-                                             const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
+size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema> schema,
+                                             bool restrict_cols, const std::vector<catalog::indexkeycol_oid_t> &cols,
+                                             size_t *num_key) {
   std::unordered_set<catalog::indexkeycol_oid_t> kcols;
   for (auto &col : cols) kcols.insert(col);
 
   size_t key_size = 0;
-  auto &schema = accessor_->GetIndexSchema(idx_oid);
-  for (auto &col : schema.GetColumns()) {
-    if (kcols.find(col.Oid()) != kcols.end()) {
+  for (auto &col : schema->GetColumns()) {
+    if (!restrict_cols || kcols.find(col.Oid()) != kcols.end()) {
       AdjustKeyWithType(col.Type(), &key_size, num_key);
     }
   }
 
+  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  return key_size;
+}
+
+size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
+                                             const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
+  auto &schema = accessor_->GetIndexSchema(idx_oid);
+  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
@@ -203,6 +210,15 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
 
     cardinality = 1;  // extract from plan num_rows (this is the scan size)
+  } else if (type == ExecutionOperatingUnitType::CREATE_INDEX) {
+    // We extract the num_rows and cardinality from the table name if possible
+    // This is a special case for mini-runners
+    std::string idx_name = reinterpret_cast<const planner::CreateIndexPlanNode *>(plan)->GetIndexName();
+    auto mrpos = idx_name.find("minirunners__");
+    if (mrpos != std::string::npos) {
+      num_rows = atoi(idx_name.c_str() + mrpos + sizeof("minirunners__") - 1);
+      cardinality = num_rows;
+    }
   }
 
   num_rows *= scaling_factor;
@@ -210,11 +226,23 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
 
   if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
 
+  // This is a hack.
+  // Certain translators don't own their features, but pass them further down the pipeline.
+  std::vector<execution::translator_id_t> translator_ids;
+  common::ManagedPointer<execution::compiler::OperatorTranslator> translator = current_translator_;
+  translator_ids.emplace_back(translator->GetTranslatorId());
+  while (translator->IsCountersPassThrough()) {
+    translator = translator->GetParentTranslator();
+    translator_ids.emplace_back(translator->GetTranslatorId());
+  }
+
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
     TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
+    bool same_translator = std::find(translator_ids.cbegin(), translator_ids.cend(), itr->second.GetTranslatorId()) !=
+                           translator_ids.cend();
     if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
-        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type)) {
+        OperatingUnitUtil::IsOperatingUnitTypeMergeable(type) && same_translator) {
       itr->second.SetNumRows(num_rows + itr->second.GetNumRows());
       itr->second.SetCardinality(cardinality + itr->second.GetCardinality());
       itr->second.AddMemFactor(mem_factor);
@@ -222,7 +250,8 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     }
   }
 
-  auto feature = ExecutionOperatingUnitFeature(type, num_rows, key_size, num_keys, cardinality, mem_factor, num_loops);
+  auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
+                                               cardinality, mem_factor, num_loops);
   pipeline_features_.emplace(type, std::move(feature));
 }
 
@@ -231,7 +260,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
           " ORDER BY NO_O_ID ASC  LIMIT 1" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
       *num_rows = 850;
       *cardinality = 1;
@@ -246,9 +275,9 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
           "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
           " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
           " AND S_QUANTITY < $6" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 200;
+      *num_rows = 20;
       *cardinality = 1;
     }
 
@@ -264,7 +293,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
           "OL_W_ID = $4 " &&
-      (!current_pipeline_->GetPipelineId()) == 1) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 1) {
     if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
       *cardinality = 10;
     }
@@ -278,7 +307,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
   if (*query_text_ ==
           "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
           "AND OL_W_ID = $3" &&
-      (!current_pipeline_->GetPipelineId()) == 2) {
+      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
     if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
       *cardinality = 10;
     }
@@ -325,6 +354,16 @@ void OperatingUnitRecorder::VisitAbstractScanPlanNode(const planner::AbstractSca
   }
 }
 
+void OperatingUnitRecorder::Visit(const planner::CreateIndexPlanNode *plan) {
+  std::vector<catalog::indexkeycol_oid_t> keys;
+
+  auto schema = plan->GetSchema();
+  size_t num_keys = schema->GetColumns().size();
+  size_t key_size =
+      ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema>(schema.Get()), false, keys, &num_keys);
+  AggregateFeatures(plan_feature_type_, key_size, num_keys, plan, 1, 1);
+}
+
 void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   VisitAbstractScanPlanNode(plan);
   RecordArithmeticFeatures(plan, 1);
@@ -332,13 +371,11 @@ void OperatingUnitRecorder::Visit(const planner::SeqScanPlanNode *plan) {
   // For a sequential scan:
   // - # keys is how mahy columns are scanned (either # cols in table OR plan->GetColumnOids().size()
   // - Total key size is the size of the columns scanned
-  size_t key_size = 0;
+  size_t key_size;
   size_t num_keys = 0;
   if (!plan->GetColumnOids().empty()) {
-    // We are likely doing an update/delete -- so record key_size = 4; num_keys = 1
-    // This mimics the mini_runners
-    key_size = 4;
-    num_keys = 1;
+    key_size = ComputeKeySize(plan->GetTableOid(), plan->GetColumnOids(), &num_keys);
+    num_keys = plan->GetColumnOids().size();
   } else {
     auto &schema = accessor_->GetSchema(plan->GetTableOid());
     num_keys = schema.GetColumns().size();
@@ -383,9 +420,8 @@ void OperatingUnitRecorder::Visit(const planner::IndexScanPlanNode *plan) {
 
 void OperatingUnitRecorder::VisitAbstractJoinPlanNode(const planner::AbstractJoinPlanNode *plan) {
   if (plan_feature_type_ == ExecutionOperatingUnitType::HASHJOIN_PROBE ||
-      plan_feature_type_ == ExecutionOperatingUnitType::NL_JOIN ||
-      plan_feature_type_ == ExecutionOperatingUnitType::IDXJOIN) {
-    // Right side stiches together outputs
+      plan_feature_type_ == ExecutionOperatingUnitType::DUMMY) {
+    // Right side stitches together outputs
     VisitAbstractPlanNode(plan);
   }
 }
@@ -428,12 +464,12 @@ void OperatingUnitRecorder::Visit(const planner::HashJoinPlanNode *plan) {
     auto num_key = plan->GetRightHashKeys().size();
     auto key_size = ComputeKeySize(plan->GetRightHashKeys(), &num_key);
     AggregateFeatures(ExecutionOperatingUnitType::HASHJOIN_PROBE, key_size, num_key, plan, 1, 1);
-  }
 
-  // Computes against OutputSchema/Join predicate which will
-  // use the rows/cardinalities of what the HJ plan produces
-  VisitAbstractJoinPlanNode(plan);
-  RecordArithmeticFeatures(plan, 1);
+    // Computes against OutputSchema/Join predicate which will
+    // use the rows/cardinalities of what the HJ plan produces
+    VisitAbstractJoinPlanNode(plan);
+    RecordArithmeticFeatures(plan, 1);
+  }
 }
 
 void OperatingUnitRecorder::Visit(const planner::NestedLoopJoinPlanNode *plan) {
@@ -615,11 +651,11 @@ void OperatingUnitRecorder::Visit(const planner::ProjectionPlanNode *plan) {
 }
 
 void OperatingUnitRecorder::Visit(const planner::AggregatePlanNode *plan) {
-  if (plan_feature_type_ == ExecutionOperatingUnitType::HASH_AGGREGATE) {
-    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
-    RecordAggregateTranslator(translator, plan);
-  } else if (plan_feature_type_ == ExecutionOperatingUnitType::STATIC_AGGREGATE) {
+  if (plan->IsStaticAggregation()) {
     auto translator = current_translator_.CastManagedPointerTo<execution::compiler::StaticAggregationTranslator>();
+    RecordAggregateTranslator(translator, plan);
+  } else {
+    auto translator = current_translator_.CastManagedPointerTo<execution::compiler::HashAggregationTranslator>();
     RecordAggregateTranslator(translator, plan);
   }
 }

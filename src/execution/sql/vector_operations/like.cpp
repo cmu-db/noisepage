@@ -45,7 +45,8 @@ template <typename Op>
 void TemplatedLikeOperation(const Vector &a, const Vector &b, TupleIdList *tid_list) {
   if (a.GetTypeId() != TypeId::Varchar || b.GetTypeId() != TypeId::Varchar) {
     throw EXECUTION_EXCEPTION(fmt::format("Inputs to (NOT) LIKE must be VARCHAR, left {} right {}.",
-                                          TypeIdToString(a.GetTypeId()), TypeIdToString(b.GetTypeId())));
+                                          TypeIdToString(a.GetTypeId()), TypeIdToString(b.GetTypeId())),
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 
   if (b.IsConstant()) {

@@ -49,7 +49,7 @@ class CatalogCache {
 
  private:
   common::ManagedPointer<storage::SqlTable> GetTable(const table_oid_t table) {
-    const auto key = static_cast<uint32_t>(table);
+    const auto key = table.UnderlyingValue();
     const auto it = pointers_.find(key);
     if (it != pointers_.end()) {
       const auto value = it->second;
@@ -59,14 +59,14 @@ class CatalogCache {
   }
 
   void PutTable(const table_oid_t table, const common::ManagedPointer<storage::SqlTable> table_ptr) {
-    const auto key = static_cast<uint32_t>(table);
+    const auto key = table.UnderlyingValue();
     const auto value = reinterpret_cast<uintptr_t>(table_ptr.Get());
     TERRIER_ASSERT(pointers_.count(key) == 0, "Shouldn't be inserting something that already exists.");
     pointers_[key] = value;
   }
 
   common::ManagedPointer<storage::index::Index> GetIndex(const index_oid_t index) {
-    const auto key = static_cast<uint32_t>(index);
+    const auto key = index.UnderlyingValue();
     const auto it = pointers_.find(key);
     if (it != pointers_.end()) {
       const auto value = it->second;
@@ -76,7 +76,7 @@ class CatalogCache {
   }
 
   void PutIndex(const index_oid_t index, const common::ManagedPointer<storage::index::Index> index_ptr) {
-    const auto key = static_cast<uint32_t>(index);
+    const auto key = index.UnderlyingValue();
     const auto value = reinterpret_cast<uintptr_t>(index_ptr.Get());
     TERRIER_ASSERT(pointers_.count(key) == 0, "Shouldn't be inserting something that already exists.");
     pointers_[key] = value;

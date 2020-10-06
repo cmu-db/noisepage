@@ -1,6 +1,7 @@
 #pragma once
 
 #include <emmintrin.h>
+
 #include <atomic>
 
 #include "common/macros.h"

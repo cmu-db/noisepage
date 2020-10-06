@@ -58,7 +58,7 @@ class MiniTrainer:
         # Write the first header rwo to the result file
         metrics_path = "{}/{}.csv".format(self.model_metrics_path, data.opunit.name.lower())
         prediction_path = "{}/{}_prediction.csv".format(self.model_metrics_path, data.opunit.name.lower())
-        result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path)
+        result_writing_util.create_metrics_and_prediction_files(metrics_path, prediction_path, False)
 
         methods = self.ml_models
 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
-                         default=["lr", "rf", "gbm"],
+                         default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')

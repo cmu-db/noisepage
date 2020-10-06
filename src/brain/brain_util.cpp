@@ -1,6 +1,5 @@
-#include <brain/brain_util.h>
-
-#include <execution/util/execution_common.h>
+#include "brain/brain_util.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::brain {
 
@@ -17,8 +16,6 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "HASHJOIN_BUILD";
     case ExecutionOperatingUnitType::HASHJOIN_PROBE:
       return "HASHJOIN_PROBE";
-    case ExecutionOperatingUnitType::IDXJOIN:
-      return "IDXJOIN";
     case ExecutionOperatingUnitType::SORT_BUILD:
       return "SORT_BUILD";
     case ExecutionOperatingUnitType::SORT_ITERATE:
@@ -55,6 +52,8 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
       return "OUTPUT";
     case ExecutionOperatingUnitType::LIMIT:
       return "LIMIT";
+    case ExecutionOperatingUnitType::CREATE_INDEX:
+      return "CREATE_INDEX";
     default:
       UNREACHABLE("Undefined ExecutionOperatingUnitType encountered");
       break;

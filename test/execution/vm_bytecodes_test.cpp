@@ -24,7 +24,7 @@ TEST_F(BytecodesTest, OperandCountTest) {
   EXPECT_EQ(3u, Bytecodes::NumOperands(Bytecode::Add_int32_t));
   EXPECT_EQ(3u, Bytecodes::NumOperands(Bytecode::Mul_int32_t));
   EXPECT_EQ(3u, Bytecodes::NumOperands(Bytecode::Div_int32_t));
-  EXPECT_EQ(3u, Bytecodes::NumOperands(Bytecode::Rem_int32_t));
+  EXPECT_EQ(3u, Bytecodes::NumOperands(Bytecode::Mod_int32_t));
   EXPECT_EQ(3u, Bytecodes::NumOperands(Bytecode::Sub_int32_t));
 
   // Return has no arguments

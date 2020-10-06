@@ -78,6 +78,9 @@ class EXPORT TableVectorIterator {
    */
   bool IsInitialized() const { return initialized_; }
 
+  /** @return The total number of tuples in the vector projection iterator. */
+  uint64_t GetVectorProjectionIteratorNumTuples() const { return vector_projection_iterator_.GetTotalTupleCount(); }
+
   /**
    * @return The iterator over the current active vector projection.
    */

@@ -1,5 +1,7 @@
 #pragma once
 
+// 2020-08-27: modified by Wan to track index_size, exposed via GetSize()
+
 #include <sys/mman.h>
 #include <algorithm>
 #include <array>
@@ -2265,6 +2267,7 @@ class BwTree : public BwTreeBase {
         delete_abort_count{0},
         update_op_count{0},
         update_abort_count{0},
+        index_size{0},
 
         // Epoch Manager that does garbage collection
         epoch_manager{this} {
@@ -6612,6 +6615,7 @@ class BwTree : public BwTreeBase {
 
     epoch_manager.LeaveEpoch(epoch_node_p);
 
+    index_size.fetch_add(1);
     return true;
   }
 
@@ -6707,6 +6711,7 @@ class BwTree : public BwTreeBase {
 
     epoch_manager.LeaveEpoch(epoch_node_p);
 
+    index_size.fetch_add(1);
     return true;
   }
 
@@ -6781,8 +6786,12 @@ class BwTree : public BwTreeBase {
 
     epoch_manager.LeaveEpoch(epoch_node_p);
 
+    index_size.fetch_sub(1);
     return true;
   }
+
+  /** GetSize() - Return the size of the BwTree. */
+  uint64_t GetSize() const { return index_size.load(); }
 
   /*
    * GetValue() - Fill a value list with values stored
@@ -6909,6 +6918,8 @@ class BwTree : public BwTreeBase {
 
   std::atomic<uint64_t> update_op_count;
   std::atomic<uint64_t> update_abort_count;
+
+  std::atomic<uint64_t> index_size;
 
   // InteractiveDebugger idb;
 

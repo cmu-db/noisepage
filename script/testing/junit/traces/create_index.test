@@ -1,0 +1,59 @@
+statement ok
+CREATE TABLE t (a INT, b INT, c INT);
+
+statement ok
+INSERT INTO t VALUES (1, 2, 3);
+
+statement ok
+INSERT INTO t VALUES (4, 5, 6);
+
+statement ok
+INSERT INTO t VALUES (7, 8, 9);
+
+statement ok
+
+
+statement ok
+CREATE INDEX idxa ON t (a);
+
+statement ok
+CREATE INDEX idxb ON t (b);
+
+statement ok
+CREATE INDEX idxc ON t (c);
+
+statement ok
+
+
+# Obviously, we assume the following are index scans.
+# If they are not, this test is moot.
+# When we support `EXPLAIN`, then we can just do that.
+statement ok
+
+
+query III nosort
+SELECT * from t WHERE a = 1;
+----
+3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
+
+query III nosort
+SELECT * from t WHERE b = 5;
+----
+3 values hashing to 47d69c01abdea0f776cbc9e788b5186f
+
+query III nosort
+SELECT * from t WHERE c = 9;
+----
+3 values hashing to a873cf97b7aacbd83abb3d4ccbc36fa3
+
+statement ok
+
+
+statement ok
+CREATE INDEX idxcomb ON t (c, b, a);
+
+query III nosort
+SELECT * from t WHERE a = 4 and b = 5 and c = 6;
+----
+3 values hashing to 47d69c01abdea0f776cbc9e788b5186f
+

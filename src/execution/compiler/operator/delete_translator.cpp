@@ -27,7 +27,11 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
       compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
+
+  num_deletes_ = CounterDeclare("num_deletes");
 }
+
+void DeleteTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_deletes_, 0); }
 
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table
@@ -41,7 +45,16 @@ void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   for (const auto &index_oid : indexes) {
     GenIndexDelete(function, context, index_oid);
   }
+
   GenDeleterFree(function);
+}
+
+void DeleteTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_deletes_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::DELETE,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_deletes_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_deletes_));
 }
 
 void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
@@ -52,8 +65,8 @@ void DeleteTranslator::DeclareDeleter(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->DeclareVarNoInit(deleter_, storage_interface_type));
   // @storageInterfaceInit(&deleter, execCtx, table_oid, col_oids, true)
   const auto &op = GetPlanAs<planner::DeletePlanNode>();
-  ast::Expr *deleter_setup =
-      GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(), !op.GetTableOid(), col_oids_, true);
+  ast::Expr *deleter_setup = GetCodeGen()->StorageInterfaceInit(deleter_, GetExecutionContext(),
+                                                                op.GetTableOid().UnderlyingValue(), col_oids_, true);
   builder->Append(GetCodeGen()->MakeStmt(deleter_setup));
 }
 
@@ -78,6 +91,8 @@ void DeleteTranslator::GenTableDelete(FunctionBuilder *builder) const {
     // The delete was not successful; abort the transaction.
     builder->Append(GetCodeGen()->AbortTxn(GetExecutionContext()));
   }
+  check.Else();
+  { CounterAdd(builder, num_deletes_, 1); }
   check.EndIf();
 }
 
@@ -85,7 +100,8 @@ void DeleteTranslator::GenIndexDelete(FunctionBuilder *builder, WorkContext *con
                                       const catalog::index_oid_t &index_oid) const {
   // var delete_index_pr = @getIndexPR(&deleter, oid)
   auto delete_index_pr = GetCodeGen()->MakeFreshIdentifier("delete_index_pr");
-  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_), GetCodeGen()->Const32(!index_oid)};
+  std::vector<ast::Expr *> pr_call_args{GetCodeGen()->AddressOf(deleter_),
+                                        GetCodeGen()->Const32(index_oid.UnderlyingValue())};
   auto *get_index_pr_call = GetCodeGen()->CallBuiltin(ast::Builtin::GetIndexPR, pr_call_args);
   builder->Append(GetCodeGen()->DeclareVar(delete_index_pr, nullptr, get_index_pr_call));
 

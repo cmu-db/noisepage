@@ -20,7 +20,11 @@ OutputTranslator::OutputTranslator(const planner::AbstractPlanNode &plan, Compil
       output_struct_(GetCodeGen()->MakeFreshIdentifier("OutputStruct")) {
   // Prepare the child.
   compilation_context->Prepare(plan, pipeline);
+
+  num_output_ = CounterDeclare("num_output");
 }
+
+void OutputTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_output_, 0); }
 
 void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
                                            terrier::execution::compiler::FunctionBuilder *function) const {
@@ -39,11 +43,17 @@ void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkCon
     ast::Expr *rhs = child_translator->GetOutput(context, attr_idx);
     function->Append(GetCodeGen()->Assign(lhs, rhs));
   }
+
+  CounterAdd(function, num_output_, 1);
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto exec_ctx = GetExecutionContext();
   function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {exec_ctx}));
+
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
 }
 
 void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {

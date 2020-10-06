@@ -73,7 +73,7 @@ class TupleAccessStrategy {
 
     // return the miniblock for the column at the given offset.
     MiniBlock *Column(const BlockLayout &layout, const col_id_t col_id) {
-      byte *head = reinterpret_cast<byte *>(this) + AttrOffsets(layout)[!col_id];
+      byte *head = reinterpret_cast<byte *>(this) + AttrOffsets(layout)[col_id.UnderlyingValue()];
       return reinterpret_cast<MiniBlock *>(head);
     }
 
@@ -121,7 +121,7 @@ class TupleAccessStrategy {
    * @return pointer to the bitmap of the specified column on the given block
    */
   common::RawConcurrentBitmap *ColumnNullBitmap(RawBlock *block, const col_id_t col_id) const {
-    TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
+    TERRIER_ASSERT((col_id.UnderlyingValue()) < layout_.NumColumns(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(layout_, col_id)->NullBitmap();
   }
 
@@ -131,7 +131,7 @@ class TupleAccessStrategy {
    * @return pointer to the start of the column
    */
   byte *ColumnStart(RawBlock *block, const col_id_t col_id) const {
-    TERRIER_ASSERT((!col_id) < layout_.NumColumns(), "Column out of bounds!");
+    TERRIER_ASSERT((col_id.UnderlyingValue()) < layout_.NumColumns(), "Column out of bounds!");
     return reinterpret_cast<Block *>(block)->Column(layout_, col_id)->ColumnStart(layout_, col_id);
   }
 

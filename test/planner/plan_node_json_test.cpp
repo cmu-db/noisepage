@@ -1,11 +1,10 @@
-#include <catalog/catalog_defs.h>
-
 #include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "nlohmann/json.hpp"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"

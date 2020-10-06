@@ -413,13 +413,13 @@ class StorageTestUtil {
       storage::col_id_t col_id = row.ColumnIds()[i];
       const byte *attr = row.AccessWithNullCheck(i);
       if (attr == nullptr) {
-        os << "col_id: " << !col_id << " is NULL" << std::endl;
+        os << "col_id: " << col_id.UnderlyingValue() << " is NULL" << std::endl;
         continue;
       }
 
       if (layout.IsVarlen(col_id)) {
         auto *entry = reinterpret_cast<const storage::VarlenEntry *>(attr);
-        os << "col_id: " << !col_id;
+        os << "col_id: " << col_id.UnderlyingValue();
         os << " is varlen, ptr " << entry->Content();
         os << ", size " << entry->Size();
         os << ", reclaimable " << entry->NeedReclaim();
@@ -429,7 +429,7 @@ class StorageTestUtil {
         }
         os << std::endl;
       } else {
-        os << "col_id: " << !col_id;
+        os << "col_id: " << col_id.UnderlyingValue();
         os << " is ";
         for (uint8_t pos = 0; pos < layout.AttrSize(col_id); pos++) {
           os << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint8_t>(attr[pos]);

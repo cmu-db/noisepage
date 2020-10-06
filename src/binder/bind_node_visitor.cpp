@@ -581,9 +581,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
     std::string table_name = expr->GetTableName();
     std::string col_name = expr->GetColumnName();
     if (table_name.empty() && col_name.empty() && expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
-      throw BINDER_EXCEPTION(
-          fmt::format("ORDER BY position \"{}\" is not in select list", std::to_string(!expr->GetColumnOid())),
-          common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
+      throw BINDER_EXCEPTION(fmt::format("ORDER BY position \"{}\" is not in select list",
+                                         std::to_string(expr->GetColumnOid().UnderlyingValue())),
+                             common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
     }
     // Convert all the names to lower cases
     std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);

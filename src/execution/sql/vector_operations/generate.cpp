@@ -9,7 +9,8 @@ namespace {
 void CheckGenerateArguments(const Vector &input) {
   if (!IsTypeNumeric(input.GetTypeId())) {
     throw EXECUTION_EXCEPTION(fmt::format("Sequence generation only allowed on numeric vectors, vector of type {}.",
-                                          TypeIdToString(input.GetTypeId())));
+                                          TypeIdToString(input.GetTypeId())),
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

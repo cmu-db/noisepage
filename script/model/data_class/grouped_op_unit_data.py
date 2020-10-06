@@ -4,6 +4,7 @@ import copy
 import tqdm
 import pandas as pd
 import os
+import logging
 
 from data_class import data_util
 from data_class import tpcc_fixer
@@ -13,11 +14,14 @@ import global_model_config
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
+def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
     """Get the training data from the global model
 
     :param filename: the input data file
     :param warmup_period: warmup period for pipeline data
+    :param tpcc_hack: whether to manually fix the tpcc features
+    :param ee_sample_interval: sampling interval for the EE OUs
+    :param txn_sample_interval: sampling interval for the transaction OUs
     :return: the list of global model data
     """
 
@@ -26,10 +30,10 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
         return []
     if "execution" in filename:
         # Special handle of the execution data
-        return _execution_get_grouped_op_unit_data(filename)
+        return _execution_get_grouped_op_unit_data(filename, ee_sample_interval)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
@@ -37,7 +41,7 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
     return _default_get_global_data(filename)
 
 
-def _execution_get_grouped_op_unit_data(filename):
+def _execution_get_grouped_op_unit_data(filename, ee_sample_interval):
     # Get the global running data for the execution engine
     data_list = []
     with open(filename, "r") as f:
@@ -65,12 +69,12 @@ def _execution_get_grouped_op_unit_data(filename):
                     opunit_feature[1].append(mode)
 
                 line_data = list(map(int, line[2:]))
-                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data)))
+                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data), ee_sample_interval))
 
     return data_list
 
 
-def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval):
     # Get the global running data for the execution engine
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
@@ -110,10 +114,16 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack):
                 if tpcc_hack:
                     x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
+                if x_loc[data_info.TUPLE_NUM_INDEX] == 0:
+                    logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
+                    continue
+
                 opunits.append((opunit, x_loc))
 
-            data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits,
-                                               np.array(metrics)))
+            if len(opunits) == 0:
+                continue
+            data_list.append(GroupedOpUnitData("q{} p{}".format(line[0], line[1]), opunits, np.array(metrics),
+                                               ee_sample_interval))
 
     return data_list
 
@@ -174,11 +184,12 @@ class GroupedOpUnitData:
     """
     The class that stores the information about a group of operating units measured together
     """
-    def __init__(self, name, opunit_features, metrics):
+    def __init__(self, name, opunit_features, metrics, sample_interval=0):
         """
         :param name: The name of the data point (e.g., could be the pipeline identifier)
         :param opunit_features: The list of opunits and their inputs for this event
         :param metrics: The runtime metrics
+        :param sample_interval: The sampling interval for this OU group
         """
         self.name = name
         self.opunit_features = opunit_features
@@ -188,6 +199,7 @@ class GroupedOpUnitData:
         self.start_time = metrics[index_map[Target.START_TIME]]
         self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
         self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
+        self.sample_interval = sample_interval
 
     def get_start_time(self, concurrent_counting_mode):
         """Get the start time for this group for counting the concurrent operations

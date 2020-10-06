@@ -22,12 +22,14 @@ inline void CheckInplaceOperation(const Vector *result, const Vector &input) {
   if (result->GetTypeId() != input.GetTypeId()) {
     throw EXECUTION_EXCEPTION(
         fmt::format("Left and right vector types to inplace operation must be the same, left {} right {}.",
-                    TypeIdToString(result->GetTypeId()), TypeIdToString(input.GetTypeId())));
+                    TypeIdToString(result->GetTypeId()), TypeIdToString(input.GetTypeId())),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
   if (!input.IsConstant() && result->GetCount() != input.GetCount()) {
     throw EXECUTION_EXCEPTION(
         fmt::format("Left and right input vectors to binary operation must have the same size, left {} right {}.",
-                    result->GetCount(), input.GetCount()));
+                    result->GetCount(), input.GetCount()),
+        common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

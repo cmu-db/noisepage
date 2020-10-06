@@ -1,9 +1,11 @@
 #include "common/container/bitmap.h"
+
 #include <cstring>
 #include <random>
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
+
 #include "gtest/gtest.h"
 #include "test_util/container_test_util.h"
 

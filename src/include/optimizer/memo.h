@@ -97,7 +97,7 @@ class Memo {
    * @returns Group with specified ID
    */
   Group *GetGroupByID(group_id_t id) const {
-    auto idx = !id;
+    auto idx = id.UnderlyingValue();
     TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
     return groups_[idx];
   }
@@ -109,7 +109,7 @@ class Memo {
    * @param group_id GroupID of Group to erase
    */
   void EraseExpression(group_id_t group_id) {
-    auto idx = !group_id;
+    auto idx = group_id.UnderlyingValue();
     TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
 
     auto gexpr = groups_[idx]->GetLogicalExpression();

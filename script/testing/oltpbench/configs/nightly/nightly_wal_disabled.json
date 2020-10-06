@@ -1,0 +1,33 @@
+{
+    "type": "oltpbenchmark",
+    "server_args":{
+        "wal_enable": false,
+        "connection_thread_count": 32,
+        "record_buffer_segment_size": 1000000
+    },
+    "continue_on_error": true,
+    "env":{
+        "wal_device":"None"
+    },
+    "testcases": [
+        {
+            "base": {
+                "benchmark": "tatp",
+                "weights": "2,35,10,35,2,14,2",
+                "query_mode": "extended",
+                "terminals": 16,
+                "client_time": 60
+            }
+        },
+        {
+            "base": {
+                "benchmark": "tpcc",
+                "weights": "45,43,4,4,4",
+                "query_mode": "extended",
+                "terminals": 32,
+                "scale_factor": 32,
+                "client_time": 60
+            }
+        }
+    ]
+}

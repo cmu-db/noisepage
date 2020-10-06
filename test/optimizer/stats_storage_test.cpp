@@ -1,8 +1,8 @@
+#include "optimizer/statistics/stats_storage.h"
+
 #include <utility>
 
 #include "gtest/gtest.h"
-#include "optimizer/statistics/stats_storage.h"
-
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
