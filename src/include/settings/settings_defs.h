@@ -1,3 +1,4 @@
+// clang-format off
 // SETTING_<type>(name, description, default_value, min_value, max_value, is_mutable, callback_fn)
 
 // Terrier port
@@ -276,3 +277,4 @@ SETTING_string(
     true,
     terrier::settings::Callbacks::NoOp
 )
+    // clang-format on
