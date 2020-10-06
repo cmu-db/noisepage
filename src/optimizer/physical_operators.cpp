@@ -497,22 +497,44 @@ bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
 
-Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LeftHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new LeftHashJoin();
-  join->join_predicate_ = join_predicate;
+  join->join_predicates_ = std::move(join_predicates);
+  join->left_keys_ = std::move(left_keys);
+  join->right_keys_ = std::move(right_keys);
   return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
 }
 
 common::hash_t LeftHashJoin::Hash() const {
   common::hash_t hash = BaseOperatorNodeContents::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
+  }
   return hash;
 }
 
 bool LeftHashJoin::operator==(const BaseOperatorNodeContents &r) {
   if (r.GetOpType() != OpType::LEFTHASHJOIN) return false;
-  const LeftHashJoin &node = *static_cast<const LeftHashJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
+  const LeftHashJoin &node = *dynamic_cast<const LeftHashJoin *>(&r);
+  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
+      join_predicates_.size() != node.join_predicates_.size())
+    return false;
+  if (join_predicates_ != node.join_predicates_) return false;
+  for (size_t i = 0; i < left_keys_.size(); i++) {
+    if (*(left_keys_[i]) != *(node.left_keys_[i])) return false;
+  }
+  for (size_t i = 0; i < right_keys_.size(); i++) {
+    if (*(right_keys_[i]) != *(node.right_keys_[i])) return false;
+  }
+  return true;
 }
 
 //===--------------------------------------------------------------------===//

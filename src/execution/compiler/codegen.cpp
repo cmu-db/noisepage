@@ -97,6 +97,38 @@ ast::Expr *CodeGen::ConstString(std::string_view str) const {
   return expr;
 }
 
+ast::Expr *CodeGen::ConstNull(type::TypeId type) const {
+  ast::Expr *dummy_expr;
+  // initSqlNull(&expr) produces a NULL of expr's type.
+  switch (type) {
+    case type::TypeId::BOOLEAN:
+      dummy_expr = BoolToSql(false);
+      break;
+    case type::TypeId::TINYINT:   // fallthrough
+    case type::TypeId::SMALLINT:  // fallthrough
+    case type::TypeId::INTEGER:   // fallthrough
+    case type::TypeId::BIGINT:
+      dummy_expr = IntToSql(0);
+      break;
+    case type::TypeId::DATE:
+      dummy_expr = DateToSql(0, 0, 0);
+      break;
+    case type::TypeId::TIMESTAMP:
+      dummy_expr = TimestampToSql(0);
+      break;
+    case type::TypeId::VARCHAR:
+      dummy_expr = StringToSql("");
+      break;
+    case type::TypeId::DECIMAL:
+      dummy_expr = FloatToSql(0.0);
+      break;
+    case type::TypeId::VARBINARY:
+    default:
+      UNREACHABLE("Unsupported NULL type!");
+  }
+  return CallBuiltin(ast::Builtin::InitSqlNull, {PointerType(dummy_expr)});
+}
+
 ast::VariableDecl *CodeGen::DeclareVar(ast::Identifier name, ast::Expr *type_repr, ast::Expr *init) {
   // Create a unique name for the variable
   ast::IdentifierExpr *var_name = MakeExpr(name);
@@ -850,6 +882,36 @@ ast::Expr *CodeGen::HTEntryIterGetRow(ast::Expr *iter, ast::Identifier row_type)
   ast::Expr *call = CallBuiltin(ast::Builtin::HashTableEntryIterGetRow, {iter});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint8)->PointerTo());
   return PtrCast(row_type, call);
+}
+
+ast::Expr *CodeGen::JoinHTIteratorInit(ast::Expr *iter, ast::Expr *ht) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterInit, {iter, ht});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::JoinHTIteratorHasNext(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterHasNext, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Bool));
+  return call;
+}
+
+ast::Expr *CodeGen::JoinHTIteratorNext(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterNext, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::JoinHTIteratorGetRow(ast::Expr *iter, ast::Identifier payload_type) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterGetRow, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Uint8)->PointerTo());
+  return PtrCast(payload_type, call);
+}
+
+ast::Expr *CodeGen::JoinHTIteratorFree(ast::Expr *iter) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableIterFree, {iter});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
 }
 
 // ---------------------------------------------------------

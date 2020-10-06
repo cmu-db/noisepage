@@ -1,62 +1,59 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 
-#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
-#include "loggers/network_logger.h"
-#include "network/connection_handle_factory.h"
-#include "network/connection_handler_task.h"
-#include "network/network_types.h"
+
+namespace terrier::common {
+class DedicatedThreadRegistry;
+class DedicatedThreadOwner;
+}  // namespace terrier::common
 
 namespace terrier::network {
 
+class ConnectionHandleFactory;
+class ConnectionHandlerTask;
+class ProtocolInterpreterProvider;
+
 /**
- * @brief A ConnectionDispatcherTask on the main server thread and dispatches
- * incoming connections to handler threads.
+ * @brief ConnectionDispatcherTask dispatches incoming connections to a pool of handler threads.
  *
- * On RunTask(), the dispatcher registers a number of handlers with the dedicated thread registry. The registered
- * handlers will shut down during Terminate() of this task. ConnectionDispatcherTask is almost a pseudo-owner of the
+ * Task life-cycle:
+ * - RunTask()   : This task registers all of its ConnectionHandlerTask instances with the DedicatedThreadRegistry.
+ * - Terminate() : This task stops and removes all its ConnectionHandlerTask instances from the DedicatedThreadRegistry.
+ *
+ * ConnectionDispatcherTask is almost a pseudo-owner of the
  * ConnectionHandlerTask objects, but since we can't be both a DedicatedThreadTask/NotifiableTask and
  * DedicatedThreadOwner, we pass the original DedicatedThreadOwner (TerrierServer) value through to the
  * ConnectionHandlerTasks. TerrierServer ends up the DedicatedThreadOwner of both ConnectionDispatcherTask and
  * ConnectionHandlerTasks for its instance.
- *
  */
 class ConnectionDispatcherTask : public common::NotifiableTask {
  public:
   /**
-   * Creates a new ConnectionDispatcherTask
+   * @brief Create a new ConnectionDispatcherTask.
    *
    * @param num_handlers The number of handler tasks to spawn.
-   * @param dedicated_thread_owner The DedicatedThreadOwner associated with this task
-   * @param interpreter_provider provider that constructs protocol interpreters
-   * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers
-   * @param thread_registry DedicatedThreadRegistry dependency needed because it eventually spawns more threads in
-   * RunTask
-   * @param file_descriptors The list of file descriptors to listen on
+   * @param dedicated_thread_owner The DedicatedThreadOwner associated with this task.
+   * @param interpreter_provider Provider that constructs protocol interpreters.
+   * @param connection_handle_factory The connection handle factory pointer to pass down to the handlers.
+   * @param thread_registry DedicatedThreadRegistry, needed because it eventually spawns more threads in RunTask.
+   * @param file_descriptors The list of file descriptors to listen on.
    */
   ConnectionDispatcherTask(uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
-                           common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
+                           common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                            common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                            std::initializer_list<int> file_descriptors);
 
   /**
-   * @brief Dispatches the client connection at fd to a handler.
-   * Currently, the dispatch uses round-robin, and thread communication is
-   * achieved
-   * through channels. The dispatch writes a symbol to the fd that the handler
-   * is configured
-   * to receive updates on.
+   * @brief Dispatches the supplied client connection to a handler.
    *
-   * @param fd the socket fd of the client connection being dispatched
-   * @param flags Unused. This is here to conform to libevent callback function
-   * signature.
+   * @param fd The socket file descriptor of the client connection to be dispatched.
+   * @param provider The protocol that should be used to handle this request.
    */
-  void DispatchConnection(int fd, int16_t flags);
+  void DispatchConnection(uint32_t fd, common::ManagedPointer<ProtocolInterpreterProvider> provider);
 
   /**
    * Creates all of the ConnectionHandlerTasks (num_handlers of them) and then sits in its event loop until stopped.
@@ -69,13 +66,16 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   void Terminate() override;
 
  private:
+  /** @return The offset in handlers_ of the next handler to dispatch to. This function mutates internal state. */
+  uint64_t NextDispatchHandlerOffset();
+
+  /** The maximum number of handler tasks that will be spawned. */
   const uint32_t num_handlers_;
   common::DedicatedThreadOwner *const dedicated_thread_owner_;
   const common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
   const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry_;
-  const common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider_;
+  const common::ManagedPointer<ProtocolInterpreterProvider> interpreter_provider_;
   std::vector<common::ManagedPointer<ConnectionHandlerTask>> handlers_;
-  // TODO(TianyuLi): have a smarter dispatch scheduler, we currently use round-robin
   std::atomic<uint64_t> next_handler_;
 };
 

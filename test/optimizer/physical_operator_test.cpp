@@ -783,20 +783,59 @@ TEST(OperatorTests, LeftHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator left_hash_join_1 = LeftHashJoin::Make(x_1).RegisterWithTxnContext(txn_context);
-  Operator left_hash_join_2 = LeftHashJoin::Make(x_2).RegisterWithTxnContext(txn_context);
-  Operator left_hash_join_3 = LeftHashJoin::Make(x_3).RegisterWithTxnContext(txn_context);
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator left_hash_join_1 =
+      LeftHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_2 =
+      LeftHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_3 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_4 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_5 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_6 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_7 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_8 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator left_hash_join_9 = LeftHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3})
+                                  .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(left_hash_join_1.GetOpType(), OpType::LEFTHASHJOIN);
   EXPECT_EQ(left_hash_join_3.GetOpType(), OpType::LEFTHASHJOIN);
   EXPECT_EQ(left_hash_join_1.GetName(), "LeftHashJoin");
-  EXPECT_EQ(*(left_hash_join_1.GetContentsAs<LeftHashJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(left_hash_join_2.GetContentsAs<LeftHashJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(left_hash_join_3.GetContentsAs<LeftHashJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(left_hash_join_1.GetContentsAs<LeftHashJoin>()->GetJoinPredicates(), std::vector<AnnotatedExpression>());
+  EXPECT_EQ(left_hash_join_3.GetContentsAs<LeftHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(left_hash_join_4.GetContentsAs<LeftHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(left_hash_join_1.GetContentsAs<LeftHashJoin>()->GetLeftKeys(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(left_hash_join_9.GetContentsAs<LeftHashJoin>()->GetRightKeys(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   EXPECT_TRUE(left_hash_join_1 == left_hash_join_2);
   EXPECT_FALSE(left_hash_join_1 == left_hash_join_3);
+  EXPECT_FALSE(left_hash_join_4 == left_hash_join_3);
+  EXPECT_TRUE(left_hash_join_4 == left_hash_join_5);
+  EXPECT_TRUE(left_hash_join_4 == left_hash_join_6);
+  EXPECT_FALSE(left_hash_join_4 == left_hash_join_7);
+  EXPECT_FALSE(left_hash_join_4 == left_hash_join_8);
+  EXPECT_FALSE(left_hash_join_4 == left_hash_join_9);
   EXPECT_EQ(left_hash_join_1.Hash(), left_hash_join_2.Hash());
   EXPECT_NE(left_hash_join_1.Hash(), left_hash_join_3.Hash());
+  EXPECT_NE(left_hash_join_4.Hash(), left_hash_join_3.Hash());
+  EXPECT_EQ(left_hash_join_4.Hash(), left_hash_join_5.Hash());
+  EXPECT_EQ(left_hash_join_4.Hash(), left_hash_join_6.Hash());
+  EXPECT_NE(left_hash_join_4.Hash(), left_hash_join_7.Hash());
+  EXPECT_NE(left_hash_join_4.Hash(), left_hash_join_8.Hash());
+  EXPECT_NE(left_hash_join_4.Hash(), left_hash_join_9.Hash());
 
   delete expr_b_1;
   delete expr_b_2;

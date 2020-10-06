@@ -629,6 +629,62 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// LogicalLeftJoinToPhysicalLeftHashJoin
+///////////////////////////////////////////////////////////////////////////////
+LogicalLeftJoinToPhysicalLeftHashJoin::LogicalLeftJoinToPhysicalLeftHashJoin() {
+  type_ = RuleType::LEFT_JOIN_TO_HASH_JOIN;
+
+  // Make three node types for pattern matching
+  auto left_child(new Pattern(OpType::LEAF));
+  auto right_child(new Pattern(OpType::LEAF));
+
+  // Initialize a pattern for optimizer to match
+  match_pattern_ = new Pattern(OpType::LOGICALLEFTJOIN);
+
+  // Add node - we match join relation R and S as well as the predicate exp
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
+}
+
+bool LogicalLeftJoinToPhysicalLeftHashJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                                  OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+void LogicalLeftJoinToPhysicalLeftHashJoin::Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                                                      std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                                                      UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  // first build an expression representing hash join
+  const auto left_join = input->Contents()->GetContentsAs<LogicalLeftJoin>();
+
+  auto children = input->GetChildren();
+  TERRIER_ASSERT(children.size() == 2, "Left Join should have two child");
+  auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
+  auto &right_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
+
+  std::vector<AnnotatedExpression> join_preds = left_join->GetJoinPredicates();
+  OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
+
+  TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
+  child.emplace_back(children[0]->Copy());
+  child.emplace_back(children[1]->Copy());
+  if (!left_keys.empty()) {
+    auto result = std::make_unique<OperatorNode>(
+        LeftHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
+            .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+        std::move(child), context->GetOptimizerContext()->GetTxn());
+    transformed->emplace_back(std::move(result));
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// LogicalLimitToPhysicalLimit
 ///////////////////////////////////////////////////////////////////////////////
 LogicalLimitToPhysicalLimit::LogicalLimitToPhysicalLimit() {

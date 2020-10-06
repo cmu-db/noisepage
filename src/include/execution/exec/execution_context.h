@@ -177,7 +177,7 @@ class EXPORT ExecutionContext {
    * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
    * nodes of the query
    */
-  uint64_t &RowsAffected() { return rows_affected_; }
+  uint32_t &RowsAffected() { return rows_affected_; }
 
   /**
    * Set the PipelineOperatingUnits
@@ -219,7 +219,7 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<catalog::CatalogAccessor> accessor_;
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
-  uint64_t rows_affected_ = 0;
+  uint32_t rows_affected_ = 0;
 
   bool memory_use_override_ = false;
   uint32_t memory_use_override_value_ = 0;
