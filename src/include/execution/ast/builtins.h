@@ -167,6 +167,12 @@ namespace terrier::execution::ast {
   F(HashTableEntryIterHasNext, htEntryIterHasNext)                      \
   F(HashTableEntryIterGetRow, htEntryIterGetRow)                        \
                                                                         \
+  F(JoinHashTableIterInit, joinHTIterInit)                              \
+  F(JoinHashTableIterHasNext, joinHTIterHasNext)                        \
+  F(JoinHashTableIterNext, joinHTIterNext)                              \
+  F(JoinHashTableIterGetRow, joinHTIterGetRow)                          \
+  F(JoinHashTableIterFree, joinHTIterFree)                              \
+                                                                        \
   /* Sorting */                                                         \
   F(SorterInit, sorterInit)                                             \
   F(SorterGetTupleCount, sorterGetTupleCount)                           \
@@ -328,6 +334,7 @@ namespace terrier::execution::ast {
   F(Ltrim, ltrim)                                                       \
   F(Rpad, rpad)                                                         \
   F(Rtrim, rtrim)                                                       \
+  F(Concat, concat)                                                     \
                                                                         \
   /* Char function */                                                   \
   F(Chr, chr)                                                           \

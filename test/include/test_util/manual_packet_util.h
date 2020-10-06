@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #include <memory>
@@ -8,6 +6,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "network/connection_handle_factory.h"
+#include "network/network_io_wrapper.h"
 #include "test_util/manual_packet_util.h"
 
 namespace terrier::network {

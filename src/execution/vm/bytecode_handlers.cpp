@@ -86,6 +86,16 @@ void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_h
 
 void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
 
+void OpJoinHashTableIteratorInit(terrier::execution::sql::JoinHashTableIterator *iter,
+                                 terrier::execution::sql::JoinHashTable *join_hash_table) {
+  TERRIER_ASSERT(join_hash_table != nullptr, "Null hash table");
+  new (iter) terrier::execution::sql::JoinHashTableIterator(*join_hash_table);
+}
+
+void OpJoinHashTableIteratorFree(terrier::execution::sql::JoinHashTableIterator *iter) {
+  iter->~JoinHashTableIterator();
+}
+
 // ---------------------------------------------------------
 // Aggregation Hash Table
 // ---------------------------------------------------------

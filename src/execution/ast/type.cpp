@@ -105,9 +105,10 @@ MapType::MapType(Type *key_type, Type *val_type)
 // ---------------------------------------------------------
 
 StructType::StructType(Context *ctx, uint32_t size, uint32_t alignment, util::RegionVector<Field> &&fields,
-                       util::RegionVector<uint32_t> &&field_offsets)
+                       util::RegionVector<Field> &&unpadded_fields, util::RegionVector<uint32_t> &&field_offsets)
     : Type(ctx, size, alignment, TypeId::StructType),
       fields_(std::move(fields)),
+      unpadded_fields_(std::move(unpadded_fields)),
       field_offsets_(std::move(field_offsets)) {}
 
 }  // namespace terrier::execution::ast

@@ -7,8 +7,10 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "metrics/metrics_thread.h"
+#include "network/connection_handle_factory.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
@@ -16,6 +18,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
@@ -220,7 +223,7 @@ class DBMain {
   };
 
   /**
-   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreter::Provider, Server
+   * ConnectionHandleFactory, CommandFactory, ProtocolInterpreterProvider, Server
    */
   class NetworkLayer {
    public:
@@ -229,17 +232,18 @@ class DBMain {
      * @param traffic_cop argument to the ConnectionHandleFactor
      * @param port argument to TerrierServer
      * @param connection_thread_count argument to TerrierServer
+     * @param socket_directory argument to TerrierServer
      */
     NetworkLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                  const common::ManagedPointer<trafficcop::TrafficCop> traffic_cop, const uint16_t port,
-                 const uint16_t connection_thread_count) {
+                 const uint16_t connection_thread_count, const std::string &socket_directory) {
       connection_handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(traffic_cop);
       command_factory_ = std::make_unique<network::PostgresCommandFactory>();
       provider_ =
           std::make_unique<network::PostgresProtocolInterpreter::Provider>(common::ManagedPointer(command_factory_));
-      server_ = std::make_unique<network::TerrierServer>(common::ManagedPointer(provider_),
-                                                         common::ManagedPointer(connection_handle_factory_),
-                                                         thread_registry, port, connection_thread_count);
+      server_ = std::make_unique<network::TerrierServer>(
+          common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_), thread_registry, port,
+          connection_thread_count, socket_directory);
     }
 
     /**
@@ -251,7 +255,7 @@ class DBMain {
     // Order matters here for destruction order
     std::unique_ptr<network::ConnectionHandleFactory> connection_handle_factory_;
     std::unique_ptr<network::PostgresCommandFactory> command_factory_;
-    std::unique_ptr<network::ProtocolInterpreter::Provider> provider_;
+    std::unique_ptr<network::ProtocolInterpreterProvider> provider_;
     std::unique_ptr<network::TerrierServer> server_;
   };
 
@@ -360,7 +364,7 @@ class DBMain {
         TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
-                                           network_port_, connection_thread_count_);
+                                           network_port_, connection_thread_count_, uds_file_directory_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -635,6 +639,7 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
+    bool metrics_query_trace_ = false;
     bool metrics_pipeline_ = false;
     bool metrics_transaction_ = false;
     bool metrics_logging_ = false;
@@ -663,6 +668,7 @@ class DBMain {
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
     uint16_t network_port_ = 15721;
+    std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
 
@@ -696,6 +702,7 @@ class DBMain {
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
+      uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
@@ -706,6 +713,7 @@ class DBMain {
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
 
+      metrics_query_trace_ = settings_manager->GetBool(settings::Param::metrics_query_trace);
       metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
       metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
       metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
@@ -722,6 +730,7 @@ class DBMain {
      */
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
+      if (metrics_query_trace_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE, 0);
       if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 9);
       if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
       if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);

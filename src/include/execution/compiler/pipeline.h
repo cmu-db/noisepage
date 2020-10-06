@@ -176,6 +176,11 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
+  /**
+   * @return Pipeline state variable
+   */
+  ast::Identifier GetPipelineStateVar() { return state_var_; }
+
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
