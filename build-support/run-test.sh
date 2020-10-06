@@ -84,8 +84,8 @@ function setup_sanitizers() {
 
   # Enable leak detection even under LLVM 3.4, where it was disabled by default.
   # This flag only takes effect when running an ASAN build.
-  # ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=1"
-  # export ASAN_OPTIONS
+  ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=1 suppression=$ROOT/build-support/data/sanitize_suppressions.txt"
+  export ASAN_OPTIONS
 
   # Set up suppressions for LeakSanitizer
   LSAN_OPTIONS="$LSAN_OPTIONS suppressions=$ROOT/build-support/data/lsan_suppressions.txt"
