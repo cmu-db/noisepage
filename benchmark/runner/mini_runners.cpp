@@ -1181,9 +1181,9 @@ class MiniRunners : public benchmark::Fixture {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         auto e1 = storage::VarlenEntry::Create(reinterpret_cast<const byte *>("hello"), 5, false);
         auto e2 = storage::VarlenEntry::Create(reinterpret_cast<const byte *>("hello"), 5, false);
-        bool ret = true;
+        uint32_t ret = 0;
         for (size_t i = 1; i <= num_elem; i++) {
-          ret = e1 == e2;
+          ret += storage::VarlenEntry::Compare(e1, e2);
           DoNotOptimizeAway(ret);
         }
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
