@@ -382,6 +382,7 @@ class ArtifactProcessor(object):
 
         # create a GBFileResult
         gbr = GBFileResult(json.loads(data))
+        LOG.debug('gbr: ',gbr)
         bench_name = gbr.get_benchmark_name()
         
         # iterate over the GBBenchResult objects
@@ -464,6 +465,7 @@ class GBFileResult(object):
         return
 
     def _init_benchmark_objects(self):
+        """ Convert raw JSON to GBBenchResult objects and populate the benchmarks_dict """
         for bench in self.data['benchmarks']:
             result_obj = GBBenchResult(bench)
             self.benchmarks.append(result_obj)
@@ -478,7 +480,7 @@ class GBFileResult(object):
     def get_datetime(self):
         """ Return when the result was generated as a datetime """
         date_str = self.data['context']['date']
-        return datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+        return datetime.datetime.strptime(date_str[:-6],"%Y-%m-%dT%H:%M:%S" )
 
     def get_keys(self):
         """ Returns all result keys """
@@ -833,12 +835,13 @@ class RunMicroBenchmarks(object):
         # use all the cpus from the highest numbered numa node
         output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
         if not output:
-            raise Exception("Missing numactl binary. Please install package")
-        highest_cpu_node = int(output) - 1
-        if highest_cpu_node > 0:
-            LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
-            LOG.debug("Enabling NUMA support")
-            cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
+            pass #raise Exception("Missing numactl binary. Please install package")
+        else:
+            highest_cpu_node = int(output) - 1
+            if highest_cpu_node > 0:
+                LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
+                LOG.debug("Enabling NUMA support")
+                cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
         
         LOG.debug("Executing command [num_threads={}]: {}".format(BENCHMARK_THREADS, cmd))
         proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1344,6 +1347,7 @@ if __name__ == "__main__":
                 with open(build_file) as fh:
                     try:
                         contents = fh.read()
+                        LOG.debug("contents: ",contents)
                         ap.add_artifact_file(contents)
                     except:
                         LOG.error("Invalid data read from benchmark result file '%s'", build_file)

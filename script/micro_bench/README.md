@@ -9,6 +9,9 @@ nightly performance runs.
 The script checks whether the performance of the benchmark has decreased by a certain amount 
 compared to the average performance from the last 30 days.
 
+The script will send the results to incrudibles-production.db.pdl.cmu.edu where they will be stored
+in TimescaleDB. The results will be visualized at [stats.noise.page](https://stats.noise.page).
+
 ## Requirements
 
 This script assumes that you have numactl package installed.
@@ -16,6 +19,7 @@ This script assumes that you have numactl package installed.
 ```
 sudo apt install numactl
 ```
+
 
 ## Usage
 
