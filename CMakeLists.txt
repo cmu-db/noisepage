@@ -480,12 +480,10 @@ target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_ob
 target_compile_options(noisepage_objlib PUBLIC      # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
-        "-fvisibility=hidden"                       # Hide symbols by default.
         ${NOISEPAGE_COMPILE_OPTIONS}
         )
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
-        "-fvisibility=hidden"                       # Hide symbols by default.
         ${NOISEPAGE_LINK_OPTIONS}
         )
 target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of the library inherit the following.
@@ -517,6 +515,12 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
 add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into static lib.
 target_link_libraries(noisepage_static PUBLIC noisepage_objlib)             # Consumers will inherit this link.
+target_compile_options(noisepage_static PUBLIC      # PUBLIC: all consumers of the library inherit the following.
+        "-fvisibility=hidden"                       # Hide symbols by default.
+        )
+target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of the library inherit the following.
+        "-fvisibility=hidden"                       # Hide symbols by default.
+        )
 add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into shared lib.
 target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)             # Consumers will inherit this link.
 
