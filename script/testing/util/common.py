@@ -21,11 +21,13 @@ def run_command(command,
     """
     General purpose wrapper for running a subprocess
     """
+    LOG.info("in run_command | command = " + command)
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
                          cwd=cwd)
 
+    LOG.info("in run_command | subproces created, pid = {}".format(p.pid))
     while p.poll() is None:
         if printable:
             if stdout == subprocess.PIPE:
@@ -34,6 +36,7 @@ def run_command(command,
                     LOG.info(out.decode("utf-8").rstrip("\n"))
 
     rc = p.poll()
+    LOG.info("in run_command | rc = {}".format(rc))
     return rc, p.stdout, p.stderr
 
 
@@ -105,8 +108,10 @@ def kill_pids_on_port(port, logger=None):
 
     try:
         for conns in psutil.net_connections(kind="inet"):
-            proc = psutil.Process(pid=conns.pid)
             if conns.laddr.port == port:
+                proc = psutil.Process(pid=conns.pid)
+                if proc is None:
+                    continue
                 print_or_log(
                     "Killing existing server instance listening on port {} [PID={}], created at {}"
                     .format(port, proc.pid,
