@@ -156,13 +156,6 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   // Setup thread states
   exec_ctx_->GetThreadStateContainer()->Reset(sizeof(Counter), init_count, nullptr, exec_ctx_.get());
 
-  auto units = std::make_unique<brain::PipelineOperatingUnits>();
-  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SEQ_SCAN, 1, 4, 1, 1, 1, 0,
-                         0);
-  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
-  exec_ctx_->SetPipelineOperatingUnits(common::ManagedPointer(units));
-
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
   TableVectorIterator::ParallelScan(table_oid.UnderlyingValue(), col_oids.data(), col_oids.size(), nullptr,

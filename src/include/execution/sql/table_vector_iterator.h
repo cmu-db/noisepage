@@ -113,7 +113,10 @@ class EXPORT TableVectorIterator {
    * @param col_oids The column OIDs of the table to scan.
    * @param num_oids The number of column OIDs provided in col_oids.
    * @param query_state An opaque pointer to some query-specific state. Passed to scan functions.
-   * @param exec_ctx ExecutionContext
+   * @param exec_ctx The execution context to run the parallel scan in. It should point to a
+   *                 ThreadStateContainer for all thread states, where it is assumed that the
+   *                 container has been configured for size, construction, and destruction
+   *                 before this invocation.
    * @param scan_fn The callback function invoked for vectors of table input.
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */

@@ -284,17 +284,11 @@ VM_OP_WARM void OpThreadStateContainerClear(terrier::execution::sql::ThreadState
   thread_state_container->Clear();
 }
 
-VM_OP_WARM void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
-  exec_ctx->RegisterThread();
-}
+VM_OP_COLD void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx);
 
-VM_OP_WARM void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx) {
-  exec_ctx->CheckTrackersStopped();
-}
+VM_OP_COLD void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx);
 
-VM_OP_WARM void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
-  exec_ctx->AggregateMetricsThread();
-}
+VM_OP_COLD void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx);
 
 // ---------------------------------------------------------
 // Table Vector Iterator

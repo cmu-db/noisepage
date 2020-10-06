@@ -75,7 +75,7 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<transaction::TransactionContext> GetTxn() { return txn_; }
 
   /**
-   * @return newly created outputbuffer
+   * @return newly created output buffer
    */
   OutputBuffer *OutputBufferNew() {
     if (schema_ == nullptr) {

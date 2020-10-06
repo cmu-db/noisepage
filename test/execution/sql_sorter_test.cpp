@@ -205,13 +205,6 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
     }
   });
 
-  auto units = std::make_unique<brain::PipelineOperatingUnits>();
-  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::SORT_BUILD, 1, 4, 1, 1, 1, 0,
-                         0);
-  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
-  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
-
   // Main parallel sort
   Sorter main(exec_ctx, cmp_fn, sizeof(TestTuple<N>));
   main.SortParallel(&container, 0);
