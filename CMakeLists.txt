@@ -258,6 +258,8 @@ endif ()
 #   MESSAGE_QUIET                   : Flag controlling message() behavior. ON to suppress informational messages.
 #######################################################################################################################
 
+set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)     # Prevent CTest from adding targets later. A hack.
+
 include(FetchContent)                   # FetchContent_ functions.
 find_package(PkgConfig REQUIRED)        # pkg_search_module function.
 
@@ -631,6 +633,7 @@ add_custom_command(
 # HEADER Tests.
 #######################################################################################################################
 
+include(CTest)          # CTest support is built into CMake.
 enable_testing()        # CTest support is built into CMake.
 include(GoogleTest)     # We rely on GoogleTest for all our tests.
 configure_file(test/CTestCustom.cmake ${PROJECT_BINARY_DIR}/CTestCustom.cmake COPYONLY) # Configure CTest output.
@@ -640,11 +643,28 @@ if (${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE})
     set(UNITTEST_OUTPUT_ON_FAILURE "--output-on-failure")
 endif ()
 
-# unittest and jumbo_unittest invoke ctest on tests which are labeled "unittest" and "jumbo-unittest" respectively.
+# unittest and jumbotests invoke ctest on tests which are labeled "unittest" and "jumbotests" respectively.
+# Unit tests are executed in parallel because we only care about correctness, not performance.
+# This means that two different unit tests could be executing at the same time.
+# In practice, figuring out the number to -j seems annoying and there doesn't appear to be a penalty for having too
+# many tests queued up, so we'll use the magic number 412.
+# Footgun: labels passed to -L are regex. Give them very unique names.
 add_custom_target(unittest
-        ctest ${UNITTEST_OUTPUT_ON_FAILURE} -L unittest --no-compress-output -T Test USES_TERMINAL)
-add_custom_target(jumbo_unittest
-        ctest ${UNITTEST_OUTPUT_ON_FAILURE} -L jumbo-unittest --no-compress-output -T Test USES_TERMINAL)
+        ctest
+        --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
+        ${UNITTEST_OUTPUT_ON_FAILURE}   # Whether to print output when a test fails.
+        -j 412                          # Hardcoded number of parallel jobs.
+        -L unittest                     # Run all tests that have a label like unittests. See footgun warning above.
+        -T Test                         # Run tests.
+        USES_TERMINAL)
+add_custom_target(jumbotests
+        ctest
+        --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
+        ${UNITTEST_OUTPUT_ON_FAILURE}   # Whether to print output when a test fails -- warning, this will be VERBOSE.
+        -j 412                          # Hardcoded number of parallel jobs.
+        -L jumbotests                   # Run all tests that have a label like jumbotests. See footgun warning above.
+        -T Test                         # Run tests.
+        USES_TERMINAL)
 
 unset(UNITTEST_OUTPUT_ON_FAILURE)
 
@@ -660,21 +680,47 @@ target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock ut
 target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
 set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
-function(add_noisepage_test TEST_NAME TEST_CPP)
+function(add_noisepage_test
+        TEST_NAME                   # The name of this test.
+        TEST_SOURCES                # The CPP files for this test.
+        TEST_LABEL                  # The label of this test. Will be added as a dependency of this label.
+        SHOULD_EXCLUDE_FROM_ALL     # EXCLUDE_ALL if we should exclude from default ALL target, NO_EXCLUDE otherwise.
+        SHOULD_UNITY_BUILD          # UNITY if we should unity build, NO_UNITY otherwise.
+        )
     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
 
-    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_CPP})
-    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared ${ARGN})
+    if (${SHOULD_EXCLUDE_FROM_ALL} STREQUAL "EXCLUDE_ALL")
+        set(EXCLUDE_OPTION "EXCLUDE_FROM_ALL")
+    elseif (${SHOULD_EXCLUDE_FROM_ALL} STREQUAL "NO_EXCLUDE")
+        set(EXCLUDE_OPTION "")
+    else ()
+        message(FATAL_ERROR "Invalid option for SHOULD_EXCLUDE_FROM_ALL.")
+    endif ()
+
+    if (${SHOULD_UNITY_BUILD} STREQUAL "UNITY")
+        set(UNITY_OPTION "ON")
+    elseif (${SHOULD_UNITY_BUILD} STREQUAL "NO_UNITY")
+        set(UNITY_OPTION "OFF")
+    else ()
+        message(FATAL_ERROR "Invalid option for SHOULD_UNITY_BUILD.")
+    endif ()
+
+    add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
+    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
             ENABLE_EXPORTS ON                                   # Export for tpl.
             RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
+            UNITY_BUILD "${UNITY_OPTION}"                       # Possibly choose to use unity builds.
             )
+    # Include the testing directories.
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
     # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
     add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
-    # Label each test with "unittest" so that ctest can run all the tests under the "unittest" label later.
-    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "unittest")
+    # Label each test with TEST_LABEL so that ctest can run all the tests under the TEST_LABEL label later.
+    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "${TEST_LABEL};${TEST_NAME}")
+    # Add TEST_NAME as a dependency to TEST_LABEL. Note that TEST_LABEL must be a valid target!
+    add_dependencies(${TEST_LABEL} ${TEST_NAME})
 endfunction()
 
 file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
@@ -698,58 +744,57 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
 foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
     get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
-
-    set(NOISEPAGE_TEST_LINKS "")
-
-    if ("${NOISEPAGE_TEST_DIR}" MATCHES "^(network|traffic_cop)$")
-        set(NOISEPAGE_TEST_LINKS "pqxx")
-    endif ()
-
-    if ("${NOISEPAGE_TEST_DIR}" MATCHES "^(execution|integration|optimizer|storage|transaction)$")
-        set(NOISEPAGE_TEST_LINKS "noisepage_test_util")
-    endif ()
-
     get_filename_component(NOISEPAGE_TEST ${NOISEPAGE_TEST_CPP} NAME_WE)
-    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} ${NOISEPAGE_TEST_LINKS})
-    add_dependencies(unittest ${NOISEPAGE_TEST})
+    add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} unittest EXCLUDE_ALL NO_UNITY)
 endforeach ()
 
-function(add_jumbotest FOLDER_PATH)
+function(add_jumbotest
+        FOLDER_PATH     # The folder to jumbo together.
+        PREFIXES        # The prefixes of filenames within that folder that should be separate jumbos of their own.
+        )
     set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/test")             # Output directory for tests.
     get_filename_component(FOLDER_NAME ${FOLDER_PATH} NAME_WE)
     set(TEST_NAME jumbotest_${FOLDER_NAME})
-    file(GLOB_RECURSE JUMBO_SOURCES ${FOLDER_PATH}/*.cpp)
-    add_executable(${TEST_NAME} ${JUMBO_SOURCES})
-    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
-    set_target_properties(${TEST_NAME} PROPERTIES
-            CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
-            ENABLE_EXPORTS ON                                   # Export for tpl.
-            RUNTIME_OUTPUT_DIRECTORY "${TEST_OUTPUT_DIR}"       # Output the test binaries to this folder.
-            UNITY_BUILD ${NOISEPAGE_UNITY_BUILD}                # Build multiple cpp files as a single cpp file.
-            )
-    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include/)
-    # TODO(WAN): The "modern" gtest_discover_test has a ton of files. Favoring legacy add_test for now...
-    add_test(${TEST_NAME} ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} test ${TEST_OUTPUT_DIR}/${TEST_NAME})
-    # Label each test with "unittest" so that ctest can run all the tests under the "unittest" label later.
-    set_tests_properties(${TEST_NAME} PROPERTIES LABELS "jumbo-unittest")
-    add_dependencies(jumbo_unittest ${TEST_NAME})
+    file(GLOB_RECURSE JUMBO_SOURCES_ALL ${FOLDER_PATH}/*.cpp)
+    set(TEST_NAME_SUFFIX "")
+    if (NOT "${PREFIXES}" STREQUAL "")
+        foreach (PREFIX ${PREFIXES})
+            file(GLOB_RECURSE JUMBO_SOURCES ${FOLDER_PATH}/${PREFIX}*.cpp)
+            foreach (PREFIXED_FILE ${JUMBO_SOURCES})
+                list(REMOVE_ITEM JUMBO_SOURCES_ALL ${PREFIXED_FILE})
+            endforeach ()
+            add_noisepage_test(jumbotest_${FOLDER_NAME}_${PREFIX} "${JUMBO_SOURCES}" "jumbotests" NO_EXCLUDE UNITY)
+        endforeach ()
+        set(TEST_NAME_SUFFIX "_other")
+    endif ()
+    if (NOT "${JUMBO_SOURCES_ALL}" STREQUAL "")
+        add_noisepage_test(jumbotest_${FOLDER_NAME}${TEST_NAME_SUFFIX} "${JUMBO_SOURCES_ALL}" "jumbotests" NO_EXCLUDE UNITY)
+    endif ()
 endfunction()
 
-add_jumbotest("test/binder")
-add_jumbotest("test/catalog")
-add_jumbotest("test/common")
-add_jumbotest("test/execution")
-add_jumbotest("test/integration")
-add_jumbotest("test/metrics")
-add_jumbotest("test/network")
-add_jumbotest("test/optimizer")
-add_jumbotest("test/parser")
-add_jumbotest("test/planner")
-add_jumbotest("test/settings")
-add_jumbotest("test/storage")
-add_jumbotest("test/traffic_cop")
-add_jumbotest("test/transaction")
-add_jumbotest("test/type")
+add_jumbotest("test/binder" "")
+add_jumbotest("test/catalog" "")
+add_jumbotest("test/common" "")
+add_jumbotest("test/execution" "ast;sql;util;vm;")
+add_jumbotest("test/integration" "")
+add_jumbotest("test/metrics" "metrics_test;")
+add_jumbotest("test/network" "network_test;")
+add_jumbotest("test/optimizer" "")
+add_jumbotest("test/parser" "")
+add_jumbotest("test/planner" "")
+add_jumbotest("test/settings" "")
+add_jumbotest("test/storage" "")
+add_jumbotest("test/traffic_cop" "traffic_cop_test;")
+add_jumbotest("test/transaction" "")
+add_jumbotest("test/type" "")
+
+# Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
+# All tests that try to launch the server on port 15721 must declare that here.
+set_tests_properties(
+        metrics_test jumbotest_metrics_metrics_test
+        network_test jumbotest_network_network_test
+        traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
+        PROPERTIES RESOURCE_GROUPS "port15721:1")
 
 #######################################################################################################################
 # HEADER Benchmarks.
