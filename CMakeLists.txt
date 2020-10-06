@@ -58,6 +58,7 @@
 #   HEADER tpl binary.
 #   HEADER Tests.
 #   HEADER Benchmarks.
+#   HEADER Generated file destinations.
 #   HEADER Miscellaneous.
 
 #######################################################################################################################
@@ -562,15 +563,7 @@ set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NO
 add_executable(gen_opt_bc util/execution/gen_opt_bc.cpp)
 target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
-set_target_properties(
-        gen_opt_bc
-        PROPERTIES
-        CXX_EXTENSIONS OFF
-        ENABLE_EXPORTS ON
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+set_target_properties(gen_opt_bc PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
 # HEADER hack_bytecode_handlers_ir target.
@@ -593,18 +586,10 @@ set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)
-add_dependencies(tpl gen_opt_bc hack_bytecode_handlers_ir)      # Build these before building tpl.
+add_dependencies(tpl gen_opt_bc)                                                    # Build these before building tpl.
 target_include_directories(tpl PRIVATE ${LLVM_INCLUDE_DIR})
 target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
-set_target_properties(
-        tpl
-        PROPERTIES
-        CXX_EXTENSIONS OFF
-        ENABLE_EXPORTS ON
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+set_target_properties(tpl PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 # On MacOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
 if (APPLE)
@@ -706,7 +691,7 @@ function(add_noisepage_test
     endif ()
 
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
-    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gmock_main noisepage_shared noisepage_test_util pqxx)
+    target_link_libraries(${TEST_NAME} PRIVATE gmock_main noisepage_shared noisepage_test_util)
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
             ENABLE_EXPORTS ON                                   # Export for tpl.
@@ -851,6 +836,21 @@ foreach (NOISEPAGE_BENCHMARK_CPP ${NOISEPAGE_BENCHMARK_SOURCES})
     add_noisepage_benchmark(${NOISEPAGE_BENCHMARK} ${NOISEPAGE_BENCHMARK_CPP} ${NOISEPAGE_BENCHMARK_LINKS})
     add_dependencies(runbenchmark ${NOISEPAGE_BENCHMARK})
 endforeach ()
+
+#######################################################################################################################
+# HEADER Generated file destinations.
+#######################################################################################################################
+
+set_target_properties(
+        noisepage_static noisepage_shared noisepage
+        util_static
+        noisepage_test_util noisepage_benchmark_util
+        gen_opt_bc tpl
+        PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 #######################################################################################################################
 # HEADER Miscellaneous.
