@@ -30,7 +30,7 @@ ExecutableQuery::Fragment::~Fragment() = default;
 
 void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) const {
   using Function = std::function<void(void *)>;
-
+  mode = vm::ExecutionMode::Adaptive;
   auto exec_ctx = *reinterpret_cast<exec::ExecutionContext **>(query_state);
   if (exec_ctx->GetTxn()->MustAbort()) {
     return;
