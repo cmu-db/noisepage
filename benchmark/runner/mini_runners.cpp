@@ -238,7 +238,9 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_PLUS_OR_MINUS,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_MULTIPLY,
                     brain::ExecutionOperatingUnitType::OP_DECIMAL_DIVIDE,
-                    brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE};
+                    brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE,
+                    brain::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE,
+  };
 
   std::vector<size_t> counts;
   for (size_t i = 10000; i < 100000; i += 10000) counts.push_back(i);
@@ -1171,6 +1173,19 @@ class MiniRunners : public benchmark::Fixture {
       case brain::ExecutionOperatingUnitType::OP_DECIMAL_COMPARE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         double ret = __double_GEQ(num_elem);
+        exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
+        DoNotOptimizeAway(ret);
+        break;
+      }
+      case brain::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE: {
+        exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
+        auto e1 = storage::VarlenEntry::Create(reinterpret_cast<const byte *>("hello"), 5, false);
+        auto e2 = storage::VarlenEntry::Create(reinterpret_cast<const byte *>("hello"), 5, false);
+        bool ret = true;
+        for (size_t i = 1; i <= num_elem; i++) {
+          ret = e1 == e2;
+          DoNotOptimizeAway(ret);
+        }
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
         DoNotOptimizeAway(ret);
         break;

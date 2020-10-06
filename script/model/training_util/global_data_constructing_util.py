@@ -224,7 +224,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
     io_util.create_csv_file(prediction_path, ["Pipeline", "", "Actual", "", "Predicted", "", "Ratio Error"])
     io_util.create_csv_file(pipeline_path, ["Number", "Percentage", "Pipeline", "Actual Us", "Predicted Us",
-                                            "Us Error", "Absolute Us", "Assolute Us %"])
+                                            "Us Error", "Absolute Us", "Absolute Us %"])
 
     # Track pipeline cumulative numbers
     num_pipelines = 0
