@@ -164,9 +164,15 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
       // (outer_relation.a = (expr))
       ancestor_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
+      // If the sub-query depth level of the first child is less than the current expression
+      // the first child is outer_relation.a and the second child is a (expr)
+      // The second child expression shall be evaluated as a part of the new aggregation before the new filter
       if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
         new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
-      } else {
+      }
+      // Otherwise, the first child is a (expr) and the second child is outer_relation.a
+      // The first child expression shall be evaluated as a part of the new aggregation before the new filter
+      else {
         new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
       }
     }
@@ -189,11 +195,11 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   std::vector<std::unique_ptr<AbstractOptimizerNode>> inner_node;
   inner_node.emplace_back(input->GetChildren()[0]->Copy());
   if (!descendant_predicates.empty()) {
-    std::vector<std::unique_ptr<AbstractOptimizerNode>> cf;
-    cf.emplace_back(std::move(new_aggr));
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> child_node;
+    child_node.emplace_back(std::move(new_aggr));
     auto filter = std::make_unique<OperatorNode>(LogicalFilter::Make(std::move(descendant_predicates))
                                                      .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
-                                                 std::move(cf), context->GetOptimizerContext()->GetTxn());
+                                                 std::move(child_node), context->GetOptimizerContext()->GetTxn());
     inner_node.emplace_back(std::move(filter));
   } else {
     inner_node.emplace_back(std::move(new_aggr));
