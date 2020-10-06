@@ -248,7 +248,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     query_prediction_cache = {}
 
     # Indicate whether to introduce noise to the cardinality estimation
-    add_noise = True
+    add_noise = False
     ous_with_noise = {OpUnit.AGG_BUILD, OpUnit.AGG_ITERATE, OpUnit.HASHJOIN_BUILD, OpUnit.HASHJOIN_PROBE,
                       OpUnit.SORT_BUILD, OpUnit.SORT_ITERATE}
 
