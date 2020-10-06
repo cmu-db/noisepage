@@ -13,7 +13,7 @@ namespace terrier::storage {
 
 DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : block_store_(store), layout_version_(layout_version), accessor_(layout) {
+    : block_store_(store), layout_version_(layout_version), accessor_(layout), compiled_accessor_(this) {
   TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
@@ -250,27 +250,6 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
   InsertInto(txn, redo, result);
 
   return result;
-}
-
-void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
-                           TupleSlot dest) {
-  TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
-  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
-                 "The slot needs to be logically deleted to every running transaction");
-  // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
-  // the primary key column
-  UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
-  TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
-                 "Should only be able to insert into hot blocks");
-  AtomicallyWriteVersionPtr(dest, accessor_, undo);
-  // Set the logically deleted bit to present as the undo record is ready
-  accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
-  // Update in place with the new value.
-  for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Insert buffer should not change the version pointer column.");
-    StorageUtil::CopyAttrFromProjection(accessor_, dest, redo, i);
-  }
 }
 
 bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {

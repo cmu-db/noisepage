@@ -6,22 +6,7 @@
 
 namespace terrier::storage {
 
-TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
-    : layout_(std::move(layout)), column_offsets_(layout_.NumColumns()) {
-  // Calculate the start position of each column
-  // we use 64-bit vectorized scans on bitmaps.
-  uint32_t acc_offset = layout_.HeaderSize();
-  TERRIER_ASSERT(acc_offset % sizeof(uint64_t) == 0, "size of a header should already be padded to aligned to 8 bytes");
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) {
-    column_offsets_[i] = acc_offset;
-    uint32_t column_size =
-        layout_.AttrSize(col_id_t(i)) * layout_.NumSlots()  // content
-        + StorageUtil::PadUpToSize(sizeof(uint64_t),
-                                   common::RawBitmap::SizeInBytes(layout_.NumSlots()));  // padded-bitmap size
-    acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
-    TERRIER_ASSERT(acc_offset <= common::Constants::BLOCK_SIZE, "Offsets cannot be out of block bounds");
-  }
-}
+TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout) : layout_(std::move(layout)) {}
 
 void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_table, RawBlock *const raw,
                                              const layout_version_t layout_version) const {
@@ -32,7 +17,8 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
   raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
   result->GetArrowBlockMetadata().Initialize(GetBlockLayout().NumColumns());
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets(layout_)[i] = column_offsets_[i];
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++)
+    result->AttrOffsets(layout_)[i] = layout_.ColumnOffset(col_id_t(i));
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
   result->Column(layout_, VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());

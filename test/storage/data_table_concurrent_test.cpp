@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/llvm.h"
 #include "storage/data_table.h"
 #include "test_util/multithread_test_util.h"
 #include "test_util/storage_test_util.h"
@@ -81,6 +82,8 @@ struct DataTableConcurrentTests : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
+
+  void SetUp() override { common::LLVM::Initialize(); }
 };
 
 // Spawns multiple transactions. The timestamps of the transactions don't matter,

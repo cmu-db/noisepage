@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/llvm.h"
 #include "common/object_pool.h"
 #include "storage/storage_util.h"
 #include "test_util/storage_test_util.h"
@@ -167,6 +168,8 @@ struct DataTableTests : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_pool_{500000, 50000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
+
+  void SetUp() override { common::LLVM::Initialize(); }
 };
 
 // Generates a random table layout and coin flip bias for an attribute being null, inserts num_inserts random tuples

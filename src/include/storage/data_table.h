@@ -9,6 +9,7 @@
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "storage/tuple_accessor.h"
 #include "storage/undo_record.h"
 
 namespace terrier::execution::sql {
@@ -278,10 +279,16 @@ class DataTable {
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
+  // Allows the TupleAccessor to fill in the compiled pointers.  While
+  // slightly convoluted, this constrains the location of C-style function
+  // pointer magic to the TupleAccessor code rather than spilling into this
+  // file as well.
+  friend class TupleAccessor;
 
   const common::ManagedPointer<BlockStore> block_store_;
   const layout_version_t layout_version_;
   const TupleAccessStrategy accessor_;
+  const TupleAccessor compiled_accessor_;
 
   // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
   // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
@@ -302,8 +309,8 @@ class DataTable {
   bool SelectIntoBuffer(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                         RowType *out_buffer) const;
 
-  void InsertInto(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
-                  TupleSlot dest);
+  void (*InsertInto)(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
+                     TupleSlot dest);
   // Atomically read out the version pointer value.
   UndoRecord *AtomicallyReadVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor) const;
 

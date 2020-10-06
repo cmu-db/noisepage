@@ -10,6 +10,7 @@
 namespace terrier::storage {
 BlockLayout::BlockLayout(std::vector<uint16_t> attr_sizes)
     : attr_sizes_(std::move(attr_sizes)),
+      column_offsets_(attr_sizes_.size()),
       tuple_size_(ComputeTupleSize()),
       static_header_size_(ComputeStaticHeaderSize()),
       num_slots_(ComputeNumSlots()),
@@ -24,6 +25,20 @@ BlockLayout::BlockLayout(std::vector<uint16_t> attr_sizes)
   std::sort(attr_sizes_.begin() + NUM_RESERVED_COLUMNS, attr_sizes_.end(), std::greater<>());
   for (uint32_t i = 0; i < attr_sizes_.size(); i++)
     if (attr_sizes_[i] == VARLEN_COLUMN) varlens_.emplace_back(i);
+
+  // Calculate the start position of each column
+  // we use 64-bit vectorized scans on bitmaps.
+  uint32_t acc_offset = header_size_;
+  TERRIER_ASSERT(acc_offset % sizeof(uint64_t) == 0, "size of a header should already be padded to aligned to 8 bytes");
+  for (uint16_t i = 0; i < NumColumns(); i++) {
+    column_offsets_[i] = acc_offset;
+    uint32_t column_size = attr_sizes_[i] * num_slots_  // content
+                           +
+                           StorageUtil::PadUpToSize(sizeof(uint64_t),
+                                                    common::RawBitmap::SizeInBytes(num_slots_));  // padded-bitmap size
+    acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
+    TERRIER_ASSERT(acc_offset <= common::Constants::BLOCK_SIZE, "Offsets cannot be out of block bounds");
+  }
 }
 
 uint32_t BlockLayout::ComputeTupleSize() const {

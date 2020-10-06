@@ -101,9 +101,10 @@ class TransactionContext {
    * @param slot the TupleSlot inserted
    * @return a persistent pointer to the head of a memory chunk large enough to hold the undo record
    */
-  storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
-    byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeInsert(result, finish_time_.load(), slot, table);
+  static storage::UndoRecord *UndoRecordForInsert(common::ManagedPointer<TransactionContext> txn,
+                                                  storage::DataTable *const table, const storage::TupleSlot slot) {
+    byte *const result = txn->undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
+    return storage::UndoRecord::InitializeInsert(result, txn->finish_time_.load(), slot, table);
   }
 
   /**

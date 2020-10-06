@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "storage/storage_defs.h"
+#include "storage/storage_util.h"
 
 namespace terrier::storage {
 // Used to retrieve the number of bytes an attribute actually occupies in memory. The size value stored in
@@ -43,6 +44,32 @@ class BlockLayout {
     // mask off the first bit as we use that to check for varlen
     return AttrSizeBytes(attr_sizes_.at(col_id.UnderlyingValue()));
   }
+
+  /**
+   * @param[in]  col_id  The column identifier
+   * @return     offset in memory of column region from start of block
+   */
+  uint32_t ColumnOffset(col_id_t col_id) const { return column_offsets_[col_id.UnderlyingValue()]; }
+
+  /**
+   * @param[in]  col_id  The column identifier
+   * @return     offset in memory of column's null bitmap from start of block
+   */
+  uint32_t ColumnBitmapOffset(col_id_t col_id) const { return column_offsets_[col_id.UnderlyingValue()]; }
+
+  /**
+   * @param[in]  col_id  The column identifier
+   * @return     offset in memory of column's data array from start of block
+   */
+  uint32_t ColumnDataOffset(col_id_t col_id) const {
+    return column_offsets_[col_id.UnderlyingValue()] +
+           StorageUtil::PadUpToSize(sizeof(uint64_t), common::RawBitmap::SizeInBytes(num_slots_));
+  }
+
+  /**
+   * @return     offset in memory of the allocation bitmap from start of block
+   */
+  uint32_t AllocationBitmapOffset() const { return static_header_size_; }
 
   /**
    * @param col_id the column id to check for
@@ -86,6 +113,7 @@ class BlockLayout {
   std::vector<uint16_t> attr_sizes_;
   // keeps track of all the varlens to make iteration through all varlen columns faster
   std::vector<col_id_t> varlens_;
+  std::vector<uint32_t> column_offsets_;
   // These fields below should be declared const but then that deletes the assignment operator for BlockLayout. With
   // const-only accessors we should be safe from making changes to a BlockLayout that would break stuff.
 

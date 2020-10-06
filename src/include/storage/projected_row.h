@@ -269,6 +269,7 @@ class ProjectedRowInitializer {
   friend class execution::sql::StorageInterface;  // access to the PRI default constructor
   friend class WriteAheadLoggingTests;
   friend class AbstractLogProvider;
+  friend class TupleAccessor;  // Access to offset information (i.e. offsets_)
 
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
