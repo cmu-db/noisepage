@@ -43,7 +43,6 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
-
   /**
    * If the provided pipeline is the build-side, initialize the declare partial aggregate.
    * @param pipeline The pipeline whose state is being initialized.
