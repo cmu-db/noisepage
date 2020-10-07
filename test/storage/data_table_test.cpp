@@ -396,7 +396,7 @@ TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
       for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
       EXPECT_EQ(size, i);
 
-      // add new table and make sure that expected element is in table
+      // add new tuple and make sure that expected element is in table
       auto slot = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_);
       auto it = tested.GetTable().begin();
       for (uint64_t ith = 0; it != tested.GetTable().end() && ith < size; ith++) it++;
