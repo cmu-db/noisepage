@@ -653,6 +653,42 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {
   TERRIER_ASSERT(0, "OuterHashJoin not implemented");
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// A left semi hashjoin B (what you should do for large relations, A should be smaller than B)
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+void PlanGenerator::Visit(const LeftSemiHashJoin *op) {
+  auto proj_schema = GenerateProjectionForJoin();
+
+  auto comb_pred = parser::ExpressionUtil::JoinAnnotatedExprs(op->GetJoinPredicates());
+  auto eval_pred =
+      parser::ExpressionUtil::EvaluateExpression(children_expr_map_, common::ManagedPointer(comb_pred.get()));
+  auto join_predicate =
+      parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_pred.get()), children_expr_map_).release();
+  RegisterPointerCleanup<parser::AbstractExpression>(join_predicate, true, true);
+
+  auto builder = planner::HashJoinPlanNode::Builder();
+  builder.SetOutputSchema(std::move(proj_schema));
+
+  for (auto &expr : op->GetLeftKeys()) {
+    auto left_key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
+    RegisterPointerCleanup<parser::AbstractExpression>(left_key, true, true);
+    builder.AddLeftHashKey(common::ManagedPointer(left_key));
+  }
+
+  for (auto &expr : op->GetRightKeys()) {
+    auto right_key = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
+    RegisterPointerCleanup<parser::AbstractExpression>(right_key, true, true);
+    builder.AddRightHashKey(common::ManagedPointer(right_key));
+  }
+
+  builder.AddChild(std::move(children_plans_[0]));
+  builder.AddChild(std::move(children_plans_[1]));
+  builder.SetJoinPredicate(common::ManagedPointer(join_predicate));
+  builder.SetJoinType(planner::LogicalJoinType::LEFT_SEMI);
+  output_plan_ = builder.Build();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Aggregations (when the groups are greater than individuals)
 ///////////////////////////////////////////////////////////////////////////////
