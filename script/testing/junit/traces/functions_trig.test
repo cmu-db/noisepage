@@ -20,17 +20,26 @@ SELECT a,a+b,sin(c) FROM functions_trig ORDER BY a;
 
 query IR
 SELECT a,sin(b+c),tan(a+c) FROM functions_trig ORDER BY a;
+----
 1
--0.666276
+0.745705
 3.602103
 4
--0.307333
+-0.951602
 0.264317
 7
--0.275163
+-0.961397
 0.300632
 
-# Note that nested functions are broken, for example, abs(abs(0.3)). So further testing seems hard at the moment.
+query IR
+SELECT a, sin(cos(tan(c+a) + sin(c+b))+c) FROM functions_trig ORDER BY a;
+----
+1
+-0.056528
+4
+0.172110
+7
+-0.356711
 
 statement ok
 DROP TABLE functions_trig
