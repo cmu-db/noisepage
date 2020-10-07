@@ -5,7 +5,7 @@ Welcome to the PR tracker for **NoisePage**! We're excited that you're intereste
 Please choose the appropriate labels on the Github panel and feel free to assign yourself. Additionally, if your PR solves an open issue, please link the issue on the Github panel. However, please **DO NOT** assign any reviewers to your PR. We will decide who best to assign for a review.
 
 
-# PR Heading
+# Heading
 Please choose an appropriate heading for your PR, relevant to the changes you have made. For example, if your PR addresses the `LIMIT` clause on `IndexScan`s, an appropriate PR name would be `Index Scan Limit`.
 
 ## Description
@@ -16,7 +16,7 @@ Limit clauses are currently not propagated to the `IndexScanPlanNode` in the opt
 This PR adds functionality for the limit value to be pushed down to an index scan, and is used in TPC-C. Limits values will be pushed down to their child `LogicalGet` via transformation rule and converted to values in the `PhysicalIndexScan` which are then set in the `IndexScanPlanNode`. To appropriately act on the `Limit` value, we also add infrastructure for optional properties for a child to satisfy, which is tracked only in an `Optimizer` node. The PR also moves the `OrderByOrderingType` from the optimizer to the catalog as a precursor to further changes to involve the sort direction of columns in creating/scanning an index.
 
 ### Remaining Tasks
-Again, you should only create PR once you are reasonably confident you are near completion. However, if there are some tasks still remaining before the PR is ready to merge, please create a checklist to track active progress. An [example](https://github.com/cmu-db/noisepage/issues/879) from a PR by @thepinetree follows:
+Again, you should only create PR once you are reasonably confident you are near completion. However, if there are some tasks still remaining before the PR is ready to merge, please create a checklist to track active progress. An [example](https://github.com/cmu-db/noisepage/issues/1031) from a PR by @thepinetree follows:
 
 :pushpin: TODOs:
 - [x] ~~Stash limit in OptimizerContext for pushdown (INVALID)~~
@@ -54,3 +54,19 @@ This is probably a dead end, but less of a dead end than libevent/epoll stuff.
 I'd like to work on improving our INET socket overhead, but at this point, that might not be doable without being a kernel engineer. Nothing I tried measurably reduced loopback and/or INET overhead, and I tried a lot. Still, I think it's worth digging some more.
 
 One question I have is how much of the speedup comes from avoiding TCP, and how much comes from using a glorified pipe instead of loopback. This would be interesting to know, but I have no idea how I'd measure, and I'm not convinced that I'd be able to make anything useful from the answer.
+
+---
+Here's an empty template to format yourself!
+# Heading
+
+## Description
+
+## Remaining tasks
+
+- [ ] Foo
+- [ ] Bar
+- [ ] Baz
+
+## Performance
+
+## Further work
