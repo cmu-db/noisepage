@@ -1646,7 +1646,7 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::ExecutionContextEndResourceTracker: {
-      LocalVar name = VisitExpressionForSQLValue(call->Arguments()[1]);
+      LocalVar name = VisitExpressionForLValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextEndResourceTracker, exec_ctx, name);
       break;
     }
