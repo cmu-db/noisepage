@@ -307,108 +307,149 @@ INSERT INTO studentTable VALUES (99, 'Kanye', 17, 3.7, FALSE)
 query I nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount from studentTable
 ----
-1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+5
 
 query I nosort
 SELECT COUNT(DISTINCT age) as distinctAgeCount from studentTable
 ----
-1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+5
 
 query I nosort
 SELECT COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
 ----
-1 values hashing to 48a24b70a0b376535542b996af517398
+4
 
 query I nosort
 SELECT COUNT(international) as internationalCount from studentTable
 ----
-1 values hashing to 919d117956d3135c4c683ff021352f5c
+100
 
 query I nosort
 SELECT COUNT(DISTINCT international) as distinctInternationalCount from studentTable
 ----
-1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+2
 
 query II nosort
 SELECT COUNT(DISTINCT age) as distinctAgeCount, COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
 ----
-2 values hashing to 546cdde319a1f43078d089021e84a532
+5
+4
 
 query II nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
 ----
-2 values hashing to 546cdde319a1f43078d089021e84a532
+5
+4
 
 query II nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(DISTINCT age) as distinctAgeCount from studentTable
 ----
-2 values hashing to a56776f01f8ab14d7d037bf1ccb399cd
+5
+5
 
 query II nosort
 SELECT COUNT(DISTINCT international) as distinctIntCount, COUNT(DISTINCT age) as distinctAgeCount from studentTable
 ----
-2 values hashing to 1da4aa1389a35517735e68bba383291c
+2
+5
 
 query II nosort
 SELECT COUNT(DISTINCT international) as distinctIntCount, COUNT(DISTINCT gpa) as distinctGpaCount from studentTable
 ----
-2 values hashing to bcc8bbd9ecc2b739bb05bb4d30e978a5
+2
+4
 
 query II nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(DISTINCT international) as distinctIntCount from studentTable
 ----
-2 values hashing to 6e1ea256a31508a67859cb9ee2138755
+5
+2
 
-# No of outputs: 4
 query IIRI nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(name) as nameCount, MIN(gpa) as minGpa, MAX(age) as maxAge from studentTable
 ----
-Expected 4 values hashing to 99213c4be9a187a0e49dad4be69a699b
+5
+100
+3.3
+21
 
-# No of outputs: 2
 query RI nosort
 SELECT MAX(DISTINCT gpa) as distinctGpaMax, MIN(DISTINCT age) as distinctAgeMin from studentTable
 ----
-Expected 2 values hashing to 9ec0415f9835d73bff09fb65b39f8b3b
+4
+17
 
-# No of outputs: 2
 query RR nosort
 SELECT AVG(DISTINCT gpa) as distinctGpaAvg, AVG(DISTINCT age) as distinctAgeAvg from studentTable
 ----
-Expected 2 values hashing to fb723c097a70a4368ff2de46bcb0f28d
+3.625
+19.0000000000000000
 
-# No of outputs: 3
 query RRI nosort
 SELECT SUM(DISTINCT gpa) as distinctGpaSum, SUM(gpa) as gpaSum, SUM(DISTINCT age) as distinctAgeSum from studentTable
 ----
-Expected 3 values hashing to 12ddf427fa723780c7c7550064e7eb26
+14.5
+364.9999999999993
+95
 
 query II nosort
 SELECT COUNT(DISTINCT international) as distinctInternationalCount, COUNT(gpa) as gpaCount from studentTable
 ----
-2 values hashing to b422730aed890d1e52485b5cc2d16901
+2
+100
 
 query II nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(name) as nameCount from studentTable GROUP BY gpa ORDER BY gpa
 ----
-8 values hashing to d9ad7d057a46a9c258702e150ce1d346
+1
+10
+1
+20
+3
+60
+1
+10
 
 query II nosort
 SELECT COUNT(DISTINCT name) as distinctNameCount, COUNT(age) as ageCount from studentTable GROUP BY international ORDER BY international
 ----
-4 values hashing to d7e88f9a09c637e1515a5978c93b36df
+3
+60
+2
+40
 
-# No of outputs: 10
 query RR nosort
 SELECT AVG(DISTINCT AGE) as distinctAgeAvg, AVG(DISTINCT gpa) as distinctGpaAvg from studentTable GROUP BY name ORDER BY name
 ----
-Expected 10 values hashing to 353b5af4dc97b73a1ae6eb90f68fbb0f
+20.0000000000000000
+3.5
+18.0000000000000000
+3.5
+20.0000000000000000
+4
+17.0000000000000000
+3.7
+20.0000000000000000
+3.7
 
-# No of outputs: 15
 query RRI nosort
 SELECT AVG(DISTINCT gpa) as distinctGpaAvg, AVG(gpa) as gpaAvg, COUNT(DISTINCT name) as distinctNameCount from studentTable GROUP BY age ORDER BY age
 ----
-Expected 15 values hashing to 462d22550e77a460ba9de96a9cb4d36b
+3.7
+3.7000000000000015
+1
+3.5
+3.5
+1
+3.3
+3.3
+1
+3.85
+3.8000000000000016
+2
+3.7
+3.7000000000000015
+1
 
 statement ok
 DROP TABLE studentTable
