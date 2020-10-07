@@ -503,10 +503,11 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
     LocalVar result;
     if (node->Ret()->GetType()->IsSqlValueType()) {
       result = VisitExpressionForSQLValue(node->Ret());
+      BuildAssign(rv, result, node->Ret()->GetType());
     } else {
       result = VisitExpressionForRValue(node->Ret());
+      BuildAssign(rv.ValueOf(), result, node->Ret()->GetType());
     }
-    BuildAssign(rv.ValueOf(), result, node->Ret()->GetType());
   }
   GetEmitter()->EmitReturn();
 }
@@ -1833,7 +1834,7 @@ void BytecodeGenerator::VisitBuiltinTrigCall(ast::CallExpr *call, ast::Builtin b
     }
   }
 
-  GetExecutionResult()->SetDestination(dest.ValueOf());
+  GetExecutionResult()->SetDestination(dest);
 }
 
 void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1860,7 +1861,7 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
     default:
       UNREACHABLE("Unimplemented arithmetic function!");
   }
-  GetExecutionResult()->SetDestination(dest.ValueOf());
+  GetExecutionResult()->SetDestination(dest);
 }
 
 void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
