@@ -30,7 +30,7 @@ SELECT a,sin(b+c),tan(a+c) FROM functions_trig ORDER BY a;
 -0.275163
 0.300632
 
-# Note that nested functions, for example, abs(abs(0.3)) is broken. So we cannot do much more fancy tests.
+# Note that nested functions are broken, for example, abs(abs(0.3)). So further testing seems hard at the moment.
 
 statement ok
 DROP TABLE functions_trig
