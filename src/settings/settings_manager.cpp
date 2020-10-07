@@ -10,7 +10,6 @@
 #include "settings/settings_callbacks.h"
 
 #define __SETTING_GFLAGS_DECLARE__     // NOLINT
-#include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DECLARE__      // NOLINT
 
@@ -55,7 +54,6 @@ void SettingsManager::ValidateParams() {
   //   execution::sql::Integer(65535)));
 
 #define __SETTING_VALIDATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_VALIDATE__            // NOLINT
 }
@@ -231,7 +229,6 @@ void SettingsManager::ConstructParamMap(                                        
    */
 
 #define __SETTING_POPULATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_POPULATE__            // NOLINT
 }  // clang-format on

@@ -1,7 +1,6 @@
 #include "main/db_main.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
