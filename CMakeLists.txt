@@ -251,6 +251,18 @@ else ()
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
 endif ()
 
+# From pmenon: since Ninja buffers output from the compiler, GCC/Clang won't generate colored text.
+# Explicitly request colorized compiler output.
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fdiagnostics-color=always")
+    message(STATUS "Colorized output: ON (-fdiagnostics-color=always)")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fcolor-diagnostics")
+    message(STATUS "Colorized output: ON (-fcolor-diagnostics)")
+else ()
+    message(STATUS "Colorized output: OFF (unknown compiler ${CMAKE_CXX_COMPILER_ID})")
+endif ()
+
 
 #######################################################################################################################
 # HEADER Dependencies for finding dependencies. : )
