@@ -65,8 +65,8 @@
 # HEADER Project definition.
 #######################################################################################################################
 
-# Ubuntu 20.04 ships with CMake version 3.16.3.
-cmake_minimum_required(VERSION 3.16)
+# Ubuntu 20.04 ships with CMake version 3.16.3. But CI on Mac is outdated and picking up 3.15.
+cmake_minimum_required(VERSION 3.15)
 
 # CMake has extremely limited support for multi-line string literals. Therefore an explicit CONCAT call is used here.
 # This description of NoisePage is copied off the website.
@@ -881,6 +881,7 @@ set_target_properties(
 #######################################################################################################################
 # Global variables for helper scripts.
 # LINT_FILES    :   All the files that are to be linted. Exposed since other tools may want to use them.
+# CLANG_TOOLS_SEARCH_PATH   :   Where to look for clang programs like clang-format and clang-tidy.
 #######################################################################################################################
 
 file(GLOB_RECURSE LINT_FILES
@@ -892,6 +893,14 @@ file(GLOB_RECURSE LINT_FILES
         "${PROJECT_SOURCE_DIR}/benchmark/*.cpp"
         "${PROJECT_SOURCE_DIR}/util/*.h"
         "${PROJECT_SOURCE_DIR}/util/*.cpp"
+        )
+
+set(CLANG_TOOLS_SEARCH_PATH
+        "/usr/local/bin"
+        "/usr/bin"
+        "/usr/local/opt/llvm/bin"
+        "/usr/local/opt/llvm@8/bin"
+        "/usr/local/Cellar/llvm/8.0.1/bin"
         )
 
 #######################################################################################################################
@@ -987,7 +996,7 @@ message(STATUS "[ADDED] check-tpl")
 # check-format      :   Check if the codebase is formatted according to standards.
 #######################################################################################################################
 
-find_program(CLANG_FORMAT_BIN NAMES clang-format-8 clang-format)
+find_program(CLANG_FORMAT_BIN NAMES clang-format-8 clang-format HINTS ${CLANG_TOOLS_SEARCH_PATH})
 if ("${CLANG_FORMAT_BIN}" STREQUAL "CLANG_FORMAT_BIN-NOTFOUND")
     message(STATUS "[MISSING] clang-format not found, no format and no check-format.")
 else ()
@@ -1022,6 +1031,8 @@ else ()
             USES_TERMINAL
             )
 
+    message(STATUS "[ADDED] clang-format and check-clang-format (${CLANG_FORMAT_BIN})")
+
     unset(FORMAT_DIRS)
 endif ()
 unset(CLANG_FORMAT_BIN)
@@ -1030,7 +1041,7 @@ unset(CLANG_FORMAT_BIN)
 # check-clang-tidy  :   Run clang-tidy static analysis on the codebase.
 #######################################################################################################################
 
-find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy)
+find_program(CLANG_TIDY_BIN NAMES clang-tidy-8 clang-tidy HINTS ${CLANG_TOOLS_SEARCH_PATH})
 if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
     message(STATUS "[MISSING] clang-tidy not found, no check-clang-tidy.")
 else ()
