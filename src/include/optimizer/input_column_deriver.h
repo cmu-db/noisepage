@@ -150,6 +150,12 @@ class InputColumnDeriver : public OperatorVisitor {
   void Visit(const OuterHashJoin *op) override;
 
   /**
+   * Visit function to derive input/output columns for LeftSemiHashJoin
+   * @param op LeftSemiHashJoin operator to visit
+   */
+  void Visit(const LeftSemiHashJoin *op) override;
+
+  /**
    * Visit function to derive input/output columns for TableFreeScan
    * @param op TableFreeScan operator to visit
    */

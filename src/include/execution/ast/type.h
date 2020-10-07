@@ -649,9 +649,14 @@ class MapType : public Type {
 class StructType : public Type {
  public:
   /**
-   * @return A const-reference to the fields in the struct.
+   * @return A const-reference to the fields in the struct ignoring padding fields.
    */
-  const util::RegionVector<Field> &GetFields() const { return fields_; }
+  const util::RegionVector<Field> &GetFieldsWithoutPadding() const { return unpadded_fields_; }
+
+  /**
+   * @returns A const reference to all fields in the struct including padding fields.
+   */
+  const util::RegionVector<Field> &GetAllFields() const { return fields_; }
 
   /**
    * @param name field to lookup
@@ -659,7 +664,7 @@ class StructType : public Type {
    *         returns null.
    */
   Type *LookupFieldByName(Identifier name) const {
-    for (const auto &field : GetFields()) {
+    for (const auto &field : GetAllFields()) {
       if (field.name_ == name) {
         return field.type_;
       }
@@ -685,7 +690,9 @@ class StructType : public Type {
   /**
    * @return True if the layout of the provided structure @em other is equivalent to this struct.
    */
-  bool IsLayoutIdentical(const StructType &other) const { return (this == &other || GetFields() == other.GetFields()); }
+  bool IsLayoutIdentical(const StructType &other) const {
+    return (this == &other || GetAllFields() == other.GetAllFields());
+  }
 
   /**
    * Create a structure with the given fields.
@@ -713,10 +720,23 @@ class StructType : public Type {
 
  private:
   explicit StructType(Context *ctx, uint32_t size, uint32_t alignment, util::RegionVector<Field> &&fields,
-                      util::RegionVector<uint32_t> &&field_offsets);
+                      util::RegionVector<Field> &&unpadded_fields, util::RegionVector<uint32_t> &&field_offsets);
 
  private:
+  /**
+   * fields_ contains the fields originally intended for the Struct and any
+   * necessary padding fields, whereas unpadded_fields_ contains only
+   * intended struct fields.
+   *
+   * Elements in fields_ correspond with field_offsets_.
+   *
+   * We store both fields_ and unpadded_fields_ since the function
+   * StructType::Get() tries to return a cached StructType if possible
+   * (refer to StructTypeCacheTest in ast_type_test). The cache check
+   * operates on the original struct fields (without any padding).
+   */
   util::RegionVector<Field> fields_;
+  util::RegionVector<Field> unpadded_fields_;
   util::RegionVector<uint32_t> field_offsets_;
 };
 
