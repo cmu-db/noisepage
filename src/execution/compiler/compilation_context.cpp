@@ -312,6 +312,7 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LIKE:
+    case parser::ExpressionType::COMPARE_IN:
     case parser::ExpressionType::COMPARE_NOT_LIKE: {
       const auto &comparison = dynamic_cast<const parser::ComparisonExpression &>(expression);
       translator = std::make_unique<ComparisonTranslator>(comparison, this);
