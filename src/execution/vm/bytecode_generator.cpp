@@ -1307,7 +1307,7 @@ void BytecodeGenerator::VisitBuiltinAggregatorCall(ast::CallExpr *call, ast::Bui
       const auto &args = call->Arguments();
       const auto agg_kind = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
       LocalVar agg = VisitExpressionForRValue(args[0]);
-      LocalVar input = VisitExpressionForSQLValue(args[1]);
+      LocalVar input = VisitExpressionForRValue(args[1]);
       Bytecode bytecode = OpForAgg<AggOpKind::Advance>(agg_kind);
 
       // Hack to handle advancing AvgAggregates with float/double precision numbers. The default
