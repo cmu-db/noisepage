@@ -99,14 +99,18 @@ def kill_pids_on_port(port, logger=None):
     lsof_path = LSOF_PATH_MACOS if sys.platform.startswith(
         "darwin") else LSOF_PATH_LINUX
 
-    cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{print $2}'".format(
+    cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{{ print $2 }}'".format(
         LSOF_PATH=lsof_path, PORT=port)
 
-    rc, stdout, stderr = run_as_root(cmd, printable=False)
-    if rc != ErrorCode.SUCCESS:
+    p = subprocess.Popen(shlex.split(cmd),
+                         shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    stdout, _ = p.communicate()
+    if p.returncode != ErrorCode.SUCCESS:
         raise Exception(
             "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]"
-            .format(PORT=port, RC=rc))
+            .format(PORT=port, RC=p.returncode))
 
     pids = [
         int(pid_str.decode("utf-8").rstrip("\n"))
