@@ -228,10 +228,6 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMTypeForBuiltin(const ast::BuiltinType *b
     return type;
   }
 
-  for(auto type : module_->getIdentifiedStructTypes()){
-    std::cout << type->getName().data() << "\n";
-  }
-
   EXECUTION_LOG_ERROR("Could not find LLVM type for TPL type '{}'", name);
   return nullptr;
 }
