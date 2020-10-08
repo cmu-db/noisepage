@@ -126,7 +126,7 @@ class CompilationContext {
  private:
   // Private to force use of static Compile() function.
   explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode,
-                              bool counters_enabled, bool pipeline_metrics_enabled);
+                              const exec::ExecutionSettings &exec_settings);
 
   // Given a plan node, compile it into a compiled query object.
   void GeneratePlan(const planner::AbstractPlanNode &plan);

@@ -165,6 +165,8 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
     fragment->Run(query_state.get(), mode);
   }
 
+  // We do not currently re-use ExecutionContexts. However, this is unset to help ensure
+  // we don't *intentionally* retain any dangling pointers.
   exec_ctx->SetQueryState(nullptr);
 }
 
