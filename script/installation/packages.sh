@@ -23,6 +23,7 @@ OSX_BUILD_PACKAGES=(\
   "libevent" \
   "libpqxx" \
   "openssl@1.1" \
+  "pkg-config" \
   "tbb" \
 )
 OSX_TEST_PACKAGES=(\
