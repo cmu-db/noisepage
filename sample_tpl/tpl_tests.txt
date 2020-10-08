@@ -44,6 +44,7 @@ struct-empty.tpl,false,0
 struct-field-use.tpl,false,30
 struct-nested.tpl,false,10
 struct-nested-2.tpl,false,10
+struct-padding.tpl,false,1500
 struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
