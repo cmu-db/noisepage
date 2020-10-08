@@ -119,8 +119,8 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
   auto *exec_ctx = GetExecutionContext();
   auto *codegen = GetCodeGen();
   if (IsPipelineMetricsEnabled()) {
-    auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::TableVectorIterator::HookOffsets::NUM_HOOKS));
-    auto *post = codegen->Const32(static_cast<int32_t>(sql::TableVectorIterator::HookOffsets::EndHook));
+    auto num_hooks = static_cast<uint32_t>(sql::TableVectorIterator::HookOffsets::NUM_HOOKS);
+    auto post = static_cast<uint32_t>(sql::TableVectorIterator::HookOffsets::EndHook);
     function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
     function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
   }

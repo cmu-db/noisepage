@@ -285,8 +285,8 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
   auto *pipeline = &build_pipeline_;
 
   auto override_value = codegen->MakeIdentifier("overrideValue");
-  auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  auto params = GetHookParams(*pipeline, &override_value, int32_type);
+  auto uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  auto params = GetHookParams(*pipeline, &override_value, uint32_type);
 
   auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
   FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
@@ -309,15 +309,13 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
 }
 
 void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline)) {
-    if (build_pipeline_.IsParallel()) {
-      InitializeAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
-      CounterSet(function, agg_count_, 0);
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
+    InitializeAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+    CounterSet(function, agg_count_, 0);
 
-      if (IsPipelineMetricsEnabled()) {
-        build_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
-        build_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
-      }
+    if (IsPipelineMetricsEnabled()) {
+      build_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
+      build_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
     }
   }
 
@@ -580,9 +578,9 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
       if (IsPipelineMetricsEnabled()) {
         // Setup the hooks
         auto *exec_ctx = GetExecutionContext();
-        auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::AggregationHashTable::HookOffsets::NUM_HOOKS));
-        auto *pre = codegen->Const32(static_cast<int32_t>(sql::AggregationHashTable::HookOffsets::StartHook));
-        auto *post = codegen->Const32(static_cast<int32_t>(sql::AggregationHashTable::HookOffsets::EndHook));
+        auto num_hooks = static_cast<uint32_t>(sql::AggregationHashTable::HookOffsets::NUM_HOOKS);
+        auto pre = static_cast<uint32_t>(sql::AggregationHashTable::HookOffsets::StartHook);
+        auto post = static_cast<uint32_t>(sql::AggregationHashTable::HookOffsets::EndHook);
         function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
         function->Append(codegen->ExecCtxRegisterHook(exec_ctx, pre, parallel_build_pre_hook_fn_));
         function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));

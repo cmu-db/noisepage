@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <new>
 #include <utility>
 #include <vector>
 
@@ -51,7 +50,7 @@ class EXPORT ExecutionContext {
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
    * @param exec_settings The execution settings to run with.
-   * @param metrics_manager Metrics Manager
+   * @param metrics_manager The metrics manager for recording metrics
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    OutputCallback callback, const planner::OutputSchema *schema,
@@ -75,19 +74,10 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<transaction::TransactionContext> GetTxn() { return txn_; }
 
   /**
+   * Constructs a new Output Buffer for outputting query results to consumers
    * @return newly created output buffer
    */
-  OutputBuffer *OutputBufferNew() {
-    if (schema_ == nullptr) {
-      return nullptr;
-    }
-
-    // Use C++ placement new
-    auto size = sizeof(OutputBuffer);
-    auto *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
-    new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
-    return buffer;
-  }
+  OutputBuffer *OutputBufferNew();
 
   /**
    * @return The thread state container.

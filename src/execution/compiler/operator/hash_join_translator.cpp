@@ -129,8 +129,8 @@ ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
   auto *pipeline = &left_pipeline_;
 
   auto override_value = codegen->MakeIdentifier("overrideValue");
-  auto int32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  auto params = GetHookParams(left_pipeline_, &override_value, int32_type);
+  auto uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  auto params = GetHookParams(left_pipeline_, &override_value, uint32_type);
 
   auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
   FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
@@ -167,14 +167,12 @@ void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
 }
 
 void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsLeftPipeline(pipeline)) {
-    if (left_pipeline_.IsParallel()) {
-      InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+  if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
+    InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
 
-      if (IsPipelineMetricsEnabled()) {
-        left_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
-        left_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
-      }
+    if (IsPipelineMetricsEnabled()) {
+      left_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
+      left_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
     }
   }
 
@@ -182,10 +180,8 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
 }
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsLeftPipeline(pipeline)) {
-    if (left_pipeline_.IsParallel()) {
-      TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
-    }
+  if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
+    TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
   }
 }
 
@@ -490,9 +486,9 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
       if (IsPipelineMetricsEnabled()) {
         // Setup the hooks
         auto *exec_ctx = GetExecutionContext();
-        auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::NUM_HOOKS));
-        auto *pre = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::StartHook));
-        auto *post = codegen->Const32(static_cast<int32_t>(sql::JoinHashTable::HookOffsets::EndHook));
+        auto num_hooks = static_cast<uint32_t>(sql::JoinHashTable::HookOffsets::NUM_HOOKS);
+        auto pre = static_cast<uint32_t>(sql::JoinHashTable::HookOffsets::StartHook);
+        auto post = static_cast<uint32_t>(sql::JoinHashTable::HookOffsets::EndHook);
         function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
         function->Append(codegen->ExecCtxRegisterHook(exec_ctx, pre, parallel_build_pre_hook_fn_));
         function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));

@@ -761,8 +761,9 @@ ast::Expr *CodeGen::FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr
   return call;
 }
 
-ast::Expr *CodeGen::ExecCtxRegisterHook(ast::Expr *exec_ctx, ast::Expr *hook_idx, ast::Identifier hook) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextRegisterHook, {exec_ctx, hook_idx, MakeExpr(hook)});
+ast::Expr *CodeGen::ExecCtxRegisterHook(ast::Expr *exec_ctx, uint32_t hook_idx, ast::Identifier hook) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::ExecutionContextRegisterHook, {exec_ctx, Const32(hook_idx), MakeExpr(hook)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -773,8 +774,8 @@ ast::Expr *CodeGen::ExecCtxClearHooks(ast::Expr *exec_ctx) {
   return call;
 }
 
-ast::Expr *CodeGen::ExecCtxInitHooks(ast::Expr *exec_ctx, ast::Expr *num_hooks) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextInitHooks, {exec_ctx, num_hooks});
+ast::Expr *CodeGen::ExecCtxInitHooks(ast::Expr *exec_ctx, uint32_t num_hooks) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextInitHooks, {exec_ctx, Const32(num_hooks)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

@@ -6,7 +6,6 @@
 
 #include "catalog/schema.h"
 #include "common/macros.h"
-#include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
 
@@ -100,7 +99,7 @@ class EXPORT Sorter {
   /**
    * Construct a sorter using @em memory as the memory allocator, storing tuples @em tuple_size
    * size in bytes, and using the comparison function @em cmp_fn.
-   * @param exec_ctx ExecutionContext
+   * @param exec_ctx The ExecutionContext used for executing the query
    * @param cmp_fn The sorting comparison function
    * @param tuple_size The sizes of the input tuples in bytes
    */

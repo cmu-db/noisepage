@@ -754,7 +754,7 @@ class CodeGen {
    * @param hook Hook function to register
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *ExecCtxRegisterHook(ast::Expr *exec_ctx, ast::Expr *hook_idx, ast::Identifier hook);
+  [[nodiscard]] ast::Expr *ExecCtxRegisterHook(ast::Expr *exec_ctx, uint32_t hook_idx, ast::Identifier hook);
 
   /**
    * Call \@execCtxClearHooks(exec_ctx).
@@ -769,7 +769,7 @@ class CodeGen {
    * @param num_hooks Number of hooks
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *ExecCtxInitHooks(ast::Expr *exec_ctx, ast::Expr *num_hooks);
+  [[nodiscard]] ast::Expr *ExecCtxInitHooks(ast::Expr *exec_ctx, uint32_t num_hooks);
 
   /**
    * Call \@execCtxAddRowsAffected(exec_ctx, num_rows_affected).

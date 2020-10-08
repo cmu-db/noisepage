@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 
-#include "execution/exec_defs.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "storage/sql_table.h"

@@ -9,6 +9,18 @@
 
 namespace terrier::execution::exec {
 
+OutputBuffer *ExecutionContext::OutputBufferNew() {
+  if (schema_ == nullptr) {
+    return nullptr;
+  }
+
+  // Use C++ placement new
+  auto size = sizeof(OutputBuffer);
+  auto *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
+  new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
+  return buffer;
+}
+
 uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {

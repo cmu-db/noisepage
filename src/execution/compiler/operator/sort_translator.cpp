@@ -389,12 +389,12 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
     if (build_pipeline_.IsParallel()) {
       if (IsPipelineMetricsEnabled()) {
         auto *exec_ctx = GetExecutionContext();
-        auto *num_hooks = codegen->Const32(static_cast<int32_t>(sql::Sorter::HookOffsets::NUM_HOOKS));
-        auto *starttlsort = codegen->Const32(static_cast<int32_t>(sql::Sorter::HookOffsets::StartTLSortHook));
-        auto *starttlmerge = codegen->Const32(static_cast<int32_t>(sql::Sorter::HookOffsets::StartTLMergeHook));
-        auto *endtlsort = codegen->Const32(static_cast<int32_t>(sql::Sorter::HookOffsets::EndTLSortHook));
-        auto *endtlmerge = codegen->Const32(static_cast<int32_t>(sql::Sorter::HookOffsets::EndTLMergeHook));
-        auto *endsinglesorter = codegen->Const32(static_cast<int32_t>(sql::Sorter::HookOffsets::EndSingleSorterHook));
+        auto num_hooks = static_cast<uint32_t>(sql::Sorter::HookOffsets::NUM_HOOKS);
+        auto starttlsort = static_cast<uint32_t>(sql::Sorter::HookOffsets::StartTLSortHook);
+        auto starttlmerge = static_cast<uint32_t>(sql::Sorter::HookOffsets::StartTLMergeHook);
+        auto endtlsort = static_cast<uint32_t>(sql::Sorter::HookOffsets::EndTLSortHook);
+        auto endtlmerge = static_cast<uint32_t>(sql::Sorter::HookOffsets::EndTLMergeHook);
+        auto endsinglesorter = static_cast<uint32_t>(sql::Sorter::HookOffsets::EndSingleSorterHook);
         function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
         function->Append(codegen->ExecCtxRegisterHook(exec_ctx, starttlsort, parallel_starttlsort_hook_fn_));
         function->Append(codegen->ExecCtxRegisterHook(exec_ctx, starttlmerge, parallel_starttlmerge_hook_fn_));
