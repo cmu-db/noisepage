@@ -232,8 +232,6 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   num_rows *= scaling_factor;
   cardinality *= scaling_factor;
 
-  if (tpcc_feature_fix_) FixTPCCFeature(type, &num_rows, &num_keys, &cardinality, &num_loops);
-
   // This is a hack.
   // Certain translators don't own their features, but pass them further down the pipeline.
   std::vector<execution::translator_id_t> translator_ids;
@@ -261,69 +259,6 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
                                                cardinality, mem_factor, num_loops, num_concurrent);
   pipeline_features_.emplace(type, std::move(feature));
-}
-
-void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType type, size_t *num_rows,
-                                           const size_t *num_keys, size_t *cardinality, size_t *num_loops) {
-  if (*query_text_ ==
-          "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = $1    AND NO_W_ID = $2 "
-          " ORDER BY NO_O_ID ASC  LIMIT 1" &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
-    if (type == brain::ExecutionOperatingUnitType::SORT_BUILD) {
-      *num_rows = 850;
-      *cardinality = 1;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
-      *cardinality = 850;
-    }
-  }
-
-  if (*query_text_ ==
-          "SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT  FROM ORDER_LINE, STOCK WHERE OL_W_ID = $1"
-          " AND OL_D_ID = $2 AND OL_O_ID < $3 AND OL_O_ID >= $4 AND S_W_ID = $5 AND S_I_ID = OL_I_ID"
-          " AND S_QUANTITY < $6" &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
-    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 20;
-      *cardinality = 1;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 2) {
-      *num_loops = 200;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN && *num_keys == 3) {
-      *cardinality = 200;
-    }
-  }
-
-  if (*query_text_ ==
-          "UPDATE ORDER_LINE   SET OL_DELIVERY_D = $1  WHERE OL_O_ID = $2    AND OL_D_ID = $3    AND "
-          "OL_W_ID = $4 " &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 1) {
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
-      *cardinality = 10;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::UPDATE) {
-      *num_rows = 10;
-      *cardinality = 10;
-    }
-  }
-
-  if (*query_text_ ==
-          "SELECT SUM(OL_AMOUNT) AS OL_TOTAL   FROM ORDER_LINE WHERE OL_O_ID = $1    AND OL_D_ID = $2    "
-          "AND OL_W_ID = $3" &&
-      (current_pipeline_->GetPipelineId().UnderlyingValue()) == 2) {
-    if (type == brain::ExecutionOperatingUnitType::IDX_SCAN) {
-      *cardinality = 10;
-    }
-
-    if (type == brain::ExecutionOperatingUnitType::AGGREGATE_BUILD) {
-      *num_rows = 10;
-    }
-  }
 }
 
 void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
