@@ -187,7 +187,7 @@ class StorageTestUtil {
   template <class Random>
   static std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> PopulateBlockRandomly(
       storage::DataTable *table, storage::RawBlock *block, double empty_ratio, Random *const generator) {
-    const storage::BlockLayout layout = table->accessor_.GetBlockLayout();
+    const storage::BlockLayout &layout = table->GetBlockLayout();
     std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> result;
     std::bernoulli_distribution coin(empty_ratio);
     // TODO(Tianyu): Do we ever want to tune this for tests?
@@ -224,7 +224,7 @@ class StorageTestUtil {
   template <class Random>
   static uint32_t PopulateBlockRandomlyNoBookkeeping(storage::DataTable *table, storage::RawBlock *block,
                                                      double empty_ratio, Random *generator) {
-    const storage::BlockLayout layout = table->accessor_.GetBlockLayout();
+    const storage::BlockLayout layout = table->GetBlockLayout();
     uint32_t result = 0;
     std::bernoulli_distribution coin(empty_ratio);
     // TODO(Tianyu): Do we ever want to tune this for tests?

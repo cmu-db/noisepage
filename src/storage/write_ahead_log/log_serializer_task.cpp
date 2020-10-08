@@ -217,7 +217,7 @@ uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &r
 
       // Write out the attr sizes boundaries, this way we can deserialize the records without the need of the block
       // layout
-      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->accessor_.GetBlockLayout();
+      const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
       uint16_t boundaries[NUM_ATTR_BOUNDARIES];
       memset(boundaries, 0, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
       StorageUtil::ComputeAttributeSizeBoundaries(block_layout, delta->ColumnIds(), delta->NumColumns(), boundaries);

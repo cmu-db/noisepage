@@ -43,8 +43,9 @@ void ArrowSerializer::AssembleMetadataBuffer(std::ofstream &outfile, flatbuf::Me
 void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
                                          std::vector<type::TypeId> *col_types,
                                          flatbuffers::FlatBufferBuilder *flatbuf_builder) {
-  const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
-  ArrowBlockMetadata &metadata = data_table_.accessor_.GetArrowBlockMetadata(*(data_table_.GetBlocks().begin()));
+  RawBlock *block = *data_table_.GetBlocks().begin();
+  const BlockLayout &layout = data_table_.GetBlockLayout();
+  ArrowBlockMetadata &metadata = data_table_.accessor_.GetArrowBlockMetadata(block);
   std::vector<flatbuffers::Offset<flatbuf::Field>> fields;
   int64_t dictionary_id = 0;
 

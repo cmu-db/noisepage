@@ -75,10 +75,6 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->Reset(filled);
 }
 
-DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
-  return end_;
-}
-
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
                        const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
@@ -126,9 +122,16 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
 
+  // Insertion index points to the first block that has free tuple slots
+  // Once a txn arrives, it will start from the insertion index to find the first
+  // idle (no other txn is trying to get tuple slots in that block) and non-full block.
+  // If no such block is found, the txn will create a new block.
+  // Before the txn writes to the block, it will set block status to busy.
+  // The first bit of block insert_head_ is used to indicate if the block is busy
+  // If the first bit is 1, it indicates one txn is writing to the block.
   TupleSlot result;
-  uint64_t current_insert_idx = insert_index_.load();  // the index into which we will try to insert the tuple
-  RawBlock *block;                                     // the block into which the insert will occur
+  uint64_t current_insert_idx = insert_index_.load();
+  RawBlock *block;
   while (true) {
     // No free block left
     uint64_t size = blocks_size_;
@@ -136,11 +139,11 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
       block = NewBlock();
       common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
       blocks_.push_back(block);
-      current_insert_idx = blocks_.size() - 1;
       blocks_size_ = blocks_.size();
+      current_insert_idx = blocks_size_ - 1;
     } else {
       common::SharedLatch::ScopedSharedLatch latch(&blocks_latch_);
-      block = const_cast<RawBlock *>(blocks_[current_insert_idx]);
+      block = blocks_[current_insert_idx];
     }
     if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
@@ -148,15 +151,19 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
         // The block is not full, succeed
         break;
       }
-      // Fail to insert into the block, flip back the status bit
-      accessor_.ClearBlockBusyStatus(block);
+
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       if (current_insert_idx == insert_index_.load()) {
         // if we fail, that's ok because that means that someone else incremented insert_index_
         // so we retry on the next index
-        insert_index_.compare_exchange_strong(current_insert_idx, current_insert_idx + 1);
+        bool UNUSED_ATTRIBUTE result =
+            insert_index_.compare_exchange_strong(current_insert_idx, current_insert_idx + 1);
+        TERRIER_ASSERT(result, "only one thread should be able to try (and fail) to insert into a block at a time");
       }
+
+      // Fail to insert into the block, flip back the status bit
+      accessor_.ClearBlockBusyStatus(block);
     }
     // The block is full or the block is being inserted by other txn, try next block
     ++current_insert_idx;
@@ -343,7 +350,7 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 }
 
 RawBlock *DataTable::NewBlock() {
-  RawBlock *new_block = block_store_.operator->()->Get();
+  RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   return new_block;
 }

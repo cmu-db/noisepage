@@ -49,12 +49,12 @@ class DataTable {
     /**
      * @return reference to the underlying tuple slot
      */
-    TupleSlot &operator*() { return current_slot_; }
+    const TupleSlot &operator*() const { return current_slot_; }
 
     /**
      * @return pointer to the underlying tuple slot
      */
-    TupleSlot *operator->() { return &current_slot_; }
+    const TupleSlot *operator->() const { return &current_slot_; }
 
     /**
      * pre-fix increment.
@@ -64,17 +64,12 @@ class DataTable {
       RawBlock *b = current_slot_.GetBlock();
       slot_num_++;
 
-      if (LIKELY(slot_num_ < b->GetInsertHead())) {
+      if (LIKELY(slot_num_ < max_slot_num_)) {
         current_slot_ = {b, slot_num_};
       } else {
-        slot_num_ = 0;
-        block_index_++;
         TERRIER_ASSERT(block_index_ <= end_index_, "block_index_ must always stay in range of table's size");
-        if (UNLIKELY(block_index_ == end_index_)) {
-          current_slot_ = {nullptr, 0};
-        } else {
-          UpdateFromNextBlock();
-        }
+        block_index_++;
+        UpdateFromNextBlock();
       }
       return *this;
     }
@@ -94,15 +89,7 @@ class DataTable {
      * @param other other iterator to compare to
      * @return if the two iterators point to the same slot
      */
-    bool operator==(const SlotIterator &other) const {
-      if (LIKELY(other.is_end_)) {
-        return block_index_ >= end_index_;
-      }
-      if (LIKELY(is_end_)) {
-        return other.block_index_ >= other.end_index_;
-      }
-      return current_slot_ == other.current_slot_;
-    }
+    bool operator==(const SlotIterator &other) const { return current_slot_ == other.current_slot_; }
 
     /**
      * Inequality check.
@@ -114,39 +101,46 @@ class DataTable {
    private:
     friend class DataTable;
 
-    SlotIterator() : is_end_(true) {}
+    SlotIterator() = default;
 
-    SlotIterator(const DataTable *table) : table_(table), block_index_(0), is_end_(false) {  // NOLINT
+    SlotIterator(const DataTable *table) : table_(table), block_index_(0) {  // NOLINT
       end_index_ = table_->blocks_size_;
       TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
-
-      // only 1 empty block
-      if (end_index_ == 1) {
-        common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
-        if (table_->blocks_[0]->GetInsertHead() == 0) {
-          end_index_ = 0;
-        }
-      }
-
       UpdateFromNextBlock();
     }
 
     void UpdateFromNextBlock() {
-      TERRIER_ASSERT(table_->blocks_size_ >= 1, "there should always be at least one block");
-      RawBlock *b;
-      {
-        common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
-        b = const_cast<DataTable *>(table_)->blocks_[block_index_];
+      TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+
+      while (true) {
+        if (UNLIKELY(block_index_ == end_index_)) {
+          max_slot_num_ = 0;
+          current_slot_ = InvalidTupleSlot();
+          return;
+        }
+
+        RawBlock *b;
+        {
+          common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
+          b = table_->blocks_[block_index_];
+        }
+        slot_num_ = 0;
+        max_slot_num_ = b->GetInsertHead();
+        current_slot_ = {b, slot_num_};
+
+        if (max_slot_num_ == 0) {
+          block_index_++;
+          continue;
+        }
+        return;
       }
-      current_slot_ = {b, slot_num_};
     }
 
     static auto InvalidTupleSlot() -> TupleSlot { return {nullptr, 0}; }
-    const DataTable *table_{};
+    const DataTable *table_ = nullptr;
     uint64_t block_index_ = 0, end_index_ = 0;
-    TupleSlot current_slot_ = {nullptr, 0};
-    uint32_t slot_num_ = 0;
-    bool is_end_ = false;
+    TupleSlot current_slot_ = InvalidTupleSlot();
+    uint32_t slot_num_ = 0, max_slot_num_ = 0;
   };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
@@ -224,7 +218,10 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;  // NOLINT for STL name compatibility
+
+  SlotIterator end() const {  // NOLINT for STL name compability
+    return SlotIterator();
+  }
 
   /**
    * Return a SlotIterator that will only cover the blocks in the selected range.
@@ -237,14 +234,6 @@ class DataTable {
     SlotIterator it(this);
     it.end_index_ = std::min<uint64_t>(it.end_index_, end);
     it.block_index_ = start;
-
-    // only 1 empty block
-    if (it.end_index_ == 1) {
-      common::SharedLatch::ScopedSharedLatch latch(&it.table_->blocks_latch_);
-      if (it.table_->blocks_[0]->GetInsertHead() == 0) {
-        it.end_index_ = 0;
-      }
-    }
 
     it.UpdateFromNextBlock();
     return it;
@@ -314,7 +303,7 @@ class DataTable {
   /**
    * @return a coarse estimation on the number of tuples in this table
    */
-  uint64_t GetNumTuple() const { return accessor_.GetBlockLayout().NumSlots() * blocks_size_; }
+  uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_size_; }
 
   /**
    * @return Approximate heap usage of the table
@@ -326,7 +315,6 @@ class DataTable {
   }
 
  private:
-  static const uint64_t START_VECTOR_SIZE = 256;
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
@@ -341,15 +329,14 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  alignas(common::Constants::CACHELINE_SIZE) std::atomic<uint64_t> blocks_size_ = 0;
-  alignas(common::Constants::CACHELINE_SIZE) std::atomic<uint64_t> insert_index_ = 0;
+  std::atomic<uint64_t> blocks_size_ = 0;
+  std::atomic<uint64_t> insert_index_ = 0;
   common::ManagedPointer<BlockStore> const block_store_;
 
   // protected by blocks_latch_
   std::vector<RawBlock *> blocks_;
   mutable common::SharedLatch blocks_latch_;
   const layout_version_t layout_version_;
-  const SlotIterator end_ = {};
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView

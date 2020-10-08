@@ -223,7 +223,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
                            storage::layout_version_t(0));
-  storage::RawBlock *block = table.begin()->GetBlock();
+  storage::RawBlock *block = *table.GetBlocks().begin();
   accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
   // Enable GC to cleanup transactions started by the block compactor
@@ -301,7 +301,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
                            storage::layout_version_t(0));
-  storage::RawBlock *block = table.begin()->GetBlock();
+  storage::RawBlock *block = *table.GetBlocks().begin();
   accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
   // Enable GC to cleanup transactions started by the block compactor

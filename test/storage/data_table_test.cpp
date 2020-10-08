@@ -10,6 +10,7 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier {
@@ -386,12 +387,14 @@ TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
   for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
     RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
     transaction::timestamp_t timestamp(0);
+    //    transaction::TimestampManager timestamp_manager;
+    //    transaction::TransactionManager txn_manager(timestamp_manager);
     auto *txn =
         new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
     uint64_t size;
     // number of tuples in the table
     for (uint64_t i = 0; i < max_tuples_inserted; i++) {
-      // check that table is correct size
+      // check that iterator sees correct number of tuples
       size = 0;
       for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
       EXPECT_EQ(size, i);
@@ -399,7 +402,7 @@ TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
       // add new table and make sure that expected element is in table
       auto slot = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_);
       auto it = tested.GetTable().begin();
-      for (uint64_t ith = 0; it != tested.GetTable().end() && ith < size; ith++) it++;
+      for (uint64_t num_slots = 0; it != tested.GetTable().end() && num_slots < size; num_slots++) it++;
       EXPECT_EQ(slot, *it);
     }
 
