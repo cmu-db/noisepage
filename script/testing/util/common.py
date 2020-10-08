@@ -8,7 +8,7 @@ import signal
 import errno
 import psutil
 import datetime
-from util.constants import LOG, LSOF_PATH_MACOS, LSOF_PATH_LINUX, ErrorCode
+from util.constants import LOG
 from util import constants
 
 
@@ -97,25 +97,28 @@ def kill_pids_on_port(port, logger=None):
         raise Exception("Cannot call this function unless running as root!")
 
     # get the command of lsof based on the os platform
-    lsof_path = LSOF_PATH_MACOS if sys.platform.startswith(
-        "darwin") else LSOF_PATH_LINUX
+    lsof_path = constants.LSOF_PATH_MACOS if sys.platform.startswith(
+        "darwin") else constants.LSOF_PATH_LINUX
 
     cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{{ print $2 }}'".format(
         LSOF_PATH=lsof_path, PORT=port)
 
     rc, stdout = subprocess.getstatusoutput(cmd)
-    if rc != ErrorCode.SUCCESS:
+    if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
             "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]"
             .format(PORT=port, RC=rc))
 
     for pid_str in stdout.split("\n"):
-        pid = int(pid_str.strip())
-        cmd = "kill -9 {}".format(pid)
-        rc, _, _ = run_as_root(cmd, printable=False)
-        if rc != ErrorCode.SUCCESS:
-            raise Exception("Error in killing PID={PID}, [RC={RC}]".format(
-                PID=pid, RC=rc))
+        try:
+            pid = int(pid_str.strip())
+            cmd = "kill -9 {}".format(pid)
+            rc, _, _ = run_command(cmd, printable=False)
+            if rc != constants.ErrorCode.SUCCESS:
+                raise Exception("Error in killing PID={PID}, [RC={RC}]".format(
+                    PID=pid, RC=rc))
+        except ValueError:
+            continue
 
     # # psutil failed attempt: AccessDenied
     # count = 0
