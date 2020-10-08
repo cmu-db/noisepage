@@ -165,11 +165,12 @@ class TestServer:
             # Db terminated already
             msg = "DB terminated with return code {}".format(
                 self.db_process.returncode)
+            print_pipe(self.db_process)
             raise RuntimeError(msg)
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
-        print_pipe(self.db_process)
+            print_pipe(self.db_process)
         self.db_process = None
         # self.db_output_fd = None
         return
