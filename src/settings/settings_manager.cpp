@@ -10,9 +10,9 @@
 #include "parser/expression/constant_value_expression.h"
 #include "settings/settings_callbacks.h"
 
-#define __SETTING_GFLAGS_DECLARE__     // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
+#define __SETTING_GFLAGS_DECLARE__   // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_GFLAGS_DECLARE__    // NOLINT
 
 namespace terrier::settings {
 
@@ -54,9 +54,9 @@ void SettingsManager::ValidateParams() {
   //   execution::sql::Integer(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
   //   execution::sql::Integer(65535)));
 
-#define __SETTING_VALIDATE__           // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_VALIDATE__            // NOLINT
+#define __SETTING_VALIDATE__         // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_VALIDATE__          // NOLINT
 }
 
 void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
