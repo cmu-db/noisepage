@@ -1180,14 +1180,14 @@ class MiniRunners : public benchmark::Fixture {
       case brain::ExecutionOperatingUnitType::OP_VARCHAR_COMPARE: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
         uint32_t multiply_factor = sizeof(storage::VarlenEntry) / sizeof(uint32_t);
-        auto *val = reinterpret_cast<storage::VarlenEntry *>(new uint32_t[(num_elem + 1) * multiply_factor]);
+        auto *val = reinterpret_cast<storage::VarlenEntry *>(new uint32_t[(num_elem * 2) * multiply_factor]);
         for (size_t i = 0; i <= num_elem; ++i) {
           std::string str_val = std::to_string(i & 0xFF);
           val[i] = storage::VarlenEntry::Create(str_val);
         }
         uint32_t ret = 0;
         for (size_t i = 0; i < num_elem; i++) {
-          ret += storage::VarlenEntry::Compare(val[i], val[i + 1]);
+          ret += storage::VarlenEntry::Compare(val[i], val[i + num_elem]);
           DoNotOptimizeAway(ret);
         }
         exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);

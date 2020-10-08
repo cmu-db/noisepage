@@ -196,7 +196,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                 if tpcc_hack:
                     x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
-                x_loc = tpcc_fixer.fix_idx_scan_with_varchar(feature, q_id, p_id, x_loc)
+                #x_loc = tpcc_fixer.fix_idx_scan_with_varchar(feature, q_id, p_id, x_loc)
                 #feature = tpcc_fixer.fix_sort_feature(feature,  q_id, p_id, x_loc)
                 opunit = OpUnit[feature]
 
