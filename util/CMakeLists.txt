@@ -80,7 +80,7 @@ add_custom_command(
         POST_BUILD
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/${BUILD_SUBDIR_NAME}
         COMMENT "Generating Optimized Bitcode ..."
-        COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES}
+        COMMAND /usr/local/opt/llvm@8/bin/clang++ ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES}
             ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp -o bytecode_handlers_ir.bc
         COMMAND gen_opt_bc bytecode_handlers_ir.bc bytecode_handlers_opt.bc
         COMMAND mv bytecode_handlers_opt.bc bytecode_handlers_ir.bc)

@@ -8,10 +8,6 @@
 
 namespace terrier::execution::sql {
 
-parser::ConstantValueExpression DummyCVE() {
-  return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
-}
-
 CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                                  uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols)
     : exec_ctx_(exec_ctx), cte_table_oid_(table_oid), table_redo_(nullptr) {

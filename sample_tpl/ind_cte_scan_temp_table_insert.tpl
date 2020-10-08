@@ -5,10 +5,7 @@
 
 fun main(exec_ctx: *ExecutionContext) -> int32 {
   // Initialize CTE Scan Iterator
-  var TEMP_OID_MASK: uint32 = 2147483648                       // 2^31
-
-  var col_oids: [1]uint32
-  col_oids[0] = @testCatalogLookup(exec_ctx, "test_1", "colA")
+  var TEMP_OID_MASK: uint64 = 2147483648                       // 2^31
   var col_types: [1]uint32
   col_types[0] = 4
 
@@ -17,6 +14,9 @@ fun main(exec_ctx: *ExecutionContext) -> int32 {
 
   var cte_scan: IndCteScanIterator
   @indCteScanInit(&cte_scan, exec_ctx, TEMP_OID_MASK, temp_col_oids, col_types, false)
+
+  var col_oids: [1]uint32
+  col_oids[0] = @testCatalogLookup(exec_ctx, "test_1", "colA")
 
   // Iterate from 1 -> 20
   var index_iter : IndexIterator

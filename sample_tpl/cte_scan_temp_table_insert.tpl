@@ -2,18 +2,18 @@
 // SQL: INSERT INTO temp_table SELECT colA FROM test_1 WHERE colA BETWEEN 495 AND 505; SELECT * FROM temp_table;
 
 fun main(execCtx: *ExecutionContext) -> int32 {
-  var TEMP_OID_MASK: uint32 = 2147483648                       // 2^31
+  var TEMP_OID_MASK: uint64 = 2147483648                       // 2^31
 
   // Init inserter
-  var col_oids: [1]uint32
-  col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
-
   var col_types: [1]uint32
   col_types[0] = 4 // colA
   var temp_col_oids: [1]uint32
   temp_col_oids[0] = TEMP_OID_MASK | 1 // colA
   var cte_scan_iterator: CteScanIterator
   @cteScanInit(&cte_scan_iterator, execCtx, TEMP_OID_MASK, temp_col_oids, col_types)
+
+  var col_oids: [1]uint32
+  col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
 
   // Iterate through rows with colA between 495 and 505
   // Init index iterator
