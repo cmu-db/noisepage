@@ -125,7 +125,7 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
     function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
   }
 
-  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
+  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.GetIdentifier(), GetQueryStatePtr(),
                                                       exec_ctx, work_func));
 
   if (IsPipelineMetricsEnabled()) {

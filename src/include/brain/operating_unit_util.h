@@ -167,26 +167,26 @@ class OperatingUnitUtil {
 
   /**
    * Whether or not an operating unit type can be merged
-   * @param f OperatingUnitType to consider
+   * @param feature OperatingUnitType to consider
    * @returns mergeable or not
    */
-  static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType f) {
-    return f > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+  static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType feature) {
+    return feature > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
   }
 
   /**
    * Determines whether the operating unit type is a blocking OU
-   * @param f OperatingUnitType to consider
+   * @param feature OperatingUnitType to consider
    * @returns blocking or not
    */
-  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f);
+  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature);
 
   /**
    * Gets the non-parallel type for the OU f
-   * @param f Parallel OU
+   * @param feature Parallel OU
    * @returns Corresponding non-parallel OU or INVALID
    */
-  static ExecutionOperatingUnitType GetNonParallelType(ExecutionOperatingUnitType f);
+  static ExecutionOperatingUnitType GetNonParallelType(ExecutionOperatingUnitType feature);
 
   /** @return The ExecutionOperatingUnitFeature that has the corresponding type. It must be unique in the vector. */
   static const ExecutionOperatingUnitFeature &GetFeature(execution::translator_id_t translator_id,

@@ -64,6 +64,11 @@ class StateDescriptor {
      */
     ast::Expr *OffsetFromState(CodeGen *codegen) const;
 
+    /**
+     * @return Identifier associated with the state
+     */
+    ast::Identifier GetIdentifier() const { return member_; }
+
    private:
     // The state.
     StateDescriptor *desc_{nullptr};

@@ -63,10 +63,6 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
     local_agg_ht_ = build_pipeline_.DeclarePipelineStateEntry("aggHashTable", agg_ht_type);
   }
 
-  if (pipeline->IsParallel()) {
-    iterate_agg_ht_ = pipeline->DeclarePipelineStateEntry("iterateAggHashTable", codegen->PointerType(agg_ht_type));
-  }
-
   num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
   agg_count_ = CounterDeclare("agg_count", &build_pipeline_);
   num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
@@ -311,6 +307,9 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
 void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
     InitializeAggregationHashTable(function, local_agg_ht_.GetPtr(GetCodeGen()));
+
+    // agg_count_ cannot be initialized in InitializeCounters.
+    // @see HashAggregationTranslator::agg_count_ for reasoning.
     CounterSet(function, agg_count_, 0);
 
     if (IsPipelineMetricsEnabled()) {
@@ -349,6 +348,7 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
       // In parallel mode, we subtract from the insert count of the last task that might
       // have been run with the current thread. This is to more correctly model the
       // amount of work performed by the current task.
+      // @see HashAggregationTranslator::agg_count_ for further information.
       auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
       auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
@@ -363,7 +363,10 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
   } else {
     ast::Expr *agg_ht;
     if (pipeline.IsParallel()) {
-      agg_ht = iterate_agg_ht_.Get(codegen);
+      // See note in PerformPipelineWork(), the aggregation table is
+      // provided as a function parameter.
+      auto agg_ht_param_position = pipeline.PipelineParams().size();
+      agg_ht = function->GetParameterByPosition(agg_ht_param_position);
     } else {
       agg_ht = global_agg_ht_.GetPtr(codegen);
     }
@@ -562,7 +565,6 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
       // function which we're generating right now. Pull it out.
       auto agg_ht_param_position = GetPipeline()->PipelineParams().size();
       agg_ht = function->GetParameterByPosition(agg_ht_param_position);
-      function->Append(codegen->Assign(iterate_agg_ht_.Get(codegen), agg_ht));
       ScanAggregationHashTable(context, function, agg_ht);
     } else {
       agg_ht = global_agg_ht_.GetPtr(codegen);

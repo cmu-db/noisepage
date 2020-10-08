@@ -191,7 +191,6 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The global and thread-local aggregation hash tables.
   StateDescriptor::Entry global_agg_ht_;
   StateDescriptor::Entry local_agg_ht_;
-  StateDescriptor::Entry iterate_agg_ht_;
 
   // For minirunners
   ast::StructDecl *struct_decl_;
@@ -202,7 +201,24 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The number of output rows from the aggregation.
   StateDescriptor::Entry num_agg_outputs_;
 
-  // The number of rows in the agg hash table at end of previous task
+  // TBB can run multiple tasks using the same thread local state. For counter
+  // recording, each task will record an estimation of the "number of unique
+  // entries" inserted into the aggregation hash table during that task.
+  //
+  // agg_count_ is thus used to track the number of "uniquely" inserted tuples
+  // at the end of the previous task invocation with the same thread local state.
+  //
+  // agg_count_ is thus initialized only in InitializePipelineState. Counters
+  // initialized by InitializeCounters() are "reset" to their initial value
+  // at the start of the task invocation's work function -- however, agg_count_
+  // cannot be reset and so is initialized separately.
+  //
+  // The general pattern for agg_count_ is as follows:
+  //    while (work to be done.)
+  //      - Insert work's data into aggregation hash table
+  //      - Record AggHashTableGetInsertCount() - agg_count_
+  //      - agg_count_ = AggHashTableGetInsertCount()
+  //
   StateDescriptor::Entry agg_count_;
 
   ast::Identifier parallel_build_pre_hook_fn_;

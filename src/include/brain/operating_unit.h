@@ -271,7 +271,7 @@ class EXPORT ExecOUFeatureVector {
   /**
    * Pipeline ID
    */
-  execution::pipeline_id_t pipeline_id_{0};
+  execution::pipeline_id_t pipeline_id_{execution::INVALID_PIPELINE_ID};
 
   /**
    * Features for a given pipeline

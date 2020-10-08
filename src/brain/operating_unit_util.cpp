@@ -5,8 +5,8 @@
 
 namespace terrier::brain {
 
-bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f) {
-  switch (f) {
+bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature) {
+  switch (feature) {
     case ExecutionOperatingUnitType::HASHJOIN_BUILD:
     case ExecutionOperatingUnitType::SORT_BUILD:
     case ExecutionOperatingUnitType::AGGREGATE_BUILD:
@@ -17,8 +17,8 @@ bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType f
   }
 }
 
-ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperatingUnitType f) {
-  switch (f) {
+ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperatingUnitType feature) {
+  switch (feature) {
     case ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN:
       return ExecutionOperatingUnitType::HASHJOIN_BUILD;
     case ExecutionOperatingUnitType::PARALLEL_MERGE_AGGBUILD:
