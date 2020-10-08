@@ -1,13 +1,14 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_task.h"
 #include "common/managed_pointer.h"
-#include "messenger/messenger_logic.h"
 
 // All zmq objects are forward-declared and allocated on the heap.
 // This is to avoid leaking zmq headers into the rest of the system.
@@ -20,6 +21,7 @@ class socket_t;
 namespace terrier::messenger {
 
 class ConnectionDestination;
+class Messenger;
 class MessengerPolledSockets;
 
 /** ConnectionId is an abstraction around establishing connections. */
@@ -54,10 +56,14 @@ class ConnectionId {
 class Messenger : public common::DedicatedThreadTask {
  public:
   /**
-   * Create a new Messenger that uses the given logic layer.
-   * @param messenger_logic The logic layer of the messenger.
+   * All messages can take in a callback function to be invoked when a reply is received.
+   * Arg 1  :   std::string_view, sender identity.
+   * Arg 2  :   std::string_view, the message itself.
    */
-  explicit Messenger(common::ManagedPointer<MessengerLogic> messenger_logic);
+  using CallbackFn = std::function<void(std::string_view, std::string_view)>;
+
+  /** Create a new Messenger, listening to the default endpoints. */
+  explicit Messenger();
 
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~Messenger();
@@ -100,8 +106,9 @@ class Messenger : public common::DedicatedThreadTask {
    *
    * @param connection_id   The connection to send the message over.
    * @param message         The message to be sent.
+   * @param callback        The callback function to be invoked on the response.
    */
-  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message);
+  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn callback);
 
  private:
   friend ConnectionId;
@@ -113,12 +120,14 @@ class Messenger : public common::DedicatedThreadTask {
   /** The main server loop. */
   void ServerLoop();
 
-  common::ManagedPointer<MessengerLogic> messenger_logic_;
   std::unique_ptr<zmq::context_t> zmq_ctx_;
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
   std::unique_ptr<MessengerPolledSockets> polled_sockets_;
+  std::unordered_map<uint64_t, CallbackFn> callbacks_;
   bool messenger_running_ = false;
   uint32_t connection_id_count_ = 0;
+  /** The message ID that gets automatically prefixed to messages. */
+  uint64_t message_id_;
 };
 
 /**
@@ -138,7 +147,6 @@ class MessengerOwner : public common::DedicatedThreadOwner {
   common::ManagedPointer<Messenger> GetMessenger() const { return messenger_; }
 
  private:
-  MessengerLogic logic_;
   common::ManagedPointer<Messenger> messenger_;
 };
 

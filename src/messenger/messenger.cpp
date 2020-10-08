@@ -8,7 +8,6 @@
 #include "common/error/exception.h"
 #include "loggers/messenger_logger.h"
 #include "messenger/connection_destination.h"
-#include "messenger/messenger_logic.h"
 
 /*
  * A crash course on ZeroMQ (ZMQ).
@@ -96,9 +95,47 @@ namespace terrier::messenger {
 /** An abstraction around ZeroMQ messages which explicitly have the sender specified. */
 class ZmqMessage {
  public:
+  /**
+   * Build a new ZmqMessage from the supplied information.
+   * @param message_id      The ID of the message.
+   * @param sender_id       The identity of the sender.
+   * @param message         The contents of the message.
+   * @return A ZmqMessage encapsulating the given message.
+   */
+  static ZmqMessage Build(uint64_t message_id, const std::string &sender_id, const std::string &message) {
+    return ZmqMessage{sender_id, fmt::format("{}-{}", message_id, message)};
+  }
+
+  /**
+   * Parse the given payload into a ZmqMessage.
+   * @param sender_id       The identity of the sender.
+   * @param message         The message received.
+   * @return A ZmqMessage encapsulating the given message.
+   */
+  static ZmqMessage Parse(const std::string &sender_id, const std::string &message) {
+    return ZmqMessage{sender_id, message};
+  }
+
+  /** @return The ID of this message. */
+  uint64_t GetMessageId() const { return message_id_; }
+
+  /** @return The routing ID of this message, i.e., the sender. */
+  std::string_view GetSenderId() const { return std::string_view(sender_id_.c_str()); }
+
+  /** @return The message itself. */
+  std::string_view GetMessage() const { return std::string_view(sender_id_.c_str()); }
+
+ private:
+  ZmqMessage(std::string sender_id, std::string payload)
+      : sender_id_(std::move(sender_id)), payload_(std::move(payload)) {
+    message_id_ = std::stoull(payload_.substr(0, payload_.find('_')));
+  }
+
+  /** The cached id of the message, parsed from payload_. Used to look up the corresponding callback. */
+  uint64_t message_id_;
   /** The routing ID of the message sender. */
-  std::string identity_;
-  /** The payload in the message. */
+  std::string sender_id_;
+  /** The payload in the message, of form ID-MESSAGE.  */
   std::string payload_;
 };
 
@@ -188,14 +225,14 @@ class ZmqUtil {
     std::string delimiter = Recv(socket, zmq::recv_flags::none);
     std::string payload = Recv(socket, zmq::recv_flags::none);
 
-    return messenger::ZmqMessage{identity, payload};
+    return messenger::ZmqMessage::Parse(identity, payload);
   }
 
   /** @return Send the specified ZmqMessage (identity and payload) over the socket. */
   static void SendMsg(common::ManagedPointer<zmq::socket_t> socket, const messenger::ZmqMessage &msg) {
-    zmq::message_t identity_msg(msg.identity_.data(), msg.identity_.size());
+    zmq::message_t identity_msg(msg.GetSenderId().data(), msg.GetSenderId().size());
     zmq::message_t delimiter_msg("", 0);
-    zmq::message_t payload_msg(msg.payload_.data(), msg.payload_.size());
+    zmq::message_t payload_msg(msg.GetMessage().data(), msg.GetMessage().size());
     bool ok = true;
 
     ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore);
@@ -226,7 +263,7 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
 
 ConnectionId::~ConnectionId() = default;
 
-Messenger::Messenger(common::ManagedPointer<MessengerLogic> messenger_logic) : messenger_logic_(messenger_logic) {
+Messenger::Messenger() {
   // Create a ZMQ context. A ZMQ context abstracts away all of the in-process and networked sockets that ZMQ uses.
   // The ZMQ context is also the transport for in-process ("inproc") sockets.
   // Generally speaking, a single process should only have a single ZMQ context.
@@ -296,8 +333,13 @@ ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std:
   return ConnectionId(common::ManagedPointer(this), target, identifier);
 }
 
-void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message) {
-  ZmqMessage msg{connection_id->routing_id_, message};
+void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn fn) {
+  uint64_t message_id = message_id_++;
+  // Register the callback that will be invoked when a response to this message is received.
+  callbacks_[message_id] = fn;
+  // Build the message.
+  ZmqMessage msg = ZmqMessage::Build(message_id, connection_id->routing_id_, message);
+  // Send the message.
   ZmqUtil::SendMsg(common::ManagedPointer(connection_id->socket_), msg);
 }
 
@@ -316,13 +358,10 @@ void Messenger::ServerLoop() {
       if (socket_has_data) {
         common::ManagedPointer<zmq::socket_t> socket(poll_items.sockets_[i]);
         ZmqMessage msg = ZmqUtil::RecvMsg(socket);
-
-        messenger_logic_->ProcessMessage(msg.identity_, msg.payload_);
-        messenger::ZmqMessage reply;
-        reply.identity_ = msg.identity_;
-        reply.payload_ = "pong";
-        ZmqUtil::SendMsg(socket, reply);
-        MESSENGER_LOG_INFO("SEND \"{}\": \"{}\"", reply.identity_, reply.payload_);
+        auto msg_id = msg.GetMessageId();
+        auto &callback = callbacks_.at(msg_id);
+        callback(msg.GetSenderId(), msg.GetMessage());
+        callbacks_.erase(msg_id);
         --num_sockets_with_data;
       }
     }
@@ -330,8 +369,6 @@ void Messenger::ServerLoop() {
 }
 
 MessengerOwner::MessengerOwner(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
-    : DedicatedThreadOwner(thread_registry),
-      logic_(),
-      messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this, common::ManagedPointer(&logic_))) {}
+    : DedicatedThreadOwner(thread_registry), messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this)) {}
 
 }  // namespace terrier::messenger
