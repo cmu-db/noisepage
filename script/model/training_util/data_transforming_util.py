@@ -127,6 +127,7 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.OP_DECIMAL_MULTIPLY: _tuple_num_linear_transformer,
     OpUnit.OP_DECIMAL_DIVIDE: _tuple_num_linear_transformer,
     OpUnit.OP_DECIMAL_COMPARE: _tuple_num_linear_transformer,
+    OpUnit.OP_VARCHAR_COMPARE: _tuple_num_linear_transformer,
     OpUnit.OUTPUT: _tuple_num_linear_transformer,
 
     #OpUnit.IDX_SCAN: _tuple_num_log_transformer,
@@ -177,6 +178,7 @@ OPUNIT_X_TRANSFORMER_MAP = {
     OpUnit.OP_DECIMAL_MULTIPLY: None,
     OpUnit.OP_DECIMAL_DIVIDE: None,
     OpUnit.OP_DECIMAL_COMPARE: None,
+    OpUnit.OP_VARCHAR_COMPARE: None,
     OpUnit.OUTPUT: None,
     OpUnit.IDX_SCAN: None,
     OpUnit.CREATE_INDEX: None,
