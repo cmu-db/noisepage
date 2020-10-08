@@ -97,7 +97,7 @@ class TestServer:
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE)
             LOG.info("Server start: {PATH} [PID={PID}]".format(
-                PATH=db_path, PID=self.db_process.pid))
+                PATH=self.db_path, PID=self.db_process.pid))
 
             try:
                 self.wait_for_db()
@@ -169,9 +169,9 @@ class TestServer:
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
-        print_pipe(self.db_process.communicate())
+        print_pipe(self.db_process)
         self.db_process = None
-        self.db_output_fd = None
+        # self.db_output_fd = None
         return
 
     def restart_db(self):
