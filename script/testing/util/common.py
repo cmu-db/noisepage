@@ -69,11 +69,11 @@ def print_pipe(p):
     """ Print out the memory buffer of subprocess pipes """
     stdout, stderr = p.communicate()
     if stdout:
-        for line in stdout.readlines():
-            LOG.info(line.decode("utf-8").rstrip("\n"))
+        for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
+            LOG.info(line)
     if stderr:
-        for line in stdout.readlines():
-            LOG.error(line.decode("utf-8").rstrip("\n"))
+        for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
+            LOG.error(line)
 
 
 def format_time(timestamp):
@@ -103,18 +103,14 @@ def kill_pids_on_port(port, logger=None):
     cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{{ print $2 }}'".format(
         LSOF_PATH=lsof_path, PORT=port)
 
-    p = subprocess.Popen(shlex.split(cmd),
-                         shell=True,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    stdout, _ = p.communicate()
-    if p.returncode != ErrorCode.SUCCESS:
+    rc, stdout = subprocess.getstatusoutput(cmd)
+    if rc != ErrorCode.SUCCESS:
         raise Exception(
             "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]"
-            .format(PORT=port, RC=p.returncode))
+            .format(PORT=port, RC=rc))
 
-    for pid_str in stdout.readlines():
-        pid = int(pid_str.decode("utf-8").rstrip("\n"))
+    for pid_str in stdout.split("\n"):
+        pid = int(pid_str.strip())
         cmd = "kill -9 {}".format(pid)
         rc, _, _ = run_as_root(cmd, printable=False)
         if rc != ErrorCode.SUCCESS:
