@@ -9,7 +9,7 @@ import shlex
 from typing import List
 from util import constants
 from util.test_case import TestCase
-from util.common import run_command, print_output, run_check_pids, run_kill_server
+from util.common import run_command, print_file, run_check_pids, run_kill_server, print_pipe
 from util.constants import LOG, ErrorCode
 
 
@@ -89,8 +89,16 @@ class TestServer:
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)
 
-            self.db_output_fd, self.db_process = start_db(
-                self.db_path, self.db_output_file)
+            # self.db_output_fd, self.db_process = start_db(
+            #     self.db_path, self.db_output_file)
+
+            # use memory buffer to hold db logs
+            self.db_process = subprocess.Popen(shlex.split(self.db_path),
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE)
+            LOG.info("Server start: {PATH} [PID={PID}]".format(
+                PATH=db_path, PID=self.db_process.pid))
+
             try:
                 self.wait_for_db()
                 # successful case
@@ -99,7 +107,7 @@ class TestServer:
                 self.stop_db()
                 LOG.error("+" * 100)
                 LOG.error("DATABASE OUTPUT")
-                print_output(self.db_output_file)
+                print_file(self.db_output_file)
                 if attempt + 1 == constants.DB_START_ATTEMPTS:
                     raise
                 traceback.print_exc(file=sys.stdout)
@@ -151,17 +159,17 @@ class TestServer:
 
         # get exit code, if any
         self.db_process.poll()
-        self.db_output_fd.flush()
-        self.db_output_fd.close()
+        # self.db_output_fd.flush()
+        # self.db_output_fd.close()
         if self.db_process.returncode is not None:
             # Db terminated already
-            print_output(self.db_output_file)
             msg = "DB terminated with return code {}".format(
                 self.db_process.returncode)
             raise RuntimeError(msg)
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
+        print_pipe(self.db_process.communicate())
         self.db_process = None
         self.db_output_fd = None
         return
@@ -233,10 +241,10 @@ class TestServer:
 
             try:
                 test_case_ret_val = self.run_test(test_case)
-                print_output(test_case.test_output_file)
+                print_file(test_case.test_output_file)
                 test_suite_ret_vals[test_case] = test_case_ret_val
             except:
-                print_output(test_case.test_output_file)
+                print_file(test_case.test_output_file)
                 if not self.continue_on_error:
                     raise
                 else:
@@ -261,7 +269,7 @@ class TestServer:
         it will return the result of the test suite.	
         """
         if test_suite_result is None or test_suite_result != constants.ErrorCode.SUCCESS:
-            print_output(self.db_output_file)
+            print_file(self.db_output_file)
         if self.continue_on_error:
             return constants.ErrorCode.SUCCESS
         return test_suite_result

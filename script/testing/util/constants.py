@@ -44,6 +44,10 @@ LOG.setLevel(logging.INFO)
 FILE_CHECK_PIDS = os.path.join(DIR_TESTING, "check_pids.py")
 FILE_KILL_SERVER = os.path.join(DIR_TESTING, "kill_server.py")
 
+# Command paths
+LSOF_PATH_LINUX = "lsof"
+LSOF_PATH_MACOS = "/usr/sbin/lsof"
+
 
 # error code
 class ErrorCode:
