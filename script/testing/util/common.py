@@ -65,13 +65,14 @@ def print_file(filename):
         LOG.error("file not exists: '{}'".format(filename))
 
 
-def print_pipe(stdout=None, stderr=None):
+def print_pipe(p):
     """ Print out the memory buffer of subprocess pipes """
+    stdout, stderr = p.communicate()
     if stdout:
-        for line in stdout.split("\n"):
+        for line in stdout.readlines():
             LOG.info(line.decode("utf-8").rstrip("\n"))
     if stderr:
-        for line in stderr.split("\n"):
+        for line in stdout.readlines():
             LOG.error(line.decode("utf-8").rstrip("\n"))
 
 
@@ -112,11 +113,8 @@ def kill_pids_on_port(port, logger=None):
             "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]"
             .format(PORT=port, RC=p.returncode))
 
-    pids = [
-        int(pid_str.decode("utf-8").rstrip("\n"))
-        for pid_str in stdout.split("\n")
-    ]
-    for pid in pids:
+    for pid_str in stdout.readlines():
+        pid = int(pid_str.decode("utf-8").rstrip("\n"))
         cmd = "kill -9 {}".format(pid)
         rc, _, _ = run_as_root(cmd, printable=False)
         if rc != ErrorCode.SUCCESS:
