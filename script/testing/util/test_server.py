@@ -89,9 +89,6 @@ class TestServer:
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)
 
-            # self.db_output_fd, self.db_process = start_db(
-            #     self.db_path, self.db_output_file)
-
             # use memory buffer to hold db logs
             self.db_process = subprocess.Popen(shlex.split(self.db_path),
                                                stdout=subprocess.PIPE,
@@ -107,7 +104,6 @@ class TestServer:
                 self.stop_db()
                 LOG.error("+" * 100)
                 LOG.error("DATABASE OUTPUT")
-                print_file(self.db_output_file)
                 if attempt + 1 == constants.DB_START_ATTEMPTS:
                     raise
                 traceback.print_exc(file=sys.stdout)
@@ -142,8 +138,6 @@ class TestServer:
                     LOG.error(
                         "Failed to connect to DB server [Attempt #{}/{}]".
                         format(attempt_number, constants.DB_CONNECT_ATTEMPTS))
-                    # os.system('ps aux | grep terrier | grep {}'.format(self.db_process.pid))
-                    # os.system('lsof -i :15721')
                     traceback.print_exc(file=sys.stdout)
                 time.sleep(constants.DB_CONNECT_SLEEP)
 
@@ -159,8 +153,6 @@ class TestServer:
 
         # get exit code, if any
         self.db_process.poll()
-        # self.db_output_fd.flush()
-        # self.db_output_fd.close()
         if self.db_process.returncode is not None:
             # Db terminated already
             msg = "DB terminated with return code {}".format(
@@ -270,7 +262,7 @@ class TestServer:
         it will return the result of the test suite.	
         """
         if test_suite_result is None or test_suite_result != constants.ErrorCode.SUCCESS:
-            print_file(self.db_output_file)
+            LOG.error("The test suite failed")
         if self.continue_on_error:
             return constants.ErrorCode.SUCCESS
         return test_suite_result

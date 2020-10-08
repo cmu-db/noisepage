@@ -21,13 +21,11 @@ def run_command(command,
     """
     General purpose wrapper for running a subprocess
     """
-    LOG.info("in run_command | command = " + command)
     p = subprocess.Popen(shlex.split(command),
                          stdout=stdout,
                          stderr=stderr,
                          cwd=cwd)
 
-    LOG.info("in run_command | subproces created, pid = {}".format(p.pid))
     while p.poll() is None:
         if printable:
             if stdout == subprocess.PIPE:
@@ -36,7 +34,6 @@ def run_command(command,
                     LOG.info(out.decode("utf-8").rstrip("\n"))
 
     rc = p.poll()
-    LOG.info("in run_command | rc = {}".format(rc))
     return rc, p.stdout, p.stderr
 
 
@@ -45,7 +42,6 @@ def run_as_root(command, printable=True):
     General purpose wrapper for running a subprocess as root user
     """
     sudo_command = "sudo {}".format(command)
-    LOG.info("sudo command: '{}'".format(sudo_command))
     return run_command(sudo_command,
                        error_msg="",
                        stdout=subprocess.PIPE,
@@ -91,7 +87,6 @@ def print_or_log(msg, logger=None):
 def kill_pids_on_port(port, logger=None):
     """Kill all the PIDs (if any) listening on the target port"""
 
-    print("in kill_pids_on_port: user id = {}".format(os.getuid()))
     if os.getuid() != 0:
         print_or_log("not root user, uid = {}".format(os.getuid()), logger)
         raise Exception("Cannot call this function unless running as root!")
@@ -119,68 +114,6 @@ def kill_pids_on_port(port, logger=None):
                     PID=pid, RC=rc))
         except ValueError:
             continue
-
-    # # psutil failed attempt: AccessDenied
-    # count = 0
-    # for proc in psutil.process_iter():
-    #     print("iter {}".format(count))
-    #     count += 1
-    #     try:
-    #         for conns in proc.connections(kind="inet"):
-    #             if conns.laddr.port == port:
-    #                 print_or_log(
-    #                     "Killing existing server instance listening on port {} [PID={}], created at {}"
-    #                     .format(port, proc.pid,
-    #                             format_time(proc.create_time())), logger)
-    #                 proc.send_signal(signal.SIGKILL)
-    #     except psutil.ZombieProcess:
-    #         print_or_log("Killing zombie process [PID={}]".format(proc.pid),
-    #                      logger)
-    #         proc.parent().send_signal(signal.SIGCHLD)
-    #     except Exception as e:
-    #         # get more generic debug info
-    #         print_or_log(e)
-    #         raise
-
-    # # psutil failed attempt: subprocess rc = -9
-    # try:
-    #     for conns in psutil.net_connections(kind="inet"):
-    #         if conns.laddr.port == port:
-    #             proc = psutil.Process(pid=conns.pid)
-    #             if proc is None:
-    #                 continue
-    #             print_or_log(
-    #                 "Killing existing server instance listening on port {} [PID={}], created at {}"
-    #                 .format(port, proc.pid,
-    #                         format_time(proc.create_time())), logger)
-    #             proc.send_signal(signal.SIGKILL)
-    # except psutil.ZombieProcess:
-    #     print_or_log("Killing zombie process [PID={}]".format(proc.pid),
-    #                  logger)
-    #     proc.parent().send_signal(signal.SIGCHLD)
-    # except Exception as e:
-    #     # get more generic debug info
-    #     print_or_log(e)
-    #     raise
-
-
-def get_pids_on_port(port):
-    """Get the list of PIDs (if any) listening on the target port"""
-
-    print("in get_pids_on_port: user id = {}".format(os.getuid()))
-    if os.getuid() != 0:
-        raise Exception("Cannot call this function unless running as root!")
-
-    pids = []
-    for proc in psutil.process_iter():
-        try:
-            for conns in proc.connections(kind="inet"):
-                if conns.laddr.port == port:
-                    pids.append(proc.pid)
-        except psutil.ZombieProcess:
-            # ignore the zombie process
-            continue
-    return pids
 
 
 def check_pid_exists(pid):
