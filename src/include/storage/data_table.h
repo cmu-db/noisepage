@@ -128,11 +128,8 @@ class DataTable {
         max_slot_num_ = b->GetInsertHead();
         current_slot_ = {b, slot_num_};
 
-        if (max_slot_num_ == 0) {
-          block_index_++;
-          continue;
-        }
-        return;
+        if (max_slot_num_ != 0) return;
+        block_index_++;
       }
     }
 
