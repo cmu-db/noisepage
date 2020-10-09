@@ -15,13 +15,28 @@ class SelectivityUtilTests : public TerrierTest {
 
   void SetUp() override {
     // Floating point type column.
-    column_stats_obj_1_ =
-        NewColumnStats<execution::sql::Real>(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10,
-                                             8, 0.2, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+    column_stats_obj_1_ = NewColumnStats<execution::sql::Real>(
+        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 8, 0.2, 3, 1000, {1.0, 5.0}, true);
+    // Construct Top K.
+    // MCV : { 3, 4, 5 }
+    // Freq: { 2, 2, 2 }
+    column_stats_obj_1_.GetTopK()->Increment(3, 2);
+    column_stats_obj_1_.GetTopK()->Increment(4, 2);
+    column_stats_obj_1_.GetTopK()->Increment(5, 2);
+    column_stats_obj_1_.GetTopK()->Increment(0, 1);
+    column_stats_obj_1_.GetTopK()->Increment(0, 7);
+
     // Integer type column.
-    column_stats_obj_2_ =
-        NewColumnStats<execution::sql::Integer>(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(3),
-                                                +10, 8, 0.2, {3, 4, 5}, {2, 2, 2}, {1, 5}, true);
+    column_stats_obj_2_ = NewColumnStats<execution::sql::Integer>(
+        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(3), 10, 8, 0.2, 3, 1000, {1, 5}, true);
+    // Construct Top K.
+    // MCV : { 3, 4, 5 }
+    // Freq: { 2, 2, 2 }
+    column_stats_obj_2_.GetTopK()->Increment(3, 2);
+    column_stats_obj_2_.GetTopK()->Increment(4, 2);
+    column_stats_obj_2_.GetTopK()->Increment(5, 2);
+    column_stats_obj_2_.GetTopK()->Increment(0, 1);
+    column_stats_obj_2_.GetTopK()->Increment(7, 1);
   }
 };
 
@@ -41,7 +56,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // The value 6 goes past the last bucket in the histogram and so selectivity must be predicted to be 1.
-  ASSERT_FLOAT_EQ(res, 1.f);
+  ASSERT_DOUBLE_EQ(res, 1.f);
 
   // TEST PART 2
   const_value_expr_ptr =
@@ -55,7 +70,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // The value 3 falls in the last bucket of the histogram (with 2 buckets) and so selectivity is predicted to be 0.5.
-  ASSERT_FLOAT_EQ(res, 0.5f);
+  ASSERT_DOUBLE_EQ(0.5f, res);
 
   // TEST PART 3
   const_value_expr_ptr =
@@ -69,7 +84,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // The value 0 falls in the first bucket of the histogram (with 2 buckets) and so selectivity is predicted to be 0.
-  ASSERT_FLOAT_EQ(res, 0.f);
+  ASSERT_DOUBLE_EQ(0.f, res);
 }
 
 // NOLINTNEXTLINE
@@ -83,7 +98,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThan) {
   double res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // The value 6 goes past the last bucket in the histogram and so selectivity must be predicted to be 1.
-  ASSERT_FLOAT_EQ(res, 1);
+  ASSERT_DOUBLE_EQ(1, res);
 }
 
 // NOLINTNEXTLINE
@@ -97,7 +112,7 @@ TEST_F(SelectivityUtilTests, TestTinyIntLessThan) {
   double res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // The value 6 goes past the last bucket in the histogram and so selectivity must be predicted to be 1.
-  ASSERT_FLOAT_EQ(res, 1);
+  ASSERT_DOUBLE_EQ(1, res);
 }
 
 // NOLINTNEXTLINE
@@ -111,7 +126,7 @@ TEST_F(SelectivityUtilTests, TestIntegerEqual) {
   double res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // The value 4 occurs in MCV and has a frequency of 2.
-  ASSERT_FLOAT_EQ(res, 0.2);
+  ASSERT_DOUBLE_EQ(0.2, res);
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
@@ -125,7 +140,7 @@ TEST_F(SelectivityUtilTests, TestIntegerEqual) {
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   // The value 0 does not occur in MCV.
-  ASSERT_FLOAT_EQ(res, 0.08);
+  ASSERT_DOUBLE_EQ(0.1, res);
 }
 
 // NOLINTNEXTLINE
@@ -144,7 +159,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // The value 6 goes past the last bucket in the histogram and so selectivity must be predicted to be 0.
-  ASSERT_FLOAT_EQ(res, 0.f);
+  ASSERT_DOUBLE_EQ(0.f, res);
 
   // TEST PART 2
   const_value_expr_ptr =
@@ -158,7 +173,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
   // The value 3 falls in the last bucket of the histogram (with 2 buckets) and so selectivity is predicted to be 0.5.
-  ASSERT_FLOAT_EQ(res, 0.5f);
+  ASSERT_DOUBLE_EQ(0.5f, res);
 
   // TEST PART 3
   const_value_expr_ptr =
@@ -171,7 +186,7 @@ TEST_F(SelectivityUtilTests, TestFloatGreaterThanEqual) {
   res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
   // The value 0 falls in the first bucket of the histogram (with 2 buckets) and so selectivity is predicted to be 1.
-  ASSERT_FLOAT_EQ(res, 1.f);
+  ASSERT_DOUBLE_EQ(1.f, res);
 }
 
 // NOLINTNEXTLINE
@@ -191,7 +206,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
 
   // The value 6 goes past the last bucket in the histogram.
   // Sel for < -> 1. Sel for = -> 0. Total sel : 1.
-  ASSERT_FLOAT_EQ(res, 1.f);
+  ASSERT_DOUBLE_EQ(1.f, res);
 
   // TEST PART 2
   const_value_expr_ptr =
@@ -206,7 +221,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
 
   // The value 3 falls in the last bucket of the histogram (with 2 buckets).
   // Sel for  < -> 0.5 + Sel for = -> 0.2. Total : 0.7
-  ASSERT_FLOAT_EQ(res, 0.7);
+  ASSERT_DOUBLE_EQ(0.7, res);
 
   // TEST PART 3
   const_value_expr_ptr =
@@ -220,7 +235,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
   // The value 0 falls in the first bucket (lower bound operation) on the histogram (with 2 buckets).
   // Sel for < -> 0. Sel for = -> 0.08. Total sel : 0.08
-  ASSERT_FLOAT_EQ(res, 0.08);
+  ASSERT_DOUBLE_EQ(0.1, res);
 }
 
 // NOLINTNEXTLINE
@@ -239,7 +254,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   // Sel for <= -> 1. Sel = 1 - 1 = 0.
-  ASSERT_FLOAT_EQ(res, 0.f);
+  ASSERT_DOUBLE_EQ(0.f, res);
 
   // TEST PART 2
   const_value_expr_ptr =
@@ -253,7 +268,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
   // Sel for <= -> 0.7. Sel = 1 - 0.7 = 0.3.
-  ASSERT_FLOAT_EQ(res, 0.3);
+  ASSERT_DOUBLE_EQ(0.3, res);
 
   // TEST PART 3
   const_value_expr_ptr =
@@ -265,8 +280,8 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
 
   res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
-  // Sel for <= -> 0.08. Sel = 1 - 0.08 = 0.92.
-  ASSERT_FLOAT_EQ(res, 0.92);
+
+  ASSERT_FLOAT_EQ(0.9, res);
 }
 
 // NOLINTNEXTLINE
@@ -282,7 +297,7 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
 
   // The value 4 occurs in MCV and has a frequency of 2.
   // Sl for = -> 0.2. Sel = 1 - 0.2 = 0.8.
-  ASSERT_FLOAT_EQ(res, 0.8);
+  ASSERT_DOUBLE_EQ(res, 0.8);
 
   // Create a constant value expression to pass to ValueCondition.
   const_value_expr_ptr =
@@ -295,8 +310,6 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
   res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
-  // The value 0 does not occur in MCV.
-  // Sl for = -> 0.08. Sel = 1 - 0.08 = 0.92.
-  ASSERT_FLOAT_EQ(res, 0.92);
+  ASSERT_DOUBLE_EQ(0.9, res);
 }
 }  // namespace terrier::optimizer

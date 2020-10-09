@@ -7,8 +7,10 @@
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "execution/sql/value.h"
+#include "optimizer/statistics/top_k_elements.h"
 
 namespace terrier::optimizer {
+
 /**
  * Represents the statistics of a given column. Stores relevant oids,
  * important trends (most common values/their frequencies in the column), and other
@@ -34,18 +36,18 @@ class NewColumnStats {
    * @param is_base_table - indicates whether the column is from a base table
    */
   NewColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
-                 size_t num_rows, double cardinality, double frac_null, std::vector<CppType> most_common_vals,
-                 std::vector<double> most_common_freqs, std::vector<CppType> histogram_bounds, bool is_base_table)
+                 size_t num_rows, double cardinality, double frac_null, size_t k_value, uint64_t top_k_width,
+                 std::vector<CppType> histogram_bounds, bool is_base_table)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
         cardinality_(cardinality),
         frac_null_(frac_null),
-        most_common_vals_(std::move(most_common_vals)),
-        most_common_freqs_(std::move(most_common_freqs)),
         histogram_bounds_(std::move(histogram_bounds)),
-        is_base_table_{is_base_table} {}
+        is_base_table_{is_base_table} {
+    top_k_ptr = new TopKElements<CppType>(k_value, top_k_width);
+  }
 
   /**
    * Default constructor for deserialization
@@ -83,28 +85,10 @@ class NewColumnStats {
   const std::vector<CppType> &GetHistogramBounds() const { return histogram_bounds_; }
 
   /**
-   * Gets the Common Vals
-   * @return column vals
+   * Gets the Top-K object with information on top k values and their frequencies.
+   * @return top k object
    */
-  const std::vector<CppType> &GetCommonVals() const { return most_common_vals_; }
-
-  /**
-   * Gets the Common Freqs
-   * @return common freqs
-   */
-  const std::vector<double> &GetCommonFreqs() const { return most_common_freqs_; }
-
-  /**
-   * Serializes a column stats object
-   * @return column stats object serialized to json
-   */
-  nlohmann::json ToJson() const;
-
-  /**
-   * Deserializes a column stats object
-   * @param j - serialized column stats object
-   */
-  void FromJson(const nlohmann::json &j);
+  common::ManagedPointer<TopKElements<CppType>> GetTopK() { return top_k_ptr; }
 
  private:
   /**
@@ -138,14 +122,9 @@ class NewColumnStats {
   double frac_null_;
 
   /**
-   * list of most common values in column
+   * Top-K elements based on frequency.
    */
-  std::vector<CppType> most_common_vals_;
-
-  /**
-   * list of frequencies for most common values in column
-   */
-  std::vector<double> most_common_freqs_;
+  common::ManagedPointer<TopKElements<CppType>> top_k_ptr;
 
   /**
    * bounds for the histogram of the column
@@ -157,35 +136,4 @@ class NewColumnStats {
    */
   bool is_base_table_;
 };
-//
-// nlohmann::json NewColumnStats::ToJson() const {
-//  nlohmann::json j;
-//  j["database_id"] = database_id_;
-//  j["table_id"] = table_id_;
-//  j["column_id"] = column_id_;
-//  j["num_rows"] = num_rows_;
-//  j["cardinality"] = cardinality_;
-//  j["frac_null"] = frac_null_;
-//  j["most_common_vals"] = most_common_vals_;
-//  j["most_common_freqs"] = most_common_freqs_;
-//  j["histogram_bounds"] = histogram_bounds_;
-//  j["is_basetable"] = is_base_table_;
-//  return j;
-//}
-//
-// void NewColumnStats::FromJson(const nlohmann::json &j) {
-//  database_id_ = j.at("database_id").get<catalog::db_oid_t>();
-//  table_id_ = j.at("table_id").get<catalog::table_oid_t>();
-//  column_id_ = j.at("column_id").get<catalog::col_oid_t>();
-//  num_rows_ = j.at("num_rows").get<size_t>();
-//  cardinality_ = j.at("cardinality").get<double>();
-//  frac_null_ = j.at("frac_null").get<double>();
-//  most_common_vals_ = j.at("most_common_vals").get<std::vector<CppType>>();
-//  most_common_freqs_ = j.at("most_common_freqs").get<std::vector<double>>();
-//  histogram_bounds_ = j.at("histogram_bounds").get<std::vector<CppType>>();
-//  is_base_table_ = j.at("is_basetable").get<bool>();
-//}
-
-// DEFINE_JSON_HEADER_DECLARATIONS(NewColumnStats<CppType>);
-// DEFINE_JSON_BODY_DECLARATIONS(NewColumnStats<CppType>);
 }  // namespace terrier::optimizer

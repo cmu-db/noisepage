@@ -200,44 +200,12 @@ double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_s
   size_t numrows = column_stats->GetNumRows();
 
   // For now only double is supported in stats storage
-  auto most_common_vals = column_stats->GetCommonVals();
-  auto most_common_freqs = column_stats->GetCommonFreqs();
-  auto first = most_common_vals.begin(), last = most_common_vals.end();
+  auto top_k = column_stats->GetTopK();
 
-  while (first != last) {
-    // For now only double is supported in stats storage
-    if (*first == value) {
-      break;
-    }
-    ++first;
-  }
+  // Find frequency of the value if present in the top K elements.
+  auto value_frequency_estimate = top_k->EstimateItemCount(value);
 
-  double res = DEFAULT_SELECTIVITY;
-  if (first != last) {
-    // the target value for equality comparison (param value) is
-    // found in most common values
-    size_t idx = first - most_common_vals.begin();
-
-    res = most_common_freqs[idx] / static_cast<double>(numrows);
-  } else {
-    // the target value for equality comparison (parm value) is
-    // NOT found in most common values
-    // (1 - sum(mvf))/(num_distinct - num_mcv)
-    double sum_mvf = 0;
-    auto first = most_common_freqs.begin(), last = most_common_freqs.end();
-    while (first != last) {
-      sum_mvf += *first;
-      ++first;
-    }
-
-    if (numrows == 0 || column_stats->GetCardinality() == static_cast<double>(most_common_vals.size())) {
-      OPTIMIZER_LOG_TRACE("Equal selectivity division by 0.");
-      return DEFAULT_SELECTIVITY;
-    }
-
-    res = (1 - sum_mvf / static_cast<double>(numrows)) /
-          (column_stats->GetCardinality() - static_cast<double>(most_common_vals.size()));
-  }
+  double res = value_frequency_estimate / static_cast<double>(numrows);
 
   TERRIER_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
   return res;
