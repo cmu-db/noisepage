@@ -274,6 +274,8 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                     logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
                                     .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
+                # For hashjoin_build, there is still some inaccuracy due to the
+                # fact that we do not know about the hash table's load factor.
                 adj_mem = (pred_mem - buffer_size) * opunit_feature[1][data_info.RECORD_MEM_SCALE_OFFSET] + buffer_size
 
                 # Don't modify prediction cache

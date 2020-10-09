@@ -996,8 +996,15 @@ class MiniRunners : public benchmark::Fixture {
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                        execution::compiler::CompilationMode::OneShot);
 
-    // Since we don't have duplicate features in a pipeline, this works
-    // to override the feature_ids so counters can work.
+    // Some runners rely on counters to work correctly (i.e parallel create index).
+    // Counter code relies on the ids of features extracted during code generation
+    // to update numbers. However, the synthetic pipeline + features that are
+    // set by the mini-runners do not have these feature ids available.
+    //
+    // For now, since a pipeline does not contain any duplicate feature types (i.e
+    // there will not be 2 hashjoin_probes in 1 pipeline), we can assign feature ids
+    // to our synthetic features by finding the matching feature from the feature
+    // vector produced during codegen.
     auto pipeline = exec_query->GetPipelineOperatingUnits();
     for (auto &info : pipeline_units->units_) {
       auto other_feature = pipeline->units_[info.first];

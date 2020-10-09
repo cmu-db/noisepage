@@ -41,7 +41,8 @@ ARITHMETIC_OPUNITS = {OpUnit.OP_INTEGER_PLUS_OR_MINUS, OpUnit.OP_INTEGER_MULTIPL
 # Operating units that need memory adjustment
 MEM_ADJUST_OPUNITS = {OpUnit.SORT_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.AGG_BUILD}
 
-# Operating units that should evaluate with memory
+# Default is to evaluate a model by using the elapsed time prediction error.
+# For opunits included here, models should be evaluated using the memory error.
 MEM_EVALUATE_OPUNITS = {OpUnit.CREATE_INDEX_MAIN}
 
 # Index for tuple_num in the model input feature vector

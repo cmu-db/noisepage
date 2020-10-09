@@ -106,6 +106,9 @@ class MiniTrainer:
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
 
+                    # The default method of determining whether a model is better is by comparing the model error
+                    # on the elapsed us. For any opunits in MEM_EVALUATE_OPUNITS, we evaluate by comparing the
+                    # model error on memory_b.
                     eval_error = percentage_error[elapsed_us_index]
                     if data.opunit in data_info.MEM_EVALUATE_OPUNITS:
                         eval_error = percentage_error[memory_b_index]
