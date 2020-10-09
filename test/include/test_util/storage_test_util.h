@@ -223,7 +223,7 @@ class StorageTestUtil {
   // performance. Returns the number of non-empty slots in the block after population.
   template <class Random>
   static uint32_t PopulateBlockRandomlyNoBookkeeping(storage::DataTable *table, storage::RawBlock *block,
-                                                     double empty_ratio, Random *generator) {
+                                                     double empty_ratio, Random *const generator) {
     const storage::BlockLayout layout = table->GetBlockLayout();
     uint32_t result = 0;
     std::bernoulli_distribution coin(empty_ratio);

@@ -148,8 +148,7 @@ class DataTable {
    * @param layout the initial layout of this DataTable. First 2 columns must be 8 bytes.
    * @param layout_version the layout version of this DataTable
    */
-  DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,  // NOLINT
-            const layout_version_t layout_version);                               // NOLINT
+  DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout, const layout_version_t layout_version);
 
   /**
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
