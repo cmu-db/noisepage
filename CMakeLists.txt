@@ -385,8 +385,12 @@ message(STATUS "\nDependencies: Locating...\n===================================
 # - fsanitize=address is required on OSX.
 set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")           # Save the current CMAKE_C_FLAGS.
 set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")       # Save the current CMAKE_CXX_FLAGS.
-set(CMAKE_C_FLAGS "-fPIC -fvisibility=hidden -fsanitize=address")
-set(CMAKE_CXX_FLAGS "-fPIC -fvisibility=hidden -fsanitize=address")
+set(CMAKE_C_FLAGS "-fPIC -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "-fPIC -fvisibility=hidden")
+if (${NOISEPAGE_USE_ASAN})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+endif ()
 
 # Google Benchmark build settings.
 set(BENCHMARK_ENABLE_TESTING OFF)                   # Disable testing of the benchmark library.
