@@ -101,6 +101,7 @@ class DataTable {
    private:
     friend class DataTable;
 
+    // constructor for DataTable::end()
     SlotIterator() = default;
 
     SlotIterator(const DataTable *table) : table_(table), block_index_(0) {  // NOLINT
