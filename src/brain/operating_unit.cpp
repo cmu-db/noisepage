@@ -4,15 +4,13 @@ namespace terrier::brain {
 
 std::atomic<execution::feature_id_t> ExecutionOperatingUnitFeature::feature_id_counter{10000};  // arbitrary number
 
-ExecOUFeatureVector::ExecOUFeatureVector(execution::sql::MemoryPool *pool)
-    : pipeline_id_(execution::pipeline_id_t(0)), pipeline_features_(pool) {}
-
 void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
                                         ExecutionOperatingUnitFeatureAttribute modifier,
                                         ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t val) {
   TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
+  TERRIER_ASSERT(pipeline_features_ != nullptr, "Pipeline Features cannot be null");
   size_t *value = nullptr;
-  for (auto &feature : pipeline_features_) {
+  for (auto &feature : *pipeline_features_) {
     if (feature.GetFeatureId() == feature_id) {
       TERRIER_ASSERT(value == nullptr, "Duplicate feature found");
       switch (modifier) {

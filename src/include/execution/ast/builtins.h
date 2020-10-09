@@ -49,7 +49,7 @@ namespace terrier::execution::ast {
   F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
   F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
   F(ExecOUFeatureVectorFilter, execOUFeatureVectorFilter)               \
-  F(ExecOUFeatureVectorDestroy, execOUFeatureVectorDestroy)             \
+  F(ExecOUFeatureVectorReset, execOUFeatureVectorReset)                 \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \

@@ -129,9 +129,9 @@ void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t que
       builder->Append(codegen_->MakeStmt(call));
     }
 
-    // Destroy the pipeline features
-    args = {exec_ctx, oufeatures_.GetPtr(codegen_)};
-    auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorDestroy, args);
+    // Reset the pipeline features
+    args = {oufeatures_.GetPtr(codegen_)};
+    auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorReset, args);
     builder->Append(codegen_->MakeStmt(call));
   }
 }
@@ -216,6 +216,13 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineStateFunction() const {
     CodeGen::CodeScope code_scope(codegen_);
     for (auto *op : steps_) {
       op->TearDownPipelineState(*this, &builder);
+    }
+
+    if (compilation_context_->IsPipelineMetricsEnabled()) {
+      // Reset the pipeline features
+      auto args = {oufeatures_.GetPtr(codegen_)};
+      auto call = codegen_->CallBuiltin(ast::Builtin::ExecOUFeatureVectorReset, args);
+      builder.Append(codegen_->MakeStmt(call));
     }
   }
   return builder.Finish();

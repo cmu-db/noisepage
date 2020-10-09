@@ -568,10 +568,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(ExecOUFeatureVectorDestroy) : {
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+  OP(ExecOUFeatureVectorReset) : {
     auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
-    OpExecOUFeatureVectorDestroy(exec_ctx, ouvec);
+    OpExecOUFeatureVectorReset(ouvec);
     DISPATCH_NEXT();
   }
 

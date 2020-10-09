@@ -252,8 +252,7 @@ VM_OP_COLD void OpExecOUFeatureVectorInitialize(terrier::execution::exec::Execut
 VM_OP_COLD void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *ouvec,
                                             terrier::brain::ExecutionOperatingUnitType filter);
 
-VM_OP_COLD void OpExecOUFeatureVectorDestroy(terrier::execution::exec::ExecutionContext *exec_ctx,
-                                             terrier::brain::ExecOUFeatureVector *ouvec);
+VM_OP_COLD void OpExecOUFeatureVectorReset(terrier::brain::ExecOUFeatureVector *ouvec);
 
 VM_OP_WARM
 void OpExecutionContextGetTLS(terrier::execution::sql::ThreadStateContainer **const thread_state_container,

@@ -149,12 +149,6 @@ class EXPORT ExecutionContext {
   void InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
-   * Destroys an OUFeatureVector by calling its destructor and freeing the memory
-   * @param ouvec Feature Vector to destroy
-   */
-  void DestroyOUFeatureVector(brain::ExecOUFeatureVector *ouvec) { ouvec->~ExecOUFeatureVector(); }
-
-  /**
    * @return the db oid
    */
   catalog::db_oid_t DBOid() { return db_oid_; }

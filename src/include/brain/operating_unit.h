@@ -280,13 +280,15 @@ class EXPORT ExecOUFeatureVector {
    * vector on all control flow paths. A standard std::vector may not be
    * properly cleaned up if execution encounters an "exception".
    */
-  execution::sql::MemPoolVector<ExecutionOperatingUnitFeature> pipeline_features_;
+  std::unique_ptr<execution::sql::MemPoolVector<ExecutionOperatingUnitFeature>> pipeline_features_ = nullptr;
 
   /**
-   * Constructor
-   * @param pool Memory Pool
+   * Resets the feature vector state so it can be initialized again
    */
-  explicit ExecOUFeatureVector(execution::sql::MemoryPool *pool);
+  void Reset() {
+    pipeline_id_ = execution::INVALID_PIPELINE_ID;
+    pipeline_features_ = nullptr;
+  }
 
   /**
    * Function used to update a feature's metadata information

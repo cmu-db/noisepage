@@ -314,10 +314,7 @@ void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext 
     exec_ctx->InitializeOUFeatureVector(ouvec, pipeline_id);
 }
 
-void OpExecOUFeatureVectorDestroy(terrier::execution::exec::ExecutionContext *const exec_ctx,
-                                  terrier::brain::ExecOUFeatureVector *const ouvec) {
-  exec_ctx->DestroyOUFeatureVector(ouvec);
-}
+void OpExecOUFeatureVectorReset(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Reset(); }
 
 void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
                                             uint32_t memory_use) {
@@ -326,13 +323,13 @@ void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionC
 
 void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouvec,
                                  terrier::brain::ExecutionOperatingUnitType filter) {
-  ouvec->pipeline_features_.erase(
-      std::remove_if(ouvec->pipeline_features_.begin(), ouvec->pipeline_features_.end(),
+  ouvec->pipeline_features_->erase(
+      std::remove_if(ouvec->pipeline_features_->begin(), ouvec->pipeline_features_->end(),
                      [filter](const auto &feature) {
                        return (filter != terrier::brain::ExecutionOperatingUnitType::INVALID) &&
                               (filter != feature.GetExecutionOperatingUnitType());
                      }),
-      ouvec->pipeline_features_.end());
+      ouvec->pipeline_features_->end());
 }
 
 void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->RegisterThread(); }
