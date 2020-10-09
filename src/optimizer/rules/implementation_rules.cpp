@@ -489,7 +489,7 @@ void LogicalInnerJoinToPhysicalInnerIndexJoin::Transform(
   // first build an expression representing hash join
   const auto inner_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
   const auto &children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two children");
 
   // Get the "right" inner child and append the join predicate
   auto r_child = children[1]->Contents()->GetContentsAs<LogicalGet>();
@@ -559,7 +559,7 @@ void LogicalInnerJoinToPhysicalInnerNLJoin::Transform(common::ManagedPointer<Abs
   const auto inner_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
 
   const auto &children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two children");
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
@@ -604,7 +604,7 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
   const auto inner_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
 
   auto children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
+  TERRIER_ASSERT(children.size() == 2, "Inner Join should have two children");
   auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
@@ -622,6 +622,63 @@ void LogicalInnerJoinToPhysicalInnerHashJoin::Transform(
   if (!left_keys.empty()) {
     auto result = std::make_unique<OperatorNode>(
         InnerHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
+            .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
+        std::move(child), context->GetOptimizerContext()->GetTxn());
+    transformed->emplace_back(std::move(result));
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// LogicalSemiJoinToPhysicalSemiLeftHashJoin
+///////////////////////////////////////////////////////////////////////////////
+LogicalSemiJoinToPhysicalSemiLeftHashJoin::LogicalSemiJoinToPhysicalSemiLeftHashJoin() {
+  type_ = RuleType::SEMI_JOIN_TO_HASH_JOIN;
+  // Make three node types for pattern matching
+  auto left_child(new Pattern(OpType::LEAF));
+  auto right_child(new Pattern(OpType::LEAF));
+
+  // Initialize a pattern for optimizer to match
+  match_pattern_ = new Pattern(OpType::LOGICALSEMIJOIN);
+
+  // Add node - we match join relation R and S as well as the predicate exp
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
+}
+
+bool LogicalSemiJoinToPhysicalSemiLeftHashJoin::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
+                                                      OptimizationContext *context) const {
+  (void)context;
+  (void)plan;
+  return true;
+}
+
+void LogicalSemiJoinToPhysicalSemiLeftHashJoin::Transform(
+    common::ManagedPointer<AbstractOptimizerNode> input,
+    std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+    UNUSED_ATTRIBUTE OptimizationContext *context) const {
+  // first build an expression representing hash join
+  const auto semi_join = input->Contents()->GetContentsAs<LogicalSemiJoin>();
+
+  auto children = input->GetChildren();
+  TERRIER_ASSERT(children.size() == 2, "Left Semi Join should have two children");
+
+  auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
+  auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
+  auto &right_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
+
+  std::vector<AnnotatedExpression> join_preds = semi_join->GetJoinPredicates();
+  OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
+
+  TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
+  std::vector<std::unique_ptr<AbstractOptimizerNode>> child;
+  child.emplace_back(children[0]->Copy());
+  child.emplace_back(children[1]->Copy());
+  if (!left_keys.empty()) {
+    auto result = std::make_unique<OperatorNode>(
+        LeftSemiHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys))
             .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
         std::move(child), context->GetOptimizerContext()->GetTxn());
     transformed->emplace_back(std::move(result));
@@ -661,6 +718,7 @@ void LogicalLeftJoinToPhysicalLeftHashJoin::Transform(common::ManagedPointer<Abs
 
   auto children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Left Join should have two child");
+
   auto left_group_id = children[0]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->Contents()->GetContentsAs<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetOptimizerContext()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
@@ -669,6 +727,7 @@ void LogicalLeftJoinToPhysicalLeftHashJoin::Transform(common::ManagedPointer<Abs
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = left_join->GetJoinPredicates();
+
   OptimizerUtil::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");

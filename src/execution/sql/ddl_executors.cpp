@@ -156,4 +156,5 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
   return true;
 }
+
 }  // namespace terrier::execution::sql
