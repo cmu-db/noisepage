@@ -541,6 +541,26 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementLeftSemiJoinTest) {
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "SELECT * FROM A WHERE A1 in (SELECT B1 from B)";
+
+  std::string ref =
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalMarkJoin\",\"Children\":[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::AbstractOptimizerNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
   OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT * FROM A FULL OUTER JOIN B ON A.A1 = B.B1";

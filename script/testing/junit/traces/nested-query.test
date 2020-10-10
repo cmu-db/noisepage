@@ -1,0 +1,321 @@
+statement ok
+DROP TABLE IF EXISTS shipment;
+
+statement ok
+DROP TABLE IF EXISTS supplier;
+
+statement ok
+DROP TABLE IF EXISTS part;
+
+statement ok
+CREATE TABLE shipment (sno int, pno int, qty int, item_name VARCHAR(32));
+
+statement ok
+CREATE TABLE supplier (sno int, quota int);
+
+statement ok
+CREATE TABLE part (pno int, amount int, part_name VARCHAR(32));
+
+statement ok
+
+
+statement ok
+INSERT INTO supplier VALUES (2, 3);
+
+statement ok
+INSERT INTO supplier VALUES (3, 100);
+
+statement ok
+INSERT INTO supplier VALUES (4, 16);
+
+statement ok
+INSERT INTO supplier VALUES (5, 5);
+
+statement ok
+INSERT INTO supplier VALUES (6, 0);
+
+statement ok
+
+
+statement ok
+INSERT INTO shipment VALUES (1, 1, 1, 'item_11');
+
+statement ok
+INSERT INTO shipment VALUES (2, 1, 1, 'item_11');
+
+statement ok
+INSERT INTO shipment VALUES (3, 1, 1, 'item_11');
+
+statement ok
+INSERT INTO shipment VALUES (2, 1, 2, 'item_12');
+
+statement ok
+INSERT INTO shipment VALUES (3, 1, 3, 'item_13');
+
+statement ok
+
+
+statement ok
+INSERT INTO shipment VALUES (3, 2, 2, 'item_21');
+
+statement ok
+INSERT INTO shipment VALUES (2, 2, 2, 'item_22');
+
+statement ok
+
+
+statement ok
+INSERT INTO shipment VALUES (2, 3, 1, 'item_31');
+
+statement ok
+INSERT INTO shipment VALUES (3, 3, 10, 'item_32');
+
+statement ok
+INSERT INTO shipment VALUES (4, 3, 10, 'item_33');
+
+statement ok
+
+
+statement ok
+INSERT INTO shipment VALUES (2, 4, 4, 'item_41');
+
+statement ok
+INSERT INTO shipment VALUES (4, 4, 6, 'item_42');
+
+statement ok
+INSERT INTO shipment VALUES (5, 4, 5, 'item_43');
+
+statement ok
+
+
+statement ok
+INSERT INTO shipment VALUES (5, 5, 100, 'item_51');
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+INSERT INTO part VALUES (1, 10, 'item_11');
+
+statement ok
+INSERT INTO part VALUES (1, 5, 'item_12');
+
+statement ok
+INSERT INTO part VALUES (1, 1, 'item_13');
+
+statement ok
+INSERT INTO part VALUES (1, 11, 'item_14');
+
+statement ok
+
+
+statement ok
+INSERT INTO part VALUES (2, 20, 'item_21');
+
+statement ok
+
+
+statement ok
+INSERT INTO part VALUES (3, 5, 'item_31');
+
+statement ok
+INSERT INTO part VALUES (3, 2, 'item_32');
+
+statement ok
+INSERT INTO part VALUES (3, 15, 'item_33');
+
+statement ok
+
+
+statement ok
+INSERT INTO part VALUES (4, 4, 'item_41');
+
+statement ok
+INSERT INTO part VALUES (4, 10, 'item_42');
+
+statement ok
+INSERT INTO part VALUES (4, 2, 'item_43');
+
+statement ok
+
+
+statement ok
+INSERT INTO part VALUES (5, 1000, 'item_51');
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+-- Test TypeA
+
+query IIIT nosort
+SELECT * FROM shipment WHERE pno <= (SELECT MAX(pno) FROM part) order by pno;
+----
+56 values hashing to f0c3323ccc75c07a398f89c9e1c85111
+
+query I nosort
+SELECT sno FROM shipment WHERE pno >= (SELECT MIN(pno) FROM part) order by sno;
+----
+14 values hashing to 2f3c3cb1d053ad15f5e08eacb69bfdc6
+
+query T nosort
+SELECT item_name FROM shipment WHERE qty > (SELECT MIN(amount) FROM part where part.pno <= 3) and pno = 3 order by item_name;
+----
+2 values hashing to 34315bffe6b76ce913d5ec3f2a8292cb
+
+query T nosort
+SELECT item_name FROM shipment WHERE qty <= (SELECT SUM(amount) FROM part WHERE part.pno = shipment.pno) order by item_name;
+----
+14 values hashing to eeafa4e65b8e56d2198e1a4703307d57
+
+query T nosort
+SELECT item_name FROM shipment WHERE qty < (SELECT SUM(amount) FROM part INNER JOIN shipment s on part.pno = s.pno) order by item_name;
+----
+14 values hashing to eeafa4e65b8e56d2198e1a4703307d57
+
+statement ok
+select * from supplier where quota != (SELECT MIN(qty) FROM shipment where shipment.sno != 5) order by quota;
+
+statement ok
+select sno from supplier where quota = (select SUM(qty) from shipment where shipment.sno = supplier.sno) order by sno;
+
+statement ok
+select quota from supplier where sno = (select MAX(sno) from shipment) order by quota;
+
+statement ok
+
+
+statement ok
+-- Test TypeN
+
+query I nosort
+SELECT pno FROM part WHERE part_name in (SELECT item_name FROM shipment where sno = 1) order by pno;
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT pno FROM part WHERE part_name in (SELECT item_name FROM shipment where sno != 2) order by pno;
+----
+8 values hashing to 87405d30c976c56073cf0c5d103de726
+
+query I nosort
+SELECT pno FROM part WHERE part_name in (SELECT item_name FROM shipment where sno > 2 limit 1) order by pno;
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+statement ok
+
+
+query I nosort
+SELECT pno FROM part WHERE pno in (SELECT pno FROM part WHERE pno in (SELECT shipment.pno FROM shipment where sno >= 1));
+----
+12 values hashing to 07f12cf37b2ac4996c604cc5bd12a798
+
+query I nosort
+SELECT pno FROM part WHERE part_name in (SELECT part_name FROM part WHERE pno in (SELECT shipment.pno FROM shipment where sno = 1));
+----
+4 values hashing to 97b36f60d6c645fe73e654a950d10b72
+
+query I nosort
+SELECT quota FROM supplier WHERE sno in (SELECT s.sno FROM supplier INNER JOIN shipment s on supplier.sno = s.sno);
+----
+4 values hashing to 3447659fc6365758159c97452734ad4d
+
+statement ok
+
+
+query T nosort
+SELECT item_name FROM shipment WHERE shipment.sno != ANY (SELECT sno FROM supplier) order by item_name;
+----
+14 values hashing to 0778c39ea1f5b234be067aca35c6731c
+
+query T nosort
+SELECT item_name FROM shipment WHERE shipment.pno = ANY (SELECT pno FROM part) order by item_name;
+----
+13 values hashing to eeafa4e65b8e56d2198e1a4703307d57
+
+query I nosort
+SELECT sno FROM supplier WHERE supplier.sno >= ANY (SELECT sno FROM shipment) order by sno;
+----
+4 values hashing to d9a45b3e1aa354005400e8e8ab01e36d
+
+query I nosort
+SELECT sno FROM supplier WHERE supplier.sno <= ANY (SELECT sno FROM shipment where pno < 2 limit 2) order by sno;
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+statement ok
+
+
+statement ok
+-- Test TypeJ
+
+query I nosort
+SELECT pno FROM shipment WHERE sno in (SELECT sno FROM supplier WHERE quota = qty) order by pno;
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query II nosort
+SELECT * FROM supplier WHERE sno in (SELECT s.sno FROM supplier INNER JOIN shipment s on supplier.sno = s.sno where qty = quota);
+----
+2 values hashing to a56776f01f8ab14d7d037bf1ccb399cd
+
+query T nosort
+SELECT part_name FROM part WHERE pno in (SELECT pno from supplier JOIN shipment s on supplier.sno = s.sno where amount = qty) order by part_name;
+----
+2 values hashing to 5685920012c5aaa4c086ca557185fc3e
+
+query T nosort
+SELECT part_name FROM part WHERE pno in (SELECT pno from supplier JOIN shipment s on supplier.sno = s.sno where part_name = item_name) order by part_name;
+----
+11 values hashing to 3a6b3e33966722d3afe7b5cc7e77915b
+
+query T nosort
+SELECT part_name FROM part WHERE pno in (SELECT pno from supplier JOIN shipment s on supplier.sno = s.sno where part_name != item_name) order by part_name;
+----
+11 values hashing to 2e3ea0fd344cfe4345c7ffd13d57adae
+
+statement ok
+
+
+statement ok
+-- Test TypeJA
+
+query IIT nosort
+SELECT * FROM part WHERE amount > (SELECT MAX(qty) FROM shipment WHERE shipment.pno = part.pno) order by pno;
+----
+21 values hashing to b6d55f2c7042fac31f69133143921bde
+
+query IIT nosort
+SELECT * FROM part WHERE amount < (SELECT MAX(qty) FROM shipment WHERE shipment.pno = part.pno) order by pno;
+----
+15 values hashing to d3434eea5eea795c4f57399ca9e18e69
+
+query I nosort
+SELECT quota FROM supplier WHERE sno = (SELECT MIN(shipment.sno) FROM shipment WHERE shipment.qty = supplier.quota) order by sno;
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+query I nosort
+SELECT sno FROM supplier WHERE sno >= (SELECT MIN(shipment.sno) FROM shipment INNER JOIN part on shipment.pno = part.pno WHERE part.amount = supplier.quota) order by sno;
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+statement ok
+
+
+statement ok
+DROP TABLE shipment;
+
+statement ok
+DROP TABLE supplier;
+
+statement ok
+DROP TABLE part;
+
