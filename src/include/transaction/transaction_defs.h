@@ -34,28 +34,56 @@ using callback_fn = void (*)(void *);
  * A TransactionEndAction is applied when the transaction is either committed or aborted (as configured).
  * It is given a handle to the DeferredActionManager in case it needs to register a deferred action.
  */
-using TransactionEndAction = std::function<void(DeferredActionManager *)>;
+using TransactionEndAction = std::add_pointer<void(DeferredActionManager *)>::type;
+using TransactionEndAction2 = std::add_pointer<void()>::type;
+
+class TransactionEndActionBaseFunctor {
+ public:
+  virtual void operator()(DeferredActionManager *deferred_action_manager) = 0;
+};
 
 /**
  * Functor to capture the derred action function
  */
-struct TransactionEndActionFunc {
+class TransactionEndActionFunc : public TransactionEndActionBaseFunctor {
+ public:
   /**
-   * Function withe the end action
+   * Function with the end action
    */
-  std::function<void(DeferredActionManager *)> end_func_;
+  TransactionEndAction end_func_;
 
   /**
    * Constructor takes as arguments a function which will be stored in this functor
    * @param end_func function to execute upon end action
    */
-  explicit TransactionEndActionFunc(std::function<void(DeferredActionManager *)> end_func)
-      : end_func_(std::move(end_func)) {}
+  explicit TransactionEndActionFunc(TransactionEndAction end_func) : end_func_(end_func) {};
 
   /**
    * Callback the carries out the deferred action
    */
   void operator()(DeferredActionManager *deferred_action_manager) { end_func_(deferred_action_manager); }
+};
+
+/**
+ * Functor to capture the derred action function
+ */
+class TransactionEndActionFunc2 : public TransactionEndActionBaseFunctor {
+ public:
+  /**
+   * Function with the end action
+   */
+  TransactionEndAction2 end_func_;
+
+  /**
+   * Constructor takes as arguments a function which will be stored in this functor
+   * @param end_func function to execute upon end action
+   */
+  explicit TransactionEndActionFunc2(TransactionEndAction2 end_func) : end_func_(end_func) {};
+
+  /**
+   * Callback the carries out the deferred action
+   */
+  void operator()(DeferredActionManager *deferred_action_manager) { end_func_(); }
 };
 
 /**

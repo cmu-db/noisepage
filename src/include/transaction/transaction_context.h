@@ -169,8 +169,9 @@ class TransactionContext {
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
    */
-  void RegisterAbortAction(const std::function<void()> &a) {
-    RegisterAbortAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
+  void RegisterAbortAction(const TransactionEndAction2 &a) {
+//    RegisterAbortAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
+    abort_actions_.push_front(TransactionEndActionFunc2(a));
   }
 
   /**
@@ -186,8 +187,9 @@ class TransactionContext {
    * @warning these actions are run after commit and are not atomic with the commit itself
    * @param a the action to be executed.
    */
-  void RegisterCommitAction(const std::function<void()> &a) {
-    RegisterCommitAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
+  void RegisterCommitAction(const TransactionEndAction2 &a) {
+//    RegisterCommitAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
+    commit_actions_.push_front(TransactionEndActionFunc2(a));
   }
 
   /**
@@ -221,8 +223,8 @@ class TransactionContext {
   std::vector<const byte *> loose_ptrs_;
 
   // These actions will be triggered (not deferred) at abort/commit.
-  std::forward_list<TransactionEndActionFunc> abort_actions_;
-  std::forward_list<TransactionEndActionFunc> commit_actions_;
+  std::forward_list<TransactionEndActionBaseFunctor> abort_actions_;
+  std::forward_list<TransactionEndActionBaseFunctor> commit_actions_;
 
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
