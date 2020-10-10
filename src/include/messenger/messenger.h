@@ -62,8 +62,18 @@ class Messenger : public common::DedicatedThreadTask {
    */
   using CallbackFn = std::function<void(std::string_view, std::string_view)>;
 
-  /** Create a new Messenger, listening to the default endpoints. */
-  explicit Messenger();
+  /** @return The default TCP endpoint for a Messenger on the given port. */
+  static std::string GetEndpointTCP(const uint16_t port);
+  /** @return The default IPC endpoint for a Messenger on the given port. */
+  static std::string GetEndpointIPC(const uint16_t port);
+  /** @return The default INPROC endpoint for a Messenger on the given port. */
+  static std::string GetEndpointINPROC(const uint16_t port);
+
+  /**
+   * Create a new Messenger, listening to the default endpoints on the given port.
+   * @param port        The port that determines the default endpoints.
+   */
+  explicit Messenger(const uint16_t port);
 
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~Messenger();
@@ -112,13 +122,15 @@ class Messenger : public common::DedicatedThreadTask {
 
  private:
   friend ConnectionId;
-  static constexpr int MESSENGER_PORT = 9022;
-  static constexpr const char *MESSENGER_DEFAULT_TCP = "tcp://*:9022";
-  static constexpr const char *MESSENGER_DEFAULT_IPC = "ipc:///tmp/noisepage-ipc0";
-  static constexpr const char *MESSENGER_DEFAULT_INPROC = "inproc://noisepage-inproc";
+  static constexpr const char *MESSENGER_DEFAULT_TCP = "tcp://*:{}";
+  static constexpr const char *MESSENGER_DEFAULT_IPC = "ipc:///tmp/noisepage-ipc0-{}";
+  static constexpr const char *MESSENGER_DEFAULT_INPROC = "inproc://noisepage-inproc-{}";
 
   /** The main server loop. */
   void ServerLoop();
+
+  /** The port that is used for all default endpoints. */
+  const uint16_t port_;
 
   std::unique_ptr<zmq::context_t> zmq_ctx_;
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
@@ -131,19 +143,21 @@ class Messenger : public common::DedicatedThreadTask {
 };
 
 /**
- * MessengerOwner is the entry point to the Messenger system.
- * MessengerOwner is responsible for instantiating the Messenger and "owning" it.
- * TODO(WAN): owning is a bad term, the Messenger is actually owned by the DedicatedThreadRegistry.
+ * MessengerManager is the entry point to the Messenger system.
+ * MessengerManager is responsible for instantiating the Messenger and then registering the Messenger with the
+ * DedicatedThreadRegistry.
  */
-class MessengerOwner : public common::DedicatedThreadOwner {
+class MessengerManager : public common::DedicatedThreadOwner {
  public:
   /**
    * Create and run a new Messenger (which is a DedicatedThreadTask) on the specified thread registry.
    * @param thread_registry The registry in which the Messenger will be registered.
+   * @param port            The port on which the Messenger will listen by default.
    */
-  explicit MessengerOwner(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
+  explicit MessengerManager(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                            const uint16_t port);
 
-  /** @return The owned messenger. */
+  /** @return The Messenger being managed. */
   common::ManagedPointer<Messenger> GetMessenger() const { return messenger_; }
 
  private:

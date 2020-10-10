@@ -273,13 +273,20 @@ class DBMain {
   /** Hopping on the bandwagon. TODO(WAN): better comment. */
   class MessengerLayer {
    public:
-    explicit MessengerLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
-        : messenger_owner_(std::make_unique<messenger::MessengerOwner>(thread_registry)) {}
+    /**
+     * Instantiate and register a Messenger.
+     * @param thread_registry   The DedicatedThreadRegistry that the Messenger will be registered to.
+     * @param messenger_port    The port on which the Messenger will listen by default.
+     */
+    explicit MessengerLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                            const uint16_t messenger_port)
+        : messenger_manager_(std::make_unique<messenger::MessengerManager>(thread_registry, messenger_port)) {}
 
+    /** Destructor. */
     ~MessengerLayer() = default;
 
    private:
-    std::unique_ptr<messenger::MessengerOwner> messenger_owner_;
+    std::unique_ptr<messenger::MessengerManager> messenger_manager_;
   };
 
   /**
@@ -382,7 +389,7 @@ class DBMain {
 
       std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
       if (use_messenger_) {
-        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry));
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -585,6 +592,15 @@ class DBMain {
     }
 
     /**
+     * @param port Messenger port
+     * @return self reference for chaining
+     */
+    Builder &SetMessengerPort(const uint16_t port) {
+      messenger_port_ = port;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -700,6 +716,7 @@ class DBMain {
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
     bool use_messenger_ = false;
+    uint16_t messenger_port_ = 9022;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -732,7 +749,10 @@ class DBMain {
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
-      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      // TODO(WAN): open an issue for handling settings.
+      //  If you set it with the builder, it gets overwritten.
+      //  If you set it with the setting manager, it isn't mutable.
+      //      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));

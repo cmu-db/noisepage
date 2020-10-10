@@ -1,6 +1,6 @@
 #include "messenger/messenger.h"
 
-#include <mutex>
+#include <mutex>  // NOLINT
 #include <vector>
 #include <zmq.hpp>
 
@@ -128,7 +128,11 @@ class ZmqMessage {
  private:
   ZmqMessage(std::string sender_id, std::string payload)
       : sender_id_(std::move(sender_id)), payload_(std::move(payload)) {
-    message_id_ = std::stoull(payload_.substr(0, payload_.find('_')));
+    if (payload_.empty()) {
+      message_id_ = 0;
+    } else {
+      message_id_ = atoi(payload_.substr(0, payload_.find('-')).c_str());
+    }
   }
 
   /** The cached id of the message, parsed from payload_. Used to look up the corresponding callback. */
@@ -230,7 +234,6 @@ class ZmqUtil {
 
   /** @return Send the specified ZmqMessage (identity and payload) over the socket. */
   static void SendMsg(common::ManagedPointer<zmq::socket_t> socket, const messenger::ZmqMessage &msg) {
-    zmq::message_t identity_msg(msg.GetSenderId().data(), msg.GetSenderId().size());
     zmq::message_t delimiter_msg("", 0);
     zmq::message_t payload_msg(msg.GetMessage().data(), msg.GetMessage().size());
     bool ok = true;
@@ -253,8 +256,6 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
   // Create a new DEALER socket and connect to the server.
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_DEALER);
   socket_->set(zmq::sockopt::routing_id, identity);
-  // Disable discarding unroutable messages silently.
-  socket_->set(zmq::sockopt::router_mandatory, true);
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
   socket_->connect(target.GetDestination());
   // Add the new socket to the list of sockets that will be polled by the server loop.
@@ -263,7 +264,11 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
 
 ConnectionId::~ConnectionId() = default;
 
-Messenger::Messenger() {
+std::string Messenger::GetEndpointTCP(const uint16_t port) { return fmt::format(MESSENGER_DEFAULT_TCP, port); }
+std::string Messenger::GetEndpointIPC(const uint16_t port) { return fmt::format(MESSENGER_DEFAULT_IPC, port); }
+std::string Messenger::GetEndpointINPROC(const uint16_t port) { return fmt::format(MESSENGER_DEFAULT_INPROC, port); }
+
+Messenger::Messenger(const uint16_t port) {
   // Create a ZMQ context. A ZMQ context abstracts away all of the in-process and networked sockets that ZMQ uses.
   // The ZMQ context is also the transport for in-process ("inproc") sockets.
   // Generally speaking, a single process should only have a single ZMQ context.
@@ -279,9 +284,9 @@ Messenger::Messenger() {
 
   // Bind the same ZeroMQ socket over the default TCP, IPC, and in-process channels.
   {
-    zmq_default_socket_->bind(MESSENGER_DEFAULT_TCP);
-    zmq_default_socket_->bind(MESSENGER_DEFAULT_IPC);
-    zmq_default_socket_->bind(MESSENGER_DEFAULT_INPROC);
+    zmq_default_socket_->bind(GetEndpointTCP(port));
+    zmq_default_socket_->bind(GetEndpointIPC(port));
+    zmq_default_socket_->bind(GetEndpointINPROC(port));
   }
 
   // The following block of code is dead code that contains useful background information on ZMQ defaults.
@@ -356,19 +361,26 @@ void Messenger::ServerLoop() {
       // Otherwise, at least some socket has data. Is it the current socket?
       bool socket_has_data = item.revents & ZMQ_POLLIN;
       if (socket_has_data) {
-        common::ManagedPointer<zmq::socket_t> socket(poll_items.sockets_[i]);
+        common::ManagedPointer socket(reinterpret_cast<zmq::socket_t *>(&item.socket));
         ZmqMessage msg = ZmqUtil::RecvMsg(socket);
+        MESSENGER_LOG_INFO("Messenger received: {} {} {}", msg.GetMessageId(), msg.GetSenderId(), msg.GetMessage());
         auto msg_id = msg.GetMessageId();
-        auto &callback = callbacks_.at(msg_id);
-        callback(msg.GetSenderId(), msg.GetMessage());
-        callbacks_.erase(msg_id);
+        if (msg_id != 0) {
+          ZmqUtil::SendMsg(socket, msg);
+        } else {
+          auto &callback = callbacks_.at(msg_id);
+          callback(msg.GetSenderId(), msg.GetMessage());
+          callbacks_.erase(msg_id);
+        }
         --num_sockets_with_data;
       }
     }
   }
 }
 
-MessengerOwner::MessengerOwner(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry)
-    : DedicatedThreadOwner(thread_registry), messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this)) {}
+MessengerManager::MessengerManager(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                                   const uint16_t port)
+    : DedicatedThreadOwner(thread_registry),
+      messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this, port)) {}
 
 }  // namespace terrier::messenger
