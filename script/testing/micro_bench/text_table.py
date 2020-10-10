@@ -72,7 +72,6 @@ class TextTable(object):
         for col in self.columns:
             for row in self.rows:
                 width = self._width(row, col)
-                # print "width of %s is %d" % (col['name'], width)
                 if width > col['max_width']:
                     col['max_width'] = width
 
@@ -122,7 +121,7 @@ class TextTable(object):
         table_strings.append('\n')
 
         # heading table divider
-        table_strings(self._stringify_table_divider())
+        table_strings.append(self._stringify_table_divider())
         table_strings.append('\n')
 
         # content

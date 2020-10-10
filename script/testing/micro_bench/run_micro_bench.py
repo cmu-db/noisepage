@@ -23,10 +23,10 @@ def table_dump(config, artifact_processor):
     ret = 0
     for bench_name in sorted(config.benchmarks):
         filename = "{}.json".format(bench_name)
-        bench_results = GBenchRunResult(filename)
+        gbench_run_results = GBenchRunResult.from_benchmark_file(filename)
 
-        for key in sorted(bench_results.benchmarks.keys()):
-            result = bench_results.benchmarks.get(key)
+        for key in sorted(gbench_run_results.benchmarks.keys()):
+            result = gbench_run_results.benchmarks.get(key)
             LOG.debug("%s Result:\n%s", bench_name, result)
 
             comparison = artifact_processor.get_comparison(bench_name, result, config.lax_tolerance)
@@ -127,15 +127,12 @@ if __name__ == "__main__":
     if args.benchmark: config_args['benchmarks'] = sorted(args.benchmark)
 
     config = Config(**config_args)
-    ret_code = 0 # TODO: I don't think I need an exit code here cause it always gets overwritten at the end
+    ret_code = 0
     if args.run:
         benchmark_runner = MicroBenchmarksRunner(config)
-        #ret_code = benchmark_runner.run_benchmarks(args.perf)
         ret_code = benchmark_runner.run_benchmarks(args.perf)
 
         if args.local and not ret_code:
-            # TODO: If local I think I want to repeat the run if args.min_ref_values is not satisfied
-            # That will be a future enhancement though
             benchmark_runner.create_local_dirs()
 
     if not ret_code:
@@ -143,6 +140,8 @@ if __name__ == "__main__":
         artifact_processor = ArtifactProcessor(args.min_ref_values)
         if args.local:
             artifact_processor.load_local_artifacts(benchmark_runner.last_build)
+        else:
+            artifact_processor.load_jenkins_artifacts(config.ref_data_source)
         
         if args.csv_dump:
             #ret_code = csv_dump(config.benchmarks, artifact_processor)

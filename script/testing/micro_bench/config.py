@@ -31,17 +31,20 @@ class Config(object):
         self.logfile_path = logfile_path
 
         # if local run is specified make sure the local repo is set up
-        if is_local:
-            self.is_local = True
+        self.is_local = is_local
+        if self.is_local:
             if not os.path.exists(LOCAL_REPO_DIR): os.mkdir(LOCAL_REPO_DIR)
 
         # Pull reference benchmark runs from this ordered list
         # of sources. Stop if the history requirements are met.
-        self.ref_data_sources = [
-            {"project" : JENKINS_REF_PROJECT,
-             "min_build" : None, # 363,
-            },
-        ]
+        # self.ref_data_sources = [ # not sure why this needs to be an array
+        #     {"project" : JENKINS_REF_PROJECT,
+        #      "min_build" : None, # 363,
+        #     },
+        # ]
+        self.ref_data_source = {
+            "project": JENKINS_REF_PROJECT,
+        }
         return
 
 def validate_benchmark_path(benchmark_path):

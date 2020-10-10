@@ -17,6 +17,7 @@ pipeline {
 
     stages {
         stage('Performance') {
+            when { equals expected: true, actual: false } //TODO: This is just commented out for testing
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
@@ -49,9 +50,9 @@ pipeline {
                 //
                 // TODO: Currently we are skipping running the microbenchmarks while the testing team makes changes to store & visualize the benchmarks
                 //
-                // sh 'cd script/micro_bench && ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
-                // archiveArtifacts 'script/micro_bench/*.json'
-                // junit 'script/micro_bench/*.xml'
+                sh 'cd script/micro_bench && ./run_micro_bench.py --run --num-threads=4 --benchmark-path /repo/build/release --logfile-path=/mnt/ramdisk/benchmark.log'
+                archiveArtifacts 'script/micro_bench/*.json'
+                junit 'script/micro_bench/*.xml'
             }
             post {
                 cleanup {

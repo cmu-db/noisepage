@@ -3,7 +3,8 @@ from glob import glob
 
 from micro_bench.gbench_run_result import GBenchRunResult
 from micro_bench.gbench_historical_results import GBenchHistoricalResults
-from micro_bench.constants import LOCAL_REPO_DIR
+from micro_bench.jenkins import Jenkins
+from micro_bench.constants import LOCAL_REPO_DIR, JENKINS_URL
 from micro_bench.benchmarks import BENCHMARKS_TO_RUN
 from util.constants import LOG
 
@@ -27,10 +28,24 @@ class ArtifactProcessor(object):
                 continue
             LOG.debug("Reading results from local directory {}".format(build_dir))
             for build_file in glob(os.path.join(LOCAL_REPO_DIR, build_dir,'*.json')):
-                self.add_artifact_file(build_file)
+                gbench_run_results = GBenchRunResult.from_benchmark_file(build_file)
+                self.add_artifact(gbench_run_results)
                 # Determine if we have enough history. Stop collecting information if we do
                 if self.has_min_history():
                     return
+
+    def load_jenkins_artifacts(self, ref_data_source):
+        jenkins = Jenkins(JENKINS_URL)
+        project = ref_data_source.get("project")
+        branch = ref_data_source.get("branch")
+        min_build = ref_data_source.get("min_build",0)
+        status_filter = ref_data_source.get("status_filter")
+        for artifact in jenkins.get_artifacts(project, branch, min_build, status_filter):
+            gbench_run_results = GBenchRunResult(artifact)
+            self.add_artifact(gbench_run_results)
+            # Determine if we have enough history. Stop collecting information if we do
+            if self.has_min_history():
+                return          
     
     def has_min_history(self):
         """ check whether all the collected artifacts have at least the minimum
@@ -52,14 +67,10 @@ class ArtifactProcessor(object):
                 return False
         return True
 
-    def add_artifact_file(self, result_file):
+    def add_artifact(self, gbench_run_result):
         """ Add an artifact file to the list of files to be used
         for computing summary statistics
-
-        data : raw json data from the artifact file
         """
-        gbench_run_result = GBenchRunResult(result_file)
-
         # iterate over the GBBenchResult objects
         for key, bench_result in gbench_run_result.benchmarks.items():
             # add to a GBBenchResultProcessor

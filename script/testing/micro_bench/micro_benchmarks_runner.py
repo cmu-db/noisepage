@@ -73,7 +73,7 @@ class MicroBenchmarksRunner(object):
             cmd = "{PERF_CMD} {CMD}".format(PERF_CMD=perf_cmd, CMD=cmd)
 
         if not is_package_installed('numactl', '--show') and not self.config.is_local:
-            raise Exception("Missing numactl binary. Please install package")
+            pass #raise Exception("Missing numactl binary. Please install package")
         numa_cmd = generate_numa_command()
         cmd = "{NUMA_CMD} {CMD}".format(NUMA_CMD=numa_cmd, CMD=cmd)
         return cmd
