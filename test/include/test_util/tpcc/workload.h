@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+
 #include "test_util/tpcc/delivery.h"
 #include "test_util/tpcc/new_order.h"
 #include "test_util/tpcc/order_status.h"

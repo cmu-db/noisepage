@@ -736,6 +736,17 @@ ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows
   return call;
 }
 
+ast::Expr *CodeGen::ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
+                                         brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                         ast::Expr *value) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::ExecutionContextRecordFeature,
+                  {exec_ctx, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
+                   Const32(static_cast<int32_t>(feature_attribute)), value});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 ast::Expr *CodeGen::ExecCtxGetMemoryPool(ast::Expr *exec_ctx) {
   ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextGetMemoryPool, {exec_ctx});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::MemoryPool)->PointerTo());

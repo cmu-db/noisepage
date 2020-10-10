@@ -16,7 +16,8 @@ const char *build_row_attr_prefix = "attr";
 
 HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
                                        Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::HASH_JOIN),
+    // The ExecutionOperatingUnitType depends on whether it is the build pipeline or probe pipeline.
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       build_row_var_(GetCodeGen()->MakeFreshIdentifier("buildRow")),
       build_row_type_(GetCodeGen()->MakeFreshIdentifier("BuildRow")),
       build_mark_(GetCodeGen()->MakeFreshIdentifier("buildMark")),
@@ -24,6 +25,7 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   TERRIER_ASSERT(!plan.GetLeftHashKeys().empty(), "Hash-join must have join keys from left input");
   TERRIER_ASSERT(!plan.GetRightHashKeys().empty(), "Hash-join must have join keys from right input");
   TERRIER_ASSERT(plan.GetJoinPredicate() != nullptr, "Hash-join must have a join predicate!");
+
   // Probe pipeline begins after build pipeline.
   pipeline->LinkSourcePipeline(&left_pipeline_);
   // Register left and right child in their appropriate pipelines.
@@ -47,6 +49,10 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
   if (left_pipeline_.IsParallel()) {
     local_join_ht_ = left_pipeline_.DeclarePipelineStateEntry("joinHashTable", join_ht_type);
   }
+
+  num_build_rows_ = CounterDeclare("num_build_rows");
+  num_probe_rows_ = CounterDeclare("num_probe_rows");
+  num_match_rows_ = CounterDeclare("num_match_rows");
 }
 
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -70,7 +76,12 @@ void HashJoinTranslator::TearDownJoinHashTable(FunctionBuilder *function, ast::E
 }
 
 void HashJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  InitializeJoinHashTable(function, global_join_ht_.GetPtr(GetCodeGen()));
+  auto *codegen = GetCodeGen();
+  InitializeJoinHashTable(function, global_join_ht_.GetPtr(codegen));
+
+  CounterSet(function, num_build_rows_, 0);
+  CounterSet(function, num_probe_rows_, 0);
+  CounterSet(function, num_match_rows_, 0);
 }
 
 void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -142,6 +153,8 @@ void HashJoinTranslator::InsertIntoJoinHashTable(WorkContext *ctx, FunctionBuild
 
   // Fill row.
   FillBuildRow(ctx, function, codegen->MakeExpr(build_row_var_));
+
+  CounterAdd(function, num_build_rows_, 1);
 }
 
 void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *function) const {
@@ -163,6 +176,8 @@ void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *f
   auto lookup_call =
       codegen->MakeStmt(codegen->JoinHashTableLookup(global_join_ht_.GetPtr(codegen), entry_iter, hash_val));
   auto has_next_call = codegen->HTEntryIterHasNext(entry_iter);
+
+  CounterAdd(function, num_probe_rows_, 1);
 
   // The probe depends on the join type
   if (join_plan.RequiresRightMark()) {
@@ -189,6 +204,7 @@ void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *f
       // if (right_mark)
       If right_anti_check(function, codegen->MakeExpr(right_mark_var));
       ctx->Push(function);
+      CounterAdd(function, num_match_rows_, 1);
       right_anti_check.EndIf();
     } else if (join_plan.GetLogicalJoinType() == planner::LogicalJoinType::RIGHT_SEMI) {
       // If the right mark is unset, then there is at least one match.
@@ -196,6 +212,7 @@ void HashJoinTranslator::ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *f
       auto cond = codegen->UnaryOp(parsing::Token::Type::BANG, codegen->MakeExpr(right_mark_var));
       If right_semi_check(function, cond);
       ctx->Push(function);
+      CounterAdd(function, num_match_rows_, 1);
       right_semi_check.EndIf();
     }
   } else {
@@ -233,6 +250,8 @@ void HashJoinTranslator::CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *f
     }
     // Move along.
     ctx->Push(function);
+
+    CounterAdd(function, num_match_rows_, 1);
   }
   check_condition.EndIf();
 }
@@ -262,16 +281,31 @@ void HashJoinTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *
 }
 
 void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+
   if (IsLeftPipeline(pipeline)) {
-    auto *codegen = GetCodeGen();
-    auto jht = global_join_ht_.GetPtr(codegen);
+    ast::Expr *jht = global_join_ht_.GetPtr(codegen);
+
     if (left_pipeline_.IsParallel()) {
-      auto tls = GetThreadStateContainer();
-      auto offset = local_join_ht_.OffsetFromState(codegen);
+      auto *tls = GetThreadStateContainer();
+      auto *offset = local_join_ht_.OffsetFromState(codegen);
       function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
     }
+
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
+                  codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
+  } else {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
+    FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
   }
 }
 

@@ -1,4 +1,5 @@
 #include "storage/projected_row.h"
+
 #include <algorithm>
 #include <cstring>
 #include <functional>

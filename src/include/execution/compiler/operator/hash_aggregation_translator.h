@@ -184,6 +184,12 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
 
   // For minirunners
   ast::StructDecl *struct_decl_;
+
+  // The number of input rows to the aggregation.
+  StateDescriptor::Entry num_agg_inputs_;
+
+  // The number of output rows from the aggregation.
+  StateDescriptor::Entry num_agg_outputs_;
 };
 
 }  // namespace terrier::execution::compiler

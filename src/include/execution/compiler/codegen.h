@@ -751,6 +751,19 @@ class CodeGen {
   [[nodiscard]] ast::Expr *ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows_affected);
 
   /**
+   * Call \@execCtxRecordFeature(exec_ctx, pipeline_id, feature_id, feature_attribute, value).
+   * @param exec_ctx The execution context to modify.
+   * @param pipeline_id The ID of the pipeline whose feature is to be recorded.
+   * @param feature_id The ID of the feature to be recorded.
+   * @param feature_attribute The attribute of the feature to record.
+   * @param value The value to be recorded.
+   * @return The call.
+   */
+  [[nodiscard]] ast::Expr *ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
+                                                brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                                ast::Expr *value);
+
+  /**
    * Call \@execCtxGetMemPool(). Return the memory pool within an execution context.
    * @param exec_ctx The execution context variable.
    * @return The call.

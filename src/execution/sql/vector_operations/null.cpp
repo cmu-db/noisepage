@@ -1,6 +1,5 @@
-#include "execution/sql/vector_operations/vector_operations.h"
-
 #include "execution/sql/tuple_id_list.h"
+#include "execution/sql/vector_operations/vector_operations.h"
 
 namespace terrier::execution::sql {
 

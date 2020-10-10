@@ -18,9 +18,16 @@ configure_file(
         "${PROJECT_BINARY_DIR}/execution/tpl.h"
 )
 
-# Find CLANG
+# Common names for Clang
 set(SUPPORTED_CLANGS "clang++-8" "clang++")
-find_program(CLANG NAMES ${SUPPORTED_CLANGS})
+
+# On macOS, the clang++ we want is not the clang++ in PATH. On Linux, it is.
+if (APPLE)
+    set(CLANG "${LLVM_TOOLS_BINARY_DIR}/clang++")
+else ()
+    find_program(CLANG NAMES ${SUPPORTED_CLANGS})
+endif ()
+
 if (NOT EXISTS ${CLANG})
     message(FATAL_ERROR "Unable to locate clang++.")
 else ()

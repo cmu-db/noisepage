@@ -41,6 +41,9 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
+  /** Declare the counters. */
+  void InitializeQueryState(FunctionBuilder *function) const override;
+
   /**
    * If the provided pipeline is the build-side, initialize the declare partial aggregate.
    * @param pipeline The pipeline whose state is being initialized.
@@ -127,6 +130,12 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
 
   // For minirunners
   ast::StructDecl *struct_decl_;
+
+  // The number of input rows to the aggregation.
+  StateDescriptor::Entry num_agg_inputs_;
+
+  // The number of output rows from the aggregation.
+  StateDescriptor::Entry num_agg_outputs_;
 };
 
 }  // namespace terrier::execution::compiler

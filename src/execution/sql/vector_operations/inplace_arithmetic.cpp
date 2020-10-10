@@ -55,7 +55,8 @@ void VectorOps::AddInPlace(const exec::ExecutionSettings &exec_settings, Vector 
       break;
     default:
       throw EXECUTION_EXCEPTION(
-          fmt::format("Invalid type for in-place arithmetic operation, type {}.", TypeIdToString(left->GetTypeId())));
+          fmt::format("Invalid type for in-place arithmetic operation, type {}.", TypeIdToString(left->GetTypeId())),
+          common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

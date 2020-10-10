@@ -2,9 +2,11 @@
 #include <flatbuffers/flatbuffers.h>
 #include <flatbuffers/generated/Message_generated.h>
 #include <flatbuffers/generated/Schema_generated.h>
+
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
 #include "type/type_id.h"

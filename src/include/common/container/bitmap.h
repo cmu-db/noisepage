@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <memory>
+
 #include "common/strong_typedef.h"
 
 #ifndef BYTE_SIZE

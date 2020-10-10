@@ -53,6 +53,7 @@ class HashIndex final : public Index {
                      std::equal_to<KeyType>,  // NOLINT transparent functors can't figure out template
                      std::allocator<std::pair<const KeyType, ValueType>>, LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET>>
       hash_map_;
+  mutable common::SpinLatch transaction_context_latch_;  // latch used to protect transaction context
 
  public:
   IndexType Type() const final { return IndexType::HASHMAP; }
@@ -70,6 +71,8 @@ class HashIndex final : public Index {
 
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
                std::vector<TupleSlot> *value_list) final;
+
+  uint64_t GetSize() const final;
 };
 
 extern template class HashIndex<HashKey<8>>;

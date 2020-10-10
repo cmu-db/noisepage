@@ -1,10 +1,10 @@
+#include "storage/arrow_serializer.h"
+
 #include <cstring>
 #include <fstream>
 #include <list>
 #include <string>
 #include <vector>
-
-#include "storage/arrow_serializer.h"
 
 namespace terrier::storage {
 

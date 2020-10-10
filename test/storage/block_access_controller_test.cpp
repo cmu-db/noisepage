@@ -1,5 +1,7 @@
 #include "storage/block_access_controller.h"
+
 #include <thread>  // NOLINT
+
 #include "test_util/test_harness.h"
 namespace terrier {
 // Some hacked together infrastructure to reason about the progress of test threads.

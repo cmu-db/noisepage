@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tbb/concurrent_queue.h>
+
 #include "common/macros.h"
 
 namespace terrier::common {

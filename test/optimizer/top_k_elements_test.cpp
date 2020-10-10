@@ -1,3 +1,5 @@
+#include "optimizer/statistics/top_k_elements.h"
+
 #include <stack>
 #include <string>
 #include <unordered_map>
@@ -6,8 +8,6 @@
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
-#include "optimizer/statistics/top_k_elements.h"
-
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {

@@ -1,10 +1,11 @@
+#include "optimizer/util.h"
+
 #include <string>
 #include <unordered_set>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "optimizer/optimizer_defs.h"
-#include "optimizer/util.h"
 #include "parser/expression_util.h"
 
 namespace terrier::optimizer {

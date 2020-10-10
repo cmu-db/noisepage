@@ -1,10 +1,11 @@
+#include "planner/plannodes/seq_scan_plan_node.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "common/hash_util.h"
 #include "common/json.h"
-#include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::planner {
 

@@ -5,9 +5,9 @@
             "base": {
                 "benchmark": "ycsb",
                 "weights": "50,5,15,10,10,10",
+                "terminals": 2,
                 "query_mode": "extended",
-                "scale_factor": 0.01,
-                "loader_threads": 4
+                "scale_factor": 0.01
             }
         }
     ]

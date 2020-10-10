@@ -1,10 +1,10 @@
+#include "optimizer/statistics/hyperloglog.h"
+
 #include <random>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/statistics/hyperloglog.h"
-
 #include "test_util/test_harness.h"
 
 namespace terrier::optimizer {

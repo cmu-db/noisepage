@@ -14,8 +14,8 @@
 namespace terrier::storage::index {
 
 // This is the maximum number of bytes to pack into a single GenericKey template. This constraint is arbitrary and can
-// be increased if 256 bytes is too small for future workloads.
-constexpr uint16_t GENERICKEY_MAX_SIZE = 256;
+// be increased if 512 bytes is too small for future workloads.
+constexpr uint16_t GENERICKEY_MAX_SIZE = 512;
 
 /**
  * GenericKey is a slower key type than CompactIntsKey for use when the constraints of CompactIntsKey make it

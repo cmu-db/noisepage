@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <stack>
+
 #include "optimizer/optimizer_task.h"
 
 namespace terrier::optimizer {
