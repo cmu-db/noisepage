@@ -37,13 +37,20 @@ using callback_fn = void (*)(void *);
 using TransactionEndAction = std::function<void(DeferredActionManager *)>;
 
 /**
+ * Base Functor class to capture the derred action function
+ */
+class TransactionEndActionBaseFunctor {
+ public:
+  virtual void operator()(DeferredActionManager *deferred_action_manager) = 0;
+
+  virtual ~TransactionEndActionBaseFunctor() = default;
+};
+
+/**
  * Functor to capture the derred action function
  */
-struct TransactionEndActionFunc {
-  /**
-   * Function withe the end action
-   */
-  std::function<void(DeferredActionManager *)> end_func_;
+class TransactionEndActionFunc : public TransactionEndActionBaseFunctor {
+ public:
 
   /**
    * Constructor takes as arguments a function which will be stored in this functor
@@ -55,7 +62,48 @@ struct TransactionEndActionFunc {
   /**
    * Callback the carries out the deferred action
    */
-  void operator()(DeferredActionManager *deferred_action_manager) { end_func_(deferred_action_manager); }
+  void operator()(DeferredActionManager *deferred_action_manager) override { end_func_(deferred_action_manager); }
+
+  ~TransactionEndActionFunc() override = default;
+
+ private:
+  /**
+   * Function withe the end action
+   */
+  std::function<void(DeferredActionManager *)> end_func_;
+};
+
+using TransactionEndCleanupAction = std::add_pointer<void(void *)>::type;
+
+/**
+ * Functor to capture the derred resource cleanup
+ */
+class TransactionEndCleanupFunctor : public TransactionEndActionBaseFunctor {
+ public:
+
+  /**
+   * Constructor takes as arguments a function which will be stored in this functor
+   * @param end_func function to execute upon end action
+   */
+  explicit TransactionEndCleanupFunctor(TransactionEndCleanupAction cleanup_func, void* resource)
+      : cleanup_func_(cleanup_func), resource_(resource) {};
+
+  /**
+   * Callback the carries out the deferred action
+   */
+  void operator()(DeferredActionManager *deferred_action_manager) { cleanup_func_(resource_); }
+
+ private:
+  /**
+   * Function performing the cleanup action
+   */
+  TransactionEndCleanupAction cleanup_func_;
+
+  /**
+   * Cleanup resource
+   */
+  void* resource_;
+
 };
 
 /**
