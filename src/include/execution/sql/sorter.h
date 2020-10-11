@@ -168,12 +168,7 @@ class EXPORT Sorter {
    * @param sorter_offset The offset into the container where the sorter instance is.
    * @param top_k The number entries at the top the caller cares for.
    */
-<<<<<<< HEAD
-  void SortTopKParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
-                        const ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
-=======
   void SortTopKParallel(ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
->>>>>>> william/hooks
 
   /**
    * @return The number of tuples currently in this sorter.

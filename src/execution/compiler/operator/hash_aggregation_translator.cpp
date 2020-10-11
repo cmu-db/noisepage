@@ -603,16 +603,12 @@ void HashAggregationTranslator::PerformPipelineWork(WorkContext *context, Functi
     TERRIER_ASSERT(IsProducePipeline(context->GetPipeline()), "Pipeline is unknown to hash aggregation translator");
     ast::Expr *agg_ht;
     if (GetPipeline()->IsParallel()) {
-      function->Append(
-          codegen->Assign(GetPipeline()->ConcurrentState(), codegen->MakeExpr(codegen->MakeIdentifier("concurrent"))));
-
       // In parallel-mode, we would've issued a parallel partitioned scan. In
       // this case, the aggregation hash table we're to scan is provided as a
       // function parameter; specifically, the last argument in the worker
       // function which we're generating right now. Pull it out.
       auto agg_ht_param_position = GetPipeline()->PipelineParams().size();
       agg_ht = function->GetParameterByPosition(agg_ht_param_position);
-      function->Append(codegen->Assign(iterate_agg_ht_.Get(codegen), agg_ht));
       ScanAggregationHashTable(context, function, agg_ht);
     } else {
       agg_ht = global_agg_ht_.GetPtr(codegen);

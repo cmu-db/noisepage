@@ -588,7 +588,6 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                ast::Identifier worker_name, ast::Expr *pipeline_id,
                                                 ast::Expr *index_oid);
 
   /**

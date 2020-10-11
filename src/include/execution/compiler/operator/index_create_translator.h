@@ -136,10 +136,7 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   // The number of rows that are inserted.
   StateDescriptor::Entry num_inserts_;
-<<<<<<< HEAD
-=======
 
   ast::Identifier parallel_build_post_hook_fn_;
->>>>>>> william/hooks
 };
 }  // namespace terrier::execution::compiler
