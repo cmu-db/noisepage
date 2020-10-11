@@ -11,15 +11,16 @@ class SelectivityUtilTests : public TerrierTest {
  protected:
   NewColumnStats<execution::sql::Real> column_stats_obj_1_;
   NewColumnStats<execution::sql::Integer> column_stats_obj_2_;
+  NewColumnStats<execution::sql::Real> column_stats_obj_3_;
+  NewColumnStats<execution::sql::Real> column_stats_obj_4_;
+
   SelectivityUtil selectivity_util;
 
   void SetUp() override {
     // Floating point type column.
     column_stats_obj_1_ = NewColumnStats<execution::sql::Real>(
-        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 8, 0.2, 3, 1000, {1.0, 5.0}, true);
-    // Construct Top K.
-    // MCV : { 3, 4, 5 }
-    // Freq: { 2, 2, 2 }
+        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 8, 0.2, 0, 10, {1.0, 5.0}, true);
+    // Construct Top k variable.
     column_stats_obj_1_.GetTopK()->Increment(3, 2);
     column_stats_obj_1_.GetTopK()->Increment(4, 2);
     column_stats_obj_1_.GetTopK()->Increment(5, 2);
@@ -28,15 +29,38 @@ class SelectivityUtilTests : public TerrierTest {
 
     // Integer type column.
     column_stats_obj_2_ = NewColumnStats<execution::sql::Integer>(
-        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(3), 10, 8, 0.2, 3, 1000, {1, 5}, true);
-    // Construct Top K.
-    // MCV : { 3, 4, 5 }
-    // Freq: { 2, 2, 2 }
+        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(3), 10, 8, 0.2, 0, 10, {1, 5}, true);
+    // Construct Top k variable.
     column_stats_obj_2_.GetTopK()->Increment(3, 2);
     column_stats_obj_2_.GetTopK()->Increment(4, 2);
     column_stats_obj_2_.GetTopK()->Increment(5, 2);
     column_stats_obj_2_.GetTopK()->Increment(0, 1);
     column_stats_obj_2_.GetTopK()->Increment(7, 1);
+
+    // Floating point type column.
+    column_stats_obj_3_ = NewColumnStats<execution::sql::Real>(
+        catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(2), 1000, 900, 0.1, 0, 10, {1.0, 5.0}, true);
+    // Construct Top k variable.
+    column_stats_obj_3_.GetTopK()->Increment(1.0, 500);
+    column_stats_obj_3_.GetTopK()->Increment(2.0, 250);
+    column_stats_obj_3_.GetTopK()->Increment(3.0, 100);
+    column_stats_obj_3_.GetTopK()->Increment(4.0, 20);
+    column_stats_obj_3_.GetTopK()->Increment(5.0, 5);
+    column_stats_obj_3_.GetTopK()->Increment(6.0, 5);
+    column_stats_obj_3_.GetTopK()->Increment(7.0, 5);
+    column_stats_obj_3_.GetTopK()->Increment(8.0, 5);
+    column_stats_obj_3_.GetTopK()->Increment(9.0, 2);
+    column_stats_obj_3_.GetTopK()->Increment(10.0, 2);
+    column_stats_obj_3_.GetTopK()->Increment(11.0, 2);
+    column_stats_obj_3_.GetTopK()->Increment(12.0, 2);
+    column_stats_obj_3_.GetTopK()->Increment(13.0, 2);
+
+    // Floating point type column.
+    column_stats_obj_4_ =
+        NewColumnStats<execution::sql::Real>(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(4),
+                                             600000, 500500, 0.1658, 0, 500, {1.0, 5.0}, true);
+    // Assume entry with value i occurs i times in the table.
+    for (int i = 1; i <= 1000; ++i) column_stats_obj_4_.GetTopK()->Increment(static_cast<float>(i), i);
   }
 };
 
@@ -125,7 +149,7 @@ TEST_F(SelectivityUtilTests, TestIntegerEqual) {
                                  std::move(const_value_expr_ptr));
   double res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
-  // The value 4 occurs in MCV and has a frequency of 2.
+  // The value 4 occurs in top k variable and has a frequency of 2.
   ASSERT_DOUBLE_EQ(0.2, res);
 
   // Create a constant value expression to pass to ValueCondition.
@@ -139,8 +163,47 @@ TEST_F(SelectivityUtilTests, TestIntegerEqual) {
   res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
-  // The value 0 does not occur in MCV.
+  // The value 0 does not occur in Top k variable.
   ASSERT_DOUBLE_EQ(0.1, res);
+}
+
+// NOLINTNEXTLINE
+TEST_F(SelectivityUtilTests, TestFloatEqual) {
+  // Create a constant value expression to pass to ValueCondition.
+  std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(1.0));
+  // Create a value condition to pass to SelectivityUtil.
+  ValueCondition value_condition(catalog::col_oid_t(2), parser::ExpressionType::COMPARE_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  double res = selectivity_util.ComputeSelectivity(
+      common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_3_), value_condition);
+  // The value 1.0 occurs in topk and has a frequency of 500.
+  ASSERT_DOUBLE_EQ(0.5, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::DECIMAL, execution::sql::Real(5.0));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition =
+      ValueCondition(catalog::col_oid_t(2), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
+  res = selectivity_util.ComputeSelectivity(
+      common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_3_), value_condition);
+  // The value 5.0 does not occur in top-k and has a frequency of 5.
+  ASSERT_DOUBLE_EQ(0.005, res);
+
+  for (int i = 1; i <= 1000; ++i) {
+    // Create a constant value expression to pass to ValueCondition.
+    const_value_expr_ptr = std::make_unique<parser::ConstantValueExpression>(
+        type::TypeId::DECIMAL, execution::sql::Real(static_cast<float>(i)));
+    // Create a value condition to pass to SelectivityUtil.
+    value_condition =
+        ValueCondition(catalog::col_oid_t(4), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
+    res = selectivity_util.ComputeSelectivity(
+        common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_4_), value_condition);
+
+    // Count min sketch can over-estimate the number of matching columns.
+    ASSERT_LE(i / static_cast<double>(600000), res);
+  }
 }
 
 // NOLINTNEXTLINE
@@ -295,7 +358,7 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
   double res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
-  // The value 4 occurs in MCV and has a frequency of 2.
+  // The value 4 occurs in topK and has a frequency of 2.
   // Sl for = -> 0.2. Sel = 1 - 0.2 = 0.8.
   ASSERT_DOUBLE_EQ(res, 0.8);
 
