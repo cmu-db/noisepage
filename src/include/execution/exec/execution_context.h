@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <new>
 #include <utility>
 #include <vector>
 

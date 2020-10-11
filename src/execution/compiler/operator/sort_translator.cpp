@@ -409,8 +409,7 @@ void SortTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilde
       ast::Expr *offset = local_sorter_.OffsetFromState(codegen);
       if (const auto &plan = GetPlanAs<planner::OrderByPlanNode>(); plan.HasLimit()) {
         const std::size_t top_k = plan.GetOffset() + plan.GetLimit();
-        function->Append(
-            codegen->SortTopKParallel(sorter_ptr, GetThreadStateContainer(), offset, top_k));
+        function->Append(codegen->SortTopKParallel(sorter_ptr, GetThreadStateContainer(), offset, top_k));
       } else {
         function->Append(codegen->SortParallel(sorter_ptr, GetThreadStateContainer(), offset));
       }

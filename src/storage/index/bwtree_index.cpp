@@ -60,14 +60,12 @@ bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Tran
       "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
   // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
   // a better way
-  /*
   common::SpinLatch::ScopedSpinLatch guard(&transaction_context_latch_);
   // Register an abort action with the txn context in case of rollback
   txn->RegisterAbortAction([=]() {
     const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
     TERRIER_ASSERT(result, "Delete on the index failed.");
   });
-  */
   return result;
 }
 

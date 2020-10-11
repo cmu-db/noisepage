@@ -874,8 +874,8 @@ ast::Expr *CodeGen::JoinHashTableBuild(ast::Expr *join_hash_table) {
 
 ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *thread_state_container,
                                                ast::Expr *offset) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableBuildParallel,
-                                {join_hash_table, thread_state_container, offset});
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::JoinHashTableBuildParallel, {join_hash_table, thread_state_container, offset});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -1121,8 +1121,7 @@ ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *o
 }
 
 ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k) {
-  ast::Expr *call =
-      CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, tls, offset, Const64(top_k)});
+  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, tls, offset, Const64(top_k)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

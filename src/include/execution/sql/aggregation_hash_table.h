@@ -103,7 +103,7 @@ class EXPORT AggregationHashTable {
    * Convention: First argument is query state, second argument is thread-local state, last argument
    *             is the aggregation hash table to scan.
    */
-  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *, uint32_t);
+  using ScanPartitionFn = void (*)(void *, void *, const AggregationHashTable *);
 
   /**
    * Small class to capture various usage stats
@@ -203,14 +203,11 @@ class EXPORT AggregationHashTable {
    * end of the build-portion of a parallel aggregation before the thread state container is reset
    * for the next pipeline's thread-local state.
    *
-   * @param exec_ctx ExecutionContext
-   * @param pipeline_id Pipeline ID
    * @param thread_states Container for all thread-local tables.
    * @param agg_ht_offset The offset in the container to find the table.
    * @param merge_partition_fn The function to use for merging partitions.
    */
-  void TransferMemoryAndPartitions(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
-                                   ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+  void TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                    MergePartitionFn merge_partition_fn);
 
   /**

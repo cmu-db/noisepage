@@ -292,10 +292,8 @@ void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalV
 }
 
 void BytecodeEmitter::EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids,
-                                            LocalVar query_state, LocalVar exec_ctx, FunctionId scan_fn,
-                                            LocalVar pipeline_id, LocalVar index_oid) {
-  EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, pipeline_id,
-          index_oid);
+                                            LocalVar query_state, LocalVar exec_ctx, FunctionId scan_fn) {
+  EmitAll(Bytecode::ParallelScanTable, table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn);
 }
 
 void BytecodeEmitter::EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn) {
@@ -328,10 +326,9 @@ void BytecodeEmitter::EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar vpi
           partitioned);
 }
 
-void BytecodeEmitter::EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar exec_ctx, LocalVar pipeline_id,
-                                                     LocalVar tls, LocalVar aht_offset, FunctionId merge_part_fn) {
-  EmitAll(Bytecode::AggregationHashTableTransferPartitions, agg_ht, exec_ctx, pipeline_id, tls, aht_offset,
-          merge_part_fn);
+void BytecodeEmitter::EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset,
+                                                     FunctionId merge_part_fn) {
+  EmitAll(Bytecode::AggregationHashTableTransferPartitions, agg_ht, tls, aht_offset, merge_part_fn);
 }
 
 void BytecodeEmitter::EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,

@@ -6,7 +6,6 @@
 
 #include "catalog/schema.h"
 #include "common/macros.h"
-#include "execution/exec_defs.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
 
@@ -150,8 +149,6 @@ class EXPORT Sorter {
    * Each thread-local sorter instance is assumed (but not required) to be unsorted. Once sorting
    * completes, <b>this</b> sorter instance will take ownership of all data owned by each
    * thread-local instances.
-   * @param exec_ctx ExecutionContext
-   * @param pipeline_id Pipeline performing the sort
    * @param thread_state_container The container holding all thread-local sorter instances.
    * @param sorter_offset The offset into the container where the sorter instance is.
    */
@@ -162,8 +159,6 @@ class EXPORT Sorter {
    * Each thread-local sorter instance is assumed (but not required) to be unsorted. Once sorting
    * completes, this sorter instance will take ownership of all data owned by each thread-local
    * instances.
-   * @param exec_ctx ExecutionContext
-   * @param pipeline_id Pipeline performing the sort
    * @param thread_state_container The container holding all thread-local sorter instances.
    * @param sorter_offset The offset into the container where the sorter instance is.
    * @param top_k The number entries at the top the caller cares for.

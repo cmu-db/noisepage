@@ -409,17 +409,11 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
     }
   });
 
-  auto units = std::make_unique<brain::PipelineOperatingUnits>();
-  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, 1, 4, 1, 1,
-                         1, 0, 0);
-  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
-  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
   // -------------------------------------------------------
   // Step 2: Transfer thread-local memory into global/main hash table.
   AggregationHashTable main_table(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
   main_table.TransferMemoryAndPartitions(
-      exec_ctx.get(), execution::pipeline_id_t(1), &container, 0,
+      &container, 0,
       // Merging function merges a set of overflow partitions into the provided
       // table.
       [](void *ctx, AggregationHashTable *table, AHTOverflowPartitionIterator *iter) {
@@ -440,8 +434,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   // -------------------------------------------------------
   // Step 3: scan main table and ensure all data exists.
   main_table.ExecuteParallelPartitionedScan(
-      &query_state, &container,
-      [](void *query_state, void *thread_state, const AggregationHashTable *agg_table, uint32_t concurrent) {
+      &query_state, &container, [](void *query_state, void *thread_state, const AggregationHashTable *agg_table) {
         auto *qs = reinterpret_cast<QueryState *>(query_state);
         qs->row_count_ += agg_table->GetTupleCount();
       });

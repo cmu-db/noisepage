@@ -152,8 +152,6 @@ struct MergeWork {
 
 void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::size_t sorter_offset) {
   const auto comp = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
-  bool has_pipeline =
-      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
 
   // -------------------------------------------------------
   // First, collect all non-empty thread-local sorters
@@ -186,19 +184,6 @@ void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::siz
     auto *tls = thread_state_container->AccessCurrentThreadState();
     exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
-    // Start the tracker
-    brain::ExecOUFeatureVector ouvec;
-    if (has_pipeline) {
-      exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
-      ouvec.pipeline_features_->erase(std::remove_if(ouvec.pipeline_features_->begin(), ouvec.pipeline_features_->end(),
-                                                     [](const auto &feature) {
-                                                       return feature.GetExecutionOperatingUnitType() !=
-                                                              brain::ExecutionOperatingUnitType::SORT_BUILD;
-                                                     }),
-                                      ouvec.pipeline_features_->end());
-      exec_ctx->StartPipelineTracker(pipeline_id);
-    }
-
     // Reserve room for all tuples
     tuples_.reserve(num_tuples);
     for (auto *tl_sorter : tl_sorters) {
@@ -209,13 +194,6 @@ void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::siz
 
     // Single-threaded sort
     Sort();
-
-    if (has_pipeline) {
-      (*ouvec.pipeline_features_)[0].SetNumRows(num_tuples);
-      (*ouvec.pipeline_features_)[0].SetCardinality(num_tuples);
-      (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    }
 
     // Finish
     exec_ctx_->InvokeHook(post_hook, tls, this);
@@ -445,7 +423,7 @@ void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::siz
 
 void Sorter::SortTopKParallel(ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k) {
   // Parallel sort
-  SortParallel(exec_ctx, pipeline_id, thread_state_container, sorter_offset);
+  SortParallel(thread_state_container, sorter_offset);
 
   // Trim to top-K
   if (top_k < GetTupleCount()) {

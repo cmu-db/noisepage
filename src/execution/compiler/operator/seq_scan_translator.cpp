@@ -318,7 +318,6 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {
   auto *codegen = GetCodeGen();
   auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
-  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
   return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
 }
 

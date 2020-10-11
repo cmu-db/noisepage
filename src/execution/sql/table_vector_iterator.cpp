@@ -88,15 +88,14 @@ namespace {
 class ScanTask {
  public:
   ScanTask(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *const query_state,
-           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner, size_t concurrent_estimate)
+           exec::ExecutionContext *exec_ctx, TableVectorIterator::ScanFn scanner)
       : exec_ctx_(exec_ctx),
         table_oid_(table_oid),
         col_oids_(col_oids),
         num_oids_(num_oids),
         query_state_(query_state),
         thread_state_container_(exec_ctx->GetThreadStateContainer()),
-        scanner_(scanner),
-        concurrent_estimate_(concurrent_estimate) {}
+        scanner_(scanner) {}
 
   void operator()(const tbb::blocked_range<uint32_t> &block_range) const {
     // Create the iterator over the specified block range
@@ -110,7 +109,7 @@ class ScanTask {
     // Pull out the thread-local state
     byte *const thread_state = thread_state_container_->AccessCurrentThreadState();
     // Call scanning function
-    scanner_(query_state_, thread_state, &iter, concurrent_estimate_);
+    scanner_(query_state_, thread_state, &iter);
   }
 
  private:
@@ -127,8 +126,7 @@ class ScanTask {
 
 bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids,
                                        void *const query_state, exec::ExecutionContext *exec_ctx,
-                                       const TableVectorIterator::ScanFn scan_fn, execution::pipeline_id_t pipeline_id,
-                                       catalog::index_oid_t index_oid, const uint32_t min_grain_size) {
+                                       const TableVectorIterator::ScanFn scan_fn, const uint32_t min_grain_size) {
   // Lookup table
   const auto table = exec_ctx->GetAccessor()->GetTable(catalog::table_oid_t{table_oid});
   if (table == nullptr) {

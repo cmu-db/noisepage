@@ -684,8 +684,6 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
     auto *exec_context = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto scan_fn_id = READ_FUNC_ID();
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    auto index_oid = catalog::index_oid_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
 
     auto scan_fn = reinterpret_cast<sql::TableVectorIterator::ScanFn>(module_->GetRawFunctionImpl(scan_fn_id));
     OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_context, scan_fn);
@@ -1283,16 +1281,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(AggregationHashTableTransferPartitions) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto agg_ht_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto merge_partition_fn_id = READ_FUNC_ID();
 
     auto merge_partition_fn = reinterpret_cast<sql::AggregationHashTable::MergePartitionFn>(
         module_->GetRawFunctionImpl(merge_partition_fn_id));
-    OpAggregationHashTableTransferPartitions(exec_ctx, pipeline_id, agg_hash_table, thread_state_container,
-                                             agg_ht_offset, merge_partition_fn);
+    OpAggregationHashTableTransferPartitions(agg_hash_table, thread_state_container, agg_ht_offset, merge_partition_fn);
     DISPATCH_NEXT();
   }
 
@@ -1584,11 +1579,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(JoinHashTableBuildParallel) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto jht_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpJoinHashTableBuildParallel(join_hash_table, exec_ctx, pipeline_id, thread_state_container, jht_offset);
+    OpJoinHashTableBuildParallel(join_hash_table, thread_state_container, jht_offset);
     DISPATCH_NEXT();
   }
 
@@ -1705,22 +1698,18 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(SorterSortParallel) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto sorter_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpSorterSortParallel(sorter, exec_ctx, pipeline_id, thread_state_container, sorter_offset);
+    OpSorterSortParallel(sorter, thread_state_container, sorter_offset);
     DISPATCH_NEXT();
   }
 
   OP(SorterSortTopKParallel) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
     auto sorter_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto top_k = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpSorterSortTopKParallel(sorter, exec_ctx, pipeline_id, thread_state_container, sorter_offset, top_k);
+    OpSorterSortTopKParallel(sorter, thread_state_container, sorter_offset, top_k);
     DISPATCH_NEXT();
   }
 

@@ -553,7 +553,6 @@ void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thr
 
   // If, by chance, we have some un-flushed aggregate data, flush it out now to
   // ensure partitioned build captures it.
-  size_t tuple_count = stats_.num_inserts_;
   if (GetTupleCount() > 0) {
     FlushToOverflowPartitions();
   }
@@ -640,7 +639,7 @@ void AggregationHashTable::ExecutePartitionedScan(void *query_state, Aggregation
       // Get or build the table on the partition.
       auto agg_table_partition = GetOrBuildTableOverPartition(query_state, part_idx);
       // Scan the partition.
-      scan_fn(query_state, nullptr, agg_table_partition, 0);
+      scan_fn(query_state, nullptr, agg_table_partition);
     }
   }
 }
@@ -688,7 +687,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
     auto thread_state = thread_states->AccessCurrentThreadState();
 
     // Scan the partition
-    scan_fn(query_state, thread_state, agg_table_partition, concurrent_estimate);
+    scan_fn(query_state, thread_state, agg_table_partition);
   });
 
   exec_ctx_->SetNumConcurrentEstimate(0);

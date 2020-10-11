@@ -701,11 +701,9 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
   LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[3]);
   // The fifth argument is the scan function as an identifier.
   const auto scan_fn_name = call->Arguments()[4]->As<ast::IdentifierExpr>()->Name();
-  LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[5]);
-  LocalVar index_oid = VisitExpressionForRValue(call->Arguments()[6]);
   // Emit the bytecode.
   GetEmitter()->EmitParallelTableScan(table_oid, col_oids, static_cast<uint32_t>(arr_type->GetLength()), query_state,
-                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()), pipeline_id, index_oid);
+                                      exec_ctx, LookupFuncIdByName(scan_fn_name.GetData()));
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -1059,12 +1057,10 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
     }
     case ast::Builtin::AggHashTableMovePartitions: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar aht_offset = VisitExpressionForRValue(call->Arguments()[4]);
-      auto merge_part_fn = LookupFuncIdByName(call->Arguments()[5]->As<ast::IdentifierExpr>()->Name().GetData());
-      GetEmitter()->EmitAggHashTableMovePartitions(agg_ht, exec_ctx, pipeline_id, tls, aht_offset, merge_part_fn);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar aht_offset = VisitExpressionForRValue(call->Arguments()[2]);
+      auto merge_part_fn = LookupFuncIdByName(call->Arguments()[3]->As<ast::IdentifierExpr>()->Name().GetData());
+      GetEmitter()->EmitAggHashTableMovePartitions(agg_ht, tls, aht_offset, merge_part_fn);
       break;
     }
     case ast::Builtin::AggHashTableParallelPartitionedScan: {
@@ -1377,11 +1373,9 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::JoinHashTableBuildParallel: {
-      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar jht_offset = VisitExpressionForRValue(call->Arguments()[4]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, exec_ctx, pipeline_id, tls, jht_offset);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar jht_offset = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableBuildParallel, join_hash_table, tls, jht_offset);
       break;
     }
     case ast::Builtin::JoinHashTableLookup: {
@@ -1508,21 +1502,17 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
     }
     case ast::Builtin::SorterSortParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[4]);
-      GetEmitter()->Emit(Bytecode::SorterSortParallel, sorter, exec_ctx, pipeline_id, tls, sorter_offset);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::SorterSortParallel, sorter, tls, sorter_offset);
       break;
     }
     case ast::Builtin::SorterSortTopKParallel: {
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar tls = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[4]);
-      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[5]);
-      GetEmitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, exec_ctx, pipeline_id, tls, sorter_offset, top_k);
+      LocalVar tls = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar sorter_offset = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar top_k = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::SorterSortTopKParallel, sorter, tls, sorter_offset, top_k);
       break;
     }
     case ast::Builtin::SorterFree: {

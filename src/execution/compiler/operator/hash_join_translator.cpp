@@ -181,7 +181,7 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
-      TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
+    TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
   }
 }
 

@@ -636,7 +636,6 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
       auto global_agg_ht = global_agg_ht_.GetPtr(codegen);
       auto thread_state_container = GetThreadStateContainer();
       auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
-      auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
       function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
                                                            merge_partitions_fn_));
 
@@ -667,7 +666,6 @@ ast::Expr *HashAggregationTranslator::GetChildOutput(WorkContext *context, uint3
 util::RegionVector<ast::FieldDecl *> HashAggregationTranslator::GetWorkerParams() const {
   TERRIER_ASSERT(build_pipeline_.IsParallel(), "Should not issue parallel scan if pipeline isn't parallelized.");
   auto *codegen = GetCodeGen();
-  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
   return codegen->MakeFieldList({codegen->MakeField(codegen->MakeIdentifier("aggHashTable"),
                                                     codegen->PointerType(ast::BuiltinType::AggregationHashTable))});
 }

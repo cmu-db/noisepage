@@ -195,7 +195,6 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The global and thread-local aggregation hash tables.
   StateDescriptor::Entry global_agg_ht_;
   StateDescriptor::Entry local_agg_ht_;
-  StateDescriptor::Entry iterate_agg_ht_;
 
   std::unordered_map<size_t, DistinctAggregationFilter> distinct_filters_;
 

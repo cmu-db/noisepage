@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 
-#include "execution/exec_defs.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 #include "storage/sql_table.h"
@@ -99,11 +98,10 @@ class EXPORT TableVectorIterator {
    * Convention: First argument is the opaque query state (that must contain execCtx as a member),
    *             second argument is the thread state,
    *             third argument is the table vector iterator configured to iterate a sub-range of the table.
-   *             fourth argument is number of concurrent tasks (including current)
    *             The first two arguments are void because their types are only known at runtime
    *             (i.e., defined in generated code).
    */
-  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter, uint32_t concurrent);
+  using ScanFn = void (*)(void *, void *, TableVectorIterator *iter);
 
   /**
    * Perform a parallel scan over the table with ID @em table_id using the callback function
@@ -119,13 +117,11 @@ class EXPORT TableVectorIterator {
    *                 container has been configured for size, construction, and destruction
    *                 before this invocation.
    * @param scan_fn The callback function invoked for vectors of table input.
-   * @param pipeline_id Pipeline ID doing the scan
-   * @param index_oid Relevant index
    * @param min_grain_size The minimum number of blocks to give a scan task.
    */
   static bool ParallelScan(uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids, void *query_state,
-                           exec::ExecutionContext *exec_ctx, ScanFn scan_fn, execution::pipeline_id_t pipeline_id,
-                           catalog::index_oid_t index_oid, uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
+                           exec::ExecutionContext *exec_ctx, ScanFn scan_fn,
+                           uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
  private:
   exec::ExecutionContext *exec_ctx_;

@@ -122,8 +122,6 @@ class EXPORT JoinHashTable {
   /**
    * Merge all thread-local hash tables stored in the state contained into this table. Perform the
    * merge in parallel.
-   * @param exec_ctx ExecutionContext
-   * @param pipeline_id Pipeline containing build
    * @param thread_state_container The container for all thread-local tables.
    * @param jht_offset The offset in the state where the hash table is.
    */

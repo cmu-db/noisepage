@@ -391,34 +391,24 @@ void Sema::CheckBuiltinAggHashTableCall(ast::CallExpr *call, ast::Builtin builti
       break;
     }
     case ast::Builtin::AggHashTableMovePartitions: {
-      if (!CheckArgCount(call, 6)) {
-        return;
-      }
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      // pipeline_id
-      if (!args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
+      if (!CheckArgCount(call, 4)) {
         return;
       }
       // Second argument is the thread state container pointer
       const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-      if (!IsPointerToSpecificBuiltin(args[3]->GetType(), tls_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(tls_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(args[1]->GetType(), tls_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tls_kind)->PointerTo());
         return;
       }
       // Third argument is the offset of the hash table in thread local state
       const auto uint32_kind = ast::BuiltinType::Uint32;
-      if (!args[4]->GetType()->IsSpecificBuiltin(uint32_kind)) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(uint32_kind));
+      if (!args[2]->GetType()->IsSpecificBuiltin(uint32_kind)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_kind));
         return;
       }
       // Fourth argument is the merging function
-      if (!args[5]->GetType()->IsFunctionType()) {
-        ReportIncorrectCallArg(call, 5, GetBuiltinType(uint32_kind));
+      if (!args[3]->GetType()->IsFunctionType()) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(uint32_kind));
         return;
       }
 
@@ -741,29 +731,19 @@ void Sema::CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin buil
       break;
     }
     case ast::Builtin::JoinHashTableBuildParallel: {
-      if (!CheckArgCount(call, 5)) {
-        return;
-      }
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      // pipeline_id
-      if (!call_args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
+      if (!CheckArgCount(call, 3)) {
         return;
       }
       // Second argument must be a thread state container pointer
       const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-      if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), tls_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(tls_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tls_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tls_kind)->PointerTo());
         return;
       }
       // Third argument must be a 32-bit integer representing the offset
       const auto uint32_kind = ast::BuiltinType::Uint32;
-      if (!call_args[4]->GetType()->IsSpecificBuiltin(uint32_kind)) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(uint32_kind));
+      if (!call_args[2]->GetType()->IsSpecificBuiltin(uint32_kind)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(uint32_kind));
         return;
       }
       break;
@@ -1249,7 +1229,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
 }
 
 void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
-  if (!CheckArgCount(call, 7)) {
+  if (!CheckArgCount(call, 5)) {
     return;
   }
 
@@ -1299,16 +1279,6 @@ void Sema::CheckBuiltinTableIterParCall(ast::CallExpr *call) {
       || !params[1].type_->IsPointerType()                          // Thread state.
       || !IsPointerToSpecificBuiltin(params[2].type_, tvi_kind)) {  // TableVectorIterator.
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadParallelScanFunction, call_args[4]->GetType());
-    return;
-  }
-  // pipeline_id
-  if (!call_args[5]->IsIntegerLiteral()) {
-    ReportIncorrectCallArg(call, 5, GetBuiltinType(ast::BuiltinType::Uint64));
-    return;
-  }
-  // index_oid
-  if (!call_args[6]->IsIntegerLiteral()) {
-    ReportIncorrectCallArg(call, 6, GetBuiltinType(ast::BuiltinType::Uint64));
     return;
   }
 
@@ -2097,45 +2067,35 @@ void Sema::CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin) {
     }
     case ast::Builtin::SorterSortParallel:
     case ast::Builtin::SorterSortTopKParallel: {
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->Arguments()[1]->GetType(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      // pipeline_id
-      if (!call_args[2]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 2, GetBuiltinType(ast::BuiltinType::Uint64));
-        return;
-      }
       // Second argument is the *ThreadStateContainer.
       const auto tls_kind = ast::BuiltinType::ThreadStateContainer;
-      if (!IsPointerToSpecificBuiltin(call_args[3]->GetType(), tls_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(tls_kind)->PointerTo());
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tls_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tls_kind)->PointerTo());
         return;
       }
 
       // Third argument must be a 32-bit integer representing the offset.
       ast::Type *uint_type = GetBuiltinType(ast::BuiltinType::Uint32);
-      if (call_args[4]->GetType() != uint_type) {
-        ReportIncorrectCallArg(call, 4, uint_type);
+      if (call_args[2]->GetType() != uint_type) {
+        ReportIncorrectCallArg(call, 2, uint_type);
         return;
       }
 
       // If it's for top-k, the last argument must be the top-k value
       if (builtin == ast::Builtin::SorterSortParallel) {
-        if (!CheckArgCount(call, 5)) {
+        if (!CheckArgCount(call, 3)) {
           return;
         }
       } else {
-        if (!CheckArgCount(call, 6)) {
+        if (!CheckArgCount(call, 4)) {
           return;
         }
-        if (!call_args[5]->GetType()->IsIntegerType()) {
-          ReportIncorrectCallArg(call, 5, uint_type);
+        if (!call_args[3]->GetType()->IsIntegerType()) {
+          ReportIncorrectCallArg(call, 3, uint_type);
           return;
         }
-        if (call_args[5]->GetType() != uint_type) {
-          call->SetArgument(5, ImplCastExprToType(call_args[5], uint_type, ast::CastKind::IntegralCast));
+        if (call_args[3]->GetType() != uint_type) {
+          call->SetArgument(3, ImplCastExprToType(call_args[3], uint_type, ast::CastKind::IntegralCast));
         }
       }
       break;

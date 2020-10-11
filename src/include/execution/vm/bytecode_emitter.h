@@ -321,7 +321,7 @@ class BytecodeEmitter {
 
   /** Emit a parallel table scan. */
   void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
-                             LocalVar exec_ctx, FunctionId scan_fn, LocalVar pipeline_id, LocalVar index_oid);
+                             LocalVar exec_ctx, FunctionId scan_fn);
 
   /** Emit a register hook function. */
   void EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn);
@@ -343,8 +343,7 @@ class BytecodeEmitter {
                                     FunctionId init_agg_fn, FunctionId merge_agg_fn, LocalVar partitioned);
 
   /** Emit code to move thread-local data into main agg table. */
-  void EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar exec_ctx, LocalVar pipeline_id, LocalVar tls,
-                                      LocalVar aht_offset, FunctionId merge_part_fn);
+  void EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset, FunctionId merge_part_fn);
 
   /** Emit code to scan an agg table in parallel. */
   void EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,

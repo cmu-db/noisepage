@@ -593,7 +593,6 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = tl_join_tables.size();
     auto estimate = std::min(num_threads, num_tasks);
-
     exec_ctx_->SetNumConcurrentEstimate(estimate);
     tbb::parallel_for_each(tl_join_tables, [this, thread_state_container](auto source) {
       auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
