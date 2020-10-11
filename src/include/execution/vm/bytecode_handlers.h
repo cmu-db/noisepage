@@ -458,6 +458,11 @@ VM_OP_HOT void OpHashInt(terrier::hash_t *const hash_val, const terrier::executi
   *hash_val = input->is_null_ ? 0 : terrier::common::HashUtil::HashCrc(input->val_, seed);
 }
 
+VM_OP_HOT void OpHashBool(terrier::hash_t *const hash_val, const terrier::execution::sql::BoolVal *const input,
+                          const terrier::hash_t seed) {
+  *hash_val = input->is_null_ ? 0 : terrier::common::HashUtil::HashCrc(input->val_, seed);
+}
+
 VM_OP_HOT void OpHashReal(terrier::hash_t *const hash_val, const terrier::execution::sql::Real *const input,
                           const terrier::hash_t seed) {
   *hash_val = input->is_null_ ? 0 : terrier::common::HashUtil::HashCrc(input->val_, seed);

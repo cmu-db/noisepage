@@ -1110,7 +1110,7 @@ class MiniRunners : public benchmark::Fixture {
     pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    brain::ExecOUFeatureVector ouvec(nullptr);
+    brain::ExecOUFeatureVector ouvec;
     exec_ctx->InitializeOUFeatureVector(&ouvec, execution::pipeline_id_t(1));
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
@@ -1174,6 +1174,7 @@ class MiniRunners : public benchmark::Fixture {
         break;
     }
 
+    ouvec.Reset();
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 

@@ -608,7 +608,8 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
         return;
       }
-      switch (args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind()) {
+      auto type = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      switch (type) {
         case ast::BuiltinType::Kind::CountAggregate:
         case ast::BuiltinType::Kind::CountStarAggregate:
         case ast::BuiltinType::Kind::IntegerMaxAggregate:
@@ -621,6 +622,10 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
         case ast::BuiltinType::Kind::RealSumAggregate:
         case ast::BuiltinType::Kind::AvgAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Real));
+          break;
+        case ast::BuiltinType::Kind::StringMaxAggregate:
+        case ast::BuiltinType::Kind::StringMinAggregate:
+          call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
           break;
         default:
           UNREACHABLE("Impossible aggregate type!");

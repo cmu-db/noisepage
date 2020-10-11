@@ -870,6 +870,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   GEN_HASH(Int, sql::Integer)
+  GEN_HASH(Bool, sql::BoolVal)
   GEN_HASH(Real, sql::Real)
   GEN_HASH(Date, sql::DateVal)
   GEN_HASH(Timestamp, sql::TimestampVal)

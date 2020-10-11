@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+
+#include "execution/compiler/operator/distinct_aggregation_util.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
@@ -153,7 +156,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
                                 ast::Identifier agg_values) const;
   void ConstructNewAggregate(FunctionBuilder *function, ast::Expr *agg_ht, ast::Identifier agg_payload,
                              ast::Identifier agg_values, ast::Identifier hash_val) const;
-  void AdvanceAggregate(FunctionBuilder *function, ast::Identifier agg_payload, ast::Identifier agg_values) const;
+  void AdvanceAggregate(WorkContext *ctx, FunctionBuilder *function, ast::Identifier agg_payload,
+                        ast::Identifier agg_values) const;
 
   // Merge the input row into the aggregation hash table.
   void UpdateAggregates(WorkContext *context, FunctionBuilder *function, ast::Expr *agg_ht) const;
@@ -191,6 +195,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The global and thread-local aggregation hash tables.
   StateDescriptor::Entry global_agg_ht_;
   StateDescriptor::Entry local_agg_ht_;
+
+  std::unordered_map<size_t, DistinctAggregationFilter> distinct_filters_;
 
   // For minirunners
   ast::StructDecl *struct_decl_;
