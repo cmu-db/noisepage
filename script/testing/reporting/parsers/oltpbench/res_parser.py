@@ -1,8 +1,8 @@
 import csv
 import json
 
-from oltpbench.reporting.utils import get_value_by_pattern
-from oltpbench.reporting.constants import LATENCY_ATTRIBUTE_MAPPING
+from reporting.utils import get_value_by_pattern
+from reporting.constants import LATENCY_ATTRIBUTE_MAPPING
 
 def parse_res_file(path):
     """Read data from file ends with ".res".

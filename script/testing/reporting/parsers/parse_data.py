@@ -2,13 +2,13 @@
 
 import os
 import platform
-from oltpbench.reporting.parsers.config_parser import parse_config_file
-from oltpbench.reporting.parsers.summary_parser import parse_summary_file
-from oltpbench.reporting.parsers.res_parser import parse_res_file
+from reporting.parsers.oltpbench.config_parser import parse_config_file
+from reporting.parsers.oltpbench.summary_parser import parse_summary_file
+from reporting.parsers.oltpbench.res_parser import parse_res_file
 
-def parse_data(results_dir):
+def parse_oltpbench_data(results_dir):
     env_metadata = parse_jenkins_env_vars()
-    files_metadata, timestamp, type, parameters, metrics = parse_files(results_dir)
+    files_metadata, timestamp, type, parameters, metrics = parse_oltpbench_files(results_dir)
     metadata = {**env_metadata, **files_metadata}
     return metadata, timestamp, type, parameters, metrics
 
@@ -37,7 +37,7 @@ def parse_jenkins_env_vars():
     }
     return metadata
 
-def parse_files(results_dir):
+def parse_oltpbench_files(results_dir):
     """
     Parse information from the config and summary files
 

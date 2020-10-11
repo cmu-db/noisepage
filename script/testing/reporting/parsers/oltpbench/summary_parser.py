@@ -3,8 +3,8 @@
 import json
 from time import time
 
-from oltpbench.reporting.utils import get_value_by_pattern
-from oltpbench.reporting.constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
+from reporting.utils import get_value_by_pattern
+from reporting.constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
 
 def parse_summary_file(path):
     """
