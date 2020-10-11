@@ -107,7 +107,7 @@ struct Constants {
   /**
    * Number of threads for parallel execution
    */
-  static constexpr const bool IS_COUNTERS_ENABLED = false;
+  static constexpr const int NUM_THREADS = -1;
 
   /**
    * Flag indicating if counters is enabled
