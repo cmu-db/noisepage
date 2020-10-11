@@ -176,21 +176,28 @@ class Pipeline {
    */
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
+  /**
+   * @return Pipeline state variable
+   */
+  ast::Identifier GetPipelineStateVar() { return state_var_; }
+
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
   /**
    * Inject start resource tracker into function
    * @param builder Function being built
+   * @param is_hook Injecting into a hook function
    */
-  void InjectStartResourceTracker(FunctionBuilder *builder) const;
+  void InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook) const;
 
   /**
    * Inject end resource tracker into function
    * @param builder Function being built
    * @param query_id Query ID that we're ending trackers for
+   * @param is_hook Injecting into a hook function
    */
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
+  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id, bool is_hook) const;
 
   /**
    * @returns query identifier that we're codegen-ing for
@@ -198,14 +205,15 @@ class Pipeline {
   query_id_t GetQueryId() const { return query_id_; }
 
   /**
-   * @returns pointer to the OU feature vector in the pipeline state
+   * @returns the OUFeatureVector pointer
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 
   /**
-   * @returns state indicating # cnocurrent in the pipeline state
+   * Declare Function that depends on thread-local state
+   * @param fn Function
    */
-  ast::Expr *ConcurrentState() const { return concurrent_state_.Get(codegen_); }
+  void DeclareTLSDependentFunction(ast::FunctionDecl *fn) const;
 
  private:
   // Return the thread-local state initialization and tear-down function names.
@@ -267,7 +275,7 @@ class Pipeline {
   // Query Identifier
   query_id_t query_id_ = query_id_t(0);
   StateDescriptor::Entry oufeatures_;
-  StateDescriptor::Entry concurrent_state_;
+  ExecutableQueryFragmentBuilder *pipeline_builder_ = nullptr;
 };
 
 }  // namespace terrier::execution::compiler

@@ -7,6 +7,7 @@
 
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 
 namespace terrier::runner {
@@ -115,6 +116,8 @@ class ExecutionOperatingUnitFeature {
 
   /**
    * Constructor for ExecutionOperatingUnitFeature from an existing feature
+   * @note Does not copy num_rows, cardinality
+   *
    * @param feature Newly created OU type
    * @param other Existing OU to copy information from
    */
@@ -122,10 +125,10 @@ class ExecutionOperatingUnitFeature {
       : translator_id_(other.translator_id_),
         feature_id_(other.feature_id_),
         feature_(feature),
-        num_rows_(other.num_rows_),
+        num_rows_(0),
         key_size_(other.key_size_),
         num_keys_(other.num_keys_),
-        cardinality_(other.cardinality_),
+        cardinality_(0),
         mem_factors_(other.mem_factors_),
         num_loops_(other.num_loops_),
         num_concurrent_(other.num_concurrent_) {}
@@ -268,7 +271,7 @@ class EXPORT ExecOUFeatureVector {
   /**
    * Pipeline ID
    */
-  execution::pipeline_id_t pipeline_id_{0};
+  execution::pipeline_id_t pipeline_id_{execution::INVALID_PIPELINE_ID};
 
   /**
    * Features for a given pipeline
@@ -277,7 +280,15 @@ class EXPORT ExecOUFeatureVector {
    * vector on all control flow paths. A standard std::vector may not be
    * properly cleaned up if execution encounters an "exception".
    */
-  ExecutionOperatingUnitFeatureVector *pipeline_features_ = nullptr;
+  std::unique_ptr<execution::sql::MemPoolVector<ExecutionOperatingUnitFeature>> pipeline_features_ = nullptr;
+
+  /**
+   * Resets the feature vector state so it can be initialized again
+   */
+  void Reset() {
+    pipeline_id_ = execution::INVALID_PIPELINE_ID;
+    pipeline_features_ = nullptr;
+  }
 
   /**
    * Function used to update a feature's metadata information
@@ -290,16 +301,6 @@ class EXPORT ExecOUFeatureVector {
   void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
                      ExecutionOperatingUnitFeatureAttribute modifier, ExecutionOperatingUnitFeatureUpdateMode mode,
                      uint32_t val);
-
-  ~ExecOUFeatureVector() { Destroy(); }
-
-  /**
-   * Destroys the pipeline_features_
-   */
-  void Destroy() {
-    delete pipeline_features_;
-    pipeline_features_ = nullptr;
-  }
 };
 
 /**

@@ -39,13 +39,17 @@ namespace terrier::execution::ast {
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
+  F(ExecutionContextRegisterHook, execCtxRegisterHook)                  \
+  F(ExecutionContextClearHooks, execCtxClearHooks)                      \
+  F(ExecutionContextInitHooks, execCtxInitHooks)                        \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
   F(ThreadStateContainerClear, tlsClear)                                \
   F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
   F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
-  F(ExecOUFeatureVectorDestroy, execOUFeatureVectorDestroy)             \
+  F(ExecOUFeatureVectorFilter, execOUFeatureVectorFilter)               \
+  F(ExecOUFeatureVectorReset, execOUFeatureVectorReset)                 \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
@@ -171,6 +175,12 @@ namespace terrier::execution::ast {
   /* Hash Table Entry Iterator (for hash joins) */                      \
   F(HashTableEntryIterHasNext, htEntryIterHasNext)                      \
   F(HashTableEntryIterGetRow, htEntryIterGetRow)                        \
+                                                                        \
+  F(JoinHashTableIterInit, joinHTIterInit)                              \
+  F(JoinHashTableIterHasNext, joinHTIterHasNext)                        \
+  F(JoinHashTableIterNext, joinHTIterNext)                              \
+  F(JoinHashTableIterGetRow, joinHTIterGetRow)                          \
+  F(JoinHashTableIterFree, joinHTIterFree)                              \
                                                                         \
   /* Sorting */                                                         \
   F(SorterInit, sorterInit)                                             \

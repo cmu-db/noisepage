@@ -151,10 +151,12 @@ void AggregationHashTable::BatchProcessState::Reset(VectorProjectionIterator *in
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
-AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
-                                           const std::size_t payload_size, const uint32_t initial_size)
+AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings,
+                                           exec::ExecutionContext *exec_ctx, const std::size_t payload_size,
+                                           const uint32_t initial_size)
     : exec_settings_(exec_settings),
-      memory_(memory),
+      exec_ctx_(exec_ctx),
+      memory_(exec_ctx->GetMemoryPool()),
       payload_size_(payload_size),
       entries_(HashTableEntry::ComputeEntrySize(payload_size_), MemoryPoolAllocator<byte>(memory_)),
       owned_entries_(memory_),
@@ -166,7 +168,7 @@ AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_s
       partition_estimates_(nullptr),
       partition_tables_(nullptr),
       partition_shift_bits_(util::BitUtil::CountLeadingZeros(uint64_t(DEFAULT_NUM_PARTITIONS) - 1)) {
-  hash_table_.SetSize(initial_size, memory->GetTracker());
+  hash_table_.SetSize(initial_size, memory_->GetTracker());
   max_fill_ = std::llround(hash_table_.GetCapacity() * hash_table_.GetLoadFactor());
 
   // Compute flush threshold. In partitioned mode, we want the thread-local
@@ -176,9 +178,9 @@ AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_s
   flush_threshold_ = std::max(uint64_t{256}, common::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
-AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory,
-                                           std::size_t payload_size)
-    : AggregationHashTable(exec_settings, memory, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
+AggregationHashTable::AggregationHashTable(const exec::ExecutionSettings &exec_settings,
+                                           exec::ExecutionContext *exec_ctx, std::size_t payload_size)
+    : AggregationHashTable(exec_settings, exec_ctx, payload_size, DEFAULT_INITIAL_TABLE_SIZE) {}
 
 AggregationHashTable::~AggregationHashTable() {
   if (batch_state_ != nullptr) {
@@ -534,17 +536,12 @@ void AggregationHashTable::ProcessBatch(VectorProjectionIterator *input_batch, c
   AdvanceGroups(input_batch, advance_agg_fn);
 }
 
-void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *exec_ctx,
-                                                       execution::pipeline_id_t pipeline_id,
-                                                       ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
+void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thread_states, std::size_t agg_ht_offset,
                                                        MergePartitionFn merge_partition_fn) {
-  bool has_pipeline =
-      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
-  brain::ExecOUFeatureVector ouvec;
-  if (has_pipeline) {
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    exec_ctx->StartPipelineTracker(pipeline_id);
-  }
+  auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+  auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+  auto *tls = thread_states->AccessCurrentThreadState();
+  exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
   // Set the partition merging function. This function tells us how to merge a
   // set of overflow partitions into an AggregationHashTable.
@@ -568,7 +565,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
   for (auto *table : tl_agg_ht) {
     // Flush each table to ensure their hash tables are empty and their overflow
     // partitions contain all partial aggregates
-    tuple_count += table->stats_.num_inserts_;
+    stats_.num_inserts_ += table->stats_.num_inserts_;
     table->FlushToOverflowPartitions();
 
     // Now, move over their memory
@@ -593,14 +590,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(exec::ExecutionContext *e
     }
   }
 
-  if (has_pipeline) {
-    // Set # rows to be total number of entries in all agg tables
-    // Set cardinality to be # of per-task tables being built from
-    (*ouvec.pipeline_features_)[0].SetNumRows(tuple_count);
-    (*ouvec.pipeline_features_)[0].SetCardinality(tl_agg_ht.size());
-    (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-  }
+  exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(tl_agg_ht.size()));
 }
 
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,
@@ -619,7 +609,7 @@ AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *q
   // Create it
   auto estimated_size = partition_estimates_[partition_idx]->Estimate();
   auto *agg_table = new (memory_->AllocateAligned(sizeof(AggregationHashTable), alignof(AggregationHashTable), false))
-      AggregationHashTable(exec_settings_, memory_, payload_size_, estimated_size);
+      AggregationHashTable(exec_settings_, exec_ctx_, payload_size_, estimated_size);
 
   util::Timer<std::milli> timer;
   timer.Start();
@@ -684,6 +674,8 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   size_t num_threads = tbb::task_scheduler_init::default_num_threads();
   size_t num_tasks = nonempty_parts.size();
   size_t concurrent_estimate = std::min(num_threads, num_tasks);
+  exec_ctx_->SetNumConcurrentEstimate(concurrent_estimate);
+
   tbb::parallel_for_each(nonempty_parts, [&](const uint32_t part_idx) {
     // TODO(wz2): Resource trackers are started and stopped within scan_fn. It might be more correct
     // to start the trackers here manually -- or have TransferMemoryAndPartitions build all the tables
@@ -699,6 +691,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
     scan_fn(query_state, thread_state, agg_table_partition, concurrent_estimate);
   });
 
+  exec_ctx_->SetNumConcurrentEstimate(0);
   timer.Stop();
 
   const uint64_t tuple_count =

@@ -72,20 +72,24 @@ static bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2) {
 
 class AggregationHashTableTest : public SqlBasedTest {
  public:
-  AggregationHashTableTest() : agg_table_(exec_settings_, &memory_, sizeof(AggTuple)) {}
+  AggregationHashTableTest() = default;
 
-  MemoryPool *Memory() { return &memory_; }
+  void Init() {
+    exec_ctx_ = MakeExecCtx();
+    agg_table_ =
+        std::make_unique<AggregationHashTable>(exec_ctx_->GetExecutionSettings(), exec_ctx_.get(), sizeof(AggTuple));
+  }
 
-  AggregationHashTable *AggTable() { return &agg_table_; }
+  AggregationHashTable *AggTable() { return agg_table_.get(); }
 
  private:
-  exec::ExecutionSettings exec_settings_{};
-  MemoryPool memory_{nullptr};
-  AggregationHashTable agg_table_;
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+  std::unique_ptr<AggregationHashTable> agg_table_;
 };
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
+  Init();
   const uint32_t num_tuples = 10000;
 
   // The reference table
@@ -129,6 +133,7 @@ TEST_F(AggregationHashTableTest, IterationTest) {
   // count2 will be G*2, and count3 will be G*10.
   //
 
+  Init();
   const uint32_t num_inserts = 10000;
   const uint32_t num_groups = 10;
   const uint32_t tuples_per_group = num_inserts / num_groups;
@@ -169,6 +174,7 @@ TEST_F(AggregationHashTableTest, IterationTest) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
+  Init();
   const uint32_t num_tuples = 10000;
 
   for (uint32_t idx = 0; idx < num_tuples; idx++) {
@@ -190,6 +196,7 @@ TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, BatchProcessTest) {
+  Init();
   constexpr uint32_t num_groups = 512;
   constexpr uint32_t num_group_updates_per_batch = common::Constants::K_DEFAULT_VECTOR_SIZE / num_groups;
   constexpr uint32_t count1_scale = 1;
@@ -266,6 +273,7 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, OverflowPartitonIteratorTest) {
+  Init();
   struct Data {
     uint32_t key_{5};
     uint32_t val_{10};
@@ -373,7 +381,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
       // Init function.
       [](void *ctx, void *aht) {
         auto exec_ctx = reinterpret_cast<exec::ExecutionContext *>(ctx);
-        new (aht) AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx->GetMemoryPool(), sizeof(AggTuple));
+        new (aht) AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, sizeof(AggTuple));
       },
       // Tear-down function.
       [](void *ctx, void *aht) { std::destroy_at(reinterpret_cast<AggregationHashTable *>(aht)); }, exec_ctx.get());
@@ -409,7 +417,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
   // -------------------------------------------------------
   // Step 2: Transfer thread-local memory into global/main hash table.
-  AggregationHashTable main_table(exec_ctx->GetExecutionSettings(), &memory, sizeof(AggTuple));
+  AggregationHashTable main_table(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
   main_table.TransferMemoryAndPartitions(
       exec_ctx.get(), execution::pipeline_id_t(1), &container, 0,
       // Merging function merges a set of overflow partitions into the provided

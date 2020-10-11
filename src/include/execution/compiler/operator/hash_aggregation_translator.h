@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+
+#include "execution/compiler/operator/distinct_aggregation_util.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
@@ -153,7 +156,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
                                 ast::Identifier agg_values) const;
   void ConstructNewAggregate(FunctionBuilder *function, ast::Expr *agg_ht, ast::Identifier agg_payload,
                              ast::Identifier agg_values, ast::Identifier hash_val) const;
-  void AdvanceAggregate(FunctionBuilder *function, ast::Identifier agg_payload, ast::Identifier agg_values) const;
+  void AdvanceAggregate(WorkContext *ctx, FunctionBuilder *function, ast::Identifier agg_payload,
+                        ast::Identifier agg_values) const;
 
   // Merge the input row into the aggregation hash table.
   void UpdateAggregates(WorkContext *context, FunctionBuilder *function, ast::Expr *agg_ht) const;
@@ -163,6 +167,12 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
 
   // For minirunners.
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
+
+  /** Generate start hook function for parallel merge */
+  ast::FunctionDecl *GenerateStartHookFunction() const;
+
+  /** Generate end hook function for parallel merge */
+  ast::FunctionDecl *GenerateEndHookFunction() const;
 
  private:
   friend class brain::OperatingUnitRecorder;
@@ -187,6 +197,8 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   StateDescriptor::Entry local_agg_ht_;
   StateDescriptor::Entry iterate_agg_ht_;
 
+  std::unordered_map<size_t, DistinctAggregationFilter> distinct_filters_;
+
   // For minirunners
   ast::StructDecl *struct_decl_;
 
@@ -196,8 +208,28 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   // The number of output rows from the aggregation.
   StateDescriptor::Entry num_agg_outputs_;
 
-  // The number of rows in the agg hash table at end of previous task
+  // TBB can run multiple tasks using the same thread local state. For counter
+  // recording, each task will record an estimation of the "number of unique
+  // entries" inserted into the aggregation hash table during that task.
+  //
+  // agg_count_ is thus used to track the number of "uniquely" inserted tuples
+  // at the end of the previous task invocation with the same thread local state.
+  //
+  // agg_count_ is thus initialized only in InitializePipelineState. Counters
+  // initialized by InitializeCounters() are "reset" to their initial value
+  // at the start of the task invocation's work function -- however, agg_count_
+  // cannot be reset and so is initialized separately.
+  //
+  // The general pattern for agg_count_ is as follows:
+  //    while (work to be done.)
+  //      - Insert work's data into aggregation hash table
+  //      - Record AggHashTableGetInsertCount() - agg_count_
+  //      - agg_count_ = AggHashTableGetInsertCount()
+  //
   StateDescriptor::Entry agg_count_;
+
+  ast::Identifier parallel_build_pre_hook_fn_;
+  ast::Identifier parallel_build_post_hook_fn_;
 };
 
 }  // namespace terrier::execution::compiler

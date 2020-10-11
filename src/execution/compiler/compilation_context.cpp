@@ -78,7 +78,7 @@ std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
-                                       const CompilationMode mode, bool counters_enabled)
+                                       const CompilationMode mode, const exec::ExecutionSettings &settings)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
@@ -86,7 +86,8 @@ CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogA
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
       query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
-      counters_enabled_(counters_enabled) {}
+      counters_enabled_(settings.GetIsCountersEnabled()),
+      pipeline_metrics_enabled_(settings.GetIsPipelineMetricsEnabled()) {}
 
 ast::FunctionDecl *CompilationContext::GenerateInitFunction() {
   const auto name = codegen_.MakeIdentifier(GetFunctionPrefix() + "_Init");
@@ -189,7 +190,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode, exec_settings.GetIsCountersEnabled());
+  CompilationContext ctx(query.get(), accessor, mode, exec_settings);
   ctx.GeneratePlan(plan);
 
   // Done
@@ -314,6 +315,7 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LIKE:
+    case parser::ExpressionType::COMPARE_IN:
     case parser::ExpressionType::COMPARE_NOT_LIKE: {
       const auto &comparison = dynamic_cast<const parser::ComparisonExpression &>(expression);
       translator = std::make_unique<ComparisonTranslator>(comparison, this);

@@ -84,9 +84,10 @@ void OutputTranslator::EndParallelPipelineWork(const Pipeline &pipeline, Functio
 }
 
 void OutputTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto out_buffer = output_buffer_.Get(GetCodeGen());
+  function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
+
   if (!pipeline.IsParallel()) {
-    auto out_buffer = output_buffer_.Get(GetCodeGen());
-    function->Append(GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferFinalize, {out_buffer}));
     RecordCounters(pipeline, function);
   }
 }

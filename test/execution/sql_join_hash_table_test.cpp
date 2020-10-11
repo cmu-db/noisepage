@@ -9,7 +9,7 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/thread_state_container.h"
-#include "execution/tpl_test.h"
+#include "execution/sql_test.h"
 
 // TODO(WAN): can't FRIEND_TEST unless in the same namespace
 namespace terrier::execution::sql {
@@ -21,18 +21,14 @@ struct Tuple {
   hash_t Hash() const { return common::HashUtil::Hash(a_); }
 };
 
-class JoinHashTableTest : public TplTest {
+class JoinHashTableTest : public SqlBasedTest {
  public:
-  JoinHashTableTest() : memory_(nullptr) {}
-
-  MemoryPool *Memory() { return &memory_; }
-
- private:
-  MemoryPool memory_;
+  JoinHashTableTest() = default;
 };
 
 // NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, LazyInsertionTest) {
+  auto exec_ctx = MakeExecCtx();
   exec::ExecutionSettings exec_settings{};
   // Test data
   const uint32_t num_tuples = 10;
@@ -51,7 +47,7 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
     }
   }
 
-  JoinHashTable join_hash_table(exec_settings, Memory(), sizeof(Tuple));
+  JoinHashTable join_hash_table(exec_settings, exec_ctx.get(), sizeof(Tuple));
 
   // The table
   for (const auto &tuple : tuples) {
@@ -89,14 +85,13 @@ void PopulateJoinHashTable(JoinHashTable *jht, uint32_t num_tuples, uint32_t dup
 }
 
 template <bool UseCHT>
-void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
+void BuildAndProbeTest(exec::ExecutionContext *exec_ctx, uint32_t num_tuples, uint32_t dup_scale_factor) {
   exec::ExecutionSettings exec_settings{};
   //
   // The join table
   //
 
-  MemoryPool memory(nullptr);
-  JoinHashTable join_hash_table(exec_settings, &memory, sizeof(Tuple), UseCHT);
+  JoinHashTable join_hash_table(exec_settings, exec_ctx, sizeof(Tuple), UseCHT);
 
   //
   // Populate
@@ -143,19 +138,32 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(JoinHashTableTest, UniqueKeyLookupTest) { BuildAndProbeTest<false>(400, 1); }
+TEST_F(JoinHashTableTest, UniqueKeyLookupTest) {
+  auto exec_ctx = MakeExecCtx();
+  BuildAndProbeTest<false>(exec_ctx.get(), 400, 1);
+}
 
 // NOLINTNEXTLINE
-TEST_F(JoinHashTableTest, DuplicateKeyLookupTest) { BuildAndProbeTest<false>(400, 5); }
+TEST_F(JoinHashTableTest, DuplicateKeyLookupTest) {
+  auto exec_ctx = MakeExecCtx();
+  BuildAndProbeTest<false>(exec_ctx.get(), 400, 5);
+}
 
 // NOLINTNEXTLINE
-TEST_F(JoinHashTableTest, UniqueKeyConciseTableTest) { BuildAndProbeTest<true>(400, 1); }
+TEST_F(JoinHashTableTest, UniqueKeyConciseTableTest) {
+  auto exec_ctx = MakeExecCtx();
+  BuildAndProbeTest<true>(exec_ctx.get(), 400, 1);
+}
 
 // NOLINTNEXTLINE
-TEST_F(JoinHashTableTest, DuplicateKeyLookupConciseTableTest) { BuildAndProbeTest<true>(400, 5); }
+TEST_F(JoinHashTableTest, DuplicateKeyLookupConciseTableTest) {
+  auto exec_ctx = MakeExecCtx();
+  BuildAndProbeTest<true>(exec_ctx.get(), 400, 5);
+}
 
 // NOLINTNEXTLINE
 TEST_F(JoinHashTableTest, ParallelBuildTest) {
+  auto exec_ctx = MakeExecCtx();
   exec::ExecutionSettings exec_settings{};
   tbb::task_scheduler_init sched;
 
@@ -163,21 +171,20 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   const uint32_t num_tuples = 10000;
   const uint32_t num_thread_local_tables = 4;
 
-  MemoryPool memory(nullptr);
-  ThreadStateContainer container(&memory);
+  ThreadStateContainer container(exec_ctx->GetMemoryPool());
 
   struct Context {
-    MemoryPool *memory_;
+    exec::ExecutionContext *exec_ctx_;
     exec::ExecutionSettings *settings_;
   };
 
-  Context ctx{&memory, &exec_settings};
+  Context ctx{exec_ctx.get(), &exec_settings};
 
   container.Reset(
       sizeof(JoinHashTable),
       [](auto *ctx, auto *s) {
         auto context = reinterpret_cast<Context *>(ctx);
-        new (s) JoinHashTable(*context->settings_, context->memory_, sizeof(Tuple), use_concise_ht);
+        new (s) JoinHashTable(*context->settings_, context->exec_ctx_, sizeof(Tuple), use_concise_ht);
       },
       [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &ctx);
 
@@ -187,18 +194,8 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
     PopulateJoinHashTable(jht, num_tuples, 1);
   });
 
-  auto db = catalog::db_oid_t(0);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db, nullptr, nullptr, nullptr, nullptr,
-                                                                      exec_settings, nullptr);
-  auto units = std::make_unique<brain::PipelineOperatingUnits>();
-  brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-  pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::HASHJOIN_BUILD, 1, 4, 1, 1,
-                         1, 0, 0);
-  units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
-  exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(units));
-
-  JoinHashTable main_jht(exec_settings, &memory, sizeof(Tuple), false);
-  main_jht.MergeParallel(exec_ctx.get(), execution::pipeline_id_t(1), &container, 0);
+  JoinHashTable main_jht(exec_settings, exec_ctx.get(), sizeof(Tuple), false);
+  main_jht.MergeParallel(&container, 0);
 
   // Each of the thread-local tables inserted the same data, i.e., tuples whose
   // keys are in the range [0, num_tuples). Thus, in the final table there

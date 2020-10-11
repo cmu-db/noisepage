@@ -25,12 +25,13 @@ namespace terrier::execution::sql {
 //
 //===----------------------------------------------------------------------===//
 
-Sorter::Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size)
-    : memory_(memory),
-      tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(memory)),
-      owned_tuples_(memory),
+Sorter::Sorter(exec::ExecutionContext *exec_ctx, ComparisonFunction cmp_fn, uint32_t tuple_size)
+    : exec_ctx_(exec_ctx),
+      memory_(exec_ctx->GetMemoryPool()),
+      tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(exec_ctx->GetMemoryPool())),
+      owned_tuples_(exec_ctx->GetMemoryPool()),
       cmp_fn_(cmp_fn),
-      tuples_(memory),
+      tuples_(exec_ctx->GetMemoryPool()),
       sorted_(false) {}
 
 Sorter::~Sorter() = default;
@@ -149,8 +150,7 @@ struct MergeWork {
 
 }  // namespace
 
-void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
-                          const ThreadStateContainer *thread_state_container, std::size_t sorter_offset) {
+void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::size_t sorter_offset) {
   const auto comp = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
   bool has_pipeline =
       exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
@@ -181,6 +181,10 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
 
   if (tl_sorters.size() == 1 || num_tuples < DEFAULT_MIN_TUPLES_FOR_PARALLEL_SORT) {
     EXECUTION_LOG_DEBUG("Sorter contains {} elements. Using serial sort.", num_tuples);
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartTLSortHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndSingleSorterHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
     // Start the tracker
     brain::ExecOUFeatureVector ouvec;
@@ -214,6 +218,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     }
 
     // Finish
+    exec_ctx_->InvokeHook(post_hook, tls, this);
     return;
   }
 
@@ -252,41 +257,26 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
   timer.EnterStage("Parallel Sort Thread-Local Instances");
 
   tbb::task_scheduler_init sched;
-  size_t num_concurrent = 0;
   {
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = tl_sorters.size();
-    num_concurrent = std::min(num_threads, num_tasks);
+    size_t num_concurrent = std::min(num_threads, num_tasks);
+    exec_ctx_->SetNumConcurrentEstimate(num_concurrent);
   }
 
-  tbb::parallel_for_each(tl_sorters, [exec_ctx, pipeline_id, num_concurrent, has_pipeline](Sorter *sorter) {
-    brain::ExecOUFeatureVector ouvec;
-    if (has_pipeline) {
-      exec_ctx->RegisterThread();
-      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-      ouvec.pipeline_features_->erase(std::remove_if(ouvec.pipeline_features_->begin(), ouvec.pipeline_features_->end(),
-                                                     [](const auto &feature) {
-                                                       return feature.GetExecutionOperatingUnitType() !=
-                                                              brain::ExecutionOperatingUnitType::PARALLEL_SORT_STEP;
-                                                     }),
-                                      ouvec.pipeline_features_->end());
-      exec_ctx->StartPipelineTracker(pipeline_id);
-    }
+  tbb::parallel_for_each(tl_sorters, [thread_state_container, this](Sorter *sorter) {
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartTLSortHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndTLSortHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    auto *exec_ctx = this->exec_ctx_;
+    exec_ctx->InvokeHook(pre_hook, tls, nullptr);
 
     sorter->Sort();
 
-    if (has_pipeline) {
-      size_t num_tuples = sorter->GetTupleCount();
-      (*ouvec.pipeline_features_)[0].SetNumRows(num_tuples);
-      (*ouvec.pipeline_features_)[0].SetCardinality(num_tuples);
-      (*ouvec.pipeline_features_)[0].SetNumConcurrent(num_concurrent);
-      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-      if (exec_ctx->GetMetricsManager()) {
-        exec_ctx->GetMetricsManager()->Aggregate();
-      }
-    }
+    exec_ctx->InvokeHook(post_hook, tls, nullptr);
   });
 
+  exec_ctx_->SetNumConcurrentEstimate(0);
   timer.ExitStage();
 
   // -------------------------------------------------------
@@ -391,55 +381,39 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
     return cmp_fn_(*l.first, *r.first) >= 0;
   };
 
-  size_t concurrent = 0;
   {
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = merge_work.size();
-    concurrent = std::min(num_threads, num_tasks);
+    size_t concurrent = std::min(num_threads, num_tasks);
+    exec_ctx_->SetNumConcurrentEstimate(concurrent);
   }
 
-  tbb::parallel_for_each(
-      merge_work, [&heap_cmp, exec_ctx, pipeline_id, concurrent, has_pipeline](const MergeWork<SeqTypeIter> &work) {
-        brain::ExecOUFeatureVector ouvec;
-        if (has_pipeline) {
-          exec_ctx->RegisterThread();
-          exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-          ouvec.pipeline_features_->erase(
-              std::remove_if(ouvec.pipeline_features_->begin(), ouvec.pipeline_features_->end(),
-                             [](const auto &feature) {
-                               return feature.GetExecutionOperatingUnitType() !=
-                                      brain::ExecutionOperatingUnitType::PARALLEL_SORT_MERGE_STEP;
-                             }),
-              ouvec.pipeline_features_->end());
-          exec_ctx->StartPipelineTracker(pipeline_id);
-        }
+  tbb::parallel_for_each(merge_work, [&heap_cmp, thread_state_container, this](const MergeWork<SeqTypeIter> &work) {
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartTLMergeHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndTLMergeHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    auto *exec_ctx = this->exec_ctx_;
+    exec_ctx->InvokeHook(pre_hook, tls, nullptr);
 
-        std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
-            heap_cmp, work.input_ranges_);
-        SeqTypeIter dest = work.destination_;
-        size_t num_iters = 0;
-        while (!heap.empty()) {
-          num_iters++;
+    std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
+        heap_cmp, work.input_ranges_);
+    SeqTypeIter dest = work.destination_;
+    size_t num_iters = 0;
+    while (!heap.empty()) {
+      num_iters++;
 
-          auto top = heap.top();
-          heap.pop();
-          *dest++ = *top.first;
-          if (top.first + 1 != top.second) {
-            heap.emplace(top.first + 1, top.second);
-          }
-        }
+      auto top = heap.top();
+      heap.pop();
+      *dest++ = *top.first;
+      if (top.first + 1 != top.second) {
+        heap.emplace(top.first + 1, top.second);
+      }
+    }
 
-        if (has_pipeline) {
-          (*ouvec.pipeline_features_)[0].SetNumRows(num_iters);
-          (*ouvec.pipeline_features_)[0].SetCardinality(num_iters);
-          (*ouvec.pipeline_features_)[0].SetNumConcurrent(concurrent);
-          exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-          if (exec_ctx->GetMetricsManager()) {
-            exec_ctx->GetMetricsManager()->Aggregate();
-          }
-        }
-      });
+    exec_ctx->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_iters));
+  });
 
+  exec_ctx_->SetNumConcurrentEstimate(0);
   timer.ExitStage();
 
   // -------------------------------------------------------
@@ -469,9 +443,7 @@ void Sorter::SortParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_
   }
 }
 
-void Sorter::SortTopKParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
-                              const ThreadStateContainer *thread_state_container, uint32_t sorter_offset,
-                              uint64_t top_k) {
+void Sorter::SortTopKParallel(ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k) {
   // Parallel sort
   SortParallel(exec_ctx, pipeline_id, thread_state_container, sorter_offset);
 

@@ -25,6 +25,13 @@ class ThreadStateContainer;
  */
 class EXPORT TableVectorIterator {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
+  enum class HookOffsets : uint32_t {
+    EndHook = 0,
+
+    NUM_HOOKS
+  };
+
   /**
    * Minimum block range
    */

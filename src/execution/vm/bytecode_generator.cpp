@@ -878,6 +878,9 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
       case ast::BuiltinType::Integer:
         GetEmitter()->Emit(Bytecode::HashInt, hash_val, input, hash_val.ValueOf());
         break;
+      case ast::BuiltinType::Boolean:
+        GetEmitter()->Emit(Bytecode::HashBool, hash_val, input, hash_val.ValueOf());
+        break;
       case ast::BuiltinType::Real:
         GetEmitter()->Emit(Bytecode::HashReal, hash_val, input, hash_val.ValueOf());
         break;
@@ -993,9 +996,8 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
     case ast::Builtin::AggHashTableInit: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, memory, entry_size);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::AggHashTableGetTupleCount: {
@@ -1353,9 +1355,8 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, memory, entry_size);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::JoinHashTableInsert: {
@@ -1421,16 +1422,55 @@ void BytecodeGenerator::VisitBuiltinHashTableEntryIteratorCall(ast::CallExpr *ca
   }
 }
 
+void BytecodeGenerator::VisitBuiltinJoinHashTableIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
+  switch (builtin) {
+    case ast::Builtin::JoinHashTableIterInit: {
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar ht = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorInit, ht_iter, ht);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterHasNext: {
+      LocalVar has_more = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorHasNext, has_more, ht_iter);
+      GetExecutionResult()->SetDestination(has_more.ValueOf());
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterNext: {
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorNext, ht_iter);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterGetRow: {
+      LocalVar row_ptr = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorGetRow, row_ptr, ht_iter);
+      GetExecutionResult()->SetDestination(row_ptr.ValueOf());
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterFree: {
+      LocalVar ht_iter = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableIteratorFree, ht_iter);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible hash table naive iteration bytecode");
+    }
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin builtin) {
   switch (builtin) {
     case ast::Builtin::SorterInit: {
       // TODO(pmenon): Fix me so that the comparison function doesn't have be
       // listed by name.
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       const std::string cmp_func_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name().GetData();
       LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, memory, LookupFuncIdByName(cmp_func_name), entry_size);
+      GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, exec_ctx, LookupFuncIdByName(cmp_func_name),
+                                   entry_size);
       break;
     }
     case ast::Builtin::SorterGetTupleCount: {
@@ -1616,6 +1656,21 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::ExecutionContextAddRowsAffected, exec_ctx, rows_affected);
       break;
     }
+    case ast::Builtin::ExecutionContextRegisterHook: {
+      auto hook_idx = VisitExpressionForRValue(call->Arguments()[1]);
+      const auto hook_fn_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name();
+      GetEmitter()->EmitRegisterHook(exec_ctx, hook_idx, LookupFuncIdByName(hook_fn_name.GetData()));
+      break;
+    }
+    case ast::Builtin::ExecutionContextClearHooks: {
+      GetEmitter()->Emit(Bytecode::ExecutionContextClearHooks, exec_ctx);
+      break;
+    }
+    case ast::Builtin::ExecutionContextInitHooks: {
+      auto num_hooks = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextInitHooks, exec_ctx, num_hooks);
+      break;
+    }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
       LocalVar metrics_component = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, metrics_component);
@@ -1646,7 +1701,8 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::ExecOUFeatureVectorInitialize: {
       LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id);
+      LocalVar is_parallel = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id, is_parallel);
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
@@ -2502,6 +2558,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::ExecutionContextAddRowsAffected:
+    case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextClearHooks:
+    case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
@@ -2513,9 +2572,15 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitExecutionContextCall(call, builtin);
       break;
     }
-    case ast::Builtin::ExecOUFeatureVectorDestroy: {
+    case ast::Builtin::ExecOUFeatureVectorReset: {
       LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorDestroy, ouvector);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorReset, ouvector);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorFilter: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar filter = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorFilter, ouvector, filter);
       break;
     }
     case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
@@ -2679,6 +2744,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::HashTableEntryIterHasNext:
     case ast::Builtin::HashTableEntryIterGetRow: {
       VisitBuiltinHashTableEntryIteratorCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterInit:
+    case ast::Builtin::JoinHashTableIterHasNext:
+    case ast::Builtin::JoinHashTableIterNext:
+    case ast::Builtin::JoinHashTableIterGetRow:
+    case ast::Builtin::JoinHashTableIterFree: {
+      VisitBuiltinJoinHashTableIteratorCall(call, builtin);
       break;
     }
     case ast::Builtin::SorterInit:

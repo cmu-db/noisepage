@@ -701,21 +701,23 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
   // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 2, 3, 4, 8, 10, 16};
-  auto num_cols = {1, 2, 3, 4, 5, 9, 13};
-  auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {//1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  auto num_threads = {0, 1, 2, 4, 8, 12, 16};
+  auto num_cols = {1, 2, 3, 4, 5, 7, 9, 11, 13, 15};
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<int64_t> row_nums = {2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto thread : num_threads) {
     for (auto type : types) {
       for (auto col : num_cols) {
         for (auto row : row_nums) {
           // Only use one cardinality since we can't track any cardinality now anyway
           int64_t car = 1;
-          while (car < row) {
-            car *= 2;
+          if (row > create_index_small_limit) {
+            // For these, we get a memory explosion if the cardinality is too low.
+            while (car < row) {
+              car *= 2;
+            }
+            car = car / (pow(2, create_index_large_cardinality_num));
           }
-          car = car / (pow(2, create_index_large_cardinality_num));
 
           if (type == type::TypeId::INTEGER)
             b->Args({col, 0, 15, 0, row, car, 0, thread});
@@ -729,9 +731,8 @@ static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
 
 static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
   // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 2, 3, 4, 8, 10};
-  std::vector<int64_t> row_nums = {//1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 10000000};
+  auto num_threads = {0, 1, 2, 4, 8, 12, 16};
+  std::vector<int64_t> row_nums = {2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 10000000};
 
   // Generates INTEGER + VARCHAR
   std::vector<std::vector<int64_t>> args;
@@ -929,11 +930,13 @@ class MiniRunners : public benchmark::Fixture {
     execution::exec::ExecutionSettings settings;
     settings.is_parallel_execution_enabled_ = false;
     settings.is_counters_enabled_ = false;
+    settings.is_pipeline_metrics_enabled_ = true;
     return settings;
   }
 
   static execution::exec::ExecutionSettings GetParallelExecutionSettings(size_t num_threads, bool counters) {
     execution::exec::ExecutionSettings settings;
+    settings.is_pipeline_metrics_enabled_ = true;
     settings.is_parallel_execution_enabled_ = (num_threads != 0);
     settings.number_of_threads_ = num_threads;
     settings.is_counters_enabled_ = counters;
@@ -992,8 +995,15 @@ class MiniRunners : public benchmark::Fixture {
     auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                        execution::compiler::CompilationMode::OneShot);
 
-    // Since we don't have duplicate features in a pipeline, this works
-    // to override the feature_ids so counters can work.
+    // Some runners rely on counters to work correctly (i.e parallel create index).
+    // Counter code relies on the ids of features extracted during code generation
+    // to update numbers. However, the synthetic pipeline + features that are
+    // set by the mini-runners do not have these feature ids available.
+    //
+    // For now, since a pipeline does not contain any duplicate feature types (i.e
+    // there will not be 2 hashjoin_probes in 1 pipeline), we can assign feature ids
+    // to our synthetic features by finding the matching feature from the feature
+    // vector produced during codegen.
     auto pipeline = exec_query->GetPipelineOperatingUnits();
     for (auto &info : pipeline_units->units_) {
       auto other_feature = pipeline->units_[info.first];
@@ -1079,7 +1089,7 @@ class MiniRunners : public benchmark::Fixture {
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
-          common::ManagedPointer(accessor), exec_settings, metrics_manager);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager_);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -1116,10 +1126,8 @@ class MiniRunners : public benchmark::Fixture {
     pipe0_vec.emplace_back(execution::translator_id_t(1), type, num_elem, 4, 1, num_elem, 1, 0, 0);
     units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-    brain::ExecOUFeatureVector ouvec{
-        execution::pipeline_id_t(1),
-        new brain::ExecutionOperatingUnitFeatureVector(units.GetPipelineFeatures(execution::pipeline_id_t(1)))};
-
+    brain::ExecOUFeatureVector ouvec;
+    exec_ctx->InitializeOUFeatureVector(&ouvec, execution::pipeline_id_t(1));
     switch (type) {
       case brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS: {
         exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
@@ -1199,6 +1207,7 @@ class MiniRunners : public benchmark::Fixture {
         break;
     }
 
+    ouvec.Reset();
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
@@ -1419,7 +1428,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "fun Query0_Pipeline1_Run(queryState: *QueryState) -> nil {\n";
   output
       << "\tvar pipelineState = @ptrCast(*P1_State, @tlsGetCurrentThreadState(@execCtxGetTLS(queryState.execCtx)))\n";
-  output << "\t@execOUFeatureVectorInit(queryState.execCtx, &pipelineState.execFeatures, 1)\n";
+  output << "\t@execOUFeatureVectorInit(queryState.execCtx, &pipelineState.execFeatures, 1, false)\n";
   output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
   output << "\tQuery0_Pipeline1_SerialWork(queryState, pipelineState)\n";
   output << "\t@resultBufferFinalize(pipelineState.output_buffer)\n";

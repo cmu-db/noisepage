@@ -214,6 +214,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    metrics_query_trace,
+    "Metrics collection for Query Traces (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsQueryTrace
+)
+
+SETTING_bool(
     metrics_execution,
     "Metrics collection for the Execution component (default: false).",
     false,
@@ -279,7 +287,7 @@ SETTING_string(
 
 SETTING_bool(
     override_num_threads,
-    "Overrides the number of threads to use rather than the hardware concurrency",
+    "Overrides the number of threads to use (default: false)",
     false,
     true,
     terrier::settings::Callbacks::NoOp
@@ -287,10 +295,26 @@ SETTING_bool(
 
 SETTING_int(
     num_threads,
-    "Number of threads",
+    "Number of threads for parallel query execution (default: 1)",
     1,
     1,
     128,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    use_counters,
+    "Whether to use counters (default: false)",
+    false,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    use_pipeline_metrics,
+    "Whether to gather per-pipeline execution metrics (default: true)",
+    true,
     true,
     terrier::settings::Callbacks::NoOp
 )

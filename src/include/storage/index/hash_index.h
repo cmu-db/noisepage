@@ -56,22 +56,58 @@ class HashIndex final : public Index {
   mutable common::SpinLatch transaction_context_latch_;  // latch used to protect transaction context
 
  public:
+  /**
+   * @return type of the index. Note that this is the physical type, not extracted from the underlying schema or other
+   * catalog metadata. This is mostly used for debugging purposes.
+   */
   IndexType Type() const final { return IndexType::HASHMAP; }
 
+  /**
+   * @return approximate number of bytes allocated on the heap for this index data structure
+   */
   size_t EstimateHeapUsage() const final;
 
+  /**
+   * Inserts a new key-value pair into the index, used for non-unique key indexes.
+   * @param txn txn context for the calling txn, used to register abort actions
+   * @param tuple key
+   * @param location value
+   * @return false if the value already exists, true otherwise
+   */
   bool Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               TupleSlot location) final;
 
+  /**
+   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict with the calling txn
+   * @param txn txn context for the calling txn, used for visibility and write-write, and to register abort actions
+   * @param tuple key
+   * @param location value
+   * @return true if the value was inserted, false otherwise
+   *         (either because value exists, or predicate returns true for one of the existing values)
+   */
   bool InsertUnique(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
                     TupleSlot location) final;
 
+  /**
+   * Doesn't immediately call delete on the index. Registers a commit action in the txn that will eventually register a
+   * deferred action for the GC to safely call delete on the index when no more transactions need to access the key.
+   * @param txn txn context for the calling txn, used to register commit actions for deferred GC actions
+   * @param tuple key
+   * @param location value
+   */
   void Delete(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
               TupleSlot location) final;
 
+  /**
+   * Finds all the values associated with the given key in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param key the key to look for
+   * @param[out] value_list the values associated with the key
+   */
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
                std::vector<TupleSlot> *value_list) final;
 
+  /** @return The number of keys in the index. */
   uint64_t GetSize() const final;
 };
 

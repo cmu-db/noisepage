@@ -1,16 +1,9 @@
 #pragma once
 
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/event.h>
-#include <event2/listener.h>
-#include <unistd.h>
-
 #include <deque>
 #include <memory>
 #include <utility>
 
-#include "common/error/exception.h"
 #include "common/notifiable_task.h"
 #include "network/network_defs.h"
 #include "network/protocol_interpreter.h"
@@ -18,6 +11,7 @@
 namespace terrier::network {
 
 class ConnectionHandleFactory;
+
 /**
  * A ConnectionHandlerTask is responsible for interacting with a client
  * connection.
@@ -48,19 +42,16 @@ class ConnectionHandlerTask : public common::NotifiableTask {
    */
   void Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter);
 
+ private:
   /**
    * @brief Handles a new client assigned to this handler by the dispatcher.
    *
    * This method will create the necessary data structure for the client and
    * register its event base to receive updates with appropriate callbacks
    * when the client writes to the socket.
-   *
-   * @param new_conn_recv_fd the socket fd of the new connection
-   * @param flags unused. For compliance with libevent callback interface.
    */
-  void HandleDispatch(int new_conn_recv_fd, int16_t flags);
+  void HandleDispatch();
 
- private:
   /**
    * Using this latch+deque instead of the Common::ConcurrentQueue as the overhead is not worth
    * for the common case where there is no contention

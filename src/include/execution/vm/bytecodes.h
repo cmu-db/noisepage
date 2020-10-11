@@ -106,10 +106,14 @@ namespace terrier::execution::vm {
   F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local,                   \
     OperandType::Local)                                                                                               \
+  F(ExecutionContextInitHooks, OperandType::Local, OperandType::Local)                                                \
+  F(ExecutionContextRegisterHook, OperandType::Local, OperandType::Local, OperandType::FunctionId)                    \
+  F(ExecutionContextClearHooks, OperandType::Local)                                                                   \
   F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
     OperandType::Local, OperandType::Local)                                                                           \
-  F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local)                        \
-  F(ExecOUFeatureVectorDestroy, OperandType::Local)                                                                   \
+  F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
+  F(ExecOUFeatureVectorFilter, OperandType::Local, OperandType::Local)                                                \
+  F(ExecOUFeatureVectorReset, OperandType::Local)                                                                     \
                                                                                                                       \
   F(RegisterMetricsThread, OperandType::Local)                                                                        \
   F(CheckTrackersStopped, OperandType::Local)                                                                         \
@@ -324,6 +328,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(HashBool, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashDate, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
@@ -331,7 +336,7 @@ namespace terrier::execution::vm {
   F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
                                                                                                                       \
   /* Aggregation Hash Table */                                                                                        \
-  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(AggregationHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                        \
   F(AggregationHashTableGetInsertCount, OperandType::Local, OperandType::Local)                                       \
   F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                       \
@@ -446,7 +451,7 @@ namespace terrier::execution::vm {
   F(AvgAggregateFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
-  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                \
+  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
@@ -456,6 +461,11 @@ namespace terrier::execution::vm {
   F(JoinHashTableFree, OperandType::Local)                                                                            \
   F(HashTableEntryIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
   F(HashTableEntryIteratorGetRow, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorInit, OperandType::Local, OperandType::Local)                                                \
+  F(JoinHashTableIteratorHasNext, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorNext, OperandType::Local)                                                                    \
+  F(JoinHashTableIteratorGetRow, OperandType::Local, OperandType::Local)                                              \
+  F(JoinHashTableIteratorFree, OperandType::Local)                                                                    \
                                                                                                                       \
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \

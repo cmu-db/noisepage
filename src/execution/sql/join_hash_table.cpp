@@ -22,16 +22,17 @@
 
 namespace terrier::execution::sql {
 
-JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, uint32_t tuple_size,
-                             bool use_concise_ht)
+JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                             uint32_t tuple_size, bool use_concise_ht)
     : exec_settings_(exec_settings),
-      entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(memory)),
-      owned_(memory),
+      exec_ctx_(exec_ctx),
+      entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(exec_ctx->GetMemoryPool())),
+      owned_(exec_ctx->GetMemoryPool()),
       concise_hash_table_(0),
       hll_estimator_(libcount::HLL::Create(DEFAULT_HLL_PRECISION)),
       built_(false),
       use_concise_ht_(use_concise_ht),
-      tracker_(memory->GetTracker()) {}
+      tracker_(exec_ctx->GetMemoryPool()->GetTracker()) {}
 
 // Needed because we forward-declared HLL from libcount
 JoinHashTable::~JoinHashTable() = default;
@@ -549,11 +550,7 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   owned_.emplace_back(std::move(source->entries_));
 }
 
-void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::pipeline_id_t pipeline_id,
-                                  const ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
-  bool has_pipeline =
-      exec_ctx->GetPipelineOperatingUnits() && exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id);
-
+void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
   // Collect thread-local hash tables
   std::vector<JoinHashTable *> tl_join_tables;
   thread_state_container->CollectThreadLocalStateElementsAs(&tl_join_tables, jht_offset);
@@ -581,23 +578,14 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements < {} element parallel threshold. Using serial merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
 
-    brain::ExecOUFeatureVector ouvec;
-    if (has_pipeline) {
-      exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-      exec_ctx->StartPipelineTracker(pipeline_id);
-    }
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    this->exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
 
-    if (has_pipeline) {
-      // Reach in and modify the feature directly
-      // # rows is number of tuples
-      // Cardinality is number of hash tables merging from
-      (*ouvec.pipeline_features_)[0].SetNumRows(num_elem_estimate);
-      (*ouvec.pipeline_features_)[0].SetCardinality(owned_.size());
-      (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-      exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-    }
+    this->exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_elem_estimate));
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
@@ -605,29 +593,19 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
     size_t num_threads = tbb::task_scheduler_init::default_num_threads();
     size_t num_tasks = tl_join_tables.size();
     auto estimate = std::min(num_threads, num_tasks);
-    tbb::parallel_for_each(tl_join_tables, [this, exec_ctx, pipeline_id, estimate, has_pipeline](auto source) {
-      brain::ExecOUFeatureVector ouvec;
-      if (has_pipeline) {
-        exec_ctx->RegisterThread();
-        exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-        exec_ctx->StartPipelineTracker(pipeline_id);
-      }
+
+    exec_ctx_->SetNumConcurrentEstimate(estimate);
+    tbb::parallel_for_each(tl_join_tables, [this, thread_state_container](auto source) {
+      auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+      auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+      auto *tls = thread_state_container->AccessCurrentThreadState();
+      this->exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
       size_t size = source->entries_.size();
       MergeIncomplete<true>(source);
-
-      if (has_pipeline) {
-        // Reach in and modify the feature directly
-        // Just set the cardinality to match # rows for now.
-        (*ouvec.pipeline_features_)[0].SetNumRows(size);
-        (*ouvec.pipeline_features_)[0].SetCardinality(size);
-        (*ouvec.pipeline_features_)[0].SetNumConcurrent(estimate);
-        exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-        if (exec_ctx->GetMetricsManager()) {
-          exec_ctx->GetMetricsManager()->Aggregate();
-        }
-      }
+      this->exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(size));
     });
+    exec_ctx_->SetNumConcurrentEstimate(0);
   }
 
   timer.Stop();
@@ -636,6 +614,8 @@ void JoinHashTable::MergeParallel(exec::ExecutionContext *exec_ctx, execution::p
   EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
                       use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
                       chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);
+
+  built_ = true;
 }
 
 }  // namespace terrier::execution::sql

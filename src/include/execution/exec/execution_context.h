@@ -36,6 +36,14 @@ namespace terrier::execution::exec {
 class EXPORT ExecutionContext {
  public:
   /**
+   * Hook Function
+   * Convention: First argument is the query state.
+   *             second argument is the thread state.
+   *             Third is opaque function argument.
+   */
+  using HookFn = void (*)(void *, void *, void *);
+
+  /**
    * Constructor
    * @param db_oid oid of the database
    * @param txn transaction used by this query
@@ -43,7 +51,7 @@ class EXPORT ExecutionContext {
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
    * @param exec_settings The execution settings to run with.
-   * @param metrics_manager Metrics Manager
+   * @param metrics_manager The metrics manager for recording metrics
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
                    OutputCallback callback, const planner::OutputSchema *schema,
@@ -67,19 +75,10 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<transaction::TransactionContext> GetTxn() { return txn_; }
 
   /**
-   * @return newly created outputbuffer
+   * Constructs a new Output Buffer for outputting query results to consumers
+   * @return newly created output buffer
    */
-  OutputBuffer *OutputBufferNew() {
-    if (schema_ == nullptr) {
-      return nullptr;
-    }
-
-    // Use C++ placement new
-    auto size = sizeof(OutputBuffer);
-    auto *buffer = reinterpret_cast<OutputBuffer *>(mem_pool_->Allocate(size));
-    new (buffer) OutputBuffer(mem_pool_.get(), schema_->GetColumns().size(), ComputeTupleSize(schema_), callback_);
-    return buffer;
-  }
+  OutputBuffer *OutputBufferNew();
 
   /**
    * @return The thread state container.
@@ -141,7 +140,7 @@ class EXPORT ExecutionContext {
    * @param ouvec OU Feature Vector to initialize
    * @param pipeline_id Pipeline to initialize with
    */
-  void InitializeExecOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
+  void InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id);
 
   /**
    * Initializes an OU feature vector for a given parallel step (i.e hashjoin_build, sort_build, agg_build)
@@ -187,7 +186,7 @@ class EXPORT ExecutionContext {
    * INSERT, UPDATE, and DELETE queries return a number for the rows affected, so this should be incremented in the root
    * nodes of the query
    */
-  uint64_t &RowsAffected() { return rows_affected_; }
+  uint32_t &RowsAffected() { return rows_affected_; }
 
   /**
    * Set the PipelineOperatingUnits
@@ -247,6 +246,45 @@ class EXPORT ExecutionContext {
     memory_use_override_value_ = memory_use;
   }
 
+  /**
+   * Sets the opaque query state pointer for the current query invocation
+   * @param query_state QueryState
+   */
+  void SetQueryState(void *query_state) { query_state_ = query_state; }
+
+  /**
+   * Sets the estimated concurrency of a parallel operation.
+   * This value is used when initializing an ExecOUFeatureVector
+   * @param estimate Estimation
+   */
+  void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
+
+  /**
+   * Invoke a hook function if a hook function is available
+   * @param hookIndex Index of hook futnction to invoke
+   * @param tls TLS argument
+   * @param arg Opaque argument to pass
+   */
+  void InvokeHook(size_t hookIndex, void *tls, void *arg);
+
+  /**
+   * Registers a hook function
+   * @param hook_idx Hook index to register function
+   * @param hook Function to register
+   */
+  void RegisterHook(size_t hook_idx, HookFn hook);
+
+  /**
+   * Initializes hooks_ to a certain capacity
+   * @param num_hooks Number of hooks needed
+   */
+  void InitHooks(size_t num_hooks);
+
+  /**
+   * Clears hooks_
+   */
+  void ClearHooks() { hooks_.clear(); }
+
  private:
   query_id_t query_id_{execution::query_id_t(0)};
   exec::ExecutionSettings exec_settings_;
@@ -268,9 +306,12 @@ class EXPORT ExecutionContext {
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> params_;
   uint8_t execution_mode_;
-  uint64_t rows_affected_ = 0;
+  uint32_t rows_affected_ = 0;
 
   bool memory_use_override_ = false;
   uint32_t memory_use_override_value_ = 0;
+  uint32_t num_concurrent_estimate_ = 0;
+  std::vector<HookFn> hooks_{};
+  void *query_state_;
 };
 }  // namespace terrier::execution::exec

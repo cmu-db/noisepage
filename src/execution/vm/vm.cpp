@@ -472,6 +472,30 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(ExecutionContextRegisterHook) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto idx = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+
+    auto fn_id = READ_FUNC_ID();
+    auto fn = reinterpret_cast<exec::ExecutionContext::HookFn>(module_->GetRawFunctionImpl(fn_id));
+
+    OpExecutionContextRegisterHook(exec_ctx, idx, fn);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextClearHooks) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    OpExecutionContextClearHooks(exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecutionContextInitHooks) : {
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpExecutionContextInitHooks(exec_ctx, size);
+    DISPATCH_NEXT();
+  }
+
   OP(ExecutionContextGetTLS) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer **>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
@@ -532,13 +556,21 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
-    OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id);
+    auto is_parallel = frame->LocalAt<bool>(READ_LOCAL_ID());
+    OpExecOUFeatureVectorInitialize(exec_ctx, ouvec, pipeline_id, is_parallel);
     DISPATCH_NEXT();
   }
 
-  OP(ExecOUFeatureVectorDestroy) : {
+  OP(ExecOUFeatureVectorFilter) : {
     auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
-    OpExecOUFeatureVectorDestroy(ouvec);
+    auto type = static_cast<brain::ExecutionOperatingUnitType>(frame->LocalAt<uint32_t>(READ_LOCAL_ID()));
+    OpExecOUFeatureVectorFilter(ouvec, type);
+    DISPATCH_NEXT();
+  }
+
+  OP(ExecOUFeatureVectorReset) : {
+    auto *ouvec = frame->LocalAt<brain::ExecOUFeatureVector *>(READ_LOCAL_ID());
+    OpExecOUFeatureVectorReset(ouvec);
     DISPATCH_NEXT();
   }
 
@@ -650,13 +682,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
     auto query_state = frame->LocalAt<void *>(READ_LOCAL_ID());
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *exec_context = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto scan_fn_id = READ_FUNC_ID();
     auto pipeline_id = execution::pipeline_id_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
     auto index_oid = catalog::index_oid_t{frame->LocalAt<uint32_t>(READ_LOCAL_ID())};
 
     auto scan_fn = reinterpret_cast<sql::TableVectorIterator::ScanFn>(module_->GetRawFunctionImpl(scan_fn_id));
-    OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, pipeline_id, index_oid);
+    OpParallelScanTable(table_oid, col_oids, num_oids, query_state, exec_context, scan_fn);
     DISPATCH_NEXT();
   }
 
@@ -840,6 +872,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   GEN_HASH(Int, sql::Integer)
+  GEN_HASH(Bool, sql::BoolVal)
   GEN_HASH(Real, sql::Real)
   GEN_HASH(Date, sql::DateVal)
   GEN_HASH(Timestamp, sql::TimestampVal)
@@ -1177,9 +1210,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto payload_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpAggregationHashTableInit(agg_hash_table, exec_ctx, memory, payload_size);
+    OpAggregationHashTableInit(agg_hash_table, exec_ctx, payload_size);
     DISPATCH_NEXT();
   }
 
@@ -1524,9 +1556,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   OP(JoinHashTableInit) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<sql::MemoryPool *>(READ_LOCAL_ID());
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    OpJoinHashTableInit(join_hash_table, exec_ctx, memory, tuple_size);
+    OpJoinHashTableInit(join_hash_table, exec_ctx, tuple_size);
     DISPATCH_NEXT();
   }
 
@@ -1589,18 +1620,51 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
+  OP(JoinHashTableIteratorInit) : {
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    auto *hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorInit(iter, hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorHasNext(has_more, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorNext) : {
+    auto *hash_table_iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorNext(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorGetRow) : {
+    auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorGetRow(row, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorFree) : {
+    auto *hash_table_iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorFree(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Sorting
   // -------------------------------------------------------
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<terrier::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(module_->GetRawFunctionImpl(cmp_func_id));
-    OpSorterInit(sorter, memory, cmp_fn, tuple_size);
+    OpSorterInit(sorter, exec_ctx, cmp_fn, tuple_size);
     DISPATCH_NEXT();
   }
 

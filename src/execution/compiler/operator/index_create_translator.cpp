@@ -10,6 +10,7 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/work_context.h"
 #include "execution/sql/ddl_executors.h"
+#include "execution/sql/table_vector_iterator.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 #include "planner/plannodes/create_index_plan_node.h"
@@ -51,6 +52,11 @@ IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode 
   local_tuple_slot_ = pipeline->DeclarePipelineStateEntry("local_tuple_slot", tuple_slot_type);
 
   num_inserts_ = CounterDeclare("num_inserts", pipeline);
+
+  if (GetPipeline()->IsParallel() && IsPipelineMetricsEnabled()) {
+    parallel_build_post_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(GetPipeline()->CreatePipelineFunctionName("PostHook"));
+  }
 }
 
 void IndexCreateTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -62,22 +68,6 @@ void IndexCreateTranslator::RecordCounters(const Pipeline &pipeline, FunctionBui
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_inserts_));
   FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
                 brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_inserts_));
-
-  if (pipeline.IsParallel()) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::CREATE_INDEX,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
-  }
-}
-
-void IndexCreateTranslator::BeginParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  auto *codegen = GetCodeGen();
-  auto val = codegen->MakeExpr(codegen->MakeIdentifier("concurrent"));
-  function->Append(codegen->Assign(GetPipeline()->ConcurrentState(), val));
-  InitializeCounters(pipeline, function);
-}
-
-void IndexCreateTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  RecordCounters(pipeline, function);
 }
 
 void IndexCreateTranslator::InitializeStorageInterface(FunctionBuilder *function,
@@ -108,6 +98,10 @@ void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, Fu
   // Thread local member
   InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
   DeclareIndexPR(function);
+
+  if (pipeline.IsParallel() && IsPipelineMetricsEnabled()) {
+    pipeline.DeclareTLSDependentFunction(GenerateEndHookFunction());
+  }
 }
 
 void IndexCreateTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -118,6 +112,7 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
   // Parameters for the scanner
   auto *codegen = GetCodeGen();
   auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
+<<<<<<< HEAD
   auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
   return codegen->MakeFieldList(
       {codegen->MakeField(tvi_var_, tvi_type), codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
@@ -128,6 +123,27 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
   auto index_oid = codegen_->Const32(index_oid_.UnderlyingValue());
   function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
                                                       GetExecutionContext(), work_func, pipeline_id, index_oid));
+=======
+  return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
+}
+
+void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
+  auto *exec_ctx = GetExecutionContext();
+  auto *codegen = GetCodeGen();
+  if (IsPipelineMetricsEnabled()) {
+    auto num_hooks = static_cast<uint32_t>(sql::TableVectorIterator::HookOffsets::NUM_HOOKS);
+    auto post = static_cast<uint32_t>(sql::TableVectorIterator::HookOffsets::EndHook);
+    function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
+    function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
+  }
+
+  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen), GetQueryStatePtr(),
+                                                      exec_ctx, work_func));
+
+  if (IsPipelineMetricsEnabled()) {
+    function->Append(codegen->ExecCtxClearHooks(exec_ctx));
+  }
+>>>>>>> william/hooks
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -141,7 +157,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
   // Close TVI, if need be.
   if (declare_local_tvi) {
     function->Append(codegen_->TableIterClose(codegen_->MakeExpr(tvi_var_)));
-    {
+    if (IsPipelineMetricsEnabled()) {
       auto *codegen = GetCodeGen();
 
       // Get Memory Use
@@ -150,9 +166,14 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
       auto *record =
           codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {GetExecutionContext(), get_mem});
       function->Append(codegen->MakeStmt(record));
+      RecordCounters(*GetPipeline(), function);
     }
+<<<<<<< HEAD
     RecordCounters(*GetPipeline(), function);
   } else {
+=======
+  } else if (IsPipelineMetricsEnabled()) {
+>>>>>>> william/hooks
     // For parallel, just record 0 --- for the memory use.
     // The model should be able to identify that for non-zero concurrent, memory = 0
     auto *zero = codegen_->Const32(0);
@@ -275,6 +296,39 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   If success(function, cond);
   { function->Append(codegen_->AbortTxn(GetExecutionContext())); }
   success.EndIf();
+}
+
+ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = GetPipeline();
+  auto params = GetHookParams(*pipeline, nullptr, nullptr);
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
+  {
+    auto *exec_ctx = GetExecutionContext();
+    pipeline->InjectStartResourceTracker(&builder, true);
+
+    auto num_tuples = codegen->MakeFreshIdentifier("num_tuples");
+    auto *idx_size = codegen->CallBuiltin(ast::Builtin::IndexGetSize, {local_storage_interface_.GetPtr(codegen_)});
+    builder.Append(codegen->DeclareVarWithInit(num_tuples, idx_size));
+
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline, codegen->MakeExpr(num_tuples));
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
+
+    auto heap = codegen->MakeFreshIdentifier("heap_size");
+    auto *heap_size = codegen->CallBuiltin(ast::Builtin::StorageInterfaceGetIndexHeapSize,
+                                           {local_storage_interface_.GetPtr(codegen_)});
+    builder.Append(codegen->DeclareVarWithInit(heap, heap_size));
+    builder.Append(
+        codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {exec_ctx, codegen->MakeExpr(heap)}));
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+  }
+  return builder.Finish();
 }
 
 }  // namespace terrier::execution::compiler

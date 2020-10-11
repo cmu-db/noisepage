@@ -8,6 +8,7 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
                                         ExecutionOperatingUnitFeatureAttribute modifier,
                                         ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t val) {
   TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
+  TERRIER_ASSERT(pipeline_features_ != nullptr, "Pipeline Features cannot be null");
   size_t *value = nullptr;
   for (auto &feature : *pipeline_features_) {
     if (feature.GetFeatureId() == feature_id) {
@@ -19,10 +20,6 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
         }
         case brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY: {
           value = &feature.GetCardinality();
-          break;
-        }
-        case brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT: {
-          value = &feature.GetNumConcurrent();
           break;
         }
         case brain::ExecutionOperatingUnitFeatureAttribute::NUM_LOOPS: {

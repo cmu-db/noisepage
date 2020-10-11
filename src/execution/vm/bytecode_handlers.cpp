@@ -1,5 +1,6 @@
 #include "execution/vm/bytecode_handlers.h"
 
+#include "brain/brain_defs.h"
 #include "catalog/catalog_defs.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/index_iterator.h"
@@ -71,9 +72,8 @@ void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager)
 // ---------------------------------------------------------
 
 void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
-                         terrier::execution::exec::ExecutionContext *exec_ctx,
-                         terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size) {
-  new (join_hash_table) terrier::execution::sql::JoinHashTable(exec_ctx->GetExecutionSettings(), memory, tuple_size);
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t tuple_size) {
+  new (join_hash_table) terrier::execution::sql::JoinHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, tuple_size);
 }
 
 void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
@@ -88,15 +88,24 @@ void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_h
 
 void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
 
+void OpJoinHashTableIteratorInit(terrier::execution::sql::JoinHashTableIterator *iter,
+                                 terrier::execution::sql::JoinHashTable *join_hash_table) {
+  TERRIER_ASSERT(join_hash_table != nullptr, "Null hash table");
+  new (iter) terrier::execution::sql::JoinHashTableIterator(*join_hash_table);
+}
+
+void OpJoinHashTableIteratorFree(terrier::execution::sql::JoinHashTableIterator *iter) {
+  iter->~JoinHashTableIterator();
+}
+
 // ---------------------------------------------------------
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
 void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *const agg_hash_table,
-                                terrier::execution::exec::ExecutionContext *exec_ctx,
-                                terrier::execution::sql::MemoryPool *const memory, const uint32_t payload_size) {
+                                terrier::execution::exec::ExecutionContext *exec_ctx, const uint32_t payload_size) {
   new (agg_hash_table)
-      terrier::execution::sql::AggregationHashTable(exec_ctx->GetExecutionSettings(), memory, payload_size);
+      terrier::execution::sql::AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, payload_size);
 }
 
 void OpAggregationHashTableGetTupleCount(uint32_t *result,
@@ -141,9 +150,10 @@ void OpAggregationHashTableIteratorFree(terrier::execution::sql::AHTIterator *it
 // Sorters
 // ---------------------------------------------------------
 
-void OpSorterInit(terrier::execution::sql::Sorter *const sorter, terrier::execution::sql::MemoryPool *const memory,
+void OpSorterInit(terrier::execution::sql::Sorter *const sorter,
+                  terrier::execution::exec::ExecutionContext *const exec_ctx,
                   const terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, const uint32_t tuple_size) {
-  new (sorter) terrier::execution::sql::Sorter(memory, cmp_fn, tuple_size);
+  new (sorter) terrier::execution::sql::Sorter(exec_ctx, cmp_fn, tuple_size);
 }
 
 void OpSorterSort(terrier::execution::sql::Sorter *sorter) { sorter->Sort(); }
@@ -268,5 +278,71 @@ void OpIndexIteratorGetSize(uint32_t *index_size, terrier::execution::sql::Index
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }
 
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
+
+void OpExecutionContextRegisterHook(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t hook_idx,
+                                    terrier::execution::exec::ExecutionContext::HookFn hook) {
+  exec_ctx->RegisterHook(hook_idx, hook);
+}
+
+void OpExecutionContextClearHooks(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->ClearHooks(); }
+
+void OpExecutionContextInitHooks(terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_hooks) {
+  exec_ctx->InitHooks(num_hooks);
+}
+
+void OpExecutionContextStartPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                            terrier::execution::pipeline_id_t pipeline_id) {
+  exec_ctx->StartPipelineTracker(pipeline_id);
+}
+
+void OpExecutionContextEndPipelineTracker(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                          terrier::execution::query_id_t query_id,
+                                          terrier::execution::pipeline_id_t pipeline_id,
+                                          terrier::brain::ExecOUFeatureVector *const ouvec) {
+  exec_ctx->EndPipelineTracker(query_id, pipeline_id, ouvec);
+}
+
+void OpExecOUFeatureVectorRecordFeature(terrier::brain::ExecOUFeatureVector *ouvec,
+                                        terrier::execution::pipeline_id_t pipeline_id,
+                                        terrier::execution::feature_id_t feature_id,
+                                        terrier::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                        terrier::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
+  ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
+}
+
+void OpExecOUFeatureVectorInitialize(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                     terrier::brain::ExecOUFeatureVector *const ouvec,
+                                     terrier::execution::pipeline_id_t pipeline_id, bool is_parallel) {
+  if (is_parallel)
+    exec_ctx->InitializeParallelOUFeatureVector(ouvec, pipeline_id);
+  else
+    exec_ctx->InitializeOUFeatureVector(ouvec, pipeline_id);
+}
+
+void OpExecOUFeatureVectorReset(terrier::brain::ExecOUFeatureVector *const ouvec) { ouvec->Reset(); }
+
+void OpExecutionContextSetMemoryUseOverride(terrier::execution::exec::ExecutionContext *const exec_ctx,
+                                            uint32_t memory_use) {
+  exec_ctx->SetMemoryUseOverride(memory_use);
+}
+
+void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouvec,
+                                 terrier::brain::ExecutionOperatingUnitType filter) {
+  ouvec->pipeline_features_->erase(
+      std::remove_if(ouvec->pipeline_features_->begin(), ouvec->pipeline_features_->end(),
+                     [filter](const auto &feature) {
+                       return (filter != terrier::brain::ExecutionOperatingUnitType::INVALID) &&
+                              (filter != feature.GetExecutionOperatingUnitType());
+                     }),
+      ouvec->pipeline_features_->end());
+}
+
+void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->RegisterThread(); }
+
+void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->CheckTrackersStopped(); }
+
+void OpAggregateMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->AggregateMetricsThread();
+}
 
 }  //

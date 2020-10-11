@@ -121,7 +121,6 @@ class ScanTask {
   void *const query_state_;
   ThreadStateContainer *const thread_state_container_;
   TableVectorIterator::ScanFn scanner_ = nullptr;
-  uint32_t concurrent_estimate_;
 };
 
 }  // namespace
@@ -141,55 +140,28 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   timer.Start();
 
   // Execute parallel scan
-  size_t num_threads = exec_ctx->GetExecutionSettings().GetNumberofThreads();
-  const bool is_static_partitioned = exec_ctx->GetExecutionSettings().GetIsStaticPartitionerEnabled();
-  tbb::task_arena limited_arena(num_threads);
-  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
+  size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberofThreads(), 0);
   size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
+  exec_ctx->SetNumConcurrentEstimate(concurrent);
 
-  limited_arena.execute([&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn,
-                         is_static_partitioned, concurrent] {
-    is_static_partitioned
-        ? tbb::parallel_for(block_range,
-                            ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, concurrent),
-                            tbb::static_partitioner())
-        : tbb::parallel_for(block_range,
-                            ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn, concurrent));
-  });
+  tbb::task_arena limited_arena(num_threads);
+  tbb::blocked_range<uint32_t> block_range(0, table->table_.data_table_->GetNumBlocks(), min_grain_size);
+  const bool is_static_partitioned = exec_ctx->GetExecutionSettings().GetIsStaticPartitionerEnabled();
+  limited_arena.execute(
+      [&block_range, &table_oid, &col_oids, &num_oids, &query_state, &exec_ctx, &scan_fn, is_static_partitioned] {
+        is_static_partitioned
+            ? tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn),
+                                tbb::static_partitioner())
+            : tbb::parallel_for(block_range, ScanTask(table_oid, col_oids, num_oids, query_state, exec_ctx, scan_fn));
+      });
 
+  exec_ctx->SetNumConcurrentEstimate(0);
   timer.Stop();
 
-  // Register a CREATE_INDEX_MAIN for the memory
-  bool is_create_idx = false;
-  if (exec_ctx->GetPipelineOperatingUnits() &&
-      exec_ctx->GetPipelineOperatingUnits()->HasPipelineFeatures(pipeline_id)) {
-    brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeExecOUFeatureVector(&ouvec, pipeline_id);
-    for (auto &feature : *ouvec.pipeline_features_) {
-      if (feature.GetExecutionOperatingUnitType() == brain::ExecutionOperatingUnitType::CREATE_INDEX) {
-        is_create_idx = true;
-        break;
-      }
-    }
-  }
-
-  if (is_create_idx && common::thread_context.metrics_store_ != nullptr) {
-    brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeParallelOUFeatureVector(&ouvec, pipeline_id);
-    auto index = exec_ctx->GetAccessor()->GetIndex(index_oid);
-    size_t tuples = index->GetSize();
-    (*ouvec.pipeline_features_)[0].SetNumRows(tuples);
-
-    // Without more significant overhead, we actually don't have the cardinality
-    // of the input tuples. As an unfortunate approximation, we just use the
-    // number of tuples inserted into the index.
-    (*ouvec.pipeline_features_)[0].SetCardinality(tuples);
-    (*ouvec.pipeline_features_)[0].SetNumConcurrent(0);
-    exec_ctx->SetMemoryUseOverride(index->EstimateHeapUsage());
-    exec_ctx->StartPipelineTracker(pipeline_id);
-    exec_ctx->EndPipelineTracker(exec_ctx->GetQueryId(), pipeline_id, &ouvec);
-  }
+  auto *tsc = exec_ctx->GetThreadStateContainer();
+  auto *tls = tsc->AccessCurrentThreadState();
+  exec_ctx->InvokeHook(static_cast<uint32_t>(HookOffsets::EndHook), tls, nullptr);
 
   double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),

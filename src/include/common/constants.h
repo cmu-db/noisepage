@@ -105,9 +105,19 @@ struct Constants {
   static constexpr const bool IS_PARALLEL_EXECUTION_ENABLED = true;
 
   /**
+   * Number of threads for parallel execution
+   */
+  static constexpr const bool IS_COUNTERS_ENABLED = false;
+
+  /**
    * Flag indicating if counters is enabled
    */
   static constexpr const bool IS_COUNTERS_ENABLED = false;
+
+  /**
+   * Flag indicating if pipeline metrics are enabled
+   */
+  static constexpr const bool IS_PIPELINE_METRICS_ENABLED = true;
 
   /**
    * Flag indicating if static partitioner is used
