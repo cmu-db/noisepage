@@ -68,12 +68,6 @@ void OutputTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuil
 void OutputTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
                 brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_output_));
-
-  if (pipeline.IsParallel()) {
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::OUTPUT,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
-  }
-
   FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_output_));
 }
 

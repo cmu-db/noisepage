@@ -180,19 +180,8 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
 }
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsLeftPipeline(pipeline)) {
-    if (left_pipeline_.IsParallel()) {
+  if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
       TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
-    }
-  }
-}
-
-void HashJoinTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsLeftPipeline(pipeline)) {
-    CounterSet(function, num_build_rows_, 0);
-  } else {
-    CounterSet(function, num_probe_rows_, 0);
-    CounterSet(function, num_match_rows_, 0);
   }
 }
 

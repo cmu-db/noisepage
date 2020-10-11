@@ -872,10 +872,10 @@ ast::Expr *CodeGen::JoinHashTableBuild(ast::Expr *join_hash_table) {
   return call;
 }
 
-ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
-                                               ast::Expr *thread_state_container, ast::Expr *offset) {
+ast::Expr *CodeGen::JoinHashTableBuildParallel(ast::Expr *join_hash_table, ast::Expr *thread_state_container,
+                                               ast::Expr *offset) {
   ast::Expr *call = CallBuiltin(ast::Builtin::JoinHashTableBuildParallel,
-                                {join_hash_table, exec_ctx, pipeline_id, thread_state_container, offset});
+                                {join_hash_table, thread_state_container, offset});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -964,11 +964,9 @@ ast::Expr *CodeGen::AggHashTableLinkEntry(ast::Expr *agg_ht, ast::Expr *entry) {
   return call;
 }
 
-ast::Expr *CodeGen::AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *pipeline_id,
-                                               ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
+ast::Expr *CodeGen::AggHashTableMovePartitions(ast::Expr *agg_ht, ast::Expr *tls, ast::Expr *tl_agg_ht_offset,
                                                ast::Identifier merge_partitions_fn_name) {
-  std::initializer_list<ast::Expr *> args = {agg_ht, exec_ctx,         pipeline_id,
-                                             tls,    tl_agg_ht_offset, MakeExpr(merge_partitions_fn_name)};
+  std::initializer_list<ast::Expr *> args = {agg_ht, tls, tl_agg_ht_offset, MakeExpr(merge_partitions_fn_name)};
   ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableMovePartitions, args);
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
@@ -1116,17 +1114,15 @@ ast::Expr *CodeGen::SorterSort(ast::Expr *sorter) {
   return call;
 }
 
-ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
-                                 ast::Expr *offset) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortParallel, {sorter, exec_ctx, pipeline_id, tls, offset});
+ast::Expr *CodeGen::SortParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::SorterSortParallel, {sorter, tls, offset});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
 
-ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Expr *pipeline_id, ast::Expr *tls,
-                                     ast::Expr *offset, std::size_t top_k) {
+ast::Expr *CodeGen::SortTopKParallel(ast::Expr *sorter, ast::Expr *tls, ast::Expr *offset, std::size_t top_k) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, exec_ctx, pipeline_id, tls, offset, Const64(top_k)});
+      CallBuiltin(ast::Builtin::SorterSortTopKParallel, {sorter, tls, offset, Const64(top_k)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

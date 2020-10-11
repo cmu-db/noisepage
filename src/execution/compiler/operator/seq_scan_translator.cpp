@@ -319,12 +319,10 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const 
   auto *codegen = GetCodeGen();
   auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
   auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  return codegen->MakeFieldList(
-      {codegen->MakeField(tvi_var_, tvi_type), codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
+  return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
 }
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  auto *codegen = GetCodeGen();
   DeclareColOids(function);
   function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), GetCodeGen()->MakeExpr(col_oids_var_),
                                                       GetQueryStatePtr(), GetExecutionContext(), work_func));

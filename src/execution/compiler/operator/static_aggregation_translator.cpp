@@ -249,12 +249,6 @@ void StaticAggregationTranslator::RecordCounters(const Pipeline &pipeline, Funct
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
-
-    if (pipeline.IsParallel()) {
-      FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
-                    brain::ExecutionOperatingUnitFeatureAttribute::CONCURRENT, pipeline, pipeline.ConcurrentState());
-    }
-
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_inputs_));
   } else {
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,

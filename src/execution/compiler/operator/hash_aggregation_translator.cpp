@@ -377,6 +377,7 @@ void HashAggregationTranslator::RecordCounters(const Pipeline &pipeline, Functio
       // have been run with the current thread. This is to more correctly model the
       // amount of work performed by the current task.
       // @see HashAggregationTranslator::agg_count_ for further information.
+      auto *ins_count = codegen->CallBuiltin(ast::Builtin::AggHashTableGetInsertCount, {agg_ht.GetPtr(codegen)});
       auto *minus = codegen->BinaryOp(parsing::Token::Type::MINUS, ins_count, agg_count_.Get(codegen));
       FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                     brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, minus);
@@ -636,8 +637,7 @@ void HashAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, Fun
       auto thread_state_container = GetThreadStateContainer();
       auto tl_agg_ht_offset = local_agg_ht_.OffsetFromState(codegen);
       auto pipeline_id = codegen->Const32(pipeline.GetPipelineId().UnderlyingValue());
-      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, GetExecutionContext(), pipeline_id,
-                                                           thread_state_container, tl_agg_ht_offset,
+      function->Append(codegen->AggHashTableMovePartitions(global_agg_ht, thread_state_container, tl_agg_ht_offset,
                                                            merge_partitions_fn_));
 
       if (IsPipelineMetricsEnabled()) {
@@ -669,8 +669,7 @@ util::RegionVector<ast::FieldDecl *> HashAggregationTranslator::GetWorkerParams(
   auto *codegen = GetCodeGen();
   auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
   return codegen->MakeFieldList({codegen->MakeField(codegen->MakeIdentifier("aggHashTable"),
-                                                    codegen->PointerType(ast::BuiltinType::AggregationHashTable)),
-                                 codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
+                                                    codegen->PointerType(ast::BuiltinType::AggregationHashTable))});
 }
 
 void HashAggregationTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const {

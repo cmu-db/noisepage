@@ -180,14 +180,6 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
     parallelism_ = Pipeline::Parallelism::Parallel;
   }
 
-  // Finalize the pipeline state.
-  ast::Expr *type = codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector);
-  oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
-  if (IsParallel()) {
-    concurrent_state_ = DeclarePipelineStateEntry("concurrent", codegen_->BuiltinType(ast::BuiltinType::Uint32));
-  }
-  state_.ConstructFinalType(codegen_);
-
   // Pretty print.
   {
     std::string result;
@@ -318,9 +310,6 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() {
     } else {
       // SerialWork(queryState, pipelineState)
       InjectStartResourceTracker(&builder, false);
-      started_tracker = true;
-
-      InjectStartResourceTracker(&builder);
       started_tracker = true;
 
       builder.Append(
