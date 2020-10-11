@@ -119,6 +119,7 @@ void ExecutionContext::InitializeOUFeatureVector(brain::ExecOUFeatureVector *ouv
   for (auto &feature : *vec->pipeline_features_) {
     feature.SetNumConcurrent(num_concurrent_estimate_);
   }
+}
 
 void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVector *ouvec, pipeline_id_t pipeline_id) {
   auto *vec = new (ouvec) brain::ExecOUFeatureVector();
