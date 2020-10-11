@@ -17,7 +17,7 @@ pipeline {
 
     stages {
         stage('Performance') {
-            when { equals expected: true, actual: false } //TODO: This is just commented out for testing
+            //when { equals expected: true, actual: false } //TODO: This is just commented out for testing
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
