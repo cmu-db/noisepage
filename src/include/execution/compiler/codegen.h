@@ -588,7 +588,7 @@ class CodeGen {
    */
   [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
-                                                ast::Expr *index_oid);
+                                                ast::Identifier worker_name);
 
   /**
    * Call \@abortTxn(exec_ctx).
