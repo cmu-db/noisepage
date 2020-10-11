@@ -112,18 +112,6 @@ util::RegionVector<ast::FieldDecl *> IndexCreateTranslator::GetWorkerParams() co
   // Parameters for the scanner
   auto *codegen = GetCodeGen();
   auto *tvi_type = codegen->PointerType(ast::BuiltinType::TableVectorIterator);
-<<<<<<< HEAD
-  auto *uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-  return codegen->MakeFieldList(
-      {codegen->MakeField(tvi_var_, tvi_type), codegen->MakeField(codegen->MakeIdentifier("concurrent"), uint32_type)});
-}
-
-void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
-  auto pipeline_id = codegen_->Const32(GetPipeline()->GetPipelineId().UnderlyingValue());
-  auto index_oid = codegen_->Const32(index_oid_.UnderlyingValue());
-  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen_), GetQueryStatePtr(),
-                                                      GetExecutionContext(), work_func, pipeline_id, index_oid));
-=======
   return codegen->MakeFieldList({codegen->MakeField(tvi_var_, tvi_type)});
 }
 
@@ -143,7 +131,6 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
   if (IsPipelineMetricsEnabled()) {
     function->Append(codegen->ExecCtxClearHooks(exec_ctx));
   }
->>>>>>> william/hooks
 }
 
 void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
@@ -168,12 +155,7 @@ void IndexCreateTranslator::PerformPipelineWork(WorkContext *context, FunctionBu
       function->Append(codegen->MakeStmt(record));
       RecordCounters(*GetPipeline(), function);
     }
-<<<<<<< HEAD
-    RecordCounters(*GetPipeline(), function);
-  } else {
-=======
   } else if (IsPipelineMetricsEnabled()) {
->>>>>>> william/hooks
     // For parallel, just record 0 --- for the memory use.
     // The model should be able to identify that for non-zero concurrent, memory = 0
     auto *zero = codegen_->Const32(0);
