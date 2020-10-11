@@ -50,9 +50,9 @@ pipeline {
                 //
                 // TODO: Currently we are skipping running the microbenchmarks while the testing team makes changes to store & visualize the benchmarks
                 //
-                sh 'cd script/micro_bench && ./run_micro_bench.py --run --num-threads=4 --logfile-path=/mnt/ramdisk/benchmark.log'
-                archiveArtifacts 'script/micro_bench/*.json'
-                junit 'script/micro_bench/*.xml'
+                sh 'python3 script/testing/micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path /repo/build/release --logfile-path=/mnt/ramdisk/benchmark.log bwtree_benchmark'
+                archiveArtifacts 'script/testing/micro_bench/*.json'
+                junit 'script/testing/micro_bench/*.xml'
             }
             post {
                 cleanup {
