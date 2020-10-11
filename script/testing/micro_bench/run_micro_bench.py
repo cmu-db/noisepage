@@ -12,7 +12,7 @@ from micro_bench.config import Config
 from micro_bench.micro_benchmarks_runner import MicroBenchmarksRunner
 from micro_bench.artifact_processor import ArtifactProcessor
 from micro_bench.text_table import TextTable
-from micro_bench.gbench_run_result import GBenchRunResult
+from micro_bench.google_benchmark.gbench_run_result import GBenchRunResult
 from util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
 from micro_bench.constants import (JENKINS_URL, LOCAL_REPO_DIR, BENCHMARK_THREADS, 
                                     BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH, MIN_REF_VALUES)

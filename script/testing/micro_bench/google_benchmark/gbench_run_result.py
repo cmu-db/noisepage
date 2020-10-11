@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 
-from micro_bench.gbench_test_result import GBenchTestResult
+from micro_bench.google_benchmark.gbench_test_result import GBenchTestResult
 from util.constants import LOG
 
 class GBenchRunResult(object):

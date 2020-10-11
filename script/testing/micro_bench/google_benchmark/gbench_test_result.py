@@ -1,6 +1,3 @@
-
-
-
 class GBenchTestResult(object):
     """ A single Google Benchmark result """
     def __init__(self, result_dict):

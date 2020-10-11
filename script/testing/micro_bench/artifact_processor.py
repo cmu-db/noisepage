@@ -1,8 +1,8 @@
 import os
 from glob import glob
 
-from micro_bench.gbench_run_result import GBenchRunResult
-from micro_bench.gbench_historical_results import GBenchHistoricalResults
+from micro_bench.google_benchmark.gbench_run_result import GBenchRunResult
+from micro_bench.google_benchmark.gbench_historical_results import GBenchHistoricalResults
 from micro_bench.jenkins import Jenkins
 from micro_bench.constants import LOCAL_REPO_DIR, JENKINS_URL
 from micro_bench.benchmarks import BENCHMARKS_TO_RUN
