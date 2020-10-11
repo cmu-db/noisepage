@@ -14,6 +14,10 @@ namespace terrier::runner {
 class MiniRunners;
 }  // namespace terrier::runner
 
+namespace terrier::tpch {
+class Workload;
+}  // namespace terrier::tpch
+
 namespace terrier::execution {
 class SqlBasedTest;
 }  // namespace terrier::execution
