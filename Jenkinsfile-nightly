@@ -50,6 +50,7 @@ pipeline {
                 //
                 // TODO: Currently we are skipping running the microbenchmarks while the testing team makes changes to store & visualize the benchmarks
                 //
+                sh 'pwd'
                 sh 'ls build/release'
                 sh 'python3 script/testing/micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path /build/release --logfile-path=/mnt/ramdisk/benchmark.log bwtree_benchmark'
                 archiveArtifacts 'script/testing/micro_bench/*.json'
