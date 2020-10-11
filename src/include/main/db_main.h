@@ -275,15 +275,20 @@ class DBMain {
    public:
     /**
      * Instantiate and register a Messenger.
-     * @param thread_registry   The DedicatedThreadRegistry that the Messenger will be registered to.
-     * @param messenger_port    The port on which the Messenger will listen by default.
+     * @param thread_registry       The DedicatedThreadRegistry that the Messenger will be registered to.
+     * @param messenger_port        The port on which the Messenger will listen by default.
+     * @param messenger_identity    The name by which this Messenger instance will be known.
      */
     explicit MessengerLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                            const uint16_t messenger_port)
-        : messenger_manager_(std::make_unique<messenger::MessengerManager>(thread_registry, messenger_port)) {}
+                            const uint16_t messenger_port, const std::string &messenger_identity)
+        : messenger_manager_(
+              std::make_unique<messenger::MessengerManager>(thread_registry, messenger_port, messenger_identity)) {}
 
     /** Destructor. */
     ~MessengerLayer() = default;
+
+    /** @return The Messenger. */
+    common::ManagedPointer<messenger::Messenger> GetMessenger() const { return messenger_manager_->GetMessenger(); }
 
    private:
     std::unique_ptr<messenger::MessengerManager> messenger_manager_;
@@ -389,7 +394,8 @@ class DBMain {
 
       std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
       if (use_messenger_) {
-        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_);
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
+                                                           messenger_identity_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -601,6 +607,15 @@ class DBMain {
     }
 
     /**
+     * @param identity Messenger identity
+     * @return self reference for chaining
+     */
+    Builder &SetMessengerIdentity(const std::string &identity) {
+      messenger_identity_ = identity;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -717,6 +732,7 @@ class DBMain {
     bool use_network_ = false;
     bool use_messenger_ = false;
     uint16_t messenger_port_ = 9022;
+    std::string messenger_identity_ = "primary";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.

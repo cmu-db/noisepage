@@ -120,23 +120,38 @@ class ZmqMessage {
   uint64_t GetMessageId() const { return message_id_; }
 
   /** @return The routing ID of this message, i.e., the sender. */
-  std::string_view GetSenderId() const { return std::string_view(sender_id_.c_str()); }
+  std::string_view GetSenderId() const { return std::string_view(sender_id_); }
 
   /** @return The message itself. */
-  std::string_view GetMessage() const { return std::string_view(sender_id_.c_str()); }
+  std::string_view GetMessage() const {
+    auto view = std::string_view(payload_);
+    view.remove_prefix(separator_idx_ > 0 ? separator_idx_ + 1 : 0);
+    return view;
+  }
+
+  /** @return The raw payload of the message. */
+  std::string_view GetRawPayload() const { return std::string_view(payload_); }
 
  private:
+  friend Messenger;
+
+  /** Set the sender ID of this message. */
+  void SetSenderId(std::string sender_id) { sender_id_ = std::move(sender_id); }
+
   ZmqMessage(std::string sender_id, std::string payload)
       : sender_id_(std::move(sender_id)), payload_(std::move(payload)) {
     if (payload_.empty()) {
       message_id_ = 0;
+      separator_idx_ = 0;
     } else {
-      message_id_ = atoi(payload_.substr(0, payload_.find('-')).c_str());
+      separator_idx_ = payload_.find('-');
+      message_id_ = atoi(payload_.substr(0, separator_idx_).c_str());
     }
   }
 
   /** The cached id of the message, parsed from payload_. Used to look up the corresponding callback. */
   uint64_t message_id_;
+  size_t separator_idx_;
   /** The routing ID of the message sender. */
   std::string sender_id_;
   /** The payload in the message, of form ID-MESSAGE.  */
@@ -235,7 +250,7 @@ class ZmqUtil {
   /** @return Send the specified ZmqMessage (identity and payload) over the socket. */
   static void SendMsg(common::ManagedPointer<zmq::socket_t> socket, const messenger::ZmqMessage &msg) {
     zmq::message_t delimiter_msg("", 0);
-    zmq::message_t payload_msg(msg.GetMessage().data(), msg.GetMessage().size());
+    zmq::message_t payload_msg(msg.GetRawPayload().data(), msg.GetRawPayload().size());
     bool ok = true;
 
     ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore);
@@ -252,23 +267,33 @@ class ZmqUtil {
 namespace terrier::messenger {
 
 ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
-                           std::string_view identity) {
+                           const std::string &identity) {
   // Create a new DEALER socket and connect to the server.
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_DEALER);
   socket_->set(zmq::sockopt::routing_id, identity);
-  routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
   socket_->connect(target.GetDestination());
+  routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
+  MESSENGER_LOG_INFO(
+      fmt::format("[PID={}] Connected to {} as {}.", ::getpid(), target.GetDestination(), routing_id_.c_str()));
   // Add the new socket to the list of sockets that will be polled by the server loop.
   messenger->polled_sockets_->AddPollItem(socket_.get());
+  // Currently, target_ is only used for debugging.
+  target_ = std::string(target.GetDestination());
 }
 
 ConnectionId::~ConnectionId() = default;
 
-std::string Messenger::GetEndpointTCP(const uint16_t port) { return fmt::format(MESSENGER_DEFAULT_TCP, port); }
-std::string Messenger::GetEndpointIPC(const uint16_t port) { return fmt::format(MESSENGER_DEFAULT_IPC, port); }
-std::string Messenger::GetEndpointINPROC(const uint16_t port) { return fmt::format(MESSENGER_DEFAULT_INPROC, port); }
+ConnectionDestination Messenger::GetEndpointTCP(const uint16_t port) {
+  return ConnectionDestination::MakeTCP(MESSENGER_DEFAULT_TCP, port);
+}
+ConnectionDestination Messenger::GetEndpointIPC(const uint16_t port) {
+  return ConnectionDestination::MakeIPC(fmt::format(MESSENGER_DEFAULT_IPC, port));
+}
+ConnectionDestination Messenger::GetEndpointINPROC(const uint16_t port) {
+  return ConnectionDestination::MakeInProc(fmt::format(MESSENGER_DEFAULT_INPROC, port));
+}
 
-Messenger::Messenger(const uint16_t port) {
+Messenger::Messenger(const uint16_t port, std::string identity) : port_(port), identity_(std::move(identity)) {
   // Create a ZMQ context. A ZMQ context abstracts away all of the in-process and networked sockets that ZMQ uses.
   // The ZMQ context is also the transport for in-process ("inproc") sockets.
   // Generally speaking, a single process should only have a single ZMQ context.
@@ -281,12 +306,14 @@ Messenger::Messenger(const uint16_t port) {
   // By default, the ROUTER socket silently discards messages that cannot be routed.
   // By setting ZMQ_ROUTER_MANDATORY, the ROUTER socket errors with EHOSTUNREACH instead.
   zmq_default_socket_->set(zmq::sockopt::router_mandatory, true);
+  // Set the identity that this Messenger will be known by.
+  zmq_default_socket_->set(zmq::sockopt::routing_id, identity_.c_str());
 
   // Bind the same ZeroMQ socket over the default TCP, IPC, and in-process channels.
   {
-    zmq_default_socket_->bind(GetEndpointTCP(port));
-    zmq_default_socket_->bind(GetEndpointIPC(port));
-    zmq_default_socket_->bind(GetEndpointINPROC(port));
+    zmq_default_socket_->bind(GetEndpointTCP(port).GetDestination());
+    zmq_default_socket_->bind(GetEndpointIPC(port).GetDestination());
+    zmq_default_socket_->bind(GetEndpointINPROC(port).GetDestination());
   }
 
   // The following block of code is dead code that contains useful background information on ZMQ defaults.
@@ -313,7 +340,7 @@ void Messenger::RunTask() {
       case ETERM:
         // The ZeroMQ context was terminated, which means the messenger should have shut down. If so, close cleanly.
         if (!messenger_running_) {
-          MESSENGER_LOG_INFO(fmt::format("Messenger terminated: {}", err.what()));
+          MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger terminated: {}", ::getpid(), err.what()));
           break;
         }
       default:
@@ -333,9 +360,8 @@ void Messenger::ListenForConnection(const ConnectionDestination &target) {
   zmq_default_socket_->bind(target.GetDestination());
 }
 
-ConnectionId Messenger::MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity) {
-  const auto &identifier = identity.has_value() ? identity.value() : fmt::format("conn{}", connection_id_count_++);
-  return ConnectionId(common::ManagedPointer(this), target, identifier);
+ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
+  return ConnectionId(common::ManagedPointer(this), target, identity_);
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn fn) {
@@ -346,6 +372,18 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
   ZmqMessage msg = ZmqMessage::Build(message_id, connection_id->routing_id_, message);
   // Send the message.
   ZmqUtil::SendMsg(common::ManagedPointer(connection_id->socket_), msg);
+  MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger sent: {} to {}", ::getpid(), message, connection_id->target_));
+}
+
+void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn fn,
+                            uint64_t special_fn_id) {
+  // Build the message.
+  ZmqMessage msg = ZmqMessage::Build(special_fn_id, connection_id->routing_id_, message);
+  // Send the message.
+  ZmqUtil::SendMsg(common::ManagedPointer(connection_id->socket_), msg);
+  MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger sent: {} to {}", ::getpid(), message, connection_id->target_));
+  ZmqMessage response = ZmqUtil::RecvMsg(common::ManagedPointer(connection_id->socket_));
+  fn(response.GetSenderId(), response.GetMessage());
 }
 
 void Messenger::ServerLoop() {
@@ -361,13 +399,29 @@ void Messenger::ServerLoop() {
       // Otherwise, at least some socket has data. Is it the current socket?
       bool socket_has_data = item.revents & ZMQ_POLLIN;
       if (socket_has_data) {
-        common::ManagedPointer socket(reinterpret_cast<zmq::socket_t *>(&item.socket));
+        common::ManagedPointer<zmq::socket_t> socket(reinterpret_cast<zmq::socket_t *>(&item.socket));
         ZmqMessage msg = ZmqUtil::RecvMsg(socket);
-        MESSENGER_LOG_INFO("Messenger received: {} {} {}", msg.GetMessageId(), msg.GetSenderId(), msg.GetMessage());
+        MESSENGER_LOG_INFO("[PID={}] Messenger received: {} {} {}", ::getpid(), msg.GetMessageId(), msg.GetSenderId(),
+                           msg.GetMessage());
         auto msg_id = msg.GetMessageId();
-        if (msg_id != 0) {
-          ZmqUtil::SendMsg(socket, msg);
+        if (msg_id == 0) {
+          // Special function: Echo server.
+          zmq::message_t router_data(msg.GetSenderId().data(), msg.GetSenderId().size());
+          zmq::message_t identity_msg(identity_.data(), identity_.size());
+          zmq::message_t delimiter_msg("", 0);
+          zmq::message_t payload_msg(msg.GetRawPayload().data(), msg.GetRawPayload().size());
+          bool ok = true;
+
+          // ROUTER sockets must send their intended recipient as the first sndmore packet.
+          // router_data must be the identity of a peer that connected directly to the router socket.
+          ok = ok && zmq_default_socket_->send(router_data, zmq::send_flags::sndmore);
+          ok = ok && zmq_default_socket_->send(identity_msg, zmq::send_flags::sndmore);
+          ok = ok && zmq_default_socket_->send(delimiter_msg, zmq::send_flags::sndmore);
+          ok = ok && zmq_default_socket_->send(payload_msg, zmq::send_flags::none);
+
+          MESSENGER_LOG_INFO(fmt::format("Sent back {} ", msg.GetRawPayload().data()));
         } else {
+          MESSENGER_LOG_INFO(fmt::format("Call {} ", callbacks_.size()));
           auto &callback = callbacks_.at(msg_id);
           callback(msg.GetSenderId(), msg.GetMessage());
           callbacks_.erase(msg_id);
@@ -379,8 +433,8 @@ void Messenger::ServerLoop() {
 }
 
 MessengerManager::MessengerManager(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                                   const uint16_t port)
+                                   const uint16_t port, const std::string &identity)
     : DedicatedThreadOwner(thread_registry),
-      messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this, port)) {}
+      messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this, port, identity)) {}
 
 }  // namespace terrier::messenger

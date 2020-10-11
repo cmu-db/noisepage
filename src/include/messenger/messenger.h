@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -39,12 +38,14 @@ class ConnectionId {
    * @param identity    The name that the connection should have.
    */
   explicit ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
-                        std::string_view identity);
+                        const std::string &identity);
 
   /** The ZMQ socket. */
   std::unique_ptr<zmq::socket_t> socket_;
   /** The ZMQ socket routing ID. */
   std::string routing_id_;
+  /** The target that was connected to. Useful for debugging. */
+  std::string target_;
 };
 
 /**
@@ -63,17 +64,20 @@ class Messenger : public common::DedicatedThreadTask {
   using CallbackFn = std::function<void(std::string_view, std::string_view)>;
 
   /** @return The default TCP endpoint for a Messenger on the given port. */
-  static std::string GetEndpointTCP(const uint16_t port);
+  static ConnectionDestination GetEndpointTCP(const uint16_t port);
   /** @return The default IPC endpoint for a Messenger on the given port. */
-  static std::string GetEndpointIPC(const uint16_t port);
+  static ConnectionDestination GetEndpointIPC(const uint16_t port);
   /** @return The default INPROC endpoint for a Messenger on the given port. */
-  static std::string GetEndpointINPROC(const uint16_t port);
+  static ConnectionDestination GetEndpointINPROC(const uint16_t port);
 
   /**
    * Create a new Messenger, listening to the default endpoints on the given port.
    * @param port        The port that determines the default endpoints.
+   * @param identity    The identity that this Messenger instance is known by. See warning!
+   *
+   * @warning           Identity must be unique across all instances of Messengers.
    */
-  explicit Messenger(const uint16_t port);
+  explicit Messenger(const uint16_t port, std::string identity);
 
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~Messenger();
@@ -97,17 +101,15 @@ class Messenger : public common::DedicatedThreadTask {
   void ListenForConnection(const ConnectionDestination &target);
 
   /**
-   * Connect to the specified target destination, optionally providing an identity that we want to be known by.
+   * Connect to the specified target destination.
    *
    * @param target      The destination to be connected to.
-   * @param identity    An optional string to identify the connection by. See warning!
    * @return            A new ConnectionId. See warning!
    *
-   * @warning           Identities must be unique to the Messenger instance that you are connecting to!
    * @warning           DO NOT USE THIS ConnectionId FROM A DIFFERENT THREAD THAN THE CALLER OF THIS FUNCTION!
    *                    Make a new connection instead, connections are cheap.
    */
-  ConnectionId MakeConnection(const ConnectionDestination &target, std::optional<std::string> identity);
+  ConnectionId MakeConnection(const ConnectionDestination &target);
 
   /**
    * Send a message through the specified connection id.
@@ -120,17 +122,32 @@ class Messenger : public common::DedicatedThreadTask {
    */
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn callback);
 
+  /**
+   * Send a message through the specified connection id.
+   *
+   * @warning   Remember that ConnectionId can only be used from the same thread that created it!
+   *
+   * @param connection_id   The connection to send the message over.
+   * @param message         The message to be sent.
+   * @param callback        The callback function to be invoked on the response.
+   * @param special_fn_id   A special identifier pre-registered on the server that the server should invoke on receipt.
+   */
+  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn callback,
+                   uint64_t special_fn_id);
+
  private:
   friend ConnectionId;
-  static constexpr const char *MESSENGER_DEFAULT_TCP = "tcp://*:{}";
-  static constexpr const char *MESSENGER_DEFAULT_IPC = "ipc:///tmp/noisepage-ipc0-{}";
-  static constexpr const char *MESSENGER_DEFAULT_INPROC = "inproc://noisepage-inproc-{}";
+  static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
+  static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc0-{}";
+  static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
 
   /** The main server loop. */
   void ServerLoop();
 
   /** The port that is used for all default endpoints. */
   const uint16_t port_;
+  /** The identity that this instance of the Messenger is known by. */
+  const std::string identity_;
 
   std::unique_ptr<zmq::context_t> zmq_ctx_;
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
@@ -139,7 +156,7 @@ class Messenger : public common::DedicatedThreadTask {
   bool messenger_running_ = false;
   uint32_t connection_id_count_ = 0;
   /** The message ID that gets automatically prefixed to messages. */
-  uint64_t message_id_;
+  uint64_t message_id_ = 1;
 };
 
 /**
@@ -153,9 +170,10 @@ class MessengerManager : public common::DedicatedThreadOwner {
    * Create and run a new Messenger (which is a DedicatedThreadTask) on the specified thread registry.
    * @param thread_registry The registry in which the Messenger will be registered.
    * @param port            The port on which the Messenger will listen by default.
+   * @param identity        The name that this Messenger will be known by. Must be unique across all instances!
    */
   explicit MessengerManager(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                            const uint16_t port);
+                            const uint16_t port, const std::string &identity);
 
   /** @return The Messenger being managed. */
   common::ManagedPointer<Messenger> GetMessenger() const { return messenger_; }
