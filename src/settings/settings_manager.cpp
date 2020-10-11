@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "binder/binder_util.h"
 #include "common/macros.h"
 #include "execution/sql/value_util.h"
 #include "main/db_main.h"
@@ -276,10 +277,16 @@ void SettingsManager::SetParameter(const std::string &name,
       "Values should be constant value expressions.");
   const auto &value = values[0].CastManagedPointerTo<parser::ConstantValueExpression>();
 
-  // Check types.
+  // Check types. If the type of the value does not match the parameter's type, type casting / promotion is attempted.
   if (value->GetReturnValueType() != param_type) {
-    throw SETTINGS_EXCEPTION(fmt::format("invalid value for parameter \"{}\": \"{}\"", info.name_, value->ToString()),
-                             common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+    try {
+      // The binder has exceptional control flow. If this call succeeds, then the type promotion succeeded.
+      binder::BinderUtil::CheckAndTryPromoteType(value, param_type);
+    } catch (BinderException &e) {
+      // The promotion failed and the type remains mismatched, so a SettingsException is thrown.
+      throw SETTINGS_EXCEPTION(fmt::format("invalid value for parameter \"{}\": \"{}\"", info.name_, value->ToString()),
+                               common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+    }
   }
 
   // TODO(WAN): hook up real action contexts and settings callbacks.

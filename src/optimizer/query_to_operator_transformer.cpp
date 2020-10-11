@@ -644,6 +644,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::Comparison
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
     GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 1, false);
   } else if (expr_type == parser::ExpressionType::COMPARE_EQUAL ||
+             expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
              expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
@@ -744,7 +745,8 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(
   if (expr_type == parser::ExpressionType::COMPARE_EQUAL || expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
       expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
-      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
+      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO ||
+      expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL) {
     // Supported if one child is subquery and the other is not
     if ((!expr->GetChild(0)->HasSubquery() &&
          expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) ||
