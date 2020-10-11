@@ -52,7 +52,10 @@ pipeline {
                 //
                 sh 'python3 script/testing/micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/build/release --debug --logfile-path=/mnt/ramdisk/benchmark.log bwtree_benchmark'
                 sh 'ls script/testing/micro_bench'
+                sh 'ls script/testing/'
+                sh 'ls script'
                 sh 'ls build/release'
+                sh 'ls build'
                 sh 'ls '
                 sh 'ls ..'
                 sh 'ls ../..'
