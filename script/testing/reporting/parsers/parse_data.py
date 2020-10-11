@@ -2,9 +2,14 @@
 
 import os
 import platform
+import re
+
 from reporting.parsers.oltpbench.config_parser import parse_config_file
 from reporting.parsers.oltpbench.summary_parser import parse_summary_file
 from reporting.parsers.oltpbench.res_parser import parse_res_file
+from util.constants import DIR_UTIL
+from reporting.constants import UNKNOWN_RESULT
+
 
 def parse_oltpbench_data(results_dir):
     env_metadata = parse_jenkins_env_vars()
@@ -13,7 +18,16 @@ def parse_oltpbench_data(results_dir):
     return metadata, timestamp, type, parameters, metrics
 
 
+def parse_microbenchmark_data(artifact_processor_comparison):
+    env_metadata = parse_jenkins_env_vars()
+    metadata = {**env_metadata, **parse_db_metadata()}
+    metrics = parse_microbenchmark_comparison(artifact_processor_comparison)
+    return metadata,  metrics
+
+
 def parse_jenkins_env_vars():
+    """ get some metadata from the environment values that Jenkins has 
+    populated """
     jenkins_job_id = os.environ['BUILD_ID']
     git_branch = os.environ['GIT_BRANCH']
     commit_id = os.environ['GIT_COMMIT']
@@ -56,3 +70,17 @@ def parse_oltpbench_files(results_dir):
     metrics['incremental_metrics']=parse_res_file(results_dir+'/oltpbench.res')
     parameters = {**summary_parameters,**config_parameters}
     return metadata, timestamp, type, parameters, metrics
+
+def parse_microbenchmark_comparison(artifact_processor_comparison):
+    metrics_fields =['throughput','stdev_throughput','tolerance','status','iterations','ref_throughput', 'num_results']
+    return {key: value for key, value in artifact_processor_comparison.items() if key in metrics_fields}
+
+def parse_db_metadata():
+    regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
+    with open(DIR_UTIL+'../../src/include/common/version.h') as version_file:
+        match = re.search(regex, version_file)
+        return {
+            'noisepage':{
+                'db_version':  match.group(1) if match.group(1) else UNKNOWN_RESULT
+            }
+        }

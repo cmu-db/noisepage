@@ -9,7 +9,8 @@ from micro_bench.constants import (LAX_TOLERANCE, MIN_TIME, BENCHMARK_THREADS,
 class Config(object):
     """ Configuration for run_micro_bench. All information is read-only. """
     def __init__(self, benchmark_path=BENCHMARK_PATH, benchmarks=BENCHMARKS_TO_RUN, lax_tolerance=LAX_TOLERANCE, min_time=MIN_TIME,
-                    num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False):
+                    num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False, publish_results_env='none', 
+                    publish_results_username=None, publish_results_password=None):
         
         validate_benchmark_path(benchmark_path)
         # path to benchmark binaries
@@ -38,6 +39,13 @@ class Config(object):
         self.ref_data_source = {
             "project": JENKINS_REF_PROJECT,
         }
+
+        # Environment to which the microbenchmark results will be published (primarily 'prod')
+        self.publish_results_env = publish_results_env
+
+        # Credentials needed to send results to the performance storage service
+        self.publish_results_username = publish_results_username 
+        self.publish_results_password = publish_results_password
         return
 
 def validate_benchmark_path(benchmark_path):
