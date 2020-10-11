@@ -876,6 +876,9 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
       case ast::BuiltinType::Integer:
         GetEmitter()->Emit(Bytecode::HashInt, hash_val, input, hash_val.ValueOf());
         break;
+      case ast::BuiltinType::Boolean:
+        GetEmitter()->Emit(Bytecode::HashBool, hash_val, input, hash_val.ValueOf());
+        break;
       case ast::BuiltinType::Real:
         GetEmitter()->Emit(Bytecode::HashReal, hash_val, input, hash_val.ValueOf());
         break;
