@@ -31,6 +31,7 @@ Pipeline::Pipeline(CompilationContext *ctx)
              [this](CodeGen *codegen) { return codegen_->MakeExpr(state_var_); }) {}
 
 Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : Pipeline(op->GetCompilationContext()) {
+  UpdateParallelism(parallelism);
   RegisterStep(op);
 }
 

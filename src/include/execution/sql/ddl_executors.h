@@ -9,6 +9,7 @@ class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateIndexPlanNode;
+class CreateViewPlanNode;
 class DropDatabasePlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
