@@ -377,7 +377,7 @@ pipeline {
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
-                        ''', lable: 'Executing OLTPBench TATP with WAL disabled'
+                        ''', label: 'Executing OLTPBench TATP with WAL disabled'
 
                         sh script: '''
                         cd build
@@ -387,12 +387,12 @@ pipeline {
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
-                        ''', lable: 'Executing OLTPBench YCSB test'
+                        ''', label: 'Executing OLTPBench YCSB test'
 
                         sh script: '''
                         cd build
                         gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
-                        ''', lable: 'Executing OLTPBench NOOP test'
+                        ''', label: 'Executing OLTPBench NOOP test'
 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         sh script: '''
@@ -437,7 +437,7 @@ pipeline {
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
-                        ''', lable: 'Executing OLTPBench TATP with WAL disabled'
+                        ''', label: 'Executing OLTPBench TATP with WAL disabled'
 
                         sh script: '''
                         cd build
@@ -447,12 +447,12 @@ pipeline {
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
-                        ''', lable: 'Executing OLTPBench YCSB test'
+                        ''', label: 'Executing OLTPBench YCSB test'
 
                         sh script: '''
                         cd build
                         gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
-                        ''', lable: 'Executing OLTPBench NOOP test'
+                        ''', label: 'Executing OLTPBench NOOP test'
 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         sh script: '''
