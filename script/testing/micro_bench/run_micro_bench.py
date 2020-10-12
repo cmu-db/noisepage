@@ -30,7 +30,7 @@ def send_results(config, artifact_processor):
 
             comparison = artifact_processor.get_comparison(bench_name, result, config.lax_tolerance)
             try:
-                report_microbenchmark_result(config.publish_results_env, result.get('timestamp'), config, comparison)
+                report_microbenchmark_result(config.publish_results_env, result.timestamp, config, comparison)
             except Exception as err:
                 LOG.error("Error reporting results to performance storage service")
                 LOG.error(err)
@@ -133,8 +133,18 @@ if __name__ == "__main__":
                         default=False,
                         help="Enable perf counter recording")
 
+    parser.add_argument("--folders",
+                        type=str,
+                        nargs="*",
+                        help="The jenkins subfolder from which to fetch the Jenkins artifacts in order to compare the results against")
+
+    parser.add_argument("--branch",
+                        type=str,
+                        help="The branch from which to fetch the Jenkins artifacts in order to compare the results against")
+
     parser.add_argument("--publish-results",
                          default="none",
+                         type=str,
                          choices=PERFORMANCE_STORAGE_SERVICE_API.keys(),
                          help="Environment in which to store performance results")
 
@@ -161,6 +171,8 @@ if __name__ == "__main__":
     if args.benchmark_path: config_args['benchmark_path'] = args.benchmark_path
     if args.local: config_args['is_local'] = args.local
     if args.benchmark: config_args['benchmarks'] = sorted(args.benchmark)
+    if args.folders: config_args['jenkins_folders'] = args.folders
+    if args.branch: config_args['branch'] = args.branch
     if args.publish_results != 'none':
         config_args['publish_results_username'] = args.publish_username
         config_args['publish_results_password'] = args.publish_password

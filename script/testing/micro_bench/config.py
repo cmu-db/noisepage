@@ -9,7 +9,7 @@ from micro_bench.constants import (LAX_TOLERANCE, MIN_TIME, BENCHMARK_THREADS,
 class Config(object):
     """ Configuration for run_micro_bench. All information is read-only. """
     def __init__(self, benchmark_path=BENCHMARK_PATH, benchmarks=BENCHMARKS_TO_RUN, lax_tolerance=LAX_TOLERANCE, min_time=MIN_TIME,
-                    num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False, publish_results_env='none', 
+                    num_threads=BENCHMARK_THREADS, logfile_path=BENCHMARK_LOGFILE_PATH, is_local=False, jenkins_folders=[], branch=None, publish_results_env='none', 
                     publish_results_username=None, publish_results_password=None):
         
         validate_benchmark_path(benchmark_path)
@@ -37,7 +37,9 @@ class Config(object):
             if not os.path.exists(LOCAL_REPO_DIR): os.mkdir(LOCAL_REPO_DIR)
 
         self.ref_data_source = {
+            "folders": jenkins_folders,
             "project": JENKINS_REF_PROJECT,
+            "branch": branch
         }
 
         # Environment to which the microbenchmark results will be published (primarily 'prod')

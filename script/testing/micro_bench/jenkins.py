@@ -6,17 +6,17 @@ class Jenkins:
     def __init__(self,url):
         self.base_url = url
 
-    def get_artifacts(self, project, branch=None, min_build=0, status_filter=None):
+    def get_artifacts(self, folders, project, branch, min_build=0, status_filter=None):
         artifacts = []
-        job = self.get_job_data(project, branch)
+        job = self.get_job_data(folders, project, branch)
         build_numbers = get_build_numbers_from_job(job, min_build, status_filter)
         for build_num in build_numbers:
             try:
-                build = self.get_build_data(project, branch, build_num)
+                build = self.get_build_data(folders, project, branch, build_num)
                 artifact_paths = get_artifact_paths_from_build(build)
                 for artifact_path in artifact_paths:
                     try:
-                        artifacts.append(self.get_artifact_data(project, branch, build_num, artifact_path))
+                        artifacts.append(self.get_artifact_data(folders, project, branch, build_num, artifact_path))
                     except:
                         pass
             except:
@@ -24,9 +24,9 @@ class Jenkins:
         return artifacts
 
 
-    def get_job_data(self, project, branch):
+    def get_job_data(self, folders, project, branch):
         job_url = "{BASE_URL}/{JOB_PATH}/api/json".format(
-            BASE_URL=self.base_url, JOB_PATH=create_job_path(project,branch))
+            BASE_URL=self.base_url, JOB_PATH=create_job_path(folders, project, branch))
         try:
             LOG.debug("Retrieving list of Jenkins builds from {URL}".format(URL=job_url))
             response = requests.get(job_url)
@@ -37,9 +37,9 @@ class Jenkins:
             LOG.error(err)
             raise
 
-    def get_build_data(self, project, branch, build_number=1):
+    def get_build_data(self, folders, project, branch, build_number=1):
         build_url = "{BASE_URL}/{JOB_PATH}/{BUILD_NUM}/api/json".format(
-            BASE_URL=self.base_url, JOB_PATH=create_job_path(project,branch), BUILD_NUM=build_number)
+            BASE_URL=self.base_url, JOB_PATH=create_job_path(folders, project,branch), BUILD_NUM=build_number)
         try:
             LOG.debug("Retrieving Jenkins JSON build data from {URL}".format(URL=build_url))
             response = requests.get(build_url)
@@ -50,9 +50,9 @@ class Jenkins:
             LOG.error(err)
             raise
 
-    def get_artifact_data(self, project, branch, build_number, artifact_path):
+    def get_artifact_data(self, folders, project, branch, build_number, artifact_path):
         artifact_url = "{BASE_URL}/{JOB_PATH}/{BUILD_NUM}/artifact/{ARTIFACT}".format(BASE_URL=self.base_url,
-            JOB_PATH=create_job_path(project,branch), BUILD_NUM=build_number, ARTIFACT=artifact_path)
+            JOB_PATH=create_job_path(folders, project,branch), BUILD_NUM=build_number, ARTIFACT=artifact_path)
         try:
             LOG.debug("Retrieving JSON artifact data from {URL}".format(URL=artifact_url))
             response = requests.get(artifact_url)
@@ -63,14 +63,17 @@ class Jenkins:
             LOG.error(err)
             raise       
 
-def create_job_path(project, branch):
-    job_path = "job/{PROJ}".format(PROJ=project)
-    if branch: job_path = "{PROJ_PATH}/job/{BRANCH}".format(PROJ_PATH=job_path, BRANCH=branch)
-    return job_path
+def create_job_path(folders, project, branch=None):
+    job_paths = []
+    for folder in folders:
+        job_paths.append("job/{FOLDER}/".format(FOLDER=folder))
+    job_path = job_paths.append("job/{PROJ}".format(PROJ=project))
+    if branch: job_paths.append("/job/{BRANCH}".format(BRANCH=branch))
+    return ''.join(job_paths)
 
 def get_build_numbers_from_job(job_dict, min_build=0, status_filter=None):
     build_numbers = []
-    for build in job_dict.get('builds'):
+    for build in job_dict.get('builds',[]):
         if build.get('number') >= min_build and (build.get('result') == status_filter if status_filter else True):
             build_numbers.append(build.get('number'))
     return build_numbers

@@ -36,11 +36,12 @@ class ArtifactProcessor(object):
 
     def load_jenkins_artifacts(self, ref_data_source):
         jenkins = Jenkins(JENKINS_URL)
+        folders = ref_data_source.get("folders", [])
         project = ref_data_source.get("project")
-        branch = ref_data_source.get("branch")
+        branch = ref_data_source.get("branch", None)
         min_build = ref_data_source.get("min_build",0)
         status_filter = ref_data_source.get("status_filter")
-        for artifact in jenkins.get_artifacts(project, branch, min_build, status_filter):
+        for artifact in jenkins.get_artifacts(folders, project, branch, min_build, status_filter):
             gbench_run_results = GBenchRunResult(artifact)
             self.add_artifact(gbench_run_results)
             # Determine if we have enough history. Stop collecting information if we do
