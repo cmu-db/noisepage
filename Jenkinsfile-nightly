@@ -50,7 +50,7 @@ pipeline {
                 sh script:'''
                 cd script/testing
                 python3 micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/release --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=test --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''' label:'Executing microbenchmark tests'
+                ''', label:'Executing microbenchmark tests'
                 //sh 'cd script/testing && python3 micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/release --logfile-path=/mnt/ramdisk/benchmark.log'
                 archiveArtifacts 'script/testing/*.json'
                 junit 'script/testing/*.xml'
