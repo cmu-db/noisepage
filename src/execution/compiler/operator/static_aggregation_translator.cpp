@@ -1,4 +1,5 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
+#include <utility>
 
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/function_builder.h"
@@ -22,28 +23,37 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
   TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
-  build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
-
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 
+  // Prepare each of the aggregate expressions.
+  for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
+    const auto &agg_term = plan.GetAggregateTerms()[agg_term_idx];
+    compilation_context->Prepare(*agg_term->GetChild(0));
+    if (agg_term->IsDistinct()) {
+      distinct_filters_.emplace(std::make_pair(
+          agg_term_idx,
+          DistinctAggregationFilter(agg_term_idx, agg_term, 0, compilation_context, pipeline, GetCodeGen())));
+    }
+  }
+
+  if (!distinct_filters_.empty()) {
+    build_pipeline_.UpdateParallelism(Pipeline::Parallelism::Serial);
+  }
   // The produce-side begins after the build-side.
   pipeline->LinkSourcePipeline(&build_pipeline_);
 
   // Prepare the child.
   compilation_context->Prepare(*plan.GetChild(0), &build_pipeline_);
 
-  // Prepare each of the aggregate expressions.
-  for (const auto agg_term : plan.GetAggregateTerms()) {
-    compilation_context->Prepare(*agg_term->GetChild(0));
-  }
-
   // If there's a having clause, prepare it, too.
   if (const auto having_clause = plan.GetHavingClausePredicate(); having_clause != nullptr) {
     compilation_context->Prepare(*having_clause);
   }
 
+  // Declare global distinct hash table
   auto *codegen = GetCodeGen();
+
   ast::Expr *payload_type = codegen->MakeExpr(agg_payload_type_);
   global_aggs_ = compilation_context->GetQueryState()->DeclareStateEntry(codegen, "aggs", payload_type);
 
@@ -85,13 +95,17 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
     fields.push_back(codegen->MakeField(field_name, type));
     term_idx++;
   }
+
   return codegen->DeclareStruct(agg_values_type_, std::move(fields));
 }
 
 void StaticAggregationTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
   decls->push_back(GeneratePayloadStruct());
-
   decls->push_back(GenerateValuesStruct());
+  for (auto p : distinct_filters_) {
+    auto agg_term = GetAggPlan().GetAggregateTerms()[p.first];
+    decls->push_back(p.second.GenerateKeyStruct(GetCodeGen(), agg_term, {}));
+  }
 }
 
 void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
@@ -108,11 +122,11 @@ void StaticAggregationTranslator::DefineHelperFunctions(util::RegionVector<ast::
     }
     decls->push_back(function.Finish());
   }
-}
 
-void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  CounterSet(function, num_agg_inputs_, 0);
-  CounterSet(function, num_agg_outputs_, 0);
+  // Generate key check functions
+  for (auto &p : distinct_filters_) {
+    decls->push_back(p.second.GenerateDistinctCheckFunction(GetCodeGen(), {}));
+  }
 }
 
 ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uint32_t attr_idx) const {
@@ -123,6 +137,21 @@ ast::Expr *StaticAggregationTranslator::GetAggregateTerm(ast::Expr *agg_row, uin
 
 ast::Expr *StaticAggregationTranslator::GetAggregateTermPtr(ast::Expr *agg_row, uint32_t attr_idx) const {
   return GetCodeGen()->AddressOf(GetAggregateTerm(agg_row, attr_idx));
+}
+
+void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
+  CounterSet(function, num_agg_inputs_, 0);
+  CounterSet(function, num_agg_outputs_, 0);
+  auto *codegen = GetCodeGen();
+  for (auto &p : distinct_filters_) {
+    p.second.Initialize(codegen, function, GetExecutionContext(), GetMemoryPool());
+  }
+}
+
+void StaticAggregationTranslator::TearDownQueryState(FunctionBuilder *function) const {
+  for (auto &p : distinct_filters_) {
+    p.second.TearDown(GetCodeGen(), function);
+  }
 }
 
 void StaticAggregationTranslator::InitializeAggregates(FunctionBuilder *function, bool local) const {
@@ -165,9 +194,21 @@ void StaticAggregationTranslator::UpdateGlobalAggregate(WorkContext *ctx, Functi
 
   // Update aggregate.
   for (term_idx = 0; term_idx < GetAggPlan().GetAggregateTerms().size(); term_idx++) {
-    auto agg = GetAggregateTermPtr(agg_payload.Get(codegen), term_idx);
-    auto val = GetAggregateTermPtr(codegen->MakeExpr(agg_values), term_idx);
-    function->Append(codegen->AggregatorAdvance(agg, val));
+    auto agg_term = GetAggPlan().GetAggregateTerms().at(term_idx);
+    // Prepare for the advance aggregate call
+    auto agg_payload_ptr = GetAggregateTermPtr(agg_payload.Get(codegen), term_idx);
+    auto agg_val_ptr = GetAggregateTermPtr(codegen->MakeExpr(agg_values), term_idx);
+    auto agg_advance_call = codegen->AggregatorAdvance(agg_payload_ptr, agg_val_ptr);
+
+    if (agg_term->IsDistinct()) {
+      auto &filter = distinct_filters_.at(term_idx);
+      auto agg_val = ctx->DeriveValue(*agg_term->GetChild(0), this);
+
+      // Get underlying key value
+      filter.AggregateDistinct(codegen, function, agg_advance_call, agg_val, {});
+    } else {
+      function->Append(agg_advance_call);
+    }
   }
 }
 
