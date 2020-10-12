@@ -41,10 +41,10 @@ LINUX_BUILD_PACKAGES=(\
   "cmake" \
   "doxygen" \
   "git" \
-  "g++-7" \
   "libevent-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
+  "libpqxx-dev" \
   "libssl-dev" \
   "libtbb-dev" \
   "zlib1g-dev" \
@@ -142,7 +142,7 @@ install() {
       
       # Check Ubuntu version
       case $VERSION in
-        18.04) install_linux ;;
+        20.04) install_linux ;;
         *) give_up $DISTRO $VERSION;;
       esac
       ;;
@@ -204,24 +204,6 @@ install_linux() {
   # python3 -m pip --version || install_pip
   for pkg in "${PYTHON_PACKAGES[@]}"; do
     python3 -m pip show $pkg || python3 -m pip install $pkg
-  done
-         
-  # IMPORTANT: Ubuntu 18.04 does not have libpqxx-6.2 available. So we have to download the package
-  # manually and install it ourselves. We are *not* able to upgrade to libpqxx-6.4 because 18.04
-  # does not have the right version of libstdc++6 that it needs.
-  # Again, if you change the version make sure you update Dockerfile.
-  LIBPQXX_VERSION="6.2.5-1"
-  LIBPQXX_URL="http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx"
-  LIBPQXX_FILES=(\
-    "libpqxx-6.2_${LIBPQXX_VERSION}_amd64.deb" \
-    "libpqxx-dev_${LIBPQXX_VERSION}_amd64.deb" \
-  )
-  for file in "${LIBPQXX_FILES[@]}"; do
-    if [ ! -f "$file" ]; then
-      wget ${LIBPQXX_URL}/$file
-    fi
-    dpkg -i $file
-    rm $file
   done
 }
 
