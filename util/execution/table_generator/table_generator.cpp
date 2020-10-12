@@ -404,31 +404,8 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnerIndexTables() {
-  std::vector<TableInsertMeta> table_metas;
-  std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
-  std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
-                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
-  for (auto row_num : row_nums) {
-    for (type::TypeId type : types) {
-      auto table_name = GenerateTableIndexName(type, row_num);
-      std::vector<ColumnInsertMeta> col_metas;
-      uint32_t column_num = (type == type::TypeId::VARCHAR) ? 5 : 15;
-      for (uint32_t j = 1; j <= column_num; j++) {
-        std::stringstream col_name;
-        col_name << "col" << j;
-        col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
-      }
-
-      auto meta = TableInsertMeta(table_name, row_num, col_metas);
-      CreateTable(&meta);
-    }
-  }
-}
-
-void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
-  auto table_name = GenerateTableIndexName(type, row_num);
+void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t num_col, int64_t key_num) {
+  auto table_name = GenerateTableName(type, num_col, row_num, row_num);
 
   // Create Index Schema
   std::stringstream idx_name;
@@ -451,8 +428,8 @@ void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, in
   CreateIndex(&index_meta);
 }
 
-bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
-  auto table_name = GenerateTableIndexName(type, row_num);
+bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t num_col, int64_t key_num) {
+  auto table_name = GenerateTableName(type, num_col, row_num, row_num);
   auto accessor = exec_ctx_->GetAccessor();
   auto table_oid = accessor->GetTableOid(table_name);
   auto index_oids = accessor->GetIndexOids(table_oid);
