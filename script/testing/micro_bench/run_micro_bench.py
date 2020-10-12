@@ -138,10 +138,12 @@ if __name__ == "__main__":
                          choices=PERFORMANCE_STORAGE_SERVICE_API.keys(),
                          help="Environment in which to store performance results")
 
-    parser.add_argument("--publish-username", 
+    parser.add_argument("--publish-username",
+                        type=str,
                         help="Performance Storage Service Username")
                         
     parser.add_argument("--publish-password", 
+                        type=str,
                         help="Performance Storage Service password")
 
     args = parser.parse_args()
@@ -160,8 +162,8 @@ if __name__ == "__main__":
     if args.local: config_args['is_local'] = args.local
     if args.benchmark: config_args['benchmarks'] = sorted(args.benchmark)
     if args.publish_results != 'none':
-        config_args.publish_username = args.publish_username
-        config_args.publish_password = args.publish_password
+        config_args['publish_results_username'] = args.publish_username
+        config_args['publish_results_password'] = args.publish_password
 
     config = Config(**config_args)
     ret_code = 0
