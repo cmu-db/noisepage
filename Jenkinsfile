@@ -17,7 +17,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
+                        sh script: 'echo y | ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
@@ -96,7 +96,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
 
                         sh script: '''
                         mkdir build
@@ -249,7 +249,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
+                        sh script:'echo y | ./script/installation/packages.sh all', label:'Installing packages'
                         
                         sh script:'''
                         mkdir build
@@ -360,7 +360,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
+                        sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         sh script: '''
                         mkdir build
