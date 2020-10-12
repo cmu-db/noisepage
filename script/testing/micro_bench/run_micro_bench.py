@@ -30,7 +30,7 @@ def send_results(config, artifact_processor):
 
             comparison = artifact_processor.get_comparison(bench_name, result, config.lax_tolerance)
             try:
-                report_microbenchmark_result(config.reporting_env, result.get('timestamp'), config, comparison)
+                report_microbenchmark_result(config.publish_results_env, result.get('timestamp'), config, comparison)
             except Exception as err:
                 LOG.error("Error reporting results to performance storage service")
                 LOG.error(err)
