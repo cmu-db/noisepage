@@ -50,11 +50,6 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-using std::make_tuple;
-
-using std::unique_ptr;
-using std::vector;
-
 namespace terrier {
 
 class OperatorTransformerTest : public TerrierTest {
