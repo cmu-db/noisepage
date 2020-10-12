@@ -521,7 +521,7 @@ pipeline {
             agent { label 'benchmark' }            
             steps {
                 sh 'echo $NODE_NAME'
-                sh scrip: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+                sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 sh script: '''
                 mkdir build
