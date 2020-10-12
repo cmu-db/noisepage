@@ -78,7 +78,8 @@ def parse_microbenchmark_comparison(artifact_processor_comparison):
 
 def parse_db_metadata():
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
-    with open(DIR_UTIL+'../../src/include/common/version.h') as version_file:
+    CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+    with open(CURRENT_DIR+'/../../../src/include/common/version.h') as version_file:
         match = re.search(regex, version_file)
         return {
             'noisepage':{
