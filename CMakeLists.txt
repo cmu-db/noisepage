@@ -53,6 +53,7 @@
 #   HEADER Dependencies.
 #   HEADER noisepage libraries.
 #   HEADER noisepage binary.
+#   HEADER util_static and util_shared libraries.
 #   HEADER gen_opt_bc binary.
 #   HEADER hack_bytecode_handlers_ir target.
 #   HEADER tpl binary.
@@ -138,11 +139,12 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   NOISEPAGE_USE_JEMALLOC        : Link with jemalloc instead of system malloc. Default OFF.
 #
 # CMake global variables.
-#   BUILD_SUPPORT_DIR             : helper scripts for building belongs here.
-#   BUILD_SUPPORT_DATA_DIR        : helper data for building belongs here.
-#   NOISEPAGE_COMPILE_OPTIONS     : compile options to be added to NoisePage.
-#   NOISEPAGE_LINK_OPTIONS        : link options to be added to NoisePage.
-#   NOISEPAGE_INCLUDE_DIRECTORIES : include directories to be used for NoisePage.
+#   BUILD_SUPPORT_DIR             : Helper scripts for building belongs here.
+#   BUILD_SUPPORT_DATA_DIR        : Helper data for building belongs here.
+#   NOISEPAGE_COMPILE_OPTIONS     : Compile options to be added to NoisePage.
+#   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
+#   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
+#   NOISEPAGE_TEST_LINK_LIB       : What type of linking to use for tests.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
@@ -245,10 +247,17 @@ if (APPLE)
     message(STATUS "OSX hack, NOISEPAGE_COMPILE_OPTIONS: adding -Wno-braced-scalar-init")
     # On OSX, using lld causes a linking error because -lz (zlib) cannot be found.
     message(STATUS "OSX hack, Linker: Will use default system linker.")
+    # On OSX, LLVM is compiled with -fvisibility=hidden.
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fvisibility=hidden")
+    list(APPEND NOISEPAGE_LINK_OPTIONS "-fvisibility=hidden")
+    set(NOISEPAGE_TEST_LINK_LIB "noisepage_test_util_static")
+    message(STATUS "Tests: Will use static linking.")
 else ()
     # lld is the fastest linker.
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
+    set(NOISEPAGE_TEST_LINK_LIB "noisepage_test_util_shared")
+    message(STATUS "Tests: Will use dynamic linking.")
 endif ()
 
 # From pmenon: since Ninja buffers output from the compiler, GCC/Clang won't generate colored text.
@@ -553,8 +562,9 @@ target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
-# HEADER util_static binary.
+# HEADER util_static and util_shared libraries.
 # util_static           :   table_generator and table_reader for tests and benchmarks.
+# util_shared           :   table_generator and table_reader for tests and benchmarks.
 # TODO(WAN)             :   table_generator and table_reader are hacks, and the remaining cpp files are all TPL targets
 #                           handled elsewhere. Kill this target once we refactor those hacks out of our system.
 #######################################################################################################################
@@ -566,10 +576,16 @@ list(REMOVE_ITEM UTIL_SRCS
         ${PROJECT_SOURCE_DIR}/util/execution/tpl.cpp
         ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp
         ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
+
 add_library(util_static STATIC ${UTIL_SRCS})
 target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
 target_link_libraries(util_static PUBLIC noisepage_static)
 set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+
+add_library(util_shared SHARED ${UTIL_SRCS})
+target_include_directories(util_shared PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
+target_link_libraries(util_shared PUBLIC noisepage_shared)
+set_target_properties(util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
 #######################################################################################################################
 # HEADER gen_opt_bc binary.
@@ -676,10 +692,15 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp
         )
 
-add_library(noisepage_test_util STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
-target_link_libraries(noisepage_test_util PUBLIC noisepage_shared gtest gmock util_static pqxx)
-target_include_directories(noisepage_test_util PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-set_target_properties(noisepage_test_util PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+add_library(noisepage_test_util_static STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
+target_link_libraries(noisepage_test_util_static PUBLIC gtest gmock util_static pqxx)
+target_include_directories(noisepage_test_util_static PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+set_target_properties(noisepage_test_util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+
+add_library(noisepage_test_util_shared SHARED ${NOISEPAGE_TEST_UTIL_SRCS})
+target_link_libraries(noisepage_test_util_shared PUBLIC gtest gmock util_shared pqxx)
+target_include_directories(noisepage_test_util_shared PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+set_target_properties(noisepage_test_util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
 function(add_noisepage_test
         TEST_NAME                   # The name of this test.
@@ -707,7 +728,7 @@ function(add_noisepage_test
     endif ()
 
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
-    target_link_libraries(${TEST_NAME} PRIVATE gmock_main noisepage_shared noisepage_test_util)
+    target_link_libraries(${TEST_NAME} PRIVATE gmock_main ${NOISEPAGE_TEST_LINK_LIB})
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
             ENABLE_EXPORTS ON                                   # Export for tpl.
@@ -821,7 +842,7 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
-target_link_libraries(noisepage_benchmark_util PUBLIC noisepage_shared gtest gmock gmock_main util_static noisepage_test_util pqxx benchmark)
+target_link_libraries(noisepage_benchmark_util PUBLIC gmock_main noisepage_test_util_static benchmark)
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
 set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
@@ -870,10 +891,11 @@ endforeach ()
 #######################################################################################################################
 
 set_target_properties(
-        noisepage_static noisepage_shared noisepage
-        util_static
-        noisepage_test_util noisepage_benchmark_util
-        gen_opt_bc tpl
+        noisepage_static noisepage_shared
+        util_static util_shared
+        noisepage_test_util_static noisepage_test_util_shared
+        noisepage_benchmark_util
+        gen_opt_bc tpl noisepage
         PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
