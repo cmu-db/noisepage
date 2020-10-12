@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 
 #include "type/type_id.h"
@@ -5,17 +7,18 @@
 namespace terrier::runner {
 
 /**
- * Configuration for mini-runner data configuration.
+ * Configuration for mini-runner generated data.
  * Stores all the parameters for generating tables.
  */
 class MiniRunnersDataConfig {
-  /** Distribution of table types */
+ public:
+  /** Distribution of table column types */
   std::vector<std::vector<type::TypeId>> table_type_dists_ = {
       {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT},
       {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
 
   /**
-   * Distribution of table colums
+   * Distribution of table columns
    *
    * Describes a set of table column distributions to be used when creating
    * data for the mini-runners. The explanation for this is best illustrated
@@ -44,6 +47,49 @@ class MiniRunnersDataConfig {
    * 8, 16, 32, 64, and 100.
    */
   std::vector<uint32_t> table_row_nums_ = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                           2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-};  // namespace terrier::runner
+                                           2000, 5000, 10000, 20000, 50000, 100000, 200000, 300000, 500000, 1000000};
+
+  /**
+   * Parameter controls number of columns extracted from base tables.
+   */
+  std::vector<uint32_t> sweep_col_nums_ = {1, 3, 5, 7, 9, 11, 13, 15};
+
+  /**
+   * Parameter controls distribution of mixed (integer, decimal/bigint) for scans
+   */
+  std::vector<std::pair<uint32_t, uint32_t>> sweep_scan_mixed_dist_ = {{3, 12}, {7, 8}, {11, 4}};
+
+  /**
+   * Parameter controls distribution of mixed (integer, varchar) for scans
+   */
+  std::vector<std::pair<uint32_t, uint32_t>> sweep_scan_mixed_varchar_dist_ = {{2, 3}, {3, 2}, {4, 1}};
+
+  /**
+   * Parameter controls number of keys to be used in mini-runner index lookups.
+   */
+  std::vector<uint32_t> sweep_index_col_nums_ = {1, 2, 4, 8, 15};
+
+  /**
+   * Parameter controls size of index scan lookups.
+   */
+  std::vector<uint32_t> sweep_index_lookup_sizes_ = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+
+  /*
+   * Parameter controls # threads to sweep for building index.
+   * 0 is a special argument to indicate serial build.
+   */
+  std::vector<uint32_t> sweep_index_create_threads_ = {0, 1, 2, 4, 8, 16};
+
+  /**
+   * Parameter controls number of insert tuples
+   */
+  std::vector<uint32_t> sweep_insert_row_nums_ = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
+
+  /**
+   * Parameter controls distribution of mixed (integer, decimal) tuples.
+   */
+  std::vector<std::pair<uint32_t, uint32_t>> sweep_insert_mixed_dist_ = {{1, 14}, {3, 12}, {5, 10}, {7, 8},
+                                                                         {9, 6},  {11, 4}, {13, 2}};
+};
+
 };  // namespace terrier::runner
