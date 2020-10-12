@@ -304,17 +304,9 @@ SETTING_int(
 )
 
 SETTING_bool(
-    use_counters,
+    counters_enable,
     "Whether to use counters (default: false)",
     false,
-    true,
-    terrier::settings::Callbacks::NoOp
-)
-
-SETTING_bool(
-    use_pipeline_metrics,
-    "Whether to gather per-pipeline execution metrics (default: true)",
-    true,
     true,
     terrier::settings::Callbacks::NoOp
 )
