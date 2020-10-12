@@ -81,6 +81,20 @@ class ArtifactProcessor(object):
                 historical_results.add_gbench_test_result(bench_result)
         return
 
+    def get_comparison_for_publish_result(self, bench_name, gbench_result, lax_tolerance=None):
+        initial_comparison = self.get_comparison(bench_name, gbench_result, lax_tolerance)
+        fields =['suite', 'test', 'throughput', 'tolerance', 'status', 'iterations', 'ref_throughput', 'num_results']
+
+        publishable_comparison = {key: value for key, value in initial_comparison.items() if key in fields}
+
+        test_suite, test_name = initial_comparison.get('suite'), initial_comparison.get('test')
+
+        key = (gbench_result.suite_name, gbench_result.test_name)
+        historical_results = self.artifacts.get(key)
+        publishable_comparison['stdev_throughput'] = historical_results.get_stdev_throughput()
+    
+        return publishable_comparison
+
     def get_comparison(self, bench_name, gbench_result, lax_tolerance=None):
         """ create and return a dict comparing the historical benchmark results
             to the benchmark result passed in

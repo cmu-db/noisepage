@@ -28,7 +28,7 @@ def send_results(config, artifact_processor):
             result = gbench_run_results.benchmarks.get(key)
             LOG.debug("%s Result:\n%s", bench_name, result)
 
-            comparison = artifact_processor.get_comparison(bench_name, result, config.lax_tolerance)
+            comparison = artifact_processor.get_comparison_for_publish_result(bench_name, result, config.lax_tolerance)
             try:
                 report_microbenchmark_result(config.publish_results_env, result.timestamp, config, comparison)
             except Exception as err:

@@ -79,10 +79,16 @@ def parse_microbenchmark_comparison(artifact_processor_comparison):
 def parse_db_metadata():
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-    with open(CURRENT_DIR+'/../../../../src/include/common/version.h') as version_file: #TODO: add error handling
-        match = re.search(regex, version_file)
-        return {
-            'noisepage':{
-                'db_version':  match.group(1) if match.group(1) else UNKNOWN_RESULT
+    db_metadata = {
+                'noisepage':{
+                    'db_version': UNKNOWN_RESULT
+                }
             }
-        }
+    try:
+        with open(CURRENT_DIR+'/../../../../src/include/common/version.h') as version_file:
+            match = re.search(regex, version_file.read())
+            db_metadata['noisepage']['db_version'] = match.group(1)
+    except Exception as err:
+        LOG.error(err)
+
+    return db_metadata
