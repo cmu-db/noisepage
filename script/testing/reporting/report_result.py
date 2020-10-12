@@ -28,9 +28,15 @@ def report_microbenchmark_result(env, timestamp, config, artifact_processor_comp
     metadata, test_suite, test_name, metrics = parse_microbenchmark_data(artifact_processor_comparison)
     parameters = parse_parameters(config)
     metadata['environment']['wal_device'] = parse_wal_device(config)
+    print('---------------------------------------------')
+    print(timestamp)
+    print(timestamp.timestamp())
+    print(datetime.now())
+    print('--------------------------------------------')
+
     result = {
         'metadata': metadata,
-        'timestamp': datetime.timestamp(timestamp),
+        'timestamp': timestamp.timestamp(),
         'test_suite': test_suite,
         'test_name': test_name,
         'parameters': parameters,
