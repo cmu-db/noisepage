@@ -225,8 +225,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script:'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'Executing unit tests in simple query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'Executing unit tests in extended query mode'
                     }
                     post {
                         always {
@@ -260,8 +260,8 @@ pipeline {
 
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh script:'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
                     }
                     post {
                         always {
@@ -294,8 +294,8 @@ pipeline {
 
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script:'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
                     }
                     post {
                         always {
@@ -332,8 +332,8 @@ pipeline {
 
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script:'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
                     }
                     post {
                         always {
@@ -521,9 +521,9 @@ pipeline {
             agent { label 'benchmark' }            
             steps {
                 sh 'echo $NODE_NAME'
-                sh scrip:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+                sh scrip: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
-                sh script:'''
+                sh script: '''
                 mkdir build
                 cd build
                 cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. 
