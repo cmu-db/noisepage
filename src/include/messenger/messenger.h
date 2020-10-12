@@ -127,7 +127,7 @@ class Messenger : public common::DedicatedThreadTask {
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
    */
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message, CallbackFn callback,
-                   uint64_t receiver_msg_id);
+                   uint64_t recv_msg_id);
 
  private:
   friend ConnectionId;
