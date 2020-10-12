@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "benchmark/benchmark.h"
-#include "runner/mini_runners_config.h"
 #include "benchmark_util/benchmark_config.h"
 #include "binder/bind_node_visitor.h"
 #include "brain/brain_defs.h"
@@ -32,6 +31,7 @@
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "runner/mini_runners_config.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
@@ -785,7 +785,7 @@ class MiniRunners : public benchmark::Fixture {
   void ExecuteDelete(benchmark::State *state);
   void ExecuteCreateIndex(benchmark::State *state);
 
-  std::string ConstructIndexScanPredicate(int64_t key_num, int64_t num_rows, int64_t lookup_size,
+  std::string ConstructIndexScanPredicate(type::TypeId type, int64_t key_num, int64_t num_rows, int64_t lookup_size,
                                           bool parameter = false) {
     std::mt19937 generator{};
     auto low_key = std::uniform_int_distribution(static_cast<uint32_t>(0),
@@ -793,15 +793,16 @@ class MiniRunners : public benchmark::Fixture {
     auto high_key = low_key + lookup_size - 1;
 
     std::stringstream predicatess;
+    auto type_name = type::TypeUtil::TypeIdToString(type);
     for (auto j = 1; j <= key_num; j++) {
       if (lookup_size == 1) {
-        predicatess << "col" << j << " = ";
+        predicatess << type_name << j << " = ";
         if (parameter)
           predicatess << "$1";
         else
           predicatess << low_key;
       } else {
-        predicatess << "col" << j << " >= ";
+        predicatess << type_name << j << " >= ";
         if (parameter)
           predicatess << "$1";
         else
@@ -1065,8 +1066,10 @@ class MiniRunners : public benchmark::Fixture {
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
     for (auto i = 0; i < num_iters; i++) {
+      common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
       if (i == num_iters - 1) {
         metrics_manager_->RegisterThread();
+        metrics_manager = metrics_manager_;
       }
 
       txn = txn_manager_->BeginTransaction();
@@ -1079,7 +1082,7 @@ class MiniRunners : public benchmark::Fixture {
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
-          common::ManagedPointer(accessor), exec_settings, metrics_manager_);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -1324,12 +1327,13 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
             }
 
             std::string create_query;
+            auto type_name = type::TypeUtil::TypeIdToString(type);
             {
               std::stringstream query_ss;
               auto table_name = execution::sql::TableGenerator::GenerateTableName(type, tbl_cols, row, row);
               query_ss << "CREATE INDEX minirunners__" << row << " ON " << table_name << "(";
               for (size_t j = 1; j <= col; j++) {
-                query_ss << "col" << j;
+                query_ss << type_name << j;
                 if (j != col) {
                   query_ss << ",";
                 } else {
@@ -1575,17 +1579,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
                          tuple_size, key_num, lookup_size, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::string cols;
-  {
-    std::stringstream colss;
-    for (auto j = 1; j <= key_num; j++) {
-      colss << "col" << j;
-      if (j != key_num) colss << ", ";
-    }
-    cols = colss.str();
-  }
-
-  std::string predicate = ConstructIndexScanPredicate(key_num, num_rows, lookup_size, true);
+  std::string cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
+  std::string predicate = ConstructIndexScanPredicate(type, key_num, num_rows, lookup_size, true);
 
   std::vector<parser::ConstantValueExpression> params;
   std::vector<type::TypeId> param_types;
@@ -1864,15 +1859,15 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::mt19937 generator{};
   std::uniform_int_distribution<int> distribution(0, INT_MAX);
   for (auto j = 1; j <= num_integers; j++) {
+    auto prefix = type::TypeUtil::TypeIdToString(type::TypeId::INTEGER);
     // We need to do this to prevent the lookup from having to move
-    query << "col" << j << " = "
-          << "col" << j << " + 0";
+    query << prefix << j << " = " << prefix << j << " + 0";
     if (j != num_integers || num_decimals != 0) query << ", ";
   }
 
   for (auto j = 1; j <= num_decimals; j++) {
-    query << "col" << j << " = "
-          << "col" << j << " + 0";
+    auto prefix = type::TypeUtil::TypeIdToString(type::TypeId::DECIMAL);
+    query << prefix << j << " = " << prefix << j << " + 0";
     if (j != num_decimals) query << ", ";
   }
 
@@ -1898,7 +1893,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   }
 
   GenIdxScanParameters(type, row, car, num_iters, &real_params);
-  std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
+  std::string predicate = ConstructIndexScanPredicate(type, num_col, row, car, true);
   query << " WHERE " << predicate;
 
   auto f = std::bind(&MiniRunners::ChildIndexScanChecker, this, std::placeholders::_1, std::placeholders::_2);
@@ -1981,7 +1976,7 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   }
 
   GenIdxScanParameters(type, row, car, num_iters, &real_params);
-  std::string predicate = ConstructIndexScanPredicate(num_col, row, car, true);
+  std::string predicate = ConstructIndexScanPredicate(type, num_col, row, car, true);
   query << "DELETE FROM " << execution::sql::TableGenerator::GenerateTableName(type, tbl_col, row, row) << " WHERE "
         << predicate;
 

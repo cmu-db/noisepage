@@ -416,9 +416,11 @@ void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, in
   std::vector<IndexColumn> idx_meta_cols;
   index_strs.reserve(key_num);
   idx_meta_cols.reserve(key_num);
+  auto type_name = type::TypeUtil::TypeIdToString(type);
+  std::transform(type_name.begin(), type_name.end(), type_name.begin(), ::tolower);
   for (uint32_t j = 1; j <= key_num; j++) {
     std::stringstream col_name;
-    col_name << "col" << j;
+    col_name << type_name << j;
 
     index_strs.push_back(col_name.str());
     idx_meta_cols.emplace_back(index_strs.back().c_str(), type, false, index_strs.back().c_str());
