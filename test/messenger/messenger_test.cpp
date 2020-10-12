@@ -1,7 +1,7 @@
 #include "messenger/messenger.h"
 
 #include <sys/mman.h>
-#include <sys/wait.h>
+#include <unistd.h>
 
 #include <vector>
 
@@ -15,34 +15,51 @@ namespace terrier::messenger {
 
 class MessengerTests : public TerrierTest {
  protected:
+  /** A generic function that takes no arguments and returns no output. */
   using VoidFn = std::function<void(void)>;
 
+  /**
+   * Run each function in @p funcs in a different child process, using fork().
+   *
+   * Note that debuggers will not show the separate child processes by default.
+   * To trace forked processes, check out https://sourceware.org/gdb/onlinedocs/gdb/Forks.html
+   *
+   * @param funcs The functions to be run.
+   * @return The list of child process PIDs that the functions were run in.
+   */
   static std::vector<pid_t> ForkTests(const std::vector<VoidFn> &funcs) {
     std::vector<pid_t> pids;
     pids.reserve(funcs.size());
 
+    // Fork for each separate function in funcs.
     for (const auto &func : funcs) {
-      MESSENGER_LOG_INFO(fmt::format("Parent {} forking.", ::getpid()));
+      MESSENGER_LOG_TRACE(fmt::format("Parent {} forking.", ::getpid()));
       pid_t pid = fork();
-      if (-1 == pid) {
-        throw MESSENGER_EXCEPTION("Unable to fork.");
+
+      switch (pid) {
+        case -1: {
+          throw MESSENGER_EXCEPTION("Unable to fork.");
+        }
+        case 0: {
+          // Child process. Execute the given function and break out.
+          MESSENGER_LOG_TRACE(fmt::format("Child {} running.", ::getpid()));
+          func();
+          exit(0);
+        }
+        default: {
+          // Parent process. Continues to fork.
+          TERRIER_ASSERT(pid > 0, "Parent's kid has a bad pid.");
+          pids.emplace_back(pid);
+        }
       }
-      if (0 == pid) {
-        // Child process. Execute the given function and break out.
-        MESSENGER_LOG_INFO(fmt::format("Child {} running.", ::getpid()));
-        func();
-        exit(testing::Test::HasFailure());
-      }
-      // Parent process. Continues to fork.
-      TERRIER_ASSERT(pid > 0, "Parent's kid has a bad pid.");
-      pids.emplace_back(pid);
     }
 
     return pids;
   }
 
+  /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain(uint16_t network_port, uint16_t messenger_port,
-                                             std::string &&messenger_identity) {
+                                             const std::string &messenger_identity) {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
@@ -59,7 +76,7 @@ class MessengerTests : public TerrierTest {
                        .SetNetworkPort(network_port)
                        .SetUseMessenger(true)
                        .SetMessengerPort(messenger_port)
-                       .SetMessengerIdentity(std::move(messenger_identity))
+                       .SetMessengerIdentity(messenger_identity)
                        .SetUseExecution(true)
                        .Build();
 
@@ -69,7 +86,8 @@ class MessengerTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(MessengerTests, BasicReplicationTest) {
-  std::string messenger_host = "localhost";
+  // TODO(WAN): remove this after demo at meeting.
+  messenger_logger->set_level(spdlog::level::trace);
 
   uint16_t port_primary = 15721;
   uint16_t port_replica1 = port_primary + 1;
@@ -79,6 +97,9 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   uint16_t port_messenger_replica1 = port_messenger_primary + 1;
   uint16_t port_messenger_replica2 = port_messenger_primary + 2;
 
+  // done[3] is shared memory (mmap) so that the forked processes can coordinate on when they are done.
+  // This is done instead of waitpid() because I can't find a way to stop googletest from freaking out on waitpid().
+  // done[0] : primary, done[1] : replica1, done[2] : replica2.
   bool *done =
       static_cast<bool *>(mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
   TERRIER_ASSERT(MAP_FAILED != done, "mmap() failed.");
@@ -87,6 +108,11 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   done[1] = false;
   done[2] = false;
 
+  auto spin_until_done = [done]() {
+    while (!(done[0] && done[1] && done[2])) {
+    }
+  };
+
   VoidFn primary_fn = [=]() {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
@@ -94,49 +120,95 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     while (!done[1]) {
     }
 
-    MESSENGER_LOG_INFO("Primary done.");
+    MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
-
-    // Spin until all done.
-    while (!(done[0] && done[1] && done[2])) {
-    }
+    spin_until_done();
   };
+
   VoidFn replica1_fn = [=]() {
     auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
     replica1->GetNetworkLayer()->GetServer()->RunServer();
 
+    // Set up a connection to the primary.
     auto messenger = replica1->GetMessengerLayer()->GetMessenger();
-    ConnectionDestination dest = Messenger::GetEndpointIPC(port_messenger_primary);
-    auto con_id = messenger->MakeConnection(dest);
-    bool reply = false;
-    messenger->SendMessage(
-        common::ManagedPointer(&con_id), "potato",
-        [&reply](std::string_view a, std::string_view b) {
-          std::cout << a << std::endl;
-          std::cout << b << std::endl;
-          reply = true;
-        },
-        0);
+    ConnectionDestination dest_primary = Messenger::GetEndpointIPC("primary", port_messenger_primary);
+    auto con_primary = messenger->MakeConnection(dest_primary);
 
-    while (!reply) {
+    // Send "potato" to the primary and expect "potato" as a reply.
+    bool reply_primary_potato = false;
+    {
+      messenger->SendMessage(
+          common::ManagedPointer(&con_primary), "potato",
+          [&reply_primary_potato](std::string_view sender_id, std::string_view message) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
+            EXPECT_EQ("potato", message);
+            reply_primary_potato = true;
+          },
+          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
     }
 
-    MESSENGER_LOG_INFO("Replica 1 done.");
+    // Send "tomato" to the primary and expect "tomato" as a reply.
+    bool reply_primary_tomato = false;
+    {
+      messenger->SendMessage(
+          common::ManagedPointer(&con_primary), "tomato",
+          [&reply_primary_tomato](std::string_view sender_id, std::string_view message) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
+            EXPECT_EQ("tomato", message);
+            reply_primary_tomato = true;
+          },
+          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+    }
+
+    while (!(reply_primary_potato && reply_primary_tomato)) {
+    }
+
+    MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
-
-    // Spin until all done.
-    while (!(done[0] && done[1] && done[2])) {
-    }
+    spin_until_done();
   };
+
   VoidFn replica2_fn = [=]() {
     auto replica2 = BuildDBMain(port_replica2, port_messenger_replica2, "replica2");
     replica2->GetNetworkLayer()->GetServer()->RunServer();
-    MESSENGER_LOG_INFO("Replica 2 done.");
-    done[2] = true;
 
-    // Spin until all done.
-    while (!(done[0] && done[1] && done[2])) {
+    // Set up a connection to the primary.
+    auto messenger = replica2->GetMessengerLayer()->GetMessenger();
+    ConnectionDestination dest_primary = Messenger::GetEndpointIPC("primary", port_messenger_primary);
+    auto con_primary = messenger->MakeConnection(dest_primary);
+
+    // Send "elephant" to the primary and expect "elephant" as a reply.
+    bool reply_primary_elephant = false;
+    {
+      messenger->SendMessage(
+          common::ManagedPointer(&con_primary), "elephant",
+          [&reply_primary_elephant](std::string_view sender_id, std::string_view message) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
+            EXPECT_EQ("elephant", message);
+            reply_primary_elephant = true;
+          },
+          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
     }
+
+    // Send "correct HORSE battery staple" to the primary and expect "correct HORSE battery staple" as a reply.
+    bool reply_primary_chbs = false;
+    {
+      messenger->SendMessage(
+          common::ManagedPointer(&con_primary), "correct HORSE battery staple",
+          [&reply_primary_chbs](std::string_view sender_id, std::string_view message) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
+            EXPECT_EQ("correct HORSE battery staple", message);
+            reply_primary_chbs = true;
+          },
+          static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+    }
+
+    while (!(reply_primary_elephant && reply_primary_chbs)) {
+    }
+
+    MESSENGER_LOG_TRACE("Replica 2 done.");
+    done[2] = true;
+    spin_until_done();
   };
 
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn, replica2_fn});

@@ -22,6 +22,7 @@ namespace terrier::messenger {
 class ConnectionDestination;
 class Messenger;
 class MessengerPolledSockets;
+class ZmqMessage;
 
 /** ConnectionId is an abstraction around establishing connections. */
 class ConnectionId {
@@ -44,8 +45,8 @@ class ConnectionId {
   std::unique_ptr<zmq::socket_t> socket_;
   /** The ZMQ socket routing ID. */
   std::string routing_id_;
-  /** The target that was connected to. Useful for debugging. */
-  std::string target_;
+  /** The target that was connected to. */
+  std::string target_name_;
 };
 
 /**
@@ -56,6 +57,8 @@ class ConnectionId {
  */
 class Messenger : public common::DedicatedThreadTask {
  public:
+  enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO = 1, NUM_BUILTIN_CALLBACKS };
+
   /**
    * All messages can take in a callback function to be invoked when a reply is received.
    * Arg 1  :   std::string_view, sender identity.
@@ -64,11 +67,11 @@ class Messenger : public common::DedicatedThreadTask {
   using CallbackFn = std::function<void(std::string_view, std::string_view)>;
 
   /** @return The default TCP endpoint for a Messenger on the given port. */
-  static ConnectionDestination GetEndpointTCP(const uint16_t port);
+  static ConnectionDestination GetEndpointTCP(std::string target_name, const uint16_t port);
   /** @return The default IPC endpoint for a Messenger on the given port. */
-  static ConnectionDestination GetEndpointIPC(const uint16_t port);
+  static ConnectionDestination GetEndpointIPC(std::string target_name, const uint16_t port);
   /** @return The default INPROC endpoint for a Messenger on the given port. */
-  static ConnectionDestination GetEndpointINPROC(const uint16_t port);
+  static ConnectionDestination GetEndpointINPROC(std::string target_name, const uint16_t port);
 
   /**
    * Create a new Messenger, listening to the default endpoints on the given port.
@@ -119,30 +122,24 @@ class Messenger : public common::DedicatedThreadTask {
    * @param connection_id   The connection to send the message over.
    * @param message         The message to be sent.
    * @param callback        The callback function to be invoked on the response.
+   * @param recv_msg_id     The receiver's message ID, e.g., sent in response or to invoke preregistered functions.
+   *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
    */
-  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn callback);
-
-  /**
-   * Send a message through the specified connection id.
-   *
-   * @warning   Remember that ConnectionId can only be used from the same thread that created it!
-   *
-   * @param connection_id   The connection to send the message over.
-   * @param message         The message to be sent.
-   * @param callback        The callback function to be invoked on the response.
-   * @param special_fn_id   A special identifier pre-registered on the server that the server should invoke on receipt.
-   */
-  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, std::string message, CallbackFn callback,
-                   uint64_t special_fn_id);
+  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message, CallbackFn callback,
+                   uint64_t receiver_msg_id);
 
  private:
   friend ConnectionId;
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
   static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc0-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
+  static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::seconds(2);
 
   /** The main server loop. */
   void ServerLoop();
+
+  /** Processes messages. Responsible for special callback functions specified by message ID. */
+  void ProcessMessage(const ZmqMessage &msg);
 
   /** The port that is used for all default endpoints. */
   const uint16_t port_;
@@ -153,10 +150,10 @@ class Messenger : public common::DedicatedThreadTask {
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
   std::unique_ptr<MessengerPolledSockets> polled_sockets_;
   std::unordered_map<uint64_t, CallbackFn> callbacks_;
-  bool messenger_running_ = false;
+  bool is_messenger_running_ = false;
   uint32_t connection_id_count_ = 0;
   /** The message ID that gets automatically prefixed to messages. */
-  uint64_t message_id_ = 1;
+  uint64_t message_id_ = static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
 };
 
 /**
