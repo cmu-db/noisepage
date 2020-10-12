@@ -57,7 +57,8 @@ class ConnectionId {
  */
 class Messenger : public common::DedicatedThreadTask {
  public:
-  enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO = 1, NUM_BUILTIN_CALLBACKS };
+  /** Builtin callbacks useful for testing. */
+  enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO, NUM_BUILTIN_CALLBACKS };
 
   /**
    * All messages can take in a callback function to be invoked when a reply is received.
