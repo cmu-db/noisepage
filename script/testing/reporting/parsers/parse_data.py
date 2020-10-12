@@ -21,8 +21,8 @@ def parse_oltpbench_data(results_dir):
 def parse_microbenchmark_data(artifact_processor_comparison):
     env_metadata = parse_jenkins_env_vars()
     metadata = {**env_metadata, **parse_db_metadata()}
-    metrics = parse_microbenchmark_comparison(artifact_processor_comparison)
-    return metadata,  metrics
+    test_suite, test_name, metrics = parse_microbenchmark_comparison(artifact_processor_comparison)
+    return metadata, test_suite, test_name, metrics
 
 
 def parse_jenkins_env_vars():
@@ -73,7 +73,8 @@ def parse_oltpbench_files(results_dir):
 
 def parse_microbenchmark_comparison(artifact_processor_comparison):
     metrics_fields =['throughput','stdev_throughput','tolerance','status','iterations','ref_throughput', 'num_results']
-    return {key: value for key, value in artifact_processor_comparison.items() if key in metrics_fields}
+    test_suite, test_name = artifact_processor_comparison.get('suite'), artifact_processor_comparison.get('test')
+    return test_suite, test_name, {key: value for key, value in artifact_processor_comparison.items() if key in metrics_fields}
 
 def parse_db_metadata():
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"

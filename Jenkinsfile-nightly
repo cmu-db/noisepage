@@ -17,7 +17,7 @@ pipeline {
 
     stages {
         stage('Performance') {
-            //when { equals expected: true, actual: false } //TODO: This is just commented out for testing
+            when { equals expected: true, actual: false }
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
@@ -47,8 +47,8 @@ pipeline {
                 // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
                 //  # of Threads: 4
                 //  WAL Path: Ramdisk
-                //sh 'cd script/testing && python3 micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/release --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=test --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}'
-                sh 'cd script/testing && python3 micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/release --logfile-path=/mnt/ramdisk/benchmark.log'
+                sh 'cd script/testing && python3 micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/release --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=test --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}'
+                //sh 'cd script/testing && python3 micro_bench/run_micro_bench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/release --logfile-path=/mnt/ramdisk/benchmark.log'
                 archiveArtifacts 'script/testing/*.json'
                 junit 'script/testing/*.xml'
             }

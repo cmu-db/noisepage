@@ -21,12 +21,14 @@ def report_oltpbench_result(env, server_data, results_dir, username, password, q
     send_result(env, '/oltpbench/', username, password, result)
 
 def report_microbenchmark_result(env, timestamp, config, artifact_processor_comparison, username, password):
-    metadata, metrics = parse_microbenchmark_data(artifact_processor_comparison)
+    metadata, test_suite, test_name, metrics = parse_microbenchmark_data(artifact_processor_comparison)
     parameters = parse_parameters(config)
     metadata['environment']['wal_device'] = parse_wal_device(config)
     result = {
         'metadata': metadata,
         'timestamp': timestamp,
+        'test_suite': test_suite,
+        'test_name': test_name,
         'parameters': parameters,
         'metrics': metrics
     }
