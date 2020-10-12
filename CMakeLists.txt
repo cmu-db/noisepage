@@ -767,7 +767,7 @@ function(add_jumbotest
     if (${NOISEPAGE_UNITY_BUILD})
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
     else ()
-        set(EXCLUDE_OR_NOT "EXCLUDE_FROM_ALL")
+        set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
     endif ()
 
     if (NOT "${PREFIXES}" STREQUAL "")
