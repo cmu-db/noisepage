@@ -270,7 +270,7 @@ class DBMain {
     ~ExecutionLayer();
   };
 
-  /** Hopping on the bandwagon. TODO(WAN): better comment. */
+  /** Create a Messenger. */
   class MessengerLayer {
    public:
     /**
