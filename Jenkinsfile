@@ -97,7 +97,8 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script'''
+
+                        sh script: '''
                         mkdir build
                         cd build
                         cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF ..
