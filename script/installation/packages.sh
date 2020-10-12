@@ -31,8 +31,6 @@ OSX_TEST_PACKAGES=(\
   "lsof" \
 )
 
-# IMPORTANT: If you change anything listed below, you must 
-# also change it in the Dockerfile in the root directory of the repository!
 LINUX_BUILD_PACKAGES=(\
   "build-essential" \
   "clang-8" \
