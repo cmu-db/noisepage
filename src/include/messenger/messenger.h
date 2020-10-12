@@ -131,7 +131,7 @@ class Messenger : public common::DedicatedThreadTask {
  private:
   friend ConnectionId;
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
-  static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc0-{}";
+  static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
   static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::seconds(2);
 
