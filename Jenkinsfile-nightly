@@ -61,7 +61,7 @@ pipeline {
                 sh 'echo $NODE_NAME'
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
-                sh 'python3 --help'
+                sh 'python3 -V'
 
                 sh script:'''
                 mkdir build
