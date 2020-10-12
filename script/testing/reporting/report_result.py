@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import requests
-from reporting.parsers.parse_data import parse_oltpbench_data
+from reporting.parsers.parse_data import parse_oltpbench_data, parse_microbenchmark_data
 from reporting.parsers.microbenchmark.config_parser import parse_parameters, parse_wal_device
 from oltpbench.constants import PERFORMANCE_STORAGE_SERVICE_API
 
