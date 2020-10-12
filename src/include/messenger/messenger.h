@@ -68,11 +68,11 @@ class Messenger : public common::DedicatedThreadTask {
   using CallbackFn = std::function<void(std::string_view, std::string_view)>;
 
   /** @return The default TCP endpoint for a Messenger on the given port. */
-  static ConnectionDestination GetEndpointTCP(std::string target_name, const uint16_t port);
+  static ConnectionDestination GetEndpointTCP(std::string target_name, uint16_t port);
   /** @return The default IPC endpoint for a Messenger on the given port. */
-  static ConnectionDestination GetEndpointIPC(std::string target_name, const uint16_t port);
+  static ConnectionDestination GetEndpointIPC(std::string target_name, uint16_t port);
   /** @return The default INPROC endpoint for a Messenger on the given port. */
-  static ConnectionDestination GetEndpointINPROC(std::string target_name, const uint16_t port);
+  static ConnectionDestination GetEndpointINPROC(std::string target_name, uint16_t port);
 
   /**
    * Create a new Messenger, listening to the default endpoints on the given port.
@@ -81,10 +81,10 @@ class Messenger : public common::DedicatedThreadTask {
    *
    * @warning           Identity must be unique across all instances of Messengers.
    */
-  explicit Messenger(const uint16_t port, std::string identity);
+  explicit Messenger(uint16_t port, std::string identity);
 
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
-  ~Messenger();
+  ~Messenger() override;
 
   /** Run the main server loop, which dispatches messages received to the MessengerLogic layer. */
   void RunTask() override;
@@ -170,8 +170,8 @@ class MessengerManager : public common::DedicatedThreadOwner {
    * @param port            The port on which the Messenger will listen by default.
    * @param identity        The name that this Messenger will be known by. Must be unique across all instances!
    */
-  explicit MessengerManager(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
-                            const uint16_t port, const std::string &identity);
+  explicit MessengerManager(common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry, uint16_t port,
+                            const std::string &identity);
 
   /** @return The Messenger being managed. */
   common::ManagedPointer<Messenger> GetMessenger() const { return messenger_; }
