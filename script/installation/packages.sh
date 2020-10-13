@@ -47,6 +47,7 @@ LINUX_BUILD_PACKAGES=(\
   "libssl-dev" \
   "libtbb-dev" \
   "zlib1g-dev" \
+  "lld" \
   "llvm-8" \
   "pkg-config" \
   "postgresql-client" \
