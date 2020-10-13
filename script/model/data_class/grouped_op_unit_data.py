@@ -11,7 +11,7 @@ from data_class import tpcc_fixer
 from info import data_info, query_info, query_info_1G, query_info_10G
 import global_model_config
 
-from type import Target, ConcurrentCountingMode, OpUnit
+from type import ConcurrentCountingMode, OpUnit, ExecutionFeature
 
 
 def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval):
@@ -28,9 +28,6 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_inter
     if "txn" in filename:
         # Cannot handle the transaction manager data yet
         return []
-    if "execution" in filename:
-        # Special handle of the execution data
-        return _execution_get_grouped_op_unit_data(filename, ee_sample_interval)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
         return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval)
@@ -41,52 +38,22 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_inter
     return _default_get_global_data(filename)
 
 
-def _execution_get_grouped_op_unit_data(filename, ee_sample_interval):
-    # Get the global running data for the execution engine
-    data_list = []
-    with open(filename, "r") as f:
-        reader = csv.reader(f, delimiter=",", skipinitialspace=True)
-        next(reader)
-        for line in tqdm.tqdm(reader):
-            # The first element is always the query/pipeline identifier
-            identifier = line[0]
-            if identifier in query_info.FEATURE_MAP:
-                # Need to deep copy since we're going to add the execution mode after it
-                opunit_features = copy.deepcopy(query_info.FEATURE_MAP[identifier])
-
-                # get memory scaling factor
-                mem_scaling_factor = 1.0
-                if line[0] in query_info.MEM_ADJUST_MAP:
-                    mem_scaling_factor = query_info.MEM_ADJUST_MAP[line[0]]
-
-                # Execution mode is the second element for now...
-                mode = int(line[1])
-                for opunit_feature in opunit_features:
-                    if opunit_feature[0] in data_info.MEM_ADJUST_OPUNITS:
-                        opunit_feature[1].append(mem_scaling_factor)
-                    else:
-                        opunit_feature[1].append(1.0)
-                    opunit_feature[1].append(mode)
-
-                line_data = list(map(int, line[2:]))
-                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data), ee_sample_interval))
-
-    return data_list
-
-
 def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval):
     # Get the global running data for the execution engine
-    execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
-    features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
     start_time = None
 
     data_list = []
     with open(filename, "r") as f:
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
-        next(reader)
+        indexes = next(reader)
+        data_info.parse_csv_header(indexes, True)
+        features_vector_index = data_info.RAW_CSV_INDEX[ExecutionFeature.FEATURES]
+        input_output_boundary = data_info.RAW_CSV_INDEX[data_info.INPUT_OUTPUT_BOUNDARY]
+        input_end_boundary = data_info.INPUT_CSV_INDEX[data_info.INPUT_END_BOUNDARY]
+
         for line in reader:
             # extract the time
-            cpu_time = line[data_info.RAW_CPU_TIME_INDEX]
+            cpu_time = line[data_info.RAW_CSV_INDEX[ExecutionFeature.START_TIME]]
             if start_time is None:
                 start_time = cpu_time
 
@@ -94,10 +61,9 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                 continue
 
             # drop query_id, pipeline_id, num_features, features_vector
-            record = [d for i,d in enumerate(line) if i > features_vector_index]
-            record.insert(data_info.EXECUTION_MODE_INDEX, line[execution_mode_index])
+            record = [d for i,d in enumerate(line) if i >= input_output_boundary]
             data = list(map(data_util.convert_string_to_numeric, record))
-            x_multiple = data[:data_info.RECORD_FEATURES_END]
+            x_multiple = data[:input_end_boundary]
             metrics = np.array(data[-data_info.METRICS_OUTPUT_NUM:])
 
             # Get the opunits located within
@@ -114,7 +80,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                 if tpcc_hack:
                     x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
-                if x_loc[data_info.TUPLE_NUM_INDEX] == 0:
+                if x_loc[data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]] == 0:
                     logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
                     continue
 
@@ -130,14 +96,15 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
 
 def _interval_get_grouped_op_unit_data(filename):
     # In the default case, the data does not need any pre-processing and the file name indicates the opunit
-    df = pd.read_csv(filename)
+    df = pd.read_csv(filename, skipinitialspace=True)
+    headers = list(df.columns.values)
+    data_info.parse_csv_header(headers, False)
     file_name = os.path.splitext(os.path.basename(filename))[0]
 
     x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
     y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
-    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.START_TIME]].values
-    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[data_info.Target.CPU_ID]].values
-
+    start_times = df.iloc[:, data_info.TARGET_CSV_INDEX[ExecutionFeature.START_TIME]].values
+    cpu_ids = df.iloc[:, data_info.TARGET_CSV_INDEX[ExecutionFeature.CPU_ID]].values
     interval = data_info.PERIODIC_OPUNIT_INTERVAL
 
     # Map from interval start time to the data in this interval
@@ -196,9 +163,9 @@ class GroupedOpUnitData:
         self.y = metrics[-data_info.MINI_MODEL_TARGET_NUM:]
         self.y_pred = None
         index_map = data_info.TARGET_CSV_INDEX
-        self.start_time = metrics[index_map[Target.START_TIME]]
-        self.end_time = self.start_time + self.y[index_map[Target.ELAPSED_US]] - 1
-        self.cpu_id = int(metrics[index_map[Target.CPU_ID]])
+        self.start_time = metrics[index_map[ExecutionFeature.START_TIME]]
+        self.end_time = self.start_time + self.y[index_map[ExecutionFeature.ELAPSED_US]] - 1
+        self.cpu_id = int(metrics[index_map[ExecutionFeature.CPU_ID]])
         self.sample_interval = sample_interval
 
     def get_start_time(self, concurrent_counting_mode):
@@ -226,7 +193,7 @@ class GroupedOpUnitData:
         if concurrent_counting_mode is ConcurrentCountingMode.EXACT:
             end_time = self.end_time
         if concurrent_counting_mode is ConcurrentCountingMode.ESTIMATED:
-            end_time = self.start_time + self.y_pred[data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]] - 1
+            end_time = self.start_time + self.y_pred[data_info.TARGET_CSV_INDEX[ExecutionFeature.ELAPSED_US]] - 1
         if concurrent_counting_mode is ConcurrentCountingMode.INTERVAL:
             end_time = self.start_time + global_model_config.INTERVAL_START + global_model_config.INTERVAL_SIZE
         return end_time

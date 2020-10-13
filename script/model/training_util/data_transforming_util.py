@@ -1,18 +1,18 @@
 import numpy as np
 
 from info import data_info
-from type import OpUnit, Target
+from type import OpUnit, ExecutionFeature
 
 
 def _tuple_num_linear_train_transform(x, y):
     # Linearly transform down the target according to the tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     return y / tuple_num[:, np.newaxis]
 
 
 def _tuple_num_linear_predict_transform(x, y):
     # Linearly transform up the target according to the tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     return y * tuple_num[:, np.newaxis]
 
 
@@ -22,24 +22,24 @@ _tuple_num_linear_transformer = (_tuple_num_linear_train_transform, _tuple_num_l
 
 def _tuple_num_memory_cardinality_linear_train_transform(x, y):
     # Linearly transform down the target according to the tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     new_y = y / tuple_num[:, np.newaxis]
     # Transform the memory consumption based on the cardinality
-    cardinality = np.copy(x[:, data_info.CARDINALITY_INDEX])
-    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= tuple_num
+    cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
+    new_y[:, data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] *= tuple_num
     # Having a 250 offset since below roughly that the memory consumption is constant (while fixing other features)
-    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= cardinality + 250
+    new_y[:, data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] /= cardinality + 250
     return new_y
 
 
 def _tuple_num_memory_cardinality_linear_predict_transform(x, y):
     # Linearly transform up the target according to the tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     new_y = y * tuple_num[:, np.newaxis]
     # Transform the memory consumption based on the cardinality
-    cardinality = np.copy(x[:, data_info.CARDINALITY_INDEX])
-    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] /= tuple_num
-    new_y[:, data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] *= cardinality + 250
+    cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
+    new_y[:, data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] /= tuple_num
+    new_y[:, data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] *= cardinality + 250
     return new_y
 
 
@@ -50,13 +50,13 @@ _tuple_num_memory_cardinality_linear_transformer = (_tuple_num_memory_cardinalit
 
 def _tuple_num_linear_log_train_transform(x, y):
     # Transform down the target according to the linear-log (nlogn) tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     return y / (tuple_num * np.log2(tuple_num) + 1e-6)[:, np.newaxis]
 
 
 def _tuple_num_linear_log_predict_transform(x, y):
     # Transform up the target according to the linear-log (nlogn) tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     return y * (tuple_num * np.log2(tuple_num) + 1e-6)[:, np.newaxis]
 
 
@@ -66,13 +66,13 @@ _tuple_num_linear_log_transformer = (_tuple_num_linear_log_train_transform, _tup
 
 def _tuple_num_log_train_transform(x, y):
     # Transform down the target according to the log tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     return y / (np.log2(tuple_num) + 1e-6)[:, np.newaxis]
 
 
 def _tuple_num_log_predict_transform(x, y):
     # Transform up the target according to the log tuple num value in the input
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     return y * (np.log2(tuple_num) + 1e-6)[:, np.newaxis]
 
 
@@ -122,9 +122,9 @@ OPUNIT_Y_TRANSFORMER_MAP = {
 
 def _tuple_num_cardinality_linear_train_transform(x):
     # Linearly divide the cardinality by the tuple num
-    tuple_num = np.copy(x[:, data_info.TUPLE_NUM_INDEX])
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]])
     new_x = x * 1.0
-    new_x[:, data_info.CARDINALITY_INDEX] /= tuple_num + 1
+    new_x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]] /= tuple_num + 1
     return new_x
 
 
