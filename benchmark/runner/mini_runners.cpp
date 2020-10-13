@@ -2269,7 +2269,7 @@ std::condition_variable network_queries_cv;
 
 using NetworkWorkFunction = std::function<void(pqxx::work *)>;
 
-void RunNetworkQueries(NetworkWorkFunction work) {
+void RunNetworkQueries(const NetworkWorkFunction &work) {
   // GC does not run in a background thread!
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
