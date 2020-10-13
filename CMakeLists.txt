@@ -141,6 +141,7 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   NOISEPAGE_UNITY_BUILD                   : Enable unity (aka jumbo) builds. Default OFF.
 #   NOISEPAGE_USE_ASAN                      : Enable ASAN, a fast memory error detector. Default OFF.
 #   NOISEPAGE_USE_JEMALLOC                  : Link with jemalloc instead of system malloc. Default OFF.
+#   NOISEPAGE_USE_JUMBOTESTS                : Enable jumbotests instead of unittests as part of ALL target. Default OFF.
 #
 # CMake global variables. These are NOT CMake options, i.e., these variables are internal. Usually OS-specific hacks.
 #   BUILD_SUPPORT_DIR             : Helper scripts for building belongs here.
@@ -156,16 +157,16 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif (NOT CMAKE_BUILD_TYPE)
 
+option(NOISEPAGE_BUILD_BENCHMARKS
+        "Enable building benchmarks as part of the ALL target."
+        ON)
+
+option(NOISEPAGE_BUILD_TESTS
+        "Enable building tests as part of the ALL target."
+        ON)
+
 option(NOISEPAGE_GENERATE_COVERAGE
         "Enable C++ code coverage."
-        OFF)
-
-option(NOISEPAGE_USE_ASAN
-        "Enable ASAN, a fast memory error detector. https://clang.llvm.org/docs/AddressSanitizer.html"
-        OFF)
-
-option(NOISEPAGE_USE_JEMALLOC
-        "Link jemalloc instead of system malloc. https://github.com/jemalloc/jemalloc"
         OFF)
 
 option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
@@ -176,13 +177,17 @@ option(NOISEPAGE_UNITY_BUILD
         "Enable Unity builds for much faster compilation. https://cmake.org/cmake/help/latest/prop_tgt/UNITY_BUILD.html"
         OFF)
 
-option(NOISEPAGE_BUILD_TESTS
-        "Enable building tests as part of the ALL target."
-        ON)
+option(NOISEPAGE_USE_ASAN
+        "Enable ASAN, a fast memory error detector. https://clang.llvm.org/docs/AddressSanitizer.html"
+        OFF)
 
-option(NOISEPAGE_BUILD_BENCHMARKS
-        "Enable building benchmarks as part of the ALL target."
-        ON)
+option(NOISEPAGE_USE_JEMALLOC
+        "Link jemalloc instead of system malloc. https://github.com/jemalloc/jemalloc"
+        OFF)
+
+option(NOISEPAGE_USE_JUMBOTESTS
+        "Enable jumbotests instead of unittest as part of ALL target."
+        OFF)
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
@@ -798,11 +803,15 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
     get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
     get_filename_component(NOISEPAGE_TEST ${NOISEPAGE_TEST_CPP} NAME_WE)
-    if (${NOISEPAGE_UNITY_BUILD} OR ${NOISEPAGE_BUILD_TESTS})
+
+    if (NOT ${NOISEPAGE_BUILD_TESTS})
+        set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
+    elseif (${NOISEPAGE_USE_JUMBOTESTS})
         set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
     else ()
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
     endif ()
+
     add_noisepage_test(${NOISEPAGE_TEST} ${NOISEPAGE_TEST_CPP} unittest ${EXCLUDE_OR_NOT} NO_UNITY)
 endforeach ()
 
@@ -816,10 +825,12 @@ function(add_jumbotest
     file(GLOB_RECURSE JUMBO_SOURCES_ALL ${FOLDER_PATH}/*.cpp)
     set(TEST_NAME_SUFFIX "")
 
-    if (${NOISEPAGE_BUILD_TESTS} OR NOT (${NOISEPAGE_UNITY_BUILD}))
+    if (NOT ${NOISEPAGE_BUILD_TESTS})
         set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
-    else ()
+    elseif (${NOISEPAGE_USE_JUMBOTESTS})
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
+    else ()
+        set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
     endif ()
 
     if (NOT "${PREFIXES}" STREQUAL "")
@@ -895,7 +906,7 @@ macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
 
     set(BENCHMARK_PATH "${CMAKE_BINARY_DIR}/benchmark/${BENCHMARK_NAME}")
     add_test(${BENCHMARK_NAME}
-            ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} benchmark ${BENCHMARK_PATH} ${NO_COLOR})
+            ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} benchmark ${BENCHMARK_PATH})
     set_tests_properties(${BENCHMARK_NAME} PROPERTIES LABELS "benchmark")
     list(APPEND NOISEPAGE_BENCHMARK ${BENCHMARK_NAME})
 endmacro()
