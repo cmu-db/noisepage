@@ -85,6 +85,19 @@ class TableGenerator {
   }
 
   /**
+   * Generate table name that contains an index
+   * @param type Type
+   * @param row Number of rows
+   * @return table name
+   */
+  static std::string GenerateTableIndexName(type::TypeId type, size_t row) {
+    std::stringstream table_name;
+    auto type_name = type::TypeUtil::TypeIdToString(type);
+    table_name << type_name << "IndexRow" << row;
+    return table_name.str();
+  }
+
+  /**
    * Generate test tables.
    */
   void GenerateTestTables();
@@ -95,27 +108,30 @@ class TableGenerator {
   void GenerateMiniRunnersData(const runner::MiniRunnersDataConfig &config);
 
   /**
+   * Generate mini runners indexes
+   */
+  void GenerateMiniRunnerIndexTables(const runner::MiniRunnersDataConfig &config);
+
+  /**
    * Adds a mini-runner index
    * Function does not check whether an index of the same key_num
-   * already exists on the table GenerateTableName(type, row_num)
+   * already exists on the table GenerateTableIndexName(type, row_num)
    *
    * @param type Datatype of the underlying table
    * @param row_num # of rows in the underlying table
-   * @param num_col Number of columns in the underlying table
    * @param key_num Number of keys comprising the index
    */
-  void BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t num_col, int64_t key_num);
+  void BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
 
   /**
    * Drops a unique mini-runner index
    *
    * @param type Datatype of the underlying table
    * @param row_num # of rows in the underlying table
-   * @param num_col Number of columns in the underlying table
    * @param key_num Number of keys comprising the index
    * @returns bool indicating whether successful
    */
-  bool DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t num_col, int64_t key_num);
+  bool DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;

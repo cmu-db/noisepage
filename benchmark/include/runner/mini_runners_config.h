@@ -51,6 +51,15 @@ class MiniRunnersDataConfig {
                                            2000, 5000, 10000, 20000, 50000, 100000, 200000, 300000, 500000, 1000000};
 
   /**
+   * Types of pure tables to create for index builds.
+   * A "pure" table is a table where all columns are of the same type.
+   *
+   * The vector stores a pair denoting <number of columns, type>
+   */
+  std::vector<std::pair<uint32_t, type::TypeId>> index_table_types_ = {
+      {15, type::TypeId::INTEGER}, {15, type::TypeId::BIGINT}, {5, type::TypeId::VARCHAR}};
+
+  /**
    * Parameter controls number of columns extracted from base tables.
    */
   std::vector<uint32_t> sweep_col_nums_ = {1, 3, 5, 7, 9, 11, 13, 15};

@@ -463,8 +463,31 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersDataConfig
   }
 }
 
-void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t num_col, int64_t key_num) {
-  auto table_name = GenerateTableName(type, num_col, row_num, row_num);
+void TableGenerator::GenerateMiniRunnerIndexTables(const runner::MiniRunnersDataConfig &config) {
+  std::vector<TableInsertMeta> table_metas;
+  auto &row_nums = config.table_row_nums_;
+  auto &types = config.index_table_types_;
+  for (auto row_num : row_nums) {
+    for (auto type_pair : types) {
+      auto type = type_pair.second;
+      uint32_t column_num = type_pair.first;
+
+      auto table_name = GenerateTableIndexName(type, row_num);
+      std::vector<ColumnInsertMeta> col_metas;
+      for (uint32_t j = 1; j <= column_num; j++) {
+        std::stringstream col_name;
+        col_name << "col" << j;
+        col_metas.emplace_back(col_name.str(), type, false, Dist::Serial, 0, 0);
+      }
+
+      auto meta = TableInsertMeta(table_name, row_num, col_metas);
+      CreateTable(&meta);
+    }
+  }
+}
+
+void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
+  auto table_name = GenerateTableIndexName(type, row_num);
 
   // Create Index Schema
   std::stringstream idx_name;
@@ -489,8 +512,8 @@ void TableGenerator::BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, in
   CreateIndex(&index_meta);
 }
 
-bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t num_col, int64_t key_num) {
-  auto table_name = GenerateTableName(type, num_col, row_num, row_num);
+bool TableGenerator::DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num) {
+  auto table_name = GenerateTableIndexName(type, row_num);
   auto accessor = exec_ctx_->GetAccessor();
   auto table_oid = accessor->GetTableOid(table_name);
   auto index_oids = accessor->GetIndexOids(table_oid);
