@@ -22,13 +22,22 @@ SETTING_int(
     terrier::settings::Callbacks::NoOp
 )
 
+// Path to socket file for Unix domain sockets
+SETTING_string(
+    uds_file_directory,
+    "The directory for the Unix domain socket (default: /tmp/)",
+    "/tmp/",
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
 // RecordBufferSegmentPool size limit
 SETTING_int(
     record_buffer_segment_size,
     "The maximum number of record buffer segments in the system. (default: 100000)",
     100000,
     1,
-    1000000,
+    100000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolSizeLimit
 )
@@ -194,6 +203,14 @@ SETTING_bool(
     false,
     true,
     terrier::settings::Callbacks::MetricsGC
+)
+
+SETTING_bool(
+    metrics_query_trace,
+    "Metrics collection for Query Traces (default: false).",
+    false,
+    true,
+    terrier::settings::Callbacks::MetricsQueryTrace
 )
 
 SETTING_bool(

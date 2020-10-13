@@ -36,7 +36,11 @@ UpdateTranslator::UpdateTranslator(const planner::UpdatePlanNode &plan, Compilat
       compilation_context->Prepare(*index_col.StoredExpression());
     }
   }
+
+  num_updates_ = CounterDeclare("num_updates");
 }
+
+void UpdateTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_updates_, 0); }
 
 void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // var col_oids: [num_cols]uint32
@@ -77,8 +81,18 @@ void UpdateTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
   }
   function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
 
+  CounterAdd(function, num_updates_, 1);
+
   // @storageInterfaceFree(&updater)
   GenUpdaterFree(function);
+}
+
+void UpdateTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_updates_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::UPDATE,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_updates_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_updates_));
 }
 
 void UpdateTranslator::DeclareUpdater(terrier::execution::compiler::FunctionBuilder *builder) const {

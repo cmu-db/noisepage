@@ -2,9 +2,6 @@
 
 #include <memory>
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 namespace terrier::catalog {
 
 std::shared_ptr<spdlog::logger> catalog_logger = nullptr;  // NOLINT

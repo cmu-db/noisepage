@@ -62,6 +62,9 @@ class Index {
    */
   virtual IndexType Type() const = 0;
 
+  /** @return The number of keys in the index. */
+  virtual uint64_t GetSize() const = 0;
+
   /**
    * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
    */

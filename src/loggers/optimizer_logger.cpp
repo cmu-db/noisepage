@@ -2,9 +2,6 @@
 
 #include <memory>
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
-
 namespace terrier::optimizer {
 
 std::shared_ptr<spdlog::logger> optimizer_logger = nullptr;  // NOLINT

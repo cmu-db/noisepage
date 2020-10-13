@@ -3,6 +3,8 @@
 #include <random>
 #include <vector>
 
+#include "common/error/error_code.h"
+#include "common/error/exception.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
@@ -375,6 +377,21 @@ TEST_F(ArithmeticFunctionsTests, Round) {
   ArithmeticFunctions::Round2(&result, input, precision);
   EXPECT_FALSE(result.is_null_);
   EXPECT_DOUBLE_EQ(-12.34, result.val_);
+}
+
+TEST_F(ArithmeticFunctionsTests, OutOfRangeTest) {
+#define OUT_OF_RANGE(TPL_FUNC)                                                   \
+  {                                                                              \
+    try {                                                                        \
+      Real result = Real::Null();                                                \
+      ArithmeticFunctions::TPL_FUNC(&result, Real(42.0));                        \
+      FAIL();                                                                    \
+    } catch (ExecutionException & e) {                                           \
+      EXPECT_EQ(common::ErrorCode::ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE, e.code_); \
+    }                                                                            \
+  }
+  OUT_OF_RANGE(Asin)
+  OUT_OF_RANGE(Acos)
 }
 
 }  // namespace terrier::execution::sql::test

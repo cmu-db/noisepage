@@ -4,6 +4,7 @@
 #include <cstring>
 #include <functional>
 #include <vector>
+
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "xxHash/xxh3.h"

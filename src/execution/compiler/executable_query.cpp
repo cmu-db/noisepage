@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "brain/operating_unit.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/ast/context.h"
@@ -37,14 +38,16 @@ void ExecutableQuery::Fragment::Run(byte query_state[], vm::ExecutionMode mode) 
   for (const auto &func_name : functions_) {
     Function func;
     if (!module_->GetFunction(func_name, mode, &func)) {
-      throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name));
+      throw EXECUTION_EXCEPTION(fmt::format("Could not find function '{}' in query fragment.", func_name),
+                                common::ErrorCode::ERRCODE_INTERNAL_ERROR);
     }
     try {
       func(query_state);
     } catch (const AbortException &e) {
       for (const auto &teardown_name : teardown_fn_) {
         if (!module_->GetFunction(teardown_name, mode, &func)) {
-          throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name));
+          throw EXECUTION_EXCEPTION(fmt::format("Could not find teardown function '{}' in query fragment.", func_name),
+                                    common::ErrorCode::ERRCODE_INTERNAL_ERROR);
         }
         func(query_state);
       }

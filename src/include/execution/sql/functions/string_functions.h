@@ -29,8 +29,8 @@ class StringFunctions {
     Length(result, ctx, str);
   }
 
-  /** Compute CONCAT(left, right). */
-  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &left, const StringVal &right);
+  /** Compute CONCAT(str1, str2, str3, ...). */
+  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[], uint32_t num_inputs);
 
   /** Compute LEFT(str, n). */
   static void Left(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
@@ -44,6 +44,9 @@ class StringFunctions {
   /** Compute LPAD(str, len, pad). */
   static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
+
+  /** Compute LPAD(str, len). */
+  static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len);
 
   /** Compute LTRIM(str, chars). */
   static void Ltrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
@@ -60,9 +63,12 @@ class StringFunctions {
   /** Compute RIGHT(str, n). */
   static void Right(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /** Compute RPAD(str, n). */
-  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n,
+  /** Compute RPAD(str, n, pad). */
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
+
+  /** Compute RPAD(str, n). */
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len);
 
   /** Compute RTRIM(str, chars). */
   static void Rtrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);

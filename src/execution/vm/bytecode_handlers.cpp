@@ -86,6 +86,16 @@ void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_h
 
 void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
 
+void OpJoinHashTableIteratorInit(terrier::execution::sql::JoinHashTableIterator *iter,
+                                 terrier::execution::sql::JoinHashTable *join_hash_table) {
+  TERRIER_ASSERT(join_hash_table != nullptr, "Null hash table");
+  new (iter) terrier::execution::sql::JoinHashTableIterator(*join_hash_table);
+}
+
+void OpJoinHashTableIteratorFree(terrier::execution::sql::JoinHashTableIterator *iter) {
+  iter->~JoinHashTableIterator();
+}
+
 // ---------------------------------------------------------
 // Aggregation Hash Table
 // ---------------------------------------------------------
@@ -95,6 +105,11 @@ void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *c
                                 terrier::execution::sql::MemoryPool *const memory, const uint32_t payload_size) {
   new (agg_hash_table)
       terrier::execution::sql::AggregationHashTable(exec_ctx->GetExecutionSettings(), memory, payload_size);
+}
+
+void OpAggregationHashTableGetTupleCount(uint32_t *result,
+                                         terrier::execution::sql::AggregationHashTable *const agg_hash_table) {
+  *result = agg_hash_table->GetTupleCount();
 }
 
 void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *const agg_hash_table) {
@@ -207,6 +222,15 @@ void OpStorageInterfaceGetIndexPR(terrier::storage::ProjectedRow **pr_result,
   *pr_result = storage_interface->GetIndexPR(terrier::catalog::index_oid_t(index_oid));
 }
 
+void OpStorageInterfaceGetIndexHeapSize(uint32_t *size, terrier::execution::sql::StorageInterface *storage_interface) {
+  *size = storage_interface->GetIndexHeapSize();
+}
+
+// TODO(WAN): this should be uint64_t, but see #1049
+void OpStorageInterfaceIndexGetSize(uint32_t *result, terrier::execution::sql::StorageInterface *storage_interface) {
+  *result = storage_interface->IndexGetSize();
+}
+
 void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsert();
 }
@@ -214,7 +238,10 @@ void OpStorageInterfaceIndexInsert(bool *result, terrier::execution::sql::Storag
 void OpStorageInterfaceIndexInsertUnique(bool *result, terrier::execution::sql::StorageInterface *storage_interface) {
   *result = storage_interface->IndexInsertUnique();
 }
-
+void OpStorageInterfaceIndexInsertWithSlot(bool *result, terrier::execution::sql::StorageInterface *storage_interface,
+                                           terrier::storage::TupleSlot *tuple_slot, bool unique) {
+  *result = storage_interface->IndexInsertWithTuple(*tuple_slot, unique);
+}
 void OpStorageInterfaceIndexDelete(terrier::execution::sql::StorageInterface *storage_interface,
                                    terrier::storage::TupleSlot *tuple_slot) {
   storage_interface->IndexDelete(*tuple_slot);
@@ -231,6 +258,11 @@ void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
                          uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids) {
   new (iter) terrier::execution::sql::IndexIterator(exec_ctx, num_attrs, table_oid, index_oid, col_oids, num_oids);
+}
+
+// TODO(WAN): this should be uint64_t, but see #1049
+void OpIndexIteratorGetSize(uint32_t *index_size, terrier::execution::sql::IndexIterator *iter) {
+  *index_size = iter->GetIndexSize();
 }
 
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }

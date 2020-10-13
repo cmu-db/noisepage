@@ -1,3 +1,5 @@
+#include "optimizer/index_util.h"
+
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -6,7 +8,6 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
-#include "optimizer/index_util.h"
 #include "optimizer/properties.h"
 #include "parser/expression_util.h"
 
@@ -87,6 +88,7 @@ bool IndexUtil::CheckPredicates(
   // To concatenate/shrink ranges, we would need to be able to compare TransientValues.
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_highs;  // <index, low start>
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_lows;   // <index, high end>
+  bool left_side = true;
   for (const auto &pred : predicates) {
     auto expr = pred.GetExpr();
     if (expr->HasSubquery()) return false;
@@ -127,9 +129,11 @@ bool IndexUtil::CheckPredicates(
               (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
             tv_expr = lexpr;
             idx_expr = expr->GetChild(1);
+            left_side = true;
           } else {
             tv_expr = rexpr;
             idx_expr = expr->GetChild(0);
+            left_side = false;
           }
         } else {
           // By derivation, all of these predicates should be CONJUNCTIVE_AND
@@ -146,10 +150,18 @@ bool IndexUtil::CheckPredicates(
             open_lows[idxkey] = idx_expr;
           } else if (type == parser::ExpressionType::COMPARE_LESS_THAN ||
                      type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
-            open_lows[idxkey] = idx_expr;
+            if (left_side) {
+              open_lows[idxkey] = idx_expr;
+            } else {
+              open_highs[idxkey] = idx_expr;
+            }
           } else if (type == parser::ExpressionType::COMPARE_GREATER_THAN ||
                      type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO) {
-            open_highs[idxkey] = idx_expr;
+            if (left_side) {
+              open_highs[idxkey] = idx_expr;
+            } else {
+              open_lows[idxkey] = idx_expr;
+            }
           }
         }
         break;
@@ -190,12 +202,12 @@ bool IndexUtil::CheckPredicates(
       if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::AscendingClosed ||
           scan_type == planner::IndexScanType::AscendingOpenHigh) {
         scan_type = planner::IndexScanType::AscendingOpenHigh;
+
       } else {
         // OpenHigh scan is not compatible with an OpenLow scan
         // Revert to a sequential scan
         break;
       }
-
       bounds->insert(std::make_pair(
           oid, std::vector<planner::IndexExpression>{open_highs[oid], planner::IndexExpression(nullptr)}));
     } else if (open_lows.find(oid) != open_lows.end()) {
@@ -207,7 +219,6 @@ bool IndexUtil::CheckPredicates(
         // Revert to a sequential scan
         break;
       }
-
       bounds->insert(std::make_pair(
           oid, std::vector<planner::IndexExpression>{planner::IndexExpression(nullptr), open_lows[oid]}));
     }

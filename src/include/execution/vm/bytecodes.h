@@ -103,7 +103,13 @@ namespace terrier::execution::vm {
   F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
+  F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(ExecutionContextGetFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,       \
+    OperandType::Local)                                                                                               \
+  F(ExecutionContextRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,    \
+    OperandType::Local)                                                                                               \
+  F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \
@@ -118,6 +124,7 @@ namespace terrier::execution::vm {
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
+  F(TableVectorIteratorGetVPINumTuples, OperandType::Local, OperandType::Local)                                       \
   F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::FunctionId)                                                                      \
@@ -312,6 +319,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(HashBool, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashDate, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
@@ -320,6 +328,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Aggregation Hash Table */                                                                                        \
   F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(AggregationHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                        \
   F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   F(AggregationHashTableAllocTuplePartitioned, OperandType::Local, OperandType::Local, OperandType::Local)            \
   F(AggregationHashTableLinkHashTableEntry, OperandType::Local, OperandType::Local)                                   \
@@ -434,15 +443,22 @@ namespace terrier::execution::vm {
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
   F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(JoinHashTableLookup, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(JoinHashTableFree, OperandType::Local)                                                                            \
   F(HashTableEntryIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
   F(HashTableEntryIteratorGetRow, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorInit, OperandType::Local, OperandType::Local)                                                \
+  F(JoinHashTableIteratorHasNext, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorNext, OperandType::Local)                                                                    \
+  F(JoinHashTableIteratorGetRow, OperandType::Local, OperandType::Local)                                              \
+  F(JoinHashTableIteratorFree, OperandType::Local)                                                                    \
                                                                                                                       \
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \
+  F(SorterGetTupleCount, OperandType::Local, OperandType::Local)                                                      \
   F(SorterAllocTuple, OperandType::Local, OperandType::Local)                                                         \
   F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \
@@ -464,6 +480,7 @@ namespace terrier::execution::vm {
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::Local, OperandType::UImm4)                                                       \
+  F(IndexIteratorGetSize, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
   F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
@@ -536,9 +553,13 @@ namespace terrier::execution::vm {
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  F(StorageInterfaceGetIndexHeapSize, OperandType::Local, OperandType::Local)                                         \
   F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(StorageInterfaceIndexGetSize, OperandType::Local, OperandType::Local)                                             \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
+  F(StorageInterfaceIndexInsertWithSlot, OperandType::Local, OperandType::Local, OperandType::Local,                  \
+    OperandType::Local)                                                                                               \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
@@ -577,18 +598,22 @@ namespace terrier::execution::vm {
   F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(CharLength, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(ASCII, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Like, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
   F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(LPad3Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
+  F(LPad2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(LTrim2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(LTrim1Arg, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(Repeat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Reverse, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(Right, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(RPad3Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
+  F(RPad2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(RTrim2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(RTrim1Arg, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Trim, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \

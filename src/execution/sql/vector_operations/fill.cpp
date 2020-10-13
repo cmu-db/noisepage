@@ -11,7 +11,8 @@ namespace {
 void CheckFillArguments(const Vector &input, const GenericValue &value) {
   if (input.GetTypeId() != value.GetTypeId()) {
     throw EXECUTION_EXCEPTION(fmt::format("Invalid types for fill, input {} value {}.",
-                                          TypeIdToString(input.GetTypeId()), TypeIdToString(value.GetTypeId())));
+                                          TypeIdToString(input.GetTypeId()), TypeIdToString(value.GetTypeId())),
+                              common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 
@@ -70,8 +71,8 @@ void VectorOps::Fill(Vector *vector, const GenericValue &value) {
       TemplatedFillOperation(vector, vector->varlen_heap_.AddVarlen(value.str_value_));
       break;
     default:
-      throw EXECUTION_EXCEPTION(
-          fmt::format("Vector of type {} cannot be filled.", TypeIdToString(vector->GetTypeId())));
+      throw EXECUTION_EXCEPTION(fmt::format("Vector of type {} cannot be filled.", TypeIdToString(vector->GetTypeId())),
+                                common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

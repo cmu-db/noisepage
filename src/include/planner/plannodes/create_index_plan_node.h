@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/index_schema.h"
 #include "parser/create_statement.h"
 #include "parser/expression/column_value_expression.h"

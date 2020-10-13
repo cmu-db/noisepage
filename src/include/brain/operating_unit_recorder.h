@@ -14,6 +14,7 @@
 
 namespace terrier::catalog {
 class CatalogAccessor;
+class IndexSchema;
 }  // namespace terrier::catalog
 
 namespace terrier::execution {
@@ -97,6 +98,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::OrderByPlanNode *plan) override;
   void Visit(const planner::ProjectionPlanNode *plan) override;
   void Visit(const planner::AggregatePlanNode *plan) override;
+  void Visit(const planner::CreateIndexPlanNode *plan) override;
 
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
@@ -165,6 +167,17 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @returns key size
    */
   size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols, size_t *num_key);
+
+  /**
+   * Compute key size from an IndexSchema and optional col specifiers
+   * @param schema Index Schema
+   * @param restrict_cols whether to consider cols vector
+   * @param cols Set of column specifiers to look at
+   * @param num_key Number of keys
+   * @returns key size
+   */
+  size_t ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema> schema, bool restrict_cols,
+                        const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key);
 
   /**
    * Compute key size from vector of index oids

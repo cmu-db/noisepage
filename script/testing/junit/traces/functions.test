@@ -540,5 +540,135 @@ SELECT split_part(str_a_val, 'd', 1) AS result FROM functions1 WHERE is_null = 1
 ----
 1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
 
+query T nosort
+SELECT rpad(str_a_val, 0, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT rpad(str_a_val, 3, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5e4ba05a7069cf2db26660252cd3061a
+
+query T nosort
+SELECT rpad(str_a_val, 6, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query T nosort
+SELECT rpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 7a8e199e76afeb747e769bb9d4270410
+
+query T nosort
+SELECT rpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT rpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 169833924fd7174a20b97582f76b479f
+
+query T nosort
+SELECT rpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT lpad(str_a_val, 0, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT lpad(str_a_val, 3, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5e4ba05a7069cf2db26660252cd3061a
+
+query T nosort
+SELECT lpad(str_a_val, 6, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query T nosort
+SELECT lpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 1092969d7bca80554995fd5d94adf454
+
+query T nosort
+SELECT lpad(str_a_val, 20, str_i_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT lpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 643d9cbbb84f28a8da87255364afd0fe
+
+query T nosort
+SELECT lpad(str_a_val, 10) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT rtrim(str_b_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 56843ee9b099ce607d3a204b0e78caa2
+
+query T nosort
+SELECT rtrim(str_b_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT rtrim(str_a_val, 'Ab') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query T nosort
+SELECT rtrim(str_a_val, 'Ef') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to a49417435670f78d9867f4458e86349b
+
+query T nosort
+SELECT rtrim(str_a_val, 'Ef') AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT ltrim(str_b_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 0b67e91fe416fd9a6f790d2ea3b1cde3
+
+query T nosort
+SELECT ltrim(str_b_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT ltrim(str_a_val, 'Ab') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 1dc10f22ae90544e8acc9d95256dc0d4
+
+query T nosort
+SELECT ltrim(str_a_val, 'Ef') AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query T nosort
+SELECT ltrim(str_a_val, 'Ef') AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query T nosort
+SELECT CONCAT(str_i_val, str_a_val) AS result FROM functions1 WHERE is_null = 0
+----
+1 values hashing to 5900c055286e2b2f3c143b056ea685eb
+
+query T nosort
+SELECT CONCAT(str_i_val, str_a_val) AS result FROM functions1 WHERE is_null = 1
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
 statement ok
 DROP TABLE functions1

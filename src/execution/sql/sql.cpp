@@ -32,7 +32,8 @@ SqlTypeId GetSqlTypeFromInternalType(TypeId type) {
     case TypeId::Varbinary:
       return SqlTypeId::Varchar;
     default:
-      throw EXECUTION_EXCEPTION(fmt::format("Not a SQL type, {}.", TypeIdToString(type)));
+      throw EXECUTION_EXCEPTION(fmt::format("Not a SQL type, {}.", TypeIdToString(type)),
+                                common::ErrorCode::ERRCODE_INTERNAL_ERROR);
   }
 }
 

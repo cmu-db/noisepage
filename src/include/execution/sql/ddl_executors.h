@@ -9,15 +9,12 @@ class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;
 class CreateTablePlanNode;
 class CreateIndexPlanNode;
+class CreateViewPlanNode;
 class DropDatabasePlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
 class DropIndexPlanNode;
 }  // namespace terrier::planner
-
-namespace terrier::execution::exec {
-class Executionaccessor;
-}
 
 namespace terrier::catalog {
 class CatalogAccessor;

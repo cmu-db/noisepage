@@ -1,9 +1,10 @@
+#include "planner/plannodes/nested_loop_join_plan_node.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "common/json.h"
-#include "planner/plannodes/nested_loop_join_plan_node.h"
 
 namespace terrier::planner {
 

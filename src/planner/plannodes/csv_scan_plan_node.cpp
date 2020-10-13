@@ -1,9 +1,10 @@
+#include "planner/plannodes/csv_scan_plan_node.h"
+
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "common/json.h"
-#include "planner/plannodes/csv_scan_plan_node.h"
 
 namespace terrier::planner {
 

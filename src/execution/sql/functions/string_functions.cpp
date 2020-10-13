@@ -9,19 +9,25 @@
 
 namespace terrier::execution::sql {
 
-void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &left,
-                             const StringVal &right) {
-  if (left.is_null_ || right.is_null_) {
-    *result = StringVal::Null();
-    return;
+void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[],
+                             uint32_t num_inputs) {
+  TERRIER_ASSERT(num_inputs != 0, "Concat should have at least one argument");
+
+  std::size_t length = 0;
+  for (std::size_t i = 0; i < num_inputs; i++) {
+    if (!inputs[i]->is_null_) {
+      length += inputs[i]->GetLength();
+    }
   }
 
-  const std::size_t length = left.GetLength() + right.GetLength();
   char *const ptr = ctx->GetStringAllocator()->PreAllocate(length);
+  for (std::size_t i = 0, offset = 0; i < num_inputs; i++) {
+    if (!inputs[i]->is_null_) {
+      std::memcpy(ptr + offset, inputs[i]->GetContent(), inputs[i]->GetLength());
+      offset += inputs[i]->GetLength();
+    }
+  }
 
-  // Copy contents into result.
-  std::memcpy(ptr, left.GetContent(), left.GetLength());
-  std::memcpy(ptr + left.GetLength(), right.GetContent(), right.GetLength());
   *result = StringVal(ptr, length);
 }
 
@@ -158,6 +164,12 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
   // Allocate some memory
   char *target = ctx->GetStringAllocator()->PreAllocate(len.val_);
 
@@ -175,6 +187,10 @@ void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Lpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
@@ -196,6 +212,12 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
     return;
   }
 
+  // If padding is empty string, nothing to do
+  if (pad.GetLength() == 0) {
+    *result = str;
+    return;
+  }
+
   // Allocate output
   char *target = ctx->GetStringAllocator()->PreAllocate(len.val_);
   char *ptr = target;
@@ -214,6 +236,10 @@ void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const
 
   // Set result
   *result = StringVal(target, len.val_);
+}
+
+void StringFunctions::Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len) {
+  return Rpad(result, ctx, str, len, StringVal(" "));
 }
 
 void StringFunctions::Length(Integer *result, UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, const StringVal &str) {

@@ -91,6 +91,7 @@ class Sema : public ast::AstVisitor<Sema> {
   // Check the number of arguments to the call; true if good, false otherwise
   bool CheckArgCount(ast::CallExpr *call, uint32_t expected_arg_count);
   bool CheckArgCountAtLeast(ast::CallExpr *call, uint32_t expected_arg_count);
+  bool CheckArgCountBetween(ast::CallExpr *call, uint32_t min_expected_arg_count, uint32_t max_expected_arg_count);
 
   // Check boolean logic operands: and, or
   CheckResult CheckLogicalOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
@@ -124,11 +125,14 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinJoinHashTableInit(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableInsert(ast::CallExpr *call);
+  void CheckBuiltinJoinHashTableGetTupleCount(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableBuild(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinJoinHashTableLookup(ast::CallExpr *call);
   void CheckBuiltinJoinHashTableFree(ast::CallExpr *call);
   void CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinJoinHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterInit(ast::CallExpr *call);
+  void CheckBuiltinSorterGetTupleCount(ast::CallExpr *call);
   void CheckBuiltinSorterInsert(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterSort(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinSorterFree(ast::CallExpr *call);
@@ -150,6 +154,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinStorageInterfaceCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorInit(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorGetSize(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorAdvance(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorScan(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorFree(ast::CallExpr *call);

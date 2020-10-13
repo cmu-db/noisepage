@@ -1,4 +1,5 @@
 #include "storage/access_observer.h"
+
 #include "storage/block_compactor.h"
 
 namespace terrier::storage {

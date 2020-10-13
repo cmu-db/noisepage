@@ -8,7 +8,6 @@
 #include "network/itp/itp_protocol_interpreter.h"
 #include "network/terrier_server.h"
 #include "traffic_cop/traffic_cop.h"
-
 #include "type/type_id.h"
 
 namespace terrier::network {

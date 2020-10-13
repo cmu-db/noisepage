@@ -3,6 +3,7 @@
 #include <functional>
 #include <random>
 #include <vector>
+
 #include "common/macros.h"
 
 namespace terrier {

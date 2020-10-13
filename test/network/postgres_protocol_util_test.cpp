@@ -1,7 +1,8 @@
+#include "network/postgres/postgres_protocol_util.h"
+
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "network/postgres/postgres_protocol_util.h"
 #include "test_util/test_harness.h"
 
 namespace terrier::network {

@@ -1,4 +1,5 @@
 #include "storage/garbage_collector_thread.h"
+
 #include "metrics/metrics_manager.h"
 
 namespace terrier::storage {

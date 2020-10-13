@@ -1,4 +1,5 @@
 #include "planner/plannodes/output_schema.h"
+
 #include "common/json.h"
 
 namespace terrier::planner {

@@ -33,24 +33,50 @@ TEST_F(StringFunctionsTests, Concat) {
   // Nulls
   {
     auto result = StringVal("");
-    StringFunctions::Concat(&result, Ctx(), StringVal::Null(), StringVal::Null());
-    EXPECT_TRUE(result.is_null_);
+    auto null_string = StringVal::Null();
+    const StringVal *args[2] = {&null_string, &null_string};
+    StringFunctions::Concat(&result, Ctx(), args, 2);
+    EXPECT_EQ(StringVal(""), result);
 
-    StringFunctions::Concat(&result, Ctx(), StringVal::Null(), StringVal("xy"));
-    EXPECT_TRUE(result.is_null_);
+    auto xy_string = StringVal("xy");
+    args[1] = &xy_string;
+    StringFunctions::Concat(&result, Ctx(), args, 2);
+    EXPECT_EQ(StringVal("xy"), result);
 
-    StringFunctions::Concat(&result, Ctx(), StringVal("xy"), StringVal::Null());
-    EXPECT_TRUE(result.is_null_);
+    args[0] = &xy_string;
+    args[1] = &null_string;
+    StringFunctions::Concat(&result, Ctx(), args, 2);
+    EXPECT_EQ(StringVal("xy"), result);
   }
 
   // Simple Case
   {
     auto result = StringVal("");
-    auto x = StringVal("xyz");
-    auto a = StringVal("abc");
-
-    StringFunctions::Concat(&result, Ctx(), x, a);
+    auto xyz = StringVal("xyz");
+    auto abc = StringVal("abc");
+    const StringVal *args[2] = {&xyz, &abc};
+    StringFunctions::Concat(&result, Ctx(), args, 2);
     EXPECT_TRUE(StringVal("xyzabc") == result);
+  }
+
+  // Single arg
+  {
+    auto result = StringVal("");
+    auto xyz = StringVal("xyz");
+    const StringVal *args[1] = {&xyz};
+    StringFunctions::Concat(&result, Ctx(), args, 1);
+    EXPECT_EQ(StringVal("xyz"), result);
+  }
+
+  // Multiple arg
+  {
+    auto result = StringVal("");
+    auto xyz = StringVal("xyz");
+    auto sixsixsix = StringVal("666");
+    auto towel = StringVal("towel");
+    const StringVal *args[3] = {&xyz, &sixsixsix, &towel};
+    StringFunctions::Concat(&result, Ctx(), args, 3);
+    EXPECT_EQ(StringVal("xyz666towel"), result);
   }
 }
 
@@ -324,6 +350,16 @@ TEST_F(StringFunctionsTests, Lpad) {
     EXPECT_TRUE(StringVal("te") == result);
   }
 
+  // Default pad
+  {
+    auto x = StringVal("test");
+    auto result = StringVal("");
+    auto len = Integer(6);
+
+    StringFunctions::Lpad(&result, Ctx(), x, len);
+    EXPECT_EQ(StringVal("  test"), result);
+  }
+
   auto x = StringVal("hi");
   auto result = StringVal("");
   auto len = Integer(5);
@@ -342,7 +378,7 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(0);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(result.is_null_);
   }
 
@@ -353,7 +389,7 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(4);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(x == result);
   }
 
@@ -364,8 +400,18 @@ TEST_F(StringFunctionsTests, Rpad) {
     auto len = Integer(2);
     auto pad = StringVal("");
 
-    StringFunctions::Lpad(&result, Ctx(), x, len, pad);
+    StringFunctions::Rpad(&result, Ctx(), x, len, pad);
     EXPECT_TRUE(StringVal("te") == result);
+  }
+
+  // Default pad
+  {
+    auto x = StringVal("test");
+    auto result = StringVal("");
+    auto len = Integer(6);
+
+    StringFunctions::Rpad(&result, Ctx(), x, len);
+    EXPECT_EQ(StringVal("test  "), result);
   }
 
   auto x = StringVal("hi");

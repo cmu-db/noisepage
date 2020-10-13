@@ -130,11 +130,11 @@ class PipelineMetricRawData : public AbstractRawData {
     }
 
     std::string GetCardinalityVectorString() {
-      std::vector<double> cars;
+      std::vector<size_t> cars;
       for (auto &feature : features_) {
         cars.emplace_back(feature.GetCardinality());
       }
-      return ConcatVectorToString<double>(cars);
+      return ConcatVectorToString<size_t>(cars);
     }
 
     std::string GetKeySizeVectorString() {

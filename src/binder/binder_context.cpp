@@ -67,6 +67,7 @@ void BinderContext::AddRegularTable(const common::ManagedPointer<catalog::Catalo
                            common::ErrorCode::ERRCODE_DUPLICATE_ALIAS);
   }
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
+  regular_table_alias_list_.push_back(table_alias);
 }
 
 void BinderContext::AddNewTable(const std::string &new_table_name,
@@ -219,16 +220,17 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 void BinderContext::GenerateAllColumnExpressions(
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
-  for (auto &entry : regular_table_alias_map_) {
-    auto &schema = std::get<2>(entry.second);
+  for (auto &entry : regular_table_alias_list_) {
+    auto table_data = regular_table_alias_map_[entry];
+    auto &schema = std::get<2>(table_data);
     auto col_cnt = schema.GetColumns().size();
     for (uint32_t i = 0; i < col_cnt; i++) {
       const auto &col_obj = schema.GetColumn(i);
-      auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
+      auto tv_expr = new parser::ColumnValueExpression(std::string(entry), std::string(col_obj.Name()));
       tv_expr->SetReturnValueType(col_obj.Type());
       tv_expr->DeriveExpressionName();
-      tv_expr->SetDatabaseOID(std::get<0>(entry.second));
-      tv_expr->SetTableOID(std::get<1>(entry.second));
+      tv_expr->SetDatabaseOID(std::get<0>(table_data));
+      tv_expr->SetTableOID(std::get<1>(table_data));
       tv_expr->SetColumnOID(col_obj.Oid());
       tv_expr->SetDepth(depth_);
 

@@ -1,4 +1,5 @@
 #include "type/type_id.h"
+
 #include "common/strong_typedef_body.h"
 
 namespace terrier::type {

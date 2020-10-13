@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "catalog/catalog_defs.h"
 #include "storage/index/index.h"

@@ -18,7 +18,7 @@ constexpr const char FIELD_PREFIX[] = "field";
 
 CSVScanTranslator::CSVScanTranslator(const planner::CSVScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
-    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::CSV_SCAN),
+    : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY),
       base_row_type_(GetCodeGen()->MakeFreshIdentifier("CSVRow")) {
   // CSV scans are serial, for now.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -85,7 +85,8 @@ ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   const auto output_schema = GetPlan().GetOutputSchema();
   if (col_oid.UnderlyingValue() > output_schema->NumColumns()) {
     throw EXECUTION_EXCEPTION(
-        fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", col_oid.UnderlyingValue()));
+        fmt::format("Codegen: out-of-bounds CSV column access @ idx={}", col_oid.UnderlyingValue()),
+        common::ErrorCode::ERRCODE_DATA_EXCEPTION);
   }
 
   // Return the field converted to the appropriate type.

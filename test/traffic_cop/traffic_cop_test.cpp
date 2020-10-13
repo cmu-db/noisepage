@@ -173,4 +173,20 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     EXPECT_TRUE(false);
   }
 }
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, ArithmeticErrorTest) {
+  pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                          port_, catalog::DEFAULT_DATABASE));
+
+  pqxx::work txn1(connection);
+  try {
+    pqxx::result r = txn1.exec("SELECT ASIN(10.0);");
+  } catch (const std::exception &e) {
+    std::string error(e.what());
+    std::string expect("ERROR:  ASin is undefined outside [-1,1]\n");
+    EXPECT_EQ(error, expect);
+  }
+}
+
 }  // namespace terrier::trafficcop
