@@ -22,7 +22,6 @@ OSX_BUILD_PACKAGES=(\
   "jemalloc" \
   "libevent" \
   "libpqxx" \
-  "openssl@1.1" \
   "pkg-config" \
   "tbb" \
 )
@@ -44,7 +43,6 @@ LINUX_BUILD_PACKAGES=(\
   "libjemalloc-dev" \
   "libpq-dev" \
   "libpqxx-dev" \
-  "libssl-dev" \
   "libtbb-dev" \
   "zlib1g-dev" \
   "lld" \
