@@ -165,6 +165,11 @@ if __name__ == "__main__":
                         type=str,
                         help="Performance Storage Service password")
 
+    parser.add_argument("--ignore-exit-code",
+                        action="store_true",
+                        default=False,
+                        help="Disable returning a non-zero exit code")
+
     args = parser.parse_args()
 
     # -------------------------------------------------------
@@ -230,4 +235,6 @@ if __name__ == "__main__":
             ret_code = table_dump(config, artifact_processor)
 
     LOG.debug("Exit code = {}".format(ret_code))
+    if args.ignore_exit_code:
+        ret_code = 0
     sys.exit(ret_code)
