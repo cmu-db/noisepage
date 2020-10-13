@@ -11,6 +11,7 @@
 #include "catalog/catalog_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
+#include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_defs.h"
 
 namespace terrier::metrics {
@@ -53,7 +54,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
       query_text_outfile << std::endl;
     }
     for (const auto &data : query_trace_) {
-      query_trace_outfile << data.query_id_ << ", " << data.timestamp_ << ", ";
+      query_trace_outfile << data.query_id_ << ", " << data.timestamp_ << ", " << data.param_string_ << ", ";
       query_trace_outfile << std::endl;
     }
     query_text_.clear();
@@ -69,7 +70,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"query_id, query_text, timestamp",
-                                                                      "query_id, timestamp"};
+                                                                      "query_id, timestamp, parameters"};
 
  private:
   friend class QueryTraceMetric;
@@ -79,8 +80,9 @@ class QueryTraceMetricRawData : public AbstractRawData {
     query_text_.emplace_back(query_id, query_text, timestamp);
   }
 
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp) {
-    query_trace_.emplace_back(query_id, timestamp);
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp, 
+                        std::string param_string) {
+    query_trace_.emplace_back(query_id, timestamp, param_string);
   }
 
   struct QueryText {
@@ -92,10 +94,12 @@ class QueryTraceMetricRawData : public AbstractRawData {
   };
 
   struct QueryTrace {
-    QueryTrace(const execution::query_id_t query_id, const uint64_t timestamp)
-        : query_id_(query_id), timestamp_(timestamp) {}
+    QueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+               std::string param_string)
+        : query_id_(query_id), timestamp_(timestamp), param_string_(param_string) {}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
+    std::string param_string_;
   };
 
   std::list<QueryText> query_text_;
@@ -113,8 +117,20 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
   void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
     GetRawData()->RecordQueryText(query_id, query_text, timestamp);
   }
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp) {
-    GetRawData()->RecordQueryTrace(query_id, timestamp);
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
+    std::ostringstream param_stream;
+    for (uint32_t n = 0; n < (*param).size(); n++) {
+      if ((*param)[n].IsNull()) {
+        param_stream << "";
+      } else {
+        param_stream << (*param)[n].ToString();
+      }
+      if (n + 1 != (*param).size()) {
+        param_stream << ";";
+      }
+    }
+    GetRawData()->RecordQueryTrace(query_id, timestamp, param_stream.str());
   }
 };
 }  // namespace terrier::metrics
