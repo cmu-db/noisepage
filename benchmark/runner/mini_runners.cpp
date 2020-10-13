@@ -1834,12 +1834,14 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::uniform_int_distribution<int> distribution(0, INT_MAX);
   for (auto j = 1; j <= num_integers; j++) {
     // We need to do this to prevent the lookup from having to move
-    query << "col" << j << " = " << "col" << j << " + 0";
+    query << "col" << j << " = "
+          << "col" << j << " + 0";
     if (j != num_integers || num_bigints != 0) query << ", ";
   }
 
   for (auto j = 1; j <= num_bigints; j++) {
-    query << "col" << j << " = " << "col" << j << " + 0";
+    query << "col" << j << " = "
+          << "col" << j << " + 0";
     if (j != num_bigints) query << ", ";
   }
 
