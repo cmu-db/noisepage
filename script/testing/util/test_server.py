@@ -108,7 +108,7 @@ class TestServer:
                     break
                 db_log_line_str = db_log_line_raw.decode("utf-8").rstrip("\n")
                 LOG.info(db_log_line_str)
-                if db_log_line_str == check_line:
+                if db_log_line_str.endswith(check_line):
                     LOG.info("DB process is verified as running")
                     return
 
