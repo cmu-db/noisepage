@@ -6,7 +6,7 @@ namespace terrier::network {
 
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id,
                                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
-    : NotifiableTask(new ev::dynamic_loop, task_id), connection_handle_factory_(connection_handle_factory) {
+    : NotifiableTask(std::make_unique<ev::dynamic_loop>(), task_id), connection_handle_factory_(connection_handle_factory) {
   // Register an event that needs to be explicitly activated. When the event is handled, HandleDispatch() is called.
   notify_event_ = new ev::async(*loop_);
   notify_event_->set<&ConnectionHandlerTask::HandleDispatchCallback>(this);

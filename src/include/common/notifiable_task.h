@@ -20,7 +20,7 @@ namespace terrier::common {
 class NotifiableTask : public DedicatedThreadTask {
  public:
   /** Construct a new NotifiableTask instance with the specified task id. */
-  explicit NotifiableTask(ev::loop_ref *loop, int task_id);
+  explicit NotifiableTask(std::unique_ptr<ev::loop_ref> loop, int task_id);
 
   /** Destroy the NotifiableTask, deleting and freeing all of its registered events. */
   ~NotifiableTask() override;
@@ -151,7 +151,7 @@ class NotifiableTask : public DedicatedThreadTask {
 
  protected:
   /** Event loop for the current thread */
-  ev::loop_ref *loop_;
+  std::unique_ptr<ev::loop_ref> loop_;
 
  private:
   /** Callback to terminate event loop */

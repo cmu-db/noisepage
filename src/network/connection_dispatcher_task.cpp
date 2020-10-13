@@ -18,7 +18,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
     common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
     common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
     std::initializer_list<int> file_descriptors)
-    : NotifiableTask(new ev::default_loop(), MAIN_THREAD_ID),
+    : NotifiableTask(std::make_unique<ev::default_loop>(), MAIN_THREAD_ID),
       num_handlers_(num_handlers),
       dedicated_thread_owner_(dedicated_thread_owner),
       connection_handle_factory_(connection_handle_factory),

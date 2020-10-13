@@ -4,13 +4,13 @@
 
 namespace terrier::common {
 
-NotifiableTask::NotifiableTask(ev::loop_ref *loop, int task_id) : loop_(loop), task_id_(task_id) {
+NotifiableTask::NotifiableTask(std::unique_ptr<ev::loop_ref> loop, int task_id) : loop_(std::move(loop)), task_id_(task_id) {
   if (*loop_ == nullptr) {
     throw NETWORK_PROCESS_EXCEPTION("Unable to create event loop");
   }
 
   terminate_ = new ev::async(*loop_);
-  terminate_->set<&NotifiableTask::TerminateCallback>(loop_);
+  terminate_->set<&NotifiableTask::TerminateCallback>(loop_.get());
   terminate_->start();
 }
 
@@ -26,7 +26,6 @@ NotifiableTask::~NotifiableTask() {
   terminate_->stop();
   delete terminate_;
   ev_loop_destroy(*loop_);
-  delete loop_;
 }
 
 void NotifiableTask::TerminateCallback(ev::async &event, int /*unused*/) {
