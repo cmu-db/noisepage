@@ -14,7 +14,6 @@ statement ok
 DROP TABLE insert1
 
 # 1 tuple insert, with columns inserted in schema order
-# 1 tuple insert, with columns inserted in schema order
 statement ok
 CREATE TABLE insert2(c1 INTEGER NOT NULL PRIMARY KEY, c2 INTEGER, c3 INTEGER)
 
