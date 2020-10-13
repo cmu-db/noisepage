@@ -1,9 +1,8 @@
 # Microbenchmark Script
 
-This script executes the system's benchmarks and dumps out the results in JSON.
-It also stores the results in Jenkins as an artifact.
+This script executes the system's benchmarks and dumps out the results in JSON and XML.
 
-If you add your benchmark to the list inside of this script, then it will run automatically in our 
+If you add your benchmark to `micro_bench/benchmarks.py`, then it will run automatically in our 
 nightly performance runs.
 
 The script checks whether the performance of the benchmark has decreased by a certain amount 
@@ -14,7 +13,7 @@ in TimescaleDB. The results will be visualized at [stats.noise.page](https://sta
 
 ## Requirements
 
-This script assumes that you have numactl package installed.
+This script assumes that you have numactl package installed. If you are running the script locally you do not need to install `numctl` but you will need to comment out a line in `MicrobenchmarksRunner._build_benchmark_cmd()`. 
 
 ```
 sudo apt install numactl
@@ -38,13 +37,6 @@ binary (e.g., `data_table_benchmark`) and not the suite name (e.g., `DataTableBe
 $ ./run_micro_bench.py --run data_table_benchmark recovery_benchmark
 ```
 
-Instead of printing out the human-readable table of results after running the microbenchmarks, you 
-can also have it print out a CSV table:
-
-```
-$ ./run_micro_bench.py --run --csv-dump
-```
-
 ## Local Execution
 
 Comparing against the Jenkins results repository is not useful if you are running on your laptop 
@@ -57,7 +49,7 @@ compute the average results for the microbenchmarks for all the local runs:
 $ ./run_micro_bench.py --run --local
 ```
 
-This will write the results of each invocation to a directory called "local".
+This will write the results of each invocation to a directory called "local". See note in the requirements section about `numactl`.
 
 ## Perf Profiling
 

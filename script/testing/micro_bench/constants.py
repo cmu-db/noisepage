@@ -14,7 +14,7 @@ MIN_REF_VALUES = 20
 
 # Default failure threshold
 # The regression threshold determines how much the benchmark is allowed to get
-# slower from the previous runs before it counts as a failure if we are 
+# slower from the previous runs before it counts as a failure if we are
 # using historical data (i.e., if min_ref_values are available).
 # You really should not be messing with this value without asking somebody else first.
 DEFAULT_FAILURE_THRESHOLD = 10

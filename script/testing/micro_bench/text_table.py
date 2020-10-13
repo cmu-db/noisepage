@@ -3,6 +3,7 @@ class TextTable(object):
     Print out data as text, in a formatted table. This is used primarily for
     local testing and for the output in Jenkins
     """
+
     def __init__(self):
         self.rows = []
         # Columns to print, each item is a dictinary
@@ -33,12 +34,6 @@ class TextTable(object):
         if right_justify:
             col_dict['right_justify'] = True
         self.columns.append(col_dict)
-        return
-
-    def sort(self, sort_spec):
-        """Sort, single field or list of fields"""
-        # remember the field name, and sort prior to output
-        self.sort_key = sort_spec
         return
 
     def _width(self, row, col):
@@ -101,7 +96,6 @@ class TextTable(object):
         temp_rows = []
         for row in self.rows:
             temp_rows.append(self._decorated_row(row))
-        temp_rows.sort()
 
         self.rows = []
         for row in temp_rows:
@@ -136,7 +130,8 @@ class TextTable(object):
         for col in self.columns:
             h_key = 'heading'
             col_heading = col[h_key] if h_key in col else col['name']
-            heading_strings.append("{HEADING:{WIDTH}} ".format(HEADING=col_heading, WIDTH=col['max_width']))
+            heading_strings.append("{HEADING:{WIDTH}} ".format(
+                HEADING=col_heading, WIDTH=col['max_width']))
         return ''.join(heading_strings)
 
     def _stringify_table_divider(self):
@@ -151,13 +146,13 @@ class TextTable(object):
         content_strings = []
         for row in self.rows:
             for col in self.columns:
-                col_str = self._justify_col(col).format(WIDTH=col['max_width'], COL_STR=self._col_str_dict(row, col))
+                col_str = self._justify_col(col).format(
+                    WIDTH=col['max_width'], COL_STR=self._col_str_dict(row, col))
                 content_strings.append(col_str)
             # Remove any excess padding for the last column
             content_strings[-1].rstrip()
             content_strings.append('\n')
         return ''.join(content_strings)
-
 
     def _justify_col(self, col):
         """ 

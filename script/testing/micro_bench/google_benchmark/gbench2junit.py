@@ -4,8 +4,10 @@ from xml.etree import ElementTree
 from micro_bench.google_benchmark.gbench_test_result import GBenchTestResult
 from util.constants import LOG
 
+
 class GBenchToJUnit(object):
     """Convert a Google Benchmark output file (json) into Junit output file format (xml) """
+
     def __init__(self, input_file):
         self.testcases = read_gbench_results(input_file)
         self.name = self._get_test_suite_name()
@@ -22,7 +24,7 @@ class GBenchToJUnit(object):
     def convert(self, output_file):
         """ Write results to a JUnit compatible xml file """
         LOG.debug("Converting Google Benchmark {NAME} to JUNIT file {JUNIT_FILE}".format(
-            NAME=self.name, JUNIT_FILE= output_file
+            NAME=self.name, JUNIT_FILE=output_file
         ))
         tree = ElementTree.ElementTree()
         test_suite_el = ElementTree.Element("testsuite")
@@ -34,19 +36,21 @@ class GBenchToJUnit(object):
                         "skipped",
                         "tests",
                         "name"]:
-            test_suite_el.set(el_name, getattr(self,el_name))
+            test_suite_el.set(el_name, getattr(self, el_name))
 
         # add test results
         for test in self.testcases:
-            test_el = ElementTree.SubElement(test_suite_el,"testcases")
+            test_el = ElementTree.SubElement(test_suite_el, "testcases")
             test_el.set("classname", test.suite_name)
             test_el.set("name", test.name)
 
         tree.write(output_file, xml_declaration=True, encoding='utf8')
-        return 
+        return
 
 
 def read_gbench_results(gbench_results_file):
+    """ Based on a test result file get a list of all the GBenchTestResult
+    objects """
     LOG.debug("Reading results file {}".format(gbench_results_file))
     testcases = []
     with open(gbench_results_file) as gbench_result_file:
@@ -56,4 +60,3 @@ def read_gbench_results(gbench_results_file):
             testcases.append(test_result)
 
     return testcases
-
