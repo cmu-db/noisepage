@@ -1382,8 +1382,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "\tpipelineState.output_buffer = @resultBufferNew(queryState.execCtx)\n";
   output << "\treturn\n";
   output << "}\n";
-  output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
-            "{\nreturn\n}\n";
+  output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+  output << "\t@resultBufferFree(pipelineState.output_buffer)\n";
+  output << "\t@execOUFeatureVectorReset(&pipelineState.execFeatures)\n";
+  output << "}\n";
 
   // pipeline
   output << "fun Query0_Pipeline1_SerialWork(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
