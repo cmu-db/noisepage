@@ -134,17 +134,21 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   In practice people only use Debug or Release.
 #
 # CMake options, specify with -DNOISEPAGE_{option}=On.
-#   NOISEPAGE_GENERATE_COVERAGE   : Enable C++ code coverage. Default OFF.
-#   NOISEPAGE_USE_ASAN            : Enable ASAN, a fast memory error detector. Default OFF.
-#   NOISEPAGE_USE_JEMALLOC        : Link with jemalloc instead of system malloc. Default OFF.
+#   NOISEPAGE_BUILD_BENCHMARKS              : Enable building benchmarks as part of the ALL target. Default ON.
+#   NOISEPAGE_BUILD_TESTS                   : Enable building tests as part of the ALL target. Default ON.
+#   NOISEPAGE_GENERATE_COVERAGE             : Enable C++ code coverage. Default OFF.
+#   NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE    : Enable verbose unittest failures. Default OFF. Can be very verbose.
+#   NOISEPAGE_UNITY_BUILD                   : Enable unity (aka jumbo) builds. Default OFF.
+#   NOISEPAGE_USE_ASAN                      : Enable ASAN, a fast memory error detector. Default OFF.
+#   NOISEPAGE_USE_JEMALLOC                  : Link with jemalloc instead of system malloc. Default OFF.
 #
-# CMake global variables.
+# CMake global variables. These are NOT CMake options, i.e., these variables are internal. Usually OS-specific hacks.
 #   BUILD_SUPPORT_DIR             : Helper scripts for building belongs here.
 #   BUILD_SUPPORT_DATA_DIR        : Helper data for building belongs here.
-#   NOISEPAGE_COMPILE_OPTIONS     : Compile options to be added to NoisePage.
-#   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
-#   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
 #   NOISEPAGE_ENABLE_SHARED       : On if we should enable shared targets and off otherwise.
+#   NOISEPAGE_COMPILE_OPTIONS     : Compile options to be added to NoisePage.
+#   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
+#   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
@@ -171,6 +175,14 @@ option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
 option(NOISEPAGE_UNITY_BUILD
         "Enable Unity builds for much faster compilation. https://cmake.org/cmake/help/latest/prop_tgt/UNITY_BUILD.html"
         OFF)
+
+option(NOISEPAGE_BUILD_TESTS
+        "Enable building tests as part of the ALL target."
+        ON)
+
+option(NOISEPAGE_BUILD_BENCHMARKS
+        "Enable building benchmarks as part of the ALL target."
+        ON)
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
@@ -786,7 +798,7 @@ foreach (NOISEPAGE_TEST_CPP ${NOISEPAGE_TEST_SOURCES})
     file(RELATIVE_PATH NOISEPAGE_TEST_CPP_REL "${PROJECT_SOURCE_DIR}/test" ${NOISEPAGE_TEST_CPP})
     get_filename_component(NOISEPAGE_TEST_DIR ${NOISEPAGE_TEST_CPP_REL} DIRECTORY)
     get_filename_component(NOISEPAGE_TEST ${NOISEPAGE_TEST_CPP} NAME_WE)
-    if (${NOISEPAGE_UNITY_BUILD})
+    if (${NOISEPAGE_UNITY_BUILD} OR ${NOISEPAGE_BUILD_TESTS})
         set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
     else ()
         set(EXCLUDE_OR_NOT "NO_EXCLUDE")
@@ -804,10 +816,10 @@ function(add_jumbotest
     file(GLOB_RECURSE JUMBO_SOURCES_ALL ${FOLDER_PATH}/*.cpp)
     set(TEST_NAME_SUFFIX "")
 
-    if (${NOISEPAGE_UNITY_BUILD})
-        set(EXCLUDE_OR_NOT "NO_EXCLUDE")
-    else ()
+    if (${NOISEPAGE_BUILD_TESTS} OR NOT (${NOISEPAGE_UNITY_BUILD}))
         set(EXCLUDE_OR_NOT "EXCLUDE_ALL")
+    else ()
+        set(EXCLUDE_OR_NOT "NO_EXCLUDE")
     endif ()
 
     if (NOT "${PREFIXES}" STREQUAL "")
@@ -867,7 +879,11 @@ set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_BENCHMARKS "")
 macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
-    add_executable(${BENCHMARK_NAME} ${BENCHMARK_CPP})
+    if (${NOISEPAGE_BUILD_BENCHMARKS})
+        add_executable(${BENCHMARK_NAME} ${BENCHMARK_CPP})
+    else ()
+        add_executable(${BENCHMARK_NAME} EXCLUDE_FROM_ALL ${BENCHMARK_CPP})
+    endif ()
     target_link_libraries(${BENCHMARK_NAME} PRIVATE noisepage_benchmark_util ${ARGN})
     target_link_directories(${BENCHMARK_NAME} PRIVATE ${CMAKE_BINARY_DIR})
     target_compile_options(${BENCHMARK_NAME} PRIVATE "-fPIC")
