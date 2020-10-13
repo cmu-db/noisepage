@@ -23,6 +23,7 @@ OSX_BUILD_PACKAGES=(\
   "libevent" \
   "libpqxx" \
   "pkg-config" \
+  "ninja" \
   "tbb" \
 )
 OSX_TEST_PACKAGES=(\
