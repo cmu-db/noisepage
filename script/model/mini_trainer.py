@@ -14,8 +14,7 @@ from util import io_util, logging_util
 from data_class import opunit_data
 from info import data_info
 from training_util import data_transforming_util, result_writing_util
-
-from type import Target
+from type import ExecutionFeature
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -72,8 +71,8 @@ class MiniTrainer:
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
-        elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
-        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
+        elapsed_us_index = data_info.TARGET_CSV_INDEX[ExecutionFeature.ELAPSED_US]
+        memory_b_index = data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -178,7 +177,7 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
-                         default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
+                         default=["lr", "rf", "gbm"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')

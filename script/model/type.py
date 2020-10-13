@@ -4,21 +4,6 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
-class Target(enum.Enum):
-    """The output targets for the operating units
-    """
-    START_TIME = 0
-    CPU_ID = 1,
-    CPU_CYCLE = 2,
-    INSTRUCTION = 3,
-    CACHE_REF = 4,
-    CACHE_MISS = 5,
-    CPU_TIME = 6,
-    BLOCK_READ = 7,
-    BLOCK_WRITE = 8,
-    MEMORY_B = 9,
-    ELAPSED_US = 10,
-
 
 class OpUnit(enum.IntEnum):
     """The enum for all the operating units
@@ -59,6 +44,46 @@ class OpUnit(enum.IntEnum):
     PARALLEL_MERGE_AGGBUILD = 29,
     PARALLEL_SORT_STEP = 30,
     PARALLEL_SORT_MERGE_STEP = 31
+
+
+class ExecutionFeature(enum.IntEnum):
+    # Debugging information
+    QUERY_ID = 0,
+    PIPELINE_ID = 1,
+
+    # # features
+    NUM_FEATURES = 2,
+    FEATURES = 3,
+
+    # input features
+    EXEC_MODE = 4,
+    EST_OUTPUT_ROWS = 5,
+    KEY_SIZES = 6,
+    NUM_KEYS = 7,
+    EST_CARDINALITIES = 8,
+    MEM_FACTOR = 9,
+    NUM_LOOPS = 10,
+    NUM_CONCURRENT = 11,
+
+    # interval input features
+    TXNS_DEALLOCATED = 12,
+    TXNS_UNLINKED = 13,
+    BUFFER_UNLINKED = 14,
+    READONLY_UNLINKED = 15,
+    INTERVAL = 16,
+
+    # outputs
+    START_TIME = 17,
+    CPU_ID = 18,
+    CPU_CYCLES = 19,
+    INSTRUCTIONS = 20,
+    CACHE_REF = 21,
+    CACHE_MISS = 22,
+    REF_CPU_CYCLES = 23,
+    BLOCK_READ = 24,
+    BLOCK_WRITE = 25,
+    MEMORY_B = 26,
+    ELAPSED_US = 27
 
 
 class ArithmeticFeature(enum.Enum):

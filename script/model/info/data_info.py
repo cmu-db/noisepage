@@ -1,20 +1,20 @@
-from type import Target, OpUnit, ArithmeticFeature
+from type import OpUnit, ArithmeticFeature, ExecutionFeature
+
+# Boundary from input feature -> outputs
+# The field >= boundary is the inputs and outputs
+INPUT_OUTPUT_BOUNDARY = ExecutionFeature.EXEC_MODE
+
+# End of the input features
+INPUT_END_BOUNDARY = ExecutionFeature.START_TIME
+
+# The index for fields in the raw CSV data
+RAW_CSV_INDEX = {}
+
+# The index for different aspects of input feature
+INPUT_CSV_INDEX = {}
 
 # The index for different targets in the output
-TARGET_CSV_INDEX = {
-    Target.START_TIME: -11,
-    Target.CPU_ID: -10,
-
-    Target.CPU_CYCLE: -9,
-    Target.INSTRUCTION: -8,
-    Target.CACHE_REF: -7,
-    Target.CACHE_MISS: -6,
-    Target.CPU_TIME: -5,
-    Target.BLOCK_READ: -4,
-    Target.BLOCK_WRITE: -3,
-    Target.MEMORY_B: -2,
-    Target.ELAPSED_US: -1,
-}
+TARGET_CSV_INDEX = {}
 
 # The mini model features for arithmetic operations
 ARITHMETIC_FEATURE_INDEX = {
@@ -26,11 +26,12 @@ ARITHMETIC_FEATURE_INDEX = {
 EXECUTION_CSV_NAME_POSITION = 0
 
 # total number of outputs
-METRICS_OUTPUT_NUM = 11
+METRICS_OUTPUT_NUM = ExecutionFeature.ELAPSED_US - ExecutionFeature.START_TIME + 1
 
 # prediction targets in the mini models
-MINI_MODEL_TARGET_LIST = [Target.CPU_CYCLE, Target.INSTRUCTION, Target.CACHE_REF, Target.CACHE_MISS, Target.CPU_TIME,
-                          Target.BLOCK_READ, Target.BLOCK_WRITE, Target.MEMORY_B, Target.ELAPSED_US]
+MINI_MODEL_TARGET_LIST = [ExecutionFeature.CPU_CYCLES, ExecutionFeature.INSTRUCTIONS, ExecutionFeature.CACHE_REF,
+                          ExecutionFeature.CACHE_MISS, ExecutionFeature.REF_CPU_CYCLES, ExecutionFeature.BLOCK_READ,
+                          ExecutionFeature.BLOCK_WRITE, ExecutionFeature.MEMORY_B, ExecutionFeature.ELAPSED_US]
 # the number of prediction targets in the mini models
 MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 
@@ -45,35 +46,32 @@ MEM_ADJUST_OPUNITS = {OpUnit.SORT_BUILD, OpUnit.HASHJOIN_BUILD, OpUnit.AGG_BUILD
 # For opunits included here, models should be evaluated using the memory error.
 MEM_EVALUATE_OPUNITS = {OpUnit.CREATE_INDEX_MAIN}
 
-# Index for tuple_num in the model input feature vector
-TUPLE_NUM_INDEX = 0
-
-# Index for cardinality in the model input feature vector
-CARDINALITY_INDEX = 3
-
-# Index for execution mode in the model input feature vector
-EXECUTION_MODE_INDEX = 7
-
 # Size of a pointer on the target architecture
 POINTER_SIZE = 8
 
-# Index of features vector in the raw input from CSV
-RAW_FEATURES_VECTOR_INDEX = 4
-
-# Index of execution mode in the raw input from CSV
-RAW_EXECUTION_MODE_INDEX = 2
-
-# Index of cpu time in the raw input from CSV
-RAW_CPU_TIME_INDEX = 12
-
-# End index of model input feature vector
-RECORD_FEATURES_END = 8
-
-# Memory Scaling factor location in feature
-RECORD_MEM_SCALE_OFFSET = -4
-
-# Start index of metrics
-RECORD_METRICS_START = MINI_MODEL_TARGET_NUM
-
 # Interval for opunits that wake up periodically (us)
 PERIODIC_OPUNIT_INTERVAL = 1000000
+
+def parse_csv_header(header, raw_boundary=False):
+    """Parses a CSV header for ExecutionFeature indexes
+
+    :param header: array of CSV column headers
+    :param raw_boundary: whether there is a raw boundary or not
+    """
+    for i, index in enumerate(header):
+        RAW_CSV_INDEX[ExecutionFeature[index.upper()]] = i
+
+    input_output_boundary = None
+    if raw_boundary:
+        # Computes the index that divides the unnecessary fields and the input/output
+        input_output_boundary = RAW_CSV_INDEX[INPUT_OUTPUT_BOUNDARY]
+
+    # Computes the index within input/output of where input splits from output
+    output_boundary = RAW_CSV_INDEX[INPUT_END_BOUNDARY]
+
+    for i, index in enumerate(header):
+        if i >= output_boundary:
+            TARGET_CSV_INDEX[ExecutionFeature[index.upper()]] = i - len(header)
+
+        if input_output_boundary is not None and i >= input_output_boundary:
+            INPUT_CSV_INDEX[ExecutionFeature[index.upper()]] = i - input_output_boundary
