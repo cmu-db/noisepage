@@ -817,12 +817,14 @@ class MiniRunners : public benchmark::Fixture {
                                int64_t num_left, int64_t num_right) {
     std::stringstream cols;
     for (auto i = 1; i <= num_left; i++) {
-      cols << prefix << (type::TypeUtil::TypeIdToString(left_type)) << i;
+      auto type = (left_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(left_type);
+      cols << prefix << type << i;
       if (i != num_left || num_right != 0) cols << ", ";
     }
 
     for (auto i = 1; i <= num_right; i++) {
-      cols << prefix << (type::TypeUtil::TypeIdToString(right_type)) << i;
+      auto type = (right_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(right_type);
+      cols << prefix << type << i;
       if (i != num_right) cols << ", ";
     }
     return cols.str();
@@ -832,13 +834,13 @@ class MiniRunners : public benchmark::Fixture {
                                  type::TypeId right_type, int64_t num_left, int64_t num_right) {
     std::stringstream pred;
     for (auto i = 1; i <= num_left; i++) {
-      auto type_name = type::TypeUtil::TypeIdToString(left_type);
+      auto type_name = (left_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(left_type);
       pred << left_alias << "." << type_name << i << " = " << right_alias << "." << type_name << i;
       if (i != num_left || num_right != 0) pred << " AND ";
     }
 
     for (auto i = 1; i <= num_right; i++) {
-      auto type_name = type::TypeUtil::TypeIdToString(right_type);
+      auto type_name = (right_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(right_type);
       pred << left_alias << "." << type_name << i << " = " << right_alias << "." << type_name << i;
       if (i != num_right) pred << " AND ";
     }
@@ -1571,7 +1573,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
                          tuple_size, key_num, lookup_size, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::string cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
+  std::string cols = ConstructColumns("", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
   std::string predicate = ConstructIndexScanPredicate(key_num, num_rows, lookup_size, true);
 
   std::vector<parser::ConstantValueExpression> params;
@@ -1649,25 +1651,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
                          key_num, 1, 1, outer, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::string cols;
-  {
-    std::stringstream colss;
-    for (auto j = 1; j <= key_num; j++) {
-      colss << "a.col" << j;
-      if (j != key_num) colss << ", ";
-    }
-    cols = colss.str();
-  }
-
-  std::string predicate;
-  {
-    std::stringstream preds;
-    for (auto j = 1; j <= key_num; j++) {
-      preds << "a.col" << j << " = b.col" << j;
-      if (j != key_num) preds << " AND ";
-    }
-    predicate = preds.str();
-  }
+  std::string cols = ConstructColumns("a.", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
+  std::string predicate = ConstructPredicate("a", "b", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
 
   auto outer_tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, outer);
   auto inner_tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, inner);
@@ -1848,15 +1833,13 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   std::mt19937 generator{};
   std::uniform_int_distribution<int> distribution(0, INT_MAX);
   for (auto j = 1; j <= num_integers; j++) {
-    auto prefix = type::TypeUtil::TypeIdToString(type::TypeId::INTEGER);
     // We need to do this to prevent the lookup from having to move
-    query << prefix << j << " = " << prefix << j << " + 0";
+    query << "col" << j << " = " << "col" << j << " + 0";
     if (j != num_integers || num_bigints != 0) query << ", ";
   }
 
   for (auto j = 1; j <= num_bigints; j++) {
-    auto prefix = type::TypeUtil::TypeIdToString(type::TypeId::BIGINT);
-    query << prefix << j << " = " << prefix << j << " + 0";
+    query << "col" << j << " = " << "col" << j << " + 0";
     if (j != num_bigints) query << ", ";
   }
 

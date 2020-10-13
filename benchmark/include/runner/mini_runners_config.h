@@ -47,8 +47,10 @@ class MiniRunnersDataConfig {
    * 100 tuples, we create tables of 100 tuples with cardinality 1, 2, 4,
    * 8, 16, 32, 64, and 100.
    */
-  std::vector<uint32_t> table_row_nums_ = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                           2000, 5000, 10000, 20000, 50000, 100000, 200000, 300000, 500000, 1000000};
+  std::vector<uint32_t> table_row_nums_ = {
+      1, 3, 5, 7, 10, 50, 100, 200, 500, 1000};  //,
+                                                 // 2000, 5000, 10000, 20000, 50000, 100000, 200000, 300000, 500000,
+                                                 // 1000000};
 
   /**
    * Types of pure tables to create for index builds.
