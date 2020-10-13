@@ -2301,7 +2301,7 @@ void RunNetworkQueries(const NetworkWorkFunction &work) {
   }
 }
 
-void RunNetworkSequence(NetworkWorkFunction work) {
+void RunNetworkSequence(const NetworkWorkFunction &work) {
   terrier::runner::db_main->GetMetricsManager()->Aggregate();
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
