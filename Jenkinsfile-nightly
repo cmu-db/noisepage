@@ -25,7 +25,6 @@ pipeline {
                 sh script:'''
                 mkdir build
                 cd build
-                sh 'mkdir build'
                 cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. 
                 make -j$(nproc) terrier
                 ''', label: 'Compiling'
