@@ -89,7 +89,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 4) Our persist interval timed out
 
       bool signaled = disk_log_writer_thread_cv_.wait_for(
-          lock, curr_sleep, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
+          lock, curr_sleep, [&] { return force_flush_ || !filled_buffer_queue_->Empty() || !run_task_; });
       next_sleep = signaled ? persist_interval_ : curr_sleep * 2;
       next_sleep = std::min(next_sleep, max_sleep);
     }
@@ -105,14 +105,14 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     bool timeout = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() -
                                                                          last_persist) > curr_sleep;
 
-    if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
+    if (timeout || current_data_written_ > persist_threshold_ || force_flush_ || !run_task_) {
       std::unique_lock<std::mutex> lock(persist_lock_);
       num_buffers = PersistLogFile();
       num_bytes = current_data_written_;
       // Reset meta data
       last_persist = std::chrono::high_resolution_clock::now();
       current_data_written_ = 0;
-      do_persist_ = false;
+      force_flush_ = false;
 
       // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
