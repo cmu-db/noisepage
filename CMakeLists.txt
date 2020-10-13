@@ -657,7 +657,7 @@ else ()
 endif ()
 
 add_custom_command(
-        TARGET tpl
+        TARGET noisepage_static  # As a proxy for noisepage_objlib since object libraries don't support POST_BUILD.
         DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
         POST_BUILD
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
