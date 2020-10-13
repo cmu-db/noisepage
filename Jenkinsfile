@@ -87,7 +87,7 @@ pipeline {
 
         stage('Test') {
             parallel {
-                stage('macos-10.14/clang-8.0 (Debug/ASAN/unittest)') {
+                stage('macos-10.14/clang-8.0 (Debug/ASAN/jumbotests)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -100,9 +100,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF .. && ninja'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
                         sh 'cd build && ninja check-clang-tidy'
-                        sh 'cd build && gtimeout 1h ninja unittest'
+                        sh 'cd build && gtimeout 1h ninja jumbotests'
                         sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
@@ -118,7 +118,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -129,9 +129,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF .. && ninja'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
                         sh 'cd build && ninja check-clang-tidy'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
@@ -147,7 +147,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-9.3 (Debug/Coverage/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/Coverage/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -161,8 +161,8 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON .. && ninja'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
@@ -190,7 +190,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -205,9 +205,9 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF .. && ninja'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
                         sh 'cd build && ninja check-clang-tidy'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
@@ -223,7 +223,7 @@ pipeline {
                     }
                 }
 
-                stage('macos-10.14/clang-8.0 (Release/unittest)') {
+                stage('macos-10.14/clang-8.0 (Release/jumbotests)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -236,8 +236,8 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF .. && ninja'
-                        sh 'cd build && gtimeout 1h ninja unittest'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
+                        sh 'cd build && gtimeout 1h ninja jumbotests'
                         sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
@@ -253,7 +253,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-9.3 (Release/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -264,8 +264,8 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF .. && ninja'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
@@ -281,7 +281,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/clang-8.0 (Release/unittest)') {
+                stage('ubuntu-20.04/clang-8.0 (Release/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -296,8 +296,8 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF .. && ninja'
-                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
+                        sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
