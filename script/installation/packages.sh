@@ -66,7 +66,7 @@ PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
   "requests" \
-  "distro" \
+  "distro"  \
 )
 
 
