@@ -540,10 +540,10 @@ target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of t
         )
 target_include_directories(noisepage_objlib PUBLIC  # PUBLIC: all consumers of the library inherit the following.
         ${PROJECT_SOURCE_DIR}/src/include           # Include NoisePage src/include/ headers.
-        ${NOISEPAGE_INCLUDE_DIRECTORIES}
         )
 target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inherit without error checking.
         ${LLVM_INCLUDE_DIRS}                                # Include LLVM headers.
+        ${NOISEPAGE_INCLUDE_DIRECTORIES}                    # Third-party includes.
         )
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
@@ -582,6 +582,7 @@ endif ()
 #######################################################################################################################
 
 add_executable(noisepage src/main/terrier.cpp)
+target_compile_options(noisepage PRIVATE "-Werror" "-Wall")
 target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
@@ -602,12 +603,14 @@ list(REMOVE_ITEM UTIL_SRCS
         ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
 
 add_library(util_static STATIC ${UTIL_SRCS})
+target_compile_options(util_static PRIVATE "-Werror" "-Wall")
 target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
 target_link_libraries(util_static PUBLIC noisepage_static)
 set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(util_shared SHARED ${UTIL_SRCS})
+    target_compile_options(util_shared PRIVATE "-Werror" "-Wall")
     target_include_directories(util_shared PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
     target_link_libraries(util_shared PUBLIC noisepage_shared)
     set_target_properties(util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
@@ -619,9 +622,27 @@ endif ()
 #######################################################################################################################
 
 add_executable(gen_opt_bc util/execution/gen_opt_bc.cpp)
+target_compile_options(gen_opt_bc PRIVATE "-Werror" "-Wall")
 target_include_directories(gen_opt_bc PRIVATE ${LLVM_INCLUDE_DIRS})
 target_link_libraries(gen_opt_bc PRIVATE ${LLVM_LIBRARIES})
 set_target_properties(gen_opt_bc PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
+
+add_dependencies(noisepage_static gen_opt_bc)
+add_custom_command(
+        TARGET noisepage_static  # As a proxy for noisepage_objlib since object libraries don't support POST_BUILD.
+        DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
+        POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMAND cmake -E echo "Generating optimized bitcode ..."
+        COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+        COMMAND ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+        COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
+        COMMAND ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc
+        COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
+        COMMAND mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
+        COMMAND cmake -E echo "Generated optimized bitcode at ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc."
+        USES_TERMINAL
+)
 
 #######################################################################################################################
 # HEADER hack_bytecode_handlers_ir target.
@@ -644,7 +665,7 @@ set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)
-add_dependencies(tpl gen_opt_bc)                                                    # Build these before building tpl.
+target_compile_options(tpl PRIVATE "-Werror" "-Wall")
 target_include_directories(tpl PRIVATE ${LLVM_INCLUDE_DIR})
 target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
 set_target_properties(tpl PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -655,22 +676,6 @@ if (APPLE)
 else ()
     find_program(CLANG NAMES "clang++-8" "clang++" REQUIRED)
 endif ()
-
-add_custom_command(
-        TARGET noisepage_static  # As a proxy for noisepage_objlib since object libraries don't support POST_BUILD.
-        DEPENDS "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecodes.h" "${PROJECT_SOURCE_DIR}/src/include/execution/vm/bytecode_handlers.h"
-        POST_BUILD
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMAND cmake -E echo "Generating optimized bitcode ..."
-        COMMAND cmake -E echo "Running: ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
-        COMMAND ${PROJECT_SOURCE_DIR}/build-support/tpl_bytecode_handlers_ir_compiler.py ${CLANG} ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
-        COMMAND cmake -E echo "Running: ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc"
-        COMMAND ${CMAKE_BINARY_DIR}/bin/gen_opt_bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc
-        COMMAND cmake -E echo "Running: mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc"
-        COMMAND mv ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_opt.bc ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc
-        COMMAND cmake -E echo "Generated optimized bitcode at ${CMAKE_BINARY_DIR}/bin/bytecode_handlers_ir.bc."
-        USES_TERMINAL
-)
 
 #######################################################################################################################
 # HEADER Tests.
@@ -719,14 +724,16 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_test_util_static STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
-target_link_libraries(noisepage_test_util_static PUBLIC gtest gmock util_static pqxx)
+target_compile_options(noisepage_test_util_static PRIVATE "-Werror" "-Wall")
 target_include_directories(noisepage_test_util_static PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+target_link_libraries(noisepage_test_util_static PUBLIC gtest gmock util_static pqxx)
 set_target_properties(noisepage_test_util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(noisepage_test_util_shared SHARED ${NOISEPAGE_TEST_UTIL_SRCS})
-    target_link_libraries(noisepage_test_util_shared PUBLIC gtest gmock util_shared pqxx)
+    target_compile_options(noisepage_test_util_shared PRIVATE "-Werror" "-Wall")
     target_include_directories(noisepage_test_util_shared PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+    target_link_libraries(noisepage_test_util_shared PUBLIC gtest gmock util_shared pqxx)
     set_target_properties(noisepage_test_util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 endif ()
 
@@ -757,7 +764,7 @@ function(add_noisepage_test
 
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
 
-    # Add test library dependencies.
+    target_compile_options(${TEST_NAME} PRIVATE "-Werror" "-Wall")
     target_link_libraries(${TEST_NAME} PRIVATE gmock_main)
     if (${NOISEPAGE_ENABLE_SHARED})
         target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_shared)
@@ -884,8 +891,9 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
-target_link_libraries(noisepage_benchmark_util PUBLIC gmock_main noisepage_test_util_static benchmark)
+target_compile_options(noisepage_benchmark_util PRIVATE "-Werror" "-Wall")
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
+target_link_libraries(noisepage_benchmark_util PUBLIC gmock_main noisepage_test_util_static benchmark)
 set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_BENCHMARKS "")
@@ -895,14 +903,15 @@ macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
     else ()
         add_executable(${BENCHMARK_NAME} EXCLUDE_FROM_ALL ${BENCHMARK_CPP})
     endif ()
+
+    target_compile_options(${BENCHMARK_NAME} PRIVATE "-Werror" "-Wall")
+    target_include_directories(${BENCHMARK_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark/include/)
     target_link_libraries(${BENCHMARK_NAME} PRIVATE noisepage_benchmark_util ${ARGN})
     target_link_directories(${BENCHMARK_NAME} PRIVATE ${CMAKE_BINARY_DIR})
-    target_compile_options(${BENCHMARK_NAME} PRIVATE "-fPIC")
     set_target_properties(${BENCHMARK_NAME} PROPERTIES
             CXX_EXTENSIONS OFF
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/benchmark"
             )
-    target_include_directories(${BENCHMARK_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark/include/)
 
     set(BENCHMARK_PATH "${CMAKE_BINARY_DIR}/benchmark/${BENCHMARK_NAME}")
     add_test(${BENCHMARK_NAME}
@@ -924,11 +933,8 @@ file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
 
 add_custom_target(runbenchmark ctest -L benchmark --no-compress-output -T Test)
 foreach (NOISEPAGE_BENCHMARK_CPP ${NOISEPAGE_BENCHMARK_SOURCES})
-    file(RELATIVE_PATH NOISEPAGE_BENCHMARK_CPP_REL "${PROJECT_SOURCE_DIR}/benchmark" ${NOISEPAGE_BENCHMARK_CPP})
-    get_filename_component(NOISEPAGE_BENCHMARK_DIR ${NOISEPAGE_BENCHMARK_CPP_REL} DIRECTORY)
-
     get_filename_component(NOISEPAGE_BENCHMARK ${NOISEPAGE_BENCHMARK_CPP} NAME_WE)
-    add_noisepage_benchmark(${NOISEPAGE_BENCHMARK} ${NOISEPAGE_BENCHMARK_CPP} ${NOISEPAGE_BENCHMARK_LINKS})
+    add_noisepage_benchmark(${NOISEPAGE_BENCHMARK} ${NOISEPAGE_BENCHMARK_CPP})
     add_dependencies(runbenchmark ${NOISEPAGE_BENCHMARK})
 endforeach ()
 
