@@ -63,14 +63,20 @@ def print_file(filename):
 
 def print_pipe(p):
     """ Print out the memory buffer of subprocess pipes """
-    stdout = p.stdout.read()
-    stderr = p.stderr.read()
-    if stdout:
-        for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
-            LOG.info(line)
-    if stderr:
-        for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
-            LOG.error(line)
+    try:
+        stdout, stderr = p.communicate()
+        if stdout:
+            for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
+                LOG.info(line)
+        if stderr:
+            for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
+                LOG.error(line)
+    except ValueError:
+        # This is a dirty workaround
+        LOG.error("Error in subprocess communicate")
+        LOG.error(
+            "Known issue in CPython https://bugs.python.org/issue35182. Please upgrade the Python version."
+        )
 
 
 def format_time(timestamp):
