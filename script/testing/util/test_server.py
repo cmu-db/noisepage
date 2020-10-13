@@ -96,17 +96,33 @@ class TestServer:
             LOG.info("Server start: {PATH} [PID={PID}]".format(
                 PATH=self.db_path, PID=self.db_process.pid))
 
-            try:
-                self.wait_for_db()
-                # successful case
-                return
-            except:
-                self.stop_db()
-                LOG.error("+" * 100)
-                LOG.error("DATABASE OUTPUT")
-                if attempt + 1 == constants.DB_START_ATTEMPTS:
-                    raise
-                traceback.print_exc(file=sys.stdout)
+            if not run_check_pids(self.db_process.pid):
+                # The DB process does not exist, try starting it again
+                continue
+
+            check_line = "[info] Listening on Unix domain socket with port {PORT} [PID={PID}]".format(
+                PORT=self.db_port, PID=self.db_process.pid)
+            while True:
+                db_log_line_raw = self.db_process.stdout.readline()
+                if not db_log_line_raw:
+                    break
+                db_log_line_str = db_log_line_raw.decode("utf-8").rstrip("\n")
+                LOG.info(db_log_line_str)
+                if db_log_line_str == check_line:
+                    LOG.info("DB process is verified as running")
+                    return
+
+            # try:
+            #     self.wait_for_db()
+            #     # successful case
+            #     return
+            # except:
+            #     self.stop_db()
+            #     LOG.error("+" * 100)
+            #     LOG.error("DATABASE OUTPUT")
+            #     if attempt + 1 == constants.DB_START_ATTEMPTS:
+            #         raise
+            #     traceback.print_exc(file=sys.stdout)
 
         msg = "Failed to start DB after {} attempts".format(
             constants.DB_START_ATTEMPTS)
