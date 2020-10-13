@@ -27,7 +27,7 @@ void PostgresPacketWriter::WriteSimpleQuery(const std::string &query) {
 }
 
 void PostgresPacketWriter::WriteExplain(const std::string &phys_plan) {
-  //BeginPacket().AppendString(phys_plan, true).EndPacket();
+  // BeginPacket().AppendString(phys_plan, true).EndPacket();
 }
 
 void PostgresPacketWriter::WriteError(const common::ErrorData &error) {

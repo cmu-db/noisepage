@@ -2,10 +2,11 @@
 
 #include <future>  // NOLINT
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 #include "binder/bind_node_visitor.h"
 #include "binder/binder_util.h"
@@ -283,15 +284,13 @@ TrafficCopResult TrafficCop::ExecuteDropStatement(
                                                common::ErrorCode::ERRCODE_DATA_EXCEPTION)};
 }
 
-TrafficCopResult TrafficCop::ExecuteExplain(
-    const common::ManagedPointer<network::ConnectionContext> connection_ctx,
-    const common::ManagedPointer<network::PostgresPacketWriter> out,
-    const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-    const terrier::network::QueryType query_type) const {
+TrafficCopResult TrafficCop::ExecuteExplain(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                            const common::ManagedPointer<network::PostgresPacketWriter> out,
+                                            const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
+                                            const terrier::network::QueryType query_type) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
-  TERRIER_ASSERT(
-      query_type == network::QueryType::QUERY_EXPLAIN,"ExecuteExplain called with invalid QueryType.");
+  TERRIER_ASSERT(query_type == network::QueryType::QUERY_EXPLAIN, "ExecuteExplain called with invalid QueryType.");
   switch (query_type) {
     case network::QueryType::QUERY_EXPLAIN: {
       // Dummy field format vector
@@ -302,18 +301,16 @@ TrafficCopResult TrafficCop::ExecuteExplain(
       std::unique_ptr<parser::ConstantValueExpression> const_expr =
           std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(0));
       std::unique_ptr<parser::AbstractExpression> abs_expr(std::move(const_expr));
-      auto column =
-          planner::OutputSchema::Column("QUERY PLAN", type::TypeId::VARCHAR, std::move(abs_expr));
+      auto column = planner::OutputSchema::Column("QUERY PLAN", type::TypeId::VARCHAR, std::move(abs_expr));
       std::vector<planner::OutputSchema::Column> query_plan_vec;
       query_plan_vec.emplace_back(std::move(column));
       out->WriteRowDescription(query_plan_vec, dummy_field_vec);
 
-      //WriteDataRow
+      // WriteDataRow
       nlohmann::json json_phys_plan = physical_plan->ToJson();
       std::string str_plan = json_phys_plan.dump(4);
-      execution::sql::StringVal plan =
-          execution::sql::StringVal(str_plan.c_str(), str_plan.length());
-      out->WriteDataRow(reinterpret_cast<byte*>(&plan), query_plan_vec, dummy_field_vec);
+      execution::sql::StringVal plan = execution::sql::StringVal(str_plan.c_str(), str_plan.length());
+      out->WriteDataRow(reinterpret_cast<byte *>(&plan), query_plan_vec, dummy_field_vec);
 
       return {ResultType::COMPLETE, 0};
     }
