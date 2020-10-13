@@ -63,7 +63,8 @@ def print_file(filename):
 
 def print_pipe(p):
     """ Print out the memory buffer of subprocess pipes """
-    stdout, stderr = p.communicate()
+    stdout = p.stdout.read()
+    stderr = p.stderr.read()
     if stdout:
         for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
             LOG.info(line)
