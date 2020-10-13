@@ -83,3 +83,8 @@ PERIODIC_OPUNIT_INTERVAL = 1000000
 
 # Interval for contending opunits (us)
 CONTENDING_OPUNIT_INTERVAL = 3000000
+
+# OUs using cardinality estimation (may add noise to during prediction)
+OUS_USING_CAR_EST = {OpUnit.AGG_BUILD, OpUnit.AGG_ITERATE, OpUnit.HASHJOIN_BUILD, OpUnit.HASHJOIN_PROBE,
+                     OpUnit.SORT_BUILD, OpUnit.SORT_ITERATE}
+

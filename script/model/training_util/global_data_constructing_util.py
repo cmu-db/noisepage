@@ -14,7 +14,7 @@ import global_model_config
 from type import Target, OpUnit, ConcurrentCountingMode
 
 
-def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack,
+def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,
              ee_sample_interval, txn_sample_interval, network_sample_interval):
     """Get the data for the global models
 
@@ -24,7 +24,8 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     :param mini_model_map: mini models used for prediction
     :param model_results_path: directory path to log the result information
     :param warmup_period: warmup period for pipeline data
-    :param tpcc_hack: whether to manually fix the tpcc features
+    :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
+    :param add_noise: whether to add noise to the cardinality estimations
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs
     :param network_sample_interval: sampling interval for the network OUs
@@ -36,7 +37,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
             resource_data_list, impact_data_list = pickle.load(pickle_file)
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
-                                                             warmup_period, tpcc_hack,
+                                                             warmup_period, use_query_predict_cache, add_noise,
                                                              ee_sample_interval, txn_sample_interval,
                                                              network_sample_interval)
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
@@ -48,8 +49,8 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
 
 
 def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path, warmup_period,
-                                             tpcc_hack, ee_sample_interval, txn_sample_interval,
-                                             network_sample_interval):
+                                             use_query_predict_cache, add_noise, ee_sample_interval,
+                                             txn_sample_interval, network_sample_interval):
     """Get the grouped opunit data with the predicted metrics and elapsed time
 
     :param input_path: input data file path
@@ -58,9 +59,9 @@ def _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_r
     :param warmup_period: warmup period for pipeline data
     :return: The list of the GroupedOpUnitData objects
     """
-    data_list = _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval,
+    data_list = _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_interval,
                                network_sample_interval)
-    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path)
+    _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise)
     logging.info("Finished GroupedOpUnitData prediction with the mini models")
     return data_list
 
@@ -192,7 +193,7 @@ def _calculate_range_overlap(start_timel, end_timel, start_timer, end_timer):
     return min(end_timel, end_timer) - max(start_timel, start_timer) + 1
 
 
-def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval,
+def _get_data_list(input_path, warmup_period, ee_sample_interval, txn_sample_interval,
                    network_sample_interval):
     """Get the list of all the operating units (or groups of operating units) stored in GlobalData objects
 
@@ -204,7 +205,7 @@ def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn
 
     # First get the data for all mini runners
     for filename in glob.glob(os.path.join(input_path, '*.csv')):
-        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period, tpcc_hack,
+        data_list += grouped_op_unit_data.get_grouped_op_unit_data(filename, warmup_period,
                                                                    ee_sample_interval, txn_sample_interval,
                                                                    network_sample_interval)
         logging.info("Loaded file: {}".format(filename))
@@ -212,13 +213,32 @@ def _get_data_list(input_path, warmup_period, tpcc_hack, ee_sample_interval, txn
     return data_list
 
 
-def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
+def _add_estimation_noise(opunit, x):
+    """Add estimation noise to the OUs that may use the cardinality estimation
+    """
+    if opunit not in data_info.OUS_USING_CAR_EST:
+        return
+    tuple_num = x[data_info.TUPLE_NUM_INDEX]
+    cardinality = x[data_info.CARDINALITY_INDEX]
+    if tuple_num > 1000:
+        logging.debug("Adding noise to tuple num (%)".format(x[data_info.TUPLE_NUM_INDEX]))
+        x[data_info.TUPLE_NUM_INDEX] += np.random.normal(0, tuple_num * 0.3)
+        x[data_info.TUPLE_NUM_INDEX] = max(1, x[data_info.TUPLE_NUM_INDEX])
+    if cardinality > 1000:
+        logging.debug("Adding noise to cardinality (%)".format(x[data_info.CARDINALITY_INDEX]))
+        x[data_info.CARDINALITY_INDEX] += np.random.normal(0, cardinality * 0.3)
+        x[data_info.CARDINALITY_INDEX] = max(1, x[data_info.CARDINALITY_INDEX])
+
+
+def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise):
     """Use the mini-runner to predict the resource consumptions for all the GlobalData, and record the prediction
     result in place
 
     :param data_list: The list of the GroupedOpUnitData objects
     :param mini_model_map: The trained mini models
     :param model_results_path: file path to log the prediction results
+    :param use_query_predict_cache: whether cache the prediction result based on the query for acceleration
+    :param add_noise: whether to add noise to the cardinality estimations
     """
     prediction_path = "{}/grouped_opunit_prediction.csv".format(model_results_path)
     pipeline_path = "{}/grouped_pipeline.csv".format(model_results_path)
@@ -244,18 +264,12 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
     prediction_cache = {}
 
     # use a prediction cache based on queries to accelerate
-    use_query_cache = False
     query_prediction_cache = {}
-
-    # Indicate whether to introduce noise to the cardinality estimation
-    add_noise = False
-    ous_with_noise = {OpUnit.AGG_BUILD, OpUnit.AGG_ITERATE, OpUnit.HASHJOIN_BUILD, OpUnit.HASHJOIN_PROBE,
-                      OpUnit.SORT_BUILD, OpUnit.SORT_ITERATE}
 
     # First run a prediction on the global running data with the mini model results
     for i, data in enumerate(tqdm.tqdm(data_list, desc="Predict GroupedOpUnitData")):
         y = data.y
-        if data.name[0] != 'q' or (data.name not in query_prediction_cache) or not use_query_cache:
+        if data.name[0] != 'q' or (data.name not in query_prediction_cache) or not use_query_predict_cache:
             logging.debug("{} pipeline elapsed time: {}".format(data.name, y[-1]))
 
             pipeline_y_pred = 0
@@ -265,21 +279,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                 x = np.array(opunit_feature[1]).reshape(1, -1)
 
                 if add_noise:
-                    if opunit in ous_with_noise:
-                        tuple_num = x[0][data_info.TUPLE_NUM_INDEX]
-                        if tuple_num > 1000:
-                            print(x[0][data_info.TUPLE_NUM_INDEX])
-                            x[0][data_info.TUPLE_NUM_INDEX] += np.random.normal(0, tuple_num * 0.3)
-                            x[0][data_info.TUPLE_NUM_INDEX] = max(1, x[0][data_info.TUPLE_NUM_INDEX])
-                            print(x[0][data_info.TUPLE_NUM_INDEX])
-                            print("Changing Tuple Num")
-                        cardinality = x[0][data_info.CARDINALITY_INDEX]
-                        if cardinality > 1000:
-                            print(x[0][data_info.CARDINALITY_INDEX])
-                            x[0][data_info.CARDINALITY_INDEX] += np.random.normal(0, cardinality * 0.3)
-                            x[0][data_info.CARDINALITY_INDEX] = max(1, x[0][data_info.CARDINALITY_INDEX])
-                            print("Changing Cardinality")
-                            print(x[0][data_info.CARDINALITY_INDEX])
+                    _add_estimation_noise(opunit, x[0])
 
                 key = (opunit, x.tobytes())
                 if key not in prediction_cache:

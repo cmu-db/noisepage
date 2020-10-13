@@ -14,13 +14,12 @@ import global_model_config
 from type import Target, ConcurrentCountingMode, OpUnit
 
 
-def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval, txn_sample_interval,
+def get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval, txn_sample_interval,
                              network_sample_interval):
     """Get the training data from the global model
 
     :param filename: the input data file
     :param warmup_period: warmup period for pipeline data
-    :param tpcc_hack: whether to manually fix the tpcc features
     :param ee_sample_interval: sampling interval for the EE OUs
     :param txn_sample_interval: sampling interval for the transaction OUs
     :param network_sample_interval: sampling interval for the network OUs
@@ -30,12 +29,9 @@ def get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_inter
     if "txn" in filename:
         # Cannot handle the transaction manager data yet
         return _txn_get_mini_runner_data(filename, txn_sample_interval)
-    if "execution" in filename:
-        # Special handle of the execution data
-        return _execution_get_grouped_op_unit_data(filename, ee_sample_interval)
     if "pipeline" in filename:
         # Special handle of the pipeline execution data
-        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval)
+        return _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval)
     if "gc" in filename or "log" in filename:
         # Handle of the gc or log data with interval-based conversion
         return _interval_get_grouped_op_unit_data(filename)
@@ -121,40 +117,7 @@ def _txn_get_mini_runner_data(filename, txn_sample_interval):
     return data_list
 
 
-def _execution_get_grouped_op_unit_data(filename, ee_sample_interval):
-    # Get the global running data for the execution engine
-    data_list = []
-    with open(filename, "r") as f:
-        reader = csv.reader(f, delimiter=",", skipinitialspace=True)
-        next(reader)
-        for line in tqdm.tqdm(reader):
-            # The first element is always the query/pipeline identifier
-            identifier = line[0]
-            if identifier in query_info.FEATURE_MAP:
-                # Need to deep copy since we're going to add the execution mode after it
-                opunit_features = copy.deepcopy(query_info.FEATURE_MAP[identifier])
-
-                # get memory scaling factor
-                mem_scaling_factor = 1.0
-                if line[0] in query_info.MEM_ADJUST_MAP:
-                    mem_scaling_factor = query_info.MEM_ADJUST_MAP[line[0]]
-
-                # Execution mode is the second element for now...
-                mode = int(line[1])
-                for opunit_feature in opunit_features:
-                    if opunit_feature[0] in data_info.MEM_ADJUST_OPUNITS:
-                        opunit_feature[1].append(mem_scaling_factor)
-                    else:
-                        opunit_feature[1].append(1.0)
-                    opunit_feature[1].append(mode)
-
-                line_data = list(map(int, line[2:]))
-                data_list.append(GroupedOpUnitData(line[0], opunit_features, np.array(line_data), ee_sample_interval))
-
-    return data_list
-
-
-def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sample_interval):
+def _pipeline_get_grouped_op_unit_data(filename, warmup_period, ee_sample_interval):
     # Get the global running data for the execution engine
     execution_mode_index = data_info.RAW_EXECUTION_MODE_INDEX
     features_vector_index = data_info.RAW_FEATURES_VECTOR_INDEX
@@ -191,13 +154,6 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                     continue
                 x_loc = [v[idx] if type(v) == list else v for v in x_multiple]
 
-                q_id = int(line[0])
-                p_id = int(line[1])
-                if tpcc_hack:
-                    x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
-
-                #x_loc = tpcc_fixer.fix_idx_scan_with_varchar(feature, q_id, p_id, x_loc)
-                #feature = tpcc_fixer.fix_sort_feature(feature,  q_id, p_id, x_loc)
                 opunit = OpUnit[feature]
 
                 if x_loc[data_info.TUPLE_NUM_INDEX] == 0:
