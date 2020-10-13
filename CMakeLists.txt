@@ -144,7 +144,7 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   NOISEPAGE_COMPILE_OPTIONS     : Compile options to be added to NoisePage.
 #   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
 #   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
-#   NOISEPAGE_TEST_LINK_LIB       : What type of linking to use for tests.
+#   NOISEPAGE_ENABLE_SHARED       : On if we should enable shared targets and off otherwise.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
@@ -250,13 +250,17 @@ if (APPLE)
     # On OSX, LLVM is compiled with -fvisibility=hidden.
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fvisibility=hidden")
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fvisibility=hidden")
-    set(NOISEPAGE_TEST_LINK_LIB "noisepage_test_util_static")
-    message(STATUS "Tests: Will use static linking.")
+    # The OSX linker is a pain. Disable dynamic linking entirely.
+    set(NOISEPAGE_ENABLE_SHARED OFF)
+    message(STATUS "OSX hack, Shared targets: Removed.")
+    message(STATUS "OSX hack, Tests: Will use static linking.")
 else ()
     # lld is the fastest linker.
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
-    set(NOISEPAGE_TEST_LINK_LIB "noisepage_test_util_shared")
+    set(NOISEPAGE_ENABLE_SHARED ON)
+    message(STATUS "Shared targets: Available.")
+    # Tests are dynamically linked to reduce their filesize.
     message(STATUS "Tests: Will use dynamic linking.")
 endif ()
 
@@ -549,8 +553,11 @@ target_compile_options(noisepage_static PUBLIC      # PUBLIC: all consumers of t
 target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-fvisibility=hidden"                       # Hide symbols by default.
         )
-add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into shared lib.
-target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)             # Consumers will inherit this link.
+
+if (${NOISEPAGE_ENABLE_SHARED})
+    add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)   # Bundle up these objects into shared lib.
+    target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)           # Consumers will inherit this link.
+endif ()
 
 #######################################################################################################################
 # HEADER noisepage binary.
@@ -582,10 +589,12 @@ target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include
 target_link_libraries(util_static PUBLIC noisepage_static)
 set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
-add_library(util_shared SHARED ${UTIL_SRCS})
-target_include_directories(util_shared PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
-target_link_libraries(util_shared PUBLIC noisepage_shared)
-set_target_properties(util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+if (${NOISEPAGE_ENABLE_SHARED})
+    add_library(util_shared SHARED ${UTIL_SRCS})
+    target_include_directories(util_shared PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
+    target_link_libraries(util_shared PUBLIC noisepage_shared)
+    set_target_properties(util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+endif ()
 
 #######################################################################################################################
 # HEADER gen_opt_bc binary.
@@ -697,10 +706,12 @@ target_link_libraries(noisepage_test_util_static PUBLIC gtest gmock util_static 
 target_include_directories(noisepage_test_util_static PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
 set_target_properties(noisepage_test_util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 
-add_library(noisepage_test_util_shared SHARED ${NOISEPAGE_TEST_UTIL_SRCS})
-target_link_libraries(noisepage_test_util_shared PUBLIC gtest gmock util_shared pqxx)
-target_include_directories(noisepage_test_util_shared PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-set_target_properties(noisepage_test_util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+if (${NOISEPAGE_ENABLE_SHARED})
+    add_library(noisepage_test_util_shared SHARED ${NOISEPAGE_TEST_UTIL_SRCS})
+    target_link_libraries(noisepage_test_util_shared PUBLIC gtest gmock util_shared pqxx)
+    target_include_directories(noisepage_test_util_shared PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+    set_target_properties(noisepage_test_util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+endif ()
 
 function(add_noisepage_test
         TEST_NAME                   # The name of this test.
@@ -728,7 +739,15 @@ function(add_noisepage_test
     endif ()
 
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
-    target_link_libraries(${TEST_NAME} PRIVATE gmock_main ${NOISEPAGE_TEST_LINK_LIB})
+
+    # Add test library dependencies.
+    target_link_libraries(${TEST_NAME} PRIVATE gmock_main)
+    if (${NOISEPAGE_ENABLE_SHARED})
+        target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_shared)
+    else ()
+        target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_static)
+    endif ()
+
     set_target_properties(${TEST_NAME} PROPERTIES
             CXX_EXTENSIONS OFF                                  # Disable compiler-specific extensions.
             ENABLE_EXPORTS ON                                   # Export for tpl.
@@ -891,9 +910,9 @@ endforeach ()
 #######################################################################################################################
 
 set_target_properties(
-        noisepage_static noisepage_shared
-        util_static util_shared
-        noisepage_test_util_static noisepage_test_util_shared
+        noisepage_static
+        util_static
+        noisepage_test_util_static
         noisepage_benchmark_util
         gen_opt_bc tpl noisepage
         PROPERTIES
@@ -901,6 +920,18 @@ set_target_properties(
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+
+if (${NOISEPAGE_ENABLE_SHARED})
+    set_target_properties(
+            noisepage_shared
+            util_shared
+            noisepage_test_util_shared
+            PROPERTIES
+            ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    )
+endif ()
 
 #######################################################################################################################
 # HEADER Miscellaneous.
