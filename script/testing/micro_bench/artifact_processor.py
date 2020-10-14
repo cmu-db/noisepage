@@ -106,7 +106,7 @@ class ArtifactProcessor(object):
 
         key = (gbench_result.suite_name, gbench_result.test_name)
         historical_results = self.artifacts.get(key)
-        if initial_comparison.get('reference_type') == 'none':
+        if initial_comparison.get('reference_type') != 'none':
             publishable_comparison['stdev_throughput'] = historical_results.get_stdev_throughput()
         else:
             publishable_comparison['stdev_throughput'] = initial_comparison.get('tolerance')
