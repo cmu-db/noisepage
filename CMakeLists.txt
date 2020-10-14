@@ -267,17 +267,24 @@ if (APPLE)
     # On OSX, LLVM is compiled with -fvisibility=hidden.
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fvisibility=hidden")
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fvisibility=hidden")
-    # The OSX linker is a pain. Disable dynamic linking entirely.
-    set(NOISEPAGE_ENABLE_SHARED OFF)
-    message(STATUS "OSX hack, Shared targets: Removed.")
-    message(STATUS "OSX hack, Tests: Will use static linking.")
 else ()
     # lld is the fastest linker.
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
+endif ()
+
+# The goal is to dynamically link tests to reduce filesize. However,
+#   1. The OSX linker is a huge pain.
+#   2. Clang has a bug with dynamically linked ASAN https://github.com/google/sanitizers/issues/1017
+#      and the workaround no longer works.
+# In those scenarios, we disable dynamic linking entirely.
+if (APPLE OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(NOISEPAGE_ENABLE_SHARED OFF)
+    message(STATUS "Shared targets: Removed.")
+    message(STATUS "Tests: Will use static linking.")
+else ()
     set(NOISEPAGE_ENABLE_SHARED ON)
     message(STATUS "Shared targets: Available.")
-    # Tests are dynamically linked to reduce their filesize.
     message(STATUS "Tests: Will use dynamic linking.")
 endif ()
 
