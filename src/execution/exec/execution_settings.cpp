@@ -9,8 +9,8 @@ void ExecutionSettings::UpdateFromSettingsManager(common::ManagedPointer<setting
       number_of_threads_ = settings->GetInt(settings::Param::num_threads);
     }
 
-    is_counters_enabled_ = settings->GetBool(settings::Param::use_counters);
-    is_pipeline_metrics_enabled_ = settings->GetBool(settings::Param::use_pipeline_metrics);
+    is_counters_enabled_ = settings->GetBool(settings::Param::counters_enable);
+    is_pipeline_metrics_enabled_ = settings->GetBool(settings::Param::metrics_pipeline);
   }
 }
 

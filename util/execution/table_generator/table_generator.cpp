@@ -328,7 +328,7 @@ void TableGenerator::CreateIndex(IndexInsertMeta *index_meta) {
   FillIndex(index, index_schema, *index_meta, table, table_schema);
 }
 
-void TableGenerator::GenerateTestTables(bool is_mini_runner) {
+void TableGenerator::GenerateTestTables() {
   /**
    * This array configures each of the test tables. Each able is configured
    * with a name, size, and schema. We also configure the columns of the table. If
@@ -394,11 +394,6 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
         {"colE", type::TypeId::INTEGER, false, Dist::Serial, 0, 0}}},
   };
 
-  if (is_mini_runner) {
-    auto mini_runner_table_metas = GenerateMiniRunnerTableMetas();
-    insert_meta.insert(insert_meta.end(), mini_runner_table_metas.begin(), mini_runner_table_metas.end());
-  }
-
   for (auto &table_meta : insert_meta) {
     CreateTable(&table_meta);
   }
@@ -406,16 +401,81 @@ void TableGenerator::GenerateTestTables(bool is_mini_runner) {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnerIndexTables() {
+void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersDataConfig &config) {
   std::vector<TableInsertMeta> table_metas;
-  std::vector<uint32_t> row_nums = {1,     10,    100,   200,    500,    1000,   2000,   5000,
-                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
-  std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
+  auto &mixed_types = config.table_type_dists_;
+  auto &mixed_dists = config.table_col_dists_;
+  auto &row_nums = config.table_row_nums_;
+
+  for (size_t idx = 0; idx < mixed_types.size(); ++idx) {
+    auto types = mixed_types[idx];
+    auto mixed_dist = mixed_dists[idx];
+    for (auto col_dist : mixed_dist) {
+      for (uint32_t row_num : row_nums) {
+        // Cardinality of the last column
+        std::vector<uint32_t> cardinalities;
+        // Generate different cardinalities exponentially
+        for (uint32_t i = 1; i < row_num; i *= 2) cardinalities.emplace_back(i);
+        cardinalities.emplace_back(row_num);
+
+        for (uint32_t cardinality : cardinalities) {
+          uint32_t num_cols = 0;
+          std::vector<ColumnInsertMeta> col_metas;
+          for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
+            for (uint32_t j = 1; j <= col_dist[col_idx]; j++) {
+              auto type_name = type::TypeUtil::TypeIdToString(types[col_idx]);
+              std::transform(type_name.begin(), type_name.end(), type_name.begin(), ::tolower);
+
+              std::stringstream col_name;
+              col_name << type_name << j;
+              if (col_metas.empty()) {
+                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
+              } else {
+                col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
+              }
+            }
+
+            num_cols += col_dist[col_idx];
+          }
+
+          std::vector<std::pair<type::TypeId, uint32_t>> dists;
+          for (size_t i = 0; i < col_dist.size(); i++) {
+            dists.emplace_back(types[i], col_dist[i]);
+          }
+          dists.erase(std::remove_if(dists.begin(), dists.end(),
+                                     [](std::pair<type::TypeId, uint32_t> item) { return item.second == 0; }),
+                      dists.end());
+
+          std::vector<type::TypeId> final_types;
+          std::vector<uint32_t> col_nums;
+          for (auto dist : dists) {
+            final_types.emplace_back(dist.first);
+            col_nums.emplace_back(dist.second);
+          }
+
+          std::string tbl_name = GenerateMixedTableName(final_types, col_nums, row_num, cardinality);
+          table_metas.emplace_back(tbl_name, row_num, col_metas);
+        }
+      }
+    }
+  }
+
+  for (auto &table_meta : table_metas) {
+    CreateTable(&table_meta);
+  }
+}
+
+void TableGenerator::GenerateMiniRunnerIndexTables(const runner::MiniRunnersDataConfig &config) {
+  std::vector<TableInsertMeta> table_metas;
+  auto &row_nums = config.table_row_nums_;
+  auto &types = config.index_table_types_;
   for (auto row_num : row_nums) {
-    for (type::TypeId type : types) {
+    for (auto type_pair : types) {
+      auto type = type_pair.second;
+      uint32_t column_num = type_pair.first;
+
       auto table_name = GenerateTableIndexName(type, row_num);
       std::vector<ColumnInsertMeta> col_metas;
-      uint32_t column_num = (type == type::TypeId::VARCHAR) ? 5 : 15;
       for (uint32_t j = 1; j <= column_num; j++) {
         std::stringstream col_name;
         col_name << "col" << j;
@@ -537,73 +597,6 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   delete[] table_buffer;
   delete[] index_buffer;
   EXECUTION_LOG_TRACE("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
-}
-
-std::vector<TableGenerator::TableInsertMeta> TableGenerator::GenerateMiniRunnerTableMetas() {
-  std::vector<TableInsertMeta> table_metas;
-  std::vector<std::vector<type::TypeId>> mixed_types = {
-      {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::BIGINT},
-      {type::TypeId::INTEGER, type::TypeId::VARCHAR}};
-  std::vector<std::vector<std::vector<uint32_t>>> mixed_dists = {
-      {{0, 15, 0}, {3, 12, 0}, {7, 8, 0}, {11, 4, 0}, {15, 0, 0}, {0, 0, 15}},
-      {{0, 5}, {3, 2}, {4, 1}}};
-  std::vector<uint32_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                    2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 10000000};
-  for (size_t idx = 0; idx < mixed_types.size(); ++idx) {
-    auto types = mixed_types[idx];
-    auto mixed_dist = mixed_dists[idx];
-    for (auto col_dist : mixed_dist) {
-      for (uint32_t row_num : row_nums) {
-        // Only create 10M table with varchars now
-        if ((types[1] != type::TypeId::VARCHAR || col_dist[0] == 0) && row_num > 1000000) continue;
-        // Cardinality of the last column
-        std::vector<uint32_t> cardinalities;
-        // Generate different cardinalities exponentially
-        for (uint32_t i = 1; i < row_num; i *= 2) cardinalities.emplace_back(i);
-        cardinalities.emplace_back(row_num);
-
-        for (uint32_t cardinality : cardinalities) {
-          uint32_t num_cols = 0;
-          std::vector<ColumnInsertMeta> col_metas;
-          for (size_t col_idx = 0; col_idx < col_dist.size(); col_idx++) {
-            for (uint32_t j = 1; j <= col_dist[col_idx]; j++) {
-              auto type_name = type::TypeUtil::TypeIdToString(types[col_idx]);
-              std::transform(type_name.begin(), type_name.end(), type_name.begin(), ::tolower);
-
-              std::stringstream col_name;
-              col_name << type_name << j;
-              if (col_metas.empty()) {
-                col_metas.emplace_back(col_name.str(), types[col_idx], false, Dist::Rotate, 1, cardinality);
-              } else {
-                col_metas.emplace_back(col_name.str(), types[col_idx], false, 0);
-              }
-            }
-
-            num_cols += col_dist[col_idx];
-          }
-
-          std::vector<std::pair<type::TypeId, uint32_t>> dists;
-          for (size_t i = 0; i < col_dist.size(); i++) {
-            dists.emplace_back(types[i], col_dist[i]);
-          }
-          dists.erase(std::remove_if(dists.begin(), dists.end(),
-                                     [](std::pair<type::TypeId, uint32_t> item) { return item.second == 0; }),
-                      dists.end());
-
-          std::vector<type::TypeId> final_types;
-          std::vector<uint32_t> col_nums;
-          for (auto dist : dists) {
-            final_types.emplace_back(dist.first);
-            col_nums.emplace_back(dist.second);
-          }
-
-          std::string tbl_name = GenerateMixedTableName(final_types, col_nums, row_num, cardinality);
-          table_metas.emplace_back(tbl_name, row_num, col_metas);
-        }
-      }
-    }
-  }
-  return table_metas;
 }
 
 void TableGenerator::InitTestIndexes() {

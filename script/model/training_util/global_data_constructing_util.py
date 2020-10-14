@@ -11,7 +11,7 @@ from util import io_util
 from info import data_info, hardware_info
 from data_class import global_model_data, grouped_op_unit_data
 import global_model_config
-from type import Target, OpUnit, ConcurrentCountingMode
+from type import OpUnit, ConcurrentCountingMode, ExecutionFeature
 
 
 def get_data(input_path, mini_model_map, model_results_path, warmup_period, use_query_predict_cache, add_noise,
@@ -218,16 +218,18 @@ def _add_estimation_noise(opunit, x):
     """
     if opunit not in data_info.OUS_USING_CAR_EST:
         return
-    tuple_num = x[data_info.TUPLE_NUM_INDEX]
-    cardinality = x[data_info.CARDINALITY_INDEX]
+    tuple_num_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]
+    cardinality_index = data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]
+    tuple_num = x[tuple_num_index]
+    cardinality = x[cardinality_index]
     if tuple_num > 1000:
-        logging.debug("Adding noise to tuple num (%)".format(x[data_info.TUPLE_NUM_INDEX]))
-        x[data_info.TUPLE_NUM_INDEX] += np.random.normal(0, tuple_num * 0.3)
-        x[data_info.TUPLE_NUM_INDEX] = max(1, x[data_info.TUPLE_NUM_INDEX])
+        logging.debug("Adding noise to tuple num (%)".format(tuple_num))
+        x[tuple_num_index] += np.random.normal(0, tuple_num * 0.3)
+        x[tuple_num_index] = max(1, x[tuple_num_index])
     if cardinality > 1000:
-        logging.debug("Adding noise to cardinality (%)".format(x[data_info.CARDINALITY_INDEX]))
-        x[data_info.CARDINALITY_INDEX] += np.random.normal(0, cardinality * 0.3)
-        x[data_info.CARDINALITY_INDEX] = max(1, x[data_info.CARDINALITY_INDEX])
+        logging.debug("Adding noise to cardinality (%)".format(x[cardinality_index)
+        x[cardinality_index] += np.random.normal(0, cardinality * 0.3)
+        x[cardinality_index] = max(1, x[cardinality_index])
 
 
 def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, use_query_predict_cache, add_noise):
@@ -293,9 +295,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
 
                 if opunit in data_info.MEM_ADJUST_OPUNITS:
                     # Compute the number of "slots" (based on row feature or cardinality feature
-                    num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
+                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]]
                     if opunit == OpUnit.AGG_BUILD:
-                        num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
+                        num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
 
                     # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
                     # that contains the first pow2 larger than num_tuple entries
@@ -306,18 +308,19 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path, 
                         # the buffer is not recorded as part of the pipeline
                         buffer_size = 0
 
-                    pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
+                    pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]]
                     if pred_mem <= buffer_size:
                         logging.debug("{} feature {} {} with prediction {} exceeds buffer {}"
                                         .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
                     # For hashjoin_build, there is still some inaccuracy due to the
                     # fact that we do not know about the hash table's load factor.
-                    adj_mem = (pred_mem - buffer_size) * opunit_feature[1][data_info.RECORD_MEM_SCALE_OFFSET] + buffer_size
+                    scale = data_info.INPUT_CSV_INDEX[ExecutionFeature.MEM_FACTOR]
+                    adj_mem = (pred_mem - buffer_size) * opunit_feature[1][scale] + buffer_size
 
                     # Don't modify prediction cache
                     y_pred = copy.deepcopy(y_pred)
-                    y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
+                    y_pred[0][data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] = adj_mem
 
                 pipeline_y_pred += y_pred[0]
 

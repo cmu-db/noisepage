@@ -36,6 +36,7 @@
 #include "main/db_main.h"
 #include "metrics/metrics_thread.h"
 #include "parser/expression/constant_value_expression.h"
+#include "runner/mini_runners_config.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
@@ -119,7 +120,11 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
-  table_generator.GenerateTestTables(IS_MINI_RUNNER);
+  table_generator.GenerateTestTables();
+  if (IS_MINI_RUNNER) {
+    runner::MiniRunnersDataConfig config;
+    table_generator.GenerateMiniRunnersData(config);
+  }
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
   // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);

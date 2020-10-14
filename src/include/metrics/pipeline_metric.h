@@ -51,9 +51,9 @@ class PipelineMetricRawData : public AbstractRawData {
     for (auto &data : pipeline_data_) {
       outfile << data.query_id_.UnderlyingValue() << ", ";
       outfile << data.pipeline_id_.UnderlyingValue() << ", ";
-      outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
+      outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.GetEstRowsVectorString() << ", ";
       outfile << data.GetKeySizeVectorString() << ", ";
       outfile << data.GetNumKeysVectorString() << ", ";
@@ -78,7 +78,7 @@ class PipelineMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
+      "query_id, pipeline_id, num_features, features, exec_mode, est_output_rows, key_sizes, num_keys, "
       "est_cardinalities, mem_factor, num_loops, num_concurrent"};
 
  private:

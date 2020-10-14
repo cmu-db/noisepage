@@ -31,10 +31,16 @@
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "runner/mini_runners_config.h"
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
 namespace terrier::runner {
+
+/**
+ * MiniRunners Config Data
+ */
+MiniRunnersDataConfig config;
 
 /**
  * Should start small-row only scans
@@ -117,17 +123,17 @@ void InvokeGC() {
  * 4 - Number of rows
  * 5 - Cardinality
  */
-void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::vector<int64_t> &row_nums, bool noop,
+void GenerateMixedArguments(std::vector<std::vector<int64_t>> *args, const std::vector<uint32_t> &row_nums, bool noop,
                             uint32_t varchar_mix) {
   std::vector<std::pair<uint32_t, uint32_t>> mixed_dist;
   uint32_t step_size;
   if (varchar_mix == 0) {
     /* Vector of table distributions <INTEGER, DECIMALS> */
-    mixed_dist = {{3, 12}, {7, 8}, {11, 4}};
+    mixed_dist = config.sweep_scan_mixed_dist_;
     step_size = 2;
   } else {
     /* Vector of table distributions <INTEGER, VARCHAR> */
-    mixed_dist = {{3, 2}, {4, 1}};
+    mixed_dist = config.sweep_scan_mixed_varchar_dist_;
     step_size = 1;
   } /* Always generate full table scans for all row_num and cardinalities. */
   for (auto col_dist : mixed_dist) {
@@ -260,11 +266,9 @@ static void GenArithArguments(benchmark::internal::Benchmark *b) {
  * 2 - row
  */
 static void GenOutputArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
-
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -290,10 +294,9 @@ static void GenOutputArguments(benchmark::internal::Benchmark *b) {
  * 5 - cardinality
  */
 static void GenScanArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       // Skip more than 5 varchar cols to match the generated tables
@@ -322,8 +325,7 @@ static void GenScanArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  const auto &row_nums = config.table_row_nums_;
   std::vector<std::vector<int64_t>> args;
   GenerateMixedArguments(&args, row_nums, false, 0);
   GenerateMixedArguments(&args, row_nums, false, 1);
@@ -344,10 +346,9 @@ static void GenScanMixedArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenSortArguments(benchmark::internal::Benchmark *b) {
   auto is_topks = {0, 1};
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto is_topk : is_topks) {
     for (auto type : types) {
       for (auto col : num_cols) {
@@ -355,16 +356,10 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
           int64_t car = 1;
           while (car < row) {
             if (type == type::TypeId::INTEGER)
-              b->Args({col, 0, 15, 0, row, car, is_topk});
+              b->Args({col, 0, 15, 0, row, row, is_topk});
             else if (type == type::TypeId::DECIMAL)
-              b->Args({0, col, 0, 15, row, car, is_topk});
-            car *= 2;
+              b->Args({0, col, 0, 15, row, row, is_topk});
           }
-
-          if (type == type::TypeId::INTEGER)
-            b->Args({col, 0, 15, 0, row, row, is_topk});
-          else if (type == type::TypeId::DECIMAL)
-            b->Args({0, col, 0, 15, row, row, is_topk});
         }
       }
     }
@@ -381,10 +376,9 @@ static void GenSortArguments(benchmark::internal::Benchmark *b) {
  * 5 - cardinality
  */
 static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   auto types = {type::TypeId::INTEGER, type::TypeId::VARCHAR};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       // Skip more than 5 varchar cols to match the generated tables
@@ -416,9 +410,8 @@ static void GenAggregateArguments(benchmark::internal::Benchmark *b) {
  * 4 - cardinality
  */
 static void GenAggregateKeylessArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   for (auto col : num_cols) {
     for (auto row : row_nums) {
       int64_t car = 1;
@@ -442,10 +435,9 @@ static void GenAggregateKeylessArguments(benchmark::internal::Benchmark *b) {
  * 5 - Cardinality
  */
 static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : row_nums) {
@@ -484,10 +476,9 @@ static void GenJoinSelfArguments(benchmark::internal::Benchmark *b) {
  * 8 - Matched cardinality
  */
 static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
+  auto &num_cols = config.sweep_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   auto types = {type::TypeId::INTEGER};
-  std::vector<int64_t> row_nums = {1,    3,    5,     7,     10,    50,     100,    200,    500,    1000,
-                                   2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto type : types) {
     for (auto col : num_cols) {
       for (size_t i = 0; i < row_nums.size(); i++) {
@@ -521,10 +512,9 @@ static void GenJoinNonSelfArguments(benchmark::internal::Benchmark *b) {
  */
 static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
-  auto key_sizes = {1, 2, 4, 8, 15};
-  auto idx_sizes = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 300000, 500000, 1000000};
-  std::vector<int64_t> lookup_sizes = {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 1000, 10000, 20000,
-                                       30000, 40000, 50000};
+  auto &key_sizes = config.sweep_index_col_nums_;
+  auto &idx_sizes = config.table_row_nums_;
+  auto &lookup_sizes = config.sweep_index_lookup_sizes_;
   for (auto type : types) {
     for (auto key_size : key_sizes) {
       // Only handle varchar up to 5 keys for size concerns
@@ -551,9 +541,8 @@ static void GenIdxScanArguments(benchmark::internal::Benchmark *b) {
  * 2 - Inner Table
  */
 static void GenIdxJoinArguments(benchmark::internal::Benchmark *b) {
-  auto key_sizes = {1, 2, 4, 8, 15};
-  std::vector<int64_t> idx_sizes = {1,     10,    100,   200,    500,    1000,   2000,   5000,
-                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  auto &key_sizes = config.sweep_col_nums_;
+  auto &idx_sizes = config.table_row_nums_;
   for (auto key_size : key_sizes) {
     for (size_t j = 0; j < idx_sizes.size(); j++) {
       // Build the inner index
@@ -619,8 +608,8 @@ static void GenIdxScanParameters(type::TypeId type_param, int64_t num_rows, int6
  */
 static void GenInsertArguments(benchmark::internal::Benchmark *b) {
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
-  auto num_cols = {1, 3, 5, 7, 9, 11, 13, 15};
-  auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
+  auto &num_rows = config.sweep_insert_row_nums_;
+  auto &num_cols = config.sweep_col_nums_;
   for (auto type : types) {
     for (auto col : num_cols) {
       for (auto row : num_rows) {
@@ -634,9 +623,8 @@ static void GenInsertArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenInsertMixedArguments(benchmark::internal::Benchmark *b) {
-  std::vector<std::pair<uint32_t, uint32_t>> mixed_dist = {{1, 14}, {3, 12}, {5, 10}, {7, 8}, {9, 6}, {11, 4}, {13, 2}};
-
-  auto num_rows = {1, 10, 100, 200, 500, 1000, 2000, 5000, 10000};
+  auto &mixed_dist = config.sweep_insert_mixed_dist_;
+  auto &num_rows = config.sweep_insert_row_nums_;
   for (auto mixed : mixed_dist) {
     for (auto row : num_rows) {
       b->Args({mixed.first, mixed.second, mixed.first + mixed.second, row});
@@ -645,11 +633,9 @@ static void GenInsertMixedArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
-  std::vector<uint32_t> idx_key = {1, 2, 4, 8, 15};
-  std::vector<uint32_t> row_nums = {1,     10,    100,   500,    1000,   2000,   5000,
-                                    10000, 20000, 50000, 100000, 300000, 500000, 1000000};
+  auto &idx_key = config.sweep_index_col_nums_;
+  auto &row_nums = config.table_row_nums_;
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto row_num : row_nums) {
@@ -700,11 +686,21 @@ static void GenUpdateDeleteIndexArguments(benchmark::internal::Benchmark *b) {
  * 7 - # possible threads
  */
 static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
-  // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 1, 2, 4, 8, 12, 16};
-  auto num_cols = {1, 2, 3, 4, 5, 7, 9, 11, 13, 15};
+  auto &num_threads = config.sweep_index_create_threads_;
+  auto &row_nums = config.table_row_nums_;
+  std::vector<uint32_t> num_cols;
+  {
+    std::unordered_set<uint32_t> col_set;
+    col_set.insert(config.sweep_col_nums_.begin(), config.sweep_col_nums_.end());
+    col_set.insert(config.sweep_index_col_nums_.begin(), config.sweep_index_col_nums_.end());
+
+    num_cols.reserve(col_set.size());
+    for (auto &col : col_set) {
+      num_cols.push_back(col);
+    }
+  }
+
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  std::vector<int64_t> row_nums = {2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000};
   for (auto thread : num_threads) {
     for (auto type : types) {
       for (auto col : num_cols) {
@@ -730,9 +726,8 @@ static void GenCreateIndexArguments(benchmark::internal::Benchmark *b) {
 }
 
 static void GenCreateIndexMixedArguments(benchmark::internal::Benchmark *b) {
-  // 0 is a special argument used to indicate serial
-  auto num_threads = {0, 1, 2, 4, 8, 12, 16};
-  std::vector<int64_t> row_nums = {2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 10000000};
+  auto &num_threads = config.sweep_index_create_threads_;
+  const auto &row_nums = config.table_row_nums_;
 
   // Generates INTEGER + VARCHAR
   std::vector<std::vector<int64_t>> args;
@@ -815,12 +810,14 @@ class MiniRunners : public benchmark::Fixture {
                                int64_t num_left, int64_t num_right) {
     std::stringstream cols;
     for (auto i = 1; i <= num_left; i++) {
-      cols << prefix << (type::TypeUtil::TypeIdToString(left_type)) << i;
+      auto type = (left_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(left_type);
+      cols << prefix << type << i;
       if (i != num_left || num_right != 0) cols << ", ";
     }
 
     for (auto i = 1; i <= num_right; i++) {
-      cols << prefix << (type::TypeUtil::TypeIdToString(right_type)) << i;
+      auto type = (right_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(right_type);
+      cols << prefix << type << i;
       if (i != num_right) cols << ", ";
     }
     return cols.str();
@@ -830,13 +827,13 @@ class MiniRunners : public benchmark::Fixture {
                                  type::TypeId right_type, int64_t num_left, int64_t num_right) {
     std::stringstream pred;
     for (auto i = 1; i <= num_left; i++) {
-      auto type_name = type::TypeUtil::TypeIdToString(left_type);
+      auto type_name = (left_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(left_type);
       pred << left_alias << "." << type_name << i << " = " << right_alias << "." << type_name << i;
       if (i != num_left || num_right != 0) pred << " AND ";
     }
 
     for (auto i = 1; i <= num_right; i++) {
-      auto type_name = type::TypeUtil::TypeIdToString(right_type);
+      auto type_name = (right_type == type::TypeId::INVALID) ? "col" : type::TypeUtil::TypeIdToString(right_type);
       pred << left_alias << "." << type_name << i << " = " << right_alias << "." << type_name << i;
       if (i != num_right) pred << " AND ";
     }
@@ -1089,7 +1086,7 @@ class MiniRunners : public benchmark::Fixture {
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
           db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
-          common::ManagedPointer(accessor), exec_settings, metrics_manager_);
+          common::ManagedPointer(accessor), exec_settings, metrics_manager);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -1405,8 +1402,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   output << "\tpipelineState.output_buffer = @resultBufferNew(queryState.execCtx)\n";
   output << "\treturn\n";
   output << "}\n";
-  output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil "
-            "{\nreturn\n}\n";
+  output << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+  output << "\t@resultBufferFree(pipelineState.output_buffer)\n";
+  output << "\t@execOUFeatureVectorReset(&pipelineState.execFeatures)\n";
+  output << "}\n";
 
   // pipeline
   output << "fun Query0_Pipeline1_SerialWork(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
@@ -1600,16 +1599,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
                          tuple_size, key_num, lookup_size, 1, 0, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::string cols;
-  {
-    std::stringstream colss;
-    for (auto j = 1; j <= key_num; j++) {
-      colss << "col" << j;
-      if (j != key_num) colss << ", ";
-    }
-    cols = colss.str();
-  }
-
+  std::string cols = ConstructColumns("", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
   std::string predicate = ConstructIndexScanPredicate(key_num, num_rows, lookup_size, true);
 
   std::vector<parser::ConstantValueExpression> params;
@@ -1687,25 +1677,8 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
                          key_num, 1, 1, outer, 0);
   units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
 
-  std::string cols;
-  {
-    std::stringstream colss;
-    for (auto j = 1; j <= key_num; j++) {
-      colss << "a.col" << j;
-      if (j != key_num) colss << ", ";
-    }
-    cols = colss.str();
-  }
-
-  std::string predicate;
-  {
-    std::stringstream preds;
-    for (auto j = 1; j <= key_num; j++) {
-      preds << "a.col" << j << " = b.col" << j;
-      if (j != key_num) preds << " AND ";
-    }
-    predicate = preds.str();
-  }
+  std::string cols = ConstructColumns("a.", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
+  std::string predicate = ConstructPredicate("a", "b", type::TypeId::INVALID, type::TypeId::INVALID, key_num, 0);
 
   auto outer_tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, outer);
   auto inner_tbl = execution::sql::TableGenerator::GenerateTableIndexName(type, inner);
@@ -1839,7 +1812,7 @@ BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
 
 void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto num_integers = state->range(0);
-  auto num_decimals = state->range(1);
+  auto num_bigints = state->range(1);
   auto tbl_ints = state->range(2);
   auto row = state->range(4);
   auto car = state->range(5);
@@ -1858,7 +1831,7 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
       throw "Invalid is_build argument for ExecuteUpdate";
     }
 
-    HandleBuildDropIndex(is_build != 0, row, num_integers + num_decimals, type);
+    HandleBuildDropIndex(is_build != 0, row, num_integers + num_bigints, type);
     return;
   }
 
@@ -1879,9 +1852,9 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   query << "UPDATE " << tbl << " SET ";
 
   auto int_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::INTEGER);
-  auto decimal_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
-  auto tuple_size = int_size * num_integers + decimal_size * num_decimals;
-  auto num_col = num_integers + num_decimals;
+  auto bigint_size = type::TypeUtil::GetTypeTrueSize(type::TypeId::BIGINT);
+  auto tuple_size = int_size * num_integers + bigint_size * num_bigints;
+  auto num_col = num_integers + num_bigints;
   std::vector<catalog::Schema::Column> cols;
   std::mt19937 generator{};
   std::uniform_int_distribution<int> distribution(0, INT_MAX);
@@ -1889,13 +1862,13 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
     // We need to do this to prevent the lookup from having to move
     query << "col" << j << " = "
           << "col" << j << " + 0";
-    if (j != num_integers || num_decimals != 0) query << ", ";
+    if (j != num_integers || num_bigints != 0) query << ", ";
   }
 
-  for (auto j = 1; j <= num_decimals; j++) {
+  for (auto j = 1; j <= num_bigints; j++) {
     query << "col" << j << " = "
           << "col" << j << " + 0";
-    if (j != num_decimals) query << ", ";
+    if (j != num_bigints) query << ", ";
   }
 
   std::vector<std::vector<parser::ConstantValueExpression>> real_params;
@@ -2441,8 +2414,8 @@ void InitializeRunnersState() {
                                                                       exec_settings, db_main->GetMetricsManager());
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  table_gen.GenerateTestTables(true);
-  table_gen.GenerateMiniRunnerIndexTables();
+  table_gen.GenerateMiniRunnersData(config);
+  table_gen.GenerateMiniRunnerIndexTables(config);
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   InvokeGC();
