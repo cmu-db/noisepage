@@ -20,3 +20,4 @@
 # False positive from atexit() registration in libc
 leak:*__new_exitfn*
 leak:libtbb.so
+leak:*pqxx*  # libpqxx 7.2.0 leaks on Mac.
