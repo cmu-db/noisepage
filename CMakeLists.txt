@@ -718,7 +718,8 @@ add_custom_target(unittest
         ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
         -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
         -L unittest                         # Run all tests that have a label like unittests. See footgun warning above.
-        -T Test                             # Run tests.
+        --no-compress-output                # Output verbosely so that it can be logged.
+        -T Test                             # Run tests and log it to Testing/*/Test.xml.
         USES_TERMINAL)
 add_custom_target(jumbotests
         ctest
@@ -726,7 +727,8 @@ add_custom_target(jumbotests
         ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails -- warning, will be VERBOSE.
         -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
         -L jumbotests                       # Run all tests that have a label like jumbotests. See footgun warning above.
-        -T Test                             # Run tests.
+        --no-compress-output                # Output verbosely so that it can be logged.
+        -T Test                             # Run tests and log it to Testing/*/Test.xml.
         USES_TERMINAL)
 
 unset(UNITTEST_OUTPUT_ON_FAILURE)
