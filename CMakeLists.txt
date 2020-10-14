@@ -170,6 +170,10 @@ option(NOISEPAGE_GENERATE_COVERAGE
         "Enable C++ code coverage."
         OFF)
 
+option(NOISEPAGE_TEST_PARALLELISM
+        "The maximum number of tests that can be run in parallel at a time. Warning: can cause weird bugs."
+        1)
+
 option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
         "Verbose output for unittests when they fail. Warning: on jumbo, this is VERY verbose!"
         OFF)
@@ -257,6 +261,7 @@ unset(NOISEPAGE_JEMALLOC_MSG)
 
 message(STATUS "Verbose unit tests (NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE): ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
 message(STATUS "Unity builds (NOISEPAGE_UNITY_BUILD): ${NOISEPAGE_UNITY_BUILD}")
+message(STATUS "Test max parallelism: ${NOISEPAGE_TEST_PARALLELISM} tests at a time.")
 
 # OS specific configuration.
 if (APPLE)
@@ -268,16 +273,10 @@ if (APPLE)
     # On OSX, LLVM is compiled with -fvisibility=hidden.
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fvisibility=hidden")
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fvisibility=hidden")
-    # On OSX, running tests in parallel causes the most bizzare of bugs.
-    set(NOISEPAGE_TEST_PARALLELISM 1)
-    message(STATUS "OSX hack, Test max parallelism: ${NOISEPAGE_TEST_PARALLELISM} test at a time.")
 else ()
     # lld is the fastest linker.
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
-    # The maximum number of tests that could be run in parallel. A huge number seems to be OK.
-    set(NOISEPAGE_TEST_PARALLELISM 803)
-    message(STATUS "Test max parallelism: ${NOISEPAGE_TEST_PARALLELISM} tests at a time.")
 endif ()
 
 # The goal is to dynamically link tests to reduce filesize. However,
