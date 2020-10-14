@@ -170,9 +170,9 @@ option(NOISEPAGE_GENERATE_COVERAGE
         "Enable C++ code coverage."
         OFF)
 
-option(NOISEPAGE_TEST_PARALLELISM
-        "The maximum number of tests that can be run in parallel at a time. Warning: can cause weird bugs."
-        "308")
+set(NOISEPAGE_TEST_PARALLELISM
+        "308"
+        CACHE STRING "The maximum number of tests that can be run in parallel at a time. Warning: can cause weird bugs.")
 
 option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
         "Verbose output for unittests when they fail. Warning: on jumbo, this is VERY verbose!"
