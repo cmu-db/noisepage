@@ -108,8 +108,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                     }
                     post {
                         always {
@@ -143,8 +143,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                     }
                     post {
                         always {
@@ -225,8 +225,8 @@ pipeline {
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                     }
                     post {
                         always {
@@ -260,8 +260,8 @@ pipeline {
 
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                     }
                     post {
                         always {
@@ -294,8 +294,8 @@ pipeline {
 
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                     }
                     post {
                         always {
@@ -332,8 +332,8 @@ pipeline {
 
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'Executing unit tests in simple query mode'
-                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'Executing unit tests in extended query mode'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                     }
                     post {
                         always {
@@ -372,38 +372,38 @@ pipeline {
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
-                        ''', label:'Executing OLTPBench TATP test'
+                        ''', label:'OLTPBench (TATP)'
 
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
-                        ''', label: 'Executing OLTPBench TATP with WAL disabled'
+                        ''', label: 'OLTPBench (No WAL)'
 
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug
-                        ''', label:'Executing OLTPBench smallbank test'
+                        ''', label:'OLTPBench (Smallbank)'
 
                         sh script: '''
                         cd build
                         gtimeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
-                        ''', label: 'Executing OLTPBench YCSB test'
+                        ''', label: 'OLTPBench (YCSB)'
 
                         sh script: '''
                         cd build
                         gtimeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
-                        ''', label: 'Executing OLTPBench NOOP test'
+                        ''', label: 'OLTPBench (NOOP)'
 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         sh script: '''
                         cd build
                         gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
-                        ''', label: 'Executing OLTPBench TPCC test'
+                        ''', label: 'OLTPBench (TPCC)'
 
                         sh script: ''' 
                         cd build
                         gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
-                        ''', label: 'Executing OLTPBench TPCC test with parallel execution disabled' 
+                        ''', label: 'OLTPBench (No Parallel)' 
                     }
                     post {
                         cleanup {
@@ -432,38 +432,38 @@ pipeline {
                         sh script: '''
                         cd build
                         timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp.json --build-type=debug
-                        ''', label:'Executing OLTPBench TATP test'
+                        ''', label:'OLTPBench (TATP)'
 
                         sh script: '''
                         cd build
                         timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tatp_wal_disabled.json --build-type=debug
-                        ''', label: 'Executing OLTPBench TATP with WAL disabled'
+                        ''', label: 'OLTPBench (No WAL)'
 
                         sh script: '''
                         cd build
                         timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/smallbank.json --build-type=debug
-                        ''', label:'Executing OLTPBench smallbank test'
+                        ''', label:'OLTPBench (Smallbank)'
 
                         sh script: '''
                         cd build
                         timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/ycsb.json --build-type=debug
-                        ''', label: 'Executing OLTPBench YCSB test'
+                        ''', label: 'OLTPBench (YCSB)'
 
                         sh script: '''
                         cd build
                         timeout 5m python3 ../script/testing/oltpbench/run_oltpbench.py  --config-file=../script/testing/oltpbench/configs/end_to_end_debug/noop.json --build-type=debug
-                        ''', label: 'Executing OLTPBench NOOP test'
+                        ''', label: 'OLTPBench (NOOP)'
 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         sh script: '''
                         cd build
                         timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc.json --build-type=debug
-                        ''', label: 'Executing OLTPBench TPCC test'
+                        ''', label: 'OLTPBench (TPCC)'
 
                         sh script: ''' 
                         cd build
                         timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug
-                        ''', label: 'Executing OLTPBench TPCC test with parallel execution disabled' 
+                        ''', label: 'OLTPBench (No Parallel)' 
                     }
                     post {
                         cleanup {
@@ -489,32 +489,32 @@ pipeline {
                 sh script:'''
                 cd build
                 timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release
-                ''', label: 'Executing OLTPBench TATP test'
+                ''', label: 'OLTPBench (TATP)'
 
                 sh script:'''
                 cd build
                 timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release
-                ''', label: 'Executing OLTPBench TATP test with WAL disabled'
+                ''', label: 'OLTPBench (TATP No WAL)'
 
                 sh script:'''
                 cd build
                 timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release
-                ''', label: 'Executing OLTPBench TATP test using RAM disk for WAL'
+                ''', label: 'OLTPBench (TATP RamDisk WAL)'
 
                 sh script:'''
                 cd build
                 timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release
-                ''', label: 'Executing OLTPBench TPCC test'
+                ''', label: 'OLTPBench (TPCC HDD WAL)'
 
                 sh script:'''
                 cd build
                 timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release
-                ''', label: 'Executing OLTPBench TPCC test with WAL disabled'
+                ''', label: 'OLTPBench (TPCC No WAL)'
 
                 sh script:'''
                 cd build
                 timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
-                ''', label: 'Executing OLTPBench TATP test using RAM disk for WAL'
+                ''', label: 'OLTPBench (TPCC RamDisk WAL)'
             }
         }
         stage('Microbenchmark') {
@@ -528,7 +528,7 @@ pipeline {
                 cd build
                 cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. 
                 make -j$(nproc) all
-                ''', label: 'Verifying that microbenchmarks can compile'
+                ''', label: 'Microbenchmark (Compile)'
             }
             post {
                 cleanup {
