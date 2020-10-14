@@ -1,1 +1,2 @@
 # https://clang.llvm.org/docs/AddressSanitizer.html#suppressing-reports-in-external-libraries
+fun:*BwTree*
