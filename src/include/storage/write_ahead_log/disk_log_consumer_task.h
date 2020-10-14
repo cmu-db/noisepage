@@ -69,7 +69,7 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
   common::ConcurrentQueue<SerializedLogs> *filled_buffer_queue_;
 
   // Flag used by the serializer thread to signal the disk log consumer task thread to persist the data on disk
-  volatile bool do_persist_;
+  volatile bool force_flush_;
 
   // Synchronisation primitives to synchronise persisting buffers to disk
   std::mutex persist_lock_;
