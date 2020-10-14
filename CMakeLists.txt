@@ -855,20 +855,51 @@ function(add_jumbotest
     endif ()
 endfunction()
 
+# Tests are split up for the following reasons:
+#   1. Faster compilation times - the fewer the overall test targets, the faster it compiles.
+#   2. Faster test execution times - the long running tests are split off on their own.
+#   3. Resource sharing - if two tests both want port 15721, then only one of them can run at a time.
+# If you compiled regular non-jumbo tests, you would get 2 and 3 automatically. But 1 suffers, hence jumbotests.
+#
+# The second argument to add_jumbotest is a CMake list (aka a ;-separated string) of unique test prefixes.
+# Each prefix will be globbed together into one test executable.
+# Be careful that your prefixes are really unique, otherwise a test will be run multiple times.
+#
+# Slowpoke list (> 30 sec on Wan's machine):
+#   bwtree_index_test ............................   Passed   31.84 sec
+#   hash_index_test ..............................   Passed   32.92 sec
+#   bitmap_test ..................................   Passed   36.26 sec
+#   hyperloglog_test .............................   Passed   42.72 sec
+#   block_compactor_test .........................   Passed   43.50 sec
+#   rusage_monitor_test ..........................   Passed   44.18 sec
+#   index_iterator_test ..........................   Passed   46.25 sec
+#   data_table_concurrent_test ...................   Passed   46.66 sec
+#   storage_interface_test .......................   Passed   47.03 sec
+#   sql_table_vector_iterator_test ...............   Passed   47.30 sec
+#   concurrent_bitmap_test .......................   Passed   50.21 sec
+#   data_table_test ..............................   Passed   50.56 sec
+#   block_access_controller_test .................   Passed   52.77 sec
+#   tuple_access_strategy_test ...................   Passed   52.79 sec
+#   index_create_test ............................   Passed   69.50 sec
+#   large_transaction_test .......................   Passed  102.79 sec
+#   compiler_test ................................   Passed  104.50 sec
+#   large_garbage_collector_test .................   Passed  114.55 sec
+#   bwtree_test ..................................   Passed  180.80 sec
+
 add_jumbotest("test/binder" "")
 add_jumbotest("test/catalog" "")
-add_jumbotest("test/common" "")
-add_jumbotest("test/execution" "ast;sql;util;vm;")
+add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
+add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
 add_jumbotest("test/metrics" "metrics_test;")
 add_jumbotest("test/network" "network_test;")
-add_jumbotest("test/optimizer" "")
+add_jumbotest("test/optimizer" "hyperloglog_test;")
 add_jumbotest("test/parser" "")
 add_jumbotest("test/planner" "")
 add_jumbotest("test/settings" "")
-add_jumbotest("test/storage" "")
+add_jumbotest("test/storage" "block_access_controller_test;block_compactor_test;bwtree_test;bwtree_index_test;data_table_test;data_table_concurrent_test;hash_index_test;large_garbage_collector_test;tuple_access_strategy_test;")
 add_jumbotest("test/traffic_cop" "traffic_cop_test;")
-add_jumbotest("test/transaction" "")
+add_jumbotest("test/transaction" "large_transaction_test;")
 add_jumbotest("test/type" "")
 
 # Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
