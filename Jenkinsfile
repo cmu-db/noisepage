@@ -87,7 +87,7 @@ pipeline {
 
         stage('Test') {
             parallel {
-                stage('macos-10.14/clang-8.0 (Debug/ASAN/jumbotests)') {
+                stage('macos-10.14/clang-8.0 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -100,8 +100,8 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
-                        sh 'cd build && gtimeout 1h ninja jumbotests'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF .. && ninja'
+                        sh 'cd build && gtimeout 1h ninja unittest'
                         sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
