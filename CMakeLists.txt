@@ -150,6 +150,7 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   NOISEPAGE_COMPILE_OPTIONS     : Compile options to be added to NoisePage.
 #   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
 #   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
+#   NOISEPAGE_TEST_PARALLELISM    : The number of tests that should run in parallel.
 #######################################################################################################################
 
 # Default to DEBUG builds if -DCMAKE_BUILD_TYPE was not specified.
@@ -267,10 +268,16 @@ if (APPLE)
     # On OSX, LLVM is compiled with -fvisibility=hidden.
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fvisibility=hidden")
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fvisibility=hidden")
+    # On OSX, running tests in parallel causes the most bizzare of bugs.
+    set(NOISEPAGE_TEST_PARALLELISM 1)
+    message(STATUS "OSX hack, Test max parallelism: ${NOISEPAGE_TEST_PARALLELISM} test at a time.")
 else ()
     # lld is the fastest linker.
     list(APPEND NOISEPAGE_LINK_OPTIONS "-fuse-ld=lld")
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
+    # The maximum number of tests that could be run in parallel. A huge number seems to be OK.
+    set(NOISEPAGE_TEST_PARALLELISM 803)
+    message(STATUS "Test max parallelism: ${NOISEPAGE_TEST_PARALLELISM} tests at a time.")
 endif ()
 
 # The goal is to dynamically link tests to reduce filesize. However,
@@ -702,23 +709,24 @@ endif ()
 # Unit tests are executed in parallel because we only care about correctness, not performance.
 # This means that two different unit tests could be executing at the same time.
 # In practice, figuring out the number to -j seems annoying and there doesn't appear to be a penalty for having too
-# many tests queued up, so we'll use the magic number 412.
+# many tests queued up, so we'll use the magic number ${NOISEPAGE_TEST_PARALLELISM}.
+# Footgun: Running tests in parallel causes wonderful breakages on OSX/clang. Not on Ubuntu/clang though.
 # Footgun: labels passed to -L are regex. Give them very unique names.
 add_custom_target(unittest
         ctest
         --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
-        ${UNITTEST_OUTPUT_ON_FAILURE}   # Whether to print output when a test fails.
-        -j 412                          # Hardcoded number of parallel jobs.
-        -L unittest                     # Run all tests that have a label like unittests. See footgun warning above.
-        -T Test                         # Run tests.
+        ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails.
+        -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
+        -L unittest                         # Run all tests that have a label like unittests. See footgun warning above.
+        -T Test                             # Run tests.
         USES_TERMINAL)
 add_custom_target(jumbotests
         ctest
         --resource-spec-file ${BUILD_SUPPORT_DATA_DIR}/ctest_resource_specs.json    # For controlling conflicting tests.
-        ${UNITTEST_OUTPUT_ON_FAILURE}   # Whether to print output when a test fails -- warning, this will be VERBOSE.
-        -j 412                          # Hardcoded number of parallel jobs.
-        -L jumbotests                   # Run all tests that have a label like jumbotests. See footgun warning above.
-        -T Test                         # Run tests.
+        ${UNITTEST_OUTPUT_ON_FAILURE}       # Whether to print output when a test fails -- warning, will be VERBOSE.
+        -j ${NOISEPAGE_TEST_PARALLELISM}    # Maximum number of parallel jobs.
+        -L jumbotests                       # Run all tests that have a label like jumbotests. See footgun warning above.
+        -T Test                             # Run tests.
         USES_TERMINAL)
 
 unset(UNITTEST_OUTPUT_ON_FAILURE)
