@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os
-import platform
+import distro
 from oltpbench.reporting.parsers.config_parser import parse_config_file
 from oltpbench.reporting.parsers.summary_parser import parse_summary_file
 from oltpbench.reporting.parsers.res_parser import parse_res_file
@@ -17,7 +17,7 @@ def parse_jenkins_env_vars():
     jenkins_job_id = os.environ['BUILD_ID']
     git_branch = os.environ['GIT_BRANCH']
     commit_id = os.environ['GIT_COMMIT']
-    os_version =' '.join(platform.linux_distribution())
+    os_version =' '.join(distro.linux_distribution())
     os_cpu_number= os.cpu_count()
     #TODO find a way to get the socket number of 
     os_cpu_socket = 'true' 

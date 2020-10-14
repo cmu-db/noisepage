@@ -67,6 +67,7 @@ PYTHON_PACKAGES=(\
   "pandas" \
   "requests" \
   "psutil" \
+  "distro"  \
 )
 
 
