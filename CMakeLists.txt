@@ -171,7 +171,7 @@ option(NOISEPAGE_GENERATE_COVERAGE
         OFF)
 
 set(NOISEPAGE_TEST_PARALLELISM
-        "308"
+        "25"
         CACHE STRING "The maximum number of tests that can be run in parallel at a time. Warning: can cause weird bugs.")
 
 option(NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE
