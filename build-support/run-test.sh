@@ -89,11 +89,11 @@ function setup_sanitizers() {
 
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Enable LSAN on Ubuntu builds.
-    ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=1 suppressions=$ROOT/build-support/data/sanitize_suppressions.txt"
+    ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=1 suppressions=$ROOT/build-support/data/asan_suppressions.txt"
     export ASAN_OPTIONS
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     # Disable LSAN on OSX builds.
-    ASAN_OPTIONS="$ASAN_OPTIONS suppressions=$ROOT/build-support/data/sanitize_suppressions.txt"
+    ASAN_OPTIONS="$ASAN_OPTIONS suppressions=$ROOT/build-support/data/asan_suppressions.txt"
     export ASAN_OPTIONS
   fi
 
