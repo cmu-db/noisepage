@@ -7,8 +7,7 @@ import os
 import logging
 
 from data_class import data_util
-from data_class import tpcc_fixer
-from info import data_info, query_info, query_info_1G, query_info_10G
+from info import data_info
 import global_model_config
 
 from type import Target, ConcurrentCountingMode, OpUnit
