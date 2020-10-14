@@ -19,7 +19,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-#define LOG_FILE_NAME "./test.log"
+#define LOG_FILE_NAME "./test_log_test.log"
 
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {

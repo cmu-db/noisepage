@@ -16,7 +16,7 @@
 
 namespace terrier::tpcc {
 
-#define LOG_FILE_NAME "./tpcc.log"
+#define LOG_FILE_NAME "./test_tpcc_test.log"
 
 /**
  * The behavior in these tests mimics that of /benchmark/integration/tpcc_benchmark.cpp. If something changes here, it

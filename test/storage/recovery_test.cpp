@@ -23,7 +23,7 @@
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
-#define LOG_FILE_NAME "./test.log"
+#define LOG_FILE_NAME "./test_recovery_test.log"
 
 namespace terrier::storage {
 class RecoveryTests : public TerrierTest {

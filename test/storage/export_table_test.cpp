@@ -13,9 +13,9 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 
-#define EXPORT_TABLE_NAME "test_table.arrow"
-#define CSV_TABLE_NAME "test_table.csv"
-#define PYSCRIPT_NAME "transform_table.py"
+#define EXPORT_TABLE_NAME "test_export_table_test_table.arrow"
+#define CSV_TABLE_NAME "test_export_table_test_table.csv"
+#define PYSCRIPT_NAME "test_export_table_test_transform_table.py"
 #define PYSCRIPT                                      \
   "import pyarrow as pa\n"                            \
   "pa_table = pa.ipc.open_stream('" EXPORT_TABLE_NAME \
