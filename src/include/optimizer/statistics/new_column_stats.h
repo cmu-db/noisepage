@@ -13,12 +13,13 @@ namespace terrier::optimizer {
 
 /**
  * Represents the statistics of a given column. Stores relevant oids,
- * important trends (most common values/their frequencies in the column), and other
- * useful information. The template denotes the type of the column for which
- * statistics are being stored.
+ * top K elements which uses the count min sketch algorithm to estimate the cardinality
+ * for filters, and other useful information. The template denotes the type of the column
+ * for which statistics are being stored.
  */
 template <typename T>
 class NewColumnStats {
+  // Type used to represent the SQL data type in C++.
   using CppType = decltype(T::val_);
 
  public:
@@ -30,8 +31,8 @@ class NewColumnStats {
    * @param num_rows - number of rows in column
    * @param cardinality - cardinality of column
    * @param frac_null - fraction of null values out of total values in column
-   * @param most_common_vals - list of most common values in the column
-   * @param most_common_freqs - list of the frequencies of the most common values in the column
+   * @param k_value - Number of elements to keep track of in top K
+   * @param top_k_width - width of the count min sketch used in top K elements
    * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
    * @param is_base_table - indicates whether the column is from a base table
    */
