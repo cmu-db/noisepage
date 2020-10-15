@@ -78,7 +78,7 @@ class PipelineMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "query_id, pipeline_id, num_features, features, exec_mode, est_output_rows, key_sizes, num_keys, "
+      "query_id, pipeline_id, num_features, features, exec_mode, num_rows, key_sizes, num_keys, "
       "est_cardinalities, mem_factor, num_loops, num_concurrent"};
 
  private:

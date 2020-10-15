@@ -57,7 +57,7 @@ class ExecutionFeature(enum.IntEnum):
 
     # input features
     EXEC_MODE = 4,
-    EST_OUTPUT_ROWS = 5,
+    NUM_ROWS = 5,
     KEY_SIZES = 6,
     NUM_KEYS = 7,
     EST_CARDINALITIES = 8,

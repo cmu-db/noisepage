@@ -100,6 +100,21 @@ class MiniRunnersDataConfig {
    */
   std::vector<std::pair<uint32_t, uint32_t>> sweep_insert_mixed_dist_ = {{1, 14}, {3, 12}, {5, 10}, {7, 8},
                                                                          {9, 6},  {11, 4}, {13, 2}};
+
+  /**
+   * Gets valid table row numbers less than or equal to a certain limit
+   * @param limit Largest size of possible table
+   * @returns Elements of table_row_nums <= limit
+   */
+  std::vector<uint32_t> GetRowNumbersWithLimit(int64_t limit) const {
+    std::vector<uint32_t> rows;
+    for (auto row : table_row_nums_) {
+      if (row <= limit) {
+        rows.push_back(row);
+      }
+    }
+    return rows;
+  }
 };
 
 };  // namespace terrier::runner

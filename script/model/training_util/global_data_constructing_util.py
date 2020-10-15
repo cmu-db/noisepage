@@ -256,7 +256,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
             if opunit in data_info.MEM_ADJUST_OPUNITS:
                 # Compute the number of "slots" (based on row feature or cardinality feature
-                num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]]
+                num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]]
                 if opunit == OpUnit.AGG_BUILD:
                     num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
 

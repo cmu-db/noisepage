@@ -70,7 +70,7 @@ class EXPORT ExecutionSettings {
   bool GetIsPipelineMetricsEnabled() const { return is_pipeline_metrics_enabled_; }
 
   /** @return number of threads used for parallel execution. */
-  int GetNumberofThreads() const { return number_of_threads_; }
+  int GetNumberofParallelExecutionThreads() const { return number_of_parallel_execution_threads_; }
 
   /** @return True if static partitioner is enabled. */
   constexpr bool GetIsStaticPartitionerEnabled() const { return is_static_partitioner_enabled_; }
@@ -83,7 +83,7 @@ class EXPORT ExecutionSettings {
   bool is_parallel_execution_enabled_{common::Constants::IS_PARALLEL_EXECUTION_ENABLED};
   bool is_counters_enabled_{common::Constants::IS_COUNTERS_ENABLED};
   bool is_pipeline_metrics_enabled_{common::Constants::IS_PIPELINE_METRICS_ENABLED};
-  int number_of_threads_{common::Constants::NUM_THREADS};
+  int number_of_parallel_execution_threads_{common::Constants::NUM_PARALLEL_EXECUTION_THREADS};
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.

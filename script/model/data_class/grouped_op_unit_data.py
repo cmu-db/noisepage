@@ -80,7 +80,7 @@ def _pipeline_get_grouped_op_unit_data(filename, warmup_period, tpcc_hack, ee_sa
                 if tpcc_hack:
                     x_loc = tpcc_fixer.transform_feature(feature, q_id, p_id, x_loc)
 
-                if x_loc[data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_OUTPUT_ROWS]] == 0:
+                if x_loc[data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]] == 0:
                     logging.info("Skipping {} OU with 0 tuple num".format(opunit.name))
                     continue
 

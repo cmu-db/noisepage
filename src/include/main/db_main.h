@@ -639,13 +639,13 @@ class DBMain {
     bool use_metrics_ = false;
     uint32_t metrics_interval_ = 10000;
     bool use_metrics_thread_ = false;
-    bool metrics_query_trace_ = false;
-    bool metrics_pipeline_ = false;
-    bool metrics_transaction_ = false;
-    bool metrics_logging_ = false;
-    bool metrics_gc_ = false;
-    bool metrics_bind_command_ = false;
-    bool metrics_execute_command_ = false;
+    bool query_trace_metrics_ = false;
+    bool pipeline_metrics_ = false;
+    bool transaction_metrics_ = false;
+    bool logging_metrics_ = false;
+    bool gc_metrics_ = false;
+    bool bind_command_metrics_ = false;
+    bool execute_command_metrics_ = false;
     uint64_t record_buffer_segment_size_ = 1e5;
     uint64_t record_buffer_segment_reuse_ = 1e4;
     std::string wal_file_path_ = "wal.log";
@@ -699,7 +699,7 @@ class DBMain {
       }
 
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
-      use_metrics_thread_ = settings_manager->GetBool(settings::Param::metrics_thread);
+      use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
@@ -714,13 +714,13 @@ class DBMain {
                             ? execution::vm::ExecutionMode::Compiled
                             : execution::vm::ExecutionMode::Interpret;
 
-      metrics_query_trace_ = settings_manager->GetBool(settings::Param::metrics_query_trace);
-      metrics_pipeline_ = settings_manager->GetBool(settings::Param::metrics_pipeline);
-      metrics_transaction_ = settings_manager->GetBool(settings::Param::metrics_transaction);
-      metrics_logging_ = settings_manager->GetBool(settings::Param::metrics_logging);
-      metrics_gc_ = settings_manager->GetBool(settings::Param::metrics_gc);
-      metrics_bind_command_ = settings_manager->GetBool(settings::Param::metrics_bind_command);
-      metrics_execute_command_ = settings_manager->GetBool(settings::Param::metrics_execute_command);
+      query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
+      pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
+      transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
+      logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
+      gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
+      bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
+      execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
 
       return settings_manager;
     }
@@ -731,14 +731,14 @@ class DBMain {
      */
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
-      if (metrics_query_trace_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE, 0);
+      if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE, 0);
       // TODO(wz2): If using parallel, we might want to record all per-task recordings.
-      if (metrics_pipeline_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 9);
-      if (metrics_transaction_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
-      if (metrics_logging_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-      if (metrics_gc_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
-      if (metrics_bind_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
-      if (metrics_execute_command_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
+      if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+      if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
+      if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+      if (gc_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+      if (bind_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
+      if (execute_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
 
       return metrics_manager;
     }
