@@ -789,7 +789,7 @@ function(add_noisepage_test
 
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
 
-    target_compile_options(${TEST_NAME} PRIVATE "-Werror" "-Wall")
+    target_compile_options(${TEST_NAME} PRIVATE "-Werror" "-Wall" "-fvisibility=hidden")
     target_link_libraries(${TEST_NAME} PRIVATE gmock_main)
     if (${NOISEPAGE_ENABLE_SHARED})
         target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_shared)
