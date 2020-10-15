@@ -507,7 +507,7 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen nati
 find_package(TBB REQUIRED)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
-# DISGUSTING HACK: Restore the old CMAKE_C_FLAGS, CMAKE_CXX_FLAGS, and CMAKE_BUILD_TYPE.
+# DISGUSTING HACK: Restore the old CMAKE_C_FLAGS and CMAKE_CXX_FLAGS.
 set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")           # Restore the old CMAKE_C_FLAGS.
 set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")       # Restore the old CMAKE_CXX_FLAGS.
 unset(OLD_CMAKE_C_FLAGS)                            # Variable hygiene.
