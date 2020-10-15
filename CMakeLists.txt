@@ -951,7 +951,7 @@ file(GLOB_RECURSE
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
 target_compile_options(noisepage_benchmark_util PRIVATE "-Werror" "-Wall")
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
-target_link_libraries(noisepage_benchmark_util PUBLIC gmock_main noisepage_test_util_static benchmark)
+target_link_libraries(noisepage_benchmark_util PUBLIC ${CMAKE_BINARY_DIR}/lib/libgmock_main.a noisepage_test_util_static benchmark)
 set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_BENCHMARKS "")
