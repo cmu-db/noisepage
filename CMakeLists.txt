@@ -224,6 +224,20 @@ if (${NOISEPAGE_GENERATE_COVERAGE})
     endif ()
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "--coverage")     # Compile with coverage (compilers alias this).
     list(APPEND NOISEPAGE_LINK_OPTIONS "--coverage")        # Link coverage libraries (compilers alias this).
+
+    # TODO(WAN): The coverage build got significantly slower on bwtree_test (66s to 118s) on my machine.
+    #            I hope that O1 will produce good-enough coverage.
+    #            So far, I have tried to no effect:
+    #            - Build system     : make vs ninja.
+    #            - BwTree           : commented out my NO_ASAN, commented out the BWTREE_DEBUG, both to no effect.
+    #            - Linker           : default linker vs lld.
+    #            - Linking order    : tried matching the link order with the old version.
+    #            - GoogleTest       : compiled as release instead of as debug (this required some dirty hacks).
+    #            - run_test.sh      : commented out ASAN_OPTIONS, as it used to be.
+    #            - Unity builds     : with and without.
+    list(REMOVE_ITEM NOISEPAGE_COMPILE_OPTIONS "-O0")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-O1")
+    message(STATUS "Coverage hack, NOISEPAGE_COMPILE_OPTIONS: will use O1 instead of O0.")
 endif ()
 message(STATUS "Coverage: ${NOISEPAGE_GENERATE_COVERAGE}")
 
