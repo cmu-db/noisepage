@@ -993,7 +993,7 @@ file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
         "benchmark/runner/*.cpp"
         )
 
-add_custom_target(runbenchmark ctest -L benchmark --no-compress-output -T Test)
+add_custom_target(runbenchmark ctest -L benchmark --no-compress-output -T Test USES_TERMINAL)
 foreach (NOISEPAGE_BENCHMARK_CPP ${NOISEPAGE_BENCHMARK_SOURCES})
     get_filename_component(NOISEPAGE_BENCHMARK ${NOISEPAGE_BENCHMARK_CPP} NAME_WE)
     add_noisepage_benchmark(${NOISEPAGE_BENCHMARK} ${NOISEPAGE_BENCHMARK_CPP})
