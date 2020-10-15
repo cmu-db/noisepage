@@ -224,20 +224,6 @@ if (${NOISEPAGE_GENERATE_COVERAGE})
     endif ()
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "--coverage")     # Compile with coverage (compilers alias this).
     list(APPEND NOISEPAGE_LINK_OPTIONS "--coverage")        # Link coverage libraries (compilers alias this).
-
-    # TODO(WAN): The coverage build got significantly slower on bwtree_test (66s to 118s) on my machine.
-    #            I hope that O1 will produce good-enough coverage.
-    #            So far, I have tried to no effect:
-    #            - Build system     : make vs ninja.
-    #            - BwTree           : commented out my NO_ASAN, commented out the BWTREE_DEBUG, both to no effect.
-    #            - Linker           : default linker vs lld.
-    #            - Linking order    : tried matching the link order with the old version.
-    #            - GoogleTest       : compiled as release instead of as debug (this required some dirty hacks).
-    #            - run_test.sh      : commented out ASAN_OPTIONS, as it used to be.
-    #            - Unity builds     : with and without.
-    list(REMOVE_ITEM NOISEPAGE_COMPILE_OPTIONS "-O0")
-    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-O1")
-    message(STATUS "Coverage hack, NOISEPAGE_COMPILE_OPTIONS: will use O1 instead of O0.")
 endif ()
 message(STATUS "Coverage: ${NOISEPAGE_GENERATE_COVERAGE}")
 
@@ -306,8 +292,9 @@ endif ()
 #   1. The OSX linker is a huge pain.
 #   2. Clang has a bug with dynamically linked ASAN https://github.com/google/sanitizers/issues/1017
 #      and the workaround no longer works.
-# In those scenarios, we disable dynamic linking entirely.
-if (APPLE OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+#   3. Coverage builds are very slow and every little bit of speed helps.
+# In those scenarios, we disable dynamic linking entirely and rely on static linking.
+if (APPLE OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR ${NOISEPAGE_GENERATE_COVERAGE})
     set(NOISEPAGE_ENABLE_SHARED OFF)
     message(STATUS "Shared targets: Removed.")
     message(STATUS "Tests: Will use static linking.")
@@ -449,14 +436,20 @@ message(STATUS "\nDependencies: Locating...\n===================================
 # - -fPIC is required on pretty much every dependency.
 # - fvisibility=hidden is required on OSX while building spdlog.
 # - fsanitize=address is required on OSX.
+set(OLD_CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")     # Save the current CMAKE_BUILD_TYPE.
 set(OLD_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")           # Save the current CMAKE_C_FLAGS.
 set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")       # Save the current CMAKE_CXX_FLAGS.
+set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_C_FLAGS "-fPIC -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS "-fPIC -fvisibility=hidden")
 if (${NOISEPAGE_USE_ASAN})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif ()
+
+message(STATUS "Third-party CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Third-party CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+message(STATUS "Third-party CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 # Google Benchmark build settings.
 set(BENCHMARK_ENABLE_TESTING OFF)                   # Disable testing of the benchmark library.
@@ -521,11 +514,13 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen nati
 find_package(TBB REQUIRED)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
-# DISGUSTING HACK: Restore the old CMAKE_C_FLAGS and CMAKE_CXX_FLAGS.
+# DISGUSTING HACK: Restore the old CMAKE_BUILD_TYPE, CMAKE_C_FLAGS, and CMAKE_CXX_FLAGS.
+set(CMAKE_BUILD_TYPE "${OLD_CMAKE_BUILD_TYPE}")     # Restore the old CMAKE_BUILD_TYPE.
 set(CMAKE_C_FLAGS "${OLD_CMAKE_C_FLAGS}")           # Restore the old CMAKE_C_FLAGS.
 set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")       # Restore the old CMAKE_CXX_FLAGS.
 unset(OLD_CMAKE_C_FLAGS)                            # Variable hygiene.
 unset(OLD_CMAKE_CXX_FLAGS)                          # Variable hygiene.
+unset(OLD_CMAKE_BUILD_TYPE)                         # Variable hygiene.
 
 message(STATUS "\n==========================================\nDependencies: All found!\n")
 
@@ -580,6 +575,7 @@ target_include_directories(noisepage_objlib PUBLIC  # PUBLIC: all consumers of t
 target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inherit without error checking.
         ${LLVM_INCLUDE_DIRS}                                # Include LLVM headers.
         ${NOISEPAGE_INCLUDE_DIRECTORIES}                    # Third-party includes.
+        ${CMAKE_BINARY_DIR}/_deps/src/spdlog/include/
         )
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
@@ -588,7 +584,7 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
-        spdlog::spdlog
+        ${CMAKE_BINARY_DIR}/_deps/build/spdlog/libspdlog.a
         xbyak::xbyak
         xxHash::xxhash
         ${EVENT_LINK_LIBRARIES}
@@ -768,7 +764,13 @@ function(add_test_util_lib TYPE)
     add_library(noisepage_test_util_${TYPE_LOWER} ${TYPE} ${NOISEPAGE_TEST_UTIL_SRCS})
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
     target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-    target_link_libraries(noisepage_test_util_${TYPE_LOWER} PUBLIC gtest gmock util_${TYPE_LOWER} pqxx)
+    target_include_directories(noisepage_test_util_${TYPE_LOWER} SYSTEM PUBLIC
+            ${CMAKE_BINARY_DIR}/_deps/src/googletest/googlemock/include/
+            ${CMAKE_BINARY_DIR}/_deps/src/googletest/googletest/include/
+            )
+    target_link_libraries(noisepage_test_util_${TYPE_LOWER} PUBLIC
+            ${CMAKE_BINARY_DIR}/lib/libgtest.a ${CMAKE_BINARY_DIR}/lib/libgmock.a
+            util_${TYPE_LOWER} pqxx)
     set_target_properties(noisepage_test_util_${TYPE_LOWER} PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
 endfunction()
 
@@ -805,7 +807,7 @@ function(add_noisepage_test
     add_executable(${TEST_NAME} ${EXCLUDE_OPTION} ${TEST_SOURCES})
 
     target_compile_options(${TEST_NAME} PRIVATE "-Werror" "-Wall" "-fvisibility=hidden")
-    target_link_libraries(${TEST_NAME} PRIVATE gmock_main)
+    target_link_libraries(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib/libgmock_main.a)
     if (${NOISEPAGE_ENABLE_SHARED})
         target_link_libraries(${TEST_NAME} PRIVATE noisepage_test_util_shared)
     else ()
