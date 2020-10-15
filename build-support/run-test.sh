@@ -93,7 +93,7 @@ function setup_sanitizers() {
     export ASAN_OPTIONS
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     # Disable LSAN on OSX builds.
-    ASAN_OPTIONS="$ASAN_OPTIONS suppressions=$ROOT/build-support/data/asan_suppressions.txt"
+    ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=0"
     export ASAN_OPTIONS
   fi
 
