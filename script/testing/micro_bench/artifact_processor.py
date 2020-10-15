@@ -108,8 +108,6 @@ class ArtifactProcessor(object):
         historical_results = self.artifacts.get(key)
         if initial_comparison.get('reference_type') != 'none':
             publishable_comparison['stdev_throughput'] = historical_results.get_stdev_throughput()
-        else:
-            publishable_comparison['stdev_throughput'] = initial_comparison.get('tolerance')
 
         return publishable_comparison
 
