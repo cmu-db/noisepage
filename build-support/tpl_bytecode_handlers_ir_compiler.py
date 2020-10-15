@@ -50,7 +50,7 @@ def GetClangFlags():
                 # Remove the compiler (idx 0) and executable (-o blah -c blahblah).
                 command = command.split(' ')[1:-4]
                 # Return the compile command.
-                return [x for x in command if x != '']
+                return [x for x in command if x != '' and x != '--coverage' and x != '-fPIC']
             # Record the line for the next iteration.
             prev = line
     raise Exception("Could not find bytecode_handlers_ir.cpp in compile_commands.json.")
