@@ -279,6 +279,15 @@ else ()
     message(STATUS "Linker: Will pass \"-fuse-ld=lld\" to linker.")
 endif ()
 
+# Compiler specific configuration.
+# ASAN_OPTIONS=suppressions=... does not work because we compile third party libraries ourselves for the most part.
+# Since the issues tend to manifest only on clang builds, we can use the clang-specific -fsanitize-blacklist= option.
+# GCC devs refuse to add the option, so eh. Fingers crossed.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "Clang hack, NOISEPAGE_COMPILE_OPTIONS: adding -fsanitize-blacklist=${BUILD_SUPPORT_DATA_DIR}/asan_sanitize_blocklist.txt.")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-fsanitize-blacklist=${BUILD_SUPPORT_DATA_DIR}/asan_sanitize_blocklist.txt")
+endif ()
+
 # The goal is to dynamically link tests to reduce filesize. However,
 #   1. The OSX linker is a huge pain.
 #   2. Clang has a bug with dynamically linked ASAN https://github.com/google/sanitizers/issues/1017
