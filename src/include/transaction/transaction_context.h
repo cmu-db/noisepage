@@ -164,7 +164,7 @@ class TransactionContext {
    * to enable further deferral of actions
    */
   void RegisterAbortAction(const TransactionEndAction &a) {
-    abort_actions_.push_front(new TransactionEndActionFunc(a));
+    abort_actions_.push_front(new TransactionEndActionFunction(a));
   }
 
   /**
@@ -195,7 +195,9 @@ class TransactionContext {
    * @param a the action to be executed. A handle to the system's deferred action manager is supplied
    * to enable further deferral of actions
    */
-  void RegisterCommitAction(const TransactionEndAction &a) { commit_actions_.push_front(TransactionEndActionFunc(a)); }
+  void RegisterCommitAction(const TransactionEndAction &a) {
+    commit_actions_.push_front(TransactionEndActionFunction(a));
+  }
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
@@ -238,7 +240,7 @@ class TransactionContext {
 
   // These actions will be triggered (not deferred) at abort/commit.
   std::forward_list<TransactionEndActionBaseFunctor *> abort_actions_;
-  std::forward_list<TransactionEndActionFunc> commit_actions_;
+  std::forward_list<TransactionEndActionFunction> commit_actions_;
 
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.

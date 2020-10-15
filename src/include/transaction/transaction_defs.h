@@ -47,16 +47,17 @@ class TransactionEndActionBaseFunctor {
 };
 
 /**
- * Functor to capture the derred action function
+ * Functor to capture the derred action function when the end action is provided as
+ * a std::function.
  */
-class TransactionEndActionFunc : public TransactionEndActionBaseFunctor {
+class TransactionEndActionFunction : public TransactionEndActionBaseFunctor {
  public:
 
   /**
    * Constructor takes as arguments a function which will be stored in this functor
    * @param end_func function to execute upon end action
    */
-  explicit TransactionEndActionFunc(std::function<void(DeferredActionManager *)> end_func)
+  explicit TransactionEndActionFunction(std::function<void(DeferredActionManager *)> end_func)
       : end_func_(std::move(end_func)) {}
 
   /**
@@ -64,19 +65,58 @@ class TransactionEndActionFunc : public TransactionEndActionBaseFunctor {
    */
   void operator()(DeferredActionManager *deferred_action_manager) override { end_func_(deferred_action_manager); }
 
-  ~TransactionEndActionFunc() override = default;
+  ~TransactionEndActionFunction() override = default;
 
  private:
   /**
-   * Function withe the end action
+   * Function with the end action
    */
   std::function<void(DeferredActionManager *)> end_func_;
 };
 
+/**
+ * A TransactionEndActionFuncPointer is applied when the transaction is aborted (as configured).
+ * It is used to execute the end action provided as a function pointer to a cleanup action.
+ */
+using TransactionEndActionPointer = std::add_pointer<void(DeferredActionManager *)>::type;
+
+/**
+ * Functor to capture the derred action function when the end action is provided as
+ * a function pointer. Provides a lightweight way to perform cleanup action without incurring the
+ * overhead of using std::function
+ */
+class TransactionEndActionFunctionPointer : public TransactionEndActionBaseFunctor {
+ public:
+
+  /**
+   * Constructor takes as arguments a function which will be stored in this functor
+   * @param end_func function to execute upon end action
+   */
+  explicit TransactionEndActionFunctionPointer(TransactionEndActionPointer end_func)
+      : end_func_(end_func) {};
+
+  /**
+   * Callback the carries out the deferred action
+   */
+  void operator()(DeferredActionManager *deferred_action_manager) { end_func_(deferred_action_manager); }
+
+  ~TransactionEndActionFunctionPointer() override = default;
+
+ private:
+  /**
+   * Function pointer performing the end action
+   */
+  TransactionEndActionPointer end_func_;
+};
+
+/**
+ * A TransactionEndCleanupAction is applied when the transaction is aborted (as configured).
+ * It is used to perform cleanup on the pointer passed as argument.
+ */
 using TransactionEndCleanupAction = std::add_pointer<void(void *)>::type;
 
 /**
- * Functor to capture the derred resource cleanup
+ * Functor to capture the derred resource cleanup operation.
  */
 class TransactionEndCleanupFunctor : public TransactionEndActionBaseFunctor {
  public:
@@ -92,6 +132,8 @@ class TransactionEndCleanupFunctor : public TransactionEndActionBaseFunctor {
    * Callback the carries out the deferred action
    */
   void operator()(DeferredActionManager *deferred_action_manager) { cleanup_func_(resource_); }
+
+  ~TransactionEndCleanupFunctor() override = default;
 
  private:
   /**
