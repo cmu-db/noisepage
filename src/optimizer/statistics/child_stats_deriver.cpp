@@ -54,6 +54,8 @@ void ChildStatsDeriver::Visit(const LogicalSemiJoin *op) {
 // TODO(boweic): support stats of aggregation
 void ChildStatsDeriver::Visit(const LogicalAggregateAndGroupBy *op) { PassDownRequiredCols(); }
 
+void ChildStatsDeriver::Visit(const LogicalLimit *op) { PassDownRequiredCols(); }
+
 void ChildStatsDeriver::PassDownRequiredCols() {
   for (auto &col : required_cols_) {
     // For now we only consider stats of single column
