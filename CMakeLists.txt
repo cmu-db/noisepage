@@ -708,6 +708,7 @@ set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 #######################################################################################################################
 
 add_executable(tpl util/execution/tpl.cpp)
+add_dependencies(tpl noisepage_static)  # gen_opt_bc needs to run.
 target_compile_options(tpl PRIVATE "-Werror" "-Wall")
 target_include_directories(tpl PRIVATE ${LLVM_INCLUDE_DIR})
 target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
