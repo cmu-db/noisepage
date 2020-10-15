@@ -110,9 +110,6 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
     // Mark the last buffer that was written to as full
     if (buffers_processed) HandFilledBufferToWriter();
 
-    // Mark the last buffer that was written to as full
-    if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
-
     // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once
     // for each timestamp we remove.
     for (const auto &txns : serialized_txns_) {
