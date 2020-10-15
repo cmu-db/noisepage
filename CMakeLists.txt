@@ -624,18 +624,18 @@ list(REMOVE_ITEM UTIL_SRCS
         ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp
         ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
 
-add_library(util_static STATIC ${UTIL_SRCS})
-target_compile_options(util_static PRIVATE "-Werror" "-Wall")
-target_include_directories(util_static PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
-target_link_libraries(util_static PUBLIC noisepage_static)
-set_target_properties(util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+function(add_util_lib TYPE)
+    string(TOLOWER ${TYPE} TYPE_LOWER)
+    add_library(util_${TYPE_LOWER} ${TYPE} ${UTIL_SRCS})
+    target_compile_options(util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
+    target_include_directories(util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
+    target_link_libraries(util_${TYPE_LOWER} PUBLIC noisepage_${TYPE_LOWER})
+    set_target_properties(util_${TYPE_LOWER} PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+endfunction()
 
+add_util_lib(STATIC)
 if (${NOISEPAGE_ENABLE_SHARED})
-    add_library(util_shared SHARED ${UTIL_SRCS})
-    target_compile_options(util_shared PRIVATE "-Werror" "-Wall")
-    target_include_directories(util_shared PUBLIC ${PROJECT_SOURCE_DIR}/util/include/)
-    target_link_libraries(util_shared PUBLIC noisepage_shared)
-    set_target_properties(util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+    add_util_lib(SHARED)
 endif ()
 
 #######################################################################################################################
@@ -748,18 +748,18 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp
         )
 
-add_library(noisepage_test_util_static STATIC ${NOISEPAGE_TEST_UTIL_SRCS})
-target_compile_options(noisepage_test_util_static PRIVATE "-Werror" "-Wall")
-target_include_directories(noisepage_test_util_static PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-target_link_libraries(noisepage_test_util_static PUBLIC gtest gmock util_static pqxx)
-set_target_properties(noisepage_test_util_static PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+function(add_test_util_lib TYPE)
+    string(TOLOWER ${TYPE} TYPE_LOWER)
+    add_library(noisepage_test_util_${TYPE_LOWER} ${TYPE} ${NOISEPAGE_TEST_UTIL_SRCS})
+    target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
+    target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
+    target_link_libraries(noisepage_test_util_${TYPE_LOWER} PUBLIC gtest gmock util_${TYPE_LOWER} pqxx)
+    set_target_properties(noisepage_test_util_${TYPE_LOWER} PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+endfunction()
 
+add_test_util_lib(STATIC)
 if (${NOISEPAGE_ENABLE_SHARED})
-    add_library(noisepage_test_util_shared SHARED ${NOISEPAGE_TEST_UTIL_SRCS})
-    target_compile_options(noisepage_test_util_shared PRIVATE "-Werror" "-Wall")
-    target_include_directories(noisepage_test_util_shared PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
-    target_link_libraries(noisepage_test_util_shared PUBLIC gtest gmock util_shared pqxx)
-    set_target_properties(noisepage_test_util_shared PROPERTIES CXX_EXTENSIONS OFF UNITY_BUILD ${NOISEPAGE_UNITY_BUILD})
+    add_test_util_lib(SHARED)
 endif ()
 
 function(add_noisepage_test
@@ -895,27 +895,6 @@ endfunction()
 # The second argument to add_jumbotest is a CMake list (aka a ;-separated string) of unique test prefixes.
 # Each prefix will be globbed together into one test executable.
 # Be careful that your prefixes are really unique, otherwise a test will be run multiple times.
-#
-# Slowpoke list (> 30 sec on Wan's machine):
-#   bwtree_index_test ............................   Passed   31.84 sec
-#   hash_index_test ..............................   Passed   32.92 sec
-#   bitmap_test ..................................   Passed   36.26 sec
-#   hyperloglog_test .............................   Passed   42.72 sec
-#   block_compactor_test .........................   Passed   43.50 sec
-#   rusage_monitor_test ..........................   Passed   44.18 sec
-#   index_iterator_test ..........................   Passed   46.25 sec
-#   data_table_concurrent_test ...................   Passed   46.66 sec
-#   storage_interface_test .......................   Passed   47.03 sec
-#   sql_table_vector_iterator_test ...............   Passed   47.30 sec
-#   concurrent_bitmap_test .......................   Passed   50.21 sec
-#   data_table_test ..............................   Passed   50.56 sec
-#   block_access_controller_test .................   Passed   52.77 sec
-#   tuple_access_strategy_test ...................   Passed   52.79 sec
-#   index_create_test ............................   Passed   69.50 sec
-#   large_transaction_test .......................   Passed  102.79 sec
-#   compiler_test ................................   Passed  104.50 sec
-#   large_garbage_collector_test .................   Passed  114.55 sec
-#   bwtree_test ..................................   Passed  180.80 sec
 
 add_jumbotest("test/binder" "")
 add_jumbotest("test/catalog" "")
@@ -959,7 +938,7 @@ target_link_libraries(noisepage_benchmark_util PUBLIC gmock_main noisepage_test_
 set_target_properties(noisepage_benchmark_util PROPERTIES CXX_EXTENSIONS OFF)
 
 set(NOISEPAGE_BENCHMARKS "")
-macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
+function(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
     if (${NOISEPAGE_BUILD_BENCHMARKS})
         add_executable(${BENCHMARK_NAME} ${BENCHMARK_CPP})
     else ()
@@ -980,7 +959,7 @@ macro(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
             ${BUILD_SUPPORT_DIR}/run-test.sh ${CMAKE_BINARY_DIR} benchmark ${BENCHMARK_PATH})
     set_tests_properties(${BENCHMARK_NAME} PROPERTIES LABELS "benchmark")
     list(APPEND NOISEPAGE_BENCHMARK ${BENCHMARK_NAME})
-endmacro()
+endfunction()
 
 file(GLOB_RECURSE NOISEPAGE_BENCHMARK_SOURCES
         "benchmark/catalog/*.cpp"
