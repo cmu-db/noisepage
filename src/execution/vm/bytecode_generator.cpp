@@ -500,12 +500,10 @@ void BytecodeGenerator::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
 void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
   if (node->Ret() != nullptr) {
     LocalVar rv = GetCurrentFunction()->GetReturnValueLocal();
-    LocalVar result;
     if (node->Ret()->GetType()->IsSqlValueType()) {
-      result = VisitExpressionForSQLValue(node->Ret());
-      BuildAssign(rv, result, node->Ret()->GetType());
+      VisitExpressionForSQLValue(node->Ret(), rv);
     } else {
-      result = VisitExpressionForRValue(node->Ret());
+      LocalVar result = VisitExpressionForRValue(node->Ret());
       BuildAssign(rv.ValueOf(), result, node->Ret()->GetType());
     }
   }
@@ -3648,6 +3646,10 @@ LocalVar BytecodeGenerator::VisitExpressionForRValue(ast::Expr *expr) {
 }
 
 LocalVar BytecodeGenerator::VisitExpressionForSQLValue(ast::Expr *expr) { return VisitExpressionForLValue(expr); }
+
+void BytecodeGenerator::VisitExpressionForSQLValue(ast::Expr *expr, LocalVar dest) {
+  VisitExpressionForRValue(expr, dest);
+}
 
 void BytecodeGenerator::VisitExpressionForRValue(ast::Expr *expr, LocalVar dest) {
   RValueResultScope scope(this, dest);

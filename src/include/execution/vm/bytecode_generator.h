@@ -141,6 +141,7 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
   // Visit an expression for a SQL value.
   LocalVar VisitExpressionForSQLValue(ast::Expr *expr);
+  void VisitExpressionForSQLValue(ast::Expr *expr, LocalVar dest);
 
   // Visit an expression for its R-Value, providing a destination variable where the result should be stored
   void VisitExpressionForRValue(ast::Expr *expr, LocalVar dest);
