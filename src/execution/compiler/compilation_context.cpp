@@ -168,7 +168,7 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
       util::RegionVector<ast::FunctionDecl *> pipeline_decls(query_->GetContext()->GetRegion());
       for (auto &[_, op] : ops_) {
         (void)_;
-        op->DefineTLSDependentHelperFunctions(&pipeline_decls);
+        op->DefineTLSDependentHelperFunctions(*pipeline, &pipeline_decls);
       }
       main_builder.DeclareAll(pipeline_decls);
     }

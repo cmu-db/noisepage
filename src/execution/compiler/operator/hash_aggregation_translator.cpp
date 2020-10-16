@@ -332,8 +332,8 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
   return builder.Finish();
 }
 
-void HashAggregationTranslator::DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
-  if (build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+void HashAggregationTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline, util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
     decls->push_back(GenerateStartHookFunction());
     decls->push_back(GenerateEndHookFunction());
   }

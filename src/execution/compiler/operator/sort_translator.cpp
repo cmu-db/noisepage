@@ -122,8 +122,8 @@ void SortTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl 
   decls->push_back(builder.Finish(codegen->Const32(0)));
 }
 
-void SortTranslator::DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
-  if (build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+void SortTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline, util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
     decls->push_back(GenerateStartTLHookFunction(true));
     decls->push_back(GenerateStartTLHookFunction(false));
     decls->push_back(GenerateEndTLSortHookFunction());

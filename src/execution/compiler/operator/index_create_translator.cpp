@@ -100,8 +100,8 @@ void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, Fu
   DeclareIndexPR(function);
 }
 
-void IndexCreateTranslator::DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
-  if (GetPipeline()->IsParallel() && IsPipelineMetricsEnabled()) {
+void IndexCreateTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline, util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (pipeline.IsParallel() && IsPipelineMetricsEnabled()) {
     decls->push_back(GenerateEndHookFunction());
   }
 }

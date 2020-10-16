@@ -1,4 +1,5 @@
 #include "execution/compiler/compiler.h"
+#include <iostream>
 
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
