@@ -1076,7 +1076,7 @@ function(print_properties TARGET_NAME)
     print_property(${TARGET_NAME} LINK_LIBRARIES)
 endfunction()
 
-message(STATUS "Note that following NoisePage options are just a sample and may not be the full list. Check compile_commands.json for sure.")
+message(STATUS "Note that following NoisePage options are just a sample and may not be the full list. Check compile_commands.json to be sure.")
 
 print_properties(noisepage_objlib)
 print_properties(noisepage)
