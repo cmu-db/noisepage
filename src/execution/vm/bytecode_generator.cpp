@@ -501,7 +501,8 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
   if (node->Ret() != nullptr) {
     LocalVar rv = GetCurrentFunction()->GetReturnValueLocal();
     if (node->Ret()->GetType()->IsSqlValueType()) {
-      VisitExpressionForSQLValue(node->Ret(), rv);
+      LocalVar result = VisitExpressionForSQLValue(node->Ret());
+      BuildDeref(rv.ValueOf(), result, node->Ret()->GetType());
     } else {
       LocalVar result = VisitExpressionForRValue(node->Ret());
       BuildAssign(rv.ValueOf(), result, node->Ret()->GetType());
@@ -579,11 +580,11 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       break;
     }
 
-#define GEN_CASE(Builtin, Bytecode)                              \
-  case Builtin: {                                                \
-    auto input = VisitExpressionForLValue(call->Arguments()[0]); \
-    GetEmitter()->Emit(Bytecode, dest, input);                   \
-    break;                                                       \
+#define GEN_CASE(Builtin, Bytecode)                                \
+  case Builtin: {                                                  \
+    auto input = VisitExpressionForSQLValue(call->Arguments()[0]); \
+    GetEmitter()->Emit(Bytecode, dest, input);                     \
+    break;                                                         \
   }
       GEN_CASE(ast::Builtin::ConvertBoolToInteger, Bytecode::BoolToInteger);
       GEN_CASE(ast::Builtin::ConvertIntegerToReal, Bytecode::IntegerToReal);
@@ -834,13 +835,13 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
 
 #define GEN_CASE(BuiltinName, Bytecode)                                  \
   case ast::Builtin::BuiltinName: {                                      \
-    auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
+    auto input = VisitExpressionForSQLValue(call->Arguments()[1]);       \
     auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
     GetEmitter()->EmitVPISet(Bytecode, vpi, input, col_idx);             \
     break;                                                               \
   }                                                                      \
   case ast::Builtin::BuiltinName##Null: {                                \
-    auto input = VisitExpressionForLValue(call->Arguments()[1]);         \
+    auto input = VisitExpressionForSQLValue(call->Arguments()[1]);       \
     auto col_idx = call->Arguments()[2]->As<ast::LitExpr>()->Int64Val(); \
     GetEmitter()->EmitVPISet(Bytecode##Null, vpi, input, col_idx);       \
     break;                                                               \
@@ -3220,8 +3221,8 @@ void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
 
 void BytecodeGenerator::VisitSqlArithmeticExpr(ast::BinaryOpExpr *node) {
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
-  LocalVar left = VisitExpressionForLValue(node->Left());
-  LocalVar right = VisitExpressionForLValue(node->Right());
+  LocalVar left = VisitExpressionForSQLValue(node->Left());
+  LocalVar right = VisitExpressionForSQLValue(node->Right());
 
   const bool is_integer_math = node->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer);
 
@@ -3307,8 +3308,8 @@ void BytecodeGenerator::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
 
 void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(compare->GetType());
-  LocalVar left = VisitExpressionForLValue(compare->Left());
-  LocalVar right = VisitExpressionForLValue(compare->Right());
+  LocalVar left = VisitExpressionForSQLValue(compare->Left());
+  LocalVar right = VisitExpressionForSQLValue(compare->Right());
 
   TERRIER_ASSERT(compare->Left()->GetType() == compare->Right()->GetType(),
                  "Left and right input types to comparison are not equal");
