@@ -5,12 +5,14 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "storage/index/bplustree.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
-#include "transaction/deferred_action_manager.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
+
+namespace terrier::transaction {
+class TransactionContext;
+}
 
 namespace terrier::storage::index {
 template <uint8_t KeySize>
@@ -19,183 +21,123 @@ template <uint16_t KeySize>
 class GenericKey;
 
 /**
- * Wrapper around 15-721 Project 2's B+Tree
- * @tparam KeyType the type of keys stored in the BPlusTree
+ * Wrapper around B+ Tree.
+ * @tparam KeyType the type of keys stored in the B+ Tree
  */
 template <typename KeyType>
 class BPlusTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  explicit BPlusTreeIndex(IndexMetadata metadata)
-      : Index(std::move(metadata)), bplustree_{new BPlusTree<KeyType, TupleSlot>} {}
+  explicit BPlusTreeIndex(IndexMetadata metadata);
 
   const std::unique_ptr<BPlusTree<KeyType, TupleSlot>> bplustree_;
+  mutable common::SpinLatch transaction_context_latch_;  // latch used to protect transaction context
 
  public:
-  IndexType Type() const final { return IndexType::BPLUSTREE; }
+  /**
+   * @return type of the index. Note that this is the physical type, not extracted from the underlying schema or other
+   * catalog metadata. This is mostly used for debugging purposes.
+   */
+  IndexType Type() const final { return IndexType::BWTREE; }
 
-  void PerformGarbageCollection() final { };
+  /**
+   * Invoke garbage collection on the index.
+   */
+  void PerformGarbageCollection() final;
 
-  bool Insert(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
-              const TupleSlot location) final {
-    TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
-                   "This Insert is designed for secondary indexes with no uniqueness constraints.");
-    KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
-    // FIXME(15-721 project2): perform a non-unique unconditional insert into the underlying data structure of the
-    // key/value pair
-    const bool UNUSED_ATTRIBUTE result = true;
+  /**
+   * @return approximate number of bytes allocated on the heap for this index data structure
+   */
+  size_t EstimateHeapUsage() const final;
 
-    TERRIER_ASSERT(
-        result,
-        "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BPlusTree itself.");
-    // Register an abort action with the txn context in case of rollback
-    txn->RegisterAbortAction([=]() {
-      // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
-      const bool UNUSED_ATTRIBUTE result = true;
+  /**
+   * Inserts a new key-value pair into the index, used for non-unique key indexes.
+   * @param txn txn context for the calling txn, used to register abort actions
+   * @param tuple key
+   * @param location value
+   * @return false if the value already exists, true otherwise
+   */
+  bool Insert(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+              TupleSlot location) final;
 
-      TERRIER_ASSERT(result, "Delete on the index failed.");
-    });
-    return result;
-  }
+  /**
+   * Inserts a key-value pair only if any matching keys have TupleSlots that don't conflict with the calling txn
+   * @param txn txn context for the calling txn, used for visibility and write-write, and to register abort actions
+   * @param tuple key
+   * @param location value
+   * @return true if the value was inserted, false otherwise
+   *         (either because value exists, or predicate returns true for one of the existing values)
+   */
+  bool InsertUnique(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+                    TupleSlot location) final;
 
-  bool InsertUnique(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
-                    const TupleSlot location) final {
-    TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
-    KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
-    bool predicate_satisfied = false;
+  /**
+   * Doesn't immediately call delete on the index. Registers a commit action in the txn that will eventually register a
+   * deferred action for the GC to safely call delete on the index when no more transactions need to access the key.
+   * @param txn txn context for the calling txn, used to register commit actions for deferred GC actions
+   * @param tuple key
+   * @param location value
+   */
+  void Delete(common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
+              TupleSlot location) final;
 
-    // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
-    auto predicate UNUSED_ATTRIBUTE = [txn](const TupleSlot slot) -> bool {
-      const auto *const data_table = slot.GetBlock()->data_table_;
-      const auto has_conflict = data_table->HasConflict(*txn, slot);
-      const auto is_visible = data_table->IsVisible(*txn, slot);
-      return has_conflict || is_visible;
-    };
-
-    // FIXME(15-721 project2): perform a non-unique CONDITIONAL insert into the underlying data structure of the
-    // key/value pair
-    const bool UNUSED_ATTRIBUTE result = true;
-
-    TERRIER_ASSERT(predicate_satisfied != result, "If predicate is not satisfied then insertion should succeed.");
-
-    if (result) {
-      // Register an abort action with the txn context in case of rollback
-      txn->RegisterAbortAction([=]() {
-        // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
-        const bool UNUSED_ATTRIBUTE result = true;
-        TERRIER_ASSERT(result, "Delete on the index failed.");
-      });
-    } else {
-      // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
-      // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
-      // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
-      txn->SetMustAbort();
-    }
-
-    return result;
-  }
-
-  void Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &tuple,
-              const TupleSlot location) final {
-    KeyType index_key;
-    index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
-
-    TERRIER_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
-                   !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
-                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
-
-    // Register a deferred action for the GC with txn manager. See base function comment.
-    txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-      deferred_action_manager->RegisterDeferredAction([=]() {
-        // FIXME(15-721 project2): perform a delete from the underlying data structure of the key/value pair
-        const bool UNUSED_ATTRIBUTE result = true;
-
-        TERRIER_ASSERT(result, "Deferred delete on the index failed.");
-      });
-    });
-  }
-
+  /**
+   * Finds all the values associated with the given key in our index.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param key the key to look for
+   * @param[out] value_list the values associated with the key
+   */
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
-               std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+               std::vector<TupleSlot> *value_list) final;
 
-    std::vector<TupleSlot> results;
-
-    // Build search key
-    KeyType index_key;
-    index_key.SetFromProjectedRow(key, metadata_, metadata_.GetSchema().GetColumns().size());
-
-    // Perform lookup in BPlusTree
-    // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
-
-    // Avoid resizing our value_list, even if it means over-provisioning
-    value_list->reserve(results.size());
-
-    // Perform visibility check on result
-    for (const auto &result : results) {
-      if (IsVisible(txn, result)) value_list->emplace_back(result);
-    }
-
-    TERRIER_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
-                   "Invalid number of results for unique index.");
-  }
-
+  /**
+   * Finds all the values between the given keys in our index, sorted in ascending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param scan_type Scan Type
+   * @param num_attrs Number of attributes to compare
+   * @param low_key the key to start at
+   * @param high_key the key to end at
+   * @param limit if any
+   * @param[out] value_list the values associated with the keys
+   */
   void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
                      ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
-                     std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
-    TERRIER_ASSERT(scan_type == ScanType::Closed || scan_type == ScanType::OpenLow || scan_type == ScanType::OpenHigh ||
-                   scan_type == ScanType::OpenBoth,
-                   "Invalid scan_type passed into BPlusTreeIndex::Scan");
+                     std::vector<TupleSlot> *value_list) final;
 
-    bool low_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenHigh);
-    bool high_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenLow);
-
-    // Build search keys
-    KeyType index_low_key, index_high_key;
-    if (low_key_exists) index_low_key.SetFromProjectedRow(*low_key, metadata_, num_attrs);
-    if (high_key_exists) index_high_key.SetFromProjectedRow(*high_key, metadata_, num_attrs);
-
-    // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
-  }
-
+  /**
+   * Finds all the values between the given keys in our index, sorted in descending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key the key to end at
+   * @param high_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   */
   void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                      const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
+                      const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final;
 
-    // Build search keys
-    KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
-    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
-
-    // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
-  }
-
+  /**
+   * Finds the first limit # of values between the given keys in our index, sorted in descending order.
+   * @param txn txn context for the calling txn, used for visibility checks
+   * @param low_key the key to end at
+   * @param high_key the key to start at
+   * @param[out] value_list the values associated with the keys
+   * @param limit upper bound of number of values to return
+   */
   void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                           const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                           const uint32_t limit) final {
-    TERRIER_ASSERT(value_list->empty(), "Result set should begin empty.");
-    TERRIER_ASSERT(limit > 0, "Limit must be greater than 0.");
+                           const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) final;
 
-    // Build search keys
-    KeyType index_low_key, index_high_key;
-    index_low_key.SetFromProjectedRow(low_key, metadata_, metadata_.GetSchema().GetColumns().size());
-    index_high_key.SetFromProjectedRow(high_key, metadata_, metadata_.GetSchema().GetColumns().size());
-
-    // FIXME(15-721 project2): perform a lookup of the underlying data structure of the key
-  }
+  /** @return The number of keys in the index. */
+  uint64_t GetSize() const final;
 };
 
-template class BPlusTreeIndex<CompactIntsKey<8>>;
-template class BPlusTreeIndex<CompactIntsKey<16>>;
-template class BPlusTreeIndex<CompactIntsKey<24>>;
-template class BPlusTreeIndex<CompactIntsKey<32>>;
+extern template class BPlusTreeIndex<CompactIntsKey<8>>;
+extern template class BPlusTreeIndex<CompactIntsKey<16>>;
+extern template class BPlusTreeIndex<CompactIntsKey<24>>;
+extern template class BPlusTreeIndex<CompactIntsKey<32>>;
 
-template class BPlusTreeIndex<GenericKey<64>>;
-template class BPlusTreeIndex<GenericKey<128>>;
-template class BPlusTreeIndex<GenericKey<256>>;
+extern template class BPlusTreeIndex<GenericKey<64>>;
+extern template class BPlusTreeIndex<GenericKey<128>>;
+extern template class BPlusTreeIndex<GenericKey<256>>;
+extern template class BPlusTreeIndex<GenericKey<512>>;
 
 }  // namespace terrier::storage::index

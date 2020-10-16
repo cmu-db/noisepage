@@ -97,7 +97,7 @@ Index *IndexBuilder::BuildBwTreeGenericKey(IndexMetadata metadata) const {
   return index;
 }
 
-Index *BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
+Index *IndexBuilder::BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
   metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
   const auto key_size = metadata.KeySize();
   TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
@@ -115,7 +115,7 @@ Index *BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
   return index;
 }
 
-Index *BuildBPlusTreeGenericKey(IndexMetadata metadata) const {
+Index *IndexBuilder::BuildBPlusTreeGenericKey(IndexMetadata metadata) const {
   metadata.SetKeyKind(IndexKeyKind::GENERICKEY);
   const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
   Index *index = nullptr;
@@ -131,6 +131,8 @@ Index *BuildBPlusTreeGenericKey(IndexMetadata metadata) const {
     index = new BPlusTreeIndex<GenericKey<128>>(std::move(metadata));
   } else if (key_size <= 256) {
     index = new BPlusTreeIndex<GenericKey<256>>(std::move(metadata));
+  } else if (key_size <= 512) {
+    index = new BPlusTreeIndex<GenericKey<512>>(std::move(metadata));
   }
   TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
   return index;
