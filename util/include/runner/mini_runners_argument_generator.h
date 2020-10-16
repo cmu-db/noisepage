@@ -16,7 +16,7 @@ class MiniRunnersArgumentGenerator {
   using OutputArgs = std::vector<std::vector<int64_t>>;
 
   /** Typedef for each of the Gen*Arguments functions below */
-  typedef void (*gen_fn)(OutputArgs *b, const MiniRunnersSettings &settings, const MiniRunnersDataConfig &config);
+  using GenArgFn = void (*)(OutputArgs *b, const MiniRunnersSettings &settings, const MiniRunnersDataConfig &config);
 
   /**
    * Generates arguments for modeling arithemtics

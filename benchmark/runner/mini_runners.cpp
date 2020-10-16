@@ -76,13 +76,13 @@ std::vector<std::vector<parser::ConstantValueExpression>> empty_params = {};
  * Template argument f specifies the argument generator to invoke
  * @param b Benchmark
  */
-template <MiniRunnersArgumentGenerator::gen_fn f>
+template <MiniRunnersArgumentGenerator::GenArgFn f>
 void GenBenchmarkArguments(benchmark::internal::Benchmark *b) {
   std::vector<std::vector<int64_t>> args;
   f(&args, settings, config);
 
   for (auto &arg : args) {
-    b->Args(std::move(arg));
+    b->Args(arg);
   }
 }
 
@@ -456,7 +456,7 @@ class MiniRunners : public benchmark::Fixture {
     for (auto &info : pipeline_units->units_) {
       auto other_feature = pipeline->units_[info.first];
       for (auto &oufeature : info.second) {
-        for (auto other_oufeature : other_feature) {
+        for (const auto &other_oufeature : other_feature) {
           if (oufeature.GetExecutionOperatingUnitType() == other_oufeature.GetExecutionOperatingUnitType()) {
             oufeature.feature_id_ = other_oufeature.feature_id_;
             break;
@@ -691,7 +691,7 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
         // Want to warmup the first query
         int iters = 1;
         if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
-          iters += settings.warmup_iterations_num;
+          iters += settings.warmup_iterations_num_;
         }
 
         for (int i = 0; i < iters; i++) {
@@ -761,7 +761,7 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
           // Want to warmup the first query
           int iters = 1;
           if (row == 1 && col == 1 && type == type::TypeId::INTEGER) {
-            iters += settings.warmup_iterations_num;
+            iters += settings.warmup_iterations_num_;
           }
 
           for (int i = 0; i < iters; i++) {
@@ -912,7 +912,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   exec_query.SetPipelineOperatingUnits(std::move(units));
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  BenchmarkExecQuery(settings.warmup_iterations_num + 1, &exec_query, schema.get(), true);
+  BenchmarkExecQuery(settings.warmup_iterations_num_ + 1, &exec_query, schema.get(), true);
 }
 
 BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
@@ -930,9 +930,9 @@ void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   auto varchar_mix = state->range(6);
 
   int num_iters = 1;
-  if (row <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (row <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1004,9 +1004,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   }
 
   int num_iters = 1;
-  if (lookup_size <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (lookup_size <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1132,7 +1132,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   // TODO(wz2): Re-enable compiled inserts once runtime is sensible
   if (terrier::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled) return;
 
-  if (rerun_start || (num_rows > settings.warmup_rows_limit && settings.skip_large_rows_runs)) return;
+  if (rerun_start || (num_rows > settings.warmup_rows_limit_ && settings.skip_large_rows_runs_)) return;
 
   // Create temporary table schema
   std::vector<catalog::Schema::Column> cols;
@@ -1261,9 +1261,9 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   }
 
   int num_iters = 1;
-  if (car <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (car <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1365,9 +1365,9 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
   }
 
   int num_iters = 1;
-  if (car <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (car <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1433,9 +1433,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto car = state.range(5);
 
   int num_iters = 1;
-  if (row <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (row <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1594,9 +1594,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
   auto car = state.range(5);
 
   int num_iters = 1;
-  if (row <= settings.warmup_rows_limit && car <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (row <= settings.warmup_rows_limit_ && car <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1644,9 +1644,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
   auto car = state.range(3);
 
   int num_iters = 1;
-  if (row <= settings.warmup_rows_limit && car <= settings.warmup_rows_limit) {
-    num_iters += settings.warmup_iterations_num;
-  } else if (rerun_start || settings.skip_large_rows_runs) {
+  if (row <= settings.warmup_rows_limit_ && car <= settings.warmup_rows_limit_) {
+    num_iters += settings.warmup_iterations_num_;
+  } else if (rerun_start || settings.skip_large_rows_runs_) {
     return;
   }
 
@@ -1705,7 +1705,7 @@ void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
   auto varchar_mix = state->range(6);
   auto num_threads = state->range(7);
 
-  if (rerun_start || (row > settings.warmup_rows_limit && settings.skip_large_rows_runs)) {
+  if (rerun_start || (row > settings.warmup_rows_limit_ && settings.skip_large_rows_runs_)) {
     return;
   }
 
@@ -1784,7 +1784,7 @@ void InitializeRunnersState() {
 
   // Set Network Port
   param_map.find(settings::Param::port)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(terrier::runner::settings.port));
+      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(terrier::runner::settings.port_));
 
   // Need to disable metrics thread
   param_map.find(settings::Param::use_metrics_thread)->second.value_ =
@@ -1808,7 +1808,7 @@ void InitializeRunnersState() {
                              .SetUseNetwork(true)
                              .SetUseSettingsManager(true)
                              .SetSettingsParameterMap(std::move(param_map))
-                             .SetNetworkPort(terrier::runner::settings.port);
+                             .SetNetworkPort(terrier::runner::settings.port_);
 
   db_main = db_main_builder.Build().release();
 
@@ -1872,7 +1872,7 @@ std::condition_variable network_queries_cv;
 
 using NetworkWorkFunction = std::function<void(pqxx::work *)>;
 
-void RunNetworkQueries(NetworkWorkFunction work) {
+void RunNetworkQueries(const NetworkWorkFunction &work) {
   // GC does not run in a background thread!
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
@@ -1882,7 +1882,7 @@ void RunNetworkQueries(NetworkWorkFunction work) {
   std::string conn;
   {
     std::stringstream conn_ss;
-    conn_ss << "postgresql://127.0.0.1:" << (terrier::runner::settings.port) << "/test_db";
+    conn_ss << "postgresql://127.0.0.1:" << (terrier::runner::settings.port_) << "/test_db";
     conn = conn_ss.str();
   }
 
@@ -1904,7 +1904,7 @@ void RunNetworkQueries(NetworkWorkFunction work) {
   }
 }
 
-void RunNetworkSequence(NetworkWorkFunction work) {
+void RunNetworkSequence(const NetworkWorkFunction &work) {
   terrier::runner::db_main->GetMetricsManager()->Aggregate();
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
@@ -1977,12 +1977,12 @@ void RunBenchmarkSequence(int rerun_counter) {
 
 void RunMiniRunners() {
   terrier::runner::rerun_start = false;
-  for (int i = 0; i <= terrier::runner::settings.rerun_iterations; i++) {
+  for (int i = 0; i <= terrier::runner::settings.rerun_iterations_; i++) {
     terrier::runner::rerun_start = (i != 0);
     RunBenchmarkSequence(i);
   }
 
-  for (int i = 0; i <= terrier::runner::settings.rerun_iterations; i++) {
+  for (int i = 0; i <= terrier::runner::settings.rerun_iterations_; i++) {
     RunNetworkSequence(terrier::runner::NetworkQueriesOutputRunners);
   }
 
@@ -1997,7 +1997,7 @@ void RunMiniRunners() {
     char target[64];
     snprintf(target, sizeof(target), "execution_%s.csv", title.c_str());
 
-    for (int i = 1; i <= terrier::runner::settings.rerun_iterations; i++) {
+    for (int i = 1; i <= terrier::runner::settings.rerun_iterations_; i++) {
       char source[64];
       snprintf(source, sizeof(target), "execution_%s_%d.csv", title.c_str(), i);
 
@@ -2044,11 +2044,11 @@ int main(int argc, char **argv) {
   if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
 
   terrier::runner::InitializeRunnersState();
-  if (terrier::runner::settings.generate_test_data) {
+  if (terrier::runner::settings.generate_test_data_) {
     RunNetworkSequence(terrier::runner::NetworkQueriesCreateIndexRunners);
     std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
-    if (terrier::runner::settings.target_runner_specified) {
+    if (terrier::runner::settings.target_runner_specified_) {
       // Pass straight through to gbenchmark
       benchmark::Initialize(&argc, argv);
       benchmark::RunSpecifiedBenchmarks();

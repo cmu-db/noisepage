@@ -32,7 +32,7 @@ void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRu
 void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                       const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -52,7 +52,7 @@ void MiniRunnersArgumentGenerator::GenOutputArguments(OutputArgs *b, const MiniR
 void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                     const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::DECIMAL, type::TypeId::VARCHAR};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -83,7 +83,7 @@ void MiniRunnersArgumentGenerator::GenScanArguments(OutputArgs *b, const MiniRun
 
 void MiniRunnersArgumentGenerator::GenScanMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                          const MiniRunnersDataConfig &config) {
-  const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<std::vector<int64_t>> args;
   GenerateMixedArguments(&args, settings, config, row_nums, 0);
   GenerateMixedArguments(&args, settings, config, row_nums, 1);
@@ -95,7 +95,7 @@ void MiniRunnersArgumentGenerator::GenScanMixedArguments(OutputArgs *b, const Mi
 void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                     const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -121,7 +121,7 @@ void MiniRunnersArgumentGenerator::GenSortArguments(OutputArgs *b, const MiniRun
 void MiniRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                          const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -147,7 +147,7 @@ void MiniRunnersArgumentGenerator::GenAggregateArguments(OutputArgs *b, const Mi
 void MiniRunnersArgumentGenerator::GenAggregateKeylessArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                                 const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   for (auto col : num_cols) {
     for (auto row : row_nums) {
       int64_t car = 1;
@@ -164,7 +164,7 @@ void MiniRunnersArgumentGenerator::GenAggregateKeylessArguments(OutputArgs *b, c
 void MiniRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                         const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -172,7 +172,7 @@ void MiniRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, const Min
         int64_t car = 1;
         std::vector<int64_t> cars;
         while (car < row) {
-          if (row * row / car <= settings.data_rows_limit) {
+          if (row * row / car <= settings.data_rows_limit_) {
             if (type == type::TypeId::INTEGER)
               b->push_back({col, 0, 15, 0, row, car});
             else if (type == type::TypeId::BIGINT)
@@ -194,7 +194,7 @@ void MiniRunnersArgumentGenerator::GenJoinSelfArguments(OutputArgs *b, const Min
 void MiniRunnersArgumentGenerator::GenJoinNonSelfArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                            const MiniRunnersDataConfig &config) {
   auto &num_cols = config.sweep_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER};
   for (auto type : types) {
     for (auto col : num_cols) {
@@ -220,7 +220,7 @@ void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const Mini
                                                        const MiniRunnersDataConfig &config) {
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT, type::TypeId::VARCHAR};
   auto &key_sizes = config.sweep_index_col_nums_;
-  auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto &lookup_sizes = config.sweep_index_lookup_sizes_;
   for (auto type : types) {
     for (auto key_size : key_sizes) {
@@ -244,7 +244,7 @@ void MiniRunnersArgumentGenerator::GenIdxScanArguments(OutputArgs *b, const Mini
 void MiniRunnersArgumentGenerator::GenIdxJoinArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                        const MiniRunnersDataConfig &config) {
   auto &key_sizes = config.sweep_col_nums_;
-  auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto idx_sizes = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   for (auto key_size : key_sizes) {
     for (size_t j = 0; j < idx_sizes.size(); j++) {
       // Build the inner index
@@ -291,12 +291,12 @@ void MiniRunnersArgumentGenerator::GenInsertMixedArguments(OutputArgs *b, const 
 void MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                                  const MiniRunnersDataConfig &config) {
   auto &idx_key = config.sweep_index_col_nums_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<type::TypeId> types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   for (auto type : types) {
     for (auto idx_key_size : idx_key) {
       for (auto row_num : row_nums) {
-        if (row_num > settings.updel_limit) continue;
+        if (row_num > settings.updel_limit_) continue;
 
         // Special argument used to indicate a build index
         // We need to do this to prevent update/delete from unintentionally
@@ -334,7 +334,7 @@ void MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments(OutputArgs *b, 
 void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                            const MiniRunnersDataConfig &config) {
   auto &num_threads = config.sweep_index_create_threads_;
-  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   std::vector<uint32_t> num_cols;
   {
     std::unordered_set<uint32_t> col_set;
@@ -353,12 +353,12 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
       for (auto col : num_cols) {
         for (auto row : row_nums) {
           int64_t car = 1;
-          if (row > settings.create_index_small_limit) {
+          if (row > settings.create_index_small_limit_) {
             // For these, we get a memory explosion if the cardinality is too low.
             while (car < row) {
               car *= 2;
             }
-            car = car / (pow(2, settings.create_index_large_cardinality_num));
+            car = car / (pow(2, settings.create_index_large_cardinality_num_));
           }
 
           while (car < row) {
@@ -382,7 +382,7 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
 void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                                 const MiniRunnersDataConfig &config) {
   auto &num_threads = config.sweep_index_create_threads_;
-  const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit);
+  const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
 
   // Generates INTEGER + VARCHAR
   std::vector<std::vector<int64_t>> args;
@@ -392,7 +392,7 @@ void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, c
     for (auto arg : args) {
       auto row = arg[4];
       auto arg_car = arg[5];
-      if (row > settings.create_index_small_limit) {
+      if (row > settings.create_index_small_limit_) {
         // For these, we get a memory explosion if the cardinality is too low.
         int64_t car = 1;
         while (car < row) {
@@ -400,7 +400,7 @@ void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, c
         }
 
         // This car is the ceiling
-        car = car / (pow(2, settings.create_index_large_cardinality_num));
+        car = car / (pow(2, settings.create_index_large_cardinality_num_));
         if (arg_car < car) {
           continue;
         }

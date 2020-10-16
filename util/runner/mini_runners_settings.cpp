@@ -39,29 +39,29 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
     }
   }
 
-  if (gen_test_data.found_) generate_test_data = true;
-  if (filter_info.found_) target_runner_specified = true;
-  if (port_info.found_) port = port_info.int_value_;
-  if (skip_large_rows_runs_info.found_) skip_large_rows_runs = true;
-  if (warm_num_info.found_) warmup_iterations_num = warm_num_info.int_value_;
-  if (rerun_info.found_) rerun_iterations = rerun_info.int_value_;
-  if (updel_info.found_) updel_limit = updel_info.int_value_;
-  if (warm_limit_info.found_) warmup_rows_limit = warm_limit_info.int_value_;
-  if (create_index_small_data.found_) create_index_small_limit = create_index_small_data.int_value_;
-  if (create_index_car_data.found_) create_index_large_cardinality_num = create_index_car_data.int_value_;
+  if (gen_test_data.found_) generate_test_data_ = true;
+  if (filter_info.found_) target_runner_specified_ = true;
+  if (port_info.found_) port_ = port_info.int_value_;
+  if (skip_large_rows_runs_info.found_) skip_large_rows_runs_ = true;
+  if (warm_num_info.found_) warmup_iterations_num_ = warm_num_info.int_value_;
+  if (rerun_info.found_) rerun_iterations_ = rerun_info.int_value_;
+  if (updel_info.found_) updel_limit_ = updel_info.int_value_;
+  if (warm_limit_info.found_) warmup_rows_limit_ = warm_limit_info.int_value_;
+  if (create_index_small_data.found_) create_index_small_limit_ = create_index_small_data.int_value_;
+  if (create_index_car_data.found_) create_index_large_cardinality_num_ = create_index_car_data.int_value_;
 
   terrier::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
-  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, port);
-  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_, skip_large_rows_runs);
-  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, warmup_iterations_num);
-  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match_, rerun_iterations);
-  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match_, updel_limit);
+  SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, port_);
+  SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_, skip_large_rows_runs_);
+  SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, warmup_iterations_num_);
+  SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match_, rerun_iterations_);
+  SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match_, updel_limit_);
   SETTINGS_LOG_INFO("Create Index Small Build Limit ({}): {}", create_index_small_data.match_,
-                    create_index_small_limit);
+                    create_index_small_limit_);
   SETTINGS_LOG_INFO("Create Index Large Cardinality Number Vary ({}): {}", create_index_car_data.match_,
-                    create_index_large_cardinality_num);
-  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, warmup_rows_limit);
+                    create_index_large_cardinality_num_);
+  SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, warmup_rows_limit_);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
   SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 }
