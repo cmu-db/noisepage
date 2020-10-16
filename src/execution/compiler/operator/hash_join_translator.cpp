@@ -149,7 +149,8 @@ ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
   return builder.Finish();
 }
 
-void HashJoinTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline, util::RegionVector<ast::FunctionDecl *> *decls) {
+void HashJoinTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                           util::RegionVector<ast::FunctionDecl *> *decls) {
   if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
     decls->push_back(GenerateStartHookFunction());
     decls->push_back(GenerateEndHookFunction());

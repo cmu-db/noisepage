@@ -67,7 +67,8 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
    * @param pipeline Pipeline that helper functions are being generated for.
    * @param decls Query-level declarations.
    */
-  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline, util::RegionVector<ast::FunctionDecl *> *decls) override;
+  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                         util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
    * Implement create index logic where it fills in the scanned tuples obtained from the StorageInterface struct
