@@ -49,6 +49,7 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   if (warm_limit_info.found_) warmup_rows_limit_ = warm_limit_info.int_value_;
   if (create_index_small_data.found_) create_index_small_limit_ = create_index_small_data.int_value_;
   if (create_index_car_data.found_) create_index_large_cardinality_num_ = create_index_car_data.int_value_;
+  if (run_limit.found_) data_rows_limit_ = run_limit.int_value_;
 
   terrier::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
@@ -62,6 +63,7 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   SETTINGS_LOG_INFO("Create Index Large Cardinality Number Vary ({}): {}", create_index_car_data.match_,
                     create_index_large_cardinality_num_);
   SETTINGS_LOG_INFO("Warmup Rows Limit ({}): {}", warm_limit_info.match_, warmup_rows_limit_);
+  SETTINGS_LOG_INFO("Mini Runner Rows Limit ({}): {}", run_limit.match_, data_rows_limit_);
   SETTINGS_LOG_INFO("Filter ({}): {}", filter_info.match_, filter_info.value_);
   SETTINGS_LOG_INFO("Generate Test Data ({}): {}", gen_test_data.match_, gen_test_data.found_);
 }
