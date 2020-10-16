@@ -40,6 +40,12 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
+   * Define all the hook functions.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
    * Initialize the sorter instance.
    */
   void InitializeQueryState(FunctionBuilder *function) const override;

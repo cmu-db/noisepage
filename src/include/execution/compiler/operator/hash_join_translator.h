@@ -53,6 +53,12 @@ class HashJoinTranslator : public OperatorTranslator {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
+   * Define all the hook functions.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
    * Initialize the global hash table.
    */
   void InitializeQueryState(FunctionBuilder *function) const override;

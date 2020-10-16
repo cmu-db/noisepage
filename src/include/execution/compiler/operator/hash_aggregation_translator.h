@@ -42,6 +42,12 @@ class HashAggregationTranslator : public OperatorTranslator, public PipelineDriv
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
+   * Define all the hook functions.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
    * Initialize the global aggregation hash table.
    */
   void InitializeQueryState(FunctionBuilder *function) const override;

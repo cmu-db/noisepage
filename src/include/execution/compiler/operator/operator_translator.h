@@ -121,6 +121,12 @@ class OperatorTranslator : public ColumnValueProvider {
   virtual void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {}
 
   /**
+   * Define any helper functions that rely on pipeline's thread local state.
+   * @param decls Query-level declarations.
+   */
+  virtual void DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {}
+
+  /**
    * Initialize all query state.
    * @param function The builder for the query state initialization function.
    */

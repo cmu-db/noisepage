@@ -123,6 +123,9 @@ class CompilationContext {
   /** @return True if we should record pipeline metrics */
   bool IsPipelineMetricsEnabled() const { return pipeline_metrics_enabled_; }
 
+  /** @return Query Id associated with the query */
+  query_id_t GetQueryId() const { return query_id_t{unique_id_}; }
+
  private:
   // Private to force use of static Compile() function.
   explicit CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor, CompilationMode mode,

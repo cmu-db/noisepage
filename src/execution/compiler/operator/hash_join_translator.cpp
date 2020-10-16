@@ -144,9 +144,16 @@ ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
                   codegen->MakeExpr(override_value));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
+}
+
+void HashJoinTranslator::DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (left_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    decls->push_back(GenerateStartHookFunction());
+    decls->push_back(GenerateEndHookFunction());
+  }
 }
 
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
@@ -169,11 +176,6 @@ void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
 void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
     InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
-
-    if (IsPipelineMetricsEnabled()) {
-      left_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
-      left_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
-    }
   }
 
   InitializeCounters(pipeline, function);

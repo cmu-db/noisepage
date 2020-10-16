@@ -98,9 +98,11 @@ void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, Fu
   // Thread local member
   InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
   DeclareIndexPR(function);
+}
 
-  if (pipeline.IsParallel() && IsPipelineMetricsEnabled()) {
-    pipeline.DeclareTLSDependentFunction(GenerateEndHookFunction());
+void IndexCreateTranslator::DefineTLSDependentHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (GetPipeline()->IsParallel() && IsPipelineMetricsEnabled()) {
+    decls->push_back(GenerateEndHookFunction());
   }
 }
 
@@ -311,7 +313,7 @@ ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
         codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {exec_ctx, codegen->MakeExpr(heap)}));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
 }
