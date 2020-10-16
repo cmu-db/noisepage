@@ -52,7 +52,6 @@ class TransactionEndActionBaseFunctor {
  */
 class TransactionEndActionFunction : public TransactionEndActionBaseFunctor {
  public:
-
   /**
    * Constructor takes as arguments a function which will be stored in this functor
    * @param end_func function to execute upon end action
@@ -87,18 +86,16 @@ using TransactionEndActionPointer = std::add_pointer<void(DeferredActionManager 
  */
 class TransactionEndActionFunctionPointer : public TransactionEndActionBaseFunctor {
  public:
-
   /**
    * Constructor takes as arguments a function which will be stored in this functor
    * @param end_func function to execute upon end action
    */
-  explicit TransactionEndActionFunctionPointer(TransactionEndActionPointer end_func)
-      : end_func_(end_func) {};
+  explicit TransactionEndActionFunctionPointer(TransactionEndActionPointer end_func) : end_func_(end_func) {}
 
   /**
    * Callback the carries out the deferred action
    */
-  void operator()(DeferredActionManager *deferred_action_manager) { end_func_(deferred_action_manager); }
+  void operator()(DeferredActionManager *deferred_action_manager) override { end_func_(deferred_action_manager); }
 
   ~TransactionEndActionFunctionPointer() override = default;
 
@@ -120,18 +117,17 @@ using TransactionEndCleanupAction = std::add_pointer<void(void *)>::type;
  */
 class TransactionEndCleanupFunctor : public TransactionEndActionBaseFunctor {
  public:
-
   /**
    * Constructor takes as arguments a function which will be stored in this functor
    * @param end_func function to execute upon end action
    */
-  explicit TransactionEndCleanupFunctor(TransactionEndCleanupAction cleanup_func, void* resource)
-      : cleanup_func_(cleanup_func), resource_(resource) {};
+  explicit TransactionEndCleanupFunctor(TransactionEndCleanupAction cleanup_func, void *resource)
+      : cleanup_func_(cleanup_func), resource_(resource) {}
 
   /**
    * Callback the carries out the deferred action
    */
-  void operator()(DeferredActionManager *deferred_action_manager) { cleanup_func_(resource_); }
+  void operator()(DeferredActionManager *deferred_action_manager) override { cleanup_func_(resource_); }
 
   ~TransactionEndCleanupFunctor() override = default;
 
@@ -144,8 +140,7 @@ class TransactionEndCleanupFunctor : public TransactionEndActionBaseFunctor {
   /**
    * Cleanup resource
    */
-  void* resource_;
-
+  void *resource_;
 };
 
 /**

@@ -180,13 +180,14 @@ class TransactionContext {
    * @param a the resource to be deleted
    */
   template <typename T>
-  void RegisterAbortCleanupAction(T* resource) {
+  void RegisterAbortCleanupAction(T *resource) {
     abort_actions_.push_front(new TransactionEndCleanupFunctor(
-        [](void* ptr) {
+        [](void *ptr) {
           auto specialized = static_cast<T *>(ptr);
           specialized->~T();
           delete specialized;
-        }, resource));
+        },
+        resource));
   }
 
   /**
