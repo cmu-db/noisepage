@@ -35,6 +35,10 @@
  * REMOVING THIS FLAG FOR RELEASE
  */
 #define BWTREE_DEBUG
+#else
+#define INDEX_LOG_TRACE(...) /* Nah. */
+#define INDEX_LOG_DEBUG(...) /* Nah. */
+#define INDEX_LOG_INFO(...)  /* Nah. */
 #endif
 
 /*
