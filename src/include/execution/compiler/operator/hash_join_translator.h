@@ -54,7 +54,7 @@ class HashJoinTranslator : public OperatorTranslator {
 
   /**
    * Define all hook functions
-   * @param pipeilne Pipeline that helper functions are being generated for.
+   * @param pipeline Pipeline that helper functions are being generated for.
    * @param decls Query-level declarations.
    */
   void DefineTLSDependentHelperFunctions(const Pipeline &pipeline, util::RegionVector<ast::FunctionDecl *> *decls) override;
