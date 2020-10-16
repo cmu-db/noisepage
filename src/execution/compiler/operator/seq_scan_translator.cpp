@@ -323,8 +323,8 @@ util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const 
 
 void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const {
   DeclareColOids(function);
-  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), GetCodeGen()->MakeExpr(col_oids_var_),
-                                                      GetQueryStatePtr(), GetExecutionContext(), work_func));
+  function->Append(GetCodeGen()->IterateTableParallel(GetTableOid(), col_oids_var_, GetQueryStatePtr(),
+                                                      GetExecutionContext(), work_func));
 }
 
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
