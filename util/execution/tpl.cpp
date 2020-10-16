@@ -122,8 +122,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
   table_generator.GenerateTestTables();
   if (IS_MINI_RUNNER) {
+    runner::MiniRunnersSettings settings;
     runner::MiniRunnersDataConfig config;
-    table_generator.GenerateMiniRunnersData(config);
+    table_generator.GenerateMiniRunnersData(settings, config);
   }
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
