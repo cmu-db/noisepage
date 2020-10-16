@@ -127,6 +127,22 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYSTEM_PROCESSOR}")
 
+function(print_sys_info QUERY_TARGET)
+    cmake_host_system_information(RESULT SYS_INFO QUERY ${QUERY_TARGET})
+    message(STATUS "  System ${QUERY_TARGET}: ${SYS_INFO}")
+endfunction()
+print_sys_info("NUMBER_OF_LOGICAL_CORES;NUMBER_OF_PHYSICAL_CORES")
+print_sys_info("HOSTNAME;FQDN")
+print_sys_info("AVAILABLE_VIRTUAL_MEMORY;TOTAL_VIRTUAL_MEMORY")
+print_sys_info("AVAILABLE_PHYSICAL_MEMORY;TOTAL_PHYSICAL_MEMORY")
+print_sys_info("IS_64BIT;HAS_IA64")
+print_sys_info("HAS_FPU;HAS_MMX;HAS_MMX_PLUS")
+print_sys_info("HAS_SSE;HAS_SSE2;HAS_SSE_FP;HAS_SSE_MMX")
+print_sys_info("HAS_AMD_3DNOW;HAS_AMD_3DNOW_PLUS")
+print_sys_info("HAS_SERIAL_NUMBER;PROCESSOR_SERIAL_NUMBER")
+print_sys_info("PROCESSOR_NAME;PROCESSOR_DESCRIPTION")
+print_sys_info("OS_NAME;OS_RELEASE;OS_VERSION;OS_PLATFORM")
+
 #######################################################################################################################
 # HEADER CMake options and global variables.
 # CMake build types, specify with -DCMAKE_BUILD_TYPE={option}.
@@ -150,6 +166,7 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   NOISEPAGE_ENABLE_SHARED       : On if we should enable shared targets and off otherwise.
 #   NOISEPAGE_COMPILE_OPTIONS     : Compile options to be added to NoisePage.
 #   NOISEPAGE_INCLUDE_DIRECTORIES : Include directories to be used for NoisePage.
+#   NOISEPAGE_LINK_LIBRARIES      : Link libraries to be added to NoisePage.
 #   NOISEPAGE_LINK_OPTIONS        : Link options to be added to NoisePage.
 #   NOISEPAGE_TEST_PARALLELISM    : The number of tests that should run in parallel.
 #######################################################################################################################
@@ -204,6 +221,7 @@ set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
 
 # Everything else in this section will populate the following global variables.
 set(NOISEPAGE_COMPILE_OPTIONS "")
+set(NOISEPAGE_LINK_LIBRARIES "")
 set(NOISEPAGE_LINK_OPTIONS "")
 set(NOISEPAGE_INCLUDE_DIRECTORIES "")
 
@@ -214,9 +232,11 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "FASTDEBUG")
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O1" "-fno-omit-frame-pointer" "-fno-optimize-sibling-calls")
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "RELEASE")
-    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-DNDEBUG" "-O3")
+    list(APPEND NOISEPAGE_COMPILE_DEFINITIONS "-DNDEBUG")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-O3")
 elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "RELWITHDEBINFO")
-    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-DNDEBUG" "-O2")
+    list(APPEND NOISEPAGE_COMPILE_DEFINITIONS "-DNDEBUG")
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-ggdb" "-O2")
 else ()
     message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif ()
@@ -234,7 +254,6 @@ endif ()
 message(STATUS "Coverage: ${NOISEPAGE_GENERATE_COVERAGE}")
 
 # ASAN, which includes LSAN.
-set(NOISEPAGE_ASAN_MSG "${NOISEPAGE_USE_ASAN}")
 if (${NOISEPAGE_USE_ASAN})
     set(NOISEPAGE_ASAN_FLAGS
             "-fsanitize=address"                # Enable ASAN.
@@ -242,12 +261,11 @@ if (${NOISEPAGE_USE_ASAN})
             "-fno-optimize-sibling-calls"       # Disable tail call elimination (perfect stack traces if inlining off).
             )
     list(APPEND NOISEPAGE_COMPILE_OPTIONS ${NOISEPAGE_ASAN_FLAGS})
-    list(APPEND NOISEPAGE_LINK_OPTIONS ${NOISEPAGE_ASAN_FLAGS})
+    list(APPEND NOISEPAGE_LINK_OPTIONS "-fsanitize=address")
     unset(NOISEPAGE_ASAN_FLAGS)
     # Unfortunately, gcc does not support -fsanitize-blacklist. We ask users to set it manually as an env var.
-    set(NOISEPAGE_ASAN_MSG "On (remember to set env ASAN_OPTIONS=${BUILD_SUPPORT_DATA_DIR}/sanitize_suppressions.txt)")
 endif ()
-message(STATUS "ASAN: ${NOISEPAGE_ASAN_MSG}")
+message(STATUS "ASAN: ${NOISEPAGE_USE_ASAN}")
 unset(NOISEPAGE_ASAN_MSG)
 
 # jemalloc.
@@ -256,7 +274,7 @@ if (${NOISEPAGE_USE_JEMALLOC})
     # We find jemalloc from the system to avoid building jemalloc from scratch.
     find_path(JEMALLOC_INCLUDE_DIR NAMES jemalloc/jemalloc.h REQUIRED)
     find_library(JEMALLOC_LIBRARIES NAMES jemalloc libjemalloc.so.1 libjemalloc.so.2 libjemalloc.dylib REQUIRED)
-    list(APPEND NOISEPAGE_LINK_OPTIONS ${JEMALLOC_LIBRARIES})           # Add to NoisePage link libs.
+    list(APPEND NOISEPAGE_LINK_LIBRARIES ${JEMALLOC_LIBRARIES})         # Add to NoisePage link libs.
     list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${JEMALLOC_INCLUDE_DIR})  # Add to NoisePage includes.
     unset(JEMALLOC_INCLUDE_DIR)                                         # Variable hygiene.
     unset(JEMALLOC_LIBRARIES)                                           # Variable hygiene.
@@ -266,12 +284,10 @@ message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
 unset(NOISEPAGE_JEMALLOC_MSG)
 
 # spdlog.
-set(NOISEPAGE_LOGGING_MSG "${NOISEPAGE_USE_LOGGING}")
 if (${NOISEPAGE_USE_LOGGING})
-    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-DNOISEPAGE_USE_LOGGING")
+    list(APPEND NOISEPAGE_COMPILE_DEFINITIONS "-DNOISEPAGE_USE_LOGGING")
 endif ()
 message(STATUS "Logging: ${NOISEPAGE_USE_LOGGING}")
-unset(NOISEPAGE_LOGGING_MSG)
 
 message(STATUS "Verbose unit tests (NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE): ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
 message(STATUS "Unity builds (NOISEPAGE_UNITY_BUILD): ${NOISEPAGE_UNITY_BUILD}")
@@ -510,7 +526,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/libpg_query/ EXCLUDE_FROM_ALL
 # libpqxx.
 find_library(PQXX_LIBRARIES NAMES pqxx libpqxx REQUIRED)
 find_path(PQXX_INCLUDE_DIRECTORIES NAMES pqxx/pqxx REQUIRED)
-list(APPEND NOISEPAGE_LINK_OPTIONS ${PQXX_LIBRARIES})
+list(APPEND NOISEPAGE_LINK_LIBRARIES ${PQXX_LIBRARIES})
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${PQXX_INCLUDE_DIRECTORIES})
 message(STATUS "[FOUND] pqxx (dir:${PQXX_INCLUDE_DIRECTORIES} lib:${PQXX_LIBRARIES})")
 
@@ -567,6 +583,9 @@ set_target_properties(noisepage_objlib PROPERTIES
         CXX_EXTENSIONS OFF                          # Disable compiler extensions (e.g., use c++17 not gnu17).
         UNITY_BUILD ${NOISEPAGE_UNITY_BUILD}        # Build multiple cpp files as a single cpp file.
         )
+target_compile_definitions(noisepage_objlib PUBLIC  # PUBLIC: all consumers of the library inherit the following.
+        ${NOISEPAGE_COMPILE_DEFINITIONS}
+        )
 target_compile_options(noisepage_objlib PRIVATE     # PRIVATE: only noisepage_objlib uses the following.
         "-Werror"                                   # Treat warnings as errors.
         "-Wall"                                     # Enable "all" warnings. (Not actually all warnings.)
@@ -575,10 +594,6 @@ target_compile_options(noisepage_objlib PUBLIC      # PUBLIC: all consumers of t
         "-march=native"                             # Enable machine-specific instruction sets and optimizations.
         "-mcx16"                                    # Allow CMPXCHG16B (16-byte compare and exchange).
         ${NOISEPAGE_COMPILE_OPTIONS}
-        )
-target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
-        "-march=native"                             # Enable machine-specific instruction sets and optimizations.
-        ${NOISEPAGE_LINK_OPTIONS}
         )
 target_compile_features(noisepage_objlib PUBLIC     # PUBLIC: all consumers of the library inherit the following.
         cxx_std_17                                  # Require support for C++17.
@@ -589,7 +604,10 @@ target_include_directories(noisepage_objlib PUBLIC  # PUBLIC: all consumers of t
 target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inherit without error checking.
         ${LLVM_INCLUDE_DIRS}                                # Include LLVM headers.
         ${NOISEPAGE_INCLUDE_DIRECTORIES}                    # Third-party includes.
-        ${CMAKE_BINARY_DIR}/_deps/src/spdlog/include/
+        ${CMAKE_BINARY_DIR}/_deps/src/spdlog/include/       # Hack: spdlog.
+        )
+target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
+        ${NOISEPAGE_LINK_OPTIONS}
         )
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
@@ -598,11 +616,12 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
-        ${CMAKE_BINARY_DIR}/_deps/build/spdlog/libspdlog.a
         xbyak::xbyak
         xxHash::xxhash
+        ${CMAKE_BINARY_DIR}/_deps/build/spdlog/libspdlog.a
         ${EVENT_LINK_LIBRARIES}
         ${EVENT_PTHREADS_LINK_LIBRARIES}
+        ${NOISEPAGE_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
         ${TBB_LIBRARIES_RELEASE}
         )
@@ -720,8 +739,7 @@ set_target_properties(hack_bytecode_handlers_ir PROPERTIES CXX_EXTENSIONS OFF)
 add_executable(tpl util/execution/tpl.cpp)
 add_dependencies(tpl noisepage_static)  # gen_opt_bc needs to run.
 target_compile_options(tpl PRIVATE "-Werror" "-Wall")
-target_include_directories(tpl PRIVATE ${LLVM_INCLUDE_DIR})
-target_link_libraries(tpl PUBLIC noisepage_static util_static ${LLVM_LIBRARIES})
+target_link_libraries(tpl PUBLIC noisepage_static util_static)
 set_target_properties(tpl PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
 
 #######################################################################################################################
@@ -1042,6 +1060,31 @@ endif ()
 # HEADER Miscellaneous.
 # This is where helper scripts and other random CMake stuff goes.
 #######################################################################################################################
+
+function(print_property TARGET_NAME PROPERTY_NAME)
+    get_target_property(TARGET_NAME_PROPERTY ${TARGET_NAME} ${PROPERTY_NAME})
+    if (NOT (TARGET_NAME_PROPERTY STREQUAL "TARGET_NAME_PROPERTY-NOTFOUND"))
+        message(STATUS "    ${TARGET_NAME} ${PROPERTY_NAME}: ${TARGET_NAME_PROPERTY}")
+    endif ()
+endfunction()
+
+function(print_properties TARGET_NAME)
+    print_property(${TARGET_NAME} COMPILE_DEFINITIONS)
+    print_property(${TARGET_NAME} COMPILE_FEATURES)
+    print_property(${TARGET_NAME} COMPILE_OPTIONS)
+    print_property(${TARGET_NAME} LINK_OPTIONS)
+    print_property(${TARGET_NAME} LINK_LIBRARIES)
+endfunction()
+
+message(STATUS "Note that following NoisePage options are just a sample and may not be the full list. Check compile_commands.json for sure.")
+
+print_properties(noisepage_objlib)
+print_properties(noisepage)
+print_properties(tpl)
+print_properties(noisepage_test_util_static)
+print_properties(tpcc_test)
+print_properties(noisepage_benchmark_util)
+print_properties(tpcc_benchmark)
 
 #######################################################################################################################
 # Useful some day, maybe.
