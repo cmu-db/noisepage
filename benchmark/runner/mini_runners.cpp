@@ -655,11 +655,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_ArithmeticRunners)(benchmark::State &state)
   state.SetItemsProcessed(state.range(1));
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenArithArguments>);
-
 template <settings::Param param, typename T>
 void NetworkQueriesSetParam(T value) {
   const common::action_id_t action_id(1);
@@ -915,11 +910,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   BenchmarkExecQuery(settings.warmup_iterations_num_ + 1, &exec_query, schema.get(), true);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenOutputArguments>)
-    ->Iterations(1);
-
 void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_mix = state->range(1);
@@ -975,16 +965,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ1_0_SeqScanRunners)(benchmark::State &state) 
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ1_1_SeqScanRunners)(benchmark::State &state) { ExecuteSeqScan(&state); }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ1_0_SeqScanRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenScanArguments>);
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenScanMixedArguments>);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state) {
@@ -1058,11 +1038,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_0_IndexScanRunners)(benchmark::State &state
   state.SetItemsProcessed(state.range(2));
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ2_0_IndexScanRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIdxScanArguments>);
-
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state) {
   auto type = type::TypeId::INTEGER;
@@ -1117,11 +1092,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
 
   state.SetItemsProcessed(state.range(2));
 }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ2_1_IndexJoinRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIdxJoinArguments>);
 
 void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_ints = state->range(0);
@@ -1225,16 +1195,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ6_0_InsertRunners)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ6_1_InsertRunners)(benchmark::State &state) { ExecuteInsert(&state); }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenInsertArguments>);
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenInsertArguments>);
-
 void MiniRunners::ExecuteUpdate(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_bigints = state->range(1);
@@ -1333,11 +1293,6 @@ void MiniRunners::ExecuteUpdate(benchmark::State *state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ7_2_UpdateRunners)(benchmark::State &state) { ExecuteUpdate(&state); }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ7_2_UpdateRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments>);
-
 void MiniRunners::ExecuteDelete(benchmark::State *state) {
   auto num_integers = state->range(0);
   auto num_decimals = state->range(1);
@@ -1418,11 +1373,6 @@ void MiniRunners::ExecuteDelete(benchmark::State *state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ8_2_DeleteRunners)(benchmark::State &state) { ExecuteDelete(&state); }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ8_2_DeleteRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments>);
-
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
@@ -1466,11 +1416,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ3_SortRunners)(benchmark::State &state) {
   BenchmarkExecQuery(num_iters, equery.first.get(), equery.second.get(), true);
   state.SetItemsProcessed(row);
 }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ3_SortRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenSortArguments>);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &state) {
@@ -1519,11 +1464,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
   BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true);
   state.SetItemsProcessed(row);
 }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinSelfRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenJoinSelfArguments>);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &state) {
@@ -1579,11 +1519,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   state.SetItemsProcessed(matched_car);
 }
 
-BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenJoinNonSelfArguments>);
-
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state) {
   auto num_integers = state.range(0);
@@ -1630,11 +1565,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_0_AggregateRunners)(benchmark::State &state
 
   state.SetItemsProcessed(row);
 }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_AggregateRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenAggregateArguments>);
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state) {
@@ -1689,11 +1619,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ5_1_AggregateRunners)(benchmark::State &state
 
   state.SetItemsProcessed(row);
 }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenAggregateKeylessArguments>);
 
 void MiniRunners::ExecuteCreateIndex(benchmark::State *state) {
   auto num_integers = state->range(0);
@@ -1751,16 +1676,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ9_0_CreateIndexRunners)(benchmark::State &sta
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(MiniRunners, SEQ9_1_CreateIndexRunners)(benchmark::State &state) { ExecuteCreateIndex(&state); }
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexArguments>);
-
-BENCHMARK_REGISTER_F(MiniRunners, SEQ9_1_CreateIndexRunners)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
 
 void InitializeRunnersState() {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map;
@@ -1829,8 +1744,8 @@ void InitializeRunnersState() {
                                                                       exec_settings, db_main->GetMetricsManager());
 
   execution::sql::TableGenerator table_gen(exec_ctx.get(), block_store, accessor->GetDefaultNamespace());
-  table_gen.GenerateMiniRunnersData(config);
-  table_gen.GenerateMiniRunnerIndexTables(config);
+  table_gen.GenerateMiniRunnersData(settings, config);
+  table_gen.GenerateMiniRunnerIndexTables(settings, config);
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   InvokeGC();
@@ -1846,6 +1761,93 @@ void EndRunnersState() {
   db_main->GetMetricsManager()->ToCSV();
   // free db main here so we don't need to use the loggers anymore
   delete db_main;
+}
+
+void RegisterRunners() {
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ0_ArithmeticRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenArithArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ0_OutputRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenOutputArguments>)
+      ->Iterations(1);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ1_0_SeqScanRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenScanArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ1_1_SeqScanRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenScanMixedArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ2_0_IndexScanRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIdxScanArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ2_1_IndexJoinRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIdxJoinArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ3_SortRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenSortArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinSelfRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenJoinSelfArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenJoinNonSelfArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ5_0_AggregateRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenAggregateArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ5_1_AggregateRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenAggregateKeylessArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ6_0_InsertRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenInsertArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ6_1_InsertRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenInsertArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ7_2_UpdateRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ8_2_DeleteRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenUpdateDeleteIndexArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ9_0_CreateIndexRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ9_1_CreateIndexRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
 }
 
 }  // namespace terrier::runner
@@ -2033,6 +2035,9 @@ void RunMiniRunners() {
 int main(int argc, char **argv) {
   // Initialize mini-runner arguments
   terrier::runner::settings.InitializeFromArguments(argc, argv);
+
+  // Initialize Benchmarks
+  terrier::runner::RegisterRunners();
 
   // Benchmark Config Environment Variables
   // Check whether we are being passed environment variables to override configuration parameter

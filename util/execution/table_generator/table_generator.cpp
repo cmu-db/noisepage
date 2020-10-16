@@ -399,11 +399,12 @@ void TableGenerator::GenerateTestTables() {
   InitTestIndexes();
 }
 
-void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersDataConfig &config) {
+void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
+                                             const runner::MiniRunnersDataConfig &config) {
   std::vector<TableInsertMeta> table_metas;
   auto &mixed_types = config.table_type_dists_;
   auto &mixed_dists = config.table_col_dists_;
-  auto &row_nums = config.table_row_nums_;
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
 
   for (size_t idx = 0; idx < mixed_types.size(); ++idx) {
     auto types = mixed_types[idx];
@@ -463,9 +464,10 @@ void TableGenerator::GenerateMiniRunnersData(const runner::MiniRunnersDataConfig
   }
 }
 
-void TableGenerator::GenerateMiniRunnerIndexTables(const runner::MiniRunnersDataConfig &config) {
+void TableGenerator::GenerateMiniRunnerIndexTables(const runner::MiniRunnersSettings &settings,
+                                                   const runner::MiniRunnersDataConfig &config) {
   std::vector<TableInsertMeta> table_metas;
-  auto &row_nums = config.table_row_nums_;
+  auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto &types = config.index_table_types_;
   for (auto row_num : row_nums) {
     for (auto type_pair : types) {
