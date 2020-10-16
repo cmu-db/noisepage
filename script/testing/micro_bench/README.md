@@ -13,7 +13,8 @@ in TimescaleDB. The results will be visualized at [stats.noise.page](https://sta
 
 ## Requirements
 
-This script assumes that you have numactl package installed. If you are running the script locally you do not need to install `numctl` but you will need to comment out a line in `MicrobenchmarksRunner._build_benchmark_cmd()`. 
+This script assumes that you have numactl package installed. If you are running the script locally you do not need to
+ install `numctl` but you will need to comment out a line in `MicrobenchmarksRunner._build_benchmark_cmd()`. 
 
 ```
 sudo apt install numactl
@@ -62,3 +63,8 @@ $ ./run_micro_bench.py --run --perf data_table_benchmark
 ```
 
 The script will configure perf to write its trace file to `data_table_benchmark.perf`.
+
+## Publish Results
+
+By specifying the `--publish-results` the microbenchmark run script will send the results to the performance storage
+service. This will also require passing in the `--publish-username` and `--publish-password` arguments. 
