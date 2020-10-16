@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Usage: tpl_bytecode_handlers_ir_compiler.py LLVM_COMPILER CMAKE_BINARY_DIR BCH_CPP BCH_OUT
     where
