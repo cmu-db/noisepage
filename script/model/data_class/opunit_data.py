@@ -12,7 +12,7 @@ from data_class import data_util
 from info import data_info
 from util import io_util
 
-from type import OpUnit, ExecutionFeature
+from type import OpUnit, Target, ExecutionFeature
 
 
 def write_extended_data(output_path, symbol, index_value_list, data_map):
@@ -57,7 +57,7 @@ def _interval_get_mini_runner_data(filename, model_results_path):
 
     x = df.iloc[:, :-data_info.METRICS_OUTPUT_NUM].values
     y = df.iloc[:, -data_info.MINI_MODEL_TARGET_NUM:].values
-    start_times = df.iloc[:, data_info.RAW_CSV_INDEX[data_info.ExecutionFeature.START_TIME]].values
+    start_times = df.iloc[:, data_info.RAW_TARGET_CSV_INDEX[Target.START_TIME]].values
     logging.info("Loaded file: {}".format(OpUnit[file_name.upper()]))
 
     # change the data based on the interval for the periodically invoked operating units
@@ -113,9 +113,9 @@ def _execution_get_mini_runner_data(filename, model_map, predict_cache, trim):
         reader = csv.reader(f, delimiter=",", skipinitialspace=True)
         indexes = next(reader)
         data_info.parse_csv_header(indexes, True)
-        features_vector_index = data_info.RAW_CSV_INDEX[ExecutionFeature.FEATURES]
-        raw_boundary = data_info.RAW_CSV_INDEX[data_info.INPUT_OUTPUT_BOUNDARY]
-        input_output_boundary = data_info.INPUT_CSV_INDEX[data_info.INPUT_END_BOUNDARY]
+        features_vector_index = data_info.RAW_FEATURES_CSV_INDEX[ExecutionFeature.FEATURES]
+        raw_boundary = data_info.RAW_FEATURES_CSV_INDEX[data_info.INPUT_OUTPUT_BOUNDARY]
+        input_output_boundary = len(data_info.INPUT_CSV_INDEX)
 
         for line in reader:
             # drop query_id, pipeline_id, num_features, features_vector

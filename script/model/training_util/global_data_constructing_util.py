@@ -11,7 +11,7 @@ from util import io_util
 from info import data_info, hardware_info
 from data_class import global_model_data, grouped_op_unit_data
 import global_model_config
-from type import OpUnit, ConcurrentCountingMode, ExecutionFeature
+from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
 def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack,
@@ -30,9 +30,10 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
+    headers_file = input_path + '/global_model_headers.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
-            resource_data_list, impact_data_list = pickle.load(pickle_file)
+            resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX = pickle.load(pickle_file)
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
                                                              warmup_period, tpcc_hack,
@@ -40,7 +41,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
-            pickle.dump((resource_data_list, impact_data_list), file)
+            pickle.dump((resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX), file)
 
     return resource_data_list, impact_data_list
 
@@ -269,7 +270,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                     # the buffer is not recorded as part of the pipeline
                     buffer_size = 0
 
-                pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]]
+                pred_mem = y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]]
                 if pred_mem <= buffer_size:
                     logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
                                     .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
@@ -281,7 +282,7 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
                 # Don't modify prediction cache
                 y_pred = copy.deepcopy(y_pred)
-                y_pred[0][data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] = adj_mem
+                y_pred[0][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = adj_mem
 
             pipeline_y_pred += y_pred[0]
 

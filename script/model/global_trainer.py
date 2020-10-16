@@ -13,7 +13,7 @@ import global_model_config
 from info import data_info
 from util import io_util, logging_util
 from training_util import global_data_constructing_util, result_writing_util
-from type import ExecutionFeature
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -41,7 +41,7 @@ def _global_model_training_process(x, y, methods, test_ratio, metrics_path, pred
 
     min_percentage_error = 1
     pred_results = None
-    elapsed_us_index = data_info.TARGET_CSV_INDEX[ExecutionFeature.ELAPSED_US]
+    elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
 
     for method in methods:
         # Train the model
@@ -160,7 +160,7 @@ class GlobalTrainer:
         for idx in tqdm.tqdm(sample_list, desc="Construct data for the {} model".format(model_name)):
             d = impact_data_list[idx]
             mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
-            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[ExecutionFeature.ELAPSED_US]]
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.resource_data.y_pred.copy()
@@ -174,7 +174,7 @@ class GlobalTrainer:
             raw_y.append(d.target_grouped_op_unit_data.y)
             y.append(raw_y[-1] / (mini_model_y_pred[-1] + epsilon))
             # Do not adjust memory consumption since it shouldn't change
-            y[-1][data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]] = 1
+            y[-1][data_info.TARGET_CSV_INDEX[Target.MEMORY_B]] = 1
 
         # Training
         metrics_path = "{}/global_{}_model_metrics.csv".format(self.model_results_path, model_name)

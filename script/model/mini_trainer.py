@@ -14,7 +14,7 @@ from util import io_util, logging_util
 from data_class import opunit_data
 from info import data_info
 from training_util import data_transforming_util, result_writing_util
-from type import ExecutionFeature
+from type import Target, ExecutionFeature
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -71,8 +71,8 @@ class MiniTrainer:
         error_bias = 1
         min_percentage_error = 2
         pred_results = None
-        elapsed_us_index = data_info.TARGET_CSV_INDEX[ExecutionFeature.ELAPSED_US]
-        memory_b_index = data_info.TARGET_CSV_INDEX[ExecutionFeature.MEMORY_B]
+        elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1

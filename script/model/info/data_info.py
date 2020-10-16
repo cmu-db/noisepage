@@ -1,14 +1,17 @@
-from type import OpUnit, ArithmeticFeature, ExecutionFeature
+from type import OpUnit, ArithmeticFeature, Target, ExecutionFeature
 
 # Boundary from input feature -> outputs
 # The field >= boundary is the inputs and outputs
 INPUT_OUTPUT_BOUNDARY = ExecutionFeature.EXEC_MODE
 
 # End of the input features
-INPUT_END_BOUNDARY = ExecutionFeature.START_TIME
+INPUT_END_BOUNDARY = Target.START_TIME
 
-# The index for fields in the raw CSV data
-RAW_CSV_INDEX = {}
+# The index for miscellaneous + features in the raw CSV data
+RAW_FEATURES_CSV_INDEX = {}
+
+# The index for targets in the raw CSV data
+RAW_TARGET_CSV_INDEX = {}
 
 # The index for different aspects of input feature
 INPUT_CSV_INDEX = {}
@@ -26,12 +29,12 @@ ARITHMETIC_FEATURE_INDEX = {
 EXECUTION_CSV_NAME_POSITION = 0
 
 # total number of outputs
-METRICS_OUTPUT_NUM = ExecutionFeature.ELAPSED_US - ExecutionFeature.START_TIME + 1
+METRICS_OUTPUT_NUM = len(Target)
 
 # prediction targets in the mini models
-MINI_MODEL_TARGET_LIST = [ExecutionFeature.CPU_CYCLES, ExecutionFeature.INSTRUCTIONS, ExecutionFeature.CACHE_REF,
-                          ExecutionFeature.CACHE_MISS, ExecutionFeature.REF_CPU_CYCLES, ExecutionFeature.BLOCK_READ,
-                          ExecutionFeature.BLOCK_WRITE, ExecutionFeature.MEMORY_B, ExecutionFeature.ELAPSED_US]
+MINI_MODEL_TARGET_LIST = [Target.CPU_CYCLES, Target.INSTRUCTIONS, Target.CACHE_REF,
+                          Target.CACHE_MISS, Target.REF_CPU_CYCLES, Target.BLOCK_READ,
+                          Target.BLOCK_WRITE, Target.MEMORY_B, Target.ELAPSED_US]
 # the number of prediction targets in the mini models
 MINI_MODEL_TARGET_NUM = len(MINI_MODEL_TARGET_LIST)
 
@@ -59,19 +62,21 @@ def parse_csv_header(header, raw_boundary=False):
     :param raw_boundary: whether there is a raw boundary or not
     """
     for i, index in enumerate(header):
-        RAW_CSV_INDEX[ExecutionFeature[index.upper()]] = i
+        if index.upper() not in ExecutionFeature.__members__:
+            RAW_TARGET_CSV_INDEX[Target[index.upper()]] = i
+        else:
+            RAW_FEATURES_CSV_INDEX[ExecutionFeature[index.upper()]] = i
 
     input_output_boundary = None
     if raw_boundary:
         # Computes the index that divides the unnecessary fields and the input/output
-        input_output_boundary = RAW_CSV_INDEX[INPUT_OUTPUT_BOUNDARY]
+        input_output_boundary = RAW_FEATURES_CSV_INDEX[INPUT_OUTPUT_BOUNDARY]
 
     # Computes the index within input/output of where input splits from output
-    output_boundary = RAW_CSV_INDEX[INPUT_END_BOUNDARY]
+    output_boundary = RAW_TARGET_CSV_INDEX[INPUT_END_BOUNDARY]
 
     for i, index in enumerate(header):
         if i >= output_boundary:
-            TARGET_CSV_INDEX[ExecutionFeature[index.upper()]] = i - len(header)
-
-        if input_output_boundary is not None and i >= input_output_boundary:
+            TARGET_CSV_INDEX[Target[index.upper()]] = i - len(header)
+        elif input_output_boundary is not None and i >= input_output_boundary:
             INPUT_CSV_INDEX[ExecutionFeature[index.upper()]] = i - input_output_boundary
