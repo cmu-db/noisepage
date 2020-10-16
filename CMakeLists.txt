@@ -142,6 +142,7 @@ message(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYS
 #   NOISEPAGE_USE_ASAN                      : Enable ASAN, a fast memory error detector. Default OFF.
 #   NOISEPAGE_USE_JEMALLOC                  : Link with jemalloc instead of system malloc. Default OFF.
 #   NOISEPAGE_USE_JUMBOTESTS                : Enable jumbotests instead of unittests as part of ALL target. Default OFF.
+#   NOISEPAGE_USE_LOGGING                   : Enable logging. Default ON.
 #
 # CMake global variables. These are NOT CMake options, i.e., these variables are internal. Usually OS-specific hacks.
 #   BUILD_SUPPORT_DIR             : Helper scripts for building belongs here.
@@ -193,6 +194,10 @@ option(NOISEPAGE_USE_JEMALLOC
 option(NOISEPAGE_USE_JUMBOTESTS
         "Enable jumbotests instead of unittest as part of ALL target."
         OFF)
+
+option(NOISEPAGE_USE_LOGGING
+        "Enable logging. When enabled, there is a performance hit for all logging calls even if nothing is logged."
+        ON)
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
 set(BUILD_SUPPORT_DATA_DIR "${CMAKE_SOURCE_DIR}/build-support/data")
@@ -259,6 +264,14 @@ if (${NOISEPAGE_USE_JEMALLOC})
 endif ()
 message(STATUS "jemalloc: ${NOISEPAGE_JEMALLOC_MSG}")
 unset(NOISEPAGE_JEMALLOC_MSG)
+
+# spdlog.
+set(NOISEPAGE_LOGGING_MSG "${NOISEPAGE_USE_LOGGING}")
+if (${NOISEPAGE_USE_LOGGING})
+    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-DNOISEPAGE_USE_LOGGING")
+endif ()
+message(STATUS "Logging: ${NOISEPAGE_USE_LOGGING}")
+unset(NOISEPAGE_LOGGING_MSG)
 
 message(STATUS "Verbose unit tests (NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE): ${NOISEPAGE_UNITTEST_OUTPUT_ON_FAILURE}")
 message(STATUS "Unity builds (NOISEPAGE_UNITY_BUILD): ${NOISEPAGE_UNITY_BUILD}")
