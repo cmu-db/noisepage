@@ -1194,19 +1194,23 @@ unset(${CPPLINT_BIN})
 # check-tpl         :   Python script to check core TPL functionality.
 #######################################################################################################################
 
-add_custom_target(
-        check-tpl
-        DEPENDS tpl
-        COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py -b ${CMAKE_BINARY_DIR}/bin/tpl -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt -t ${PROJECT_SOURCE_DIR}/sample_tpl -d ${CMAKE_BINARY_DIR}/bin"
-        COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
-        -b ${CMAKE_BINARY_DIR}/bin/tpl
-        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
-        -t ${PROJECT_SOURCE_DIR}/sample_tpl
-        -d ${CMAKE_BINARY_DIR}/bin
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-        USES_TERMINAL
-)
-message(STATUS "[ADDED] check-tpl")
+if (${NOISEPAGE_USE_LOGGING})
+    add_custom_target(
+            check-tpl
+            DEPENDS tpl
+            COMMAND cmake -E echo "Running: ${BUILD_SUPPORT_DIR}/run_tpl_tests.py -b ${CMAKE_BINARY_DIR}/bin/tpl -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt -t ${PROJECT_SOURCE_DIR}/sample_tpl -d ${CMAKE_BINARY_DIR}/bin"
+            COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
+            -b ${CMAKE_BINARY_DIR}/bin/tpl
+            -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
+            -t ${PROJECT_SOURCE_DIR}/sample_tpl
+            -d ${CMAKE_BINARY_DIR}/bin
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+            USES_TERMINAL
+    )
+    message(STATUS "[ADDED] check-tpl")
+else ()
+    message(STATUS "[MISSING] check-tpl does not work unless NOISEPAGE_USE_LOGGING is provided.")
+endif ()
 
 #######################################################################################################################
 # format            :   Reformat the codebase according to standards.
