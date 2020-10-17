@@ -161,7 +161,8 @@ class TestServer:
             # Db terminated already
             msg = "DB terminated with return code {}".format(
                 self.db_process.returncode)
-            LOG.info("DB exited with return code {}".format(self.db_process.returncode)
+            LOG.info("DB exited with return code {}".format(
+                self.db_process.returncode))
             self.print_db_logs()
             raise RuntimeError(msg)
         else:
@@ -273,6 +274,9 @@ class TestServer:
         return test_suite_result
 
     def print_db_logs(self):
+        """	
+        Print out the remaining DB logs	
+        """
         LOG.info("************ DB Logs Start ************")
         print_pipe(self.db_process)
         LOG.info("************* DB Logs End *************")
