@@ -112,75 +112,64 @@ class TestServer:
                     LOG.info("DB process is verified as running")
                     return
 
-            # try:
-            #     self.wait_for_db()
-            #     # successful case
-            #     return
-            # except:
-            #     self.stop_db()
-            #     LOG.error("+" * 100)
-            #     LOG.error("DATABASE OUTPUT")
-            #     if attempt + 1 == constants.DB_START_ATTEMPTS:
-            #         raise
-            #     traceback.print_exc(file=sys.stdout)
-
         msg = "Failed to start DB after {} attempts".format(
             constants.DB_START_ATTEMPTS)
         raise RuntimeError(msg)
 
-    def wait_for_db(self):
-        """ Wait for the db server to come up """
-        # Check that PID is running
-        check_db_process_exists(self.db_process.pid)
+    # def wait_for_db(self):
+    #     """ Wait for the db server to come up """
+    #     # Check that PID is running
+    #     check_db_process_exists(self.db_process.pid)
 
-        # Wait a bit before checking if we can connect to give the system time to setup
-        time.sleep(constants.DB_START_WAIT)
+    #     # Wait a bit before checking if we can connect to give the system time to setup
+    #     time.sleep(constants.DB_START_WAIT)
 
-        # flag to check if the db is running
-        is_db_running = False
+    #     # flag to check if the db is running
+    #     is_db_running = False
 
-        attempt_number = 0
-        # Keep trying to connect to the DBMS until we run out of attempts or we succeeed
-        for i in range(constants.DB_CONNECT_ATTEMPTS):
-            attempt_number = i + 1
-            is_db_running = check_db_running(self.db_host, self.db_port)
-            if is_db_running:
-                LOG.info("Connected to server in {} seconds [PID={}]".format(
-                    i * constants.DB_CONNECT_SLEEP, self.db_process.pid))
-                is_db_running = True
-                break
-            else:
-                if attempt_number % 20 == 0:
-                    LOG.error(
-                        "Failed to connect to DB server [Attempt #{}/{}]".
-                        format(attempt_number, constants.DB_CONNECT_ATTEMPTS))
-                    traceback.print_exc(file=sys.stdout)
-                time.sleep(constants.DB_CONNECT_SLEEP)
+    #     attempt_number = 0
+    #     # Keep trying to connect to the DBMS until we run out of attempts or we succeeed
+    #     for i in range(constants.DB_CONNECT_ATTEMPTS):
+    #         attempt_number = i + 1
+    #         is_db_running = check_db_running(self.db_host, self.db_port)
+    #         if is_db_running:
+    #             LOG.info("Connected to server in {} seconds [PID={}]".format(
+    #                 i * constants.DB_CONNECT_SLEEP, self.db_process.pid))
+    #             is_db_running = True
+    #             break
+    #         else:
+    #             if attempt_number % 20 == 0:
+    #                 LOG.error(
+    #                     "Failed to connect to DB server [Attempt #{}/{}]".
+    #                     format(attempt_number, constants.DB_CONNECT_ATTEMPTS))
+    #                 traceback.print_exc(file=sys.stdout)
+    #             time.sleep(constants.DB_CONNECT_SLEEP)
 
-        handle_db_connection_status(is_db_running,
-                                    attempt_number,
-                                    db_pid=self.db_process.pid)
-        return
+    #     handle_db_connection_status(is_db_running,
+    #                                 attempt_number,
+    #                                 db_pid=self.db_process.pid)
+    #     return
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """
         if not self.db_process:
             return
 
-        # get exit code, if any
+        # get exit code if any
         self.db_process.poll()
         if self.db_process.returncode is not None:
             # Db terminated already
             msg = "DB terminated with return code {}".format(
                 self.db_process.returncode)
-            print_pipe(self.db_process)
+            LOG.info("DB exited with return code {}".format(self.db_process.returncode)
+            self.print_db_logs()
             raise RuntimeError(msg)
         else:
             # still (correctly) running, terminate it
             self.db_process.terminate()
-            print_pipe(self.db_process)
+            LOG.info("DB stops normally")
+            self.print_db_logs()
         self.db_process = None
-        # self.db_output_fd = None
         return
 
     def restart_db(self):
@@ -283,55 +272,57 @@ class TestServer:
             return constants.ErrorCode.SUCCESS
         return test_suite_result
 
-
-def start_db(db_path, db_output_file):
-    """	
-    Starts the DB process based on the DB path and write stdout and sterr	
-    to the db_output_file. This returns the db output file descriptor and 	
-    the db_process created by Popen.	
-    """
-    db_output_fd = open(db_output_file, "w+")
-    LOG.info("Server start: {PATH}".format(PATH=db_path))
-    db_process = subprocess.Popen(shlex.split(db_path),
-                                  stdout=db_output_fd,
-                                  stderr=db_output_fd)
-    return db_output_fd, db_process
+    def print_db_logs(self):
+        LOG.info("************ DB Logs Start ************")
+        print_pipe(self.db_process)
+        LOG.info("************* DB Logs End *************")
 
 
-def check_db_process_exists(db_pid):
-    """ Checks to see if the db_pid exists """
-    if not run_check_pids(db_pid):
-        raise RuntimeError("Unable to find DBMS PID {}".format(db_pid))
-    else:
-        LOG.info("DBMS running on PID {}".format(db_pid))
+# def start_db(db_path, db_output_file):
+#     """
+#     Starts the DB process based on the DB path and write stdout and sterr
+#     to the db_output_file. This returns the db output file descriptor and
+#     the db_process created by Popen.
+#     """
+#     db_output_fd = open(db_output_file, "w+")
+#     LOG.info("Server start: {PATH}".format(PATH=db_path))
+#     db_process = subprocess.Popen(shlex.split(db_path),
+#                                   stdout=db_output_fd,
+#                                   stderr=db_output_fd)
+#     return db_output_fd, db_process
 
+# def check_db_process_exists(db_pid):
+#     """ Checks to see if the db_pid exists """
+#     if not run_check_pids(db_pid):
+#         raise RuntimeError("Unable to find DBMS PID {}".format(db_pid))
+#     else:
+#         LOG.info("DBMS running on PID {}".format(db_pid))
 
-def check_db_running(db_host, db_port):
-    """	
-    Tries to connect to the DBMS. Returns True if it connected 	
-    and False otherwise	
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.connect((db_host, int(db_port)))
-        s.close()
-        return True
-    except:
-        return False
+# def check_db_running(db_host, db_port):
+#     """
+#     Tries to connect to the DBMS. Returns True if it connected
+#     and False otherwise
+#     """
+#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     try:
+#         s.connect((db_host, int(db_port)))
+#         s.close()
+#         return True
+#     except:
+#         return False
 
-
-def handle_db_connection_status(is_db_running, attempt_number, db_pid):
-    """	
-    Based on whether the DBMS is running and whether the db_pid exists this	
-    will print the appropriate message or throw an error.	
-    """
-    if not is_db_running:
-        LOG.error(
-            "Failed to connect to DB server [Attempt #{ATTEMPT}/{TOTAL_ATTEMPTS}]"
-            .format(ATTEMPT=attempt_number,
-                    TOTAL_ATTEMPTS=constants.DB_CONNECT_ATTEMPTS))
-        check_db_process_exists(db_pid)
-        raise RuntimeError('Unable to connect to DBMS.')
-    else:
-        LOG.info("Connected to server in {} seconds [PID={}]".format(
-            attempt_number * constants.DB_CONNECT_SLEEP, db_pid))
+# def handle_db_connection_status(is_db_running, attempt_number, db_pid):
+#     """
+#     Based on whether the DBMS is running and whether the db_pid exists this
+#     will print the appropriate message or throw an error.
+#     """
+#     if not is_db_running:
+#         LOG.error(
+#             "Failed to connect to DB server [Attempt #{ATTEMPT}/{TOTAL_ATTEMPTS}]"
+#             .format(ATTEMPT=attempt_number,
+#                     TOTAL_ATTEMPTS=constants.DB_CONNECT_ATTEMPTS))
+#         check_db_process_exists(db_pid)
+#         raise RuntimeError('Unable to connect to DBMS.')
+#     else:
+#         LOG.info("Connected to server in {} seconds [PID={}]".format(
+#             attempt_number * constants.DB_CONNECT_SLEEP, db_pid))
