@@ -100,7 +100,7 @@ def kill_pids_on_port(port, logger=None):
 
     # get the command of lsof based on the os platform
     lsof_path = constants.LSOF_PATH_MACOS if sys.platform.startswith(
-        "darwin") else constants.LSOF_PATH_LINUX
+        constants.OS_FAMILY_DARWIN) else constants.LSOF_PATH_LINUX
 
     cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{{ print $2 }}'".format(
         LSOF_PATH=lsof_path, PORT=port)

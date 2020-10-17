@@ -48,6 +48,9 @@ FILE_KILL_SERVER = os.path.join(DIR_TESTING, "kill_server.py")
 LSOF_PATH_LINUX = "lsof"
 LSOF_PATH_MACOS = "/usr/sbin/lsof"
 
+# OS family
+OS_FAMILY_DARWIN = "darwin"
+
 
 # error code
 class ErrorCode:
