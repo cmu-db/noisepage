@@ -41,6 +41,9 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  */
 class TransactionEndActionBaseFunctor {
  public:
+  /**
+   * Operator to carried out the deferred action
+   */
   virtual void operator()(DeferredActionManager *deferred_action_manager) = 0;
 
   virtual ~TransactionEndActionBaseFunctor() = default;
@@ -119,7 +122,8 @@ class TransactionEndCleanupFunctor : public TransactionEndActionBaseFunctor {
  public:
   /**
    * Constructor takes as arguments a function which will be stored in this functor
-   * @param end_func function to execute upon end action
+   * @param cleanup_func function to perform the cleanup
+   * @param resource pointer to the resource to be deleted
    */
   explicit TransactionEndCleanupFunctor(TransactionEndCleanupAction cleanup_func, void *resource)
       : cleanup_func_(cleanup_func), resource_(resource) {}

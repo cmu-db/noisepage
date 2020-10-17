@@ -177,7 +177,7 @@ class TransactionContext {
 
   /**
    * Defers a cleanup action to be called if and only if the transaction aborts.  Actions executed LIFO.
-   * @param a the resource to be deleted
+   * @param resource the resource to be deleted
    */
   template <typename T>
   void RegisterAbortCleanupAction(T *resource) {
