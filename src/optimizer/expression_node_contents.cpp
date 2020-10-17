@@ -125,7 +125,7 @@ common::ManagedPointer<parser::AbstractExpression> ExpressionNodeContents::CopyW
   parser::AbstractExpression *result_ptr = result.Get();
   if (txn_ != nullptr) {
     txn_->RegisterCommitAction([=]() { delete result_ptr; });
-    txn_->RegisterAbortAction([=]() { delete result_ptr; });
+    txn_->RegisterAbortCleanupAction(result_ptr);
   }
   return result;
 }

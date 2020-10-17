@@ -70,7 +70,7 @@ Operator Operator::RegisterWithTxnContext(transaction::TransactionContext *txn) 
   auto *op = dynamic_cast<BaseOperatorNodeContents *>(contents_.Get());
   if (txn != nullptr) {
     txn->RegisterCommitAction([=]() { delete op; });
-    txn->RegisterAbortAction([=]() { delete op; });
+    txn->RegisterAbortCleanupAction(op);
   }
   return *this;
 }

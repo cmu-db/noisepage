@@ -44,7 +44,7 @@ class GroupExpression {
     auto *op_ptr = new Operator(std::move(op));
     if (txn != nullptr) {
       txn->RegisterCommitAction([=]() { delete op_ptr; });
-      txn->RegisterAbortAction([=]() { delete op_ptr; });
+      txn->RegisterAbortCleanupAction(op_ptr);
     }
     contents_ = common::ManagedPointer<AbstractOptimizerNodeContents>(op_ptr);
     group_id_ = UNDEFINED_GROUP;

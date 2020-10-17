@@ -314,7 +314,7 @@ class PlanGenerator : public OperatorVisitor {
     }
 
     if (onAbort) {
-      txn_->RegisterAbortAction([=]() { delete reinterpret_cast<T *>(ptr); });
+      txn_->RegisterAbortCleanupAction(reinterpret_cast<T *>(ptr));
     }
   }
 

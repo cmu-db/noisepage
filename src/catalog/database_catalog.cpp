@@ -1603,7 +1603,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
       GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
   auto *new_schema =
       new IndexSchema(cols, schema.Type(), schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
-  txn->RegisterAbortAction([=]() { delete new_schema; });
+  txn->RegisterAbortCleanupAction(new_schema);
 
   auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_pri_);
   auto *const update_pr = update_redo->Delta();
@@ -2307,7 +2307,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
 
   std::vector<Schema::Column> cols = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table_oid);
   auto *new_schema = new Schema(cols);
-  txn->RegisterAbortAction([=]() { delete new_schema; });
+  txn->RegisterAbortCleanupAction(new_schema);
 
   auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_pri_);
   auto *const update_pr = update_redo->Delta();

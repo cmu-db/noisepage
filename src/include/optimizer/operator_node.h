@@ -42,7 +42,7 @@ class OperatorNode : public AbstractOptimizerNode {
     auto *op_node = reinterpret_cast<Operator *>(contents_.Get());
     if (txn_ != nullptr) {
       txn_->RegisterCommitAction([=]() { delete op_node; });
-      txn_->RegisterAbortAction([=]() { delete op_node; });
+      txn_->RegisterAbortCleanupAction(op_node);
     }
   }
 

@@ -72,7 +72,7 @@ class ExpressionNode : public AbstractOptimizerNode {
       const auto abstract_child = dynamic_cast<AbstractOptimizerNode *>(copy_node);
       if (txn_ != nullptr) {
         txn_->RegisterCommitAction([=]() { delete copy_node; });
-        txn_->RegisterAbortAction([=]() { delete copy_node; });
+        txn_->RegisterAbortCleanupAction(copy_node);
       }
       copy_children.emplace_back(abstract_child);
     }

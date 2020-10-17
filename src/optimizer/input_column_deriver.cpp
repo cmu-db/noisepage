@@ -241,7 +241,7 @@ void InputColumnDeriver::InputBaseTableColumns(const std::string &alias, catalog
   for (auto *expr : exprs) {
     inputs.emplace_back(expr);
     txn_->RegisterCommitAction([=]() { delete expr; });
-    txn_->RegisterAbortAction([=]() { delete expr; });
+    txn_->RegisterAbortCleanupAction(expr);
   }
 
   auto input = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{std::move(inputs)};
