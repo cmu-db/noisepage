@@ -184,7 +184,6 @@ class TransactionContext {
     abort_actions_.push_front(new TransactionEndCleanupFunctor(
         [](void *ptr) {
           auto specialized = static_cast<T *>(ptr);
-          specialized->~T();
           delete specialized;
         },
         resource));
