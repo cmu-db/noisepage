@@ -193,6 +193,9 @@ if __name__ == "__main__":
     if args.branch:
         config_args['branch'] = args.branch
     if args.publish_results != 'none':
+        if (not args.publish_username) or (not args.publish_password):
+                LOG.error("Error: --publish-username and --publish-password are required to publish the results.")
+                sys.exit(1)
         config_args['publish_results_username'] = args.publish_username
         config_args['publish_results_password'] = args.publish_password
 
