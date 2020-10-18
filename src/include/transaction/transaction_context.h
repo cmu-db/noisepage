@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>g
+#include <memory>
 #include <vector>
 
 #include "common/macros.h"
