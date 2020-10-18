@@ -170,6 +170,12 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const OuterHashJoin *op) override;
 
   /**
+   * Visitor function for a LeftSemiHashJoin operator
+   * @param op LeftSemiHashJoin operator being visited
+   */
+  void Visit(const LeftSemiHashJoin *op) override;
+
+  /**
    * Visitor function for a Insert operator
    * @param op Insert operator being visited
    */

@@ -449,6 +449,11 @@ VM_OP_HOT void OpHashInt(terrier::hash_t *const hash_val, const terrier::executi
   *hash_val = input->is_null_ ? 0 : terrier::common::HashUtil::HashCrc(input->val_, seed);
 }
 
+VM_OP_HOT void OpHashBool(terrier::hash_t *const hash_val, const terrier::execution::sql::BoolVal *const input,
+                          const terrier::hash_t seed) {
+  *hash_val = input->is_null_ ? 0 : terrier::common::HashUtil::HashCrc(input->val_, seed);
+}
+
 VM_OP_HOT void OpHashReal(terrier::hash_t *const hash_val, const terrier::execution::sql::Real *const input,
                           const terrier::hash_t seed) {
   *hash_val = input->is_null_ ? 0 : terrier::common::HashUtil::HashCrc(input->val_, seed);
@@ -1258,6 +1263,22 @@ VM_OP_HOT void OpHashTableEntryIteratorGetRow(const terrier::byte **row,
                                               terrier::execution::sql::HashTableEntryIterator *ht_entry_iter) {
   *row = ht_entry_iter->GetMatchPayload();
 }
+
+VM_OP void OpJoinHashTableIteratorInit(terrier::execution::sql::JoinHashTableIterator *iter,
+                                       terrier::execution::sql::JoinHashTable *join_hash_table);
+
+VM_OP_HOT void OpJoinHashTableIteratorHasNext(bool *has_more, terrier::execution::sql::JoinHashTableIterator *iter) {
+  *has_more = iter->HasNext();
+}
+
+VM_OP_HOT void OpJoinHashTableIteratorNext(terrier::execution::sql::JoinHashTableIterator *iter) { iter->Next(); }
+
+VM_OP_HOT void OpJoinHashTableIteratorGetRow(const terrier::byte **row,
+                                             terrier::execution::sql::JoinHashTableIterator *iter) {
+  *row = iter->GetCurrentRow();
+}
+
+VM_OP void OpJoinHashTableIteratorFree(terrier::execution::sql::JoinHashTableIterator *iter);
 
 // ---------------------------------------------------------
 // Sorting

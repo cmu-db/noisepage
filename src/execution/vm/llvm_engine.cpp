@@ -236,7 +236,7 @@ llvm::StructType *LLVMEngine::TypeMap::GetLLVMStructType(const ast::StructType *
   // Collect the fields here
   llvm::SmallVector<llvm::Type *, 8> fields;
 
-  for (const auto &field : struct_type->GetFields()) {
+  for (const auto &field : struct_type->GetAllFields()) {
     fields.push_back(GetLLVMType(field.type_));
   }
 

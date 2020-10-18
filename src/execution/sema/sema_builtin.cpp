@@ -610,7 +610,8 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate, args[0]->GetType());
         return;
       }
-      switch (args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind()) {
+      auto type = args[0]->GetType()->GetPointeeType()->As<ast::BuiltinType>()->GetKind();
+      switch (type) {
         case ast::BuiltinType::Kind::CountAggregate:
         case ast::BuiltinType::Kind::CountStarAggregate:
         case ast::BuiltinType::Kind::IntegerMaxAggregate:
@@ -623,6 +624,10 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
         case ast::BuiltinType::Kind::RealSumAggregate:
         case ast::BuiltinType::Kind::AvgAggregate:
           call->SetType(GetBuiltinType(ast::BuiltinType::Real));
+          break;
+        case ast::BuiltinType::Kind::StringMaxAggregate:
+        case ast::BuiltinType::Kind::StringMinAggregate:
+          call->SetType(GetBuiltinType(ast::BuiltinType::StringVal));
           break;
         default:
           UNREACHABLE("Impossible aggregate type!");
@@ -832,6 +837,67 @@ void Sema::CheckBuiltinHashTableEntryIterCall(ast::CallExpr *call, ast::Builtin 
     }
     default: {
       UNREACHABLE("Impossible hash table entry iterator call");
+    }
+  }
+}
+
+void Sema::CheckBuiltinJoinHashTableIterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCountAtLeast(call, 1)) {
+    return;
+  }
+
+  const auto &args = call->Arguments();
+
+  const auto ht_iter_kind = ast::BuiltinType::JoinHashTableIterator;
+  if (!IsPointerToSpecificBuiltin(args[0]->GetType(), ht_iter_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(ht_iter_kind)->PointerTo());
+    return;
+  }
+
+  switch (builtin) {
+    case ast::Builtin::JoinHashTableIterInit: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      const auto ht_kind = ast::BuiltinType::JoinHashTable;
+      if (!IsPointerToSpecificBuiltin(args[1]->GetType(), ht_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(ht_kind)->PointerTo());
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterHasNext: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterNext: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterGetRow: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      const auto byte_kind = ast::BuiltinType::Uint8;
+      call->SetType(GetBuiltinType(byte_kind)->PointerTo());
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterFree: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible hash table naive iterator call");
     }
   }
 }
@@ -3200,6 +3266,14 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::HashTableEntryIterHasNext:
     case ast::Builtin::HashTableEntryIterGetRow: {
       CheckBuiltinHashTableEntryIterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::JoinHashTableIterInit:
+    case ast::Builtin::JoinHashTableIterHasNext:
+    case ast::Builtin::JoinHashTableIterNext:
+    case ast::Builtin::JoinHashTableIterGetRow:
+    case ast::Builtin::JoinHashTableIterFree: {
+      CheckBuiltinJoinHashTableIterCall(call, builtin);
       break;
     }
     case ast::Builtin::SorterInit: {

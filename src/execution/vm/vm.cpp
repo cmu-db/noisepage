@@ -815,6 +815,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
   }
 
   GEN_HASH(Int, sql::Integer)
+  GEN_HASH(Bool, sql::BoolVal)
   GEN_HASH(Real, sql::Real)
   GEN_HASH(Date, sql::DateVal)
   GEN_HASH(Timestamp, sql::TimestampVal)
@@ -1549,6 +1550,39 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     const auto **row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
     auto *ht_entry_iter = frame->LocalAt<sql::HashTableEntryIterator *>(READ_LOCAL_ID());
     OpHashTableEntryIteratorGetRow(row, ht_entry_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorInit) : {
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    auto *hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorInit(iter, hash_table);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorHasNext) : {
+    auto *has_more = frame->LocalAt<bool *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorHasNext(has_more, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorNext) : {
+    auto *hash_table_iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorNext(hash_table_iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorGetRow) : {
+    auto *row = frame->LocalAt<const byte **>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorGetRow(row, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(JoinHashTableIteratorFree) : {
+    auto *hash_table_iter = frame->LocalAt<sql::JoinHashTableIterator *>(READ_LOCAL_ID());
+    OpJoinHashTableIteratorFree(hash_table_iter);
     DISPATCH_NEXT();
   }
 

@@ -12,6 +12,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/error/error_data.h"
 #include "common/error/exception.h"
+#include "common/thread_context.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
@@ -19,19 +20,12 @@
 #include "execution/exec/output.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/vm/module.h"
+#include "metrics/metrics_store.h"
 #include "network/connection_context.h"
 #include "network/postgres/portal.h"
 #include "network/postgres/postgres_packet_writer.h"
-#include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
-#include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
-#include "optimizer/operator_node.h"
-#include "optimizer/optimizer.h"
-#include "optimizer/properties.h"
-#include "optimizer/property_set.h"
-#include "optimizer/query_to_operator_transformer.h"
-#include "optimizer/statistics/stats_storage.h"
 #include "parser/drop_statement.h"
 #include "parser/postgresparser.h"
 #include "parser/variable_set_statement.h"
@@ -364,6 +358,15 @@ TrafficCopResult TrafficCop::CodegenPhysicalPlan(
       common::ManagedPointer<const std::string>(&portal->GetStatement()->GetQueryText()));
 
   // TODO(Matt): handle code generation failing
+
+  const bool query_trace_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
+  if (query_trace_metrics_enabled) {
+    common::thread_context.metrics_store_->RecordQueryText(
+        exec_query->GetQueryId(), portal->GetStatement()->GetQueryText(), metrics::MetricsUtil::Now());
+  }
+
   portal->GetStatement()->SetExecutableQuery(std::move(exec_query));
 
   return {ResultType::COMPLETE, 0u};
@@ -404,6 +407,14 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
     error.AddField(common::ErrorField::LINE, std::to_string(e.GetLine()));
     error.AddField(common::ErrorField::FILE, e.GetFile());
     return {ResultType::ERROR, error};
+  }
+
+  const bool query_trace_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::QUERY_TRACE);
+
+  if (query_trace_metrics_enabled) {
+    common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now());
   }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {

@@ -61,12 +61,18 @@ class WorkContext {
   OperatorTranslator *CurrentOp() const { return *pipeline_iter_; }
 
   /**
+   * Sets the context's position in the pipeline to the given operator
+   * @param op The operator to which the context's position will be set
+   */
+  void SetSource(OperatorTranslator *op);
+
+  /**
    * @return The pipeline the consumption occurs in.
    */
   const Pipeline &GetPipeline() const { return pipeline_; }
 
   /**
-   * @return True if the pipeline this work is flowing on is paralle; false otherwise.
+   * @return True if the pipeline this work is flowing on is parallel; false otherwise.
    */
   bool IsParallel() const;
 

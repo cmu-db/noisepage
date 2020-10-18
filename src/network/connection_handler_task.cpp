@@ -1,9 +1,5 @@
 #include "network/connection_handler_task.h"
 
-#include <memory>
-#include <utility>
-
-#include "network/connection_handle.h"
 #include "network/connection_handle_factory.h"
 
 namespace terrier::network {
@@ -11,28 +7,34 @@ namespace terrier::network {
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id,
                                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
     : NotifiableTask(task_id), connection_handle_factory_(connection_handle_factory) {
-  notify_event_ =
-      RegisterEvent(-1, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionHandlerTask, HandleDispatch), this);
+  // This callback function just calls HandleDispatch().
+  event_callback_fn handle_dispatch = [](int fd, int16_t flags, void *arg) {
+    static_cast<ConnectionHandlerTask *>(arg)->HandleDispatch();
+  };
+
+  // Register an event that needs to be explicitly activated. When the event is handled, HandleDispatch() is called.
+  notify_event_ = RegisterEvent(EventUtil::EVENT_ACTIVATE_OR_TIMEOUT_ONLY, EV_READ | EV_PERSIST, handle_dispatch, this);
 }
 
 void ConnectionHandlerTask::Notify(int conn_fd, std::unique_ptr<ProtocolInterpreter> protocol_interpreter) {
+  // Add the new connection to the list of jobs to be handled.
   {
-    /**
-     * this latch is needed to avoid a race condition with HandleDispatch consuming this deque in another thread
-     */
+    // This latch prevents a race where one thread is calling Notify to add to the list of jobs, and
+    // another thread is calling HandleDispatch to consume the list of jobs.
     common::SpinLatch::ScopedSpinLatch guard(&jobs_latch_);
     jobs_.emplace_back(conn_fd, std::move(protocol_interpreter));
   }
-  int res = 0;         // Flags, unused attribute in event_active
-  int16_t ncalls = 0;  // Unused attribute in event_active
-  event_active(notify_event_, res, ncalls);
+  // Signal that there are jobs to be dispatched.
+  event_active(notify_event_, 0 /* dummy arg */, 0 /* dummy arg */);
 }
 
-void ConnectionHandlerTask::HandleDispatch(int, int16_t) {  // NOLINT as we don't use the flags arg nor the fd
+void ConnectionHandlerTask::HandleDispatch() {
   common::SpinLatch::ScopedSpinLatch guard(&jobs_latch_);
+  // For each connection that needs to be handled, a new ConnectionHandle is created and marked as ready to receive.
   for (auto &job : jobs_) {
-    connection_handle_factory_->NewConnectionHandle(job.first, std::move(job.second), common::ManagedPointer(this))
-        .RegisterToReceiveEvents();
+    auto task = common::ManagedPointer<ConnectionHandlerTask>(this);
+    auto &handle = connection_handle_factory_->NewConnectionHandle(job.first, std::move(job.second), task);
+    handle.RegisterToReceiveEvents();
   }
   jobs_.clear();
 }
