@@ -75,6 +75,6 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 # Terrier executable
 ###############################################
-add_executable(terrier main/terrier.cpp execution/ast/ast_pretty_print.cpp include/execution/ast/ast_pretty_print.h include/execution/compiler/operator/cte_scan_translator.h include/planner/plannodes/cte_scan_plan_node.h execution/compiler/operator/cte_scan_translator.cpp planner/plannodes/cte_scan_plan_node.cpp include/execution/sql/cte_scan_iterator.h execution/sql/cte_scan_iterator.cpp)
+add_executable(terrier main/terrier.cpp)
 set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
 target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})

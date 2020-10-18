@@ -2053,6 +2053,9 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
       case T_SelectStmt: {
         auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
         if (root->iterative_ || root->recursive_) {
+          // Make left argument the recursive case and right argument the base case,
+          // so it is possible to visit the base case without visiting the recursive case
+          // (which would otherwise be visited recursively by the visitor in the binder)
           auto tmp = cte_select_query->larg_;
           cte_select_query->larg_ = cte_select_query->rarg_;
           cte_select_query->rarg_ = tmp;
@@ -2075,19 +2078,11 @@ std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult
             i++;
           }
         }
-        //        if (colnames.empty()) {
-        //          for (auto &expr : select->GetSelectColumns()) {
-        //            // TODO(tanujnay112) route the "?column?" codepath through traffic cop
-        //            colnames.push_back(expr->GetAlias().empty() ? "?column?" : expr->GetAlias());
-        //          }
-        //        }
         CTEType cte_type = CTEType::SIMPLE;
         if (root->recursive_) {
           cte_type = CTEType::RECURSIVE;
-        } else {
-          if (root->iterative_) {
-            cte_type = CTEType::ITERATIVE;
-          }
+        } else if (root->iterative_) {
+          cte_type = CTEType::ITERATIVE;
         }
         result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
         ctes.push_back(std::move(result));

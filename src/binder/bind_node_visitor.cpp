@@ -467,17 +467,17 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       if (!inductive) {
         ref->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       }
-      auto sel_cols = ref->GetSelect()->GetSelectColumns();
-
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> sel_cols;
       // In the case of inductive CTEs, we need to visit the SELECT statement in the base case so we have access to the
       // columns
       if (inductive) {
-        auto union_larg = ref->GetSelect();
-        auto base_case = union_larg->GetUnionSelect();
+        auto base_case = ref->GetSelect()->GetUnionSelect();
         if (base_case != nullptr) {
           base_case->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
         }
         sel_cols = base_case->GetSelectColumns();
+      } else {
+        sel_cols = ref->GetSelect()->GetSelectColumns();
       }
 
       auto column_aliases = ref->GetCteColumnAliases();  // Get aliases from TableRef
@@ -520,10 +520,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
           ref->GetSelect()->GetSelectColumns()[i]->SetAlias(alias);
           i++;
         }
-      }
-      sel_cols = ref->GetSelect()->GetSelectColumns();
-      if (inductive) {
-        sel_cols = ref->GetSelect()->GetUnionSelect()->GetSelectColumns();
       }
 
       // Add the CTE to the nested_table_alias_map

@@ -1,7 +1,6 @@
 #include "catalog/schema.h"
 
 #include "common/json.h"
-#include "parser/expression/constant_value_expression.h"
 
 namespace terrier::catalog {
 
