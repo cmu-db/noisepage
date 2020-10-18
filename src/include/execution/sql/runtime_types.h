@@ -415,6 +415,8 @@ class EXPORT Decimal {
 
   void RoundUpAndSet(std::string input, unsigned precision);
 
+  void MultiplyAndSet(const Decimal<T> &value, unsigned precision);
+
   /** Underlying native data type. */
   using NativeType = T;
 
@@ -491,9 +493,16 @@ class EXPORT Decimal {
     return *this;
   }
 
+  T GetValue() const {
+    return value_;
+  }
+
  private:
   // The encoded decimal value
   T value_;
+  void UnsignedDivideConstant128Bit(uint128_t constant);
+
+  void UnsignedDivideConstant128BitPowerOfTen(unsigned power);
 };
 
 using Decimal32 = Decimal<int32_t>;

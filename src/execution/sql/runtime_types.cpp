@@ -1,9 +1,11 @@
 #include "execution/sql/runtime_types.h"
 
 #include <string>
+#include <unordered_map>
 
 #include "common/error/exception.h"
 #include "spdlog/fmt/fmt.h"
+#include "execution/sql/decimal_magic_numbers.h"
 
 namespace terrier::execution::sql {
 
@@ -769,6 +771,164 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision)  {
 
   if(is_negative) {
     this->value_ = -this->value_;
+  }
+}
+
+void CalculateMultiWordProduct128(uint128_t  *half_words_a,
+                                  uint128_t  *half_words_b,
+                                  uint128_t  *half_words_result,
+                                  unsigned m,
+                                  unsigned n) {
+    uint128_t k, t;
+    unsigned i, j;
+    constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
+    for (i = 0; i < m; i++) half_words_result[i] = 0;
+    for (j = 0; j < n; j++) {
+      k = 0;
+      for (i = 0; i < m; i++) {
+        t = half_words_a[i]*half_words_b[j] + half_words_result[i + j] + k;
+        half_words_result[i + j] = t & bottom_mask;
+        k = t >> 64;
+      }
+      half_words_result[j + m] = k;
+    }
+}
+
+template <typename T>
+void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)  {
+
+    // TODO(ROHAN) - Implement signed multiplication for decimals
+    constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
+    constexpr const uint128_t top_mask = ~bottom_mask;
+
+    // First input
+    uint128_t a = this->value_;
+    // Second input
+    uint128_t b = input.GetValue();
+    // Split into half words
+    uint128_t half_words_a[2];
+    uint128_t half_words_b[2];
+
+    half_words_a[0] = a & bottom_mask;
+    half_words_a[1] = (a & top_mask) >> 64;
+
+    half_words_b[0] = b & bottom_mask;
+    half_words_b[1] = (b & top_mask) >> 64;
+
+    // Calculate 256 bit result
+    uint128_t half_words_result[4];
+    CalculateMultiWordProduct128(half_words_a, half_words_b,
+                                 half_words_result, 2, 2);
+
+    if(half_words_result[2] == 0 && half_words_result[3] == 0) {
+      // TODO(Rohan): Optimize by sending in an array of half words
+      this->value_ = half_words_result[0] | (half_words_result[1] << 64);
+      this->UnsignedDivideConstant128BitPowerOfTen(precision);
+      return;
+    }
+
+    // Magic number halfwords
+    uint128_t magic[4];
+    magic[0] = MAGIC_ARRAY[precision][3];
+    magic[1] = MAGIC_ARRAY[precision][2];;
+    magic[2] = MAGIC_ARRAY[precision][1];;
+    magic[3] = MAGIC_ARRAY[precision][0];;
+
+    unsigned magic_p = MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
+
+    if(MAGIC_P_AND_ALGO_ARRAY[precision][1] == 0) {
+      // Overflow Algorithm 1 - Magic number is < 2^256
+
+      // Magic Result
+      uint128_t half_words_magic_result[8];
+      // TODO(Rohan): Make optimization to calculate only upper half of the word
+      CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
+      // Get the higher order result
+      uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+      uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+      result_lower = result_lower >> magic_p;
+      result_upper = result_upper << (128 - magic_p);
+      this->value_ = result_lower | result_upper;
+      return;
+    } else {
+      // Overflow Algorithm 2 - Magic number is > 2^256
+
+      // Magic Result
+      uint128_t half_words_magic_result[8];
+      // TODO(Rohan): Make optimization to calculate only upper half of the word
+      CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
+      // Get the higher order result
+      uint128_t result_lower = half_words_result[0] | (half_words_result[1] << 64);
+      uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+
+      uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+      uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+      /*Perform addition*/
+      result_lower += add_lower;
+      result_upper += add_upper;
+      // carry bit using conditional instructions
+      result_upper += (result_lower < add_lower);
+
+      /*We know that we only retain the lower 128 bits so there is no need of shri
+       * We can safely drop the additional carry bit*/
+      result_lower = result_lower >> magic_p;
+      result_upper = result_upper << (128 - magic_p);
+      this->value_ = result_lower | result_upper;
+      return;
+    }
+}
+
+template <typename T>
+void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power)  {
+
+  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
+  constexpr const uint128_t top_mask = ~bottom_mask;
+
+  // First input
+  uint128_t a = this->value_;
+
+  // Split into half words
+  uint128_t half_words_a[2];
+  uint128_t half_words_b[2];
+
+  half_words_a[0] = a & bottom_mask;
+  half_words_a[1] = (a & top_mask) >> 64;
+
+  half_words_b[0] = MAGIC_MAP_128_BIT_POWER_TEN[power].lower;
+  half_words_b[1] = MAGIC_MAP_128_BIT_POWER_TEN[power].upper;
+
+  // Calculate 256 bit result
+  uint128_t half_words_result[4];
+  // TODO(Rohan): Calculate only upper half
+  CalculateMultiWordProduct128(half_words_a, half_words_b,
+                               half_words_result, 2, 2);
+
+  unsigned magic_p = MAGIC_MAP_128_BIT_POWER_TEN[power].p - 128;
+
+  if(MAGIC_MAP_128_BIT_POWER_TEN[power].algo == 0) {
+    // Overflow Algorithm 1 - Magic number is < 2^128
+
+    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+    this->value_ = result_upper >> magic_p;
+  } else {
+    // Overflow Algorithm 2 - Magic number is > 2^128
+
+    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+
+    uint128_t add_upper = this->value_;
+
+    /*Perform addition*/
+    result_upper += add_upper;
+
+    uint128_t carry = (uint128_t)(result_upper < add_upper);
+    carry = carry << 127;
+    // shrxi 1
+    result_upper = result_upper>>1;
+    result_upper |= carry;
+
+    this->value_ = result_upper >> (magic_p - 1);
   }
 }
 

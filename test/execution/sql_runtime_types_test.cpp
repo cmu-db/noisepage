@@ -2,6 +2,9 @@
 #include "execution/sql/runtime_types.h"
 #include "execution/tpl_test.h"
 
+#include <fstream>
+#include <sstream>
+
 namespace terrier::execution::sql::test {
 
 class RuntimeTypesTest : public TplTest {};
@@ -240,6 +243,67 @@ EXPECT_EQ(1, a_5 == d);
 d.RoundUpAndSet(std::string("1234.567"), 0);
 Decimal128 a_6(1234);
 EXPECT_EQ(1, a_6 == d);
+}
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, DecimalMultiplicationTest) {
+  Decimal128 d_1(0);
+  Decimal128 d_2(0);
+  Decimal128 d(0);
+
+  // Overflow Algorithm 1 - Magic number is < 2^256
+  d_1.RoundUpAndSet(std::string("0.2148327859723895720384199"), 25);
+  d_2.RoundUpAndSet(std::string("0.3278598274982374859061277"), 25);
+  d.RoundUpAndSet("0.0704350401498734190382129", 25);
+  d_1.MultiplyAndSet(d_2, 25);
+  EXPECT_EQ(1, d == d_1);
+
+
+  d_1.RoundUpAndSet(std::string("0.7582386326849632823554847"), 25);
+  d_2.RoundUpAndSet(std::string("0.7472136320201879174717897"), 25);
+  d.RoundUpAndSet("0.5665662426665525849360499", 25);
+  d_1.MultiplyAndSet(d_2, 25);
+  EXPECT_EQ(1, d == d_1);
+
+  // Overflow Algorithm 2 - Magic number is > 2^256
+  d_1.RoundUpAndSet(std::string("0.892038085789327580372041421"), 27);
+  d_2.RoundUpAndSet(std::string("0.273953192085891327489327489"), 27);
+  d.RoundUpAndSet("0.244376681064174465536041239", 27);
+  d_1.MultiplyAndSet(d_2, 27);
+  EXPECT_EQ(1, d == d_1);
+
+  d_1.RoundUpAndSet(std::string("0.728153698365712865782136987"), 27);
+  d_2.RoundUpAndSet(std::string("0.920138918390128401275810278"), 27);
+  d.RoundUpAndSet("0.670002556435998842845938898", 27);
+  d_1.MultiplyAndSet(d_2, 27);
+  EXPECT_EQ(1, d == d_1);
+}
+
+TEST_F(RuntimeTypesTest, DecimalMultiplicationRegressionTest) {
+  std::ifstream infile("/home/rohan/Desktop/terrier/test/execution/decimal_multiplication_test.txt");
+  if (!infile.is_open()) {
+    return;
+  }
+  Decimal128 d_1(0);
+  Decimal128 d_2(0);
+  Decimal128 d(0);
+
+  std::string line;
+  while(std::getline(infile, line)) {
+    std::stringstream linestream(line);
+    std::string decimal1, decimal2, result;
+    unsigned precision_decimal1, precision_decimal2, precision_result;
+    linestream>>decimal1>>precision_decimal1>>
+        decimal2>>precision_decimal2>>result>>precision_result;
+    d_1.RoundUpAndSet(decimal1, precision_decimal1);
+    d_2.RoundUpAndSet(decimal2, precision_decimal2);
+    d.RoundUpAndSet(result, precision_result);
+    d_1.MultiplyAndSet(d_2, precision_decimal1);
+    EXPECT_EQ(1, d == d_1);
+    if(d != d_1) {
+      d_1.RoundUpAndSet(decimal1, precision_decimal1);
+    }
+  }
 }
 
 // NOLINTNEXTLINE
