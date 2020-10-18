@@ -237,6 +237,16 @@ SETTING_bool(
     terrier::settings::Callbacks::MetricsPipeline
 )
 
+SETTING_int(
+    pipeline_metrics_interval,
+    "Sampling rate of metrics collection for the ExecutionEngine pipelines (default: 0).",
+    0,
+    0,
+    10,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     bind_command_metrics_enable,
     "Metrics collection for the bind command.",

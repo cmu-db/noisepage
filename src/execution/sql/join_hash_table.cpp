@@ -581,11 +581,11 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
     auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
     auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
     auto *tls = thread_state_container->AccessCurrentThreadState();
-    this->exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
+    exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
 
-    this->exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_elem_estimate));
+    exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_elem_estimate));
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
@@ -598,11 +598,11 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
       auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
       auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
       auto *tls = thread_state_container->AccessCurrentThreadState();
-      this->exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
+      exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
       size_t size = source->entries_.size();
       MergeIncomplete<true>(source);
-      this->exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(size));
+      exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(size));
     });
     exec_ctx_->SetNumConcurrentEstimate(0);
   }

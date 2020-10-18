@@ -37,10 +37,6 @@ class OutputTranslator : public OperatorTranslator {
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
-  /**
-   * @param pipeline The current pipeline.
-   * @param function The pipeline generating function.
-   */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;

@@ -2532,9 +2532,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
-    case ast::Builtin::RegisterMetricsThread: {
+    case ast::Builtin::RegisterThreadWithMetricsManager: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
-      GetEmitter()->Emit(Bytecode::RegisterMetricsThread, exec_ctx);
+      GetEmitter()->Emit(Bytecode::RegisterThreadWithMetricsManager, exec_ctx);
       break;
     }
     case ast::Builtin::CheckTrackersStopped: {

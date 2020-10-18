@@ -198,12 +198,12 @@ class Pipeline {
   void InjectEndResourceTracker(FunctionBuilder *builder, bool is_hook) const;
 
   /**
-   * @returns query identifier that we're codegen-ing for
+   * @return query identifier that we're codegen-ing for
    */
   query_id_t GetQueryId() const;
 
   /**
-   * @returns the OUFeatureVector pointer
+   * @return the OUFeatureVector pointer
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
 

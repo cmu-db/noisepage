@@ -641,6 +641,7 @@ class DBMain {
     bool use_metrics_thread_ = false;
     bool query_trace_metrics_ = false;
     bool pipeline_metrics_ = false;
+    uint32_t pipeline_metrics_interval_ = 0;
     bool transaction_metrics_ = false;
     bool logging_metrics_ = false;
     bool gc_metrics_ = false;
@@ -716,6 +717,7 @@ class DBMain {
 
       query_trace_metrics_ = settings_manager->GetBool(settings::Param::query_trace_metrics_enable);
       pipeline_metrics_ = settings_manager->GetBool(settings::Param::pipeline_metrics_enable);
+      pipeline_metrics_interval_ = settings_manager->GetInt(settings::Param::pipeline_metrics_interval);
       transaction_metrics_ = settings_manager->GetBool(settings::Param::transaction_metrics_enable);
       logging_metrics_ = settings_manager->GetBool(settings::Param::logging_metrics_enable);
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
@@ -732,8 +734,8 @@ class DBMain {
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
       if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE, 0);
-      // TODO(wz2): If using parallel, we might want to record all per-task recordings.
-      if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+      if (pipeline_metrics_)
+        metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, pipeline_metrics_interval_);
       if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
       if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
       if (gc_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);

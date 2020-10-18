@@ -6,7 +6,6 @@
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
-#include "execution/exec_defs.h"
 #include "execution/sql/bloom_filter.h"
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/sql/concise_hash_table.h"

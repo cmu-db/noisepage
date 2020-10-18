@@ -3,9 +3,7 @@
 #include <random>
 #include <vector>
 
-#include "brain/operating_unit.h"
 #include "common/hash_util.h"
-#include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/thread_state_container.h"

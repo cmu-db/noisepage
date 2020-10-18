@@ -4,6 +4,7 @@
 #include "brain/operating_unit_util.h"
 #include "common/thread_context.h"
 #include "execution/sql/value.h"
+#include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -33,7 +34,7 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
   return tuple_size;
 }
 
-void ExecutionContext::RegisterThread() {
+void ExecutionContext::RegisterThreadWithMetricsManager() {
   if (terrier::common::thread_context.metrics_store_ == nullptr && GetMetricsManager()) {
     GetMetricsManager()->RegisterThread();
   }
@@ -176,9 +177,9 @@ void ExecutionContext::RegisterHook(size_t hook_idx, HookFn hook) {
   hooks_[hook_idx] = hook;
 }
 
-void ExecutionContext::InvokeHook(size_t hookIndex, void *tls, void *arg) {
-  if (hookIndex < hooks_.size() && hooks_[hookIndex] != nullptr) {
-    hooks_[hookIndex](this->query_state_, tls, arg);
+void ExecutionContext::InvokeHook(size_t hook_index, void *tls, void *arg) {
+  if (hook_index < hooks_.size() && hooks_[hook_index] != nullptr) {
+    hooks_[hook_index](this->query_state_, tls, arg);
   }
 }
 

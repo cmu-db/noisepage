@@ -103,7 +103,7 @@ void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook
     builder->Append(codegen_->MakeStmt(call));
 
     args = {exec_ctx};
-    call = codegen_->CallBuiltin(ast::Builtin::RegisterMetricsThread, args);
+    call = codegen_->CallBuiltin(ast::Builtin::RegisterThreadWithMetricsManager, args);
     builder->Append(codegen_->MakeStmt(call));
 
     // Inject StartPipelineTracker()

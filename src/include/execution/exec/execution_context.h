@@ -15,7 +15,6 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
-#include "metrics/metrics_manager.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::brain {
@@ -25,6 +24,10 @@ class PipelineOperatingUnits;
 namespace terrier::catalog {
 class CatalogAccessor;
 }  // namespace terrier::catalog
+
+namespace terrier::metrics {
+class MetricsManager;
+}  // namespace terrier::metrics
 
 namespace terrier::execution::exec {
 
@@ -36,6 +39,24 @@ class EXPORT ExecutionContext {
  public:
   /**
    * Hook Function
+   *
+   * Hook functions stemmed from a discussion with Prashanth over the best way
+   * to gather runtime metrics for C++ code. The solution is "hooks". A hook is a
+   * TPL function generated for a pipeline by a specific translator that contains the
+   * necessary instrumentation logic.
+   *
+   * Hooks are registered prior to a function call that may require use of a hook
+   * and then unregistered afterwards. Note that the typical process for adding
+   * hooks to instrument some C++ code (that is invoked from TPL) is as follows:
+   * 1. Decide what C++ call from TPL requires instrumenting (this is function F)
+   * 2. Determine the number of hook sites required inside function F
+   * 3. Modify the translator(s) that invoke F to generate hook functions
+   * 4. Determine a mapping from hook sites in F to codegen'ed hook functions
+   * 4. Prior to codegen-ing the call to F, codegen calls to ExecutionContextRegisterHook
+   *    that map each hook function to a particular call site
+   * 5. After codegen-ing the call to F, codegen a call to ExecutionContextClearHooks
+   * 5. Modify F to invoke the designed hook at each call site
+   *
    * Convention: First argument is the query state.
    *             second argument is the thread state.
    *             Third is opaque function argument.
@@ -196,7 +217,7 @@ class EXPORT ExecutionContext {
   }
 
   /**
-   * @returns PipelineOperatingUnits
+   * @return PipelineOperatingUnits
    */
   common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
     return pipeline_operating_units_;
@@ -206,12 +227,19 @@ class EXPORT ExecutionContext {
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
   /**
-   * Registers a thread with the attached metrics manager
+   * If the calling thread is not registered with any MetricsManager, this function
+   * will register the calling thread with the MetricsManager held by this ExecutionContext.
+   *
+   * This is particularly useful during parallel query execution: assume that thread A
+   * constructs an ExecutionContext with metrics manager B. Then all threads [T] spawned by TBB
+   * during parallel query execution that invoke this function will be registered with
+   * metrics manager B.
    */
-  void RegisterThread();
+  void RegisterThreadWithMetricsManager();
 
   /**
-   * Aggregate thread
+   * Requests that the metrics manager attached to this execution context
+   * aggregate metrics from registered threads.
    */
   void AggregateMetricsThread();
 
@@ -221,12 +249,12 @@ class EXPORT ExecutionContext {
   void CheckTrackersStopped();
 
   /**
-   * @returns metrics manager used by execution context
+   * @return metrics manager used by execution context
    */
   common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
 
   /**
-   * @returns query identifier
+   * @return query identifier
    */
   execution::query_id_t GetQueryId() { return query_id_; }
 
@@ -254,17 +282,19 @@ class EXPORT ExecutionContext {
   /**
    * Sets the estimated concurrency of a parallel operation.
    * This value is used when initializing an ExecOUFeatureVector
-   * @param estimate Estimation
+   *
+   * @note this value is reset by setting it to 0.
+   * @param estimate Estimated number of concurrent tasks
    */
   void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
 
   /**
    * Invoke a hook function if a hook function is available
-   * @param hookIndex Index of hook futnction to invoke
+   * @param hook_index Index of hook futnction to invoke
    * @param tls TLS argument
    * @param arg Opaque argument to pass
    */
-  void InvokeHook(size_t hookIndex, void *tls, void *arg);
+  void InvokeHook(size_t hook_index, void *tls, void *arg);
 
   /**
    * Registers a hook function

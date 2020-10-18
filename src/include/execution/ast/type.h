@@ -10,7 +10,6 @@
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
-#include "metrics/metrics_manager.h"
 
 namespace terrier::execution::ast {
 
