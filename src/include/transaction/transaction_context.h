@@ -164,7 +164,7 @@ class TransactionContext {
    * to enable further deferral of actions
    */
   void RegisterAbortAction(const TransactionEndAction &a) {
-    abort_actions_.push_front(new TransactionEndActionFunction(a));
+    abort_actions_.push_front(std::unique_ptr<TransactionEndActionBaseFunctor>{new TransactionEndActionFunction(a)});
   }
 
   /**
@@ -181,12 +181,12 @@ class TransactionContext {
    */
   template <typename T>
   void RegisterAbortCleanupAction(T *resource) {
-    abort_actions_.push_front(new TransactionEndCleanupFunctor(
+    abort_actions_.push_front(std::unique_ptr<TransactionEndActionBaseFunctor>{new TransactionEndCleanupFunctor(
         [](void *ptr) {
           auto specialized = static_cast<T *>(ptr);
           delete specialized;
         },
-        resource));
+        resource)});
   }
 
   /**
@@ -239,7 +239,7 @@ class TransactionContext {
   std::vector<const byte *> loose_ptrs_;
 
   // These actions will be triggered (not deferred) at abort/commit.
-  std::forward_list<TransactionEndActionBaseFunctor *> abort_actions_;
+  std::forward_list<std::unique_ptr<TransactionEndActionBaseFunctor>> abort_actions_;
   std::forward_list<TransactionEndActionFunction> commit_actions_;
 
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to

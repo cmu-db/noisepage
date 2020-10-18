@@ -156,10 +156,9 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    auto abort_action = txn->abort_actions_.front();
-    (*abort_action)(deferred_action_manager_.Get());
+    auto abort_action = std::move(txn->abort_actions_.front());
+    (*abort_action.get())(deferred_action_manager_.Get());
     txn->abort_actions_.pop_front();
-    delete abort_action;
   }
 
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
