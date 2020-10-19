@@ -145,9 +145,26 @@ class ExecutionOperatingUnitFeature {
   ExecutionOperatingUnitType GetExecutionOperatingUnitType() const { return feature_; }
 
   /**
-   * @return estimated number of output tuples as a reference
+   * Updates target with the value of update under a specific update mode.
+   *
+   * If mode == SET: *target = update
+   * If mode == ADD: *target += update
+   * If mode == MULT: *target *= update
+   *
+   * @param mode Mode to use for updating target
+   * @param target Target to update
+   * @param update Value to apply
    */
-  size_t &GetNumRows() { return num_rows_; }
+  void ApplyValueUpdate(ExecutionOperatingUnitFeatureUpdateMode mode, size_t *target, size_t update);
+
+  /**
+   * Update num_rows under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
+   */
+  void UpdateNumRows(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_rows_, val);
+  }
 
   /**
    * @return estimated number of output tuples
@@ -165,9 +182,13 @@ class ExecutionOperatingUnitFeature {
   size_t GetNumKeys() const { return num_keys_; }
 
   /**
-   * @return estimated cardinality as a reference
+   * Update cardinality under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
    */
-  size_t &GetCardinality() { return cardinality_; }
+  void UpdateCardinality(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &cardinality_, val);
+  }
 
   /**
    * @return estimated cardinality
@@ -175,9 +196,13 @@ class ExecutionOperatingUnitFeature {
   size_t GetCardinality() const { return cardinality_; }
 
   /**
-   * @return num concurrent as a reference
+   * Update num_concurrent under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
    */
-  size_t &GetNumConcurrent() { return num_concurrent_; }
+  void UpdateNumConcurrent(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_concurrent_, val);
+  }
 
   /**
    * @return num concurrent
