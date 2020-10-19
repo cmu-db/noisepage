@@ -1,7 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -123,11 +125,11 @@ class Messenger : public common::DedicatedThreadTask {
    * @param connection_id   The connection to send the message over.
    * @param message         The message to be sent.
    * @param callback        The callback function to be invoked on the response.
-   * @param recv_msg_id     The receiver's message ID, e.g., sent in response or to invoke preregistered functions.
+   * @param recv_cb_id      The receiver's callback ID, e.g., sent in response or to invoke preregistered functions.
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
    */
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message, CallbackFn callback,
-                   uint64_t recv_msg_id);
+                   uint64_t recv_cb_id);
 
  private:
   friend ConnectionId;
@@ -151,10 +153,11 @@ class Messenger : public common::DedicatedThreadTask {
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
   std::unique_ptr<MessengerPolledSockets> polled_sockets_;
   std::unordered_map<uint64_t, CallbackFn> callbacks_;
+  std::mutex callbacks_mutex_;
   bool is_messenger_running_ = false;
   uint32_t connection_id_count_ = 0;
   /** The message ID that gets automatically prefixed to messages. */
-  uint64_t message_id_ = static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
+  std::atomic<uint64_t> message_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
 };
 
 /**

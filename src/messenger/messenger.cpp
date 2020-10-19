@@ -98,14 +98,14 @@ class ZmqMessage {
   /**
    * Build a new ZmqMessage from the supplied information.
    * @param send_msg_id     The ID of the message on the sender side.
-   * @param recv_msg_id     The ID of the message on the receiver side.
+   * @param recv_cb_id      The ID of the message on the receiver side.
    * @param sender_id       The identity of the sender.
    * @param message         The contents of the message.
    * @return A ZmqMessage encapsulating the given message.
    */
-  static ZmqMessage Build(uint64_t send_msg_id, uint64_t recv_msg_id, const std::string &sender_id,
+  static ZmqMessage Build(uint64_t send_msg_id, uint64_t recv_cb_id, const std::string &sender_id,
                           std::string_view message) {
-    return ZmqMessage{sender_id, fmt::format("{}-{}-{}", send_msg_id, recv_msg_id, message)};
+    return ZmqMessage{sender_id, fmt::format("{}-{}-{}", send_msg_id, recv_cb_id, message)};
   }
 
   /**
@@ -122,7 +122,7 @@ class ZmqMessage {
   uint64_t GetMessageIdSender() const { return send_msg_id_; }
 
   /** @return The ID of this message (receiver side). */
-  uint64_t GetMessageIdReceiver() const { return recv_msg_id_; }
+  uint64_t GetCallbackIdReceiver() const { return recv_cb_id_; }
 
   /** @return The routing ID of this message. */
   std::string_view GetRoutingId() const { return std::string_view(routing_id_); }
@@ -141,10 +141,10 @@ class ZmqMessage {
       : routing_id_(std::move(routing_id)), payload_(std::move(payload)), message_(payload_) {
     if (payload_.empty()) {
       send_msg_id_ = 0;
-      recv_msg_id_ = 0;
+      recv_cb_id_ = 0;
     } else {
       // TODO(WAN): atoi, stoull, from_chars, etc? Error checking in general.
-      UNUSED_ATTRIBUTE int check = std::sscanf(payload_.c_str(), "%lu-%lu-", &send_msg_id_, &recv_msg_id_);
+      UNUSED_ATTRIBUTE int check = std::sscanf(payload_.c_str(), "%lu-%lu-", &send_msg_id_, &recv_cb_id_);
       TERRIER_ASSERT(2 == check, "Couldn't parse the message header.");
       message_.remove_prefix(message_.find_last_of('-') + 1);
     }
@@ -158,7 +158,7 @@ class ZmqMessage {
   /** The cached id of the message (sender side). */
   uint64_t send_msg_id_;
   /** The cached id of the message (receiver side). */
-  uint64_t recv_msg_id_;
+  uint64_t recv_cb_id_;
   /** The cached actual message. */
   std::string_view message_;
 };
@@ -180,6 +180,10 @@ class MessengerPolledSockets {
   PollItems &GetPollItems() {
     // If there are pending poll items, add all of them to the main list of poll items.
     if (!writer_.items_.empty()) {
+      // Note that there is a TOCTOU here that does not matter. Stale reads are OK.
+      // The user of GetPollItems() has to call GetPollItems() repeatedly by design.
+      // If item I is added to the writer after the emptiness check,
+      // item I will be picked up by the next call to GetPollItems().
       std::scoped_lock lock(mutex_);
       read_.items_.insert(read_.items_.cend(), writer_.items_.cbegin(), writer_.items_.cend());
       writer_.items_.clear();
@@ -228,7 +232,10 @@ class ZmqUtil {
     return socket->get(zmq::sockopt::routing_id);
   }
 
-  /** @return The next string to be read off the socket. */
+  /**
+   * @return    The next string to be read off the socket.
+   * @warning   Socket must be effectively latched!
+   */
   static std::string Recv(common::ManagedPointer<zmq::socket_t> socket, zmq::recv_flags flags) {
     zmq::message_t message;
     auto received = socket->recv(message, flags);
@@ -238,7 +245,10 @@ class ZmqUtil {
     return std::string(static_cast<char *>(message.data()), received.value());
   }
 
-  /** @return The next ZmqMessage (identity and payload) read off the socket. */
+  /**
+   * @return    The next ZmqMessage (identity and payload) read off the socket.
+   * @warning   Socket must be effectively latched!
+   */
   static messenger::ZmqMessage RecvMsg(common::ManagedPointer<zmq::socket_t> socket) {
     std::string identity = Recv(socket, zmq::recv_flags::none);
     std::string delimiter = Recv(socket, zmq::recv_flags::none);
@@ -247,7 +257,10 @@ class ZmqUtil {
     return messenger::ZmqMessage::Parse(identity, payload);
   }
 
-  /** @return Send the specified identity over the socket. ROUTER sockets must send this before SendMsgPayload(). */
+  /**
+   * @return    Send the specified identity over the socket. ROUTER sockets must send this before SendMsgPayload().
+   * @warning   Socket must be effectively latched!
+   */
   static void SendMsgIdentity(common::ManagedPointer<zmq::socket_t> socket, const std::string &identity) {
     zmq::message_t identity_msg(identity.data(), identity.size());
     bool ok = socket->send(identity_msg, zmq::send_flags::sndmore).has_value();
@@ -257,7 +270,10 @@ class ZmqUtil {
     }
   }
 
-  /** @return Send the specified ZmqMessage (delimiter and payload) over the socket. */
+  /**
+   * @return    Send the specified ZmqMessage (delimiter and payload) over the socket.
+   * @warning   Socket must be effectively latched!
+   */
   static void SendMsgPayload(common::ManagedPointer<zmq::socket_t> socket, const messenger::ZmqMessage &msg) {
     zmq::message_t delimiter_msg("", 0);
     zmq::message_t payload_msg(msg.GetRawPayload().data(), msg.GetRawPayload().size());
@@ -375,17 +391,24 @@ ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message,
-                            CallbackFn fn, uint64_t recv_msg_id) {
+                            CallbackFn fn, uint64_t recv_cb_id) {
+  // Note that a ConnectionId cannot be used from multiple threads. This is an inherent ZeroMQ limitation.
+  // If you need another thread to connect to the same ConnectionDestination, just get a new ConnectionId.
+  // This allows us to avoid taking latches around the socket that the ConnectionId wraps.
+
   uint64_t send_msg_id = message_id_++;
   // Check for wraparound.
   if (0 == message_id_) {
     message_id_ = static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
   }
+
   // Register the callback that will be invoked when a response to this message is received.
+  callbacks_mutex_.lock();
   callbacks_[send_msg_id] = fn;
+  callbacks_mutex_.unlock();
 
   // Build and send the message.
-  ZmqMessage msg = ZmqMessage::Build(send_msg_id, recv_msg_id, connection_id->routing_id_, message);
+  ZmqMessage msg = ZmqMessage::Build(send_msg_id, recv_cb_id, connection_id->routing_id_, message);
   ZmqUtil::SendMsgPayload(common::ManagedPointer(connection_id->socket_), msg);
   MESSENGER_LOG_TRACE(
       fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), connection_id->target_name_, msg.GetRawPayload()));
@@ -417,8 +440,8 @@ void Messenger::ServerLoop() {
 }
 
 void Messenger::ProcessMessage(const ZmqMessage &msg) {
-  auto recv_msg_id = msg.GetMessageIdReceiver();
-  switch (recv_msg_id) {
+  auto recv_cb_id = msg.GetCallbackIdReceiver();
+  switch (recv_cb_id) {
     case static_cast<uint8_t>(BuiltinCallback::NOOP): {
       // Special function: NOOP.
       break;
@@ -439,12 +462,12 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
       break;
     }
     default: {
-      TERRIER_ASSERT(recv_msg_id > static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS), "Bad message ID.");
+      TERRIER_ASSERT(recv_cb_id > static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS), "Bad message ID.");
       // Default: there should be a stored callback.
-      MESSENGER_LOG_TRACE(fmt::format("Callback: invoking stored callback {}", recv_msg_id));
-      auto &callback = callbacks_.at(recv_msg_id);
+      MESSENGER_LOG_TRACE(fmt::format("Callback: invoking stored callback {}", recv_cb_id));
+      auto &callback = callbacks_.at(recv_cb_id);
       callback(msg.GetRoutingId(), msg.GetMessage());
-      callbacks_.erase(recv_msg_id);
+      callbacks_.erase(recv_cb_id);
     }
   }
 }
