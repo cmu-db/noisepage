@@ -501,8 +501,12 @@ class EXPORT Decimal {
   // The encoded decimal value
   T value_;
   void UnsignedDivideConstant128Bit(uint128_t constant);
-
   void UnsignedDivideConstant128BitPowerOfTen(unsigned power);
+  void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
+  void SignedMultiplyWithConstant(long long int input);
+  void SignedDivideWithConstant(long long int input);
+  void SignedDivideWithDecimal(Decimal<T> input,
+                               unsigned denominator_precision);
 };
 
 using Decimal32 = Decimal<int32_t>;
