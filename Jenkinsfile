@@ -24,10 +24,10 @@ pipeline {
                         sh 'cd build && timeout 20m make check-format'
                         sh 'cd build && timeout 20m make check-lint'
                         sh 'cd build && timeout 20m make check-censored'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -48,10 +48,10 @@ pipeline {
                         sh 'cd build && timeout 20m make check-format'
                         sh 'cd build && timeout 20m make check-lint'
                         sh 'cd build && timeout 20m make check-censored'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -76,10 +76,10 @@ pipeline {
                         sh 'cd build && timeout 20m make check-format'
                         sh 'cd build && timeout 20m make check-lint'
                         sh 'cd build && timeout 20m make check-censored'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -108,7 +108,6 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -116,6 +115,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -139,7 +139,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -147,6 +146,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -184,7 +184,6 @@ pipeline {
                         sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
                         sh 'cd build && chmod a+x ./codecov.sh'
                         sh 'cd build && /bin/bash ./codecov.sh -X gcov'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -192,6 +191,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -219,7 +219,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -227,6 +226,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -250,7 +250,6 @@ pipeline {
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -258,6 +257,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -280,7 +280,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -288,6 +287,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -314,7 +314,6 @@ pipeline {
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         always {
@@ -322,6 +321,7 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -353,10 +353,10 @@ pipeline {
                         sh 'cd build && gtimeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug' 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         // sh 'cd build && gtimeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -382,10 +382,10 @@ pipeline {
                         sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_debug/tpcc_parallel_disabled.json --build-type=debug' 
                         // TODO: Need to fix OLTP-Bench's TPC-C to support scalefactor correctly
                         // sh 'cd build && timeout 1h python3 ../script/testing/oltpbench/run_oltpbench.py tpcc 45,43,4,4,4 --build-type=debug --query-mode=simple --scale-factor=0.01 --loader-threads=4'
-                        sh 'sudo rm -rf ./build'
                     }
                     post {
                         cleanup {
+                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -405,7 +405,12 @@ pipeline {
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release' 
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release'
-                sh 'sudo rm -rf ./build'
+            }
+            post {
+                cleanup {
+                    sh 'sudo rm -rf ./build'
+                    deleteDir()
+                }
             }
         }
         stage('Microbenchmark') {
@@ -415,10 +420,10 @@ pipeline {
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
-                sh 'sudo rm -rf ./build'
             }
             post {
                 cleanup {
+                    sh 'sudo rm -rf ./build'
                     deleteDir()
                 }
             }
