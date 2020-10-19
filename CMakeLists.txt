@@ -248,7 +248,6 @@ if (${NOISEPAGE_GENERATE_COVERAGE})
         message(FATAL_ERROR "Coverage requires a debug build type!")    # Then error out.
     endif ()
     list(APPEND NOISEPAGE_COMPILE_OPTIONS "--coverage")     # Compile with coverage (compilers alias this).
-    list(APPEND NOISEPAGE_COMPILE_OPTIONS "-DNDEBUG")       # Disable assertions and other such checks.
     list(APPEND NOISEPAGE_LINK_OPTIONS "--coverage")        # Link coverage libraries (compilers alias this).
 endif ()
 message(STATUS "Coverage: ${NOISEPAGE_GENERATE_COVERAGE}")
