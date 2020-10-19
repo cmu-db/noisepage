@@ -27,7 +27,6 @@ pipeline {
                     }
                     post {
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -51,7 +50,6 @@ pipeline {
                     }
                     post {
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -79,7 +77,6 @@ pipeline {
                     }
                     post {
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -115,7 +112,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -146,7 +142,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -191,7 +186,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -226,7 +220,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -257,7 +250,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -287,7 +279,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -321,7 +312,6 @@ pipeline {
                             xunit reduceLog: false, tools: [CTest(deleteOutputFiles: false, failIfNotNew: false, pattern: 'build/Testing/**/*.xml', skipNoTestFiles: false, stopProcessingIfError: false)]
                         }
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -356,7 +346,6 @@ pipeline {
                     }
                     post {
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -385,7 +374,6 @@ pipeline {
                     }
                     post {
                         cleanup {
-                            sh 'sudo rm -rf ./build'
                             deleteDir()
                         }
                     }
@@ -408,7 +396,6 @@ pipeline {
             }
             post {
                 cleanup {
-                    sh 'sudo rm -rf ./build'
                     deleteDir()
                 }
             }
@@ -423,7 +410,6 @@ pipeline {
             }
             post {
                 cleanup {
-                    sh 'sudo rm -rf ./build'
                     deleteDir()
                 }
             }

@@ -31,7 +31,6 @@ pipeline {
             }
             post {
                 cleanup {
-                    sh 'sudo rm -rf ./build'
                     deleteDir()
                 }
             }
@@ -56,7 +55,6 @@ pipeline {
             }
             post {
                 cleanup {
-                    sh 'sudo rm -rf ./build'
                     deleteDir()
                 }
             }
