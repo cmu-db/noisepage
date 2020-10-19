@@ -100,8 +100,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   // done[3] is shared memory (mmap) so that the forked processes can coordinate on when they are done.
   // This is done instead of waitpid() because I can't find a way to stop googletest from freaking out on waitpid().
   // done[0] : primary, done[1] : replica1, done[2] : replica2.
-  bool *done =
-      static_cast<bool *>(mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  volatile bool *done = static_cast<volatile bool *>(
+      mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
   TERRIER_ASSERT(MAP_FAILED != done, "mmap() failed.");
 
   done[0] = false;
@@ -123,6 +123,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     MESSENGER_LOG_TRACE("Primary done.");
     done[0] = true;
     spin_until_done();
+    MESSENGER_LOG_TRACE("Primary exit.");
   };
 
   VoidFn replica1_fn = [=]() {
@@ -135,7 +136,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     auto con_primary = messenger->MakeConnection(dest_primary);
 
     // Send "potato" to the primary and expect "potato" as a reply.
-    bool reply_primary_potato = false;
+    volatile bool reply_primary_potato = false;
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "potato",
@@ -148,7 +149,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     }
 
     // Send "tomato" to the primary and expect "tomato" as a reply.
-    bool reply_primary_tomato = false;
+    volatile bool reply_primary_tomato = false;
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "tomato",
@@ -166,6 +167,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     MESSENGER_LOG_TRACE("Replica 1 done.");
     done[1] = true;
     spin_until_done();
+    MESSENGER_LOG_TRACE("Replica 1 exit.");
   };
 
   VoidFn replica2_fn = [=]() {
@@ -178,7 +180,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     auto con_primary = messenger->MakeConnection(dest_primary);
 
     // Send "elephant" to the primary and expect "elephant" as a reply.
-    bool reply_primary_elephant = false;
+    volatile bool reply_primary_elephant = false;
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "elephant",
@@ -191,7 +193,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     }
 
     // Send "correct HORSE battery staple" to the primary and expect "correct HORSE battery staple" as a reply.
-    bool reply_primary_chbs = false;
+    volatile bool reply_primary_chbs = false;
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "correct HORSE battery staple",
@@ -209,6 +211,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     MESSENGER_LOG_TRACE("Replica 2 done.");
     done[2] = true;
     spin_until_done();
+    MESSENGER_LOG_TRACE("Replica 2 exit.");
   };
 
   std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn, replica2_fn});
@@ -217,7 +220,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   while (!(done[0] && done[1] && done[2])) {
   }
 
-  UNUSED_ATTRIBUTE int munmap_retval = munmap(done, 3 * sizeof(bool));
+  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
   TERRIER_ASSERT(-1 != munmap_retval, "munmap() failed.");
 }
 
