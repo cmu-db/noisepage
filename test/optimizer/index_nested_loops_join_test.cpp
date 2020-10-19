@@ -200,8 +200,9 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
       common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
@@ -321,8 +322,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
       common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
@@ -402,8 +404,9 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
       common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
@@ -469,8 +472,9 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
       common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
@@ -536,8 +540,9 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
       common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
@@ -616,8 +621,9 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
       common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
