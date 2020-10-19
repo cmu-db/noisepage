@@ -770,6 +770,7 @@ add_custom_target(unittest
         -L unittest                         # Run all tests that have a label like unittests. See footgun warning above.
         --no-compress-output                # Output verbosely so that it can be logged.
         -T Test                             # Run tests and log it to Testing/*/Test.xml.
+        --timeout 3000                      # 3000 second timeout per test.
         USES_TERMINAL)
 add_custom_target(jumbotests
         ctest
@@ -779,6 +780,7 @@ add_custom_target(jumbotests
         -L jumbotests                       # Run all tests that have a label like jumbotests. See footgun warning above.
         --no-compress-output                # Output verbosely so that it can be logged.
         -T Test                             # Run tests and log it to Testing/*/Test.xml.
+        --timeout 3000                      # 3000 second timeout per test.
         USES_TERMINAL)
 
 unset(UNITTEST_OUTPUT_ON_FAILURE)
