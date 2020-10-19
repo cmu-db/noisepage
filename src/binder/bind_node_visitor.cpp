@@ -854,6 +854,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::TableRef> node) {
 
     // TODO(WAN): who exactly should save and restore contexts? Restore the previous level context
     context_ = pre_context;
+
+    // TableRef is not a CTE
     if (node->GetCteType() == parser::CTEType::INVALID) {
       context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns(), {});
     }

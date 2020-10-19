@@ -95,8 +95,8 @@ class Schema {
           nullable_(nullable),
           oid_(oid),
           default_value_(default_value.Copy()) {
-      // TODO(Rohan,Gautam,Preetansh): We need to manually set this as we cannot get this from Output
-      // schema - so we need some other way to find it
+      // TODO(Rohan,Gautam,Preetansh): We need to manually set the max varlen size here
+      //  as we cannot get this from Output schema for now
       max_varlen_size_ = 128;
     }
 

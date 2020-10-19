@@ -419,6 +419,12 @@ class EXPORT CatalogAccessor {
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
   const common::ManagedPointer<CatalogCache> cache_ = nullptr;
+
+  /**
+   * temporary table catalog that hosts mappings from a temporary table oid
+   * to sql tables that represent this temporary table. Operators such as CTE/iterative
+   * cte scan iterators will interact with this and handle the lifetime of these temporary tables.
+   */
   std::unordered_map<catalog::table_oid_t, common::ManagedPointer<storage::SqlTable>> temp_tables_;
   uint32_t temp_oid_counter_{0};
 
