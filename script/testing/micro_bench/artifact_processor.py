@@ -102,8 +102,6 @@ class ArtifactProcessor(object):
         publishable_comparison = {
             key: value for key, value in initial_comparison.items() if key in fields}
 
-        test_suite, test_name = initial_comparison.get('suite'), initial_comparison.get('test')
-
         key = (gbench_result.suite_name, gbench_result.test_name)
         historical_results = self.artifacts.get(key)
         if initial_comparison.get('reference_type') != 'none':
@@ -144,6 +142,10 @@ class ArtifactProcessor(object):
             "status": "PASS"
         }
         if ref_type != 'none':
+            if not comparison.get('ref_throughput') or comparison.get('ref_throughput') <= 0 or \
+               not comparison.get('throughput') or comparison.get('throughput') <=0:
+                return comparison
+
             historical_results = self.artifacts.get(key)
             comparison['num_results'] = historical_results.get_num_results()
             comparison['tolerance'] = BENCHMARKS_TO_RUN[bench_name] if ref_type == 'historic' else lax_tolerance

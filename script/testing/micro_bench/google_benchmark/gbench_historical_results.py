@@ -37,13 +37,21 @@ class GBenchHistoricalResults(object):
         return len(self.gbench_results)
 
     def get_mean_time(self):
+        if self.get_num_results() <= 0:
+            raise ValueError('Must have at least 1 historical result to calculate mean time')
         return self.total_time / self.get_num_results()
 
     def get_stdev_time(self):
+        if self.get_num_results() <= 0:
+            raise ValueError('Must have at least 1 historical result to calculate stdev time')
         return pstdev(map(self.gbench_results, lambda res: res.get_time_secs()))
 
     def get_mean_throughput(self):
+        if self.get_num_results() <= 0:
+            raise ValueError('Must have at least 1 historical result to calculate mean throughput')
         return self.total_throughput / self.get_num_results()
 
     def get_stdev_throughput(self):
+        if self.get_num_results() <= 0:
+            raise ValueError('Must have at least 1 historical result to calculate stdev throughput')
         return pstdev(map(lambda res: res.items_per_second, self.gbench_results))
