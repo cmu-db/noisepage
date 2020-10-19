@@ -44,7 +44,8 @@ class EXPORT OutputBuffer {
    * @param tuple_size size of output tuples
    * @param callback upper layer callback
    */
-  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
+  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size,
+                        const OutputCallback &callback)
       : memory_pool_(memory_pool),
         num_tuples_(0),
         tuple_size_(tuple_size),
@@ -90,7 +91,7 @@ class EXPORT OutputBuffer {
   uint32_t num_tuples_;
   uint32_t tuple_size_;
   byte *tuples_;
-  OutputCallback callback_;
+  const OutputCallback &callback_;
 };
 
 /**

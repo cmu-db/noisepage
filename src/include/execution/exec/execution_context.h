@@ -74,7 +74,7 @@ class EXPORT ExecutionContext {
    * @param metrics_manager The metrics manager for recording metrics
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
-                   OutputCallback callback, const planner::OutputSchema *schema,
+                   const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    const exec::ExecutionSettings &exec_settings,
                    common::ManagedPointer<metrics::MetricsManager> metrics_manager)
@@ -323,7 +323,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_ = nullptr;
   const planner::OutputSchema *schema_ = nullptr;
-  OutputCallback callback_;
+  const OutputCallback &callback_;
   // Container for thread-local state.
   // During parallel processing, execution threads access their thread-local state from this container.
   std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;
