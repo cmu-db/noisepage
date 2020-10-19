@@ -84,7 +84,7 @@ class EXPORT ExecutionContext {
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
         mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
         schema_(schema),
-        callback_(std::move(callback)),
+        callback_(callback),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor),
         metrics_manager_(metrics_manager) {}
