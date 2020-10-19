@@ -58,6 +58,7 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
   }
 
   TERRIER_ASSERT(did_find, "No matching feature was found");
+  (void)did_find;  // silence release warning
 }
 
 }  // namespace terrier::brain
