@@ -51,7 +51,7 @@ class EXPORT OutputBuffer {
         tuple_size_(tuple_size),
         tuples_(
             reinterpret_cast<byte *>(memory_pool->AllocateAligned(BATCH_SIZE * tuple_size, alignof(uint64_t), true))),
-        callback_(std::move(callback)) {}
+        callback_(callback) {}
 
   /**
    * @return an output slot to be written to.
