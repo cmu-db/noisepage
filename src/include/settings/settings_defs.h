@@ -297,9 +297,9 @@ SETTING_string(
 
 SETTING_int(
     num_parallel_execution_threads,
-    "Number of threads for parallel query execution (default: -1 for unspecified)",
-    -1,
-    -1,
+    "Number of threads for parallel query execution (default: 0)",
+    0,
+    0,
     128,
     true,
     terrier::settings::Callbacks::NoOp
