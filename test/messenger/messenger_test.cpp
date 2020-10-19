@@ -86,7 +86,6 @@ class MessengerTests : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(MessengerTests, BasicReplicationTest) {
-  // TODO(WAN): remove this after demo at meeting.
   messenger_logger->set_level(spdlog::level::trace);
 
   uint16_t port_primary = 15721;
