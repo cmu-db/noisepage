@@ -329,12 +329,24 @@ class DBMain {
       auto buffer_segment_pool =
           std::make_unique<storage::RecordBufferSegmentPool>(record_buffer_segment_size_, record_buffer_segment_reuse_);
 
+      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
+      if (use_messenger_) {
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
+                                                           messenger_identity_);
+      }
+
+      std::unique_ptr<storage::ReplicationManager> replication_manager = DISABLED;
+      if (use_messenger_) {
+        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(), "", "localhost", messenger_port_);
+      }
+
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
             wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
             std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
+            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry),
+            common::ManagedPointer<storage::ReplicationManager>(replication_manager));
         log_manager->Start();
       }
 
@@ -392,12 +404,6 @@ class DBMain {
                                            network_port_, connection_thread_count_, uds_file_directory_);
       }
 
-      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
-      if (use_messenger_) {
-        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
-                                                           messenger_identity_);
-      }
-
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -413,6 +419,7 @@ class DBMain {
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
       db_main->messenger_layer_ = std::move(messenger_layer);
+      db_main->replication_manager_ = std::move(replication_manager);
 
       return db_main;
     }
@@ -894,7 +901,10 @@ class DBMain {
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
 
- private:
+  /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
+  common::ManagedPointer<storage::ReplicationManager> GetReplicationManager() const { return common::ManagedPointer(replication_manager_); }
+
+private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
@@ -912,6 +922,7 @@ class DBMain {
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
+  std::unique_ptr<storage::ReplicationManager> replication_manager_;
 };
 
 }  // namespace terrier
