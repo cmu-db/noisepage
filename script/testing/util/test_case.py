@@ -1,9 +1,9 @@
 from util import constants
 from util.common import *
 
+
 class TestCase:
     """Class of a test case, could be part of a test suite"""
-
     def __init__(self, args):
         """ Locations and misc. variable initialization """
         # clean up the command line args
@@ -24,6 +24,9 @@ class TestCase:
 
         # whether the DB should restart before the test begin
         self.db_restart = True
+
+        # memory info dict
+        self.mem_info_dict = {}
 
     def run_pre_test(self):
         pass

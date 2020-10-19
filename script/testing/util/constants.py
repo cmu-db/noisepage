@@ -43,6 +43,7 @@ LOG.setLevel(logging.INFO)
 # Scripts with psutils
 FILE_CHECK_PIDS = os.path.join(DIR_TESTING, "check_pids.py")
 FILE_KILL_SERVER = os.path.join(DIR_TESTING, "kill_server.py")
+FILE_COLLECT_MEM_INFO = os.path.join(DIR_TESTING, "collect_mem_info.py")
 
 # Command paths
 LSOF_PATH_LINUX = "lsof"
@@ -50,6 +51,10 @@ LSOF_PATH_MACOS = "/usr/sbin/lsof"
 
 # OS family
 OS_FAMILY_DARWIN = "darwin"
+
+# Memory info collection
+COLLECT_MEM_FREQ = 5  # collect mem info every 5 seconds by default
+MEM_INFO_SPLITTER = ","
 
 
 # error code

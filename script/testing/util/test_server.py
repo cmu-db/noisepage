@@ -6,11 +6,13 @@ import sys
 import time
 import traceback
 import shlex
+import threading
 from typing import List
 from util import constants
 from util.test_case import TestCase
-from util.common import run_command, print_file, run_check_pids, run_kill_server, print_pipe
 from util.constants import LOG, ErrorCode
+from util.common import (run_command, print_file, run_check_pids,
+                         run_kill_server, print_pipe, update_mem_info)
 
 
 class TestServer:
@@ -36,6 +38,10 @@ class TestServer:
         self.continue_on_error = self.args.get(
             "continue_on_error", constants.DEFAULT_CONTINUE_ON_ERROR)
 
+        # memory info collection
+        self.collect_mem_info = self.args.get("collect_mem_info", False)
+        self.collect_mem_freq = self.args.get("collect_mem_freq",
+                                              constants.COLLECT_MEM_FREQ)
         return
 
     def run_pre_suite(self):
@@ -153,6 +159,20 @@ class TestServer:
         # run the pre test tasks
         test_case.run_pre_test()
 
+        # start a thread to collect the memory info if needed
+        if self.collect_mem_info:
+            # spawn a thread to collect memory info
+            self.collect_mem_thread = threading.Timer(
+                self.collect_mem_freq, update_mem_info, [
+                    self.db_process.pid, self.collect_mem_freq,
+                    test_case.mem_info_dict
+                ])
+            # collect the initial memory info
+            update_mem_info(self.db_process.pid, self.collect_mem_freq,
+                            test_case.mem_info_dict)
+            # collect the subsequent memory info
+            self.collect_mem_thread.start()
+
         # run the actual test
         with open(test_case.test_output_file, "w+") as test_output_fd:
             ret_val, _, _ = run_command(test_case.test_command,
@@ -160,6 +180,11 @@ class TestServer:
                                         stdout=test_output_fd,
                                         stderr=test_output_fd,
                                         cwd=test_case.test_command_cwd)
+
+        # stop the thread to collect the memory info if started
+        if self.collect_mem_info:
+            self.collect_mem_thread.cancel()
+            self.collect_mem_thread.join()
 
         # run the post test tasks
         test_case.run_post_test()

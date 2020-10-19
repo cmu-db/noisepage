@@ -6,6 +6,7 @@ from time import time
 from oltpbench.reporting.utils import get_value_by_pattern
 from oltpbench.reporting.constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
 
+
 def parse_summary_file(path):
     """
     Read data from file OLTPBench summary file.
@@ -24,23 +25,27 @@ def parse_summary_file(path):
         summary = json.load(summary_file)
         metadata = parse_metadata(summary)
         timestamp = parse_timestamp(summary)
-        type = parse_type(summary)
+        benchmark_type = parse_benchmark_type(summary)
         parameters = parse_parameters(summary)
         metrics = parse_metrics(summary)
-        return metadata, timestamp, type, parameters, metrics
+        return metadata, timestamp, benchmark_type, parameters, metrics
+
 
 def parse_metadata(summary):
     return {
-        'noisepage':{
+        'noisepage': {
             'db_version': summary.get('DBMS Version', UNKNOWN_RESULT)
         }
     }
 
+
 def parse_timestamp(summary):
     return int(get_value_by_pattern(summary, 'timestamp', str(time())))
 
-def parse_type(summary):
+
+def parse_benchmark_type(summary):
     return summary.get('Benchmark Type', UNKNOWN_RESULT)
+
 
 def parse_parameters(summary):
     return {
@@ -48,11 +53,13 @@ def parse_parameters(summary):
         'terminals': int(summary.get('terminals', -1))
     }
 
+
 def parse_metrics(summary):
     return {
-        'throughput' : get_value_by_pattern(summary, 'throughput', '-1.0'),
-        'latency': parse_latency_data(summary.get('Latency Distribution',{}))
+        'throughput': get_value_by_pattern(summary, 'throughput', '-1.0'),
+        'latency': parse_latency_data(summary.get('Latency Distribution', {}))
     }
+
 
 def parse_latency_data(latency_dict):
     """

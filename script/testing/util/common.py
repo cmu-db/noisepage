@@ -12,6 +12,12 @@ from util.constants import LOG
 from util import constants
 
 
+class MemoryInfo:
+    def __init__(self, rss=None, vms=None):
+        self.rss = rss
+        self.vms = vms
+
+
 def run_command(command,
                 error_msg="",
                 stdout=subprocess.PIPE,
@@ -132,6 +138,23 @@ def check_pid_exists(pid):
     return psutil.pid_exists(pid)
 
 
+def collect_mem_info(pid):
+    """ Collect the memory info of the process if the pid exists """
+
+    if os.getuid() != 0:
+        raise Exception("Cannot call this function unless running as root!")
+
+    if not psutil.pid_exists(pid):
+        return None
+    p = psutil.Process(pid)
+    return p.memory_info()
+
+
+def update_mem_info(pid, interval, mem_info_dict):
+    curr = len(mem_info_dict) * interval
+    mem_info_dict[curr] = run_collect_mem_info(pid)
+
+
 def run_check_pids(pid):
     """ 
     Fork a subprocess with sudo privilege to check if the given pid exists,
@@ -164,3 +187,27 @@ def run_kill_server(port):
     if rc != constants.ErrorCode.SUCCESS:
         raise Exception(
             "Error occured in run_kill_server for [PORT={}]".format(port))
+
+
+def run_collect_mem_info(pid):
+    """ 
+    Fork a subprocess with sudo privilege to collect the memory info for the
+    given pid.
+    """
+
+    cmd = "python3 {SCRIPT} {PID}".format(
+        SCRIPT=constants.FILE_COLLECT_MEM_INFO, PID=pid)
+
+    rc, stdout, _ = run_as_root(cmd, printable=False)
+
+    if rc != constants.ErrorCode.SUCCESS:
+        LOG.error(
+            "Error occured in run_collect_mem_info for [PID={}]".format(pid))
+        return False
+
+    res_str = stdout.readline().decode("utf-8").rstrip("\n")
+    rss, vms = res_str.split(constants.MEM_INFO_SPLITTER)
+    rss = int(rss) if rss else None
+    vms = int(vms) if vms else None
+    mem_info = MemoryInfo(rss, vms)
+    return mem_info
