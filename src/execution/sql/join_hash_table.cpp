@@ -54,6 +54,9 @@ void JoinHashTable::BuildChainingHashTable() {
 
 #ifndef NDEBUG
   const auto [min, max, avg] = chaining_hash_table_.GetChainLengthStats();
+  (void)min;
+  (void)max;
+  (void)avg;
   EXECUTION_LOG_DEBUG("ChainingHashTable chain stats: min={}, max={}, avg={}", min, max, avg);
 #endif
 }
@@ -513,8 +516,8 @@ void JoinHashTable::Build() {
 
 void JoinHashTable::LookupBatchInChainingHashTable(const Vector &hashes, Vector *results) const {
   UnaryOperationExecutor::Execute<hash_t, const HashTableEntry *>(
-      exec_settings_, hashes,
-      results, [&](const hash_t hash_val) noexcept { return chaining_hash_table_.FindChainHead(hash_val); });
+      exec_settings_, hashes, results,
+      [&](const hash_t hash_val) noexcept { return chaining_hash_table_.FindChainHead(hash_val); });
 }
 
 void JoinHashTable::LookupBatchInConciseHashTable(const Vector &hashes, Vector *results) const {

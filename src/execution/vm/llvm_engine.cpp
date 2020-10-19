@@ -646,6 +646,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 #ifndef NDEBUG
   EXECUTION_LOG_TRACE("Found blocks:");
   for (auto &[pos, block] : blocks) {
+    (void)pos;
+    (void)block;
     EXECUTION_LOG_TRACE("  Block {} @ {:x}", block->getName().str(), pos);
   }
 #endif
