@@ -91,8 +91,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Make the execution context
   exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
+  exec::OutputCallback callback = printer;
   exec::ExecutionContext exec_ctx{
-      db_oid,        common::ManagedPointer(txn), printer, output_schema, common::ManagedPointer(accessor),
+      db_oid,        common::ManagedPointer(txn), callback, output_schema, common::ManagedPointer(accessor),
       exec_settings, db_main->GetMetricsManager()};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;

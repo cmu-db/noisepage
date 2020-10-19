@@ -45,5 +45,6 @@ fun main(execCtx: *ExecutionContext) -> int {
   // Finalize output
   @indexIteratorFree(&index)
   @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return res
 }

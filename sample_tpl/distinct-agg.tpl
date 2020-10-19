@@ -67,6 +67,7 @@ fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
     state.count = state.count + 1
   }
   @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {

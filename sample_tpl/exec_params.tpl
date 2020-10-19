@@ -18,5 +18,6 @@ fun main(execCtx: *ExecutionContext) -> int {
     out.string_col = @getParamString(execCtx, 3)
   }
   @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return 37
 }
