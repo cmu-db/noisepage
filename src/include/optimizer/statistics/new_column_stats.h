@@ -7,6 +7,7 @@
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "execution/sql/value.h"
+#include "optimizer/statistics/histogram.h"
 #include "optimizer/statistics/top_k_elements.h"
 
 namespace terrier::optimizer {
@@ -33,21 +34,21 @@ class NewColumnStats {
    * @param frac_null - fraction of null values out of total values in column
    * @param k_value - Number of elements to keep track of in top K
    * @param top_k_width - width of the count min sketch used in top K elements
-   * @param histogram_bounds - the bounds of the histogram of the column e.g. (1.0 - 4.0)
+   * @param histogram_max_bins - The maximum number of bins in the histogram.
    * @param is_base_table - indicates whether the column is from a base table
    */
   NewColumnStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, catalog::col_oid_t column_id,
                  size_t num_rows, double cardinality, double frac_null, size_t k_value, uint64_t top_k_width,
-                 std::vector<CppType> histogram_bounds, bool is_base_table)
+                 uint8_t histogram_max_bins, bool is_base_table)
       : database_id_(database_id),
         table_id_(table_id),
         column_id_(column_id),
         num_rows_(num_rows),
         cardinality_(cardinality),
         frac_null_(frac_null),
-        histogram_bounds_(std::move(histogram_bounds)),
         is_base_table_{is_base_table} {
     top_k_ptr = new TopKElements<CppType>(k_value, top_k_width);
+    histogram_ptr = new Histogram<CppType>(histogram_max_bins);
   }
 
   /**
@@ -74,20 +75,26 @@ class NewColumnStats {
   void SetNumRows(size_t num_rows) { num_rows_ = num_rows; }
 
   /**
+   * Gets the fraction of null values in the table.
+   * @return Fraction of nulls
+   */
+  double &GetFracNull() { return this->frac_null_; }
+
+  /**
    * Gets the cardinality of the column
    * @return the cardinality
    */
   double &GetCardinality() { return this->cardinality_; }
 
   /**
-   * Gets the histogram bounds
-   * @return histogram bounds
+   * Gets the pointer to the histogram for the column.
+   * @return Pointer to histogram.
    */
-  const std::vector<CppType> &GetHistogramBounds() const { return histogram_bounds_; }
+  common::ManagedPointer<Histogram<CppType>> GetHistogram() const { return histogram_ptr; }
 
   /**
-   * Gets the Top-K object with information on top k values and their frequencies.
-   * @return top k object
+   * Gets the Top-K pointer with information on top k values and their frequencies.
+   * @return pointer to top k object
    */
   common::ManagedPointer<TopKElements<CppType>> GetTopK() { return top_k_ptr; }
 
@@ -128,9 +135,9 @@ class NewColumnStats {
   common::ManagedPointer<TopKElements<CppType>> top_k_ptr;
 
   /**
-   * bounds for the histogram of the column
+   * Histogram for the column values.
    */
-  std::vector<CppType> histogram_bounds_;
+  common::ManagedPointer<Histogram<CppType>> histogram_ptr;
 
   /**
    * tells whether column is from a base table

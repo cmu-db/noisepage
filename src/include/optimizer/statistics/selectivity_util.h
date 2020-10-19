@@ -30,7 +30,10 @@ class SelectivityUtil {
    * @returns selectivity
    */
   template <typename T>
-  static double LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition);
+  static double LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+    double res = LessThanOrEqualTo(column_stats, condition) - Equal(column_stats, condition);
+    return std::max(std::min(res, 1.0), 0.0);
+  }
 
   /**
    * Computes Less Than Or Equal To Selectivity
@@ -40,10 +43,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
-                                  const ValueCondition &condition) {
-    double res = LessThan(column_stats, condition) + Equal(column_stats, condition);
-    return std::max(std::min(res, 1.0), 0.0);
-  }
+                                  const ValueCondition &condition);
 
   /**
    * Computes Greater Than Selectivity
@@ -53,7 +53,8 @@ class SelectivityUtil {
    */
   template <typename T>
   static double GreaterThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    return 1 - LessThanOrEqualTo(column_stats, condition);
+    double res = 1 - LessThanOrEqualTo(column_stats, condition) - column_stats->GetFracNull();
+    return std::max(std::min(res, 1.0), 0.0);
   }
 
   /**
@@ -65,7 +66,8 @@ class SelectivityUtil {
   template <typename T>
   static double GreaterThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
                                      const ValueCondition &condition) {
-    return 1 - LessThan(column_stats, condition);
+    double res = 1 - LessThan(column_stats, condition) - column_stats->GetFracNull();
+    return std::max(std::min(res, 1.0), 0.0);
   }
 
   /**
@@ -85,7 +87,8 @@ class SelectivityUtil {
    */
   template <typename T>
   static double NotEqual(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    return 1 - Equal(column_stats, condition);
+    double res = 1 - Equal(column_stats, condition) - column_stats->GetFracNull();
+    return std::max(std::min(res, 1.0), 0.0);
   }
 
   /**
@@ -167,8 +170,8 @@ double SelectivityUtil::ComputeSelectivity(common::ManagedPointer<NewColumnStats
 }
 
 template <typename T>
-double SelectivityUtil::LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats,
-                                 const ValueCondition &condition) {
+double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
+                                          const ValueCondition &condition) {
   const auto value = condition.GetPointerToValue()->Peek<decltype(T::val_)>();
 
   // Return default selectivity if empty column_stats
@@ -177,13 +180,12 @@ double SelectivityUtil::LessThan(common::ManagedPointer<NewColumnStats<T>> colum
   }
 
   // Use histogram to estimate selectivity
-  auto histogram = column_stats->GetHistogramBounds();
-  size_t n = histogram.size();
-  TERRIER_ASSERT(n > 0, "Histogram must have some bounds");
+  auto histogram = column_stats->GetHistogram();
 
-  // find correspond bin using binary search
-  auto it = std::lower_bound(histogram.begin(), histogram.end(), value);
-  double res = static_cast<double>(it - histogram.begin()) / static_cast<double>(n);
+  if (value <= histogram->GetMinValue()) return 0;
+  if (value > histogram->GetMaxValue()) return 1;
+  double res =
+      static_cast<double>(histogram->EstimateItemCount(value)) / static_cast<double>(column_stats->GetNumRows());
   TERRIER_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
   return res;
 }
