@@ -55,7 +55,7 @@ class EXPORT ExecutionContext {
    * 4. Prior to codegen-ing the call to F, codegen calls to ExecutionContextRegisterHook
    *    that map each hook function to a particular call site
    * 5. After codegen-ing the call to F, codegen a call to ExecutionContextClearHooks
-   * 5. Modify F to invoke the designed hook at each call site
+   * 6. Modify F to invoke the designated hook at each call site
    *
    * Convention: First argument is the query state.
    *             second argument is the thread state.
@@ -227,8 +227,8 @@ class EXPORT ExecutionContext {
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
   /**
-   * If the calling thread is not registered with any MetricsManager, this function
-   * will register the calling thread with the MetricsManager held by this ExecutionContext.
+   * If the calling thread is not registered with any metrics manager, this function
+   * will register the calling thread with the metrics manager held by this ExecutionContext.
    *
    * This is particularly useful during parallel query execution: assume that thread A
    * constructs an ExecutionContext with metrics manager B. Then all threads [T] spawned by TBB
@@ -290,7 +290,7 @@ class EXPORT ExecutionContext {
 
   /**
    * Invoke a hook function if a hook function is available
-   * @param hook_index Index of hook futnction to invoke
+   * @param hook_index Index of hook function to invoke
    * @param tls TLS argument
    * @param arg Opaque argument to pass
    */

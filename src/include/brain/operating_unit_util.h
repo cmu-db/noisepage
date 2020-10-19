@@ -47,7 +47,7 @@ class OperatingUnitUtil {
   /**
    * Converts a expression to brain::ExecutionOperatingUnitType
    *
-   * Function return brain::ExecutionOperatingUnitType::INVALID if the
+   * Function returns brain::ExecutionOperatingUnitType::INVALID if the
    * parser::ExpressionType does not have an equivalent conversion.
    *
    * @param expr Expression
