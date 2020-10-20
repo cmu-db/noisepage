@@ -397,7 +397,7 @@ TEST_F(ParserTestBase, SelectTest) {
   auto select_stmt = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
   EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "foo");
   // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
-  EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
+  EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::TABLE_STAR);
 
   auto result2 = parser::PostgresParser::BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
   EXPECT_EQ(result2->GetStatement(0)->GetType(), StatementType::SELECT);
@@ -657,7 +657,7 @@ TEST_F(ParserTestBase, OldBasicTest) {
   // cast result to derived class pointers
   auto statement = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
   EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
-  EXPECT_EQ(ExpressionType::STAR, statement->GetSelectColumns()[0]->GetExpressionType());
+  EXPECT_EQ(ExpressionType::TABLE_STAR, statement->GetSelectColumns()[0]->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
@@ -965,7 +965,7 @@ TEST_F(ParserTestBase, OldNestedQueryTest) {
   EXPECT_EQ("t", statement->GetSelectTable()->GetAlias());
   auto nested_statement = statement->GetSelectTable()->GetSelect();
   EXPECT_EQ("foo", nested_statement->GetSelectTable()->GetTableName());
-  EXPECT_EQ(ExpressionType::STAR, nested_statement->GetSelectColumns()[0]->GetExpressionType());
+  EXPECT_EQ(ExpressionType::TABLE_STAR, nested_statement->GetSelectColumns()[0]->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
