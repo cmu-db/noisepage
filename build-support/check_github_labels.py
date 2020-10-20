@@ -26,8 +26,8 @@ if __name__ == '__main__':
         sys.exit(0)
     # Otherwise, get the labels for the PR.
     api_url = r'https://api.github.com/repos/cmu-db/noisepage/issues/{}/labels'
-    req = json.loads(urllib.request.urlopen(api_url.format(pr_num)).read().decode('utf-8'))
-    labels = [label['name'] for label in req.json()]
+    data = json.loads(urllib.request.urlopen(api_url.format(pr_num)).read().decode('utf-8'))
+    labels = [label['name'] for label in data]
 
     if 'ready-for-review' in labels or 'ready-to-merge' in labels:
         sys.exit(0)
