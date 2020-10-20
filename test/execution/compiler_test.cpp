@@ -901,8 +901,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_AggregateWithDistinctAndGroupByTest) {
-  // TODO(WAN): distinct doesn't work yet in TPL2
+TEST_F(CompilerTest, AggregateWithDistinctAndGroupByTest) {
   // SELECT col2, SUM(col1), COUNT(DISTINCT col2), SUM(DISTINCT col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -1123,8 +1122,7 @@ TEST_F(CompilerTest, StaticAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
-  // TODO(WAN): distinct doesn't work yet in TPL2
+TEST_F(CompilerTest, StaticDistinctAggregateTest) {
   // SELECT COUNT(DISTINCT colb), SUM(DISTINCT colb), COUNT(*) FROM test_1;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -1201,16 +1199,15 @@ TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
 
   // Pipeline Units
   auto pipeline = executable->GetPipelineOperatingUnits();
-  EXPECT_FALSE(true);
-  // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 2);
+  EXPECT_EQ(pipeline->units_.size(), 2);
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                                                                  brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -3592,11 +3589,3 @@ TEST_F(CompilerTest, TPCHQ1Test) {
 }
 */
 }  // namespace terrier::execution::compiler::test
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  terrier::execution::ExecutionUtil::InitTPL();
-  int ret = RUN_ALL_TESTS();
-  terrier::execution::ExecutionUtil::ShutdownTPL();
-  return ret;
-}
