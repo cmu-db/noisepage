@@ -169,7 +169,7 @@ pipeline {
                         sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_LOGGING=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON .. && ninja'
+                        sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON .. && ninja'
                         sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h ninja unittest'
                         sh 'cd build && timeout 1h ninja check-tpl'
@@ -402,7 +402,7 @@ pipeline {
                 sh 'python3 ./build-support/check_github_labels.py'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
-                sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_USE_LOGGING=OFF .. && ninja noisepage'
+                sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON .. && ninja noisepage'
                 sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp.json --build-type=release'
                 sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_disabled.json --build-type=release'
                 sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release'
@@ -423,7 +423,7 @@ pipeline {
                 sh 'python3 ./build-support/check_github_labels.py'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
-                sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_USE_LOGGING=OFF -DNOISEPAGE_BUILD_TESTS=OFF .. && ninja all'
+                sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF .. && ninja all'
             }
             post {
                 cleanup {
