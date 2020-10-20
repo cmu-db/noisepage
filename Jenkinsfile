@@ -17,6 +17,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -40,6 +41,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -67,6 +69,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -96,6 +99,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
@@ -126,6 +130,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
@@ -159,6 +164,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
@@ -204,6 +210,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
@@ -235,6 +242,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
@@ -264,6 +272,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
@@ -297,6 +306,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
@@ -331,6 +341,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
@@ -359,6 +370,7 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
+                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF .. && make -j$(nproc) terrier'
@@ -384,6 +396,7 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
+                sh 'python3 ./build-support/check_github_labels.py'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) terrier'
@@ -404,6 +417,7 @@ pipeline {
             agent { label 'benchmark' }            
             steps {
                 sh 'echo $NODE_NAME'
+                sh 'python3 ./build-support/check_github_labels.py'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. && make -j$(nproc) all'
