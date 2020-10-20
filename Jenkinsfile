@@ -35,9 +35,7 @@ pipeline {
 
                 stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
                     agent {
-                        docker {
-                            image 'terrier:focal'
-                        }
+                        docker { image 'terrier:focal'}
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -59,9 +57,7 @@ pipeline {
 
                 stage('ubuntu-20.04/clang-8.0 (Debug/format/lint/censored)') {
                     agent {
-                        docker {
-                            image 'terrier:focal'
-                        }
+                        docker { image 'terrier:focal' }
                     }
                     environment {
                         CC="/usr/bin/clang-8"
@@ -535,6 +531,7 @@ pipeline {
                 cd build
                 timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
                 ''', label: 'OLTPBench (TPCC RamDisk WAL)'
+            }
             post {
                 cleanup {
                     deleteDir()
