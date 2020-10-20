@@ -19,17 +19,37 @@ def get_pr_num():
     return None
 
 
+def check_labels_polite(pr_num):
+    api_url = r'https://api.github.com/repos/cmu-db/noisepage/issues/{}/labels'
+    data = json.loads(urllib.request.urlopen(api_url.format(pr_num)).read().decode('utf-8'))
+    labels = [label['name'] for label in data]
+    print('API returned: ', labels)
+    return 'ready-for-review' in labels or 'ready-to-merge' in labels
+
+
+def check_labels_impolite(pr_num):
+    page_url = r'https://github.com/cmu-db/noisepage/pull/{}'
+    data = urllib.request.urlopen(page_url.format(pr_num)).read().decode('utf-8')
+    data = data[data.find('js-issue-labels'):]
+    data = data[:data.find('</div>')]
+    print('Web scraping returned: ', data)
+    return 'labels/ready-for-review' in data or 'labels/ready-to-merge' in data
+
+
 if __name__ == '__main__':
     pr_num = get_pr_num()
     # If we can't find a PR number, allow the build to go on.
     if pr_num is None:
         sys.exit(0)
-    # Otherwise, get the labels for the PR.
-    api_url = r'https://api.github.com/repos/cmu-db/noisepage/issues/{}/labels'
-    data = json.loads(urllib.request.urlopen(api_url.format(pr_num)).read().decode('utf-8'))
-    labels = [label['name'] for label in data]
 
-    if 'ready-for-review' in labels or 'ready-to-merge' in labels:
+    # Otherwise, check the labels for the PR.
+    is_ready_for_ci = False
+    try:
+        is_ready_for_ci = check_labels_polite(pr_num)
+    except urllib.error.HTTPError: # Probably rate-limited.
+        is_ready_for_ci = check_labels_impolite(pr_num)
+
+    if is_ready_for_ci:
         sys.exit(0)
     else:
         sys.exit(1)
