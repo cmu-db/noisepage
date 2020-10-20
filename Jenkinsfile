@@ -8,7 +8,7 @@ pipeline {
 
         stage('Check') {
             parallel {
-                stage('macos-10.14/clang-8 (Debug/format/lint/censored)') {
+                stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
                     environment {
                         LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
@@ -32,10 +32,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/format/lint/censored)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                         }
                     }
                     steps {
@@ -55,10 +55,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/clang-8.0.0 (Debug/format/lint/censored)') {
+                stage('ubuntu-20.04/clang-8.0 (Debug/format/lint/censored)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                         }
                     }
                     environment {
@@ -86,7 +86,7 @@ pipeline {
 
         stage('Test') {
             parallel {
-                stage('macos-10.14/clang-8 (Debug/ASAN/unittest)') {
+                stage('macos-10.14/clang-8.0 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -100,6 +100,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && gtimeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -116,10 +117,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/unittest)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -129,6 +130,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -145,10 +147,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/Coverage/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/Coverage/unittest)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                             args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -160,6 +162,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -188,10 +191,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/clang-8.0.0 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/unittest)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -205,6 +208,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -221,7 +225,7 @@ pipeline {
                     }
                 }
 
-                stage('macos-10.14/clang-8 (Release/unittest)') {
+                stage('macos-10.14/clang-8.0 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -234,6 +238,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
+                        sh 'cd build && gtimeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -250,10 +255,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Release/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Release/unittest)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                             args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -262,6 +267,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -278,10 +284,10 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-18.04/clang-8.0.0 (Release/unittest)') {
+                stage('ubuntu-20.04/clang-8.0 (Release/unittest)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                             args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -294,6 +300,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -314,7 +321,7 @@ pipeline {
 
         stage('End-to-End Debug') {
             parallel{
-                stage('macos-10.14/clang-8 (Debug/e2etest/oltpbench)') {
+                stage('macos-10.14/clang-8.0 (Debug/e2etest/oltpbench)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
@@ -343,10 +350,10 @@ pipeline {
                         }
                     }
                 }
-                stage('ubuntu-18.04/gcc-7.3.0 (Debug/e2etest/oltpbench)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/e2etest/oltpbench)') {
                     agent {
                         docker {
-                            image 'ubuntu:bionic'
+                            image 'terrier:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -385,7 +392,12 @@ pipeline {
                 sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release' 
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release' 
-                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release' 
+                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
             }
         }
         stage('Microbenchmark') {
