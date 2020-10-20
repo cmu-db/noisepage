@@ -96,7 +96,8 @@ void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_
   for (uint32_t row = 0; row < num_tuples; row++) {
     const byte *const tuple = tuples + row * tuple_size;
     out_->WriteDataRow(tuple, schema_->GetColumns(), field_formats_);
-    num_rows_++;
   }
+
+  num_rows_.fetch_add(num_tuples);
 }
 }  // namespace terrier::execution::exec
