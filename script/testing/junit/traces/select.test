@@ -804,3 +804,54 @@ DROP TABLE tab3;
 
 statement ok
 DROP TABLE tab4;
+
+# Fix #780
+statement ok
+CREATE TABLE t (a INT, aa INT);
+
+statement ok
+CREATE TABLE tt( b INT, bb INT);
+
+statement ok
+INSERT INTO t VALUES (1,1), (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO tt VALUES (10,10), (20,20), (30,30), (40,40), (50,50);
+
+query II nosort
+SELECT * FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query IIII nosort
+SELECT *, * FROM t;
+----
+1
+1
+1
+1
+2
+2
+2
+2
+3
+3
+3
+3
+4
+4
+4
+4
+5
+5
+5
+5
