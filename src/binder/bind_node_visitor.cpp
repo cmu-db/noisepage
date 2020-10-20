@@ -473,6 +473,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
+      // If there is a STAR expression but there is no corresponding table specified, Postgres throws a syntax error.
+      if (node->GetSelectTable() == nullptr) {
+        throw BINDER_EXCEPTION("SELECT * with no tables specified is not valid",
+                               common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+      }
+
       context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
       continue;
     }
