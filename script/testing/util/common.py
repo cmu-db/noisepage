@@ -6,13 +6,18 @@ import subprocess
 import re
 import signal
 import errno
+import psutil
+import datetime
 from util.constants import LOG
+from util import constants
+
 
 def run_command(command,
                 error_msg="",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd=None):
+                cwd=None,
+                printable=True):
     """
     General purpose wrapper for running a subprocess
     """
@@ -22,55 +27,140 @@ def run_command(command,
                          cwd=cwd)
 
     while p.poll() is None:
-        if stdout == subprocess.PIPE:
-            out = p.stdout.readline()
-            if out:
-                LOG.info(out.decode("utf-8").rstrip("\n"))
+        if printable:
+            if stdout == subprocess.PIPE:
+                out = p.stdout.readline()
+                if out:
+                    LOG.info(out.decode("utf-8").rstrip("\n"))
 
     rc = p.poll()
     return rc, p.stdout, p.stderr
 
 
-def check_port(port):
-    """Get the list of PIDs (if any) listening on the target port"""
-    
-    # Copied from https://gist.github.com/jossef/593ade757881bb7ddfe0
-    # I would like to use psutil to make this more portable but that would require
-    # us to install an additional package with pip
-    
-    command = "lsof -i :%s | awk '{print $2}'" % port
-    output = subprocess.check_output(command, shell=True).strip()
-    if output:
-        output = re.sub(' +', ' ', output.decode('utf-8'))
-        for pid in output.split('\n'):
-            try:
-                yield int(pid)
-            except:
-                pass
+def run_as_root(command, printable=True):
+    """
+    General purpose wrapper for running a subprocess as root user
+    """
+    sudo_command = "sudo {}".format(command)
+    return run_command(sudo_command,
+                       error_msg="",
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE,
+                       cwd=None,
+                       printable=printable)
 
 
-def check_pid(pid):
-    """Check whether pid exists in the current process table."""
-    
-    # Copied from psutil
-    # https://github.com/giampaolo/psutil/blob/5ba055a8e514698058589d3b615d408767a6e330/psutil/_psposix.py#L28-L53
-    
-    if pid == 0:
-        return True
+def print_file(filename):
+    """ Print out contents of a file """
     try:
-        os.kill(pid, 0)
-    except OSError as err:
-        if err.errno == errno.ESRCH:
-            # ESRCH == No such process
-            return False
-        elif err.errno == errno.EPERM:
-            # EPERM clearly means there's a process to deny access to
-            return True
-        else:
-            # According to "man 2 kill" possible error values are
-            # (EINVAL, EPERM, ESRCH) therefore we should never get
-            # here. If we do let's be explicit in considering this
-            # an error.
-            raise err
+        with open(filename) as file:
+            lines = file.readlines()
+            for line in lines:
+                LOG.info(line.strip())
+    except FileNotFoundError:
+        LOG.error("file not exists: '{}'".format(filename))
+
+
+def print_pipe(p):
+    """ Print out the memory buffer of subprocess pipes """
+    try:
+        stdout, stderr = p.communicate()
+        if stdout:
+            for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
+                LOG.info(line)
+        if stderr:
+            for line in stdout.decode("utf-8").rstrip("\n").split("\n"):
+                LOG.error(line)
+    except ValueError:
+        # This is a dirty workaround
+        LOG.error("Error in subprocess communicate")
+        LOG.error(
+            "Known issue in CPython https://bugs.python.org/issue35182. Please upgrade the Python version."
+        )
+
+
+def format_time(timestamp):
+    return datetime.datetime.fromtimestamp(timestamp).strftime(
+        "%Y-%m-%d %H:%M:%S")
+
+
+def print_or_log(msg, logger=None):
+    if logger:
+        logger.info(msg)
     else:
-        return True
+        print(msg)
+
+
+def kill_pids_on_port(port, logger=None):
+    """Kill all the PIDs (if any) listening on the target port"""
+
+    if os.getuid() != 0:
+        print_or_log("not root user, uid = {}".format(os.getuid()), logger)
+        raise Exception("Cannot call this function unless running as root!")
+
+    # get the command of lsof based on the os platform
+    lsof_path = constants.LSOF_PATH_MACOS if sys.platform.startswith(
+        constants.OS_FAMILY_DARWIN) else constants.LSOF_PATH_LINUX
+
+    cmd = "{LSOF_PATH} -i:{PORT} | grep 'LISTEN' | awk '{{ print $2 }}'".format(
+        LSOF_PATH=lsof_path, PORT=port)
+
+    rc, stdout = subprocess.getstatusoutput(cmd)
+    if rc != constants.ErrorCode.SUCCESS:
+        raise Exception(
+            "Error in running 'lsof' to get processes listening to PORT={PORT}, [RC={RC}]"
+            .format(PORT=port, RC=rc))
+
+    for pid_str in stdout.split("\n"):
+        try:
+            pid = int(pid_str.strip())
+            cmd = "kill -9 {}".format(pid)
+            rc, _, _ = run_command(cmd, printable=False)
+            if rc != constants.ErrorCode.SUCCESS:
+                raise Exception("Error in killing PID={PID}, [RC={RC}]".format(
+                    PID=pid, RC=rc))
+        except ValueError:
+            continue
+
+
+def check_pid_exists(pid):
+    """ Checks to see if the pid exists """
+
+    if os.getuid() != 0:
+        raise Exception("Cannot call this function unless running as root!")
+
+    return psutil.pid_exists(pid)
+
+
+def run_check_pids(pid):
+    """ 
+    Fork a subprocess with sudo privilege to check if the given pid exists,
+    because psutil requires sudo privilege.
+    """
+
+    cmd = "python3 {SCRIPT} {PID}".format(SCRIPT=constants.FILE_CHECK_PIDS,
+                                          PID=pid)
+    rc, stdout, _ = run_as_root(cmd, printable=False)
+
+    if rc != constants.ErrorCode.SUCCESS:
+        LOG.error(
+            "Error occured in run_check_pid_exists for [PID={}]".format(pid))
+        return False
+
+    res_str = stdout.readline().decode("utf-8").rstrip("\n")
+    return res_str == constants.CommandLineStr.TRUE
+
+
+def run_kill_server(port):
+    """ 
+    Fork a subprocess with sudo privilege to kill all the processes listening 
+    to the given port, because psutil requires sudo privilege.
+    """
+
+    cmd = "python3 {SCRIPT} {PORT}".format(SCRIPT=constants.FILE_KILL_SERVER,
+                                           PORT=port)
+    rc, _, _ = run_as_root(cmd)
+
+    if rc != constants.ErrorCode.SUCCESS:
+        raise Exception(
+            "Error occured in run_kill_server for [PORT={}]".format(port))
