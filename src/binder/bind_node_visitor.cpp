@@ -473,8 +473,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     // If NULL was provided as a select column, in postgres the default type is "text". See #1020.
-    if (sherpa_->GetDesiredType(select_element) == type::TypeId::INVALID) {
-      sherpa_->SetDesiredType(select_element, type::TypeId::VARCHAR);
+    if (select_element->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+      auto cve = select_element.CastManagedPointerTo<parser::ConstantValueExpression>();
+      if (cve->IsNull() && sherpa_->GetDesiredType(select_element) == type::TypeId::INVALID) {
+        sherpa_->SetDesiredType(select_element, type::TypeId::VARCHAR);
+      }
     }
 
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
