@@ -239,7 +239,8 @@ SETTING_bool(
 
 SETTING_int(
     pipeline_metrics_interval,
-    "Sampling rate of metrics collection for the ExecutionEngine pipelines (default: 0).",
+    "Sampling rate of metrics collection for the ExecutionEngine pipelines with 0 = 100%, 1 = 50%, "
+    "9 = 10%, X = 1/(X+1)% (default: 0 for 100%).",
     0,
     0,
     10,

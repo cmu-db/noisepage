@@ -64,7 +64,7 @@ class EXPORT ExecutionSettings {
   bool GetIsPipelineMetricsEnabled() const { return is_pipeline_metrics_enabled_; }
 
   /** @return number of threads used for parallel execution. */
-  int GetNumberofParallelExecutionThreads() const { return number_of_parallel_execution_threads_; }
+  int GetNumberOfParallelExecutionThreads() const { return number_of_parallel_execution_threads_; }
 
   /** @return True if static partitioner is enabled. */
   constexpr bool GetIsStaticPartitionerEnabled() const { return is_static_partitioner_enabled_; }

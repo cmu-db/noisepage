@@ -30,7 +30,7 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
   TERRIER_ASSERT(pipeline_id_ == pipeline_id, "Incorrect pipeline");
   TERRIER_ASSERT(pipeline_features_ != nullptr, "Pipeline Features cannot be null");
 
-  bool did_find = false;
+  UNUSED_ATTRIBUTE bool did_find = false;
   for (auto &feature : *pipeline_features_) {
     if (feature.GetFeatureId() == feature_id) {
       TERRIER_ASSERT(!did_find, "Duplicate feature found");
@@ -58,7 +58,6 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
   }
 
   TERRIER_ASSERT(did_find, "No matching feature was found");
-  (void)did_find;  // silence release warning
 }
 
 }  // namespace terrier::brain

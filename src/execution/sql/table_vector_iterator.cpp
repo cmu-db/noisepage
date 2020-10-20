@@ -138,7 +138,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   timer.Start();
 
   // Execute parallel scan
-  size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberofParallelExecutionThreads(), 0);
+  size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberOfParallelExecutionThreads(), 0);
   size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
   exec_ctx->SetNumConcurrentEstimate(concurrent);
