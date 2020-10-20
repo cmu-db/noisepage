@@ -38,9 +38,12 @@ class IoTimeoutEvent {
    * It is up to the callback function to check the flags to see if the event timed out or fired from an I/O event, if
    * they care.
    *
-   * It is possible, though unlikely, that the I/O event fires and right after the timer event fires. This is due to how
+   * It is possible, though unlikely, that the timer event fires and right after the I/O event fires. This is due to how
    * libev checks for events. This will result in the callback function being called twice with each of the event's
    * flags.
+   *
+   * It should not be possible for the I/O event to be fired right after the timer event because stop should stop the event
+   * even if it's in pending status.
    *
    * @tparam function function to set as a callback
    * @param data argument for the function callback
