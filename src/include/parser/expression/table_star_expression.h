@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
@@ -14,7 +16,7 @@ class TableStarExpression : public AbstractExpression {
   /**
    * Instantiates a new table star expression used to indicate SELECT * FROM [tbls]
    */
-  explicit TableStarExpression() : AbstractExpression(ExpressionType::TABLE_STAR, type::TypeId::INVALID, {}) {}
+  TableStarExpression() : AbstractExpression(ExpressionType::TABLE_STAR, type::TypeId::INVALID, {}) {}
 
   /**
    * Instantiates a new table star expression used to indicate SELECT t.* FROM [tbls]

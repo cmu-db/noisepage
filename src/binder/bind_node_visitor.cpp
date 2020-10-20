@@ -80,7 +80,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
     node->GetCopyTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     // If the table is given, we're either writing or reading all columns
-    auto table_star = parser::TableStarExpression();
+    parser::TableStarExpression table_star = parser::TableStarExpression();
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
     context_->GenerateAllColumnExpressions(common::ManagedPointer<parser::TableStarExpression>(&table_star),
                                            sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
