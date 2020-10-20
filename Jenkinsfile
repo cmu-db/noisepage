@@ -100,6 +100,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && gtimeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -129,6 +130,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -160,6 +162,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -205,6 +208,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
@@ -234,6 +238,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j4'
+                        sh 'cd build && gtimeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -262,6 +267,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -294,6 +300,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
+                        sh 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple'
@@ -385,7 +392,12 @@ pipeline {
                 sh 'cd build && timeout 10m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tatp_wal_ramdisk.json --build-type=release' 
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc.json --build-type=release' 
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release' 
-                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release' 
+                sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release'
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
             }
         }
         stage('Microbenchmark') {
