@@ -14,13 +14,13 @@ class TableStarExpression : public AbstractExpression {
   /**
    * Instantiates a new table star expression used to indicate SELECT * FROM [tbls]
    */
-  TableStarExpression() : AbstractExpression(ExpressionType::TABLE_STAR, type::TypeId::INVALID, {}) {}
+  explicit TableStarExpression() : AbstractExpression(ExpressionType::TABLE_STAR, type::TypeId::INVALID, {}) {}
 
   /**
    * Instantiates a new table star expression used to indicate SELECT t.* FROM [tbls]
    * @param tbl Table to select all columns from
    */
-  TableStarExpression(std::string tbl)
+  explicit TableStarExpression(std::string tbl)
       : AbstractExpression(ExpressionType::TABLE_STAR, type::TypeId::INVALID, {}),
         target_table_specified_(true),
         target_table_(std::move(tbl)) {}
