@@ -397,6 +397,11 @@ pipeline {
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_disabled.json --build-type=release'
                 sh 'cd build && timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release'
             }
+             post {
+                 cleanup {
+                     deleteDir()
+                 }
+             }
         }
         stage('Microbenchmark') {
             agent { label 'benchmark' }
