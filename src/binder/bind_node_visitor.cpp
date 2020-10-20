@@ -472,6 +472,11 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
+    // If NULL was provided as a select column, in postgres the default type is "text". See #1020.
+    if (sherpa_->GetDesiredType(select_element) == type::TypeId::INVALID) {
+      sherpa_->SetDesiredType(select_element, type::TypeId::VARCHAR);
+    }
+
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       // If there is a STAR expression but there is no corresponding table specified, Postgres throws a syntax error.
       if (node->GetSelectTable() == nullptr) {
