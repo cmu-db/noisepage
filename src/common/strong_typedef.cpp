@@ -47,8 +47,10 @@ template class StrongTypeAlias<terrier::catalog::tags::trigger_oid_t_typedef_tag
 template class StrongTypeAlias<terrier::catalog::tags::type_oid_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<terrier::catalog::tags::view_oid_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<terrier::common::tags::action_id_t_typedef_tag, uint64_t>;
-template class StrongTypeAlias<terrier::execution::tags::query_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<terrier::execution::tags::feature_id_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<terrier::execution::tags::pipeline_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<terrier::execution::tags::query_id_t_typedef_tag, uint32_t>;
+template class StrongTypeAlias<terrier::execution::tags::translator_id_t_typedef_tag, uint32_t>;
 template class StrongTypeAlias<terrier::network::tags::connection_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<terrier::storage::tags::col_id_t_typedef_tag, uint16_t>;
 template class StrongTypeAlias<terrier::storage::tags::layout_version_t_typedef_tag, uint16_t>;

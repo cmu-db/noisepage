@@ -112,7 +112,7 @@ void TerrierServer::RegisterSocket() {
       }
 
       if (recovered) {
-        NETWORK_LOG_INFO("Recovered! Managed to bind {} socket by purging a pre-existing bind.", socket_description)
+        NETWORK_LOG_INFO("Recovered! Managed to bind {} socket by purging a pre-existing bind.", socket_description);
       } else {
         throw NETWORK_PROCESS_EXCEPTION(fmt::format("Failed to bind and recover {} socket.", socket_description));
       }

@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace terrier::settings {
-
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> settings_logger = nullptr;  // NOLINT
 
 void InitSettingsLogger() {
@@ -12,5 +12,5 @@ void InitSettingsLogger() {
     spdlog::register_logger(settings_logger);
   }
 }
-
+#endif
 }  // namespace terrier::settings
