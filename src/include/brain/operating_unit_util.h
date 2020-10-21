@@ -19,7 +19,7 @@ class OperatingUnitUtil {
   /**
    * Derive the type of computation
    * @param expr Expression
-   * @returns type of computation
+   * @return type of computation
    */
   static type::TypeId DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr) {
     if (expr->GetChildrenSize() == 0) {
@@ -51,7 +51,7 @@ class OperatingUnitUtil {
    * parser::ExpressionType does not have an equivalent conversion.
    *
    * @param expr Expression
-   * @returns converted equivalent brain::ExecutionOperatingUnitType
+   * @return converted equivalent brain::ExecutionOperatingUnitType
    */
   static std::pair<type::TypeId, ExecutionOperatingUnitType> ConvertExpressionType(
       common::ManagedPointer<parser::AbstractExpression> expr) {
@@ -167,12 +167,26 @@ class OperatingUnitUtil {
 
   /**
    * Whether or not an operating unit type can be merged
-   * @param f OperatingUnitType to consider
-   * @returns mergeable or not
+   * @param feature OperatingUnitType to consider
+   * @return mergeable or not
    */
-  static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType f) {
-    return f > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+  static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType feature) {
+    return feature > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
   }
+
+  /**
+   * Determines whether the operating unit type is a blocking OU
+   * @param feature OperatingUnitType to consider
+   * @return blocking or not
+   */
+  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature);
+
+  /**
+   * Gets the non-parallel type for the OU feature
+   * @param feature Parallel OU
+   * @return Corresponding non-parallel OU or INVALID
+   */
+  static ExecutionOperatingUnitType GetNonParallelType(ExecutionOperatingUnitType feature);
 
   /** @return The ExecutionOperatingUnitFeature that has the corresponding type. It must be unique in the vector. */
   static const ExecutionOperatingUnitFeature &GetFeature(execution::translator_id_t translator_id,

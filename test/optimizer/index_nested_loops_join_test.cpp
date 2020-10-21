@@ -80,13 +80,8 @@ struct IdxJoinTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    settings::SettingsManager::ConstructParamMap(param_map);
-
     db_main_ = terrier::DBMain::Builder()
                    .SetUseGC(true)
-                   .SetSettingsParameterMap(std::move(param_map))
-                   .SetUseSettingsManager(true)
                    .SetUseCatalog(true)
                    .SetUseStatsStorage(true)
                    .SetUseTrafficCop(true)
@@ -204,9 +199,11 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -324,9 +321,11 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -404,9 +403,11 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -470,9 +471,11 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -536,9 +539,11 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
@@ -615,9 +620,11 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
   execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
   execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor), exec_settings);
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),

@@ -10,6 +10,10 @@ namespace terrier {
 class DBMain;
 }
 
+namespace terrier::runner {
+void InitializeRunnersState();
+}
+
 namespace terrier::settings {
 
 using callback_fn = void (*)(void *, void *, DBMain *, common::ManagedPointer<common::ActionContext> action_context);
@@ -60,6 +64,7 @@ class ParamInfo {
         callback_(callback) {}
 
  private:
+  friend void terrier::runner::InitializeRunnersState();
   friend class terrier::DBMain;
   friend class SettingsManager;
   std::string name_;

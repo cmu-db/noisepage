@@ -62,7 +62,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   /**
    * Extracts features from OperatorTranslators
    * @param translators Vector of OperatorTranslators to extract from
-   * @returns Vector of extracted features (ExecutionOperatingUnitFeature)
+   * @return Vector of extracted features (ExecutionOperatingUnitFeature)
    */
   ExecutionOperatingUnitFeatureVector RecordTranslators(
       const std::vector<execution::compiler::OperatorTranslator *> &translators);
@@ -121,7 +121,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param total_offset Additional size by the feature (i.e HashTableEntry)
    * @param key_size Key Size
    * @param ref_offset Additional size to be added to the reference size
-   * @returns scaling factor
+   * @return scaling factor
    */
   double ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset, size_t key_size,
                                   size_t ref_offset);
@@ -139,7 +139,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * Compute key size from vector of expressions
    * @param exprs Expressions
    * @param num_key Number of keys
-   * @returns key size
+   * @return key size
    */
   size_t ComputeKeySize(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs, size_t *num_key);
 
@@ -147,7 +147,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * Compute key size from output schema
    * @param plan Plan
    * @param num_key Number of keys
-   * @returns key size
+   * @return key size
    */
   size_t ComputeKeySizeOutputSchema(const planner::AbstractPlanNode *plan, size_t *num_key);
 
@@ -155,7 +155,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * Compute key size from output schema
    * @param tbl_oid Table OID
    * @param num_key Number of keys
-   * @returns key size
+   * @return key size
    */
   size_t ComputeKeySize(catalog::table_oid_t tbl_oid, size_t *num_key);
 
@@ -164,7 +164,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param tbl_oid Table OID
    * @param cols vector of column oids
    * @param num_key Number of keys
-   * @returns key size
+   * @return key size
    */
   size_t ComputeKeySize(catalog::table_oid_t tbl_oid, const std::vector<catalog::col_oid_t> &cols, size_t *num_key);
 
@@ -174,7 +174,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param restrict_cols whether to consider cols vector
    * @param cols Set of column specifiers to look at
    * @param num_key Number of keys
-   * @returns key size
+   * @return key size
    */
   size_t ComputeKeySize(common::ManagedPointer<const catalog::IndexSchema> schema, bool restrict_cols,
                         const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key);
@@ -184,7 +184,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
    * @param idx_oid Index OID
    * @param cols index column oids
    * @param num_key Number of keys
-   * @returns key size
+   * @return key size
    */
   size_t ComputeKeySize(catalog::index_oid_t idx_oid, const std::vector<catalog::indexkeycol_oid_t> &cols,
                         size_t *num_key);

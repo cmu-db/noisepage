@@ -89,7 +89,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::metrics_logging, true, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::logging_metrics_enable, true, common::ManagedPointer(action_context),
                              setter_callback);
 
   Insert();
@@ -150,7 +150,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  settings_manager_->SetBool(settings::Param::metrics_logging, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::logging_metrics_enable, false, common::ManagedPointer(action_context),
                              setter_callback);
 }
 
@@ -162,7 +162,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::metrics_transaction, true, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::transaction_metrics_enable, true, common::ManagedPointer(action_context),
                              setter_callback);
 
   metrics_manager_->RegisterThread();
@@ -207,7 +207,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  settings_manager_->SetBool(settings::Param::metrics_transaction, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::transaction_metrics_enable, false, common::ManagedPointer(action_context),
                              setter_callback);
 
   metrics_manager_->UnregisterThread();
@@ -221,7 +221,7 @@ TEST_F(MetricsTests, QueryCSVTest) {
   for (const auto &file : metrics::QueryTraceMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::metrics_query_trace, true, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::query_trace_metrics_enable, true, common::ManagedPointer(action_context),
                              setter_callback);
 
   db_main_->GetNetworkLayer()->GetServer()->RunServer();
@@ -259,7 +259,7 @@ TEST_F(MetricsTests, QueryCSVTest) {
   EXPECT_EQ(aggregated_data->query_text_.size(), 0);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  settings_manager_->SetBool(settings::Param::metrics_query_trace, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::query_trace_metrics_enable, false, common::ManagedPointer(action_context),
                              setter_callback);
 }
 
@@ -269,78 +269,83 @@ TEST_F(MetricsTests, QueryCSVTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricsTests, ToggleSettings) {
-  // metrics_logging
+  // logging_metrics_enable
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::LOGGING));
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
   const auto callback = +[](common::ManagedPointer<common::ActionContext> action_context) -> void {
     action_context->SetState(common::ActionState::SUCCESS);
   };
-  settings_manager_->SetBool(settings::Param::metrics_logging, true, common::ManagedPointer(action_context), callback);
+  settings_manager_->SetBool(settings::Param::logging_metrics_enable, true, common::ManagedPointer(action_context),
+                             callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::LOGGING));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
-  settings_manager_->SetBool(settings::Param::metrics_logging, false, common::ManagedPointer(action_context), callback);
+  settings_manager_->SetBool(settings::Param::logging_metrics_enable, false, common::ManagedPointer(action_context),
+                             callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::LOGGING));
 
-  // metrics_transaction
+  // transaction_metrics_enable
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
-  settings_manager_->SetBool(settings::Param::metrics_transaction, true, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::transaction_metrics_enable, true, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
-  settings_manager_->SetBool(settings::Param::metrics_transaction, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::transaction_metrics_enable, false, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION));
 
-  // metrics_gc
+  // gc_metrics_enable
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
-  settings_manager_->SetBool(settings::Param::metrics_gc, true, common::ManagedPointer(action_context), callback);
+  settings_manager_->SetBool(settings::Param::gc_metrics_enable, true, common::ManagedPointer(action_context),
+                             callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
-  settings_manager_->SetBool(settings::Param::metrics_gc, false, common::ManagedPointer(action_context), callback);
+  settings_manager_->SetBool(settings::Param::gc_metrics_enable, false, common::ManagedPointer(action_context),
+                             callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::GARBAGECOLLECTION));
 
-  // metrics_execution
+  // execution_metrics_enable
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(7));
-  settings_manager_->SetBool(settings::Param::metrics_execution, true, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::execution_metrics_enable, true, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(8));
-  settings_manager_->SetBool(settings::Param::metrics_execution, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::execution_metrics_enable, false, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION));
 
-  // metrics_pipeline
+  // pipeline_metrics_enable
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION_PIPELINE));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(9));
-  settings_manager_->SetBool(settings::Param::metrics_pipeline, true, common::ManagedPointer(action_context), callback);
+  settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
+                             callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION_PIPELINE));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(10));
-  settings_manager_->SetBool(settings::Param::metrics_pipeline, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::EXECUTION_PIPELINE));
 
-  // metrics_query_trace
+  // query_trace_metrics_enable
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(11));
-  settings_manager_->SetBool(settings::Param::metrics_query_trace, true, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::query_trace_metrics_enable, true, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_TRUE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(12));
-  settings_manager_->SetBool(settings::Param::metrics_query_trace, false, common::ManagedPointer(action_context),
+  settings_manager_->SetBool(settings::Param::query_trace_metrics_enable, false, common::ManagedPointer(action_context),
                              callback);
   EXPECT_EQ(action_context->GetState(), common::ActionState::SUCCESS);
   EXPECT_FALSE(metrics_manager_->ComponentEnabled(metrics::MetricsComponent::QUERY_TRACE));

@@ -61,8 +61,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
     local_aggs_ = build_pipeline_.DeclarePipelineStateEntry("aggs", payload_type);
   }
 
-  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
-  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
 }
 
 ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
@@ -140,11 +140,9 @@ ast::Expr *StaticAggregationTranslator::GetAggregateTermPtr(ast::Expr *agg_row, 
 }
 
 void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  CounterSet(function, num_agg_inputs_, 0);
-  CounterSet(function, num_agg_outputs_, 0);
   auto *codegen = GetCodeGen();
   for (auto &p : distinct_filters_) {
-    p.second.Initialize(codegen, function, GetExecutionContext(), GetMemoryPool());
+    p.second.Initialize(codegen, function, GetExecutionContext());
   }
 }
 
@@ -163,10 +161,22 @@ void StaticAggregationTranslator::InitializeAggregates(FunctionBuilder *function
   }
 }
 
-void StaticAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    InitializeAggregates(function, true);
+void StaticAggregationTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    CounterSet(function, num_agg_inputs_, 0);
+  } else {
+    CounterSet(function, num_agg_outputs_, 0);
   }
+}
+
+void StaticAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      InitializeAggregates(function, true);
+    }
+  }
+
+  InitializeCounters(pipeline, function);
 }
 
 void StaticAggregationTranslator::BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -232,17 +242,9 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
   }
 }
 
-void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+void StaticAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-
   if (IsBuildPipeline(pipeline)) {
-    if (build_pipeline_.IsParallel()) {
-      // Merge thread-local aggregates into one.
-      ast::Expr *thread_state_container = GetThreadStateContainer();
-      ast::Expr *query_state = GetQueryStatePtr();
-      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
-    }
-
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
@@ -254,6 +256,27 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, codegen->Const32(1));
     FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_agg_outputs_));
+  }
+}
+
+void StaticAggregationTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
+}
+
+void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      // Merge thread-local aggregates into one.
+      ast::Expr *thread_state_container = GetThreadStateContainer();
+      ast::Expr *query_state = GetQueryStatePtr();
+      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
+    } else {
+      RecordCounters(pipeline, function);
+    }
+  } else {
+    RecordCounters(pipeline, function);
   }
 }
 

@@ -12,7 +12,7 @@ namespace terrier::execution::sql::test {
 
 class SystemFunctionsTests : public TplTest {
  public:
-  SystemFunctionsTests() : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr, settings_) {}
+  SystemFunctionsTests() : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr, settings_, nullptr) {}
 
   exec::ExecutionContext *Ctx() { return &ctx_; }
 
