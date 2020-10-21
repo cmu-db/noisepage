@@ -625,13 +625,6 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${TBB_LIBRARIES_RELEASE}
         )
 
-# Dependencies are built in release because the debug versions have unacceptable performance for coverage builds.
-# An example is spdlog. spdlog is not added as a true dependency because the library name changes between
-# debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
-# Due to the different names, the build system (especially make) gets confused.
-# Therefore the dependencies are manually built here.
-add_custom_target(TARGET noisepage_objlib DEPENDS spdlog)
-
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
 add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into static lib.
 target_link_libraries(noisepage_static PUBLIC noisepage_objlib)             # Consumers will inherit this link.
@@ -641,6 +634,13 @@ target_compile_options(noisepage_static PUBLIC      # PUBLIC: all consumers of t
 target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-fvisibility=hidden"                       # Hide symbols by default.
         )
+
+# Dependencies are built in release because the debug versions have unacceptable performance for coverage builds.
+# An example is spdlog. spdlog is not added as a true dependency because the library name changes between
+# debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
+# Due to the different names, the build system (especially make) gets confused.
+# Therefore the dependencies are manually built here.
+add_custom_command(TARGET noisepage_static DEPENDS spdlog)
 
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)   # Bundle up these objects into shared lib.
