@@ -1010,6 +1010,7 @@ function(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
     target_link_directories(${BENCHMARK_NAME} PRIVATE ${CMAKE_BINARY_DIR})
     set_target_properties(${BENCHMARK_NAME} PROPERTIES
             CXX_EXTENSIONS OFF
+            ENABLE_EXPORTS ON
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/benchmark"
             )
 
