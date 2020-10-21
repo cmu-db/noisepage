@@ -161,7 +161,6 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   auto *tls = tsc->AccessCurrentThreadState();
   exec_ctx->InvokeHook(static_cast<uint32_t>(HookOffsets::EndHook), tls, nullptr);
 
-  double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   UNUSED_ATTRIBUTE double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),
                       table->GetNumTuple(), timer.GetElapsed(), tps);
