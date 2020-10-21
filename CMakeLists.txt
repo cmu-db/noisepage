@@ -629,10 +629,8 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
 # An example is spdlog. spdlog is not added as a true dependency because the library name changes between
 # debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
 # Due to the different names, the build system (especially make) gets confused.
-# Therefore the dependencies are manually added to noisepage_objlib here.
-# The dependencies have to be added to an object library because adding the dependencies to a target causes
-# a linking attempt that will fail. The linking fails because the linker is looking for the debug version.
-add_dependencies(noisepage_objlib spdlog gtest gtest_main gmock gmock_main)
+# Therefore the dependencies are manually built here.
+add_custom_target(TARGET noisepage_objlib DEPENDS spdlog)
 
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
 add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into static lib.
@@ -804,6 +802,7 @@ file(GLOB_RECURSE
 function(add_test_util_lib TYPE)
     string(TOLOWER ${TYPE} TYPE_LOWER)
     add_library(noisepage_test_util_${TYPE_LOWER} ${TYPE} ${NOISEPAGE_TEST_UTIL_SRCS})
+    add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main gmock gmock_main)
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
     target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
     target_include_directories(noisepage_test_util_${TYPE_LOWER} SYSTEM PUBLIC
@@ -991,6 +990,7 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
+add_custom_command(TARGET noisepage_benchmark_util DEPENDS gtest gtest_main gmock gmock_main)
 target_compile_options(noisepage_benchmark_util PRIVATE "-Werror" "-Wall")
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
 target_link_libraries(noisepage_benchmark_util PUBLIC ${CMAKE_BINARY_DIR}/lib/libgmock_main.a noisepage_test_util_static benchmark)
