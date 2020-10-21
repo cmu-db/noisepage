@@ -20,7 +20,7 @@ void TableStats::UpdateNumRows(size_t new_num_rows) {
 bool TableStats::AddColumnStats(std::unique_ptr<ColumnStats> col_stats) {
   auto it = column_stats_.find(col_stats->GetColumnID());
   if (it != column_stats_.end()) {
-    OPTIMIZER_LOG_TRACE("There already exists a ColumnStats object with the same oid.")
+    OPTIMIZER_LOG_TRACE("There already exists a ColumnStats object with the same oid.");
     return false;
   }
   column_stats_.insert({col_stats->GetColumnID(), std::move(col_stats)});

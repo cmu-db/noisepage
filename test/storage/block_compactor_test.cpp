@@ -12,8 +12,6 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 
-#define EXPORT_TABLE_NAME "test_table.arrow"
-
 namespace terrier {
 
 class ProjectedRowDeepEqual {

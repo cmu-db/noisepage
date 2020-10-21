@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace terrier::network {
-
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> network_logger = nullptr;  // NOLINT
 
 void InitNetworkLogger() {
@@ -12,5 +12,5 @@ void InitNetworkLogger() {
     spdlog::register_logger(network_logger);
   }
 }
-
+#endif
 }  // namespace terrier::network

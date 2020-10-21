@@ -1,6 +1,8 @@
 #include "network/network_io_wrapper.h"
 
+#include <fcntl.h>
 #include <netinet/tcp.h>
+#include <unistd.h>
 
 #include "common/utility.h"
 #include "loggers/network_logger.h"

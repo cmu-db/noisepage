@@ -137,7 +137,7 @@ public class TracefileTest {
         if(res.size()!=queryResult.size()){
             throw new Exception("Query got wrong number of results");
         }
-        double precision = 0.000001;
+        double precision = 0.00001;
         for(int i=0;i<res.size();i++){
             if(res.get(i)==null){
                 if(queryResult.get(i)!=null){

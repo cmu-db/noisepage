@@ -40,7 +40,7 @@ void Group::AddExpression(GroupExpression *expr, bool enforced) {
 
 bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet *properties) {
   OPTIMIZER_LOG_TRACE("Adding expression cost on group " + std::to_string(expr->GetGroupID().UnderlyingValue()) +
-                      " with op {1}" + expr->Contents()->GetName())
+                      " with op {1}" + expr->Contents()->GetName());
 
   auto it = lowest_cost_expressions_.find(properties);
   if (it == lowest_cost_expressions_.end()) {
