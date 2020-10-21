@@ -19,6 +19,7 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier::parser {
@@ -192,6 +193,11 @@ JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
 
     case ExpressionType::STAR: {
       expr = std::make_unique<StarExpression>();
+      break;
+    }
+
+    case ExpressionType::TABLE_STAR: {
+      expr = std::make_unique<TableStarExpression>();
       break;
     }
 
