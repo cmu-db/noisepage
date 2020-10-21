@@ -1,2 +1,1 @@
 *third_party*
-*/include/settings/settings_defs.h
