@@ -25,9 +25,8 @@ pipeline {
                 sh script:'''
                 mkdir build
                 cd build
-                cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. 
-                make -j$(nproc) terrier
-                ''', label: 'Compiling'
+                cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
+                ninja noisepage''', label: 'Compiling'
 
                 sh script:'''
                 cd build
@@ -62,9 +61,8 @@ pipeline {
                 sh script:'''
                 mkdir build
                 cd build
-                cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF ..
-                make -j$(nproc) all
-                ''', label: 'Compiling'
+                cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
+                ninja noisepage''', label: 'Compiling'
 
                 // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
                 //  # of Threads: 4

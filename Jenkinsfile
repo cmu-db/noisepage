@@ -11,6 +11,7 @@ pipeline {
                 stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
                     agent { label 'macos' }
                     environment {
+                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
                         LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
@@ -21,10 +22,10 @@ pipeline {
                         sh script: 'echo y | ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 20m make check-format'
-                        sh 'cd build && timeout 20m make check-lint'
-                        sh 'cd build && timeout 20m make check-censored'
+                        sh 'cd build && cmake -GNinja ..'
+                        sh 'cd build && timeout 20m ninja check-format'
+                        sh 'cd build && timeout 20m ninja check-lint'
+                        sh 'cd build && timeout 20m ninja check-censored'
                     }
                     post {
                         cleanup {
@@ -43,10 +44,10 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 20m make check-format'
-                        sh 'cd build && timeout 20m make check-lint'
-                        sh 'cd build && timeout 20m make check-censored'
+                        sh 'cd build && cmake -GNinja ..'
+                        sh 'cd build && timeout 20m ninja check-format'
+                        sh 'cd build && timeout 20m ninja check-lint'
+                        sh 'cd build && timeout 20m ninja check-censored'
                     }
                     post {
                         cleanup {
@@ -69,10 +70,10 @@ pipeline {
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
-                        sh 'cd build && timeout 20m make check-format'
-                        sh 'cd build && timeout 20m make check-lint'
-                        sh 'cd build && timeout 20m make check-censored'
+                        sh 'cd build && cmake -GNinja ..'
+                        sh 'cd build && timeout 20m ninja check-format'
+                        sh 'cd build && timeout 20m ninja check-lint'
+                        sh 'cd build && timeout 20m ninja check-censored'
                     }
                     post {
                         cleanup {
@@ -89,6 +90,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
+                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
                         LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
@@ -101,14 +103,13 @@ pipeline {
                         sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF ..
-                        make -j4
-                        ''', label: 'Compiling'
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
+                        ninja''', label: 'Compiling'
 
-                        sh 'cd build && make check-clang-tidy'
-                        sh 'cd build && gtimeout 10s sudo python3 -B ../script/testing/kill_server.py 15721'
-                        sh 'cd build && gtimeout 1h make unittest'
-                        sh 'cd build && gtimeout 1h make check-tpl'
+                        sh 'cd build && ninja check-clang-tidy'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh 'cd build && gtimeout 1h ninja unittest'
+                        sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                     }
@@ -123,7 +124,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -138,14 +139,14 @@ pipeline {
                         sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. 
-                        make -j$(nproc)
-                        ''', label: 'Compiling'
-
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. 
+                        ninja''', label: 'Compiling'
+                        
                         sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && ninja check-clang-tidy'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                     }
@@ -174,13 +175,18 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF -DTERRIER_GENERATE_COVERAGE=ON .. && make -j$(nproc)'
+
+                        sh script '''
+                        mkdir build
+                        cd build
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON ..
+                        ninja''', label: 'Compiling'
+
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple'
-                        sh 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended'
+                        sh 'cd build && timeout 1h ninja unittest'
+                        sh 'cd build && timeout 1h ninja check-tpl'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
+                        sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                         sh 'cd build && lcov --directory . --capture --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'/usr/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/build/*\' --output-file coverage.info'
@@ -205,7 +211,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/unittest)') {
+                stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -219,19 +225,18 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'python3 ./build-support/check_github_labels.py'
-                        sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON -DTERRIER_BUILD_BENCHMARKS=OFF ..
-                        make -j$(nproc)
-                        ''', label: 'Compiling'
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
+                        ninja''', label: 'Compiling'
 
-                        sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && ninja check-clang-tidy'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=extended', label: 'UnitTest (Extended)'
                     }
@@ -250,6 +255,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
+                        LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
                         LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
                         CC="${LLVM_DIR}/bin/clang"
                         CXX="${LLVM_DIR}/bin/clang++"
@@ -257,18 +263,17 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'python3 ./build-support/check_github_labels.py'
-                        sh script:'echo y | ./script/installation/packages.sh all', label:'Installing packages'
-                        
-                        sh script:'''
+                        sh 'echo y | ./script/installation/packages.sh all'
+
+                        sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF ..
-                        make -j4
-                        ''', label: 'Compiling'
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
+                        ninja''', label: 'Compiling'
 
-                        sh script: 'cd build && gtimeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh 'cd build && gtimeout 1h make unittest'
-                        sh 'cd build && gtimeout 1h make check-tpl'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh 'cd build && gtimeout 1h ninja unittest'
+                        sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                     }
@@ -283,7 +288,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/gcc-9.3 (Release/unittest)') {
+                stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -293,18 +298,17 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'python3 ./build-support/check_github_labels.py'
-                        sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh script:'''
+                        sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF ..
-                        make -j$(nproc)
-                        ''', label: 'Compiling'
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
+                        ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                     }
@@ -319,7 +323,7 @@ pipeline {
                     }
                 }
 
-                stage('ubuntu-20.04/clang-8.0 (Release/unittest)') {
+                stage('ubuntu-20.04/clang-8.0 (Release/jumbotests)') {
                     agent {
                         docker {
                             image 'terrier:focal'
@@ -333,18 +337,17 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'python3 ./build-support/check_github_labels.py'
-                        sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
+                        sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh script:'''
+                        sh script: '''
                         mkdir build
-                        cd build
-                        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_BUILD_BENCHMARKS=OFF ..
-                        make -j$(nproc)
-                        ''', label: 'Compiling'
+                        cd build 
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
+                        ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
-                        sh 'cd build && timeout 1h make unittest'
-                        sh 'cd build && timeout 1h make check-tpl'
+                        sh 'cd build && timeout 1h ninja jumbotests'
+                        sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=extended', label: 'UnitTest (Extended)'
                     }
@@ -379,9 +382,8 @@ pipeline {
                         sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF ..
-                        make -j$(nproc) terrier
-                        ''', label: 'Compiling'
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON .. 
+                        ninja noisepage''', label: 'Compiling'
 
                         sh script: '''
                         cd build
@@ -440,9 +442,8 @@ pipeline {
                         sh script: '''
                         mkdir build
                         cd build
-                        cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_USE_ASAN=ON -DTERRIER_USE_JEMALLOC=OFF ..
-                        make -j$(nproc) terrier
-                        ''', label: 'Compiling'
+                        cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON ..
+                        ninja noisepage''', label: 'Compiling'
 
                         sh script: '''
                         cd build
@@ -498,9 +499,8 @@ pipeline {
                 sh script:'''
                 mkdir build
                 cd build
-                cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON ..
-                make -j$(nproc) terrier
-                ''', label: 'Compiling'
+                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON ..
+                ninja noisepage''', label: 'Compiling'
 
                 sh script:'''
                 cd build
@@ -532,14 +532,14 @@ pipeline {
                 timeout 30m python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/end_to_end_performance/tpcc_wal_ramdisk.json --build-type=release
                 ''', label: 'OLTPBench (TPCC RamDisk WAL)'
             }
-            post {
-                cleanup {
-                    deleteDir()
-                }
-            }
+             post {
+                 cleanup {
+                     deleteDir()
+                 }
+             }
         }
         stage('Microbenchmark') {
-            agent { label 'benchmark' }            
+            agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
                 sh 'python3 ./build-support/check_github_labels.py'
@@ -548,9 +548,8 @@ pipeline {
                 sh script: '''
                 mkdir build
                 cd build
-                cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON -DTERRIER_BUILD_TESTS=OFF .. 
-                make -j$(nproc) all
-                ''', label: 'Microbenchmark (Compile)'
+                cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
+                ninja all''', label: 'Microbenchmark (Compile)'
             }
             post {
                 cleanup {

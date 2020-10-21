@@ -1,20 +1,18 @@
 #include "settings/settings_manager.h"
 
-#include <gflags/gflags.h>
-
 #include <algorithm>
 
 #include "binder/binder_util.h"
 #include "common/macros.h"
 #include "execution/sql/value_util.h"
+#include "gflags/gflags.h"
 #include "main/db_main.h"
 #include "parser/expression/constant_value_expression.h"
 #include "settings/settings_callbacks.h"
 
-#define __SETTING_GFLAGS_DECLARE__     // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DECLARE__      // NOLINT
+#define __SETTING_GFLAGS_DECLARE__   // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_GFLAGS_DECLARE__    // NOLINT
 
 namespace terrier::settings {
 
@@ -56,10 +54,9 @@ void SettingsManager::ValidateParams() {
   //   execution::sql::Integer(1024)), parser::ConstantValueExpression(type::TypeID::INTEGER,
   //   execution::sql::Integer(65535)));
 
-#define __SETTING_VALIDATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_VALIDATE__            // NOLINT
+#define __SETTING_VALIDATE__         // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_VALIDATE__          // NOLINT
 }
 
 void SettingsManager::ValidateSetting(Param param, const parser::ConstantValueExpression &min_value,
@@ -233,7 +230,6 @@ void SettingsManager::ConstructParamMap(                                        
    */
 
 #define __SETTING_POPULATE__           // NOLINT
-#include "settings/settings_common.h"  // NOLINT
 #include "settings/settings_defs.h"    // NOLINT
 #undef __SETTING_POPULATE__            // NOLINT
 }  // clang-format on

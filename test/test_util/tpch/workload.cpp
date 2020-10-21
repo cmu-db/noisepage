@@ -73,9 +73,9 @@ void Workload::GenerateTables(execution::exec::ExecutionContext *exec_ctx, const
   }
   execution::sql::TableReader table_reader(exec_ctx, block_store_.Get(), ns_oid_);
 
-  for (const auto &table_name : *tables) {
-    auto table_dir = dir_name + table_name;
-    auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", table_dir.append(kind));
+  for (UNUSED_ATTRIBUTE const auto &table_name : *tables) {
+    UNUSED_ATTRIBUTE auto table_dir = dir_name + table_name;
+    UNUSED_ATTRIBUTE auto num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", table_dir.append(kind));
     EXECUTION_LOG_INFO("Wrote {} rows on table {}.", num_rows, table_name);
   }
 }

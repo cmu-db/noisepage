@@ -660,11 +660,6 @@ TEST(ExpressionTests, OperatorExpressionTest) {
 
   op_expr_3->DeriveExpressionName();
   EXPECT_EQ(op_expr_3->GetExpressionName(), "");
-  // Make sure that we catch when the deduced expression type suggests that invalid operand types
-  // NOTE: We only do this for debug builds
-#ifndef NDEBUG
-  EXPECT_DEATH(op_expr_3->DeriveReturnValueType(), "Invalid operand type in Operator Expression.");
-#endif
 
   delete op_expr_1;
   delete op_expr_2;
