@@ -128,15 +128,6 @@ TEST(BitVectorTest, SetAll) {
   }
 }
 
-TEST(BitVectorDeathTest, SetRange) {
-  BitVector<> bv(300);
-
-#ifndef NDEBUG
-  EXPECT_DEATH(bv.SetRange(20, 10), "backward");
-  EXPECT_DEATH(bv.SetRange(10, bv.GetNumBits() + 20), "range");
-#endif
-}
-
 TEST(BitVectorTest, SetRange) {
   BitVector<> bv(300);
 

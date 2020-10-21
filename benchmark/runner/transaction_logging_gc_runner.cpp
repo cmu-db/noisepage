@@ -9,7 +9,7 @@
 #include "storage/garbage_collector_thread.h"
 #include "storage/write_ahead_log/log_manager.h"
 
-#define LOG_FILE_NAME "benchmark.txt"
+#define LOG_TEST_LOG_FILE_NAME "benchmark.txt"
 
 namespace terrier::runner {
 
@@ -58,8 +58,8 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
     log_manager_ =
-        new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, common::ManagedPointer(&buffer_pool),
+        new storage::LogManager(LOG_TEST_LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
+                                log_persist_interval_, log_persist_threshold_, common::ManagedPointer(&buffer_pool),
                                 common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
 
@@ -87,7 +87,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     delete gc_thread_;
     delete thread_registry_;
     delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }
@@ -118,7 +118,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
 
     thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager));
 
-    log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
+    log_manager_ = new storage::LogManager(LOG_TEST_LOG_FILE_NAME, num_log_buffers_, config_interval, config_interval,
                                            log_persist_threshold_, common::ManagedPointer(&buffer_pool),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
@@ -148,7 +148,7 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     delete gc_thread_;
     delete thread_registry_;
     delete metrics_thread;
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
 }

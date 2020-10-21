@@ -152,7 +152,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
 
   timer.Stop();
 
-  double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
+  UNUSED_ATTRIBUTE double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),
                       table->GetNumTuple(), timer.GetElapsed(), tps);
 

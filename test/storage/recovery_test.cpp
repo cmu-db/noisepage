@@ -23,7 +23,7 @@
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
-#define LOG_FILE_NAME "./test.log"
+#define RECOVERY_TEST_LOG_FILE_NAME "./test_recovery_test.log"
 
 namespace terrier::storage {
 class RecoveryTests : public TerrierTest {
@@ -47,10 +47,10 @@ class RecoveryTests : public TerrierTest {
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
-    unlink(LOG_FILE_NAME);
+    unlink(RECOVERY_TEST_LOG_FILE_NAME);
 
     db_main_ = terrier::DBMain::Builder()
-                   .SetWalFilePath(LOG_FILE_NAME)
+                   .SetWalFilePath(RECOVERY_TEST_LOG_FILE_NAME)
                    .SetUseLogging(true)
                    .SetUseGC(true)
                    .SetUseGCThread(true)
@@ -77,7 +77,7 @@ class RecoveryTests : public TerrierTest {
 
   void TearDown() override {
     // Delete log file
-    unlink(LOG_FILE_NAME);
+    unlink(RECOVERY_TEST_LOG_FILE_NAME);
   }
 
   catalog::IndexSchema DummyIndexSchema() {
@@ -172,7 +172,7 @@ class RecoveryTests : public TerrierTest {
 
   // Most tests do a single recovery pass into the recovery DBMain
   void SingleRecovery() {
-    DiskLogProvider log_provider(LOG_FILE_NAME);
+    DiskLogProvider log_provider(RECOVERY_TEST_LOG_FILE_NAME);
     RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
                                      recovery_catalog_,
                                      recovery_txn_manager_,
@@ -192,7 +192,7 @@ class RecoveryTests : public TerrierTest {
     ShutdownAndRestartSystem();
 
     // Instantiate recovery manager, and recover the tables.
-    DiskLogProvider log_provider{LOG_FILE_NAME};
+    DiskLogProvider log_provider{RECOVERY_TEST_LOG_FILE_NAME};
     RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
                                      recovery_catalog_,
                                      recovery_txn_manager_,
@@ -657,7 +657,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   //--------------------------------
 
   // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(LOG_FILE_NAME);
+  DiskLogProvider log_provider(RECOVERY_TEST_LOG_FILE_NAME);
   RecoveryManager recovery_manager{common::ManagedPointer<AbstractLogProvider>(&log_provider),
                                    recovery_catalog_,
                                    recovery_txn_manager_,
