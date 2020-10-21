@@ -21,6 +21,7 @@ pipeline {
                    ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
                    if(ready_for_build != 0) {
                         currentBuild.result = 'ABORTED'
+                        return
                         error('Not ready for CI. Please add ready-for-ci tag in Github when you are ready to build your PR.')
                    }
                 }
