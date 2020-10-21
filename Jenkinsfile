@@ -5,7 +5,22 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-
+        stage('Ready For CI') {
+        agent { label 'macos' }
+            environment {
+                LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
+                LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
+                CC="${LLVM_DIR}/bin/clang"
+                CXX="${LLVM_DIR}/bin/clang++"
+            }
+            steps {
+                int ready_for_build = sh(script: 'python3 ./build-support/check_github_labels.py', returnStatus: true)
+                if(status != 0) {
+                    currentBuild.result = 'ABORTED'
+                    error('Not ready for CI')
+                }
+            }
+        }
         stage('Check') {
             parallel {
                 stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
