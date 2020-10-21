@@ -815,89 +815,93 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDescendingTest) {
 TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor
-  auto accessor = MakeAccessor();
-  ExpressionMaker expr_maker;
-  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
-  auto table_schema = accessor->GetSchema(table_oid);
-  std::unique_ptr<planner::AbstractPlanNode> seq_scan;
-  OutputSchemaHelper seq_scan_out{0, &expr_maker};
-  {
-    // OIDs
-    auto cola_oid = table_schema.GetColumn("colA").Oid();
-    auto colb_oid = table_schema.GetColumn("colB").Oid();
-    // Get Table columns
-    auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
-    auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
-    seq_scan_out.AddOutput("col1", col1);
-    seq_scan_out.AddOutput("col2", col2);
-    auto schema = seq_scan_out.MakeSchema();
-    // Make predicate
-    auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
-    // Build
-    planner::SeqScanPlanNode::Builder builder;
-    seq_scan = builder.SetOutputSchema(std::move(schema))
-                   .SetColumnOids({cola_oid, colb_oid})
-                   .SetScanPredicate(predicate)
-                   .SetIsForUpdateFlag(false)
-                   .SetTableOid(table_oid)
-                   .Build();
+  uint64_t num_iters = 20;
+  for (uint64_t _ = 0; _ < num_iters; _++) {
+    auto accessor = MakeAccessor();
+    ExpressionMaker expr_maker;
+    auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+    auto table_schema = accessor->GetSchema(table_oid);
+    std::unique_ptr<planner::AbstractPlanNode> seq_scan;
+    OutputSchemaHelper seq_scan_out{0, &expr_maker};
+    {
+      // OIDs
+      auto cola_oid = table_schema.GetColumn("colA").Oid();
+      auto colb_oid = table_schema.GetColumn("colB").Oid();
+      // Get Table columns
+      auto col1 = expr_maker.CVE(cola_oid, type::TypeId::INTEGER);
+      auto col2 = expr_maker.CVE(colb_oid, type::TypeId::INTEGER);
+      seq_scan_out.AddOutput("col1", col1);
+      seq_scan_out.AddOutput("col2", col2);
+      auto schema = seq_scan_out.MakeSchema();
+      // Make predicate
+      auto predicate = expr_maker.ComparisonLt(col1, expr_maker.Constant(1000));
+      // Build
+      planner::SeqScanPlanNode::Builder builder;
+      seq_scan = builder.SetOutputSchema(std::move(schema))
+                     .SetColumnOids({cola_oid, colb_oid})
+                     .SetScanPredicate(predicate)
+                     .SetIsForUpdateFlag(false)
+                     .SetTableOid(table_oid)
+                     .Build();
+    }
+    // Make the aggregate
+    std::unique_ptr<planner::AbstractPlanNode> agg;
+    OutputSchemaHelper agg_out{0, &expr_maker};
+    {
+      // Read previous output
+      auto col1 = seq_scan_out.GetOutput("col1");
+      auto col2 = seq_scan_out.GetOutput("col2");
+      // Add group by term
+      agg_out.AddGroupByTerm("col2", col2);
+      // Add aggregates
+      auto sum_col1 = expr_maker.AggSum(col1);
+      agg_out.AddAggTerm("sum_col1", sum_col1);
+      // Make the output expressions
+      agg_out.AddOutput("col2", agg_out.GetGroupByTermForOutput("col2"));
+      agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
+      auto schema = agg_out.MakeSchema();
+      // Build
+      planner::AggregatePlanNode::Builder builder;
+      agg = builder.SetOutputSchema(std::move(schema))
+                .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
+                .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
+                .AddChild(std::move(seq_scan))
+                .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
+                .SetHavingClausePredicate(nullptr)
+                .Build();
+    }
+    // Make the checkers
+    NumChecker num_checker{10};
+    SingleIntSumChecker sum_checker{1, (1000 * 999) / 2};
+    MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
+
+    // Compile and Run
+    OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
+    exec::OutputPrinter printer(agg->GetOutputSchema().Get());
+    MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+    auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+
+    // Run & Check
+    auto executable = execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(),
+                                                                       exec_ctx->GetAccessor());
+    executable->Run(common::ManagedPointer(exec_ctx), MODE);
+    multi_checker.CheckCorrectness();
+
+    // Pipeline Units
+    auto pipeline = executable->GetPipelineOperatingUnits();
+    EXPECT_EQ(pipeline->units_.size(), 2);
+
+    auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
+    auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+    auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+                                                                   brain::ExecutionOperatingUnitType::OUTPUT};
+    auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
+        brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
+        brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+        brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
+    EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
   }
-  // Make the aggregate
-  std::unique_ptr<planner::AbstractPlanNode> agg;
-  OutputSchemaHelper agg_out{0, &expr_maker};
-  {
-    // Read previous output
-    auto col1 = seq_scan_out.GetOutput("col1");
-    auto col2 = seq_scan_out.GetOutput("col2");
-    // Add group by term
-    agg_out.AddGroupByTerm("col2", col2);
-    // Add aggregates
-    auto sum_col1 = expr_maker.AggSum(col1);
-    agg_out.AddAggTerm("sum_col1", sum_col1);
-    // Make the output expressions
-    agg_out.AddOutput("col2", agg_out.GetGroupByTermForOutput("col2"));
-    agg_out.AddOutput("sum_col1", agg_out.GetAggTermForOutput("sum_col1"));
-    auto schema = agg_out.MakeSchema();
-    // Build
-    planner::AggregatePlanNode::Builder builder;
-    agg = builder.SetOutputSchema(std::move(schema))
-              .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-              .AddAggregateTerm(agg_out.GetAggTerm("sum_col1"))
-              .AddChild(std::move(seq_scan))
-              .SetAggregateStrategyType(planner::AggregateStrategyType::HASH)
-              .SetHavingClausePredicate(nullptr)
-              .Build();
-  }
-  // Make the checkers
-  NumChecker num_checker{10};
-  SingleIntSumChecker sum_checker{1, (1000 * 999) / 2};
-  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
-
-  // Compile and Run
-  OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
-  exec::OutputPrinter printer(agg->GetOutputSchema().Get());
-  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
-
-  // Run & Check
-  auto executable =
-      execution::compiler::CompilationContext::Compile(*agg, exec_ctx->GetExecutionSettings(), exec_ctx->GetAccessor());
-  executable->Run(common::ManagedPointer(exec_ctx), MODE);
-  multi_checker.CheckCorrectness();
-
-  // Pipeline Units
-  auto pipeline = executable->GetPipelineOperatingUnits();
-  EXPECT_EQ(pipeline->units_.size(), 2);
-
-  auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
-                                                                 brain::ExecutionOperatingUnitType::OUTPUT};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::OP_INTEGER_COMPARE,
-      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
-  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
-  EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
 
 // NOLINTNEXTLINE
