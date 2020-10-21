@@ -500,13 +500,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatement> op) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
+  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
   auto drop_type = op->GetDropType();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
   std::unique_ptr<OperatorNode> drop_expr;
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-
       drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_).RegisterWithTxnContext(txn_context),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;

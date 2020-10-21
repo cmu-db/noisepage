@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "count/hll.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
@@ -15,7 +16,6 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
-#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {
@@ -54,6 +54,9 @@ void JoinHashTable::BuildChainingHashTable() {
 
 #ifndef NDEBUG
   const auto [min, max, avg] = chaining_hash_table_.GetChainLengthStats();
+  (void)min;
+  (void)max;
+  (void)avg;
   EXECUTION_LOG_DEBUG("ChainingHashTable chain stats: min={}, max={}, avg={}", min, max, avg);
 #endif
 }
@@ -583,7 +586,7 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
 
   timer.Stop();
 
-  const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
+  UNUSED_ATTRIBUTE const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
   EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
                       use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
                       chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);
