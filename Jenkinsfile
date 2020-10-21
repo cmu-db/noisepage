@@ -6,18 +6,14 @@ pipeline {
     }
     stages {
         stage('Ready For CI') {
-        agent { label 'macos' }
-            environment {
-                LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
-                LLVM_DIR=sh(script: "brew --prefix llvm@8", label: "Fetching LLVM path", returnStdout: true).trim()
-                CC="${LLVM_DIR}/bin/clang"
-                CXX="${LLVM_DIR}/bin/clang++"
-            }
+        agent any
             steps {
-                int ready_for_build = sh(script: 'python3 ./build-support/check_github_labels.py', returnStatus: true)
-                if(status != 0) {
-                    currentBuild.result = 'ABORTED'
-                    error('Not ready for CI')
+                script {
+                   ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
+                   if(ready_for_build != 0) {
+                        currentBuild.result = 'ABORTED'
+                        error('Not ready for CI')
+                   }
                 }
             }
         }
