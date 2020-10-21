@@ -176,7 +176,7 @@ pipeline {
                         sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
-                        sh script '''
+                        sh script: '''
                         mkdir build
                         cd build
                         cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON ..
