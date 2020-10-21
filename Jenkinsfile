@@ -6,7 +6,11 @@ pipeline {
     }
     stages {
         stage('Ready For CI') {
-        agent any
+        agent {
+            docker {
+                image 'terrier:focal'
+            }
+        }
             steps {
                 script {
                    ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
@@ -29,7 +33,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -53,7 +56,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -81,7 +83,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh build'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -112,7 +113,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF .. && ninja'
@@ -143,7 +143,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
@@ -177,7 +176,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=OFF -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_GENERATE_COVERAGE=ON .. && ninja'
@@ -223,7 +221,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
@@ -256,7 +253,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF .. && ninja'
@@ -286,7 +282,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
@@ -320,7 +315,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. && ninja'
@@ -355,7 +349,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON .. && ninja noisepage'
@@ -384,7 +377,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
                         sh 'mkdir build'
                         sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON .. && ninja noisepage'
@@ -410,7 +402,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'python3 ./build-support/check_github_labels.py'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON .. && ninja noisepage'
@@ -431,7 +422,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'python3 ./build-support/check_github_labels.py'
                 sh 'echo y | sudo ./script/installation/packages.sh all'
                 sh 'mkdir build'
                 sh 'cd build && cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF .. && ninja all'
