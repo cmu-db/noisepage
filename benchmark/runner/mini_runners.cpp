@@ -504,6 +504,9 @@ class MiniRunners : public benchmark::Fixture {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
+
+    execution::exec::NoOpResultConsumer consumer;
+    execution::exec::OutputCallback callback = consumer;
     for (auto i = 0; i < num_iters; i++) {
       common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
       if (i == num_iters - 1) {
@@ -520,7 +523,7 @@ class MiniRunners : public benchmark::Fixture {
       }
 
       auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_schema,
+          db_oid, common::ManagedPointer(txn), callback, out_schema,
           common::ManagedPointer(accessor), exec_settings, metrics_manager);
 
       // Attach params to ExecutionContext
@@ -891,8 +894,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
   auto exec_settings = GetExecutionSettings();
   execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
+  execution::exec::NoOpResultConsumer consumer;
+  execution::exec::OutputCallback callback = consumer;
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), schema.get(),
+      db_oid, common::ManagedPointer(txn), callback, schema.get(),
       common::ManagedPointer(accessor), exec_settings, metrics_manager_);
 
   auto exec_query =
