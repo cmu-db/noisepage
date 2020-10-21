@@ -78,8 +78,10 @@ class NetworkTests : public TerrierTest {
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+#if NOISEPAGE_USE_LOGGER
     network_logger->set_level(spdlog::level::info);
     spdlog::flush_every(std::chrono::seconds(1));
+#endif
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));

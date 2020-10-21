@@ -1362,12 +1362,6 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
-template <typename T>
-void OperatorNodeContents<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
-  v->Visit(reinterpret_cast<const T *>(this));
-}
-
-//===--------------------------------------------------------------------===//
 template <>
 const char *OperatorNodeContents<TableFreeScan>::name = "TableFreeScan";
 template <>
@@ -1526,15 +1520,5 @@ template <>
 OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>
 OpType OperatorNodeContents<Analyze>::type = OpType::ANALYZE;
-
-template <typename T>
-bool OperatorNodeContents<T>::IsLogical() const {
-  return type < OpType::LOGICALPHYSICALDELIMITER;
-}
-
-template <typename T>
-bool OperatorNodeContents<T>::IsPhysical() const {
-  return type > OpType::LOGICALPHYSICALDELIMITER;
-}
 
 }  // namespace terrier::optimizer

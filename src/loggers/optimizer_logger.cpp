@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace terrier::optimizer {
-
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> optimizer_logger = nullptr;  // NOLINT
 
 void InitOptimizerLogger() {
@@ -12,5 +12,5 @@ void InitOptimizerLogger() {
     spdlog::register_logger(optimizer_logger);
   }
 }
-
+#endif
 }  // namespace terrier::optimizer

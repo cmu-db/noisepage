@@ -47,15 +47,15 @@ class TestServer:
     def set_db_path(self):
         """ location of db server, relative to this script """
 
-        # builds on Jenkins are in build/<build_type>
-        # but CLion creates cmake-build-<build_type>/<build_type>
+        # builds on Jenkins are in build/bin
+        # but CLion creates cmake-build-<build_type>/bin
         # determine what we have and set the server path accordingly
         bin_name = constants.DEFAULT_DB_BIN
         build_type = self.args.get("build_type", "")
         path_list = [
-            os.path.join(constants.DIR_REPO, "build", build_type),
+            os.path.join(constants.DIR_REPO, "build", "bin"),
             os.path.join(constants.DIR_REPO,
-                         "cmake-build-{}".format(build_type), build_type)
+                         "cmake-build-{}".format(build_type), "bin")
         ]
         for dir_name in path_list:
             db_bin_path = os.path.join(dir_name, bin_name)
