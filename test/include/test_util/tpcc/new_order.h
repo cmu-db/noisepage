@@ -4,7 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"

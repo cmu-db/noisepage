@@ -16,7 +16,7 @@
 
 namespace terrier::tpcc {
 
-#define LOG_FILE_NAME "./tpcc.log"
+#define LOG_TEST_LOG_FILE_NAME "./test_tpcc_test.log"
 
 /**
  * The behavior in these tests mimics that of /benchmark/integration/tpcc_benchmark.cpp. If something changes here, it
@@ -25,11 +25,11 @@ namespace terrier::tpcc {
 class TPCCTests : public TerrierTest {
  public:
   void SetUp() final {
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   }
 
-  void TearDown() final { unlink(LOG_FILE_NAME); }
+  void TearDown() final { unlink(LOG_TEST_LOG_FILE_NAME); }
 
   std::default_random_engine generator_;
 

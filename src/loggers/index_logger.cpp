@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace terrier::storage {
-
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> index_logger = nullptr;  // NOLINT
 
 void InitIndexLogger() {
@@ -12,4 +12,5 @@ void InitIndexLogger() {
     spdlog::register_logger(index_logger);
   }
 }
+#endif
 }  // namespace terrier::storage

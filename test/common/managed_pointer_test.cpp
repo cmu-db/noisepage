@@ -73,13 +73,13 @@ TEST(ManagedPointerTests, OutputHashTest) {
   std::string orig = "ODBRIP";
   char *raw_ptr = orig.data();
 
-  std::shared_ptr<char *> ptr0(&raw_ptr, [=](char **ptr) {
+  std::shared_ptr<char *> ptr0(&raw_ptr, [=](char **ptr) {  // NOLINT
     // Do nothing in this custom delete function so that
     // the shared_ptr doesn't try to deallocate the string's memory
   });
   std::ostringstream os0;
   os0 << ptr0;
-  std::hash<std::shared_ptr<char *>> hash_func0;
+  std::hash<std::shared_ptr<char *>> hash_func0;  // NOLINT
   size_t hash0 = hash_func0(ptr0);
 
   common::ManagedPointer<char *> ptr1(&raw_ptr);
