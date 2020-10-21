@@ -1293,3 +1293,23 @@ else ()
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)
+
+#######################################################################################################################
+# Apply +x permissions to all scripts in the build-support folder.
+#######################################################################################################################
+
+# CLion's remote toolchain functionality seems to lose the +x permissions when the files are rsync'd to the remote box.
+# This creates a list of the executable scripts in the build-support folder and applies +x to them to ensure building
+# dependent CMake targets doesn't fail.
+
+file(GLOB_RECURSE
+        BUILD_SUPPORT_SCRIPTS
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/build-support/*.pl
+        ${PROJECT_SOURCE_DIR}/build-support/*.py
+        ${PROJECT_SOURCE_DIR}/build-support/*.sh
+        )
+
+foreach (_var IN LISTS BUILD_SUPPORT_SCRIPTS)
+    execute_process(COMMAND chmod +x "${_var}")
+endforeach ()
