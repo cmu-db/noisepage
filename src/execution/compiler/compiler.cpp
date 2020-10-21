@@ -104,8 +104,6 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
   // Phase 4 : Module Generation
   // -------------------------------------------------------
 
-  ast::AstPrettyPrint::Dump(std::cerr, root_);
-
   if (!callbacks->BeginPhase(Phase::ModuleGeneration, this)) {
     return;
   }

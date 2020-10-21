@@ -34,7 +34,8 @@ class SorterTest : public SqlBasedTest {
 };
 
 template <typename IntType, typename Random>
-void TestSortRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems, Random *generator) {
+void TestSortRandomTupleSize(exec::ExecutionContext *exec_ctx, const uint32_t num_iters, const uint32_t max_elems,
+                             Random *generator) {
   std::uniform_int_distribution<IntType> rng(std::numeric_limits<IntType>::min(), std::numeric_limits<IntType>::max());
   std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(),
                                                     std::numeric_limits<uint32_t>::max());
@@ -61,8 +62,7 @@ void TestSortRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
     reference.reserve(num_elems);
 
     // Create a sorter.
-    MemoryPool memory(nullptr);
-    Sorter sorter(&memory, cmp_fn, tuple_size);
+    Sorter sorter(exec_ctx, cmp_fn, tuple_size);
 
     // Randomly create and insert elements to both sorter and reference.
     for (uint32_t i = 0; i < num_elems; i++) {
@@ -86,7 +86,8 @@ void TestSortRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
 }
 
 template <typename IntType, typename Random>
-void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems, Random *generator) {
+void TestTopKRandomTupleSize(exec::ExecutionContext *exec_ctx, const uint32_t num_iters, const uint32_t max_elems,
+                             Random *generator) {
   std::uniform_int_distribution<IntType> rng(std::numeric_limits<IntType>::min(), std::numeric_limits<IntType>::max());
   std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(),
                                                     std::numeric_limits<uint32_t>::max());
@@ -114,8 +115,7 @@ void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
     std::priority_queue<IntType, std::vector<IntType>, std::greater<>> reference;
 
     // Create a sorter
-    MemoryPool memory(nullptr);
-    Sorter sorter(&memory, cmp_fn, tuple_size);
+    Sorter sorter(exec_ctx, cmp_fn, tuple_size);
 
     // Randomly create and insert elements to both sorter and reference
     for (uint32_t i = 0; i < num_elems; i++) {
@@ -146,14 +146,16 @@ void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
 TEST_F(SorterTest, SortTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
-  TestAllIntegral(TestSortRandomTupleSize, num_iters, max_elems, &generator_);
+  auto exec_ctx = MakeExecCtx();
+  TestAllIntegral(TestSortRandomTupleSize, exec_ctx.get(), num_iters, max_elems, &generator_);
 }
 
 // NOLINTNEXTLINE
 TEST_F(SorterTest, TopKTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
-  TestAllIntegral(TestTopKRandomTupleSize, num_iters, max_elems, &generator_);
+  auto exec_ctx = MakeExecCtx();
+  TestAllIntegral(TestTopKRandomTupleSize, exec_ctx.get(), num_iters, max_elems, &generator_);
 }
 
 template <uint32_t N>
@@ -181,7 +183,7 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
 
   // Initialization and destruction function
   const auto init_sorter = [](void *ctx, void *s) {
-    new (s) Sorter(reinterpret_cast<exec::ExecutionContext *>(ctx)->GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
+    new (s) Sorter(reinterpret_cast<exec::ExecutionContext *>(ctx), cmp_fn, sizeof(TestTuple<N>));
   };
   const auto destroy_sorter = [](UNUSED_ATTRIBUTE void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
 
@@ -204,7 +206,7 @@ void TestParallelSort(exec::ExecutionContext *exec_ctx, const std::vector<uint32
   });
 
   // Main parallel sort
-  Sorter main(exec_ctx->GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
+  Sorter main(exec_ctx, cmp_fn, sizeof(TestTuple<N>));
   main.SortParallel(&container, 0);
 
   uint32_t expected_total_size =

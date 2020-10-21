@@ -97,6 +97,8 @@ size_t OperatingUnitRecorder::ComputeKeySize(
     AdjustKeyWithType(expr->GetReturnValueType(), &key_size, num_key);
   }
 
+  // The set of expressions represented by exprs should have some key size
+  // that is non-zero.
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
@@ -117,6 +119,8 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, size_
     AdjustKeyWithType(col.Type(), &key_size, num_key);
   }
 
+  // We should select some columns from the table specified by tbl_oid.
+  // Thus we assert that key_size > 0.
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
@@ -130,6 +134,8 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const
     AdjustKeyWithType(col.Type(), &key_size, num_key);
   }
 
+  // We should select some columns from the table specified by tbl_oid.
+  // Thus we assert that key_size > 0.
   TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
@@ -147,16 +153,13 @@ size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<const catalo
     }
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
 size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
                                              const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
   auto &schema = accessor_->GetIndexSchema(idx_oid);
-  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
-  return key_size;
+  return ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
 }
 
 void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
@@ -166,6 +169,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   size_t num_rows = 1;
   size_t cardinality = 1;
   size_t num_loops = 0;
+  size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     // Uses the network result consumer
     cardinality = 1;
@@ -251,7 +255,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   }
 
   auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
-                                               cardinality, mem_factor, num_loops);
+                                               cardinality, mem_factor, num_loops, num_concurrent);
   pipeline_features_.emplace(type, std::move(feature));
 }
 

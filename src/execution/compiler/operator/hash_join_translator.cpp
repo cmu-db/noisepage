@@ -6,6 +6,7 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "execution/compiler/work_context.h"
+#include "execution/sql/join_hash_table.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 
 namespace terrier::execution::compiler {
@@ -54,9 +55,16 @@ HashJoinTranslator::HashJoinTranslator(const planner::HashJoinPlanNode &plan, Co
     local_join_ht_ = left_pipeline_.DeclarePipelineStateEntry("joinHashTable", join_ht_type);
   }
 
-  num_build_rows_ = CounterDeclare("num_build_rows");
-  num_probe_rows_ = CounterDeclare("num_probe_rows");
-  num_match_rows_ = CounterDeclare("num_match_rows");
+  num_build_rows_ = CounterDeclare("num_build_rows", &left_pipeline_);
+  num_probe_rows_ = CounterDeclare("num_probe_rows", pipeline);
+  num_match_rows_ = CounterDeclare("num_match_rows", pipeline);
+
+  if (left_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    parallel_build_pre_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(left_pipeline_.CreatePipelineFunctionName("PreHook"));
+    parallel_build_post_hook_fn_ =
+        GetCodeGen()->MakeFreshIdentifier(left_pipeline_.CreatePipelineFunctionName("PostHook"));
+  }
 }
 
 void HashJoinTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) {
@@ -105,8 +113,52 @@ void HashJoinTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionD
   }
 }
 
+ast::FunctionDecl *HashJoinTranslator::GenerateStartHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &left_pipeline_;
+
+  auto params = GetHookParams(left_pipeline_, nullptr, nullptr);
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_build_pre_hook_fn_, std::move(params), ret_type);
+  { pipeline->InjectStartResourceTracker(&builder, true); }
+  return builder.Finish();
+}
+
+ast::FunctionDecl *HashJoinTranslator::GenerateEndHookFunction() const {
+  auto *codegen = GetCodeGen();
+  auto *pipeline = &left_pipeline_;
+
+  auto override_value = codegen->MakeIdentifier("overrideValue");
+  auto uint32_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
+  auto params = GetHookParams(left_pipeline_, &override_value, uint32_type);
+
+  auto ret_type = codegen->BuiltinType(ast::BuiltinType::Kind::Nil);
+  FunctionBuilder builder(codegen, parallel_build_post_hook_fn_, std::move(params), ret_type);
+  {
+    // FeatureRecord with the overrideValue
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, *pipeline,
+                  codegen->MakeExpr(override_value));
+    FeatureRecord(&builder, brain::ExecutionOperatingUnitType::PARALLEL_MERGE_HASHJOIN,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline,
+                  codegen->MakeExpr(override_value));
+
+    // End Tracker
+    pipeline->InjectEndResourceTracker(&builder, true);
+  }
+  return builder.Finish();
+}
+
+void HashJoinTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                           util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    decls->push_back(GenerateStartHookFunction());
+    decls->push_back(GenerateEndHookFunction());
+  }
+}
+
 void HashJoinTranslator::InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
-  function->Append(GetCodeGen()->JoinHashTableInit(jht_ptr, GetExecutionContext(), GetMemoryPool(), build_row_type_));
+  function->Append(GetCodeGen()->JoinHashTableInit(jht_ptr, GetExecutionContext(), build_row_type_));
 }
 
 void HashJoinTranslator::TearDownJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const {
@@ -116,10 +168,6 @@ void HashJoinTranslator::TearDownJoinHashTable(FunctionBuilder *function, ast::E
 void HashJoinTranslator::InitializeQueryState(FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
   InitializeJoinHashTable(function, global_join_ht_.GetPtr(codegen));
-
-  CounterSet(function, num_build_rows_, 0);
-  CounterSet(function, num_probe_rows_, 0);
-  CounterSet(function, num_match_rows_, 0);
 }
 
 void HashJoinTranslator::TearDownQueryState(FunctionBuilder *function) const {
@@ -130,12 +178,43 @@ void HashJoinTranslator::InitializePipelineState(const Pipeline &pipeline, Funct
   if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
     InitializeJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
   }
+
+  InitializeCounters(pipeline, function);
 }
 
 void HashJoinTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
   if (IsLeftPipeline(pipeline) && left_pipeline_.IsParallel()) {
     TearDownJoinHashTable(function, local_join_ht_.GetPtr(GetCodeGen()));
   }
+}
+
+void HashJoinTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsLeftPipeline(pipeline)) {
+    CounterSet(function, num_build_rows_, 0);
+  } else {
+    CounterSet(function, num_probe_rows_, 0);
+    CounterSet(function, num_match_rows_, 0);
+  }
+}
+
+void HashJoinTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsLeftPipeline(pipeline)) {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_build_rows_));
+    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
+  } else {
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
+    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
+                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
+    FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
+  }
+}
+
+void HashJoinTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
 }
 
 ast::Expr *HashJoinTranslator::HashKeys(
@@ -407,29 +486,37 @@ void HashJoinTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBu
     ast::Expr *jht = global_join_ht_.GetPtr(codegen);
 
     if (left_pipeline_.IsParallel()) {
+      if (IsPipelineMetricsEnabled()) {
+        // Setup the hooks
+        auto *exec_ctx = GetExecutionContext();
+        auto num_hooks = static_cast<uint32_t>(sql::JoinHashTable::HookOffsets::NUM_HOOKS);
+        auto pre = static_cast<uint32_t>(sql::JoinHashTable::HookOffsets::StartHook);
+        auto post = static_cast<uint32_t>(sql::JoinHashTable::HookOffsets::EndHook);
+        function->Append(codegen->ExecCtxInitHooks(exec_ctx, num_hooks));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, pre, parallel_build_pre_hook_fn_));
+        function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
+      }
+
       auto *tls = GetThreadStateContainer();
       auto *offset = local_join_ht_.OffsetFromState(codegen);
       function->Append(codegen->JoinHashTableBuildParallel(jht, tls, offset));
+
+      if (IsPipelineMetricsEnabled()) {
+        auto *exec_ctx = GetExecutionContext();
+        function->Append(codegen->ExecCtxClearHooks(exec_ctx));
+      }
     } else {
       function->Append(codegen->JoinHashTableBuild(jht));
+      RecordCounters(pipeline, function);
     }
-
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_build_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_BUILD,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline,
-                  codegen->CallBuiltin(ast::Builtin::JoinHashTableGetTupleCount, {jht}));
-    FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_build_rows_));
   } else {
     if (GetPlanAs<planner::HashJoinPlanNode>().GetLogicalJoinType() == planner::LogicalJoinType::LEFT) {
       CollectUnmatchedLeftRows(function);
     }
 
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_probe_rows_));
-    FeatureRecord(function, brain::ExecutionOperatingUnitType::HASHJOIN_PROBE,
-                  brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_match_rows_));
-    FeatureArithmeticRecordSet(function, pipeline, GetTranslatorId(), CounterVal(num_match_rows_));
+    if (!pipeline.IsParallel()) {
+      RecordCounters(pipeline, function);
+    }
   }
 }
 

@@ -8,7 +8,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
-#include "execution/tpl_test.h"
+#include "execution/sql_test.h"
 
 namespace terrier::execution::sql::test {
 
@@ -32,20 +32,16 @@ void BuildJHT(JoinHashTable *table, const std::vector<BuildRow> &data) {
   table->Build();
 }
 
-class JoinHashTableVectorProbeTest : public TplTest {
+class JoinHashTableVectorProbeTest : public SqlBasedTest {
  public:
-  JoinHashTableVectorProbeTest() : memory_(nullptr) {}
-
-  MemoryPool *Memory() { return &memory_; }
-
- private:
-  MemoryPool memory_;
+  JoinHashTableVectorProbeTest() = default;
 };
 
 // NOLINTNEXTLINE
 TEST_F(JoinHashTableVectorProbeTest, EmptyJoinProbe) {
+  auto exec_ctx = MakeExecCtx();
   exec::ExecutionSettings exec_settings{};
-  JoinHashTable table(exec_settings, Memory(), sizeof(BuildRow));
+  JoinHashTable table(exec_settings, exec_ctx.get(), sizeof(BuildRow));
   BuildJHT(&table, {});
 
   // The input to the probe.
@@ -82,6 +78,7 @@ TEST_F(JoinHashTableVectorProbeTest, EmptyJoinProbe) {
 
 // NOLINTNEXTLINE
 TEST_F(JoinHashTableVectorProbeTest, SimpleJoinProbe) {
+  auto exec_ctx = MakeExecCtx();
   exec::ExecutionSettings exec_settings{};
   const uint32_t num_44_dups = 10;
 
@@ -94,7 +91,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleJoinProbe) {
   for (uint32_t i = 0; i < num_44_dups - 1; i++) rows.emplace_back(44);
 
   // Build table.
-  JoinHashTable table(exec_settings, Memory(), sizeof(BuildRow));
+  JoinHashTable table(exec_settings, exec_ctx.get(), sizeof(BuildRow));
   BuildJHT(&table, rows);
 
   // The input to the probe.

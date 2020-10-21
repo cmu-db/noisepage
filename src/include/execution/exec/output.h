@@ -44,13 +44,14 @@ class EXPORT OutputBuffer {
    * @param tuple_size size of output tuples
    * @param callback upper layer callback
    */
-  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
+  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size,
+                        const OutputCallback &callback)
       : memory_pool_(memory_pool),
         num_tuples_(0),
         tuple_size_(tuple_size),
         tuples_(
             reinterpret_cast<byte *>(memory_pool->AllocateAligned(BATCH_SIZE * tuple_size, alignof(uint64_t), true))),
-        callback_(std::move(callback)) {}
+        callback_(callback) {}
 
   /**
    * @return an output slot to be written to.
@@ -76,7 +77,12 @@ class EXPORT OutputBuffer {
   ~OutputBuffer();
 
   /**
-   * @returns tuple size
+   * @return memory pool
+   */
+  sql::MemoryPool *GetMemoryPool() const { return memory_pool_; }
+
+  /**
+   * @return tuple size
    */
   uint32_t GetTupleSize() const { return tuple_size_; }
 
@@ -85,7 +91,19 @@ class EXPORT OutputBuffer {
   uint32_t num_tuples_;
   uint32_t tuple_size_;
   byte *tuples_;
-  OutputCallback callback_;
+
+  /**
+   * This is defined as a const OutputCallback & since the caller is able to guarantee the
+   * life-time of the OutputCallback. Furthermore, this relies on the assumption that a
+   * std::function<> can be invoked by multiple threads without corrupting any data internal
+   * to the std::function<>. If this assumption is proven wrong at a future date, this
+   * const &-ing will need to be revisited.
+   *
+   * An additional constraint is that if and only if multiple OutputBuffers are used (i.e
+   * parallel output to network), the OutputCallback function must be thread-safe. There is
+   * no serialization in invoking of callback_ between multiple OutputBuffers.
+   */
+  const OutputCallback &callback_;
 };
 
 /**
@@ -129,7 +147,12 @@ class OutputWriter {
       : schema_(schema), out_(out), field_formats_(field_formats) {}
 
   /**
-   * Callback that prints a batch of tuples to std out.
+   * Callback that writes results to PostgresPacketWriter.
+   *
+   * @note This function is thread-safe. The function relies only on the const
+   * input arguments (that are themselves safe), the arguments to the function,
+   * and utilizes a std::atomic<>::fetch_add() on num_rows_.
+   *
    * @param tuples batch of tuples
    * @param num_tuples number of tuples
    * @param tuple_size size of tuples
@@ -142,7 +165,12 @@ class OutputWriter {
   uint32_t NumRows() const { return num_rows_; }
 
  private:
-  uint32_t num_rows_ = 0;
+  /**
+   * Captures the number of rows written. This is defined as a std:atomic<> since
+   * multiple threads can be using a given OutputWriter's operator() at a given
+   * time. Use std::atomic<> for synchronization.
+   */
+  std::atomic<uint32_t> num_rows_ = 0;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
   const std::vector<network::FieldFormat> &field_formats_;

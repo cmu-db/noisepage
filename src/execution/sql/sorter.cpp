@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include "brain/brain_defs.h"
+#include "brain/operating_unit.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/stage_timer.h"
 #include "ips4o/ips4o.hpp"
@@ -22,12 +25,13 @@ namespace terrier::execution::sql {
 //
 //===----------------------------------------------------------------------===//
 
-Sorter::Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size)
-    : memory_(memory),
-      tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(memory)),
-      owned_tuples_(memory),
+Sorter::Sorter(exec::ExecutionContext *exec_ctx, ComparisonFunction cmp_fn, uint32_t tuple_size)
+    : exec_ctx_(exec_ctx),
+      memory_(exec_ctx->GetMemoryPool()),
+      tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(exec_ctx->GetMemoryPool())),
+      owned_tuples_(exec_ctx->GetMemoryPool()),
       cmp_fn_(cmp_fn),
-      tuples_(memory),
+      tuples_(exec_ctx->GetMemoryPool()),
       sorted_(false) {}
 
 Sorter::~Sorter() = default;
@@ -146,7 +150,7 @@ struct MergeWork {
 
 }  // namespace
 
-void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, const std::size_t sorter_offset) {
+void Sorter::SortParallel(ThreadStateContainer *thread_state_container, std::size_t sorter_offset) {
   const auto comp = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
 
   // -------------------------------------------------------
@@ -175,6 +179,10 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
 
   if (tl_sorters.size() == 1 || num_tuples < DEFAULT_MIN_TUPLES_FOR_PARALLEL_SORT) {
     EXECUTION_LOG_DEBUG("Sorter contains {} elements. Using serial sort.", num_tuples);
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartTLSortHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndSingleSorterHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
     // Reserve room for all tuples
     tuples_.reserve(num_tuples);
@@ -188,8 +196,23 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
     Sort();
 
     // Finish
+    exec_ctx_->InvokeHook(post_hook, tls, this);
     return;
   }
+
+  // For the purpose of metrics recording, we assume that computing the splitters and
+  // preparing the work is insignificant compared to the work performed to actually
+  // SORT and MERGE the per-task sorters together.
+  //
+  // If this assumption proves to be incorrect at a future date, then we would need
+  // to insert a `StartPipelineTracker` and `EndPipelineTracker` around the code
+  // that follows (or potentially just the splitters.
+  //
+  // Note the following two:
+  // 1. If placed around all code that follows, the metrics would then end up depending
+  // on the time it takes to do per-task sorting and per-task merging.
+  //
+  // 2. tbb::parallel_for() could actually end up using the "main" thread.
 
 #ifndef NDEBUG
   std::string msg = "Issuing parallel sort. Sorter sizes: ";
@@ -212,8 +235,26 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
   timer.EnterStage("Parallel Sort Thread-Local Instances");
 
   tbb::task_scheduler_init sched;
-  tbb::parallel_for_each(tl_sorters, [](Sorter *sorter) { sorter->Sort(); });
+  {
+    size_t num_threads = tbb::task_scheduler_init::default_num_threads();
+    size_t num_tasks = tl_sorters.size();
+    size_t num_concurrent = std::min(num_threads, num_tasks);
+    exec_ctx_->SetNumConcurrentEstimate(num_concurrent);
+  }
 
+  tbb::parallel_for_each(tl_sorters, [thread_state_container, this](Sorter *sorter) {
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartTLSortHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndTLSortHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    auto *exec_ctx = this->exec_ctx_;
+    exec_ctx->InvokeHook(pre_hook, tls, nullptr);
+
+    sorter->Sort();
+
+    exec_ctx->InvokeHook(post_hook, tls, nullptr);
+  });
+
+  exec_ctx_->SetNumConcurrentEstimate(0);
   timer.ExitStage();
 
   // -------------------------------------------------------
@@ -318,11 +359,27 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
     return cmp_fn_(*l.first, *r.first) >= 0;
   };
 
-  tbb::parallel_for_each(merge_work, [&heap_cmp](const MergeWork<SeqTypeIter> &work) {
+  {
+    size_t num_threads = tbb::task_scheduler_init::default_num_threads();
+    size_t num_tasks = merge_work.size();
+    size_t concurrent = std::min(num_threads, num_tasks);
+    exec_ctx_->SetNumConcurrentEstimate(concurrent);
+  }
+
+  tbb::parallel_for_each(merge_work, [&heap_cmp, thread_state_container, this](const MergeWork<SeqTypeIter> &work) {
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartTLMergeHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndTLMergeHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    auto *exec_ctx = this->exec_ctx_;
+    exec_ctx->InvokeHook(pre_hook, tls, nullptr);
+
     std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
         heap_cmp, work.input_ranges_);
     SeqTypeIter dest = work.destination_;
+    size_t num_iters = 0;
     while (!heap.empty()) {
+      num_iters++;
+
       auto top = heap.top();
       heap.pop();
       *dest++ = *top.first;
@@ -330,8 +387,11 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
         heap.emplace(top.first + 1, top.second);
       }
     }
+
+    exec_ctx->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_iters));
   });
 
+  exec_ctx_->SetNumConcurrentEstimate(0);
   timer.ExitStage();
 
   // -------------------------------------------------------
@@ -361,8 +421,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
   }
 }
 
-void Sorter::SortTopKParallel(const ThreadStateContainer *thread_state_container, const uint32_t sorter_offset,
-                              const uint64_t top_k) {
+void Sorter::SortTopKParallel(ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k) {
   // Parallel sort
   SortParallel(thread_state_container, sorter_offset);
 

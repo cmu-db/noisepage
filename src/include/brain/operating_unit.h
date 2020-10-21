@@ -7,6 +7,12 @@
 
 #include "brain/brain_defs.h"
 #include "execution/exec_defs.h"
+#include "execution/sql/memory_pool.h"
+#include "execution/util/execution_common.h"
+
+namespace terrier::runner {
+class MiniRunners;
+}  // namespace terrier::runner
 
 namespace terrier::execution::compiler::test {
 class CompilerTest_SimpleSeqScanTest_Test;
@@ -39,12 +45,20 @@ namespace terrier::execution::exec {
 class ExecutionContext;
 }  // namespace terrier::execution::exec
 
+namespace terrier::execution::sql {
+class TableVectorIterator;
+class Sorter;
+class JoinHashTable;
+class AggregationHashTable;
+}  // namespace terrier::execution::sql
+
 namespace terrier::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
 }  // namespace terrier::optimizer
 
 namespace terrier::brain {
 
+class ExecOUFeatureVector;
 class OperatingUnitRecorder;
 
 /**
@@ -61,11 +75,19 @@ class OperatingUnitRecorder;
  * - Estimated cardinality
  */
 class ExecutionOperatingUnitFeature {
+  friend class terrier::runner::MiniRunners;
   friend class execution::exec::ExecutionContext;
   friend class OperatingUnitRecorder;
+  friend class ExecOUFeatureVector;
   friend class PipelineOperatingUnits;
+  friend class execution::sql::TableVectorIterator;
+  friend class execution::sql::Sorter;
+  friend class execution::sql::JoinHashTable;
+  friend class execution::sql::AggregationHashTable;
 
  public:
+  ExecutionOperatingUnitFeature() = default;
+
   /**
    * Constructor for ExecutionOperatingUnitFeature
    * @param translator_id The ID of the translator
@@ -76,10 +98,11 @@ class ExecutionOperatingUnitFeature {
    * @param cardinality Estimated cardinality
    * @param mem_factor Memory adjustment factor
    * @param num_loops Number of loops
+   * @param num_concurrent Number of concurrent tasks (including current one)
    */
   ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
                                 size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,
-                                double mem_factor, size_t num_loops)
+                                double mem_factor, size_t num_loops, size_t num_concurrent)
       : translator_id_(translator_id),
         feature_id_(feature_id_counter++),
         feature_(feature),
@@ -88,7 +111,27 @@ class ExecutionOperatingUnitFeature {
         num_keys_(num_keys),
         cardinality_(cardinality),
         mem_factors_({mem_factor}),
-        num_loops_(num_loops) {}
+        num_loops_(num_loops),
+        num_concurrent_(num_concurrent) {}
+
+  /**
+   * Constructor for ExecutionOperatingUnitFeature from an existing feature
+   * @note Does not copy num_rows, cardinality
+   *
+   * @param feature Newly created OU type
+   * @param other Existing OU to copy information from
+   */
+  ExecutionOperatingUnitFeature(ExecutionOperatingUnitType feature, const ExecutionOperatingUnitFeature &other)
+      : translator_id_(other.translator_id_),
+        feature_id_(other.feature_id_),
+        feature_(feature),
+        num_rows_(0),
+        key_size_(other.key_size_),
+        num_keys_(other.num_keys_),
+        cardinality_(0),
+        mem_factors_(other.mem_factors_),
+        num_loops_(other.num_loops_),
+        num_concurrent_(other.num_concurrent_) {}
 
   /** @return The ID of the translator for this ExecutionOperatingUnitFeature. */
   execution::translator_id_t GetTranslatorId() const { return translator_id_; }
@@ -97,12 +140,34 @@ class ExecutionOperatingUnitFeature {
   execution::feature_id_t GetFeatureId() const { return feature_id_; }
 
   /**
-   * @returns type
+   * @return type
    */
   ExecutionOperatingUnitType GetExecutionOperatingUnitType() const { return feature_; }
 
   /**
-   * @returns estimated number of output tuples
+   * Updates target with the value of update under a specific update mode.
+   *
+   * If mode == SET: *target = update
+   * If mode == ADD: *target += update
+   * If mode == MULT: *target *= update
+   *
+   * @param mode Mode to use for updating target
+   * @param target Target to update
+   * @param update Value to apply
+   */
+  void ApplyValueUpdate(ExecutionOperatingUnitFeatureUpdateMode mode, size_t *target, size_t update);
+
+  /**
+   * Update num_rows under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
+   */
+  void UpdateNumRows(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_rows_, val);
+  }
+
+  /**
+   * @return estimated number of output tuples
    */
   size_t GetNumRows() const { return num_rows_; }
 
@@ -117,12 +182,35 @@ class ExecutionOperatingUnitFeature {
   size_t GetNumKeys() const { return num_keys_; }
 
   /**
-   * @returns estimated cardinality
+   * Update cardinality under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
+   */
+  void UpdateCardinality(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &cardinality_, val);
+  }
+
+  /**
+   * @return estimated cardinality
    */
   size_t GetCardinality() const { return cardinality_; }
 
   /**
-   * @returns memory adjustment factor
+   * Update num_concurrent under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
+   */
+  void UpdateNumConcurrent(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_concurrent_, val);
+  }
+
+  /**
+   * @return num concurrent
+   */
+  size_t GetNumConcurrent() const { return num_concurrent_; }
+
+  /**
+   * @return memory adjustment factor
    */
   double GetMemFactor() const {
     if (mem_factors_.empty()) return 1.0;
@@ -136,7 +224,12 @@ class ExecutionOperatingUnitFeature {
   }
 
   /**
-   * @returns number of iterations
+   * @return number of iterations as a reference
+   */
+  size_t &GetNumLoops() { return num_loops_; }
+
+  /**
+   * @return number of iterations
    */
   size_t GetNumLoops() const { return num_loops_; }
 
@@ -154,6 +247,12 @@ class ExecutionOperatingUnitFeature {
    * @param cardinality Updated cardinality
    */
   void SetCardinality(size_t cardinality) { cardinality_ = cardinality; }
+
+  /*
+   * Set the number of concurrent other tasks
+   * @param num_concurrent number of concurent tasks
+   */
+  void SetNumConcurrent(size_t num_concurrent) { num_concurrent_ = num_concurrent; }
 
   /**
    * Set the estimated number of loops
@@ -180,12 +279,54 @@ class ExecutionOperatingUnitFeature {
   size_t cardinality_;
   std::vector<double> mem_factors_;
   size_t num_loops_;
+  size_t num_concurrent_;
 };
 
 /**
  * Convenience typedef for a vector of features
  */
 using ExecutionOperatingUnitFeatureVector = std::vector<ExecutionOperatingUnitFeature>;
+
+/**
+ * Class used to maintain information about a single feature's pipeline.
+ * State is maintained in TLS during execution.
+ */
+class EXPORT ExecOUFeatureVector {
+ public:
+  /**
+   * Pipeline ID
+   */
+  execution::pipeline_id_t pipeline_id_{execution::INVALID_PIPELINE_ID};
+
+  /**
+   * Features for a given pipeline
+   *
+   * This is a pointer because we need to be able to explicitly delete the
+   * vector on all control flow paths. A standard std::vector may not be
+   * properly cleaned up if execution encounters an "exception".
+   */
+  std::unique_ptr<execution::sql::MemPoolVector<ExecutionOperatingUnitFeature>> pipeline_features_ = nullptr;
+
+  /**
+   * Resets the feature vector state so it can be initialized again
+   */
+  void Reset() {
+    pipeline_id_ = execution::INVALID_PIPELINE_ID;
+    pipeline_features_ = nullptr;
+  }
+
+  /**
+   * Function used to update a feature's metadata information
+   * @param pipeline_id Pipeline Identifier
+   * @param feature_id Feature Identifier
+   * @param modifier Attribute to modify
+   * @param mode Update mode to the value
+   * @param val Value
+   */
+  void UpdateFeature(execution::pipeline_id_t pipeline_id, execution::feature_id_t feature_id,
+                     ExecutionOperatingUnitFeatureAttribute modifier, ExecutionOperatingUnitFeatureUpdateMode mode,
+                     uint32_t val);
+};
 
 /**
  * PipelineOperatingUnits manages the storage/association of specific pipeline
@@ -219,6 +360,7 @@ class PipelineOperatingUnits {
   friend class terrier::execution::compiler::test::CompilerTest_InsertIntoSelectWithParamTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertWithParamsTest_Test;
   friend class terrier::execution::compiler::test::CompilerTest_StaticDistinctAggregateTest_Test;
+  friend class terrier::runner::MiniRunners;
 
   /**
    * Constructor
@@ -246,6 +388,13 @@ class PipelineOperatingUnits {
     TERRIER_ASSERT(itr != units_.end(), "Requested pipeline could not be found in PipelineOperatingUnits");
     return itr->second;
   }
+
+  /**
+   * Checks whether a certain pipeline exists
+   * @param pipeline Pipeline Identifier
+   * @return if exist or not
+   */
+  bool HasPipelineFeatures(execution::pipeline_id_t pipeline) const { return units_.find(pipeline) != units_.end(); }
 
  private:
   std::unordered_map<execution::pipeline_id_t, ExecutionOperatingUnitFeatureVector> units_{};
