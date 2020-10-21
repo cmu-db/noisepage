@@ -98,10 +98,6 @@ class EXPORT OutputBuffer {
    * std::function<> can be invoked by multiple threads without corrupting any data internal
    * to the std::function<>. If this assumption is proven wrong at a future date, this
    * const &-ing will need to be revisited.
-   *
-   * An additional constraint is that if and only if multiple OutputBuffers are used (i.e
-   * parallel output to network), the OutputCallback function must be thread-safe. There is
-   * no serialization in invoking of callback_ between multiple OutputBuffers.
    */
   const OutputCallback &callback_;
 };
@@ -149,10 +145,6 @@ class OutputWriter {
   /**
    * Callback that writes results to PostgresPacketWriter.
    *
-   * @note This function is thread-safe. The function relies only on the const
-   * input arguments (that are themselves safe), the arguments to the function,
-   * and utilizes a std::atomic<>::fetch_add() on num_rows_.
-   *
    * @param tuples batch of tuples
    * @param num_tuples number of tuples
    * @param tuple_size size of tuples
@@ -165,12 +157,10 @@ class OutputWriter {
   uint32_t NumRows() const { return num_rows_; }
 
  private:
-  /**
-   * Captures the number of rows written. This is defined as a std:atomic<> since
-   * multiple threads can be using a given OutputWriter's operator() at a given
-   * time. Use std::atomic<> for synchronization.
-   */
-  std::atomic<uint32_t> num_rows_ = 0;
+  /** Captures the number of rows written.  */
+  uint32_t num_rows_ = 0;
+  /** Latch for synchronizing calls to operator() */
+  common::SpinLatch latch_;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
   const std::vector<network::FieldFormat> &field_formats_;

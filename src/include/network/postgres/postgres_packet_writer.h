@@ -187,9 +187,6 @@ class PostgresPacketWriter : public PacketWriter {
    * @param columns OutputSchema describing the tuple
    */
   uint32_t WriteTextAttribute(const execution::sql::Val *val, type::TypeId type);
-
-  /** Latch for protecting against multiple OutputWriters */
-  common::SpinLatch latch_;
 };
 
 }  // namespace terrier::network
