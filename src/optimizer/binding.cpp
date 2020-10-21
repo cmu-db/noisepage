@@ -71,7 +71,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
 
   OPTIMIZER_LOG_TRACE("Attempting to bind on group " + std::to_string(gexpr->GetGroupID().UnderlyingValue()) +
                       " with expression of type " + gexpr->Contents()->GetName() + ", children size " +
-                      std::to_string(child_groups.size()))
+                      std::to_string(child_groups.size()));
 
   // Find all bindings for children
   children_bindings_.resize(child_groups.size());

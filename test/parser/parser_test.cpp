@@ -27,8 +27,10 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
+#if NOISEPAGE_USE_LOGGER
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
+#endif
   }
 
   void CheckTable(const std::unique_ptr<TableInfo> &table_info, const std::string &table_name) {
