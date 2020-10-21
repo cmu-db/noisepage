@@ -11,8 +11,8 @@
 
 #include "common/error/exception.h"
 #include "common/math_util.h"
-#include "execution/exec/execution_context.h"
 #include "count/hll.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
 #include "execution/sql/thread_state_container.h"

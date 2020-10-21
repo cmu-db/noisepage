@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "execution/exec/execution_context.h"
 #include "count/hll.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
