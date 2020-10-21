@@ -14,7 +14,7 @@ DIR_TMP = "/tmp"
 DEFAULT_DB_HOST = "localhost"
 DEFAULT_DB_PORT = 15721
 DEFAULT_DB_OUTPUT_FILE = "/tmp/db_log.txt"
-DEFAULT_DB_BIN = "terrier"
+DEFAULT_DB_BIN = "noisepage"
 DEFAULT_TEST_OUTPUT_FILE = "/tmp/terrier_test_{}.log".format(
     datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-"))
 # Whether the database should stop the whole test if one of test cases fail,
