@@ -3,7 +3,6 @@
 #include <utility>
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "binder/bind_node_visitor.h"
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog.h"
@@ -46,14 +45,10 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
-
-using std::make_tuple;
-
-using std::unique_ptr;
-using std::vector;
 
 namespace terrier {
 
@@ -538,6 +533,26 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
   EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
   EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
   EXPECT_FALSE(logical_get_right->GetIsForUpdate());
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementLeftSemiJoinTest) {
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
+  std::string select_sql = "SELECT * FROM A WHERE A1 in (SELECT B1 from B)";
+
+  std::string ref =
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalMarkJoin\",\"Children\":[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+
+  auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
+  auto statement = parse_tree->GetStatements()[0];
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
+  operator_transformer_ =
+      std::make_unique<optimizer::QueryToOperatorTransformer>(common::ManagedPointer(accessor_), db_oid_);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, common::ManagedPointer(parse_tree));
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::AbstractOptimizerNode>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
 }
 
 // NOLINTNEXTLINE

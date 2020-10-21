@@ -214,6 +214,8 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
 
 void InputColumnDeriver::Visit(const InnerHashJoin *op) { JoinHelper(op); }
 
+void InputColumnDeriver::Visit(const LeftSemiHashJoin *op) { JoinHelper(op); }
+
 void InputColumnDeriver::Visit(const LeftHashJoin *op) { JoinHelper(op); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {
@@ -369,6 +371,11 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
   } else if (op->GetOpType() == OpType::INNERNLJOIN) {
     auto join_op = reinterpret_cast<const InnerNLJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
+  } else if (op->GetOpType() == OpType::LEFTSEMIHASHJOIN) {
+    auto join_op = reinterpret_cast<const LeftSemiHashJoin *>(op);
+    join_conds = join_op->GetJoinPredicates();
+    left_keys = join_op->GetLeftKeys();
+    right_keys = join_op->GetRightKeys();
   }
 
   ExprSet input_cols_set;

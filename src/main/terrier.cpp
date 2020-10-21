@@ -1,11 +1,9 @@
-#include <gflags/gflags.h>
-
 #include <csignal>
-#include <memory>
 #include <unordered_map>
 #include <utility>
 
 #include "common/managed_pointer.h"
+#include "gflags/gflags.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "settings/settings_manager.h"
@@ -62,8 +60,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Parse Setting Values
-  ::google::SetUsageMessage("Usage Info: \n");
-  ::google::ParseCommandLineFlags(&argc, &argv, true);
+  ::gflags::SetUsageMessage("Usage Info: \n");
+  ::gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Initialize debug loggers
   terrier::LoggersUtil::Initialize();
