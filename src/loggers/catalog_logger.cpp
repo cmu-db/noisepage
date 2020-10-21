@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace terrier::catalog {
-
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> catalog_logger = nullptr;  // NOLINT
 
 void InitCatalogLogger() {
@@ -12,5 +12,5 @@ void InitCatalogLogger() {
     spdlog::register_logger(catalog_logger);
   }
 }
-
+#endif
 }  // namespace terrier::catalog

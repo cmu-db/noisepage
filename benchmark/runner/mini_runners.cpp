@@ -1,5 +1,3 @@
-#include <gflags/gflags.h>
-
 #include <cstdio>
 #include <functional>
 #include <pqxx/pqxx>  // NOLINT
@@ -21,6 +19,7 @@
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
+#include "gflags/gflags.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/forced_cost_model.h"
@@ -2270,7 +2269,7 @@ std::condition_variable network_queries_cv;
 
 using NetworkWorkFunction = std::function<void(pqxx::work *)>;
 
-void RunNetworkQueries(NetworkWorkFunction work) {
+void RunNetworkQueries(const NetworkWorkFunction &work) {
   // GC does not run in a background thread!
   {
     std::unique_lock<std::mutex> lk(network_queries_mutex);
@@ -2302,7 +2301,7 @@ void RunNetworkQueries(NetworkWorkFunction work) {
   }
 }
 
-void RunNetworkSequence(NetworkWorkFunction work) {
+void RunNetworkSequence(const NetworkWorkFunction &work) {
   terrier::runner::db_main->GetMetricsManager()->Aggregate();
   terrier::runner::db_main->GetMetricsManager()->ToCSV();
   terrier::runner::InvokeGC();
