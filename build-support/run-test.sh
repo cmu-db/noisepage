@@ -27,7 +27,10 @@
 
 OUTPUT_ROOT=$1
 shift
-ROOT=$(cd $(dirname $BASH_SOURCE)/..; pwd)
+ROOT=$(
+  cd $(dirname $BASH_SOURCE)/..
+  pwd
+)
 
 TEST_LOGDIR=$OUTPUT_ROOT/build/$1-logs
 mkdir -p $TEST_LOGDIR
@@ -37,7 +40,10 @@ shift
 TEST_DEBUGDIR=$OUTPUT_ROOT/build/$RUN_TYPE-debug
 mkdir -p $TEST_DEBUGDIR
 
-TEST_DIRNAME=$(cd $(dirname $1); pwd)
+TEST_DIRNAME=$(
+  cd $(dirname $1)
+  pwd
+)
 TEST_FILENAME=$(basename $1)
 shift
 TEST_EXECUTABLE="$TEST_DIRNAME/$TEST_FILENAME"
@@ -66,7 +72,6 @@ pipe_cmd=cat
 ARROW_TEST_ULIMIT_CORE=${ARROW_TEST_ULIMIT_CORE:-0}
 ulimit -c $ARROW_TEST_ULIMIT_CORE
 
-
 function setup_sanitizers() {
   # Sets environment variables for different sanitizers (it configures how) the run_tests. Function works.
 
@@ -82,10 +87,15 @@ function setup_sanitizers() {
   TSAN_OPTIONS="$TSAN_OPTIONS history_size=7"
   export TSAN_OPTIONS
 
-  # Enable leak detection even under LLVM 3.4, where it was disabled by default.
-  # This flag only takes effect when running an ASAN build.
-  # ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=1"
-  # export ASAN_OPTIONS
+  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    # Enable LSAN on Ubuntu builds.
+    ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=1"
+    export ASAN_OPTIONS
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    # Disable LSAN on OSX builds.
+    ASAN_OPTIONS="$ASAN_OPTIONS detect_leaks=0"
+    export ASAN_OPTIONS
+  fi
 
   # Set up suppressions for LeakSanitizer
   LSAN_OPTIONS="$LSAN_OPTIONS suppressions=$ROOT/build-support/data/lsan_suppressions.txt"
@@ -99,11 +109,11 @@ function run_test() {
   # even when retries are successful.
   rm -f $XMLFILE
 
-  $TEST_EXECUTABLE "$@" 2>&1 \
-    | $ROOT/build-support/asan_symbolize.py \
-    | c++filt \
-    | $ROOT/build-support/stacktrace_addr2line.pl $TEST_EXECUTABLE \
-    | $pipe_cmd 2>&1 | tee $LOGFILE
+  $TEST_EXECUTABLE "$@" 2>&1 |
+    $ROOT/build-support/asan_symbolize.py |
+    c++filt |
+    $ROOT/build-support/stacktrace_addr2line.pl $TEST_EXECUTABLE |
+    $pipe_cmd 2>&1 | tee $LOGFILE
   STATUS=$?
 
   # TSAN doesn't always exit with a non-zero exit code due to a bug:
@@ -115,7 +125,7 @@ function run_test() {
   # regexes in most cases, but for certain errors we delete the resulting xml
   # file and let our own post-processing step regenerate it.
   export GREP=$(which egrep)
-  if zgrep --silent "ThreadSanitizer|Leak check.*detected leaks" $LOGFILE ; then
+  if zgrep --silent "ThreadSanitizer|Leak check.*detected leaks" $LOGFILE; then
     echo ThreadSanitizer or leak check failures in $LOGFILE
     STATUS=1
     rm -f $XMLFILE
@@ -126,9 +136,9 @@ function post_process_tests() {
   # If we have a LeakSanitizer report, and XML reporting is configured, add a new test
   # case result to the XML file for the leak report. Otherwise Jenkins won't show
   # us which tests had LSAN errors.
-  if zgrep --silent "ERROR: LeakSanitizer: detected memory leaks" $LOGFILE ; then
-      echo Test had memory leaks. Editing XML
-      perl -p -i -e '
+  if zgrep --silent "ERROR: LeakSanitizer: detected memory leaks" $LOGFILE; then
+    echo Test had memory leaks. Editing XML
+    perl -p -i -e '
       if (m#</testsuite>#) {
         print "<testcase name=\"LeakSanitizer\" status=\"run\" classname=\"LSAN\">\n";
         print "  <failure message=\"LeakSanitizer failed\" type=\"\">\n";
@@ -141,16 +151,16 @@ function post_process_tests() {
 
 function run_other() {
   # Generic run function for test like executables that aren't actually gtest
-  $TEST_EXECUTABLE "$@" 2>&1 | $pipe_cmd > $LOGFILE
+  $TEST_EXECUTABLE "$@" 2>&1 | $pipe_cmd >$LOGFILE
   STATUS=$?
 }
 
 if [ $RUN_TYPE = "test" ]; then
-    setup_sanitizers
+  setup_sanitizers
 fi
 
 # Run the actual test.
-for ATTEMPT_NUMBER in $(seq 1 $TEST_EXECUTION_ATTEMPTS) ; do
+for ATTEMPT_NUMBER in $(seq 1 $TEST_EXECUTION_ATTEMPTS); do
   if [ $ATTEMPT_NUMBER -lt $TEST_EXECUTION_ATTEMPTS ]; then
     # If the test fails, the test output may or may not be left behind,
     # depending on whether the test cleaned up or exited immediately. Either
@@ -165,7 +175,7 @@ for ATTEMPT_NUMBER in $(seq 1 $TEST_EXECUTION_ATTEMPTS) ; do
     # Now delete any new test output.
     TEST_TMPDIR_AFTER=$(find $TEST_TMPDIR -maxdepth 1 -type d | sort)
     DIFF=$(comm -13 <(echo "$TEST_TMPDIR_BEFORE") \
-                    <(echo "$TEST_TMPDIR_AFTER"))
+      <(echo "$TEST_TMPDIR_AFTER"))
     for DIR in $DIFF; do
       # Multiple tests may be running concurrently. To avoid deleting the
       # wrong directories, constrain to only directories beginning with the
@@ -202,14 +212,14 @@ fi
 COREFILES=$(ls | grep ^core)
 if [ -n "$COREFILES" ]; then
   echo Found core dump. Saving executable and core files.
-  gzip < $TEST_EXECUTABLE > "$TEST_DEBUGDIR/$TEST_NAME.gz" || exit $?
+  gzip <$TEST_EXECUTABLE >"$TEST_DEBUGDIR/$TEST_NAME.gz" || exit $?
   for COREFILE in $COREFILES; do
-    gzip < $COREFILE > "$TEST_DEBUGDIR/$TEST_NAME.$COREFILE.gz" || exit $?
+    gzip <$COREFILE >"$TEST_DEBUGDIR/$TEST_NAME.$COREFILE.gz" || exit $?
   done
   # Pull in any .so files as well.
   for LIB in $(ldd $TEST_EXECUTABLE | grep $ROOT | awk '{print $3}'); do
     LIB_NAME=$(basename $LIB)
-    gzip < $LIB > "$TEST_DEBUGDIR/$LIB_NAME.gz" || exit $?
+    gzip <$LIB >"$TEST_DEBUGDIR/$LIB_NAME.gz" || exit $?
   done
 fi
 
