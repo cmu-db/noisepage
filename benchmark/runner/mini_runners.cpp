@@ -522,9 +522,9 @@ class MiniRunners : public benchmark::Fixture {
         exec_settings = *settings;
       }
 
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-          db_oid, common::ManagedPointer(txn), callback, out_schema,
-          common::ManagedPointer(accessor), exec_settings, metrics_manager);
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
+                                                                          out_schema, common::ManagedPointer(accessor),
+                                                                          exec_settings, metrics_manager);
 
       // Attach params to ExecutionContext
       if (static_cast<size_t>(i) < param_ref.size()) {
@@ -896,9 +896,9 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   execution::compiler::ExecutableQuery::query_identifier.store(MiniRunners::query_id++);
   execution::exec::NoOpResultConsumer consumer;
   execution::exec::OutputCallback callback = consumer;
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid, common::ManagedPointer(txn), callback, schema.get(),
-      common::ManagedPointer(accessor), exec_settings, metrics_manager_);
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
+                                                                      schema.get(), common::ManagedPointer(accessor),
+                                                                      exec_settings, metrics_manager_);
 
   auto exec_query =
       execution::compiler::ExecutableQuery(output.str(), common::ManagedPointer(exec_ctx), false, 16, exec_settings);
