@@ -35,11 +35,11 @@ void LogManager::ForceFlush() {
   log_serializer_task_->Process();
   // Signal the disk log consumer task thread to persist the buffers to disk
   std::unique_lock<std::mutex> lock(disk_log_writer_task_->persist_lock_);
-  disk_log_writer_task_->do_persist_ = true;
+  disk_log_writer_task_->force_flush_ = true;
   disk_log_writer_task_->disk_log_writer_thread_cv_.notify_one();
 
   // Wait for the disk log consumer task thread to persist the logs
-  disk_log_writer_task_->persist_cv_.wait(lock, [&] { return !disk_log_writer_task_->do_persist_; });
+  disk_log_writer_task_->persist_cv_.wait(lock, [&] { return !disk_log_writer_task_->force_flush_; });
 }
 
 void LogManager::PersistAndStop() {

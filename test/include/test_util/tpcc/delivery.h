@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "test_util/tpcc/database.h"

@@ -14,20 +14,42 @@ DIR_TMP = "/tmp"
 DEFAULT_DB_HOST = "localhost"
 DEFAULT_DB_PORT = 15721
 DEFAULT_DB_OUTPUT_FILE = "/tmp/db_log.txt"
-DEFAULT_DB_BIN = "terrier"
+DEFAULT_DB_BIN = "noisepage"
 DEFAULT_TEST_OUTPUT_FILE = "/tmp/terrier_test_{}.log".format(
     datetime.utcnow().isoformat(sep="-", timespec="seconds").replace(":", "-"))
-# Whether the database should stop the whole test if one of test cases fail, 
+# Whether the database should stop the whole test if one of test cases fail,
 DEFAULT_CONTINUE_ON_ERROR = False
 
 # Number of seconds to wait after starting the DBMS before trying to connect
-DB_START_WAIT = 1 # seconds
+DB_START_WAIT = 1  # seconds
 # Number of times we will try to start the DBMS and connect to it
 DB_START_ATTEMPTS = 2
 # For each start attempt, the number of times we will attempt to connect to the DBMS
 DB_CONNECT_ATTEMPTS = 50
 # How long to wait before each connection attempt
-DB_CONNECT_SLEEP = 0.2 # seconds
+DB_CONNECT_SLEEP = 0.2  # seconds
+
+# Logging settings
+LOG = logging.getLogger(__name__)
+LOG_handler = logging.StreamHandler()
+LOG_formatter = logging.Formatter(
+    fmt=
+    '%(asctime)s,%(msecs)03d [%(filename)s:%(lineno)d] %(levelname)-5s: %(message)s',
+    datefmt='%m-%d-%Y %H:%M:%S')
+LOG_handler.setFormatter(LOG_formatter)
+LOG.addHandler(LOG_handler)
+LOG.setLevel(logging.INFO)
+
+# Scripts with psutils
+FILE_CHECK_PIDS = os.path.join(DIR_TESTING, "check_pids.py")
+FILE_KILL_SERVER = os.path.join(DIR_TESTING, "kill_server.py")
+
+# Command paths
+LSOF_PATH_LINUX = "lsof"
+LSOF_PATH_MACOS = "/usr/sbin/lsof"
+
+# OS family
+OS_FAMILY_DARWIN = "darwin"
 
 
 # error code
@@ -35,11 +57,8 @@ class ErrorCode:
     SUCCESS = 0
     ERROR = 1
 
-# Logging settings
-LOG = logging.getLogger(__name__)
-LOG_handler = logging.StreamHandler()
-LOG_formatter = logging.Formatter(fmt='%(asctime)s,%(msecs)03d [%(filename)s:%(lineno)d] %(levelname)-5s: %(message)s',
-                                  datefmt='%m-%d-%Y %H:%M:%S')
-LOG_handler.setFormatter(LOG_formatter)
-LOG.addHandler(LOG_handler)
-LOG.setLevel(logging.INFO)
+
+# psutil command line strings
+class CommandLineStr:
+    TRUE = "TRUE"
+    FALSE = "FALSE"

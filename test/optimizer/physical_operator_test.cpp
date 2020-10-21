@@ -759,6 +759,93 @@ TEST(OperatorTests, InnerHashJoinTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(OperatorTests, LeftSemiHashJoinTest) {
+  //===--------------------------------------------------------------------===//
+  // InnerHashJoin
+  //===--------------------------------------------------------------------===//
+  auto timestamp_manager = transaction::TimestampManager();
+  auto deferred_action_manager = transaction::DeferredActionManager(common::ManagedPointer(&timestamp_manager));
+  auto buffer_pool = storage::RecordBufferSegmentPool(100, 2);
+  transaction::TransactionManager txn_manager = transaction::TransactionManager(
+      common::ManagedPointer(&timestamp_manager), common::ManagedPointer(&deferred_action_manager),
+      common::ManagedPointer(&buffer_pool), false, nullptr);
+  transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
+
+  parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+  parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(true));
+  parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
+
+  auto x_1 = common::ManagedPointer<parser::AbstractExpression>(expr_b_1);
+  auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
+  auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
+
+  auto annotated_expr_0 =
+      AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator semi_hash_join_1 =
+      LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_2 =
+      LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1}).RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_3 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_4 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_5 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_6 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_7 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_8 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1})
+                                  .RegisterWithTxnContext(txn_context);
+  Operator semi_hash_join_9 = LeftSemiHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3})
+                                  .RegisterWithTxnContext(txn_context);
+
+  EXPECT_EQ(semi_hash_join_1.GetOpType(), OpType::LEFTSEMIHASHJOIN);
+  EXPECT_EQ(semi_hash_join_3.GetOpType(), OpType::LEFTSEMIHASHJOIN);
+  EXPECT_EQ(semi_hash_join_1.GetName(), "LeftSemiHashJoin");
+  EXPECT_EQ(semi_hash_join_1.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>());
+  EXPECT_EQ(semi_hash_join_3.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_0});
+  EXPECT_EQ(semi_hash_join_4.GetContentsAs<LeftSemiHashJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>{annotated_expr_1});
+  EXPECT_EQ(semi_hash_join_1.GetContentsAs<LeftSemiHashJoin>()->GetLeftKeys(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+  EXPECT_EQ(semi_hash_join_9.GetContentsAs<LeftSemiHashJoin>()->GetRightKeys(),
+            std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+  EXPECT_TRUE(semi_hash_join_1 == semi_hash_join_2);
+  EXPECT_FALSE(semi_hash_join_1 == semi_hash_join_3);
+  EXPECT_FALSE(semi_hash_join_4 == semi_hash_join_3);
+  EXPECT_TRUE(semi_hash_join_4 == semi_hash_join_5);
+  EXPECT_TRUE(semi_hash_join_4 == semi_hash_join_6);
+  EXPECT_FALSE(semi_hash_join_4 == semi_hash_join_7);
+  EXPECT_FALSE(semi_hash_join_4 == semi_hash_join_8);
+  EXPECT_FALSE(semi_hash_join_4 == semi_hash_join_9);
+  EXPECT_EQ(semi_hash_join_1.Hash(), semi_hash_join_2.Hash());
+  EXPECT_NE(semi_hash_join_1.Hash(), semi_hash_join_3.Hash());
+  EXPECT_NE(semi_hash_join_4.Hash(), semi_hash_join_3.Hash());
+  EXPECT_EQ(semi_hash_join_4.Hash(), semi_hash_join_5.Hash());
+  EXPECT_EQ(semi_hash_join_4.Hash(), semi_hash_join_6.Hash());
+  EXPECT_NE(semi_hash_join_4.Hash(), semi_hash_join_7.Hash());
+  EXPECT_NE(semi_hash_join_4.Hash(), semi_hash_join_8.Hash());
+  EXPECT_NE(semi_hash_join_4.Hash(), semi_hash_join_9.Hash());
+
+  delete expr_b_1;
+  delete expr_b_2;
+  delete expr_b_3;
+
+  txn_manager.Abort(txn_context);
+  delete txn_context;
+}
+
+// NOLINTNEXTLINE
 TEST(OperatorTests, LeftHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
@@ -998,24 +1085,6 @@ TEST(OperatorTests, InsertTest) {
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  // Make sure that we catch when the insert values do not match the
-  // number of columns that we are trying to insert into
-  // NOTE: We only do this for debug builds
-#ifndef NDEBUG
-  parser::AbstractExpression *bad_raw_values[] = {
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(2)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(3))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
-  EXPECT_DEATH(Insert::Make(database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values),
-                            std::vector<catalog::index_oid_t>(indexes))
-                   .RegisterWithTxnContext(txn_context),
-               "Mismatched");
-  for (auto entry : bad_raw_values) delete entry;
-#endif
 
   for (auto entry : raw_values) delete entry;
 
@@ -1588,15 +1657,6 @@ TEST(OperatorTests, CreateFunctionTest) {
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op11);
   EXPECT_NE(op1.Hash(), op11.Hash());
-
-#ifndef NDEBUG
-  EXPECT_DEATH(
-      CreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {},
-                           {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                           parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true)
-          .RegisterWithTxnContext(txn_context),
-      "Mismatched");
-#endif
 
   txn_manager.Abort(txn_context);
   delete txn_context;
