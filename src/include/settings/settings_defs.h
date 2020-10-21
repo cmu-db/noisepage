@@ -248,7 +248,7 @@ SETTING_int(
     0,
     10,
     true,
-    terrier::settings::Callbacks::NoOp
+    terrier::settings::Callbacks::MetricsPipelineSamplingInterval
 )
 
 SETTING_bool(
