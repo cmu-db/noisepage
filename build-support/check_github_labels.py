@@ -14,7 +14,7 @@ import urllib.request
 
 def get_pr_num():
     match = re.match(r'.*terrier_PR-([^@/]*).*', os.getcwd())
-    if len(match.groups()) == 1:
+    if match and len(match.groups()) == 1:
         return int(match.groups()[0])
     return None
 
