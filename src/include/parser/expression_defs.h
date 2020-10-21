@@ -69,6 +69,7 @@ enum class ExpressionType : uint8_t {
   ROW_SUBQUERY,
 
   STAR,
+  TABLE_STAR,
   PLACEHOLDER,
   COLUMN_REF,
   FUNCTION_REF,
