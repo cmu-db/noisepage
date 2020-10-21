@@ -13,15 +13,15 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 
-#define EXPORT_TABLE_NAME "test_table.arrow"
-#define CSV_TABLE_NAME "test_table.csv"
-#define PYSCRIPT_NAME "transform_table.py"
-#define PYSCRIPT                                      \
-  "import pyarrow as pa\n"                            \
-  "pa_table = pa.ipc.open_stream('" EXPORT_TABLE_NAME \
-  "').read_next_batch()\n"                            \
-  "pa_table = pa_table.to_pandas()\n"                 \
-  "pa_table.to_csv('" CSV_TABLE_NAME "', index=False, header=False)\n"
+#define EXPORT_TEST_EXPORT_TABLE_NAME "test_export_table_test_table.arrow"
+#define EXPORT_TEST_CSV_TABLE_NAME "test_export_table_test_table.csv"
+#define EXPORT_TEST_PYSCRIPT_NAME "test_export_table_test_transform_table.py"
+#define EXPORT_TEST_PYSCRIPT                                      \
+  "import pyarrow as pa\n"                                        \
+  "pa_table = pa.ipc.open_stream('" EXPORT_TEST_EXPORT_TABLE_NAME \
+  "').read_next_batch()\n"                                        \
+  "pa_table = pa_table.to_pandas()\n"                             \
+  "pa_table.to_csv('" EXPORT_TEST_CSV_TABLE_NAME "', index=False, header=False)\n"
 
 namespace terrier {
 
@@ -208,11 +208,11 @@ struct ExportTableTest : public ::terrier::TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
-  unlink(EXPORT_TABLE_NAME);
-  unlink(CSV_TABLE_NAME);
-  unlink(PYSCRIPT_NAME);
-  std::ofstream outfile(PYSCRIPT_NAME, std::ios_base::out);
-  outfile << PYSCRIPT;
+  unlink(EXPORT_TEST_EXPORT_TABLE_NAME);
+  unlink(EXPORT_TEST_CSV_TABLE_NAME);
+  unlink(EXPORT_TEST_PYSCRIPT_NAME);
+  std::ofstream outfile(EXPORT_TEST_PYSCRIPT_NAME, std::ios_base::out);
+  outfile << EXPORT_TEST_PYSCRIPT;
   outfile.close();
   auto seed_chosen =
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -263,21 +263,21 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
   storage::ArrowSerializer arrow_serializer(table);
-  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types);
-  EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
+  arrow_serializer.ExportTable(EXPORT_TEST_EXPORT_TABLE_NAME, &column_types);
+  EXPECT_EQ(system((std::string("python3 ") + EXPORT_TEST_PYSCRIPT_NAME).c_str()), 0);
 
-  std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
+  std::ifstream csv_file(EXPORT_TEST_CSV_TABLE_NAME, std::ios_base::in);
   CheckContent(csv_file, &txn_manager, layout, tuples, table, block);
   csv_file.close();
 
   if (::testing::Test::HasFailure()) {
-    std::string error_csv_file_name(EXPORT_TABLE_NAME);
+    std::string error_csv_file_name(EXPORT_TEST_EXPORT_TABLE_NAME);
     error_csv_file_name = error_csv_file_name + "_" + std::to_string(seed_chosen);
-    rename(EXPORT_TABLE_NAME, error_csv_file_name.c_str());
+    rename(EXPORT_TEST_EXPORT_TABLE_NAME, error_csv_file_name.c_str());
     STORAGE_LOG_WARN("Error happened, see detailed exported data file {}. You may use the same seed suffix to debug.",
                      error_csv_file_name);
   } else {
-    unlink(EXPORT_TABLE_NAME);
+    unlink(EXPORT_TEST_EXPORT_TABLE_NAME);
   }
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
@@ -286,11 +286,11 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ExportTableTest, ExportVarlenTableTest) {
-  unlink(EXPORT_TABLE_NAME);
-  unlink(CSV_TABLE_NAME);
-  unlink(PYSCRIPT_NAME);
-  std::ofstream outfile(PYSCRIPT_NAME, std::ios_base::out);
-  outfile << PYSCRIPT;
+  unlink(EXPORT_TEST_EXPORT_TABLE_NAME);
+  unlink(EXPORT_TEST_CSV_TABLE_NAME);
+  unlink(EXPORT_TEST_PYSCRIPT_NAME);
+  std::ofstream outfile(EXPORT_TEST_PYSCRIPT_NAME, std::ios_base::out);
+  outfile << EXPORT_TEST_PYSCRIPT;
   outfile.close();
   auto seed_chosen =
       std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -341,21 +341,21 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
   storage::ArrowSerializer arrow_serializer(table);
-  arrow_serializer.ExportTable(EXPORT_TABLE_NAME, &column_types);
-  EXPECT_EQ(system((std::string("python3 ") + PYSCRIPT_NAME).c_str()), 0);
+  arrow_serializer.ExportTable(EXPORT_TEST_EXPORT_TABLE_NAME, &column_types);
+  EXPECT_EQ(system((std::string("python3 ") + EXPORT_TEST_PYSCRIPT_NAME).c_str()), 0);
 
-  std::ifstream csv_file(CSV_TABLE_NAME, std::ios_base::in);
+  std::ifstream csv_file(EXPORT_TEST_CSV_TABLE_NAME, std::ios_base::in);
   CheckContent(csv_file, &txn_manager, layout, tuples, table, block);
   csv_file.close();
 
   if (::testing::Test::HasFailure()) {
-    std::string error_csv_file_name(EXPORT_TABLE_NAME);
+    std::string error_csv_file_name(EXPORT_TEST_EXPORT_TABLE_NAME);
     error_csv_file_name = error_csv_file_name + "_" + std::to_string(seed_chosen);
-    rename(EXPORT_TABLE_NAME, error_csv_file_name.c_str());
+    rename(EXPORT_TEST_EXPORT_TABLE_NAME, error_csv_file_name.c_str());
     STORAGE_LOG_WARN("Error happened, see detailed exported data file {}. You may use the same seed suffix to debug.",
                      error_csv_file_name);
   } else {
-    unlink(EXPORT_TABLE_NAME);
+    unlink(EXPORT_TEST_EXPORT_TABLE_NAME);
   }
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
