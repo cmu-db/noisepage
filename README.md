@@ -1,8 +1,36 @@
-# terrier
+# NoisePage
 
 [![Jenkins Status](http://jenkins.db.cs.cmu.edu:8080/job/terrier/job/master/badge/icon)](http://jenkins.db.cs.cmu.edu:8080/job/terrier/)
 [![codecov](https://codecov.io/gh/cmu-db/terrier/branch/master/graph/badge.svg)](https://codecov.io/gh/cmu-db/terrier)
 [![pullreminders](https://pullreminders.com/badge.svg)](https://pullreminders.com?ref=badge)
+
+Welcome to NoisePage!
+
+## Quickstart
+
+Notes:
+- You need to be on Ubuntu 20.04 or macOS 10.14+. Nothing else is officially supported.
+- If you have less than 8 GB of RAM, use `-DNOISEPAGE_UNITY_BUILD=OFF` in the `cmake` commands below.
+- If you know what you're doing, install the prerequisite packages from `./script/installation/packages.sh` manually.
+
+```
+git clone https://github.com/cmu-db/noisepage.git
+sudo ./script/installation/packages.sh
+mkdir build
+cd build
+cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_UNITY_BUILD=ON
+ninja noisepage
+./bin/noisepage
+```
+
+You can now connect to NoisePage over the Postgres client `psql`.
+```
+psql -h localhost -U terrier -p 15721
+```
+
+## For developers
+
+Please see the [docs](https://github.com/cmu-db/noisepage/docs/).
 
 ## Frequently Asked Questions
 
