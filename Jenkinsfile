@@ -9,6 +9,7 @@ pipeline {
             agent {
                 docker {
                     image 'terrier:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
                 }
             }
             when {
