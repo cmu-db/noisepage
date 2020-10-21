@@ -27,6 +27,7 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/statements.h"
 
@@ -79,8 +80,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
     node->GetCopyTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     // If the table is given, we're either writing or reading all columns
+    parser::TableStarExpression table_star = parser::TableStarExpression();
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
+    context_->GenerateAllColumnExpressions(common::ManagedPointer<parser::TableStarExpression>(&table_star),
+                                           sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
     auto col = node->GetSelectStatement()->GetSelectColumns();
     col.insert(std::end(col), std::begin(new_select_list), std::end(new_select_list));
   } else {
@@ -472,8 +475,9 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
-    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
+    if (select_element->GetExpressionType() == parser::ExpressionType::TABLE_STAR) {
+      context_->GenerateAllColumnExpressions(select_element.CastManagedPointerTo<parser::TableStarExpression>(),
+                                             sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
       continue;
     }
 
@@ -697,6 +701,14 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Star
   SqlNodeVisitor::Visit(expr);
   if (context_ == nullptr || !context_->HasTables()) {
     throw BINDER_EXCEPTION("Invalid [Expression :: STAR].", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+  }
+}
+
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::TableStarExpression> expr) {
+  BINDER_LOG_TRACE("Visiting TableStarExpression ...");
+  SqlNodeVisitor::Visit(expr);
+  if (context_ == nullptr || !context_->HasTables()) {
+    throw BINDER_EXCEPTION("Invalid [Expression :: TABLE_STAR].", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
   }
 }
 
