@@ -4,10 +4,10 @@
 #include <memory>
 #include <vector>
 
+#include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
 
 namespace terrier::execution::sql {
-using byte = std::byte;
 /**
  * General Information:
  * -------------------
