@@ -497,6 +497,8 @@ class EXPORT Decimal {
     return value_;
   }
 
+  void SignedDivideWithDecimal(Decimal<T> input,
+                               unsigned denominator_precision);
  private:
   // The encoded decimal value
   T value_;
@@ -505,8 +507,6 @@ class EXPORT Decimal {
   void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
   void SignedMultiplyWithConstant(long long int input);
   void SignedDivideWithConstant(long long int input);
-  void SignedDivideWithDecimal(Decimal<T> input,
-                               unsigned denominator_precision);
 };
 
 using Decimal32 = Decimal<int32_t>;

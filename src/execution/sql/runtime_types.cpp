@@ -821,22 +821,25 @@ int nlz128(uint128_t x) {
 uint128_t CalculateUnsignedLongDivision128(uint128_t  u1,
                                   uint128_t  u0,
                                   uint128_t  v) {
-  // Base 2^127
+  // Base 2^64
   uint128_t b = 1;
-  b = b << 127;
+  b = b << 64;
 
   uint128_t un1, un0,vn1, vn0,q1, q0,un32, un21, un10,rhat;
   int128_t s = nlz128(v);
 
   // Normalize everything
   v = v << s;
-  vn0 = v >> 64;
-  vn1 = v & 0xFFFFFFFFFFFFFFFF;
+  vn1 = v >> 64;
+  vn0 = v & 0xFFFFFFFFFFFFFFFF;
 
   un32 = (u1 << s) | ((u0 >> (128 - s)) & ((-s) >> 127));
   un10 = u0 << s;
   un1 = un10 >> 64;
   un0 = un10 & 0xFFFFFFFFFFFFFFFF;
+
+  q1 = un32/vn1;
+  rhat = un32 - q1*vn1;
 
   do {
     if (q1 >= b || q1*vn0 > b*rhat + un1) {
@@ -845,7 +848,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t  u1,
     } else {
       break;
     }
-  } while (rhat < b);
+  } while (rhat >= b);
 
   un21 = un32*b + un1 - q1*v;
 
@@ -859,7 +862,7 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t  u1,
     } else {
       break;
     }
-  } while (rhat < b);
+  } while (rhat >= b);
 
   return q1*b + q0;
 }
@@ -1185,8 +1188,8 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
   half_words_a[0] = this->value_ & bottom_mask;
   half_words_a[1] = (this->value_ & top_mask) >> 64;
 
-  half_words_b[0] = PowerOfTen[denominator_precision][0];
-  half_words_b[1] = PowerOfTen[denominator_precision][1];
+  half_words_b[0] = PowerOfTen[denominator_precision][1];
+  half_words_b[1] = PowerOfTen[denominator_precision][0];
 
   uint128_t half_words_result[4];
   CalculateMultiWordProduct128(half_words_a, half_words_b,
@@ -1198,8 +1201,9 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
   } else {
     // TODO(ROHAN) : Routine for magic numbers 256 bit division
     this->value_ = CalculateUnsignedLongDivision128(
-      half_words_result[0] | (half_words_result[1] << 64),
-        half_words_result[2] | (half_words_result[3] << 64), constant);
+        half_words_result[2] | (half_words_result[3] << 64),
+        half_words_result[0] | (half_words_result[1] << 64),
+         constant);
   }
 
   if(negative_result) {

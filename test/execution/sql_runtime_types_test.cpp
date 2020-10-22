@@ -279,7 +279,7 @@ TEST_F(RuntimeTypesTest, DecimalMultiplicationTest) {
   EXPECT_EQ(1, d == d_1);
 }
 
-TEST_F(RuntimeTypesTest, DecimalMultiplicationRegressionTest) {
+TEST_F(RuntimeTypesTest, DISABLED_DecimalMultiplicationRegressionTest) {
   std::ifstream infile("/home/rohan/Desktop/terrier/test/execution/decimal_multiplication_test.txt");
   if (!infile.is_open()) {
     return;
@@ -304,6 +304,32 @@ TEST_F(RuntimeTypesTest, DecimalMultiplicationRegressionTest) {
       d_1.RoundUpAndSet(decimal1, precision_decimal1);
     }
   }
+}
+
+// NOLINTNEXTLINE
+TEST_F(RuntimeTypesTest, DecimalDivisionTest) {
+  Decimal128 d_1(0);
+  Decimal128 d_2(0);
+  Decimal128 d(0);
+
+  d_1.RoundUpAndSet(std::string("0.1412324324234141232432423"), 25);
+  d_2.RoundUpAndSet(std::string("0.1021832710389190247920184"), 25);
+  d.RoundUpAndSet("1.3821482810980112392853736", 25);
+  d_1.SignedDivideWithDecimal(d_2, 25);
+  EXPECT_EQ(1, d == d_1);
+
+  d_1.RoundUpAndSet(std::string("1.12412"), 5);
+  d_2.RoundUpAndSet(std::string("7.213"), 3);
+  d.RoundUpAndSet("0.15584", 5);
+  d_1.SignedDivideWithDecimal(d_2, 3);
+  EXPECT_EQ(1, d == d_1);
+
+  d_1.RoundUpAndSet(std::string("1.12412"), 10);
+  d_2.RoundUpAndSet(std::string("7.213"), 3);
+  d.RoundUpAndSet("0.1558463884", 10);
+  d_1.SignedDivideWithDecimal(d_2, 3);
+  EXPECT_EQ(1, d == d_1);
+
 }
 
 // NOLINTNEXTLINE
