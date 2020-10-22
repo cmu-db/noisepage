@@ -31,8 +31,8 @@ class BlockCompactor {
     CompactionGroup(transaction::TransactionContext *txn, DataTable *table)
         : txn_(txn),
           table_(table),
-          all_cols_initializer_(ProjectedRowInitializer::Create(table_->accessor_.GetBlockLayout(),
-                                                                table_->accessor_.GetBlockLayout().AllColumns())),
+          all_cols_initializer_(
+              ProjectedRowInitializer::Create(table_->GetBlockLayout(), table_->GetBlockLayout().AllColumns())),
           read_buffer_(all_cols_initializer_.InitializeRow(
               common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize()))) {}
 
