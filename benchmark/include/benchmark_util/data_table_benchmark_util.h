@@ -149,21 +149,23 @@ class LargeDataTableBenchmarkObject {
   void PopulateInitialTable(uint32_t num_tuples, Random *generator);
 
   friend class RandomDataTableTransaction;
-  uint32_t txn_length_;
-  std::vector<double> operation_ratio_;
-  std::default_random_engine *generator_;
   storage::BlockLayout layout_;
   storage::DataTable table_;
-  transaction::TimestampManager timestamp_manager_;
-  transaction::TransactionManager txn_manager_;
+  std::default_random_engine *generator_;
   transaction::TransactionContext *initial_txn_;
-  bool gc_on_;
   uint64_t abort_count_;
+  std::vector<double> operation_ratio_;
 
   // tuple content is meaningless if bookkeeping is off.
   std::vector<storage::TupleSlot> inserted_tuples_;
+  transaction::TransactionManager txn_manager_;
+
   // so we don't have to calculate these over and over again
   storage::ProjectedRowInitializer row_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
+
+  transaction::TimestampManager timestamp_manager_;
+  uint32_t txn_length_;
+  bool gc_on_;
 };
 }  // namespace terrier
