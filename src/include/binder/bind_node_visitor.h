@@ -24,6 +24,7 @@ class ColumnValueExpression;
 class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
+class TableStarExpression;
 class SQLStatement;
 }  // namespace parser
 
@@ -83,6 +84,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(common::ManagedPointer<parser::OperatorExpression> expr) override;
   void Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) override;
   void Visit(common::ManagedPointer<parser::StarExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::TableStarExpression> expr) override;
   void Visit(common::ManagedPointer<parser::SubqueryExpression> expr) override;
   void Visit(common::ManagedPointer<parser::TypeCastExpression> expr) override;
 

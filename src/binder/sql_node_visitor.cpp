@@ -13,6 +13,7 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier {
@@ -50,6 +51,9 @@ void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::ParameterValue
   expr->AcceptChildren(common::ManagedPointer(this));
 }
 void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::StarExpression> expr) {
+  expr->AcceptChildren(common::ManagedPointer(this));
+}
+void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::TableStarExpression> expr) {
   expr->AcceptChildren(common::ManagedPointer(this));
 }
 void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::SubqueryExpression> expr) {
