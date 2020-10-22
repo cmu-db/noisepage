@@ -5,7 +5,33 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     stages {
-
+        stage('Ready For CI') {
+            agent {
+                docker {
+                    image 'terrier:focal'
+                    args '-v /jenkins/ccache:/home/jenkins/.ccache'
+                }
+            }
+            when {
+                not {
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                   ready_for_build = sh script: 'python3 ./build-support/check_github_labels.py', returnStatus: true
+                   if(ready_for_build != 0) {
+                        currentBuild.result = 'ABORTED'
+                        error('Not ready for CI. Please add ready-for-ci tag in Github when you are ready to build your PR.')
+                   }
+                }
+            }
+            post {
+                cleanup {
+                    deleteDir()
+                }
+            }
+        }
         stage('Check') {
             parallel {
                 stage('macos-10.14/clang-8.0 (Debug/format/lint/censored)') {
@@ -172,7 +198,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh script: '''
@@ -223,7 +248,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh script: '''
@@ -261,7 +285,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | ./script/installation/packages.sh all'
 
                         sh script: '''
@@ -296,7 +319,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh script: '''
@@ -335,7 +357,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh 'echo y | sudo ./script/installation/packages.sh all'
 
                         sh script: '''
