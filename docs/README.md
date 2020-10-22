@@ -29,14 +29,14 @@ Hi! Welcome to CMU DB.
 2. **OS** Make sure you are running [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) or macOS 10.14+. If not, the recommended approach is to dual boot or to use a VM.
 3. **IDE** We officially only support [CLion](https://www.jetbrains.com/clion/).
    - You can download CLion for free with the generous [Jetbrains educational license](https://www.jetbrains.com/community/education/#students).
-   - More setup instructions are available [here](https://github.com/cmu-db/noisepage/docs/tech_clion.md). This includes general CMake build flags.
+   - More setup instructions are available [here](https://github.com/cmu-db/noisepage/tree/master/docs/tech_clion.md). This includes general CMake build flags.
 
 ### Background Knowledge
 
 You should learn a little about the following:
 
-- [CLion](https://github.com/cmu-db/noisepage/docs/tech_clion.md)
-- [git](https://github.com/cmu-db/noisepage/docs/tech_git.md)
+- [CLion](https://github.com/cmu-db/noisepage/tree/master/docs/tech_clion.md)
+- [git](https://github.com/cmu-db/noisepage/tree/master/docs/tech_git.md)
 
 ### Development 
 

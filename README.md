@@ -30,7 +30,7 @@ psql -h localhost -U terrier -p 15721
 
 ## For developers
 
-Please see the [docs](https://github.com/cmu-db/noisepage/docs/).
+Please see the [docs](https://github.com/cmu-db/noisepage/tree/master/docs/).
 
 ## Frequently Asked Questions
 
