@@ -44,7 +44,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -66,7 +65,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -92,7 +90,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | sudo ./script/installation/packages.sh build', label: 'Installing packages'
                         sh 'cd apidoc && doxygen -u Doxyfile.in && doxygen Doxyfile.in 2>warnings.txt && if [ -s warnings.txt ]; then cat warnings.txt; false; fi'
                         sh 'mkdir build'
@@ -123,7 +120,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing packages'
 
                         sh script: '''
@@ -159,7 +155,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                         sh script: '''
@@ -396,7 +391,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         sh script: '''
@@ -456,7 +450,6 @@ pipeline {
                     }
                     steps {
                         sh 'echo $NODE_NAME'
-                        sh 'python3 ./build-support/check_github_labels.py'
                         sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing pacakges'
 
                         sh script: '''
@@ -513,7 +506,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'python3 ./build-support/check_github_labels.py'
                 sh script:'echo y | sudo ./script/installation/packages.sh all', label:'Installing packages'
 
                 sh script:'''
@@ -562,7 +554,6 @@ pipeline {
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
-                sh 'python3 ./build-support/check_github_labels.py'
                 sh script: 'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
 
                 sh script: '''
