@@ -17,6 +17,10 @@
 #
 # Modified from the Apache Arrow project for the Terrier project.
 
+# Comments HAVE to start on their own line.
+
 # False positive from atexit() registration in libc
 leak:*__new_exitfn*
 leak:libtbb.so
+# libpqxx 7.2.0 leaks on Mac.
+leak:*pqxx*

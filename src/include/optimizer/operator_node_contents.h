@@ -7,6 +7,7 @@
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
+#include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer_defs.h"
 
 namespace terrier::transaction {
@@ -14,11 +15,6 @@ class TransactionContext;
 }  // namespace terrier::transaction
 
 namespace terrier::optimizer {
-
-/**
- * Utility class for visiting the operator tree
- */
-class OperatorVisitor;
 
 /**
  * Base class for operators
@@ -126,7 +122,7 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
    * Utility method for applying visitor pattern on the underlying operator
    * @param v operator visitor for visitor pattern
    */
-  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override { v->Visit(reinterpret_cast<const T *>(this)); }
 
   /**
    * Copy
@@ -152,12 +148,12 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
   /**
    * @return whether the underlying operator is logical
    */
-  bool IsLogical() const override;
+  bool IsLogical() const override { return type < OpType::LOGICALPHYSICALDELIMITER; }
 
   /**
    * @return whether the underlying operator is physical
    */
-  bool IsPhysical() const override;
+  bool IsPhysical() const override { return type > OpType::LOGICALPHYSICALDELIMITER; }
 
  private:
   /**

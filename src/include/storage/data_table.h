@@ -1,11 +1,15 @@
 #pragma once
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <unordered_map>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/shared_latch.h"
+
 #include "storage/projected_columns.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
@@ -38,7 +42,7 @@ class HashIndex;
 class DataTable {
  public:
   /**
-   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
    */
   class SlotIterator {
    public:
@@ -56,7 +60,19 @@ class DataTable {
      * pre-fix increment.
      * @return self-reference after the iterator is advanced
      */
-    SlotIterator &operator++();
+    SlotIterator &operator++() {
+      RawBlock *b = current_slot_.GetBlock();
+      slot_num_++;
+
+      if (LIKELY(slot_num_ < max_slot_num_)) {
+        current_slot_ = {b, slot_num_};
+      } else {
+        TERRIER_ASSERT(block_index_ <= end_index_, "block_index_ must always stay in range of table's size");
+        block_index_++;
+        UpdateFromNextBlock();
+      }
+      return *this;
+    }
 
     /**
      * post-fix increment.
@@ -73,10 +89,7 @@ class DataTable {
      * @param other other iterator to compare to
      * @return if the two iterators point to the same slot
      */
-    bool operator==(const SlotIterator &other) const {
-      // TODO(Tianyu): I believe this is enough?
-      return current_slot_ == other.current_slot_;
-    }
+    bool operator==(const SlotIterator &other) const { return current_slot_ == other.current_slot_; }
 
     /**
      * Inequality check.
@@ -88,31 +101,44 @@ class DataTable {
    private:
     friend class DataTable;
 
-    /** Indicates that the iterator should advance to the end of the table. */
-    static constexpr int32_t ADVANCE_TO_THE_END = -1;
-    /** An invalid TupleSlot. */
-    static TupleSlot InvalidTupleSlot() { return TupleSlot(nullptr, 0); }
+    // constructor for DataTable::end()
+    SlotIterator() = default;
 
-    /**
-     * @warning MUST BE CALLED ONLY WHEN CALLER HOLDS LOCK TO THE LIST OF RAW BLOCKS IN THE DATA TABLE
-     */
-    SlotIterator(const DataTable *table, uint32_t block_index, int32_t num_advances, uint32_t offset_in_block)
-        : table_(table), block_index_(block_index), num_advances_(num_advances) {
-      current_slot_ = {block_index >= table_->blocks_.size() ? nullptr : table->blocks_[block_index], offset_in_block};
-      TERRIER_ASSERT((current_slot_.GetBlock() == nullptr && current_slot_.GetOffset() == 0) ||
-                         current_slot_.GetBlock() != nullptr,
-                     "Offset should be 0 when block is nullptr.");
+    SlotIterator(const DataTable *table) : table_(table), block_index_(0) {  // NOLINT
+      end_index_ = table_->blocks_size_;
+      TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+      UpdateFromNextBlock();
     }
 
-    // TODO(Tianyu): Can potentially collapse this information into the RawBlock so we don't have to hold a pointer to
-    // the table anymore. Right now we need the table to know how many slots there are in the block
-    const DataTable *table_;
-    // Warning: this implicitly assumes that blocks will only ever be inserted at the right end.
-    uint32_t block_index_;
-    // The remaining number of times that this iterator will advance to the next block,
-    // or ADVANCE_TO_THE_END to advance to the end.
-    int32_t num_advances_;
-    TupleSlot current_slot_;
+    void UpdateFromNextBlock() {
+      TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+
+      while (true) {
+        if (UNLIKELY(block_index_ == end_index_)) {
+          max_slot_num_ = 0;
+          current_slot_ = InvalidTupleSlot();
+          return;
+        }
+
+        RawBlock *b;
+        {
+          common::SharedLatch::ScopedSharedLatch latch(&table_->blocks_latch_);
+          b = table_->blocks_[block_index_];
+        }
+        slot_num_ = 0;
+        max_slot_num_ = b->GetInsertHead();
+        current_slot_ = {b, slot_num_};
+
+        if (max_slot_num_ != 0) return;
+        block_index_++;
+      }
+    }
+
+    static auto InvalidTupleSlot() -> TupleSlot { return {nullptr, 0}; }
+    const DataTable *table_ = nullptr;
+    uint64_t block_index_ = 0, end_index_ = 0;
+    TupleSlot current_slot_ = InvalidTupleSlot();
+    uint32_t slot_num_ = 0, max_slot_num_ = 0;
   };
   /**
    * Constructs a new DataTable with the given layout, using the given BlockStore as the source
@@ -178,9 +204,8 @@ class DataTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator begin() const {  // NOLINT for STL name compatibility
-    common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-    return {this, 0, SlotIterator::ADVANCE_TO_THE_END, 0};
+  SlotIterator begin() const {  // NOLINT for STL name compability
+    return {this};
   }
 
   /**
@@ -190,7 +215,10 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;  // NOLINT for STL name compatibility
+
+  SlotIterator end() const {  // NOLINT for STL name compability
+    return SlotIterator();
+  }
 
   /**
    * Return a SlotIterator that will only cover the blocks in the selected range.
@@ -198,7 +226,15 @@ class DataTable {
    * @param end The index of the block to stop iterating at, ends at GetNumBlocks().
    * @return SlotIterator that will iterate over only the blocks in the range [start, end).
    */
-  SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const;
+  SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
+    TERRIER_ASSERT(start <= end && end <= blocks_size_, "must have valid index for start and end");
+    SlotIterator it(this);
+    it.end_index_ = std::min<uint64_t>(it.end_index_, end);
+    it.block_index_ = start;
+
+    it.UpdateFromNextBlock();
+    return it;
+  }
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
@@ -236,6 +272,19 @@ class DataTable {
   bool Delete(common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot);
 
   /**
+   * @return pointer to underlying vector of blocks
+   */
+  std::vector<RawBlock *> GetBlocks() const {
+    common::SharedLatch::ScopedSharedLatch latch(&blocks_latch_);
+    return std::vector<RawBlock *>(blocks_.begin(), blocks_.end());
+  }
+
+  /**
+   * accessor_ tuple access strategy for DataTable
+   */
+  const TupleAccessStrategy accessor_;
+
+  /**
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
@@ -243,7 +292,7 @@ class DataTable {
   /**
    * @return Number of blocks in the data table.
    */
-  uint32_t GetNumBlocks() const { return blocks_.size(); }
+  uint32_t GetNumBlocks() const { return blocks_size_; }
 
   /** @return Maximum number of blocks in the data table. */
   static uint32_t GetMaxBlocks() { return std::numeric_limits<uint32_t>::max(); }
@@ -251,7 +300,7 @@ class DataTable {
   /**
    * @return a coarse estimation on the number of tuples in this table
    */
-  uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_.size(); }
+  uint64_t GetNumTuple() const { return GetBlockLayout().NumSlots() * blocks_size_; }
 
   /**
    * @return Approximate heap usage of the table
@@ -259,12 +308,10 @@ class DataTable {
   size_t EstimateHeapUsage() const {
     // This is a back-of-the-envelope calculation that could be innacurate. It does not account for the delta chain
     // elements that are actually owned by TransactionContext
-    return blocks_.size() * common::Constants::BLOCK_SIZE;
+    return blocks_size_ * common::Constants::BLOCK_SIZE;
   }
 
  private:
-  // The ArrowSerializer needs access to its blocks.
-  friend class ArrowSerializer;
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
   // The TransactionManager needs to modify VersionPtrs when rolling back aborts
@@ -279,22 +326,14 @@ class DataTable {
   // needs raw access to the underlying table.
   friend class BlockCompactor;
 
-  const common::ManagedPointer<BlockStore> block_store_;
-  const layout_version_t layout_version_;
-  const TupleAccessStrategy accessor_;
+  std::atomic<uint64_t> blocks_size_ = 0;
+  std::atomic<uint64_t> insert_index_ = 0;
+  common::ManagedPointer<BlockStore> const block_store_;
 
-  // TODO(Tianyu): For now, on insertion, we simply sequentially go through a block and allocate a
-  // new one when the current one is full. Needless to say, we will need to revisit this when extending GC to handle
-  // deleted tuples and recycle slots
+  // protected by blocks_latch_
   std::vector<RawBlock *> blocks_;
-  // latch used to protect block list
-  mutable common::SpinLatch blocks_latch_;
-  // latch used to protect insertion_head_
-  mutable common::SpinLatch header_latch_;
-  std::atomic<uint32_t> insertion_head_;
-  // Check if we need to advance the insertion_head_
-  // This function uses header_latch_ to ensure correctness
-  void CheckMoveHead(uint32_t block_index);
+  mutable common::SharedLatch blocks_latch_;
+  const layout_version_t layout_version_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
   // the method is explicitly instantiated for ProjectedRow and ProjectedColumns::RowView
