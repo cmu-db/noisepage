@@ -265,7 +265,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry{common::ManagedPointer(metrics_manager)};
     // we need transactions, TPCC database, and GC
     log_manager_ =
@@ -367,7 +368,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};

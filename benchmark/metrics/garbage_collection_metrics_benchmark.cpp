@@ -35,7 +35,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, TPCCish)(benchmark::State 
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
@@ -65,7 +66,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, HighAbortRate)(benchmark::
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true);
@@ -95,7 +97,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementInsert)(ben
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true);
@@ -125,7 +128,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementUpdate)(ben
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
@@ -155,7 +159,8 @@ BENCHMARK_DEFINE_F(GarbageCollectionMetricsBenchmark, SingleStatementSelect)(ben
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager();
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                          &block_store_, &buffer_pool_, &generator_, true);
