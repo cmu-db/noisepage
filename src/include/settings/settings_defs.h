@@ -243,8 +243,8 @@ SETTING_bool(
 SETTING_int(
     pipeline_metrics_interval,
     "Sampling rate of metrics collection for the ExecutionEngine pipelines with 0 = 100%, 1 = 50%, "
-    "9 = 10%, X = 1/(X+1)% (default: 0 for 100%).",
-    0,
+    "9 = 10%, X = 1/(X+1)% (default: 9 for 10%).",
+    9,
     0,
     10,
     true,
@@ -301,9 +301,9 @@ SETTING_string(
 
 SETTING_int(
     num_parallel_execution_threads,
-    "Number of threads for parallel query execution (default: 0)",
-    0,
-    0,
+    "Number of threads for parallel query execution (default: 1)",
+    1,
+    1,
     128,
     true,
     terrier::settings::Callbacks::NoOp

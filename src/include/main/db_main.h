@@ -641,7 +641,7 @@ class DBMain {
     bool use_metrics_thread_ = false;
     bool query_trace_metrics_ = false;
     bool pipeline_metrics_ = false;
-    uint32_t pipeline_metrics_interval_ = 0;
+    uint32_t pipeline_metrics_interval_ = 9;
     bool transaction_metrics_ = false;
     bool logging_metrics_ = false;
     bool gc_metrics_ = false;
