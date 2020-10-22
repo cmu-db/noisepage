@@ -30,7 +30,7 @@ class MetricsManager;
 }  // namespace terrier::metrics
 
 namespace terrier::execution::exec {
-
+class ExecutionSettings;
 /**
  * Execution Context: Stores information handed in by upper layers.
  * TODO(Amadou): This class will change once we know exactly what we get from upper layers.
