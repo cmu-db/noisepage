@@ -83,6 +83,7 @@ class PipelineMetricRawData : public AbstractRawData {
 
  private:
   friend class PipelineMetric;
+  FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,

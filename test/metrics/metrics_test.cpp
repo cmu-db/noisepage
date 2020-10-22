@@ -214,6 +214,96 @@ TEST_F(MetricsTests, TransactionCSVTest) {
 }
 
 /**
+ *  Testing pipeline metrics, single thread
+ */
+// NOLINTNEXTLINE
+TEST_F(MetricsTests, PipelineCSVTest) {
+  // Unlink all files
+  for (const auto &file : metrics::QueryTraceMetricRawData::FILES) unlink(std::string(file).c_str());
+
+  // Function to connect via [port] and execute [num_inserts].
+  // If [create_table], then the table is also created.
+  auto insert_txn = [](uint16_t port, bool create_table, int num_inserts) {
+    try {
+      pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                              port, catalog::DEFAULT_DATABASE));
+
+      pqxx::work txn1(connection);
+      if (create_table) {
+        txn1.exec("CREATE TABLE TableA (id INT, data TEXT);");
+      }
+
+      for (int i = 0; i < num_inserts; i++) {
+        txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
+      }
+      txn1.commit();
+    } catch (const std::exception &e) {
+      EXPECT_TRUE(false);
+    }
+  };
+
+  auto verify_scenario = [insert_txn, this](bool enable_metric, bool update_interval, int interval, int inserts,
+                                            int expected_points) {
+    const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
+    if (enable_metric) {
+      // Enable metric if necessary
+      auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
+      settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
+                                 setter_callback);
+    }
+
+    if (update_interval) {
+      // Set the sampling interval correctly
+      auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+      settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, interval,
+                                common::ManagedPointer(action_context), setter_callback);
+    }
+
+    // Perform specified number of inserts
+    insert_txn(port_, false, inserts);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    metrics_manager_->Aggregate();
+
+    // If metrics is disabled, we expect this to be null
+    const auto aggregated_data = reinterpret_cast<PipelineMetricRawData *>(
+        metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::EXECUTION_PIPELINE)).get());
+    EXPECT_EQ(aggregated_data != nullptr, enable_metric);
+    if (aggregated_data != nullptr) {
+      EXPECT_EQ(aggregated_data->pipeline_data_.size(), expected_points);
+      metrics_manager_->ToCSV();
+
+      // After ToCSV(), we should expect no more data points
+      EXPECT_EQ(aggregated_data->pipeline_data_.size(), 0);
+    }
+
+    if (enable_metric) {
+      // Disable metrics
+      auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
+      settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false,
+                                 common::ManagedPointer(action_context), setter_callback);
+    }
+  };
+
+  db_main_->GetNetworkLayer()->GetServer()->RunServer();
+
+  // Create table
+  insert_txn(port_, true, 0);
+
+  // Enable, interval = 0, 5 inserts means 5 recorded data points
+  verify_scenario(true, true, 0, 5, 5);
+
+  // Disable, interval = 1, 5 inserts means 0 recorded data points
+  verify_scenario(false, true, 1, 5, 0);
+
+  // Enable, keep interval, 5 inserts means 2 recorded data points
+  verify_scenario(true, false, 0, 5, 2);
+
+  // Enable, interval = 3, 5 inserts means 1 recorded data points
+  verify_scenario(true, true, 3, 5, 1);
+}
+
+/**
  *  Testing logging query trace metrics, single thread
  */
 // NOLINTNEXTLINE

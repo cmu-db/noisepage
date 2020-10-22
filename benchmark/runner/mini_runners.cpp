@@ -696,7 +696,8 @@ void NetworkQueriesOutputRunners(pqxx::work *txn) {
             db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
             metrics_enabled = false;
           } else if (i == iters - 1 && !metrics_enabled) {
-            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+            db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+            db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
             metrics_enabled = true;
           }
 
@@ -766,7 +767,8 @@ void NetworkQueriesCreateIndexRunners(pqxx::work *txn) {
               db_main->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
               metrics_enabled = false;
             } else if (i == iters - 1 && !metrics_enabled) {
-              db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+              db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+              db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
               metrics_enabled = true;
             }
 
@@ -1734,7 +1736,8 @@ void InitializeRunnersState() {
   auto block_store = db_main->GetStorageLayer()->GetBlockStore();
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
-  db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+  db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+  db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
 
   // Create the database
   auto txn = txn_manager->BeginTransaction();

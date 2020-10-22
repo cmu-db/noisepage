@@ -733,14 +733,16 @@ class DBMain {
      */
     std::unique_ptr<metrics::MetricsManager> BootstrapMetricsManager() {
       std::unique_ptr<metrics::MetricsManager> metrics_manager = std::make_unique<metrics::MetricsManager>();
-      if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE, 0);
-      if (pipeline_metrics_)
-        metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, pipeline_metrics_interval_);
-      if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
-      if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-      if (gc_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
-      if (bind_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND, 0);
-      if (execute_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND, 0);
+      metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE,
+                                               pipeline_metrics_interval_);
+
+      if (query_trace_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::QUERY_TRACE);
+      if (pipeline_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+      if (transaction_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+      if (logging_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+      if (gc_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
+      if (bind_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::BIND_COMMAND);
+      if (execute_command_metrics_) metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTE_COMMAND);
 
       return metrics_manager;
     }
