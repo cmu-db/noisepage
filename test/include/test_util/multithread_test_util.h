@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/container/concurrent_vector.h"
 #include "common/object_pool.h"
 #include "common/worker_pool.h"
 #include "gtest/gtest.h"

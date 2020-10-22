@@ -218,7 +218,7 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   if (last_undo_record->Table() != nullptr) return;  // the update was installed and will be handled by the GC
 
   // We need to free any varlen memory in the last update if the code reaches here
-  const storage::BlockLayout &layout = redo->GetTupleSlot().GetBlock()->data_table_->accessor_.GetBlockLayout();
+  const storage::BlockLayout &layout = redo->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
   for (uint16_t i = 0; i < redo->Delta()->NumColumns(); i++) {
     // Need to deallocate any possible varlen, as updates may have already been logged out and lost.
     storage::col_id_t col_id = redo->Delta()->ColumnIds()[i];
