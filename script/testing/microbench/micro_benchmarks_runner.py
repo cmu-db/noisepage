@@ -3,8 +3,8 @@ import subprocess
 import shutil
 import json
 
-from micro_bench.google_benchmark.gbench2junit import GBenchToJUnit
-from micro_bench.constants import LOCAL_REPO_DIR
+from microbench.google_benchmark.gbench2junit import GBenchToJUnit
+from microbench.constants import LOCAL_REPO_DIR
 from util.constants import LOG
 
 

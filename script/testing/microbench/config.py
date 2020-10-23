@@ -1,9 +1,9 @@
 import os
 import sys
 
-from micro_bench.benchmarks import BENCHMARKS_TO_RUN
+from microbench.benchmarks import BENCHMARKS_TO_RUN
 from util.constants import LOG
-from micro_bench.constants import (LAX_TOLERANCE, MIN_TIME, BENCHMARK_THREADS,
+from microbench.constants import (LAX_TOLERANCE, MIN_TIME, BENCHMARK_THREADS,
                                    BENCHMARK_PATH, BENCHMARK_LOGFILE_PATH, LOCAL_REPO_DIR, JENKINS_REF_PROJECT)
 
 
