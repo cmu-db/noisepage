@@ -69,11 +69,47 @@ You should learn a little about the following:
   - `NOISEPAGE_USE_JUMBOTESTS`                : Enable jumbotests instead of unittests as part of ALL target. Default OFF.
   - `NOISEPAGE_USE_LOGGING`                   : Enable logging. Default ON.
 
+### CMake targets to know
+
+- You should know these targets.
+  - `noisepage`: Building will build the `noisepage` binary and all its dependencies. Running will run the NoisePage DBMS.
+  - `tpl`: Building will build the `tpl` binary and all its dependencies. Running will run a `tpl` interpreter.
+  - `unittest`: Building will build all of our tests, execute all of the tests, and summarize the results.
+  - `runbenchmark`: Building will build all of our benchmarks, execute all of the benchmarks, and summarize the results.
+  - `format`: Building will run the formatter `clang-format` on the codebase with our rules. Use this every time right before you commit and right before you make a pull request!
+  - `check-format`: Building will check if the codebase is correctly formatted according to `clang-format` with our rules.
+  - `check-clang-tidy`: Building will check if the codebase passes the `clang-tidy` static analyzer tests with our rules.
+  - `check-lint`: Building will check if the codebase passes the `build-support/cpplint.py` checks.
+  - `check-censored`: Building will check if the codebase contains any bad words. This is a grep for forbidden words like `shared_ptr`.
+  - `check-tpl`: Building will check if the TPL tests in `sample_tpl/` all pass.
+
+If you run into issues, you may need your default `python` to point to a `python3` install. For example, add this to your `~/.zshrc`: `alias python=python3`
+
 ## Development
 
-### Running tests
+### Workflow
 
-You can run the `unittest` or `jumbotests` suite. Inside your build folder, after running the build system generator:
+1. Check out the latest version of the NoisePage repository.
+   - `git checkout master`
+   - `git pull upstream master`
+2. Create a new branch.
+   - `git checkout -b my_new_branch`
+3. Work on your code. Add features, add documentation, add tests, ~~add~~ remove bugs, and so on.
+4. Push your code **to your fork, not to cmu-db**.
+   - If you followed the CLion setup instructions, `git remote get-url origin` should return your fork's URL.
+   - Make sure you run tests locally! See below.
+   - `git push -u origin my_new_branch`
+5. Go to GitHub and open a [new pull request](https://github.com/cmu-db/noisepage/compare).
+6. When a pull request is opened, this triggers our Continuous Integration environment on Jenkins.
+   - Jenkins will clone the repo, apply your changes, and make sure that formatting, linting, tests, etc pass.
+   - Code has to pass all the checks for it to be merged!
+7. When your pull request passes all of the checks, post on Slack in `#pr-czar`.
+
+### Running tests locally
+
+#### unittests
+
+You can run the `unittest` or `jumbotests` suite, they are equivalent. Inside your build folder, after running the build system generator:
 - `ninja unittest`: Compile and run each individual test in the `test/` folder.
 - `ninja jumbotests`: Like `unittest`, but tests are grouped by `test/foo/` folders. Faster to compile.
 
@@ -81,7 +117,11 @@ If you are running individual tests manually from the command line, you should d
 ```
 ctest -L TEST_NAME
 ```
-The `ctest` runner calls `build_support/run_test.sh`, which handles setting up other environment variables for you.
+The `ctest` runner calls `build-support/run-test.sh`, which handles setting up other environment variables for you.
 
 You can also run the test binaries manually, but you will need to set the environment variables yourself. Right now, the variables that should be set are:
 - `LSAN_OPTIONS=suppressions=/absolute/path/to/noisepage/build-support/data/lsan_suppressions.txt`
+
+#### junit tests
+
+TODO(WAN): write this. possibly after updating the junit thing to make it a little easier for people to pick up.
