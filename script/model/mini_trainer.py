@@ -14,8 +14,7 @@ from util import io_util, logging_util
 from data_class import opunit_data
 from info import data_info
 from training_util import data_transforming_util, result_writing_util
-
-from type import Target
+from type import Target, ExecutionFeature
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -73,6 +72,7 @@ class MiniTrainer:
         min_percentage_error = 2
         pred_results = None
         elapsed_us_index = data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]
+        memory_b_index = data_info.TARGET_CSV_INDEX[Target.MEMORY_B]
 
         best_y_transformer = -1
         best_method = -1
@@ -105,13 +105,20 @@ class MiniTrainer:
 
                     logging.info('{} Percentage Error: {}'.format(train_test_label[j], percentage_error))
 
+                    # The default method of determining whether a model is better is by comparing the model error
+                    # on the elapsed us. For any opunits in MEM_EVALUATE_OPUNITS, we evaluate by comparing the
+                    # model error on memory_b.
+                    eval_error = percentage_error[elapsed_us_index]
+                    if data.opunit in data_info.MEM_EVALUATE_OPUNITS:
+                        eval_error = percentage_error[memory_b_index]
+
                     # Record the model with the lowest elapsed time prediction (since that might be the most
                     # important prediction)
                     # Only use linear regression for the arithmetic operating units
-                    if (j == 1 and percentage_error[elapsed_us_index] < min_percentage_error
+                    if (j == 1 and eval_error < min_percentage_error
                             and y_transformer == y_transformers[-1]
                             and (data.opunit not in data_info.ARITHMETIC_OPUNITS or method == 'lr')):
-                        min_percentage_error = percentage_error[elapsed_us_index]
+                        min_percentage_error = eval_error
                         if self.expose_all:
                             best_y_transformer = i
                             best_method = m
@@ -170,7 +177,7 @@ if __name__ == '__main__':
                          help='Prediction results of the mini models')
     aparser.add_argument('--save_path', default='trained_model', help='Path to save the mini models')
     aparser.add_argument('--ml_models', nargs='*', type=str,
-                         default=["lr", "rf", "nn", 'huber', 'svr', 'kr', 'gbm'],
+                         default=["lr", "rf", "gbm"],
                          help='ML models for the mini trainer to evaluate')
     aparser.add_argument('--test_ratio', type=float, default=0.2, help='Test data split ratio')
     aparser.add_argument('--trim', default=0.2, type=float, help='% of values to remove from both top and bottom')

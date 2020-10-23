@@ -39,9 +39,12 @@ class TPCHRunner : public benchmark::Fixture {
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
-    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION_PIPELINE, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
   }
 
   void TearDown(const benchmark::State &state) final {
