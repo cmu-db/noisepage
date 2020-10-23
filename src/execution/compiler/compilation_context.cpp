@@ -41,6 +41,7 @@
 #include "execution/compiler/operator/static_aggregation_translator.h"
 #include "execution/compiler/operator/update_translator.h"
 #include "execution/compiler/pipeline.h"
+#include "execution/exec/execution_settings.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
@@ -77,14 +78,16 @@ std::atomic<uint32_t> unique_ids{0};
 }  // namespace
 
 CompilationContext::CompilationContext(ExecutableQuery *query, catalog::CatalogAccessor *accessor,
-                                       const CompilationMode mode)
+                                       const CompilationMode mode, const exec::ExecutionSettings &settings)
     : unique_id_(unique_ids++),
       query_(query),
       mode_(mode),
       codegen_(query_->GetContext(), accessor),
       query_state_var_(codegen_.MakeIdentifier("queryState")),
       query_state_type_(codegen_.MakeIdentifier("QueryState")),
-      query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }) {}
+      query_state_(query_state_type_, [this](CodeGen *codegen) { return codegen->MakeExpr(query_state_var_); }),
+      counters_enabled_(settings.GetIsCountersEnabled()),
+      pipeline_metrics_enabled_(settings.GetIsPipelineMetricsEnabled()) {}
 
 ast::FunctionDecl *CompilationContext::GenerateInitFunction() {
   const auto name = codegen_.MakeIdentifier(GetFunctionPrefix() + "_Init");
@@ -161,7 +164,15 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
 
     pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
+    {
+      util::RegionVector<ast::FunctionDecl *> pipeline_decls(query_->GetContext()->GetRegion());
+      for (auto &[_, op] : ops_) {
+        (void)_;
+        op->DefineTLSDependentHelperFunctions(*pipeline, &pipeline_decls);
+      }
+      main_builder.DeclareAll(pipeline_decls);
+    }
+    pipeline->GeneratePipeline(&main_builder);
   }
 
   // Register the tear-down function.
@@ -187,7 +198,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
   query->SetQueryText(query_text);
 
   // Generate the plan for the query
-  CompilationContext ctx(query.get(), accessor, mode);
+  CompilationContext ctx(query.get(), accessor, mode, exec_settings);
   ctx.GeneratePlan(plan);
 
   // Done
@@ -312,6 +323,7 @@ void CompilationContext::Prepare(const parser::AbstractExpression &expression) {
     case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
     case parser::ExpressionType::COMPARE_NOT_EQUAL:
     case parser::ExpressionType::COMPARE_LIKE:
+    case parser::ExpressionType::COMPARE_IN:
     case parser::ExpressionType::COMPARE_NOT_LIKE: {
       const auto &comparison = dynamic_cast<const parser::ComparisonExpression &>(expression);
       translator = std::make_unique<ComparisonTranslator>(comparison, this);

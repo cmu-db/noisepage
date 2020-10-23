@@ -1,3 +1,4 @@
+#include <array>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -426,7 +427,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
 
   uint32_t sum1 = 0, sum2 = 0;
 
-  double taat_ms = Bench(5, [&]() {
+  UNUSED_ATTRIBUTE double taat_ms = Bench(5, [&]() {
     ChainingHashTableIterator<false> iter(table);
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
@@ -434,7 +435,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
     }
   });
 
-  double vaat_ms = Bench(5, [&]() {
+  UNUSED_ATTRIBUTE double vaat_ms = Bench(5, [&]() {
     MemoryPool pool(nullptr);
     ChainingHashTableVectorIterator<false> iter(table, &pool);
     for (; iter.HasNext(); iter.Next()) {

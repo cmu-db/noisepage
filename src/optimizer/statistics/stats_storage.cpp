@@ -23,7 +23,7 @@ bool StatsStorage::InsertTableStats(catalog::db_oid_t database_id, catalog::tabl
   auto table_it = table_stats_storage_.find(stats_storage_key);
 
   if (table_it != table_stats_storage_.end()) {
-    OPTIMIZER_LOG_TRACE("There already exists a TableStats object with the given oids.")
+    OPTIMIZER_LOG_TRACE("There already exists a TableStats object with the given oids.");
     return false;
   }
   std::unique_ptr<TableStats> table_stats_ptr = std::make_unique<TableStats>(std::move(table_stats));

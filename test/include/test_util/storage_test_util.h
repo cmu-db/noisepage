@@ -224,7 +224,7 @@ class StorageTestUtil {
   template <class Random>
   static uint32_t PopulateBlockRandomlyNoBookkeeping(storage::DataTable *table, storage::RawBlock *block,
                                                      double empty_ratio, Random *const generator) {
-    const storage::BlockLayout &layout = table->GetBlockLayout();
+    const storage::BlockLayout layout = table->GetBlockLayout();
     uint32_t result = 0;
     std::bernoulli_distribution coin(empty_ratio);
     // TODO(Tianyu): Do we ever want to tune this for tests?

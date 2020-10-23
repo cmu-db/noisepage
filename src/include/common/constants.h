@@ -105,9 +105,22 @@ struct Constants {
   static constexpr const bool IS_PARALLEL_EXECUTION_ENABLED = true;
 
   /**
-   * Number of threads of parallel execution
+   * Number of threads for parallel execution
+   * This value will be overwritten by the SettingsManager (if enabled).
    */
-  static constexpr const int NUM_THREADS = -1;
+  static constexpr const int NUM_PARALLEL_EXECUTION_THREADS = -1;
+
+  /**
+   * Flag indicating if counters is enabled
+   * This value will be overwritten by the SettingsManager (if enabled).
+   */
+  static constexpr const bool IS_COUNTERS_ENABLED = false;
+
+  /**
+   * Flag indicating if pipeline metrics are enabled
+   * This value will be overwritten by the SettingsManager (if enabled).
+   */
+  static constexpr const bool IS_PIPELINE_METRICS_ENABLED = true;
 
   /**
    * Flag indicating if static partitioner is used

@@ -2,12 +2,15 @@
 
 #include <llvm/ADT/STLExtras.h>
 #include <tbb/parallel_for_each.h>
+#include <tbb/task_scheduler_init.h>
 
 #include <algorithm>
 #include <limits>
 #include <utility>
 #include <vector>
 
+#include "count/hll.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/vector.h"
@@ -15,21 +18,21 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
-#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {
 
-JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, uint32_t tuple_size,
-                             bool use_concise_ht)
+JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                             uint32_t tuple_size, bool use_concise_ht)
     : exec_settings_(exec_settings),
-      entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(memory)),
-      owned_(memory),
+      exec_ctx_(exec_ctx),
+      entries_(HashTableEntry::ComputeEntrySize(tuple_size), MemoryPoolAllocator<byte>(exec_ctx->GetMemoryPool())),
+      owned_(exec_ctx->GetMemoryPool()),
       concise_hash_table_(0),
       hll_estimator_(libcount::HLL::Create(DEFAULT_HLL_PRECISION)),
       built_(false),
       use_concise_ht_(use_concise_ht),
-      tracker_(memory->GetTracker()) {}
+      tracker_(exec_ctx->GetMemoryPool()->GetTracker()) {}
 
 // Needed because we forward-declared HLL from libcount
 JoinHashTable::~JoinHashTable() = default;
@@ -54,6 +57,9 @@ void JoinHashTable::BuildChainingHashTable() {
 
 #ifndef NDEBUG
   const auto [min, max, avg] = chaining_hash_table_.GetChainLengthStats();
+  (void)min;
+  (void)max;
+  (void)avg;
   EXECUTION_LOG_DEBUG("ChainingHashTable chain stats: min={}, max={}, avg={}", min, max, avg);
 #endif
 }
@@ -547,7 +553,7 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   owned_.emplace_back(std::move(source->entries_));
 }
 
-void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
+void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, const std::size_t jht_offset) {
   // Collect thread-local hash tables
   std::vector<JoinHashTable *> tl_join_tables;
   thread_state_container->CollectThreadLocalStateElementsAs(&tl_join_tables, jht_offset);
@@ -574,16 +580,39 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
     // TODO(pmenon): Switch to parallel-mode if estimate is wrong.
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements < {} element parallel threshold. Using serial merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
+
+    auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+    auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+    auto *tls = thread_state_container->AccessCurrentThreadState();
+    exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
+
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
+
+    exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_elem_estimate));
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
-    tbb::parallel_for_each(tl_join_tables, [this](auto source) { MergeIncomplete<true>(source); });
+
+    size_t num_threads = tbb::task_scheduler_init::default_num_threads();
+    size_t num_tasks = tl_join_tables.size();
+    auto estimate = std::min(num_threads, num_tasks);
+    exec_ctx_->SetNumConcurrentEstimate(estimate);
+    tbb::parallel_for_each(tl_join_tables, [this, thread_state_container](auto source) {
+      auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
+      auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
+      auto *tls = thread_state_container->AccessCurrentThreadState();
+      exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
+
+      size_t size = source->entries_.size();
+      MergeIncomplete<true>(source);
+      exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(size));
+    });
+    exec_ctx_->SetNumConcurrentEstimate(0);
   }
 
   timer.Stop();
 
-  const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
+  UNUSED_ATTRIBUTE const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
   EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
                       use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
                       chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);

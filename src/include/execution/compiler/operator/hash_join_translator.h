@@ -53,6 +53,14 @@ class HashJoinTranslator : public OperatorTranslator {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
+   * Define all hook functions
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                         util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
    * Initialize the global hash table.
    */
   void InitializeQueryState(FunctionBuilder *function) const override;
@@ -108,6 +116,10 @@ class HashJoinTranslator : public OperatorTranslator {
     UNREACHABLE("Hash-joins do not produce columns from base tables.");
   }
 
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
  private:
   friend class brain::OperatingUnitRecorder;
 
@@ -155,6 +167,12 @@ class HashJoinTranslator : public OperatorTranslator {
   /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
+  /** Generate start hook function for parallel build */
+  ast::FunctionDecl *GenerateStartHookFunction() const;
+
+  /** Generate end hook function for parallel build */
+  ast::FunctionDecl *GenerateEndHookFunction() const;
+
  private:
   // Flag to indicate whether or not we are in the joinConsumer function
   bool join_consumer_flag_;
@@ -189,6 +207,9 @@ class HashJoinTranslator : public OperatorTranslator {
 
   // Struct declaration for minirunner.
   ast::StructDecl *struct_decl_;
+
+  ast::Identifier parallel_build_pre_hook_fn_;
+  ast::Identifier parallel_build_post_hook_fn_;
 };
 
 }  // namespace terrier::execution::compiler

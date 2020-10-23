@@ -500,13 +500,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatement> op) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
+  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
   auto drop_type = op->GetDropType();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
   std::unique_ptr<OperatorNode> drop_expr;
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-
       drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_).RegisterWithTxnContext(txn_context),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;
@@ -644,6 +643,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::Comparison
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
     GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 1, false);
   } else if (expr_type == parser::ExpressionType::COMPARE_EQUAL ||
+             expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
              expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
@@ -744,7 +744,8 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(
   if (expr_type == parser::ExpressionType::COMPARE_EQUAL || expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
       expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
-      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
+      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO ||
+      expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL) {
     // Supported if one child is subquery and the other is not
     if ((!expr->GetChild(0)->HasSubquery() &&
          expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) ||

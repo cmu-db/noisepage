@@ -1,3 +1,6 @@
+#include "settings/settings_common.h"  // NOLINT
+
+// clang-format off
 // SETTING_<type>(name, description, default_value, min_value, max_value, is_mutable, callback_fn)
 
 // Terrier port
@@ -37,7 +40,7 @@ SETTING_int(
     "The maximum number of record buffer segments in the system. (default: 100000)",
     100000,
     1,
-    100000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolSizeLimit
 )
@@ -48,7 +51,7 @@ SETTING_int(
     "The minimum number of record buffer segments to keep allocated in the system (default: 10000)",
     10000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BufferSegmentPoolReuseLimit
 )
@@ -59,7 +62,7 @@ SETTING_int(
     "The maximum number of storage blocks for the catalog. (default: 100000)",
     100000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BlockStoreSizeLimit
 )
@@ -70,7 +73,7 @@ SETTING_int(
     "The minimum number of storage blocks for the catalog to keep allocated (default: 1000)",
     1000,
     1,
-    1000000,
+    1000000000,
     true,
     terrier::settings::Callbacks::BlockStoreReuseLimit
 )
@@ -182,7 +185,15 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_logging,
+    use_metrics_thread,
+    "Use a thread for the metrics sub-system (default: true).",
+    true,
+    false,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
     false,
     true,
@@ -190,7 +201,7 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_transaction,
+    transaction_metrics_enable,
     "Metrics collection for the TransactionManager component (default: false).",
     false,
     true,
@@ -198,7 +209,7 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_gc,
+    gc_metrics_enable,
     "Metrics collection for the GarbageCollector component (default: false).",
     false,
     true,
@@ -206,7 +217,7 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_query_trace,
+    query_trace_metrics_enable,
     "Metrics collection for Query Traces (default: false).",
     false,
     true,
@@ -214,7 +225,7 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_execution,
+    execution_metrics_enable,
     "Metrics collection for the Execution component (default: false).",
     false,
     true,
@@ -222,15 +233,26 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_pipeline,
+    pipeline_metrics_enable,
     "Metrics collection for the ExecutionEngine pipelines (default: false).",
     false,
     true,
     terrier::settings::Callbacks::MetricsPipeline
 )
 
+SETTING_int(
+    pipeline_metrics_interval,
+    "Sampling rate of metrics collection for the ExecutionEngine pipelines with 0 = 100%, 1 = 50%, "
+    "9 = 10%, X = 1/(X+1)% (default: 9 for 10%).",
+    9,
+    0,
+    10,
+    true,
+    terrier::settings::Callbacks::MetricsPipelineSamplingInterval
+)
+
 SETTING_bool(
-    metrics_bind_command,
+    bind_command_metrics_enable,
     "Metrics collection for the bind command.",
     false,
     true,
@@ -238,7 +260,7 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    metrics_execute_command,
+    execute_command_metrics_enable,
     "Metrics collection for the execute command.",
     false,
     true,
@@ -276,3 +298,22 @@ SETTING_string(
     true,
     terrier::settings::Callbacks::NoOp
 )
+
+SETTING_int(
+    num_parallel_execution_threads,
+    "Number of threads for parallel query execution (default: 1)",
+    1,
+    1,
+    128,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
+    counters_enable,
+    "Whether to use counters (default: false)",
+    false,
+    true,
+    terrier::settings::Callbacks::NoOp
+)
+    // clang-format on

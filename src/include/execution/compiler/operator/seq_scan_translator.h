@@ -48,14 +48,12 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
-   * Initialize the counters.
-   */
-  void InitializeQueryState(FunctionBuilder *function) const override;
-
-  /**
    * Initialize the FilterManager if required.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Generate the scan.
@@ -63,9 +61,6 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
    * @param function The pipeline generating function.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
-
-  /** Record the counters for Lin's models. */
-  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Tear-down the FilterManager if required.

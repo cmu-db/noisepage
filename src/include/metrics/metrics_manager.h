@@ -64,15 +64,21 @@ class MetricsManager {
 
   /**
    * @param component to be enabled
-   * @param sample_interval the interval between recording two metrics for the component. 0 means recording every metric
    */
-  void EnableMetric(const MetricsComponent component, uint32_t sample_interval) {
+  void EnableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
     TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
-
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
+  }
+
+  /**
+   * @param component to update
+   * @param sample_interval the interval between recording two metrics for the component. 0 means recording every metric
+   */
+  void SetMetricSampleInterval(const MetricsComponent component, uint32_t sample_interval) {
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     sample_interval_[static_cast<uint8_t>(component)] = sample_interval;
   }
 

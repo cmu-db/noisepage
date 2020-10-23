@@ -10,6 +10,10 @@ namespace terrier {
 class DBMain;
 }
 
+namespace terrier::runner {
+void InitializeRunnersState();
+}
+
 namespace terrier::settings {
 
 using callback_fn = void (*)(void *, void *, DBMain *, common::ManagedPointer<common::ActionContext> action_context);
@@ -23,12 +27,11 @@ using callback_fn = void (*)(void *, void *, DBMain *, common::ManagedPointer<co
  * settings_common.h
  */
 /// @cond DOXYGEN_IGNORE
-enum class Param {                     // NOLINT
-#define __SETTING_ENUM__               // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_ENUM__                // NOLINT
-};                                     // NOLINT
+enum class Param {                   // NOLINT
+#define __SETTING_ENUM__             // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_ENUM__              // NOLINT
+};                                   // NOLINT
 /// @endcond
 
 /**
@@ -60,6 +63,7 @@ class ParamInfo {
         callback_(callback) {}
 
  private:
+  friend void terrier::runner::InitializeRunnersState();
   friend class terrier::DBMain;
   friend class SettingsManager;
   std::string name_;
