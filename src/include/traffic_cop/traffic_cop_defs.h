@@ -6,7 +6,7 @@
 
 #include "common/error/error_data.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 /**
  * Prefix of per connection temporary namespaces
@@ -30,4 +30,4 @@ struct TrafficCopResult {
   std::variant<uint32_t, common::ErrorData> extra_;
 };
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

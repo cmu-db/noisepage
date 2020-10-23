@@ -7,15 +7,15 @@
 #include "execution/compiler/pipeline_driver.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class CreateIndexPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -147,4 +147,4 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
 
   ast::Identifier parallel_build_post_hook_fn_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

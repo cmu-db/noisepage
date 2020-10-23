@@ -3,7 +3,7 @@
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 void Sema::ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, ast::Type *expected) {
   GetErrorReporter()->Report(call->Position(), ErrorMessages::kIncorrectCallArgType, call->GetFuncName(), expected,
@@ -148,8 +148,8 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
 
 Sema::CheckResult Sema::CheckSqlComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                                    ast::Expr *right) {
-  TERRIER_ASSERT(left->GetType()->IsSqlValueType() || right->GetType()->IsSqlValueType(),
-                 "At least one input to comparison must be SQL value");
+  NOISEPAGE_ASSERT(left->GetType()->IsSqlValueType() || right->GetType()->IsSqlValueType(),
+                   "At least one input to comparison must be SQL value");
 
   // Primitive bool <cmp> SQL Boolean -> cast left.
   if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
@@ -317,4 +317,4 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
   return false;
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

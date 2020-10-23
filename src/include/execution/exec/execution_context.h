@@ -17,19 +17,19 @@
 #include "metrics/metrics_defs.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 class PipelineOperatingUnits;
-}  // namespace terrier::brain
+}  // namespace noisepage::brain
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 class MetricsManager;
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
 /**
  * Execution Context: Stores information handed in by upper layers.
@@ -343,4 +343,4 @@ class EXPORT ExecutionContext {
   std::vector<HookFn> hooks_{};
   void *query_state_;
 };
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

@@ -10,7 +10,7 @@
 #include "test_util/storage_test_util.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * This benchmark measures how fast the
@@ -177,4 +177,4 @@ BENCHMARK_REGISTER_F(SlotIteratorBenchmark, ConcurrentSlotIteratorsReads)
     ->UseManualTime();
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

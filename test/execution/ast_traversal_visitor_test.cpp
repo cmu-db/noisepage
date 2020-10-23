@@ -9,7 +9,7 @@
 #include "execution/sema/sema.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class AstTraversalVisitorTest : public TplTest {
  public:
@@ -303,4 +303,4 @@ TEST_F(AstTraversalVisitorTest, CountIfTest) {
   }
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

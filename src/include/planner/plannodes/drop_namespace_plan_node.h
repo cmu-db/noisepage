@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  *  The plan node for dropping namespaces
  */
@@ -103,4 +103,4 @@ class DropNamespacePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropNamespacePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

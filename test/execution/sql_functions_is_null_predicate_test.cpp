@@ -2,18 +2,18 @@
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class IsNullPredicateTests : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNull) {
-#define CHECK_NULL_FOR_TYPE(NullVal, NonNullVal)                                  \
-  {                                                                               \
-    EXPECT_TRUE(terrier::execution::sql::IsNullPredicate::IsNull(NullVal));       \
-    EXPECT_FALSE(terrier::execution::sql::IsNullPredicate::IsNotNull(NullVal));   \
-    EXPECT_FALSE(terrier::execution::sql::IsNullPredicate::IsNull(NonNullVal));   \
-    EXPECT_TRUE(terrier::execution::sql::IsNullPredicate::IsNotNull(NonNullVal)); \
+#define CHECK_NULL_FOR_TYPE(NullVal, NonNullVal)                                    \
+  {                                                                                 \
+    EXPECT_TRUE(noisepage::execution::sql::IsNullPredicate::IsNull(NullVal));       \
+    EXPECT_FALSE(noisepage::execution::sql::IsNullPredicate::IsNotNull(NullVal));   \
+    EXPECT_FALSE(noisepage::execution::sql::IsNullPredicate::IsNull(NonNullVal));   \
+    EXPECT_TRUE(noisepage::execution::sql::IsNullPredicate::IsNotNull(NonNullVal)); \
   }
 
   CHECK_NULL_FOR_TYPE(BoolVal::Null(), BoolVal(false));
@@ -24,4 +24,4 @@ TEST_F(IsNullPredicateTests, IsNull) {
   // CHECK_IS_NOT_NULL_FOR_TYPE(TimestampVal::Null(), sql::Timestamp::FromString("2010-10-10"));
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

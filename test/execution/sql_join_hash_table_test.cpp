@@ -10,7 +10,7 @@
 #include "execution/sql_test.h"
 
 // TODO(WAN): can't FRIEND_TEST unless in the same namespace
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /// This is the tuple we insert into the hash table
 struct Tuple {
@@ -264,4 +264,4 @@ TEST_F(JoinHashTableTest, PerfTest) {
 }
 #endif
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

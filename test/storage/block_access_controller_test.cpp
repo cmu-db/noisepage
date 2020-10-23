@@ -3,7 +3,7 @@
 #include <thread>  // NOLINT
 
 #include "test_util/test_harness.h"
-namespace terrier {
+namespace noisepage {
 // Some hacked together infrastructure to reason about the progress of test threads.
 #define DECLARE_PROGRAM_POINT(name) volatile bool name = false;
 #define PROGRAM_POINT(name) name = true;
@@ -121,4 +121,4 @@ TEST(BlockAccessControllerTest, MultipleReaders) {
     reader2.join();
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

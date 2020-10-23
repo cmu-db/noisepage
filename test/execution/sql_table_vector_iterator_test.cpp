@@ -7,7 +7,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class TableVectorIteratorTest : public SqlBasedTest {
   void SetUp() override {
@@ -168,4 +168,4 @@ TEST_F(TableVectorIteratorTest, ParallelScanTest) {
   EXPECT_EQ(sql::TEST1_SIZE, aggregate_tuple_count);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

@@ -8,7 +8,7 @@
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class SystemFunctionsTests : public TplTest {
  public:
@@ -28,4 +28,4 @@ TEST_F(SystemFunctionsTests, Version) {
   EXPECT_TRUE(StringVal(common::NOISEPAGE_VERSION_STR.data()) == result);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /** Parses doubles. */
 class FastDoubleParser {
@@ -488,4 +488,4 @@ class FastDoubleParser {
 #undef FASTFLOAT_LARGEST_POWER
 #undef FASTFLOAT_SMALLEST_POWER
 };
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

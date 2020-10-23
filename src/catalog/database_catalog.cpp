@@ -27,7 +27,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn) {
   BootstrapPRIs();
@@ -36,228 +36,228 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   bool UNUSED_ATTRIBUTE retval;
 
   retval = TryLock(txn);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateNamespace(txn, "pg_catalog", postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateNamespace(txn, "public", postgres::NAMESPACE_DEFAULT_NAMESPACE_OID);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapTypes(txn);
 
   // pg_namespace and associated indexes
   retval = CreateTableEntry(txn, postgres::NAMESPACE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
                             "pg_namespace", postgres::Builder::GetNamespaceTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::NAMESPACE_TABLE_OID, namespaces_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_TABLE_OID,
                             postgres::NAMESPACE_OID_INDEX_OID, "pg_namespace_oid_index",
                             postgres::Builder::GetNamespaceOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::NAMESPACE_OID_INDEX_OID, namespaces_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_TABLE_OID,
                             postgres::NAMESPACE_NAME_INDEX_OID, "pg_namespace_name_index",
                             postgres::Builder::GetNamespaceNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::NAMESPACE_NAME_INDEX_OID, namespaces_name_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_class and associated indexes
   retval = CreateTableEntry(txn, postgres::CLASS_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class",
                             postgres::Builder::GetClassTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::CLASS_TABLE_OID, classes_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CLASS_TABLE_OID,
                             postgres::CLASS_OID_INDEX_OID, "pg_class_oid_index",
                             postgres::Builder::GetClassOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CLASS_OID_INDEX_OID, classes_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CLASS_TABLE_OID,
                             postgres::CLASS_NAME_INDEX_OID, "pg_class_name_index",
                             postgres::Builder::GetClassNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CLASS_NAME_INDEX_OID, classes_name_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CLASS_TABLE_OID,
                             postgres::CLASS_NAMESPACE_INDEX_OID, "pg_class_namespace_index",
                             postgres::Builder::GetClassNamespaceIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CLASS_NAMESPACE_INDEX_OID, classes_namespace_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_index and associated indexes
   retval = CreateTableEntry(txn, postgres::INDEX_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index",
                             postgres::Builder::GetIndexTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::INDEX_TABLE_OID, indexes_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::INDEX_TABLE_OID,
                             postgres::INDEX_OID_INDEX_OID, "pg_index_oid_index",
                             postgres::Builder::GetIndexOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::INDEX_OID_INDEX_OID, indexes_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::INDEX_TABLE_OID,
                             postgres::INDEX_TABLE_INDEX_OID, "pg_index_table_index",
                             postgres::Builder::GetIndexTableIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::INDEX_TABLE_INDEX_OID, indexes_table_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_attribute and associated indexes
   retval = CreateTableEntry(txn, postgres::COLUMN_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute",
                             postgres::Builder::GetColumnTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::COLUMN_TABLE_OID, columns_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::COLUMN_TABLE_OID,
                             postgres::COLUMN_OID_INDEX_OID, "pg_attribute_oid_index",
                             postgres::Builder::GetColumnOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::COLUMN_OID_INDEX_OID, columns_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::COLUMN_TABLE_OID,
                             postgres::COLUMN_NAME_INDEX_OID, "pg_attribute_name_index",
                             postgres::Builder::GetColumnNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::COLUMN_NAME_INDEX_OID, columns_name_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_type and associated indexes
   retval = CreateTableEntry(txn, postgres::TYPE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
                             postgres::Builder::GetTypeTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::TYPE_TABLE_OID, types_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::TYPE_TABLE_OID,
                             postgres::TYPE_OID_INDEX_OID, "pg_type_oid_index",
                             postgres::Builder::GetTypeOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::TYPE_OID_INDEX_OID, types_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::TYPE_TABLE_OID,
                             postgres::TYPE_NAME_INDEX_OID, "pg_type_name_index",
                             postgres::Builder::GetTypeNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::TYPE_NAME_INDEX_OID, types_name_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::TYPE_TABLE_OID,
                             postgres::TYPE_NAMESPACE_INDEX_OID, "pg_type_namespace_index",
                             postgres::Builder::GetTypeNamespaceIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::TYPE_NAMESPACE_INDEX_OID, types_namespace_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_constraint and associated indexes
   retval = CreateTableEntry(txn, postgres::CONSTRAINT_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
                             "pg_constraint", postgres::Builder::GetConstraintTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::CONSTRAINT_TABLE_OID, constraints_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
                             postgres::CONSTRAINT_OID_INDEX_OID, "pg_constraint_oid_index",
                             postgres::Builder::GetConstraintOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_OID_INDEX_OID, constraints_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
                             postgres::CONSTRAINT_NAME_INDEX_OID, "pg_constraint_name_index",
                             postgres::Builder::GetConstraintNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_NAME_INDEX_OID, constraints_name_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
                             postgres::CONSTRAINT_NAMESPACE_INDEX_OID, "pg_constraint_namespace_index",
                             postgres::Builder::GetConstraintNamespaceIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_NAMESPACE_INDEX_OID, constraints_namespace_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
                             postgres::CONSTRAINT_TABLE_INDEX_OID, "pg_constraint_table_index",
                             postgres::Builder::GetConstraintTableIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_TABLE_INDEX_OID, constraints_table_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
                             postgres::CONSTRAINT_INDEX_INDEX_OID, "pg_constraint_index_index",
                             postgres::Builder::GetConstraintIndexIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_INDEX_INDEX_OID, constraints_index_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::CONSTRAINT_TABLE_OID,
                             postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, "pg_constraint_foreigntable_index",
                             postgres::Builder::GetConstraintForeignTableIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::CONSTRAINT_FOREIGNTABLE_INDEX_OID, constraints_foreigntable_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   // pg_language and associated indexes
   retval = CreateTableEntry(txn, postgres::LANGUAGE_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_language",
                             postgres::Builder::GetLanguageTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::LANGUAGE_TABLE_OID, languages_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::LANGUAGE_TABLE_OID,
                             postgres::LANGUAGE_OID_INDEX_OID, "pg_languages_oid_index",
                             postgres::Builder::GetLanguageOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::LANGUAGE_OID_INDEX_OID, languages_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::LANGUAGE_TABLE_OID,
                             postgres::LANGUAGE_NAME_INDEX_OID, "pg_languages_name_index",
                             postgres::Builder::GetLanguageNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::LANGUAGE_NAME_INDEX_OID, languages_name_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapLanguages(txn);
 
   // pg_proc and associated indexes
   retval = CreateTableEntry(txn, postgres::PRO_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_proc",
                             postgres::Builder::GetProcTableSchema());
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, postgres::PRO_TABLE_OID, procs_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PRO_TABLE_OID,
                             postgres::PRO_OID_INDEX_OID, "pg_proc_oid_index",
                             postgres::Builder::GetProcOidIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::PRO_OID_INDEX_OID, procs_oid_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::PRO_TABLE_OID,
                             postgres::PRO_NAME_INDEX_OID, "pg_proc_name_index",
                             postgres::Builder::GetProcNameIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, postgres::PRO_NAME_INDEX_OID, procs_name_index_);
 
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapProcs(txn);
 }
@@ -400,7 +400,7 @@ bool DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
   const bool UNUSED_ATTRIBUTE result = namespaces_oid_index_->InsertUnique(txn, *index_pr, tuple_slot);
-  TERRIER_ASSERT(result, "Assigned namespace OID failed to be unique.");
+  NOISEPAGE_ASSERT(result, "Assigned namespace OID failed to be unique.");
 
   // Finish
   delete[] buffer;
@@ -420,7 +420,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
   // Scan index
   std::vector<storage::TupleSlot> index_results;
   namespaces_oid_index_->ScanKey(*txn, *pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
@@ -430,7 +430,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
   // Step 2: Select from the table to get the name
   pr = delete_namespace_pri_.InitializeRow(buffer);
   auto UNUSED_ATTRIBUTE result = namespaces_->Select(txn, tuple_slot, pr);
-  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
   const auto name_varlen = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
 
   // Step 3: Delete from table
@@ -473,7 +473,7 @@ bool DatabaseCatalog::DeleteNamespace(const common::ManagedPointer<transaction::
       }
     }
   }
-  TERRIER_ASSERT(GetNamespaceClassOids(txn, ns_oid).empty(), "Failed to drop all of the namespace objects.");
+  NOISEPAGE_ASSERT(GetNamespaceClassOids(txn, ns_oid).empty(), "Failed to drop all of the namespace objects.");
 
   // Step 5: Delete from oid index
   pr = oid_pri.InitializeRow(buffer);
@@ -517,14 +517,14 @@ namespace_oid_t DatabaseCatalog::GetNamespaceOid(const common::ManagedPointer<tr
     delete[] buffer;
     return INVALID_NAMESPACE_OID;
   }
-  TERRIER_ASSERT(index_results.size() == 1, "Namespace name not unique in index");
+  NOISEPAGE_ASSERT(index_results.size() == 1, "Namespace name not unique in index");
   const auto tuple_slot = index_results[0];
 
   // Step 2: Scan the table to get the oid
   pr = get_namespace_pri_.InitializeRow(buffer);
 
   const auto UNUSED_ATTRIBUTE result = namespaces_->Select(txn, tuple_slot, pr);
-  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+  NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
   const auto ns_oid = *reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(0));
 
   // Finish
@@ -599,7 +599,7 @@ bool DatabaseCatalog::CreateColumn(const common::ManagedPointer<transaction::Tra
   *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = col_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
-  TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
+  NOISEPAGE_ASSERT(result, "Assigned OIDs failed to be unique.");
 
   // Finish
   delete[] buffer;
@@ -618,8 +618,8 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
   byte *const buffer = common::AllocationUtil::AllocateAligned(get_columns_pri_.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
   // Scan the class index
-  TERRIER_ASSERT(get_columns_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be large enough to fit largest PR");
+  NOISEPAGE_ASSERT(get_columns_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                   "Buffer must be large enough to fit largest PR");
   auto *pr = oid_pri.InitializeRow(buffer);
   auto *pr_high = oid_pri.InitializeRow(key_buffer);
 
@@ -634,16 +634,16 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
   std::vector<storage::TupleSlot> index_results;
   columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_high, 0, &index_results);
 
-  TERRIER_ASSERT(!index_results.empty(),
-                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
-                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+  NOISEPAGE_ASSERT(!index_results.empty(),
+                   "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                   "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   // Step 2: Scan the table to get the columns
   std::vector<Column> cols;
   pr = get_columns_pri_.InitializeRow(buffer);
   for (const auto &slot : index_results) {
     const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
-    TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+    NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     cols.emplace_back(MakeColumn<Column, ColOid>(pr, get_columns_prm_));
   }
 
@@ -685,9 +685,9 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   std::vector<storage::TupleSlot> index_results;
   columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, key_pr, 0, &index_results);
 
-  TERRIER_ASSERT(!index_results.empty(),
-                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
-                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+  NOISEPAGE_ASSERT(!index_results.empty(),
+                   "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                   "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
   // another catalog table maybe?
@@ -697,13 +697,13 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   for (const auto &slot : index_results) {
     // 1. Extract attributes from the tuple for the index deletions
     auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
-    TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+    NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
     const auto *const col_name = reinterpret_cast<const storage::VarlenEntry *const>(
         pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNAME_COL_OID]));
-    TERRIER_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
+    NOISEPAGE_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
     const auto *const col_oid =
         reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(delete_columns_prm_[postgres::ATTNUM_COL_OID]));
-    TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
+    NOISEPAGE_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table
     txn->StageDelete(db_oid_, postgres::COLUMN_TABLE_OID, slot);
@@ -769,8 +769,8 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
-  TERRIER_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated for largest ProjectedRow size");
+  NOISEPAGE_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                   "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
@@ -778,7 +778,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
@@ -787,7 +787,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *const table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
   result = classes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+  NOISEPAGE_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
@@ -803,8 +803,8 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   // Get the attributes we need for indexes
   const table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELOID_COL_OID])));
-  TERRIER_ASSERT(table == table_oid,
-                 "table oid from pg_classes did not match what was found by the index scan from the argument.");
+  NOISEPAGE_ASSERT(table == table_oid,
+                   "table oid from pg_classes did not match what was found by the index scan from the argument.");
   const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
@@ -880,13 +880,13 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(
     // If the OID is invalid, we don't care the class kind and return a random one.
     return std::make_pair(catalog::NULL_OID, postgres::ClassKind::REGULAR_TABLE);
   }
-  TERRIER_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
+  NOISEPAGE_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
-  TERRIER_ASSERT(get_class_oid_kind_pri_.ProjectedRowSize() <= name_pri.ProjectedRowSize(),
-                 "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
+  NOISEPAGE_ASSERT(get_class_oid_kind_pri_.ProjectedRowSize() <= name_pri.ProjectedRowSize(),
+                   "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
   pr = get_class_oid_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], pr);
-  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of attribute
   // sizes
@@ -910,9 +910,10 @@ table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transactio
 
 bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const table_oid_t table, const storage::SqlTable *const table_ptr) {
-  TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
-                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
-                 "should already have the lock.");
+  NOISEPAGE_ASSERT(
+      write_lock_.load() == txn->FinishTime(),
+      "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+      "should already have the lock.");
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -940,7 +941,7 @@ bool DatabaseCatalog::RenameTable(const common::ManagedPointer<transaction::Tran
                                   const table_oid_t table, const std::string &name) {
   if (!TryLock(txn)) return false;
   // TODO(John): Implement
-  TERRIER_ASSERT(false, "Not implemented");
+  NOISEPAGE_ASSERT(false, "Not implemented");
   return false;
 }
 
@@ -948,22 +949,22 @@ bool DatabaseCatalog::UpdateSchema(const common::ManagedPointer<transaction::Tra
                                    const table_oid_t table, Schema *const new_schema) {
   if (!TryLock(txn)) return false;
   // TODO(John): Implement
-  TERRIER_ASSERT(false, "Not implemented");
+  NOISEPAGE_ASSERT(false, "Not implemented");
   return false;
 }
 
 const Schema &DatabaseCatalog::GetSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                          const table_oid_t table) {
   const auto ptr_pair = GetClassSchemaPtrKind(txn, table.UnderlyingValue());
-  TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
-  TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
+  NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
+  NOISEPAGE_ASSERT(ptr_pair.second == postgres::ClassKind::REGULAR_TABLE, "Requested a table schema for a non-table");
   return *reinterpret_cast<Schema *>(ptr_pair.first);
 }
 
 std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(
     const common::ManagedPointer<transaction::TransactionContext> txn, table_oid_t table) {
   // TODO(John): Implement
-  TERRIER_ASSERT(false, "Not implemented");
+  NOISEPAGE_ASSERT(false, "Not implemented");
   return {};
 }
 
@@ -973,8 +974,8 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
   // Do not need projection map when there is only one column
-  TERRIER_ASSERT(get_indexes_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+  NOISEPAGE_ASSERT(get_indexes_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_indexes_pri_.ProjectedRowSize());
 
   // Find all entries for the given table using the index
@@ -994,7 +995,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
   auto *select_pr = get_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
-    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
   }
 
@@ -1022,8 +1023,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Allocate buffer for largest PR
-  TERRIER_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated for largest ProjectedRow size");
+  NOISEPAGE_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
+                   "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
   auto *key_pr = class_oid_pri.InitializeRow(buffer);
 
@@ -1031,7 +1032,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
@@ -1040,7 +1041,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
   result = classes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+  NOISEPAGE_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
   txn->StageDelete(db_oid_, postgres::CLASS_TABLE_OID, index_results[0]);
@@ -1089,34 +1090,34 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
   const auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
 
-  TERRIER_ASSERT((pg_class_all_cols_pri_.ProjectedRowSize() >= delete_index_pri_.ProjectedRowSize()) &&
-                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
-                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
-                 "Buffer must be allocated for largest ProjectedRow size");
+  NOISEPAGE_ASSERT((pg_class_all_cols_pri_.ProjectedRowSize() >= delete_index_pri_.ProjectedRowSize()) &&
+                       (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
+                       (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
+                   "Buffer must be allocated for largest ProjectedRow size");
 
   // Find the entry in pg_index using the oid index
   index_results.clear();
   key_pr = index_oid_pr.InitializeRow(buffer);
   *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(index_results.size() == 1,
-                 "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
-                 "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
-                 "pg_index. Something broke.");
+  NOISEPAGE_ASSERT(index_results.size() == 1,
+                   "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+                   "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
+                   "pg_index. Something broke.");
 
   // Select the tuple out of pg_index before deletion. We need the attributes to do index deletions later
   table_pr = delete_index_pri_.InitializeRow(buffer);
   result = indexes_->Select(txn, index_results[0], table_pr);
-  TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
+  NOISEPAGE_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
-  TERRIER_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
-                              table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
-                 "index oid from pg_index did not match what was found by the index scan from the argument.");
+  NOISEPAGE_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
+                                table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
+                   "index oid from pg_index did not match what was found by the index scan from the argument.");
 
   // Delete from pg_index table
   txn->StageDelete(db_oid_, postgres::INDEX_TABLE_OID, index_results[0]);
   result = indexes_->Delete(txn, index_results[0]);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       result,
       "Delete from pg_index should always succeed as write-write conflicts are detected during delete from pg_class");
 
@@ -1167,17 +1168,18 @@ bool DatabaseCatalog::SetIndexSchemaPointer(const common::ManagedPointer<transac
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
-  TERRIER_ASSERT((std::is_same<ClassOid, table_oid_t>::value &&
-                  (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
-                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
-                                                                     std::is_same<Ptr, catalog::IndexSchema>::value)),
-                 "OID type must correspond to the same object type (Table or index)");
-  TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
+  NOISEPAGE_ASSERT(
+      (std::is_same<ClassOid, table_oid_t>::value &&
+       (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
+          (std::is_same<ClassOid, index_oid_t>::value &&
+           (std::is_same<Ptr, storage::index::Index>::value || std::is_same<Ptr, catalog::IndexSchema>::value)),
+      "OID type must correspond to the same object type (Table or index)");
+  NOISEPAGE_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Do not need to store the projection map because it is only a single column
   auto pr_init = classes_->InitializerForProjectedRow({class_col});
-  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
+  NOISEPAGE_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
@@ -1185,7 +1187,7 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
   *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = oid;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
@@ -1206,9 +1208,10 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
 
 bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const index_oid_t index, storage::index::Index *const index_ptr) {
-  TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
-                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
-                 "should already have the lock.");
+  NOISEPAGE_ASSERT(
+      write_lock_.load() == txn->FinishTime(),
+      "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+      "should already have the lock.");
   if (index_ptr->Type() == storage::index::IndexType::BWTREE) {
     garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr));
   }
@@ -1247,8 +1250,8 @@ index_oid_t DatabaseCatalog::GetIndexOid(const common::ManagedPointer<transactio
 const IndexSchema &DatabaseCatalog::GetIndexSchema(const common::ManagedPointer<transaction::TransactionContext> txn,
                                                    index_oid_t index) {
   auto ptr_pair = GetClassSchemaPtrKind(txn, index.UnderlyingValue());
-  TERRIER_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
-  TERRIER_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
+  NOISEPAGE_ASSERT(ptr_pair.first != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
+  NOISEPAGE_ASSERT(ptr_pair.second == postgres::ClassKind::INDEX, "Requested an index schema for a non-index");
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
@@ -1259,11 +1262,11 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   auto indexes_oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
   // Do not need projection map when there is only one column
-  TERRIER_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
-                     get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
-                     get_class_object_and_schema_pri_.ProjectedRowSize() >=
-                         classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+  NOISEPAGE_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
+                       get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
+                       get_class_object_and_schema_pri_.ProjectedRowSize() >=
+                           classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_object_and_schema_pri_.ProjectedRowSize());
 
   // Find all entries for the given table using the index
@@ -1283,7 +1286,7 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   auto *index_select_pr = get_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, index_select_pr);
-    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(index_select_pr->AccessForceNotNull(0))));
   }
 
@@ -1297,15 +1300,16 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
     // Find the entry using the index
     *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = index_oid.UnderlyingValue();
     classes_oid_index_->ScanKey(*txn, *class_key_pr, &index_scan_results);
-    TERRIER_ASSERT(index_scan_results.size() == 1,
-                   "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
-                   "implies an error in Catalog state because scanning pg_index returned the index oid, but it doesn't "
-                   "exist in pg_class. Something broke.");
+    NOISEPAGE_ASSERT(
+        index_scan_results.size() == 1,
+        "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+        "implies an error in Catalog state because scanning pg_index returned the index oid, but it doesn't "
+        "exist in pg_class. Something broke.");
     class_tuple_slots.push_back(index_scan_results[0]);
     index_scan_results.clear();
   }
-  TERRIER_ASSERT(class_tuple_slots.size() == index_oids.size(),
-                 "We should have found an entry in pg_class for every index oid");
+  NOISEPAGE_ASSERT(class_tuple_slots.size() == index_oids.size(),
+                   "We should have found an entry in pg_class for every index oid");
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
@@ -1313,17 +1317,18 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
   auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
   for (const auto &slot : class_tuple_slots) {
     bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
-    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
     auto *index = *(reinterpret_cast<storage::index::Index *const *const>(
         class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_PTR_COL_OID])));
-    TERRIER_ASSERT(index != nullptr,
-                   "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
-                   "SetIndexPointer?");
+    NOISEPAGE_ASSERT(
+        index != nullptr,
+        "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
+        "SetIndexPointer?");
     auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(
         class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_SCHEMA_COL_OID])));
-    TERRIER_ASSERT(schema != nullptr,
-                   "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
+    NOISEPAGE_ASSERT(schema != nullptr,
+                     "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
 
     index_objects.emplace_back(common::ManagedPointer(index), *schema);
   }
@@ -1359,8 +1364,8 @@ void DatabaseCatalog::TearDown(const common::ManagedPointer<transaction::Transac
   while (table_iter != classes_->end()) {
     classes_->Scan(txn, &table_iter, pc);
     for (uint i = 0; i < pc->NumTuples(); i++) {
-      TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
-      TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
+      NOISEPAGE_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
+      NOISEPAGE_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
@@ -1492,9 +1497,9 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
   const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
-  TERRIER_ASSERT((class_name_index_init.ProjectedRowSize() >= class_oid_index_init.ProjectedRowSize()) &&
-                     (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
-                 "Index buffer must be allocated based on the largest PR initializer");
+  NOISEPAGE_ASSERT((class_name_index_init.ProjectedRowSize() >= class_oid_index_init.ProjectedRowSize()) &&
+                       (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
+                   "Index buffer must be allocated based on the largest PR initializer");
   auto *index_buffer = common::AllocationUtil::AllocateAligned(class_name_index_init.ProjectedRowSize());
 
   // Insert into oid_index
@@ -1522,7 +1527,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   index_pr = class_ns_index_init.InitializeRow(index_buffer);
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
-  TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
+  NOISEPAGE_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
   // Next, insert index metadata into pg_index
 
@@ -1565,9 +1570,9 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   // Get PR initializers and allocate a buffer from the largest one
   const auto indexes_oid_index_init = indexes_oid_index_->GetProjectedRowInitializer();
   const auto indexes_table_index_init = indexes_table_index_->GetProjectedRowInitializer();
-  TERRIER_ASSERT((class_name_index_init.ProjectedRowSize() >= indexes_oid_index_init.ProjectedRowSize()) &&
-                     (class_name_index_init.ProjectedRowSize() > indexes_table_index_init.ProjectedRowSize()),
-                 "Index buffer must be allocated based on the largest PR initializer");
+  NOISEPAGE_ASSERT((class_name_index_init.ProjectedRowSize() >= indexes_oid_index_init.ProjectedRowSize()) &&
+                       (class_name_index_init.ProjectedRowSize() > indexes_table_index_init.ProjectedRowSize()),
+                   "Index buffer must be allocated based on the largest PR initializer");
 
   // Insert into indexes_oid_index
   index_pr = indexes_oid_index_init.InitializeRow(index_buffer);
@@ -1611,7 +1616,7 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   update_redo->SetTupleSlot(class_tuple_slot);
   *reinterpret_cast<IndexSchema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
-  TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
+  NOISEPAGE_ASSERT(res, "Updating an uncommitted insert should not fail");
 
   return true;
 }
@@ -1658,11 +1663,11 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   auto tuple_slot = types_->Insert(txn, redo_record);
 
   // Allocate buffer of largest size needed
-  TERRIER_ASSERT((types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-                  types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
-                     (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-                      types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
-                 "Buffer must be allocated for largest ProjectedRow size");
+  NOISEPAGE_ASSERT((types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
+                    types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
+                       (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
+                        types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
+                   "Buffer must be allocated for largest ProjectedRow size");
   byte *buffer =
       common::AllocationUtil::AllocateAligned(types_name_index_->GetProjectedRowInitializer().ProjectedRowSize());
 
@@ -1671,7 +1676,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   auto oid_index_offset = types_oid_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(1));
   *(reinterpret_cast<uint32_t *>(oid_index_delta->AccessForceNotNull(oid_index_offset))) = type_oid.UnderlyingValue();
   auto result UNUSED_ATTRIBUTE = types_oid_index_->InsertUnique(txn, *oid_index_delta, tuple_slot);
-  TERRIER_ASSERT(result, "Insert into type oid index should always succeed");
+  NOISEPAGE_ASSERT(result, "Insert into type oid index should always succeed");
 
   // Insert into (namespace_oid, name) index
   auto name_index_delta = types_name_index_->GetProjectedRowInitializer().InitializeRow(buffer);
@@ -1683,7 +1688,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   name_index_offset = types_name_index_->GetKeyOidToOffsetMap().at(catalog::indexkeycol_oid_t(2));
   *(reinterpret_cast<storage::VarlenEntry *>(name_index_delta->AccessForceNotNull(name_index_offset))) = name_varlen;
   result = types_name_index_->InsertUnique(txn, *name_index_delta, tuple_slot);
-  TERRIER_ASSERT(result, "Insert into type name index should always succeed");
+  NOISEPAGE_ASSERT(result, "Insert into type name index should always succeed");
 
   // Insert into (non-unique) namespace oid index
   auto namespace_index_delta = types_namespace_index_->GetProjectedRowInitializer().InitializeRow(buffer);
@@ -1691,7 +1696,7 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
   *(reinterpret_cast<uint32_t *>(namespace_index_delta->AccessForceNotNull(namespace_index_offset))) =
       namespace_oid.UnderlyingValue();
   result = types_namespace_index_->Insert(txn, *name_index_delta, tuple_slot);
-  TERRIER_ASSERT(result, "Insert into type namespace index should always succeed");
+  NOISEPAGE_ASSERT(result, "Insert into type namespace index should always succeed");
 
   delete[] buffer;
 }
@@ -1958,7 +1963,7 @@ void DatabaseCatalog::BootstrapProcContext(const common::ManagedPointer<transact
   const auto *const func_context = new execution::functions::FunctionContext(
       std::move(func_name), func_ret_type, std::move(args_type), builtin, is_exec_ctx_required);
   const auto retval UNUSED_ATTRIBUTE = SetProcCtxPtr(txn, proc_oid, func_context);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
 void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transaction::TransactionContext> txn) {
@@ -2133,9 +2138,10 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn,
                                     const proc_oid_t proc_oid,
                                     const execution::functions::FunctionContext *func_context) {
-  TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
-                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
-                 "should already have the lock.");
+  NOISEPAGE_ASSERT(
+      write_lock_.load() == txn->FinishTime(),
+      "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+      "should already have the lock.");
 
   // The catalog owns this pointer now, so if the txn ends up aborting, we need to make sure it gets freed.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -2152,7 +2158,7 @@ bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::Transact
   *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
   std::vector<storage::TupleSlot> index_results;
   procs_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
@@ -2178,7 +2184,7 @@ common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::G
   *(reinterpret_cast<proc_oid_t *>(key_pr->AccessForceNotNull(0))) = proc_oid;
   std::vector<storage::TupleSlot> index_results;
   procs_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
@@ -2186,7 +2192,7 @@ common::ManagedPointer<execution::functions::FunctionContext> DatabaseCatalog::G
 
   auto *select_pr = pg_proc_ptr_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = procs_->Select(txn, index_results[0], select_pr);
-  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *ptr_ptr = (reinterpret_cast<void **>(select_pr->AccessWithNullCheck(0)));
 
@@ -2294,7 +2300,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   index_pr = ns_index_init.InitializeRow(index_buffer);
   *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, tuple_slot);
-  TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
+  NOISEPAGE_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
   delete[] index_buffer;
 
@@ -2315,7 +2321,7 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   update_redo->SetTupleSlot(tuple_slot);
   *reinterpret_cast<Schema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
-  TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
+  NOISEPAGE_ASSERT(res, "Updating an uncommitted insert should not fail");
 
   return true;
 }
@@ -2344,7 +2350,7 @@ std::vector<std::pair<uint32_t, postgres::ClassKind>> DatabaseCatalog::GetNamesp
   ns_objects.reserve(index_scan_results.size());
   for (const auto scan_result : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, scan_result, select_pr);
-    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     // oid_t is guaranteed to be larger in size than ClassKind, so we know the column offsets without the PR map
     ns_objects.emplace_back(*(reinterpret_cast<const uint32_t *const>(select_pr->AccessWithNullCheck(0))),
                             *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1))));
@@ -2363,22 +2369,22 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
-  TERRIER_ASSERT(get_class_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+  NOISEPAGE_ASSERT(get_class_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_pointer_kind_pri_.ProjectedRowSize());
 
   // Find the entry using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = oid;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   auto *select_pr = get_class_pointer_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
-  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *const ptr_ptr = (reinterpret_cast<void *const *const>(select_pr->AccessWithNullCheck(0)));
   auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
@@ -2402,27 +2408,27 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
-  TERRIER_ASSERT(get_class_schema_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+  NOISEPAGE_ASSERT(get_class_schema_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_schema_pointer_kind_pri_.ProjectedRowSize());
 
   // Find the entry using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = oid;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(
       index_results.size() == 1,
       "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
       "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   auto *select_pr = get_class_schema_pointer_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
-  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
   auto *const ptr = *(reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
   auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
 
-  TERRIER_ASSERT(ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
+  NOISEPAGE_ASSERT(ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
 
   delete[] buffer;
   return {ptr, kind};
@@ -2444,7 +2450,7 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   auto deserialized = parser::DeserializeExpression(nlohmann::json::parse(col_expr->StringView()));
 
   auto expr = std::move(deserialized.result_);
-  TERRIER_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
+  NOISEPAGE_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
@@ -2561,7 +2567,7 @@ language_oid_t DatabaseCatalog::GetLanguageOid(const common::ManagedPointer<tran
 
   auto oid = INVALID_LANGUAGE_OID;
   if (!results.empty()) {
-    TERRIER_ASSERT(results.size() == 1, "Unique language name index should return <= 1 result");
+    NOISEPAGE_ASSERT(results.size() == 1, "Unique language name index should return <= 1 result");
 
     // extract oid from results[0]
     auto found_tuple = results[0];
@@ -2587,7 +2593,7 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
                                    language_oid_t oid) {
   // Delete fom table
   if (!TryLock(txn)) return false;
-  TERRIER_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed");
+  NOISEPAGE_ASSERT(oid != INVALID_LANGUAGE_OID, "Invalid oid passed");
   // Delete from oid index
   auto name_pri = languages_name_index_->GetProjectedRowInitializer();
   auto oid_pri = languages_oid_index_->GetProjectedRowInitializer();
@@ -2603,7 +2609,7 @@ bool DatabaseCatalog::DropLanguage(const common::ManagedPointer<transaction::Tra
     return false;
   }
 
-  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+  NOISEPAGE_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
   auto to_delete_slot = results[0];
   txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
@@ -2651,7 +2657,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
                                       const std::vector<type_oid_t> &all_arg_types,
                                       const std::vector<postgres::ProArgModes> &arg_modes, type_oid_t rettype,
                                       const std::string &src, bool is_aggregate) {
-  TERRIER_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
+  NOISEPAGE_ASSERT(args.size() < UINT16_MAX, "Number of arguments must fit in a SMALLINT");
 
   // Insert into table
   if (!TryLock(txn)) return false;
@@ -2752,7 +2758,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
   auto oid_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<proc_oid_t *>(oid_pr->AccessForceNotNull(0))) = oid;
   result = procs_oid_index_->InsertUnique(txn, *oid_pr, tuple_slot);
-  TERRIER_ASSERT(result, "Oid insertion should be unique");
+  NOISEPAGE_ASSERT(result, "Oid insertion should be unique");
 
   delete[] buffer;
   return true;
@@ -2761,7 +2767,7 @@ bool DatabaseCatalog::CreateProcedure(const common::ManagedPointer<transaction::
 bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::TransactionContext> txn,
                                     proc_oid_t proc) {
   if (!TryLock(txn)) return false;
-  TERRIER_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
+  NOISEPAGE_ASSERT(proc != INVALID_PROC_OID, "Invalid oid passed");
 
   auto name_pri = procs_name_index_->GetProjectedRowInitializer();
   auto oid_pri = procs_oid_index_->GetProjectedRowInitializer();
@@ -2778,7 +2784,7 @@ bool DatabaseCatalog::DropProcedure(const common::ManagedPointer<transaction::Tr
     return false;
   }
 
-  TERRIER_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
+  NOISEPAGE_ASSERT(results.size() == 1, "More than one non-unique result found in unique index.");
 
   auto to_delete_slot = results[0];
   txn->StageDelete(db_oid_, postgres::LANGUAGE_TABLE_OID, to_delete_slot);
@@ -2914,4 +2920,4 @@ template Schema::Column DatabaseCatalog::MakeColumn<Schema::Column, col_oid_t>(s
 template IndexSchema::Column DatabaseCatalog::MakeColumn<IndexSchema::Column, indexkeycol_oid_t>(
     storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

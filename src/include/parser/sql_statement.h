@@ -14,7 +14,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace binder {
 class BindNodeVisitor;
@@ -197,4 +197,4 @@ class TableRefStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

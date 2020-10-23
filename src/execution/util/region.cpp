@@ -7,7 +7,7 @@
 #include "execution/util/memory.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 Region::Region(std::string name) noexcept
     : name_(std::move(name)),
@@ -21,7 +21,7 @@ Region::Region(std::string name) noexcept
 Region::~Region() { FreeAll(); }  // NOLINT (bugprone-exception-escape)
 
 void *Region::Allocate(std::size_t size, std::size_t alignment) {
-  TERRIER_ASSERT(alignment > 0, "Alignment must be greater than 0");
+  NOISEPAGE_ASSERT(alignment > 0, "Alignment must be greater than 0");
 
   std::size_t adjustment = common::MathUtil::AlignmentAdjustment(position_, alignment);
 
@@ -39,7 +39,7 @@ void *Region::Allocate(std::size_t size, std::size_t alignment) {
   // 'size' more bytes.
   Expand(size + alignment);
 
-  TERRIER_ASSERT(position_ < end_, "Region chunk's start position higher than end");
+  NOISEPAGE_ASSERT(position_ < end_, "Region chunk's start position higher than end");
 
   // The new chunk position may not have the desired alignment, fix that now
   uintptr_t aligned_ptr = common::MathUtil::AlignAddress(position_, alignment);
@@ -105,4 +105,4 @@ uintptr_t Region::Expand(std::size_t requested) {
   return position_;
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

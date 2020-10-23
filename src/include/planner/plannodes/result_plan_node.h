@@ -9,7 +9,7 @@
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Result plan node.
@@ -102,4 +102,4 @@ class ResultPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ResultPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

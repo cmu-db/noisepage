@@ -5,7 +5,7 @@
 #include "common/error/exception.h"
 #include "gtest/gtest.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 // NOLINTNEXTLINE
 TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
@@ -112,4 +112,4 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_THROW(ExpressionTypeToString(ExpressionType(100), true), ConversionException);
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

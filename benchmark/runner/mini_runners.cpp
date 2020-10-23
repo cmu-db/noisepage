@@ -36,7 +36,7 @@
 #include "storage/sql_table.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 /**
  * MiniRunners Config Data
@@ -87,7 +87,7 @@ void GenBenchmarkArguments(benchmark::internal::Benchmark *b) {
 
 void InvokeGC() {
   // Perform GC to do any cleanup
-  auto gc = terrier::runner::db_main->GetStorageLayer()->GetGarbageCollector();
+  auto gc = noisepage::runner::db_main->GetStorageLayer()->GetGarbageCollector();
   gc->PerformGarbageCollection();
   gc->PerformGarbageCollection();
 }
@@ -1106,7 +1106,7 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
   auto num_rows = state->range(3);
 
   // TODO(wz2): Re-enable compiled inserts once runtime is sensible
-  if (terrier::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled) return;
+  if (noisepage::runner::MiniRunners::mode == execution::vm::ExecutionMode::Compiled) return;
 
   if (rerun_start || (num_rows > settings.warmup_rows_limit_ && settings.skip_large_rows_runs_)) return;
 
@@ -1120,11 +1120,12 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
       std::stringstream col_name;
       col_name << "col" << col_no++;
       if (i.first == type::TypeId::INTEGER) {
-        cols.emplace_back(col_name.str(), i.first, false,
-                          terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
+        cols.emplace_back(
+            col_name.str(), i.first, false,
+            noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
       } else {
         cols.emplace_back(col_name.str(), i.first, false,
-                          terrier::parser::ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(0.f)));
+                          noisepage::parser::ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(0.f)));
       }
     }
   }
@@ -1704,8 +1705,8 @@ void InitializeRunnersState() {
   param_map.find(settings::Param::record_buffer_segment_reuse)->second.max_value_ = limit;
 
   // Set Network Port
-  param_map.find(settings::Param::port)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(terrier::runner::settings.port_));
+  param_map.find(settings::Param::port)->second.value_ = parser::ConstantValueExpression(
+      type::TypeId::INTEGER, execution::sql::Integer(noisepage::runner::settings.port_));
 
   // Need to disable metrics thread
   param_map.find(settings::Param::use_metrics_thread)->second.value_ =
@@ -1729,7 +1730,7 @@ void InitializeRunnersState() {
                              .SetUseNetwork(true)
                              .SetUseSettingsManager(true)
                              .SetSettingsParameterMap(std::move(param_map))
-                             .SetNetworkPort(terrier::runner::settings.port_);
+                             .SetNetworkPort(noisepage::runner::settings.port_);
 
   db_main = db_main_builder.Build().release();
 
@@ -1757,13 +1758,13 @@ void InitializeRunnersState() {
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   InvokeGC();
 
-  auto network_layer = terrier::runner::db_main->GetNetworkLayer();
+  auto network_layer = noisepage::runner::db_main->GetNetworkLayer();
   auto server = network_layer->GetServer();
   server->RunServer();
 }
 
 void EndRunnersState() {
-  terrier::execution::ExecutionUtil::ShutdownTPL();
+  noisepage::execution::ExecutionUtil::ShutdownTPL();
   db_main->GetMetricsManager()->Aggregate();
   db_main->GetMetricsManager()->ToCSV();
   // free db main here so we don't need to use the loggers anymore
@@ -1857,7 +1858,7 @@ void RegisterRunners() {
       ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
 }
 
-}  // namespace terrier::runner
+}  // namespace noisepage::runner
 
 /**
  * Bool for server ready
@@ -1891,7 +1892,7 @@ void RunNetworkQueries(const NetworkWorkFunction &work) {
   std::string conn;
   {
     std::stringstream conn_ss;
-    conn_ss << "postgresql://127.0.0.1:" << (terrier::runner::settings.port_) << "/test_db";
+    conn_ss << "postgresql://127.0.0.1:" << (noisepage::runner::settings.port_) << "/test_db";
     conn = conn_ss.str();
   }
 
@@ -1914,9 +1915,9 @@ void RunNetworkQueries(const NetworkWorkFunction &work) {
 }
 
 void RunNetworkSequence(const NetworkWorkFunction &work) {
-  terrier::runner::db_main->GetMetricsManager()->Aggregate();
-  terrier::runner::db_main->GetMetricsManager()->ToCSV();
-  terrier::runner::InvokeGC();
+  noisepage::runner::db_main->GetMetricsManager()->Aggregate();
+  noisepage::runner::db_main->GetMetricsManager()->ToCSV();
+  noisepage::runner::InvokeGC();
 
   auto thread = std::thread([=] { RunNetworkQueries(work); });
 
@@ -1927,16 +1928,16 @@ void RunNetworkSequence(const NetworkWorkFunction &work) {
     network_queries_cv.wait(lk, [] { return network_queries_finished; });
   }
 
-  terrier::runner::db_main->GetMetricsManager()->Aggregate();
-  terrier::runner::db_main->GetMetricsManager()->ToCSV();
-  terrier::runner::InvokeGC();
+  noisepage::runner::db_main->GetMetricsManager()->Aggregate();
+  noisepage::runner::db_main->GetMetricsManager()->ToCSV();
+  noisepage::runner::InvokeGC();
 
   thread.join();
 }
 
 void Shutdown() {
-  terrier::runner::db_main->ForceShutdown();
-  delete terrier::runner::db_main;
+  noisepage::runner::db_main->ForceShutdown();
+  delete noisepage::runner::db_main;
 }
 
 void RunBenchmarkSequence(int rerun_counter) {
@@ -1955,26 +1956,27 @@ void RunBenchmarkSequence(int rerun_counter) {
   argv[0] = "mini_runners";
   argv[1] = buffer;
 
-  auto vm_modes = {terrier::execution::vm::ExecutionMode::Interpret, terrier::execution::vm::ExecutionMode::Compiled};
+  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret,
+                   noisepage::execution::vm::ExecutionMode::Compiled};
   for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
-        terrier::runner::MiniRunners::mode = mode;
+        noisepage::runner::MiniRunners::mode = mode;
 
         int argc = 2;
         snprintf(buffer, sizeof(buffer), "--benchmark_filter=%s", filter.c_str());
         benchmark::Initialize(&argc, const_cast<char **>(argv));
         benchmark::RunSpecifiedBenchmarks();
         std::this_thread::sleep_for(std::chrono::seconds(2));
-        terrier::runner::InvokeGC();
+        noisepage::runner::InvokeGC();
       }
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    terrier::runner::db_main->GetMetricsManager()->Aggregate();
-    terrier::runner::db_main->GetMetricsManager()->ToCSV();
+    noisepage::runner::db_main->GetMetricsManager()->Aggregate();
+    noisepage::runner::db_main->GetMetricsManager()->ToCSV();
 
-    if (!terrier::runner::rerun_start) {
+    if (!noisepage::runner::rerun_start) {
       snprintf(buffer, sizeof(buffer), "execution_%s.csv", titles[i].c_str());
     } else {
       snprintf(buffer, sizeof(buffer), "execution_%s_%d.csv", titles[i].c_str(), rerun_counter);
@@ -1985,14 +1987,14 @@ void RunBenchmarkSequence(int rerun_counter) {
 }
 
 void RunMiniRunners() {
-  terrier::runner::rerun_start = false;
-  for (int i = 0; i <= terrier::runner::settings.rerun_iterations_; i++) {
-    terrier::runner::rerun_start = (i != 0);
+  noisepage::runner::rerun_start = false;
+  for (int i = 0; i <= noisepage::runner::settings.rerun_iterations_; i++) {
+    noisepage::runner::rerun_start = (i != 0);
     RunBenchmarkSequence(i);
   }
 
-  for (int i = 0; i <= terrier::runner::settings.rerun_iterations_; i++) {
-    RunNetworkSequence(terrier::runner::NetworkQueriesOutputRunners);
+  for (int i = 0; i <= noisepage::runner::settings.rerun_iterations_; i++) {
+    RunNetworkSequence(noisepage::runner::NetworkQueriesOutputRunners);
   }
 
   std::rename("pipeline.csv", "execution_NETWORK.csv");
@@ -2006,7 +2008,7 @@ void RunMiniRunners() {
     char target[64];
     snprintf(target, sizeof(target), "execution_%s.csv", title.c_str());
 
-    for (int i = 1; i <= terrier::runner::settings.rerun_iterations_; i++) {
+    for (int i = 1; i <= noisepage::runner::settings.rerun_iterations_; i++) {
       char source[64];
       snprintf(source, sizeof(target), "execution_%s_%d.csv", title.c_str(), i);
 
@@ -2041,37 +2043,37 @@ void RunMiniRunners() {
 
 int main(int argc, char **argv) {
   // Initialize mini-runner arguments
-  terrier::runner::settings.InitializeFromArguments(argc, argv);
+  noisepage::runner::settings.InitializeFromArguments(argc, argv);
 
   // Initialize Benchmarks
-  terrier::runner::RegisterRunners();
+  noisepage::runner::RegisterRunners();
 
   // Benchmark Config Environment Variables
   // Check whether we are being passed environment variables to override configuration parameter
   // for this benchmark run.
-  const char *env_num_threads = std::getenv(terrier::ENV_NUM_THREADS);
-  if (env_num_threads != nullptr) terrier::BenchmarkConfig::num_threads = atoi(env_num_threads);
+  const char *env_num_threads = std::getenv(noisepage::ENV_NUM_THREADS);
+  if (env_num_threads != nullptr) noisepage::BenchmarkConfig::num_threads = atoi(env_num_threads);
 
-  const char *env_logfile_path = std::getenv(terrier::ENV_LOGFILE_PATH);
-  if (env_logfile_path != nullptr) terrier::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
+  const char *env_logfile_path = std::getenv(noisepage::ENV_LOGFILE_PATH);
+  if (env_logfile_path != nullptr) noisepage::BenchmarkConfig::logfile_path = std::string_view(env_logfile_path);
 
-  terrier::runner::InitializeRunnersState();
-  if (terrier::runner::settings.generate_test_data_) {
-    RunNetworkSequence(terrier::runner::NetworkQueriesCreateIndexRunners);
+  noisepage::runner::InitializeRunnersState();
+  if (noisepage::runner::settings.generate_test_data_) {
+    RunNetworkSequence(noisepage::runner::NetworkQueriesCreateIndexRunners);
     std::rename("pipeline.csv", "execution_TEST_DATA.csv");
   } else {
-    if (terrier::runner::settings.target_runner_specified_) {
+    if (noisepage::runner::settings.target_runner_specified_) {
       // Pass straight through to gbenchmark
       benchmark::Initialize(&argc, argv);
       benchmark::RunSpecifiedBenchmarks();
-      terrier::runner::EndRunnersState();
+      noisepage::runner::EndRunnersState();
     } else {
       RunMiniRunners();
       Shutdown();
     }
   }
 
-  terrier::LoggersUtil::ShutDown();
+  noisepage::LoggersUtil::ShutDown();
 
   return 0;
 }

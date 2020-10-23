@@ -3,12 +3,12 @@
 #include "execution/sql/vector_operations/inplace_operation_executor.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace traits {
 
 template <typename T>
-struct ShouldPerformFullCompute<terrier::execution::sql::BitwiseANDInPlace<T>> {
+struct ShouldPerformFullCompute<noisepage::execution::sql::BitwiseANDInPlace<T>> {
   bool operator()(const exec::ExecutionSettings &exec_settings, const TupleIdList *tid_list) const {
     auto full_compute_threshold = exec_settings.GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
@@ -33,19 +33,19 @@ void VectorOps::BitwiseAndInPlace(const exec::ExecutionSettings &exec_settings, 
   // Lift-off
   switch (left->GetTypeId()) {
     case TypeId::TinyInt:
-      BitwiseOperation<int8_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
+      BitwiseOperation<int8_t, noisepage::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::SmallInt:
-      BitwiseOperation<int16_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
+      BitwiseOperation<int16_t, noisepage::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::Integer:
-      BitwiseOperation<int32_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
+      BitwiseOperation<int32_t, noisepage::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::BigInt:
-      BitwiseOperation<int64_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
+      BitwiseOperation<int64_t, noisepage::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     case TypeId::Pointer:
-      BitwiseOperation<uintptr_t, terrier::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
+      BitwiseOperation<uintptr_t, noisepage::execution::sql::BitwiseANDInPlace>(exec_settings, left, right);
       break;
     default:
       throw EXECUTION_EXCEPTION(
@@ -54,4 +54,4 @@ void VectorOps::BitwiseAndInPlace(const exec::ExecutionSettings &exec_settings, 
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

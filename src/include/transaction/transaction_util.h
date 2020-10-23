@@ -2,7 +2,7 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 
 /**
  * Helper class for transactions to validate timestamps, versions, etc.
@@ -36,4 +36,4 @@ class TransactionUtil {
   static void EmptyCallback(void * /*unused*/) {}
 };
 
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

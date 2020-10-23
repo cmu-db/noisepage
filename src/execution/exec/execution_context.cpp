@@ -8,7 +8,7 @@
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 
 OutputBuffer *ExecutionContext::OutputBufferNew() {
   if (schema_ == nullptr) {
@@ -35,14 +35,14 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
 }
 
 void ExecutionContext::RegisterThreadWithMetricsManager() {
-  if (terrier::common::thread_context.metrics_store_ == nullptr && GetMetricsManager()) {
+  if (noisepage::common::thread_context.metrics_store_ == nullptr && GetMetricsManager()) {
     GetMetricsManager()->RegisterThread();
   }
 }
 
 void ExecutionContext::CheckTrackersStopped() {
-  if (terrier::common::thread_context.metrics_store_ != nullptr &&
-      terrier::common::thread_context.resource_tracker_.IsRunning()) {
+  if (noisepage::common::thread_context.metrics_store_ != nullptr &&
+      noisepage::common::thread_context.resource_tracker_.IsRunning()) {
     UNREACHABLE("Resource Trackers should have stopped");
   }
 }
@@ -54,8 +54,8 @@ void ExecutionContext::AggregateMetricsThread() {
 }
 
 void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component) {
-  TERRIER_ASSERT(component == metrics::MetricsComponent::EXECUTION,
-                 "StartResourceTracker() invoked with incorrect MetricsComponent");
+  NOISEPAGE_ASSERT(component == metrics::MetricsComponent::EXECUTION,
+                   "StartResourceTracker() invoked with incorrect MetricsComponent");
 
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(component)) {
@@ -80,11 +80,11 @@ void ExecutionContext::StartPipelineTracker(pipeline_id_t pipeline_id) {
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(component)) {
     // Start the resource tracker.
-    TERRIER_ASSERT(!common::thread_context.resource_tracker_.IsRunning(), "ResourceTrackers cannot be nested");
+    NOISEPAGE_ASSERT(!common::thread_context.resource_tracker_.IsRunning(), "ResourceTrackers cannot be nested");
     common::thread_context.resource_tracker_.Start();
     mem_tracker_->Reset();
 
-    TERRIER_ASSERT(pipeline_operating_units_ != nullptr, "PipelineOperatingUnits should not be null");
+    NOISEPAGE_ASSERT(pipeline_operating_units_ != nullptr, "PipelineOperatingUnits should not be null");
   }
 }
 
@@ -100,7 +100,7 @@ void ExecutionContext::EndPipelineTracker(query_id_t query_id, pipeline_id_t pip
     common::thread_context.resource_tracker_.SetMemory(mem_size);
     const auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
 
-    TERRIER_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
+    NOISEPAGE_ASSERT(pipeline_id == ouvec->pipeline_id_, "Incorrect feature vector pipeline id?");
     brain::ExecutionOperatingUnitFeatureVector features(ouvec->pipeline_features_->begin(),
                                                         ouvec->pipeline_features_->end());
     common::thread_context.metrics_store_->RecordPipelineData(query_id, pipeline_id, execution_mode_,
@@ -133,14 +133,14 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
   auto features = pipeline_operating_units_->GetPipelineFeatures(pipeline_id);
   for (auto &feat : features) {
     if (brain::OperatingUnitUtil::IsOperatingUnitTypeBlocking(feat.GetExecutionOperatingUnitType())) {
-      TERRIER_ASSERT(!found_blocking, "Pipeline should only have 1 blocking");
+      NOISEPAGE_ASSERT(!found_blocking, "Pipeline should only have 1 blocking");
       found_blocking = true;
       feature = feat;
     }
   }
 
   if (!found_blocking) {
-    TERRIER_ASSERT(false, "Pipeline should have 1 blocking");
+    NOISEPAGE_ASSERT(false, "Pipeline should have 1 blocking");
     return;
   }
 
@@ -159,7 +159,7 @@ void ExecutionContext::InitializeParallelOUFeatureVector(brain::ExecOUFeatureVec
       vec->pipeline_features_->emplace_back(brain::ExecutionOperatingUnitType::CREATE_INDEX_MAIN, feature);
       break;
     default:
-      TERRIER_ASSERT(false, "Unsupported parallel OU");
+      NOISEPAGE_ASSERT(false, "Unsupported parallel OU");
   }
 
   // Update num_concurrent
@@ -173,7 +173,7 @@ const parser::ConstantValueExpression &ExecutionContext::GetParam(const uint32_t
 }
 
 void ExecutionContext::RegisterHook(size_t hook_idx, HookFn hook) {
-  TERRIER_ASSERT(hook_idx < hooks_.capacity(), "Incorrect number of reserved hooks");
+  NOISEPAGE_ASSERT(hook_idx < hooks_.capacity(), "Incorrect number of reserved hooks");
   hooks_[hook_idx] = hook;
 }
 
@@ -185,4 +185,4 @@ void ExecutionContext::InvokeHook(size_t hook_index, void *tls, void *arg) {
 
 void ExecutionContext::InitHooks(size_t num_hooks) { hooks_.resize(num_hooks); }
 
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

@@ -1,7 +1,7 @@
 #include "execution/exec/execution_settings.h"
 #include "settings/settings_manager.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 
 void ExecutionSettings::UpdateFromSettingsManager(common::ManagedPointer<settings::SettingsManager> settings) {
   if (settings) {
@@ -11,4 +11,4 @@ void ExecutionSettings::UpdateFromSettingsManager(common::ManagedPointer<setting
   }
 }
 
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

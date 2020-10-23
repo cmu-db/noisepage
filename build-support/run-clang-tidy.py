@@ -38,7 +38,7 @@ import glob
 import json
 import multiprocessing
 import os
-import pprint   # TERRIER: we want to print out formatted lists of files
+import pprint   # NOISEPAGE: we want to print out formatted lists of files
 import re
 import shutil
 import subprocess
@@ -46,7 +46,7 @@ import sys
 import tempfile
 import threading
 import traceback
-# import yaml   # TERRIER: not necessary if we don't want automatic fixes
+# import yaml   # NOISEPAGE: not necessary if we don't want automatic fixes
 
 from run_clang_tidy_extra import CheckConfig
 
@@ -84,7 +84,7 @@ def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
     else:
         # Show warnings in all in-project headers by default.
         # start.append('-header-filter=^' + build_path + '/.*')
-        # TERRIER: we have our .clang-tidy file
+        # NOISEPAGE: we have our .clang-tidy file
         pass
     if checks:
         start.append('-checks=' + checks)
@@ -167,7 +167,7 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
         output, err = proc.communicate()
         if proc.returncode != 0:
             failed_files.append(name)
-        # TERRIER: we write our own printing logic
+        # NOISEPAGE: we write our own printing logic
         # with lock:
         #     sys.stdout.write(' '.join(invocation) + '\n' + output + '\n')
         #     if err > 0:
@@ -328,7 +328,7 @@ def main():
         # update_progress(100, 100)
         if len(failed_files):
             return_code = 1
-            # TERRIER: We want to see the failed files
+            # NOISEPAGE: We want to see the failed files
             print('The files that failed were:')
             print(pprint.pformat(failed_files))
             print('Note that a failing .h file will fail all the .cpp files that include it.\n')

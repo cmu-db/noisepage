@@ -14,7 +14,7 @@
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 template <typename T>
 T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
   auto *val = new T[num_vals];
@@ -168,7 +168,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(ColumnInsertMet
 
   // Create bitmap
   uint32_t *null_bitmap = nullptr;
-  TERRIER_ASSERT(num_rows != 0, "Cannot have 0 rows.");
+  NOISEPAGE_ASSERT(num_rows != 0, "Cannot have 0 rows.");
   uint64_t num_words = util::BitUtil::Num32BitWordsFor(num_rows);
   null_bitmap = new uint32_t[num_words];
   util::BitUtil::Clear(null_bitmap, num_rows);
@@ -225,7 +225,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
 
     // Generate column data for all columns
     uint32_t num_vals = std::min(batch_size, table_meta->num_rows_ - (i * batch_size));
-    TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
+    NOISEPAGE_ASSERT(num_vals != 0, "Can't have empty columns.");
     for (auto &col_meta : table_meta->col_meta_) {
       if (col_meta.is_clone_) {
         auto &other = table_meta->col_meta_[col_meta.clone_idx_];
@@ -625,4 +625,4 @@ void TableGenerator::InitTestIndexes() {
     CreateIndex(&index_meta);
   }
 }
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -7,11 +7,11 @@
 #include "execution/util/cpu_info.h"
 #include "metrics/metrics_util.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Track the time and hardware resources spent for a particular event (operating unit). This is tracking resources at a
@@ -111,4 +111,4 @@ class ResourceTracker {
   bool running_ = false;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

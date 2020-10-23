@@ -12,18 +12,18 @@
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class OptimizerUtil;
 class QueryToOperatorTransformer;
 class ExpressionNodeContents;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::binder {
+namespace noisepage::binder {
 class BindNodeVisitor;
 class BinderUtil;
-}  // namespace terrier::binder
+}  // namespace noisepage::binder
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ParseResult;
 
 /**
@@ -167,7 +167,7 @@ class AbstractExpression {
    * @return child of abstract expression at that index
    */
   common::ManagedPointer<AbstractExpression> GetChild(uint64_t index) const {
-    TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < children_.size(), "Index must be in bounds.");
     return common::ManagedPointer(children_[index]);
   }
 
@@ -312,19 +312,19 @@ struct JSONDeserializeExprIntermediate {
  */
 JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
 namespace std {
 /**
  * Implements std::hash for abstract expressions
  */
 template <>
-struct hash<terrier::parser::AbstractExpression> {
+struct hash<noisepage::parser::AbstractExpression> {
   /**
    * Hashes the given expression
    * @param expr the expression to hash
    * @return hash code of the given expression
    */
-  size_t operator()(const terrier::parser::AbstractExpression &expr) const { return expr.Hash(); }
+  size_t operator()(const noisepage::parser::AbstractExpression &expr) const { return expr.Hash(); }
 };
 }  // namespace std

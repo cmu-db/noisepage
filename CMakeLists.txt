@@ -570,7 +570,7 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
         )
 # Remove the main program from NoisePage sources.
-list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/noisepage.cpp)
 
 # Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
 # The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
@@ -652,7 +652,7 @@ endif ()
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
-add_executable(noisepage src/main/terrier.cpp)
+add_executable(noisepage src/main/noisepage.cpp)
 target_compile_options(noisepage PRIVATE "-Werror" "-Wall")
 target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -1285,11 +1285,7 @@ else ()
             -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
             USES_TERMINAL
             )
-    if (TERRIER_BUILD_BENCHMARKS)
-        add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
-    elseif (TERRIER_BUILD_TESTS)
-        add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
-    endif ()
+    add_custom_command(TARGET check-clang-tidy DEPENDS benchmark gflags gtest)
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)

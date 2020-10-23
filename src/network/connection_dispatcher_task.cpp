@@ -10,7 +10,7 @@ namespace {
 constexpr uint32_t MAIN_THREAD_ID = -1;
 }  // namespace
 
-namespace terrier::network {
+namespace noisepage::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
     uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
@@ -25,7 +25,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       thread_registry_(thread_registry),
       interpreter_provider_(interpreter_provider),
       next_handler_(0) {
-  TERRIER_ASSERT(num_handlers_ > 0, "No workers that connections can be dispatched to.");
+  NOISEPAGE_ASSERT(num_handlers_ > 0, "No workers that connections can be dispatched to.");
 
   // The libevent callback functions are defined here.
   // Note that libevent callback functions must have type (int fd, int16_t flags, void *arg) -> void.
@@ -92,7 +92,7 @@ void ConnectionDispatcherTask::Terminate() {
   for (const auto &handler_task : handlers_) {
     const bool is_task_stopped UNUSED_ATTRIBUTE = thread_registry_->StopTask(
         dedicated_thread_owner_, handler_task.CastManagedPointerTo<common::DedicatedThreadTask>());
-    TERRIER_ASSERT(is_task_stopped, "Failed to stop ConnectionHandlerTask.");
+    NOISEPAGE_ASSERT(is_task_stopped, "Failed to stop ConnectionHandlerTask.");
   }
 }
 
@@ -105,4 +105,4 @@ uint64_t ConnectionDispatcherTask::NextDispatchHandlerOffset() {
   return handler_id;
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

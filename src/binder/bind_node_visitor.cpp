@@ -31,7 +31,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/statements.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 /*
  * TODO(WAN): Note that some functions invoke SqlNodeVisitor::Visit() twice.
@@ -53,9 +53,9 @@ void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
     const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types) {
-  TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
+  NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
   sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters, desired_parameter_types);
-  TERRIER_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
+  NOISEPAGE_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 }
@@ -72,7 +72,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
   BINDER_LOG_TRACE("Visiting CopyStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "COPY should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "COPY should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -102,7 +102,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
   BINDER_LOG_TRACE("Visiting CreateStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "CREATE should be a root (INSERT into CREATE?).");
+  NOISEPAGE_ASSERT(context_ == nullptr, "CREATE should be a root (INSERT into CREATE?).");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -212,7 +212,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       break;
     case parser::CreateStatement::CreateType::kView:
       ValidateDatabaseName(node->GetDatabaseName());
-      TERRIER_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
+      NOISEPAGE_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
       node->GetViewQuery()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       break;
   }
@@ -224,7 +224,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DeleteStatement> node
   BINDER_LOG_TRACE("Visiting DeleteStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "DELETE should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "DELETE should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -246,7 +246,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
   BINDER_LOG_TRACE("Visiting DropStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "DROP should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "DROP should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -295,7 +295,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
   BINDER_LOG_TRACE("Visiting InsertStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "INSERT should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "INSERT should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -527,7 +527,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
   BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "UPDATE should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "UPDATE should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -805,7 +805,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
   auto &exprs = order_by_description->GetOrderByExpressions();
   auto size = order_by_description->GetOrderByExpressionsSize();
   for (size_t idx = 0; idx < size; idx++) {
-    if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+    if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::VALUE_CONSTANT) {
       auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
       type::TypeId type = constant_value_expression->GetReturnValueType();
       int64_t column_id = 0;
@@ -830,4 +830,4 @@ void BindNodeVisitor::UnifyOrderByExpression(
     }
   }
 }
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

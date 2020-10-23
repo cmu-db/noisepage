@@ -14,7 +14,7 @@
 #include "parser/select_statement.h"
 #include "type/type_id.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace parser {
 class AggregateExpression;
@@ -130,4 +130,4 @@ class BindNodeVisitor : public SqlNodeVisitor {
 };
 
 }  // namespace binder
-}  // namespace terrier
+}  // namespace noisepage

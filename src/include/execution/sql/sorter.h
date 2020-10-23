@@ -9,11 +9,11 @@
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class VectorProjection;
@@ -251,7 +251,7 @@ class SorterIterator {
    * @return A pointer to the current row. It assumed the called has checked the iterator is valid.
    */
   const byte *GetRow() const {
-    TERRIER_ASSERT(iter_ != end_, "Invalid iterator");
+    NOISEPAGE_ASSERT(iter_ != end_, "Invalid iterator");
     return *iter_;
   }
 
@@ -348,4 +348,4 @@ class SorterVectorIterator {
   std::unique_ptr<VectorProjectionIterator> vector_projection_iterator_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

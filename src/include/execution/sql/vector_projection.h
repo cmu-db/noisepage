@@ -12,11 +12,11 @@
 #include "execution/sql/vector.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class BlockLayout;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ColumnVectorIterator;
 
@@ -103,7 +103,7 @@ class EXPORT VectorProjection {
      * @param projection_list_index The 0-indexed element to access in this RowView
      */
     void SetNull(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
       underlying_->GetColumn(projection_list_index)->SetNull(row_offset_, true);
     }
 
@@ -112,7 +112,7 @@ class EXPORT VectorProjection {
      * @param projection_list_index The 0-indexed element to access in this RowView
      */
     void SetNotNull(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
       underlying_->GetColumn(projection_list_index)->SetNull(row_offset_, false);
     }
 
@@ -122,7 +122,7 @@ class EXPORT VectorProjection {
      * @return true if null, false otherwise
      */
     bool IsNull(const uint16_t projection_list_index) const {
-      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
       return underlying_->GetColumn(projection_list_index)->IsNull(row_offset_);
     }
 
@@ -133,7 +133,7 @@ class EXPORT VectorProjection {
      * nullable and set to null, then return value is nullptr
      */
     byte *AccessWithNullCheck(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) return nullptr;
       return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
     }
@@ -145,7 +145,7 @@ class EXPORT VectorProjection {
      * nullable and set to null, then return value is nullptr
      */
     const byte *AccessWithNullCheck(const uint16_t projection_list_index) const {
-      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) return nullptr;
       return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
     }
@@ -156,7 +156,7 @@ class EXPORT VectorProjection {
      * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
      */
     byte *AccessForceNotNull(const uint16_t projection_list_index) {
-      TERRIER_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
+      NOISEPAGE_ASSERT(projection_list_index < NumColumns(), "Column offset out of bounds.");
       if (IsNull(projection_list_index)) SetNotNull(projection_list_index);
       return underlying_->GetColumn(projection_list_index)->GetValuePointer(row_offset_);
     }
@@ -254,7 +254,7 @@ class EXPORT VectorProjection {
    * @return The metadata for the column at index @em col_idx in the projection.
    */
   TypeId GetColumnType(const uint32_t col_idx) const {
-    TERRIER_ASSERT(col_idx < GetColumnCount(), "Out-of-bounds column access");
+    NOISEPAGE_ASSERT(col_idx < GetColumnCount(), "Out-of-bounds column access");
     return GetColumn(col_idx)->GetTypeId();
   }
 
@@ -262,7 +262,7 @@ class EXPORT VectorProjection {
    * @return The column vector at index @em col_idx as it appears in the projection.
    */
   const Vector *GetColumn(const uint32_t col_idx) const {
-    TERRIER_ASSERT(col_idx < GetColumnCount(), "Out-of-bounds column access");
+    NOISEPAGE_ASSERT(col_idx < GetColumnCount(), "Out-of-bounds column access");
     return columns_[col_idx].get();
   }
 
@@ -270,7 +270,7 @@ class EXPORT VectorProjection {
    * @return The column vector at index @em col_idx as it appears in the projection.
    */
   Vector *GetColumn(const uint32_t col_idx) {
-    TERRIER_ASSERT(col_idx < GetColumnCount(), "Out-of-bounds column access");
+    NOISEPAGE_ASSERT(col_idx < GetColumnCount(), "Out-of-bounds column access");
     return columns_[col_idx].get();
   }
 
@@ -410,4 +410,4 @@ class EXPORT VectorProjection {
   std::vector<storage::TupleSlot> tuple_slots_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

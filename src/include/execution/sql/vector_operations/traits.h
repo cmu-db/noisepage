@@ -1,10 +1,10 @@
 #pragma once
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class TupleIdList;
 
@@ -68,4 +68,4 @@ struct ShouldPerformFullCompute {
 
 }  // namespace traits
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

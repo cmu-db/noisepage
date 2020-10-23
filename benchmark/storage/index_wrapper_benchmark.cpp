@@ -14,7 +14,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "type/type_id.h"
 
-namespace terrier {
+namespace noisepage {
 
 // This benchmark simulates key lookup on a filled table and associated indices to determine the total amount of time
 // required for an expected number (equivalent to the size of the table) of searches. We simulate a basic table as we
@@ -211,4 +211,4 @@ BENCHMARK_REGISTER_F(IndexBenchmark, HashIndexRandomScanKey)
     ->Unit(benchmark::kMillisecond);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

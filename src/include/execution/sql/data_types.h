@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "execution/sql/sql.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Base class for algebraic SQL types.
@@ -563,4 +563,4 @@ class VarcharType : public SqlType {
   uint32_t max_len_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

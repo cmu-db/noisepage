@@ -14,7 +14,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct TpccPlanDeliveryTests : public TpccPlanTest {};
 
@@ -341,4 +341,4 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
   OptimizeUpdate(query, tbl_customer_, check);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -8,7 +8,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
@@ -74,4 +74,4 @@ TEST(WorkerPoolTests, MoreTest) {
   }
   thread_pool.Shutdown();
 }
-}  // namespace terrier
+}  // namespace noisepage

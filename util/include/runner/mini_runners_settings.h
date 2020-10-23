@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 /**
  * Class that holds mini-runner settings
@@ -74,4 +74,4 @@ class MiniRunnersSettings {
   void InitializeFromArguments(int argc, char **argv);
 };
 
-};  // namespace terrier::runner
+};  // namespace noisepage::runner

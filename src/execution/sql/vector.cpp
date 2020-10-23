@@ -11,7 +11,7 @@
 #include "execution/util/bit_util.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 Vector::Vector(TypeId type) : type_(type), count_(0), num_elements_(0), data_(nullptr), tid_list_(nullptr) {
   // Since vector capacity can never exceed common::Constants::K_DEFAULT_VECTOR_SIZE, we reserve upon
@@ -59,7 +59,7 @@ void Vector::Destroy() {
 }
 
 GenericValue Vector::GetValue(const uint64_t index) const {
-  TERRIER_ASSERT(index < count_, "Out-of-bounds vector access");
+  NOISEPAGE_ASSERT(index < count_, "Out-of-bounds vector access");
   if (IsNull(index)) {
     return GenericValue::CreateNull(type_);
   }
@@ -97,7 +97,7 @@ GenericValue Vector::GetValue(const uint64_t index) const {
     }
     case TypeId::Varchar: {
       const auto &varlen_str = reinterpret_cast<const storage::VarlenEntry *>(data_)[actual_index];
-      TERRIER_ASSERT(varlen_str.Content() != nullptr, "Null string in position not marked NULL!");
+      NOISEPAGE_ASSERT(varlen_str.Content() != nullptr, "Null string in position not marked NULL!");
       return GenericValue::CreateVarchar(
           std::string_view(reinterpret_cast<const char *>(varlen_str.Content()), varlen_str.Size()));
     }
@@ -108,7 +108,7 @@ GenericValue Vector::GetValue(const uint64_t index) const {
 }
 
 void Vector::Resize(uint32_t size) {
-  TERRIER_ASSERT(size <= GetCapacity(), "New size exceeds vector capacity.");
+  NOISEPAGE_ASSERT(size <= GetCapacity(), "New size exceeds vector capacity.");
   tid_list_ = nullptr;
   count_ = size;
   num_elements_ = size;
@@ -116,8 +116,8 @@ void Vector::Resize(uint32_t size) {
 }
 
 void Vector::SetValue(const uint64_t index, const GenericValue &val) {
-  TERRIER_ASSERT(index < count_, "Out-of-bounds vector access");
-  TERRIER_ASSERT(type_ == val.GetTypeId(), "Mismatched types");
+  NOISEPAGE_ASSERT(index < count_, "Out-of-bounds vector access");
+  NOISEPAGE_ASSERT(type_ == val.GetTypeId(), "Mismatched types");
   SetNull(index, val.IsNull());
   const uint64_t actual_index = tid_list_ != nullptr ? (*tid_list_)[index] : index;
   switch (type_) {
@@ -256,7 +256,7 @@ void Vector::Reference(GenericValue *value) {
 }
 
 void Vector::Reference(byte *data, const uint32_t *null_mask, uint64_t size) {
-  TERRIER_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
+  NOISEPAGE_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
   count_ = size;
   num_elements_ = size;
   data_ = data;
@@ -274,7 +274,7 @@ void Vector::Reference(byte *data, const uint32_t *null_mask, uint64_t size) {
 }
 
 void Vector::ReferenceNullMask(byte *data, const NullMask *null_mask, uint64_t size) {
-  TERRIER_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
+  NOISEPAGE_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
   count_ = size;
   num_elements_ = size;
   data_ = data;
@@ -292,7 +292,7 @@ void Vector::ReferenceNullMask(byte *data, const NullMask *null_mask, uint64_t s
 }
 
 void Vector::Reference(const Vector *other) {
-  TERRIER_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
+  NOISEPAGE_ASSERT(owned_data_ == nullptr, "Cannot reference a vector if owning data");
   type_ = other->type_;
   count_ = other->count_;
   num_elements_ = other->num_elements_;
@@ -348,7 +348,7 @@ void Vector::MoveTo(Vector *other) {
 }
 
 void Vector::Clone(Vector *target) {
-  TERRIER_ASSERT(target->owned_data_ != nullptr, "Cannot clone into a reference vector");
+  NOISEPAGE_ASSERT(target->owned_data_ != nullptr, "Cannot clone into a reference vector");
   target->Resize(GetSize());
   target->type_ = type_;
   target->count_ = count_;
@@ -371,15 +371,15 @@ void Vector::Clone(Vector *target) {
 }
 
 void Vector::CopyTo(Vector *other, uint64_t offset) {
-  TERRIER_ASSERT(type_ == other->type_, "Copying to vector of different type. Did you mean to cast instead?");
-  TERRIER_ASSERT(other->tid_list_ == nullptr, "Copying to a vector with a selection vector isn't supported");
+  NOISEPAGE_ASSERT(type_ == other->type_, "Copying to vector of different type. Did you mean to cast instead?");
+  NOISEPAGE_ASSERT(other->tid_list_ == nullptr, "Copying to a vector with a selection vector isn't supported");
 
   other->GetMutableNullMask()->Reset();
 
   if (IsTypeFixedSize(type_)) {
     VectorOps::Copy(*this, other, offset);
   } else {
-    TERRIER_ASSERT(type_ == TypeId::Varchar, "Wrong type for copy");
+    NOISEPAGE_ASSERT(type_ == TypeId::Varchar, "Wrong type for copy");
     other->Resize(count_ - offset);
     auto src_data = reinterpret_cast<const storage::VarlenEntry *>(data_);
     auto target_data = reinterpret_cast<storage::VarlenEntry *>(other->data_);
@@ -407,8 +407,8 @@ void Vector::Cast(const exec::ExecutionSettings &exec_settings, TypeId new_type)
 }
 
 void Vector::Append(const Vector &other) {
-  TERRIER_ASSERT(tid_list_ == nullptr, "Appending to vector with selection vector not supported");
-  TERRIER_ASSERT(type_ == other.type_, "Can only append vector of same type");
+  NOISEPAGE_ASSERT(tid_list_ == nullptr, "Appending to vector with selection vector not supported");
+  NOISEPAGE_ASSERT(type_ == other.type_, "Can only append vector of same type");
 
   if (GetSize() + other.GetCount() > common::Constants::K_DEFAULT_VECTOR_SIZE) {
     throw std::out_of_range("Cannot append to vector: vector is too large");
@@ -427,7 +427,7 @@ void Vector::Append(const Vector &other) {
   if (IsTypeFixedSize(type_)) {
     VectorOps::Copy(other, data_ + old_size * GetTypeIdSize(type_));
   } else {
-    TERRIER_ASSERT(type_ == TypeId::Varchar, "Append on varchars");
+    NOISEPAGE_ASSERT(type_ == TypeId::Varchar, "Append on varchars");
     auto src_data = reinterpret_cast<const storage::VarlenEntry *>(other.data_);
     auto target_data = reinterpret_cast<storage::VarlenEntry *>(data_);
     VectorOps::Exec(other, [&](uint64_t i, uint64_t k) {
@@ -457,26 +457,27 @@ void Vector::CheckIntegrity() const {
 #ifndef NDEBUG
   // Ensure TID list shape
   if (tid_list_ == nullptr) {
-    TERRIER_ASSERT(count_ == num_elements_, "Vector count and size do not match in unfiltered vector");
+    NOISEPAGE_ASSERT(count_ == num_elements_, "Vector count and size do not match in unfiltered vector");
   } else {
-    TERRIER_ASSERT(num_elements_ == tid_list_->GetCapacity(), "TID list too small to capture all vector elements");
-    TERRIER_ASSERT(count_ == tid_list_->GetTupleCount(), "TID list size and cached count do not match");
-    TERRIER_ASSERT(count_ <= num_elements_, "Vector count must be smaller than size with selection vector");
+    NOISEPAGE_ASSERT(num_elements_ == tid_list_->GetCapacity(), "TID list too small to capture all vector elements");
+    NOISEPAGE_ASSERT(count_ == tid_list_->GetTupleCount(), "TID list size and cached count do not match");
+    NOISEPAGE_ASSERT(count_ <= num_elements_, "Vector count must be smaller than size with selection vector");
   }
 
   // Ensure that the NULL bit mask has the same size at the vector it represents
-  TERRIER_ASSERT(num_elements_ == null_mask_.GetNumBits(), "NULL indication bit vector size doesn't match vector size");
+  NOISEPAGE_ASSERT(num_elements_ == null_mask_.GetNumBits(),
+                   "NULL indication bit vector size doesn't match vector size");
 
   // Check the strings in the vector, if it's a string vector
   if (type_ == TypeId::Varchar) {
     VectorOps::ExecTyped<const storage::VarlenEntry>(
         *this, [&](const storage::VarlenEntry &varlen, uint64_t i, uint64_t k) {
           if (!null_mask_[i]) {
-            TERRIER_ASSERT(varlen.Content() != nullptr, "NULL pointer in non-null vector slot");
+            NOISEPAGE_ASSERT(varlen.Content() != nullptr, "NULL pointer in non-null vector slot");
           }
         });
   }
 #endif
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

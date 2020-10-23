@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class LeafOperator;
 class TableFreeScan;
@@ -528,4 +528,4 @@ class OperatorVisitor {
   virtual void Visit(const LogicalAnalyze *logical_analyze) {}
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

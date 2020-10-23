@@ -8,7 +8,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
  * A uniqued string identifier in some AST context. This serves as a super-lightweight string
@@ -37,7 +37,7 @@ class Identifier {
    * @return The length of this identifier in bytes.
    */
   std::size_t GetLength() const {
-    TERRIER_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
+    NOISEPAGE_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
     return std::strlen(GetData());
   }
 
@@ -90,7 +90,7 @@ class Identifier {
   const char *data_{nullptr};
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
 
 namespace llvm {
 
@@ -98,26 +98,26 @@ namespace llvm {
  * Functor to make Identifiers usable from LLVM DenseMap.
  */
 template <>
-struct DenseMapInfo<terrier::execution::ast::Identifier> {
+struct DenseMapInfo<noisepage::execution::ast::Identifier> {
   /**
    * @return An empty key
    */
-  static terrier::execution::ast::Identifier getEmptyKey() {  // NOLINT
-    return terrier::execution::ast::Identifier::GetEmptyKey();
+  static noisepage::execution::ast::Identifier getEmptyKey() {  // NOLINT
+    return noisepage::execution::ast::Identifier::GetEmptyKey();
   }
 
   /**
    * @return A tombstone key
    */
-  static terrier::execution::ast::Identifier getTombstoneKey() {  // NOLINT
-    return terrier::execution::ast::Identifier::GetTombstoneKey();
+  static noisepage::execution::ast::Identifier getTombstoneKey() {  // NOLINT
+    return noisepage::execution::ast::Identifier::GetTombstoneKey();
   }
 
   /**
    * @param identifier: Identifier to hash
    * @return the hash of the identifier
    */
-  static unsigned getHashValue(const terrier::execution::ast::Identifier identifier) {  // NOLINT
+  static unsigned getHashValue(const noisepage::execution::ast::Identifier identifier) {  // NOLINT
     return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.GetData()));
   }
 
@@ -126,8 +126,8 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
    * @param rhs right hand side
    * @return whether lhs == rhs.
    */
-  static bool isEqual(const terrier::execution::ast::Identifier lhs,  // NOLINT
-                      const terrier::execution::ast::Identifier rhs) {
+  static bool isEqual(const noisepage::execution::ast::Identifier lhs,  // NOLINT
+                      const noisepage::execution::ast::Identifier rhs) {
     return lhs == rhs;
   }
 };
@@ -140,13 +140,13 @@ namespace std {
  * Functor to make Identifiers usable as keys in STL/TPL maps.
  */
 template <>
-struct hash<terrier::execution::ast::Identifier> {
+struct hash<noisepage::execution::ast::Identifier> {
   /**
    * Hashing operator
    * @param ident identifier to hash
    * @return hash value
    */
-  std::size_t operator()(const terrier::execution::ast::Identifier &ident) const noexcept {
+  std::size_t operator()(const noisepage::execution::ast::Identifier &ident) const noexcept {
     std::string_view s(ident.GetData(), ident.GetLength());
     return std::hash<decltype(s)>()(s);
   }

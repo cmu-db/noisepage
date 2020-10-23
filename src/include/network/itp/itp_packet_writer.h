@@ -6,7 +6,7 @@
 
 #include "network/packet_writer.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 /**
  * Wrapper around an I/O layer WriteQueue to provide ITP-specific
  * helper methods.
@@ -45,4 +45,4 @@ class ITPPacketWriter : public PacketWriter {
   void WriteCommandComplete() { BeginPacket(NetworkMessageType::ITP_COMMAND_COMPLETE).EndPacket(); }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network
