@@ -19,7 +19,6 @@
 #include "execution/execution_util.h"
 #include "execution/sql/ddl_executors.h"
 #include "execution/table_generator/table_generator.h"
-#include "execution/util/cpu_info.h"
 #include "execution/vm/module.h"
 #include "loggers/loggers_util.h"
 #include "main/db_main.h"
@@ -109,7 +108,6 @@ std::vector<std::vector<parser::ConstantValueExpression>> empty_params = {};
 void InvokeGC() {
   // Perform GC to do any cleanup
   auto gc = terrier::runner::db_main->GetStorageLayer()->GetGarbageCollector();
-  gc->PerformGarbageCollection();
   gc->PerformGarbageCollection();
   gc->PerformGarbageCollection();
 }
