@@ -14,7 +14,7 @@ struct BuildRow {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   // Complex bits
-  @joinHTInit(&state.table, execCtx, @execCtxGetMem(execCtx), @sizeOf(BuildRow))
+  @joinHTInit(&state.table, execCtx, @sizeOf(BuildRow))
   // Simple bits
   state.num_matches = 0
 }

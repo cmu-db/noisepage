@@ -28,10 +28,12 @@ DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, Compilat
     }
   }
 
-  num_deletes_ = CounterDeclare("num_deletes");
+  num_deletes_ = CounterDeclare("num_deletes", pipeline);
 }
 
-void DeleteTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_deletes_, 0); }
+void DeleteTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_deletes_, 0);
+}
 
 void DeleteTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   // Delete from table

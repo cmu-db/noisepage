@@ -16,7 +16,12 @@ namespace terrier::execution::sql::test {
 
 class StringFunctionsTests : public SqlBasedTest {
  public:
-  StringFunctionsTests() : exec_ctx_(MakeExecCtx()) {}
+  StringFunctionsTests() : exec_ctx_(nullptr) {}
+
+  void SetUp() override {
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+  }
 
   exec::ExecutionContext *Ctx() { return exec_ctx_.get(); }
 

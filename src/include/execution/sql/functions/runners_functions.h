@@ -25,10 +25,10 @@ class EXPORT MiniRunnersFunctions {
     if (num_tuples.val_ < 2) return;
 
     // We are already in an output slot
+    auto *output_buffer = ctx->OutputBufferNew();
 
     static_assert(sizeof(Integer) == sizeof(Real));
-    auto output_buffer = ctx->GetOutputBuffer();
-    for (auto row = 0; row < num_tuples.val_ - 2; row++) {
+    for (auto row = 0; row < num_tuples.val_ - 1; row++) {
       auto output_alloc = output_buffer->AllocOutputSlot();
 
       auto j = 0;
@@ -43,8 +43,11 @@ class EXPORT MiniRunnersFunctions {
       }
     }
 
-    // Caller still needs an output slot
-    output_buffer->AllocOutputSlot();
+    // Destroy the OutputBuffer
+    output_buffer->Finalize();
+    auto *pool = output_buffer->GetMemoryPool();
+    output_buffer->~OutputBuffer();
+    pool->Deallocate(output_buffer, sizeof(exec::OutputBuffer));
   }
 };
 

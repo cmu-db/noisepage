@@ -9,6 +9,7 @@ struct output_struct {
 }
 
 fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
   var count = 0 // output count
 
   // Initialize the index iterator.
@@ -34,13 +35,14 @@ fun main(execCtx: *ExecutionContext) -> int {
     var table_pr = @indexIteratorGetTablePR(&index)
 
     // Read out the matching tuple to the output buffer
-    var out = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+    var out = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out.colA = @prGetInt(table_pr, 0)
     out.colB = @prGetInt(table_pr, 1)
     count = count + 1
   }
   // Finalize output
   @indexIteratorFree(&index)
-  @resultBufferFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return count
 }

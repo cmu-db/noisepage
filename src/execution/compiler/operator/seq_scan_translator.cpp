@@ -35,7 +35,7 @@ SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, Compi
     local_filter_manager_ = pipeline->DeclarePipelineStateEntry("filterManager", fm_type);
   }
 
-  num_scans_ = CounterDeclare("num_scans");
+  num_scans_ = CounterDeclare("num_scans", pipeline);
 }
 
 bool SeqScanTranslator::HasPredicate() const {
@@ -252,16 +252,16 @@ void SeqScanTranslator::ScanTable(WorkContext *ctx, FunctionBuilder *function) c
   tvi_loop.EndLoop();
 }
 
-void SeqScanTranslator::InitializeQueryState(FunctionBuilder *function) const { CounterSet(function, num_scans_, 0); }
-
 void SeqScanTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
   if (HasPredicate()) {
-    auto *codegen = GetCodeGen();
     function->Append(codegen->FilterManagerInit(local_filter_manager_.GetPtr(codegen), GetExecutionContext()));
     for (const auto &clause : filters_) {
       function->Append(codegen->FilterManagerInsert(local_filter_manager_.GetPtr(codegen), clause));
     }
   }
+
+  InitializeCounters(pipeline, function);
 }
 
 void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -271,9 +271,20 @@ void SeqScanTranslator::TearDownPipelineState(const Pipeline &pipeline, Function
   }
 }
 
+void SeqScanTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  CounterSet(function, num_scans_, 0);
+}
+
+void SeqScanTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
+  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
+                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
+  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
+}
+
 void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-
   const bool declare_local_tvi = !GetPipeline()->IsParallel() || !GetPipeline()->IsDriver(this);
   if (declare_local_tvi) {
     // var tviBase: TableVectorIterator
@@ -298,14 +309,10 @@ void SeqScanTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilde
   if (declare_local_tvi) {
     function->Append(codegen->TableIterClose(codegen->MakeExpr(tvi_var_)));
   }
-}
 
-void SeqScanTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_scans_));
-  FeatureRecord(function, brain::ExecutionOperatingUnitType::SEQ_SCAN,
-                brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, pipeline, CounterVal(num_scans_));
-  FeatureArithmeticRecordMul(function, pipeline, GetTranslatorId(), CounterVal(num_scans_));
+  if (!GetPipeline()->IsParallel()) {
+    RecordCounters(*GetPipeline(), function);
+  }
 }
 
 util::RegionVector<ast::FieldDecl *> SeqScanTranslator::GetWorkerParams() const {

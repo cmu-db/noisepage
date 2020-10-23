@@ -18,6 +18,7 @@ class HLL;
 
 namespace terrier::execution::exec {
 class ExecutionSettings;
+class ExecutionContext;
 }  // namespace terrier::execution::exec
 
 namespace terrier::execution::sql {
@@ -48,6 +49,14 @@ class Vector;
  */
 class EXPORT JoinHashTable {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
+  enum class HookOffsets : uint32_t {
+    StartHook = 0,
+    EndHook,
+
+    NUM_HOOKS
+  };
+
   /** Default precision to use for HLL estimations. */
   static constexpr uint32_t DEFAULT_HLL_PRECISION = 10;
 
@@ -58,12 +67,12 @@ class EXPORT JoinHashTable {
    * Construct a join hash table. All memory allocations are sourced from the injected @em memory,
    * and thus, are ephemeral.
    * @param exec_settings The execution settings to use.
-   * @param memory The memory pool to allocate memory from.
+   * @param exec_ctx ExecutionContext
    * @param tuple_size The size of the tuple stored in this join hash table.
    * @param use_concise_ht Whether to use a concise or fatter chaining join index.
    */
-  explicit JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, uint32_t tuple_size,
-                         bool use_concise_ht = false);
+  explicit JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                         uint32_t tuple_size, bool use_concise_ht = false);
 
   /**
    * This class cannot be copied or moved.
@@ -115,7 +124,7 @@ class EXPORT JoinHashTable {
    * @param thread_state_container The container for all thread-local tables.
    * @param jht_offset The offset in the state where the hash table is.
    */
-  void MergeParallel(const ThreadStateContainer *thread_state_container, std::size_t jht_offset);
+  void MergeParallel(ThreadStateContainer *thread_state_container, std::size_t jht_offset);
 
   /**
    * @return The total number of bytes used to materialize tuples. This excludes space required for
@@ -219,6 +228,8 @@ class EXPORT JoinHashTable {
  private:
   // The execution context to run with.
   const exec::ExecutionSettings &exec_settings_;
+
+  exec::ExecutionContext *exec_ctx_;
 
   // The vector where we store the build-side input.
   util::ChunkedVector<MemoryPoolAllocator<byte>> entries_;

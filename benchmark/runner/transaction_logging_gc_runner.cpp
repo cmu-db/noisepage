@@ -68,7 +68,8 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, TransactionRunner)(benchmark::Sta
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 100);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);
@@ -128,8 +129,10 @@ BENCHMARK_DEFINE_F(TransactionLoggingGCRunner, LoggingGCRunner)(benchmark::State
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
 
     gc_ = new storage::GarbageCollector(common::ManagedPointer(tested.GetTimestampManager()), DISABLED,
                                         common::ManagedPointer(tested.GetTxnManager()), DISABLED);

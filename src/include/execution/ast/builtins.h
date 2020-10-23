@@ -39,10 +39,17 @@ namespace terrier::execution::ast {
   F(ExecutionContextAddRowsAffected, execCtxAddRowsAffected)            \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
   F(ExecutionContextGetTLS, execCtxGetTLS)                              \
+  F(ExecutionContextRegisterHook, execCtxRegisterHook)                  \
+  F(ExecutionContextClearHooks, execCtxClearHooks)                      \
+  F(ExecutionContextInitHooks, execCtxInitHooks)                        \
   F(ThreadStateContainerReset, tlsReset)                                \
   F(ThreadStateContainerGetState, tlsGetCurrentThreadState)             \
   F(ThreadStateContainerIterate, tlsIterate)                            \
   F(ThreadStateContainerClear, tlsClear)                                \
+  F(ExecOUFeatureVectorRecordFeature, execOUFeatureVectorRecordFeature) \
+  F(ExecOUFeatureVectorInitialize, execOUFeatureVectorInit)             \
+  F(ExecOUFeatureVectorFilter, execOUFeatureVectorFilter)               \
+  F(ExecOUFeatureVectorReset, execOUFeatureVectorReset)                 \
                                                                         \
   /* Table scans */                                                     \
   F(TableIterInit, tableIterInit)                                       \
@@ -51,6 +58,7 @@ namespace terrier::execution::ast {
   F(TableIterGetVPI, tableIterGetVPI)                                   \
   F(TableIterClose, tableIterClose)                                     \
   F(TableIterParallel, iterateTableParallel)                            \
+  F(TableIterCreateIndexParallel, iterateTableCreateIndexParallel)      \
                                                                         \
   /* VPI */                                                             \
   F(VPIInit, vpiInit)                                                   \
@@ -131,6 +139,7 @@ namespace terrier::execution::ast {
   /* Aggregations */                                                    \
   F(AggHashTableInit, aggHTInit)                                        \
   F(AggHashTableGetTupleCount, aggHTGetTupleCount)                      \
+  F(AggHashTableGetInsertCount, aggHTGetInsertCount)                    \
   F(AggHashTableInsert, aggHTInsert)                                    \
   F(AggHashTableLinkEntry, aggHTLink)                                   \
   F(AggHashTableLookup, aggHTLookup)                                    \
@@ -191,8 +200,10 @@ namespace terrier::execution::ast {
   F(SorterIterClose, sorterIterClose)                                   \
                                                                         \
   /* Output */                                                          \
+  F(ResultBufferNew, resultBufferNew)                                   \
   F(ResultBufferAllocOutRow, resultBufferAllocRow)                      \
   F(ResultBufferFinalize, resultBufferFinalize)                         \
+  F(ResultBufferFree, resultBufferFree)                                 \
                                                                         \
   /* Index */                                                           \
   F(IndexIteratorInit, indexIteratorInit)                               \
@@ -356,8 +367,10 @@ namespace terrier::execution::ast {
   F(ExecutionContextEndResourceTracker, execCtxEndResourceTracker)      \
   F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
-  F(ExecutionContextGetFeature, execCtxGetFeature)                      \
-  F(ExecutionContextRecordFeature, execCtxRecordFeature)                \
+                                                                        \
+  F(RegisterThreadWithMetricsManager, registerThreadWithMetricsManager) \
+  F(CheckTrackersStopped, checkTrackersStopped)                         \
+  F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \
   F(AbortTxn, abortTxn)                                                 \
                                                                         \

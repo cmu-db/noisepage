@@ -132,9 +132,8 @@ class Pipeline {
   /**
    * Generate all functions to execute this pipeline in the provided container.
    * @param builder The builder for the executable query container.
-   * @param query_id The ID of the query that generates this pipeline.
    */
-  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) const;
+  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const;
 
   /**
    * @return True if the pipeline is parallel; false otherwise.
@@ -184,6 +183,30 @@ class Pipeline {
   /** @return The unique ID of this pipeline. */
   pipeline_id_t GetPipelineId() const { return pipeline_id_t{id_}; }
 
+  /**
+   * Inject start resource tracker into function
+   * @param builder Function being built
+   * @param is_hook Injecting into a hook function
+   */
+  void InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook) const;
+
+  /**
+   * Inject end resource tracker into function
+   * @param builder Function being built
+   * @param is_hook Injecting into a hook function
+   */
+  void InjectEndResourceTracker(FunctionBuilder *builder, bool is_hook) const;
+
+  /**
+   * @return query identifier of the query that we are codegen-ing
+   */
+  query_id_t GetQueryId() const;
+
+  /**
+   * @return a pointer to the OUFeatureVector in the pipeline state
+   */
+  ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
+
  private:
   // Return the thread-local state initialization and tear-down function names.
   // This is needed when we invoke @tlsReset() from the pipeline initialization
@@ -205,7 +228,7 @@ class Pipeline {
   ast::FunctionDecl *GeneratePipelineWorkFunction() const;
 
   // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction(query_id_t query_id) const;
+  ast::FunctionDecl *GenerateRunPipelineFunction() const;
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
@@ -217,10 +240,6 @@ class Pipeline {
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
-
-  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
-
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
 
  private:
   // A unique pipeline ID.
@@ -245,6 +264,8 @@ class Pipeline {
   ast::Identifier state_var_;
   // The pipeline state.
   StateDescriptor state_;
+  // The pipeline operating unit feature vector state.
+  StateDescriptor::Entry oufeatures_;
 };
 
 }  // namespace terrier::execution::compiler

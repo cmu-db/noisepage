@@ -37,18 +37,19 @@ class OutputTranslator : public OperatorTranslator {
    */
   void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
-  /** Set up counters for Lin's models. */
-  void InitializeQueryState(FunctionBuilder *function) const override;
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Perform the main work of the translator.
    */
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
-
-  /**
-   * Output translator needs to finalize the output.
-   */
-  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Does not interact with tables.
@@ -63,6 +64,9 @@ class OutputTranslator : public OperatorTranslator {
 
   // The number of rows that are output.
   StateDescriptor::Entry num_output_;
+
+  // The OutputBuffer to use
+  StateDescriptor::Entry output_buffer_;
 };
 
 }  // namespace terrier::execution::compiler

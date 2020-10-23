@@ -35,9 +35,7 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
 
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
-  void InitializeQueryState(FunctionBuilder *function) const override;
-
-  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override {}
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
