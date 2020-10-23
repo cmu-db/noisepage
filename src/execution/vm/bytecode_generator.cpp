@@ -1887,6 +1887,56 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
   GetExecutionResult()->SetDestination(dest);
 }
 
+void BytecodeGenerator::VisitBuiltinAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
+  LocalVar arg1 = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar arg2 = VisitExpressionForRValue(call->Arguments()[1]);
+  LocalVar arg3;
+  if (call->Arguments().size() == 3) {
+    arg3 = VisitExpressionForRValue(call->Arguments()[2]);
+  }
+
+  switch (builtin) {
+    case ast::Builtin::AtomicAnd1:
+      GetEmitter()->Emit(Bytecode::AtomicAnd1, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicAnd2:
+      GetEmitter()->Emit(Bytecode::AtomicAnd2, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicAnd4:
+      GetEmitter()->Emit(Bytecode::AtomicAnd4, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicAnd8:
+      GetEmitter()->Emit(Bytecode::AtomicAnd8, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicOr1:
+      GetEmitter()->Emit(Bytecode::AtomicOr1, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicOr2:
+      GetEmitter()->Emit(Bytecode::AtomicOr2, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicOr4:
+      GetEmitter()->Emit(Bytecode::AtomicOr4, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicOr8:
+      GetEmitter()->Emit(Bytecode::AtomicOr8, arg1, arg2);
+      break;
+    case ast::Builtin::AtomicCompareExchange1:
+      GetEmitter()->Emit(Bytecode::AtomicCompareExchange1, arg1, arg2, arg3);
+      break;
+    case ast::Builtin::AtomicCompareExchange2:
+      GetEmitter()->Emit(Bytecode::AtomicCompareExchange2, arg1, arg2, arg3);
+      break;
+    case ast::Builtin::AtomicCompareExchange4:
+      GetEmitter()->Emit(Bytecode::AtomicCompareExchange4, arg1, arg2, arg3);
+      break;
+    case ast::Builtin::AtomicCompareExchange8:
+      GetEmitter()->Emit(Bytecode::AtomicCompareExchange8, arg1, arg2, arg3);
+      break;
+    default:
+      UNREACHABLE("Unimplemented atomic function!");
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
   ast::Type *target_type = call->Arguments()[0]->GetType();
   LocalVar size_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
@@ -2835,6 +2885,21 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Abs:
     case ast::Builtin::Mod: {
       VisitBuiltinArithmeticCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::AtomicAnd1:
+    case ast::Builtin::AtomicAnd2:
+    case ast::Builtin::AtomicAnd4:
+    case ast::Builtin::AtomicAnd8:
+    case ast::Builtin::AtomicOr1:
+    case ast::Builtin::AtomicOr2:
+    case ast::Builtin::AtomicOr4:
+    case ast::Builtin::AtomicOr8:
+    case ast::Builtin::AtomicCompareExchange1:
+    case ast::Builtin::AtomicCompareExchange2:
+    case ast::Builtin::AtomicCompareExchange4:
+    case ast::Builtin::AtomicCompareExchange8: {
+      VisitBuiltinAtomicCall(call, builtin);
       break;
     }
     case ast::Builtin::PRSetBool:
