@@ -158,14 +158,15 @@ if __name__ == "__main__":
                 benchmark_runner.last_build)
         else:
             artifact_processor.load_jenkins_artifacts(config.ref_data_source)
-            if args.publish_results != 'none':
-                ret_code = send_results(config, artifact_processor)
 
     if not ret_code:
         if args.csv_dump:
             LOG.error("--csv-dump is not currently supported")
         else:
             table_dump(config, artifact_processor)
+
+    if args.publish_results != 'none':
+        ret_code = send_results(config, artifact_processor)
 
     LOG.debug("Exit code = {}".format(ret_code))
     sys.exit(ret_code)
