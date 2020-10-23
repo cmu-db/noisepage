@@ -570,7 +570,7 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
         )
 # Remove the main program from NoisePage sources.
-list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/noisepage.cpp)
 
 # Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
 # The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
@@ -652,7 +652,7 @@ endif ()
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
-add_executable(noisepage src/main/terrier.cpp)
+add_executable(noisepage src/main/noisepage.cpp)
 target_compile_options(noisepage PRIVATE "-Werror" "-Wall")
 target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
