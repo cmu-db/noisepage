@@ -14,7 +14,7 @@
 #include "optimizer/property_set.h"
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * GroupExpression used to represent a particular logical or physical
@@ -212,7 +212,7 @@ class GroupExpression {
       lowest_cost_table_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
 namespace std {
 
@@ -220,11 +220,11 @@ namespace std {
  * Implementation of std::hash for GroupExpression
  */
 template <>
-struct hash<terrier::optimizer::GroupExpression> {
+struct hash<noisepage::optimizer::GroupExpression> {
   /**
    * Defines argument_type to be GroupExpression
    */
-  using argument_type = terrier::optimizer::GroupExpression;
+  using argument_type = noisepage::optimizer::GroupExpression;
 
   /**
    * Defines result_type to be size_t

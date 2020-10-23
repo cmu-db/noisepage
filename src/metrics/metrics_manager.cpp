@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 bool FileExists(const std::string &path) {
   struct stat buffer;
@@ -164,4 +164,4 @@ void MetricsManager::ToCSV() const {
   }
 }
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

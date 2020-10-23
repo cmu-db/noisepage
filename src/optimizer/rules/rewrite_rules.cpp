@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughJoin
@@ -543,4 +543,4 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   transformed->emplace_back(std::move(output));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

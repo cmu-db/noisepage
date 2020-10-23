@@ -3,7 +3,7 @@
 #include "common/json.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> AggregateExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -58,4 +58,4 @@ std::vector<std::unique_ptr<AbstractExpression>> AggregateExpression::FromJson(c
 
 DEFINE_JSON_BODY_DECLARATIONS(AggregateExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

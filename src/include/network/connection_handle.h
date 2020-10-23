@@ -9,7 +9,7 @@
 
 struct event;
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionHandlerTask;
 class NetworkIoWrapper;
@@ -100,7 +100,7 @@ class ConnectionHandle {
 
   /**
    * Stops receiving network events from client connection. This is useful when
-   * we are waiting on terrier to return the result of a query and not handling
+   * we are waiting on noisepage to return the result of a query and not handling
    * client query.
    */
   void StopReceivingNetworkEvent();
@@ -175,4 +175,4 @@ class ConnectionHandle {
 
   ConnectionContext context_;
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

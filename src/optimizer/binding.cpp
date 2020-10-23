@@ -9,7 +9,7 @@
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 bool GroupBindingIterator::HasNext() {
   if (pattern_->Type() == OpType::LEAF) {
@@ -142,4 +142,4 @@ bool GroupExprBindingIterator::HasNext() {
   return has_next_;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

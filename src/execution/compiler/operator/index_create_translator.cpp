@@ -17,7 +17,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode &plan,
                                              CompilationContext *compilation_context, Pipeline *pipeline)
@@ -319,4 +319,4 @@ ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
   return builder.Finish();
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

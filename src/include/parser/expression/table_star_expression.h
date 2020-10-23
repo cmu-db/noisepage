@@ -7,7 +7,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * TableStarExpression represents a star in a SELECT list
  */
@@ -60,4 +60,4 @@ class TableStarExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(TableStarExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

@@ -20,7 +20,7 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
                              uint32_t tuple_size, bool use_concise_ht)
@@ -620,4 +620,4 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
   built_ = true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

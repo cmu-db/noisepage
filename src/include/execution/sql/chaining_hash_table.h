@@ -11,7 +11,7 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -572,4 +572,4 @@ class ChainingHashTableVectorIterator {
   uint32_t entry_vec_end_idx_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

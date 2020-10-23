@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // ---------------------------------------------------------
 // Function Declaration
@@ -173,4 +173,4 @@ std::string CastKindToString(const CastKind cast_kind) {
   }
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

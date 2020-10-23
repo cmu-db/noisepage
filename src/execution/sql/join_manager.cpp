@@ -7,7 +7,7 @@
 #include "loggers/execution_logger.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 JoinManager::JoinManager(const exec::ExecutionSettings &exec_settings, void *opaque_context)
     : filter_(exec_settings, true, opaque_context),
@@ -128,4 +128,4 @@ void JoinManager::GetOutputBatch(const HashTableEntry **matches[]) {
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -5,7 +5,7 @@
 
 #include "metrics/metrics_manager.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Class for spinning off a thread that runs metrics collection at a fixed interval. This should be used in most cases
@@ -70,4 +70,4 @@ class MetricsThread {
   }
 };
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

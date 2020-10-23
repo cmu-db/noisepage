@@ -3,7 +3,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/physical_operators.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 double TrivialCostModel::CalculateCost(transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor,
                                        Memo *memo, GroupExpression *gexpr) {
@@ -29,4 +29,4 @@ void TrivialCostModel::Visit(const InnerIndexJoin *op) {
   output_cost_ = NLJOIN_COST - op->GetJoinKeys().size();
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

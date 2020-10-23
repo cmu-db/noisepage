@@ -8,14 +8,14 @@
 #include "common/managed_pointer.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class SqlTable;
 namespace index {
 class Index;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 
 /**
@@ -104,4 +104,4 @@ class CatalogCache {
   transaction::timestamp_t oldest_entry_ = transaction::INITIAL_TXN_TIMESTAMP;
 };
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

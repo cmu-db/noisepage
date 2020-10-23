@@ -3,7 +3,7 @@
 #include "execution/vm/bytecode_emitter.h"
 #include "execution/vm/bytecode_generator.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // ---------------------------------------------------------
 // Breakable blocks
@@ -59,4 +59,4 @@ void IfThenElseBuilder::Else() { GetGenerator()->GetEmitter()->Bind(GetElseLabel
 
 void IfThenElseBuilder::JumpToEnd() { GetGenerator()->GetEmitter()->EmitJump(Bytecode::Jump, EndLabel()); }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

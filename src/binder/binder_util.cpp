@@ -7,7 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 void BinderUtil::PromoteParameters(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,
@@ -285,4 +285,4 @@ template bool BinderUtil::IsRepresentable<int32_t>(const double int_val);
 template bool BinderUtil::IsRepresentable<int64_t>(const double int_val);
 template bool BinderUtil::IsRepresentable<double>(const double int_val);
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

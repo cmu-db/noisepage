@@ -11,7 +11,7 @@
 #include "execution/util/bit_util.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 Vector::Vector(TypeId type) : type_(type), count_(0), num_elements_(0), data_(nullptr), tid_list_(nullptr) {
   // Since vector capacity can never exceed common::Constants::K_DEFAULT_VECTOR_SIZE, we reserve upon
@@ -479,4 +479,4 @@ void Vector::CheckIntegrity() const {
 #endif
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

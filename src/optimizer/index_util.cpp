@@ -11,7 +11,7 @@
 #include "optimizer/properties.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
                                        catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid) {
@@ -263,4 +263,4 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
   return true;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

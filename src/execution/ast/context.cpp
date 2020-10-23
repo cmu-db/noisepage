@@ -30,7 +30,7 @@
 // #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // ---------------------------------------------------------
 // Key type used in the cache for struct types in the context
@@ -389,4 +389,4 @@ FunctionType *FunctionType::Get(util::RegionVector<Field> &&params, Type *ret) {
   return func_type;
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

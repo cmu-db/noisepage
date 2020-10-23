@@ -1,6 +1,6 @@
 #include "brain/operating_unit.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 std::atomic<execution::feature_id_t> ExecutionOperatingUnitFeature::feature_id_counter{10000};  // arbitrary number
 
@@ -60,4 +60,4 @@ void ExecOUFeatureVector::UpdateFeature(execution::pipeline_id_t pipeline_id, ex
   TERRIER_ASSERT(did_find, "No matching feature was found");
 }
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

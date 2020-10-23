@@ -13,11 +13,11 @@
 #include "execution/util/bit_vector.h"
 #include "execution/util/string_heap.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A Vector represents a contiguous chunk of values of a single type. A vector may allocate and own
@@ -430,4 +430,4 @@ class EXPORT Vector {
   std::unique_ptr<byte[]> owned_data_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

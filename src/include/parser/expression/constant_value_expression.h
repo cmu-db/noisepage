@@ -12,11 +12,11 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_util.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 class BindNodeVisitor;
 }
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * ConstantValueExpression represents a constant, e.g. numbers, string literals.
@@ -294,4 +294,4 @@ extern template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 extern template std::string_view ConstantValueExpression::Peek() const;
 /// @endcond
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

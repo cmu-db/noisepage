@@ -6,7 +6,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeLabel;
 
@@ -449,4 +449,4 @@ class BytecodeEmitter {
   std::vector<uint8_t> *bytecode_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -7,7 +7,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * DerivedValueExpression represents a tuple of values that are derived from nested expressions
  *
@@ -73,4 +73,4 @@ class DerivedValueExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DerivedValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

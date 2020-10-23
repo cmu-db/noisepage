@@ -12,7 +12,7 @@
 #include "common/spin_latch.h"
 #include "metrics/metrics_manager.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * @brief Singleton class responsible for maintaining and dispensing long running
@@ -36,7 +36,7 @@ class DedicatedThreadRegistry {
   ~DedicatedThreadRegistry() {
     // Note that if registry is shutting down, it doesn't matter whether
     // owners are notified as this class should have the same life cycle
-    // as the entire terrier process.
+    // as the entire noisepage process.
 
     TearDown();
   }
@@ -143,4 +143,4 @@ class DedicatedThreadRegistry {
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -10,7 +10,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "storage/storage_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 VectorProjection::VectorProjection()
     : owned_tid_list_(common::Constants::K_DEFAULT_VECTOR_SIZE), owned_buffer_(nullptr) {
@@ -199,4 +199,4 @@ void VectorProjection::CheckIntegrity() const {
 #endif
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

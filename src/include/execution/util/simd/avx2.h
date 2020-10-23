@@ -10,7 +10,7 @@
 #error "Don't include 'execution/util/simd/avx2.h' directly; instead, include 'execution/util/simd.h'"
 #endif
 
-namespace terrier::execution::util::simd {
+namespace noisepage::execution::util::simd {
 
 #define USE_GATHER 0
 
@@ -960,4 +960,4 @@ static inline uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RES
   return out_pos;
 }
 
-}  // namespace terrier::execution::util::simd
+}  // namespace noisepage::execution::util::simd

@@ -7,7 +7,7 @@
 #include "execution/sql/memory_tracker.h"
 #include "execution/util/memory.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
 std::atomic<std::size_t> MemoryPool::mmap_threshold = 64 * common::Constants::MB;
@@ -57,4 +57,4 @@ void MemoryPool::Deallocate(void *ptr, std::size_t size) {
 
 void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { mmap_threshold = size; }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

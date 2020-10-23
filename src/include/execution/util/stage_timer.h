@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /** Timer that supports multiple stages. */
 template <typename ResolutionRatio = std::milli>
@@ -93,4 +93,4 @@ class StageTimer {
   std::vector<Stage> stages_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

@@ -17,7 +17,7 @@
 #include "loggers/storage_logger.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Modernized wrappers around Posix I/O sys calls to hide away the ugliness and use exceptions for error reporting.
@@ -235,4 +235,4 @@ using CommitCallback = std::pair<transaction::callback_fn, void *>;
  */
 using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

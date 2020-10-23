@@ -9,7 +9,7 @@
 #include "common/constants.h"
 #include "common/spin_latch.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -125,4 +125,4 @@ void ThreadStateContainer::IterateStatesParallel(void *const ctx, ThreadStateCon
 
 uint32_t ThreadStateContainer::GetThreadStateCount() const { return impl_->states_.size(); }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

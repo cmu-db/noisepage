@@ -13,7 +13,7 @@
 #include "storage/projected_row.h"
 #include "test_util/catalog_test_util.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 struct Util {
   Util() = delete;
@@ -178,4 +178,4 @@ struct Util {
     return astring;
   }
 };
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

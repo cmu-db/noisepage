@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // 2.8.2
 bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
@@ -98,4 +98,4 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   return true;
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

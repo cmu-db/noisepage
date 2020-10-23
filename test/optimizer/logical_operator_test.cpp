@@ -17,7 +17,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalInsertTest) {
@@ -2189,4 +2189,4 @@ TEST(OperatorTests, LogicalDropViewTest) {
   delete txn_context;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

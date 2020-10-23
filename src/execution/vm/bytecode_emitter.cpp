@@ -5,7 +5,7 @@
 
 #include "execution/vm/bytecode_label.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 void BytecodeEmitter::EmitDeref(Bytecode bytecode, LocalVar dest, LocalVar src) {
   TERRIER_ASSERT(bytecode == Bytecode::Deref1 || bytecode == Bytecode::Deref2 || bytecode == Bytecode::Deref4 ||
@@ -392,4 +392,4 @@ void BytecodeEmitter::EmitConcat(LocalVar ret, LocalVar exec_ctx, LocalVar input
   EmitAll(Bytecode::Concat, ret, exec_ctx, inputs, num_inputs);
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -19,7 +19,7 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * This class keeps track of the top-k elements for a given value set.
@@ -343,4 +343,4 @@ class TopKElements {
   }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

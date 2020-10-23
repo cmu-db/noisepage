@@ -12,7 +12,7 @@
 #include "network/postgres/statement.h"
 #include "traffic_cop/traffic_cop.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 static Transition FinishSimpleQueryCommand(const common::ManagedPointer<PostgresPacketWriter> out,
                                            const common::ManagedPointer<ConnectionContext> connection) {
@@ -618,4 +618,4 @@ Transition EmptyCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
-}  // namespace terrier::network
+}  // namespace noisepage::network

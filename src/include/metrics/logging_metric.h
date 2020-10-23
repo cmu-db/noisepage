@@ -13,7 +13,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected at logging level
@@ -135,4 +135,4 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
     GetRawData()->RecordConsumerData(num_bytes, num_buffers, interval, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

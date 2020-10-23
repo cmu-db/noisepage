@@ -18,12 +18,12 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
 class ExecutionContext;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class VectorProjectionIterator;
@@ -666,4 +666,4 @@ class AHTOverflowPartitionIterator {
   HashTableEntry *next_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

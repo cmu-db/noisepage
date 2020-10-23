@@ -8,7 +8,7 @@
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
 #include "type/type_id.h"
-namespace terrier::execution::functions {
+namespace noisepage::execution::functions {
 
 /**
  * @brief Stores execution and type information about a stored procedure
@@ -89,4 +89,4 @@ class FunctionContext {
   bool is_exec_ctx_required_;
 };
 
-}  // namespace terrier::execution::functions
+}  // namespace noisepage::execution::functions

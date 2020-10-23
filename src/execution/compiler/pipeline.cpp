@@ -17,7 +17,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
 
@@ -368,4 +368,4 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   builder->AddTeardownFn(teardown);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

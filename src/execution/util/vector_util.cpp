@@ -6,7 +6,7 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/simd/types.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 uint32_t VectorUtil::IntersectSelected(const sel_t *sel_vector_1, const uint32_t sel_vector_1_len,
                                        const sel_t *sel_vector_2, const uint32_t sel_vector_2_len,
@@ -303,4 +303,4 @@ uint32_t VectorUtil::BitVectorToSelectionVector(const uint64_t *bit_vector, cons
                          : BitVectorToSelectionVectorDense(bit_vector, num_bits, sel_vector);
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

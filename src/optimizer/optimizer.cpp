@@ -17,7 +17,7 @@
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
@@ -163,4 +163,4 @@ void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

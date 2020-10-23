@@ -31,7 +31,7 @@
 #include "parser/expression/type_cast_expression.h"
 #include "parser/statements.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 /*
  * TODO(WAN): Note that some functions invoke SqlNodeVisitor::Visit() twice.
@@ -805,7 +805,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
   auto &exprs = order_by_description->GetOrderByExpressions();
   auto size = order_by_description->GetOrderByExpressionsSize();
   for (size_t idx = 0; idx < size; idx++) {
-    if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+    if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::VALUE_CONSTANT) {
       auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
       type::TypeId type = constant_value_expression->GetReturnValueType();
       int64_t column_id = 0;
@@ -830,4 +830,4 @@ void BindNodeVisitor::UnifyOrderByExpression(
     }
   }
 }
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

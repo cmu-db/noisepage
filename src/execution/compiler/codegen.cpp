@@ -9,7 +9,7 @@
 #include "spdlog/fmt/fmt.h"
 #include "storage/index/index_defs.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -1285,4 +1285,4 @@ void CodeGen::ExitScope() {
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

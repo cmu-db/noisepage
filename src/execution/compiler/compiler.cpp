@@ -9,7 +9,7 @@
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/module.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -165,4 +165,4 @@ std::string Compiler::CompilerPhaseToString(Compiler::Phase phase) {
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

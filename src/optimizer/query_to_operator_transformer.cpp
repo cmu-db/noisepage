@@ -24,7 +24,7 @@
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
     const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, const catalog::db_oid_t db_oid)
@@ -887,4 +887,4 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
   return res;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

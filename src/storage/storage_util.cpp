@@ -10,7 +10,7 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 template <class RowType>
 void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, const uint16_t size,
@@ -167,7 +167,7 @@ uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundar
   return static_cast<uint8_t>(16U >> shift);
 }
 
-void StorageUtil::ComputeAttributeSizeBoundaries(const terrier::storage::BlockLayout &layout, const col_id_t *col_ids,
+void StorageUtil::ComputeAttributeSizeBoundaries(const noisepage::storage::BlockLayout &layout, const col_id_t *col_ids,
                                                  const uint16_t num_cols, uint16_t *attr_boundaries) {
   int attr_size_index = 0;
 
@@ -216,4 +216,4 @@ void StorageUtil::DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &
   }
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

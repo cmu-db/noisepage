@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // 2.7.4
 bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
@@ -162,4 +162,4 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
   return true;
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

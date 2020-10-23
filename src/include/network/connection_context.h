@@ -11,7 +11,7 @@
 #include "network/network_defs.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * A ConnectionContext stores the state of a connection. There should be as little as possible that is protocol-specific
@@ -217,4 +217,4 @@ class ConnectionContext {
   catalog::CatalogCache catalog_cache_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

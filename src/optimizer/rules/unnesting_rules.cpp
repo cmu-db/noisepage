@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// UnnestMarkJoinToInnerJoin
@@ -223,4 +223,4 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   transformed->emplace_back(std::move(output));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -13,7 +13,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
@@ -413,4 +413,4 @@ TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
     delete txn;
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

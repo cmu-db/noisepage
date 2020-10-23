@@ -7,7 +7,7 @@
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * CaseExpression represents a SQL WHEN ... THEN ... statement.
  */
@@ -148,4 +148,4 @@ class CaseExpression : public AbstractExpression {
 DEFINE_JSON_HEADER_DECLARATIONS(CaseExpression::WhenClause);
 DEFINE_JSON_HEADER_DECLARATIONS(CaseExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

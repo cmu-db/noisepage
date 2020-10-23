@@ -4,7 +4,7 @@
 
 #include "common/container/concurrent_bitmap.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
     : layout_(std::move(layout)), column_offsets_(layout_.NumColumns()) {
@@ -60,4 +60,4 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   block->insert_head_++;
   return true;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

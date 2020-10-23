@@ -10,7 +10,7 @@
 #include "execution/ast/type.h"
 #include "execution/vm/bytecode_iterator.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 BytecodeModule::BytecodeModule(std::string name, std::vector<uint8_t> &&code, std::vector<uint8_t> &&data,
                                std::vector<FunctionInfo> &&functions, std::vector<LocalInfo> &&static_locals)
@@ -206,4 +206,4 @@ void BytecodeModule::Dump(std::ostream &os) const {
   }
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

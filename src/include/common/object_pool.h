@@ -8,7 +8,7 @@
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 // TODO(Yangjun): this class should be moved somewhere else.
 /**
  * An exception thrown by object pools when they reach their size limits and
@@ -194,4 +194,4 @@ class ObjectPool {
   // including objects that have been given out to callers and those reside in reuse_queue
   uint64_t current_size_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

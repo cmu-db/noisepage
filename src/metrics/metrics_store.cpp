@@ -7,7 +7,7 @@
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager> metrics_manager,
                            const std::bitset<NUM_COMPONENTS> &enabled_metrics,
@@ -91,4 +91,4 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
 
   return result;
 }
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

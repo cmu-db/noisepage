@@ -36,7 +36,7 @@
 #include "traffic_cop/traffic_cop_util.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 static void CommitCallback(void *const callback_arg) {
   auto *const promise = reinterpret_cast<std::promise<bool> *const>(callback_arg);
@@ -84,7 +84,7 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
 void TrafficCop::ExecuteTransactionStatement(const common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                              const common::ManagedPointer<network::PostgresPacketWriter> out,
                                              const bool explicit_txn_block,
-                                             const terrier::network::QueryType query_type) const {
+                                             const noisepage::network::QueryType query_type) const {
   TERRIER_ASSERT(query_type == network::QueryType::QUERY_COMMIT || query_type == network::QueryType::QUERY_ROLLBACK ||
                      query_type == network::QueryType::QUERY_BEGIN,
                  "ExecuteTransactionStatement called with invalid QueryType.");
@@ -170,7 +170,7 @@ TrafficCopResult TrafficCop::ExecuteSetStatement(common::ManagedPointer<network:
 TrafficCopResult TrafficCop::ExecuteCreateStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-    const terrier::network::QueryType query_type) const {
+    const noisepage::network::QueryType query_type) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   TERRIER_ASSERT(
@@ -224,7 +224,7 @@ TrafficCopResult TrafficCop::ExecuteCreateStatement(
 TrafficCopResult TrafficCop::ExecuteDropStatement(
     const common::ManagedPointer<network::ConnectionContext> connection_ctx,
     const common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-    const terrier::network::QueryType query_type) const {
+    const noisepage::network::QueryType query_type) const {
   TERRIER_ASSERT(connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK,
                  "Not in a valid txn. This should have been caught before calling this function.");
   TERRIER_ASSERT(
@@ -498,4 +498,4 @@ bool TrafficCop::DropTempNamespace(const catalog::db_oid_t db_oid, const catalog
   return result;
 }
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

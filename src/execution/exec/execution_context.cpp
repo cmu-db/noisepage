@@ -8,7 +8,7 @@
 #include "metrics/metrics_store.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 
 OutputBuffer *ExecutionContext::OutputBufferNew() {
   if (schema_ == nullptr) {
@@ -35,14 +35,14 @@ uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema)
 }
 
 void ExecutionContext::RegisterThreadWithMetricsManager() {
-  if (terrier::common::thread_context.metrics_store_ == nullptr && GetMetricsManager()) {
+  if (noisepage::common::thread_context.metrics_store_ == nullptr && GetMetricsManager()) {
     GetMetricsManager()->RegisterThread();
   }
 }
 
 void ExecutionContext::CheckTrackersStopped() {
-  if (terrier::common::thread_context.metrics_store_ != nullptr &&
-      terrier::common::thread_context.resource_tracker_.IsRunning()) {
+  if (noisepage::common::thread_context.metrics_store_ != nullptr &&
+      noisepage::common::thread_context.resource_tracker_.IsRunning()) {
     UNREACHABLE("Resource Trackers should have stopped");
   }
 }
@@ -185,4 +185,4 @@ void ExecutionContext::InvokeHook(size_t hook_index, void *tls, void *arg) {
 
 void ExecutionContext::InitHooks(size_t num_hooks) { hooks_.resize(num_hooks); }
 
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

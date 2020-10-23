@@ -11,20 +11,20 @@
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 class ExecutionOperatingUnitFeature;
 class OperatingUnitRecorder;
-}  // namespace terrier::brain
+}  // namespace noisepage::brain
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class CodeGen;
 class CompilationContext;
@@ -372,4 +372,4 @@ class OperatorTranslator : public ColumnValueProvider {
   brain::ExecutionOperatingUnitType feature_type_{brain::ExecutionOperatingUnitType::INVALID};
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

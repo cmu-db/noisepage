@@ -8,7 +8,7 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class BlockLayout;
 class ProjectedRow;
 class TupleAccessStrategy;
@@ -249,4 +249,4 @@ class StorageUtil {
     return ret;
   }
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

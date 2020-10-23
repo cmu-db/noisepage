@@ -16,7 +16,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 class SqlBasedTest : public TplTest {
  public:
@@ -24,9 +24,9 @@ class SqlBasedTest : public TplTest {
 
   void SetUp() override {
     TplTest::SetUp();
-    // Initialize terrier objects
+    // Initialize noisepage objects
 
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
     metrics_manager_ = db_main_->GetMetricsManager();
 
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
@@ -68,7 +68,7 @@ class SqlBasedTest : public TplTest {
     return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
-  std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {
+  std::unique_ptr<noisepage::catalog::CatalogAccessor> MakeAccessor() {
     return catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_, DISABLED);
   }
 
@@ -123,4 +123,4 @@ MAKE_VEC_TYPE(Pointer, uintptr_t);
 
 #undef MAKE_VEC_TYPE
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

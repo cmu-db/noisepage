@@ -12,7 +12,7 @@
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // ---------------------------------------------------------
 // Async Compile Task
@@ -290,4 +290,4 @@ void Module::CompileToMachineCodeAsync() {
   tbb::task::enqueue(*compile_task);
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

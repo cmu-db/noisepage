@@ -7,7 +7,7 @@
 #include "binder/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * DropStatement represents the SQL "DROP ..."
@@ -96,4 +96,4 @@ class DropStatement : public TableRefStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

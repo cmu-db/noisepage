@@ -9,7 +9,7 @@
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Denotes the state of a block.
@@ -143,4 +143,4 @@ class BlockAccessController {
     return reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->compare_exchange_strong(expected_bytes, *desired_bytes);
   }
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

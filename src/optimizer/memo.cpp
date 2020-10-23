@@ -7,7 +7,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t target_group, bool enforced) {
   // If leaf, then just return
@@ -73,4 +73,4 @@ group_id_t Memo::AddNewGroup(GroupExpression *gexpr) {
   return new_group_id;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -13,11 +13,11 @@
 #include "loggers/settings_logger.h"
 #include "settings/settings_param.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
 }
 
-namespace terrier::settings {
+namespace noisepage::settings {
 using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);
 
 /**
@@ -147,7 +147,7 @@ class SettingsManager {
    * @param param_map
    */
   static void ConstructParamMap(
-      std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map);  // NOLINT
+      std::unordered_map<noisepage::settings::Param, noisepage::settings::ParamInfo> &param_map);  // NOLINT
 
  private:
   common::ManagedPointer<DBMain> db_main_;
@@ -174,4 +174,4 @@ class SettingsManager {
   static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
 };
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

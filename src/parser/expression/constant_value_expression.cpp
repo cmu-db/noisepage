@@ -13,7 +13,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 template <typename T>
 ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const T value)
@@ -376,4 +376,4 @@ template execution::sql::Date ConstantValueExpression::Peek() const;
 template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 template std::string_view ConstantValueExpression::Peek() const;
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

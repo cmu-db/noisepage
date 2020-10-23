@@ -6,7 +6,7 @@
 #include "execution/sql/bloom_filter.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class BloomFilterTest : public TplTest {
  public:
@@ -110,4 +110,4 @@ TEST_F(BloomFilterTest, Comprehensive) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

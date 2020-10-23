@@ -14,7 +14,7 @@
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 template <typename T>
 T *TableGenerator::CreateNumberColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals) {
   auto *val = new T[num_vals];
@@ -625,4 +625,4 @@ void TableGenerator::InitTestIndexes() {
     CreateIndex(&index_meta);
   }
 }
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

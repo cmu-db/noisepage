@@ -24,7 +24,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void RecoveryManager::StartRecovery() {
   TERRIER_ASSERT(recovery_task_ == nullptr, "Recovery already started");
@@ -93,7 +93,7 @@ void RecoveryManager::RecoverFromLogs() {
   }
 }
 
-void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id) {
+void RecoveryManager::ProcessCommittedTransaction(noisepage::transaction::timestamp_t txn_id) {
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
@@ -121,7 +121,7 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {
+void RecoveryManager::DeferRecordDeletes(noisepage::transaction::timestamp_t txn_id, bool delete_varlens) {
   // Capture the changes by value except for changes which we can move
   deferred_action_manager_->RegisterDeferredAction([=, buffered_changes{std::move(buffered_changes_map_[txn_id])}]() {
     for (auto &buffered_pair : buffered_changes) {
@@ -135,7 +135,7 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
   });
 }
 
-uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
+uint32_t RecoveryManager::ProcessDeferredTransactions(noisepage::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
@@ -427,8 +427,8 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 }
 
 uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
-    terrier::transaction::TransactionContext *txn,
-    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    noisepage::transaction::TransactionContext *txn,
+    std::vector<std::pair<noisepage::storage::LogRecord *, std::vector<noisepage::byte *>>> *buffered_changes,
     uint32_t start_idx) {
   auto *curr_record = buffered_changes->at(start_idx).first;
 
@@ -555,8 +555,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
 }
 
 uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
-    terrier::transaction::TransactionContext *txn,
-    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    noisepage::transaction::TransactionContext *txn,
+    std::vector<std::pair<noisepage::storage::LogRecord *, std::vector<noisepage::byte *>>> *buffered_changes,
     uint32_t start_idx) {
   auto *curr_record = buffered_changes->at(start_idx).first;
   if (curr_record->RecordType() == LogRecordType::REDO) {
@@ -979,8 +979,8 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
 }
 
 uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
-    terrier::transaction::TransactionContext *txn,
-    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    noisepage::transaction::TransactionContext *txn,
+    std::vector<std::pair<noisepage::storage::LogRecord *, std::vector<noisepage::byte *>>> *buffered_changes,
     uint32_t start_idx) {
   auto *curr_record = buffered_changes->at(start_idx).first;
 
@@ -1020,4 +1020,4 @@ const catalog::Schema &RecoveryManager::GetTableSchema(
                                                   : db_catalog->GetSchema(common::ManagedPointer(txn), table_oid);
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

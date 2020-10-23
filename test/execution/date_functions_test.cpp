@@ -4,7 +4,7 @@
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 class DateFunctionsTests : public TplTest {};
 
 #define CHECK_COMPARISON_NULL(comp, res, lhs, rhs)    \
@@ -128,4 +128,4 @@ TEST_F(DateFunctionsTests, DateExtractTest) {
   ASSERT_EQ(date.val_.ExtractMonth(), 8);
   ASSERT_EQ(date.val_.ExtractDay(), 11);
 }
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

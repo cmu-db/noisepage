@@ -8,7 +8,7 @@
 
 #include "execution/sema/error_reporter.h"
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 static std::unordered_set<Token::Type> k_top_level_decls = {Token::Type::STRUCT, Token::Type::FUN};
 
@@ -728,4 +728,4 @@ ast::Expr *Parser::ParseMapType() {
   return node_factory_->NewMapType(position, key_type, value_type);
 }
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

@@ -8,7 +8,7 @@
 #include "optimizer/group.h"
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
                                         const std::vector<PropertySet *> &input_properties_list, double cost) {
@@ -44,4 +44,4 @@ common::hash_t GroupExpression::Hash() const {
   return hash;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

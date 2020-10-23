@@ -10,7 +10,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *deferred_action_manager,
                                             transaction::TransactionManager *txn_manager) {
   std::queue<RawBlock *> to_process = std::move(compaction_queue_);
@@ -299,7 +299,7 @@ void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, Ar
     // Because this change does not change the logical content of the database, and reads of aligned qwords on
     // modern architectures are atomic anyways, this is still safe for possible concurrent readers. The deferred
     // event framework guarantees that readers will not read garbage.
-    // TODO(Tianyu): This guarantee is only true when we fix https://github.com/cmu-db/terrier/issues/402
+    // TODO(Tianyu): This guarantee is only true when we fix https://github.com/cmu-db/noisepage/issues/402
     if (entry.Size() > VarlenEntry::InlineThreshold())
       entry = VarlenEntry::Create(new_col.Values() + acc, entry.Size(), false);
     acc += entry.Size();
@@ -366,4 +366,4 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   *col = std::move(new_col_info);
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

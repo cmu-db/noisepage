@@ -70,7 +70,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 // A unique ID generator used to generate globally unique TPL function names and keep track of query ID for minirunners.
@@ -415,4 +415,4 @@ util::RegionVector<ast::FieldDecl *> CompilationContext::QueryParams() const {
 
 ast::Expr *CompilationContext::GetExecutionContextPtrFromQueryState() { return exec_ctx_.Get(&codegen_); }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

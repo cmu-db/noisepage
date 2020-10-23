@@ -14,7 +14,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for the execution engine
@@ -96,4 +96,4 @@ class ExecutionMetric : public AbstractMetric<ExecutionMetricRawData> {
     GetRawData()->RecordExecutionData(feature, len, execution_mode, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

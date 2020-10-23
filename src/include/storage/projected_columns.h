@@ -7,7 +7,7 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 /**
  * ProjectedColumns represents partial images of a collection of tuples, where columns from different
  * tuples are laid out continuously. This can be considered a collection of ProjectedRows, but optimized
@@ -275,4 +275,4 @@ class ProjectedColumnsInitializer {
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

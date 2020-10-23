@@ -3,7 +3,7 @@
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 void Sema::ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, ast::Type *expected) {
   GetErrorReporter()->Report(call->Position(), ErrorMessages::kIncorrectCallArgType, call->GetFuncName(), expected,
@@ -317,4 +317,4 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
   return false;
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

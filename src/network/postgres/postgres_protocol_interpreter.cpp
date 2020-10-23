@@ -14,7 +14,7 @@
 constexpr uint32_t SSL_MESSAGE_VERNO = 80877103;
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
-namespace terrier::network {
+namespace noisepage::network {
 Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
                                                 common::ManagedPointer<WriteQueue> out,
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
@@ -168,4 +168,4 @@ void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPoin
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

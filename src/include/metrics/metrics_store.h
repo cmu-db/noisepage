@@ -23,7 +23,7 @@
 #include "metrics/query_trace_metric.h"
 #include "metrics/transaction_metric.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 class MetricsManager;
 
@@ -253,4 +253,4 @@ class MetricsStore {
   std::array<uint32_t, NUM_COMPONENTS> sample_count_{0};
 };
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

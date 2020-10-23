@@ -13,7 +13,7 @@
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * ColumnDefinition represents the logical description of a table column.
@@ -558,4 +558,4 @@ class CreateStatement : public TableRefStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

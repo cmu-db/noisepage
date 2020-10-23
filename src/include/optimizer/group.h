@@ -15,7 +15,7 @@
 #include "optimizer/property_set.h"
 #include "optimizer/statistics/column_stats.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class GroupExpression;
 
@@ -232,4 +232,4 @@ class Group {
   double cost_lower_bound_ = -1;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

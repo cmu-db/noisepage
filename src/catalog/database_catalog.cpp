@@ -27,7 +27,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::TransactionContext> txn) {
   BootstrapPRIs();
@@ -2914,4 +2914,4 @@ template Schema::Column DatabaseCatalog::MakeColumn<Schema::Column, col_oid_t>(s
 template IndexSchema::Column DatabaseCatalog::MakeColumn<IndexSchema::Column, indexkeycol_oid_t>(
     storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

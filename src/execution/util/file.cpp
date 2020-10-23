@@ -9,7 +9,7 @@
 
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 // Interrupt handling logic is inspired by the Chromium project's multi-purpose file.
 
@@ -350,4 +350,4 @@ File::Error File::OsErrorToFileError(int saved_errno) {
   }
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

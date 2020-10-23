@@ -6,7 +6,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 AHTVectorIterator::AHTVectorIterator(const AggregationHashTable &agg_hash_table,
                                      const std::vector<const catalog::Schema::Column *> &column_info,
@@ -66,4 +66,4 @@ void AHTVectorIterator::Next(AHTVectorIterator::TransposeFn transpose_fn) {
   BuildVectorProjection(transpose_fn);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

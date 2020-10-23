@@ -4,7 +4,7 @@
 #include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 void Sema::VisitBadExpr(ast::BadExpr *node) { TERRIER_ASSERT(false, "Bad expression in type checker!"); }
 
@@ -345,4 +345,4 @@ void Sema::VisitMemberExpr(ast::MemberExpr *node) {
   node->SetType(member_type);
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

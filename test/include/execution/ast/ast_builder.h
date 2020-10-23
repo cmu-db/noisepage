@@ -11,7 +11,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class TestAstBuilder {
  public:
@@ -118,4 +118,4 @@ class TestAstBuilder {
   SourcePosition empty_{0, 0};
 };
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

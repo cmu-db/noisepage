@@ -11,7 +11,7 @@
 #include "test_util/container_test_util.h"
 #include "test_util/multithread_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // Tests that the ConcurrentBitmap works in a single-threaded context
 // NOLINTNEXTLINE
@@ -242,4 +242,4 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
     common::RawConcurrentBitmap::Deallocate(bitmap);
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

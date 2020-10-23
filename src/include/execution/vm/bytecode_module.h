@@ -9,7 +9,7 @@
 #include "execution/vm/bytecode_iterator.h"
 #include "execution/vm/vm.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * A bytecode module is a container for all the TPL bytecode (TBC) for a TPL source file. Bytecode
@@ -161,4 +161,4 @@ class BytecodeModule {
   const std::vector<LocalInfo> static_locals_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

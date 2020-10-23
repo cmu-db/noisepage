@@ -8,7 +8,7 @@
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_node_contents.h"
 #include "transaction/transaction_context.h"
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * This class is used to represent nodes in the operator tree. The operator tree is generated
@@ -147,4 +147,4 @@ class OperatorNode : public AbstractOptimizerNode {
   common::ManagedPointer<transaction::TransactionContext> txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

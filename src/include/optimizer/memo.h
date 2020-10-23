@@ -8,7 +8,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Struct implementing the Hash() function for a GroupExpression*
@@ -137,4 +137,4 @@ class Memo {
   std::vector<Group *> groups_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

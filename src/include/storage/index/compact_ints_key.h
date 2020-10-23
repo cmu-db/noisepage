@@ -9,7 +9,7 @@
 #include "storage/projected_row.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 // This is the maximum number of bytes to pack into a single CompactIntsKey template. This constraint is not
 // arbitrary and cannot be increased beyond 32 bytes (256 bits) until AVX-512 is more widely available.
@@ -347,7 +347,7 @@ extern template class CompactIntsKey<16>;
 extern template class CompactIntsKey<24>;
 extern template class CompactIntsKey<32>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index
 
 namespace std {
 
@@ -356,12 +356,12 @@ namespace std {
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
-struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
+struct hash<noisepage::storage::index::CompactIntsKey<KeySize>> {
   /**
    * @param key key to be hashed
    * @return hash of the key's underlying data
    */
-  size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
+  size_t operator()(const noisepage::storage::index::CompactIntsKey<KeySize> &key) const {
     const auto *const data = reinterpret_cast<const void *const>(key.KeyData());
     return static_cast<size_t>(XXH3_64bits(data, KeySize));
   }
@@ -372,15 +372,15 @@ struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
-struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
+struct equal_to<noisepage::storage::index::CompactIntsKey<KeySize>> {
   /**
    * Due to the KeySize constraints this should be optimized to a single SIMD instruction.
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is equal to the second key
    */
-  bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
-                  const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::CompactIntsKey<KeySize> &lhs,
+                  const noisepage::storage::index::CompactIntsKey<KeySize> &rhs) const {
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) == 0;
   }
 };
@@ -390,15 +390,15 @@ struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
-struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
+struct less<noisepage::storage::index::CompactIntsKey<KeySize>> {
   /**
    * Due to the KeySize constraints, this should be optimized to a single SIMD instruction.
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is less than the second key
    */
-  bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
-                  const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::CompactIntsKey<KeySize> &lhs,
+                  const noisepage::storage::index::CompactIntsKey<KeySize> &rhs) const {
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) < 0;
   }
 };

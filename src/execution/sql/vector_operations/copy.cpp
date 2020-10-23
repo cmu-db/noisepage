@@ -2,7 +2,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -81,4 +81,4 @@ void VectorOps::Copy(const Vector &source, Vector *target, uint64_t offset) {
   Copy(source, target->GetData(), offset, target->GetCount());
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

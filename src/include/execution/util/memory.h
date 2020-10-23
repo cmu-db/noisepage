@@ -17,7 +17,7 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Container for common memory operations.
@@ -173,4 +173,4 @@ class Memory {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

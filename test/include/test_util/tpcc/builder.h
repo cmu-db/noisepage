@@ -12,7 +12,7 @@
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/schemas.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Builds all of the tables and indexes for TPCC, and returns them in a Database object
@@ -40,4 +40,4 @@ class Builder {
   const common::ManagedPointer<catalog::Catalog> catalog_;
   const common::ManagedPointer<transaction::TransactionManager> txn_manager_;
 };
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

@@ -16,20 +16,20 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier {
+namespace noisepage {
 class StorageTestUtil;
 class TpccPlanTest;
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class RecoveryManager;
 }
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 class Schemas;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class DatabaseCatalog;
 
 namespace postgres {
@@ -226,7 +226,7 @@ class IndexSchema {
     friend class DatabaseCatalog;
     friend class postgres::Builder;
     friend class tpcc::Schemas;
-    friend class terrier::StorageTestUtil;
+    friend class noisepage::StorageTestUtil;
   };
 
   /**
@@ -419,10 +419,10 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
-  friend class terrier::TpccPlanTest;
+  friend class noisepage::TpccPlanTest;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

@@ -50,7 +50,7 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 PlanGenerator::PlanGenerator() = default;
 
@@ -1059,4 +1059,4 @@ void PlanGenerator::Visit(const Analyze *analyze) {
                      .Build();
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

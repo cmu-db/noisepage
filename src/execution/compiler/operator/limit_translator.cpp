@@ -7,7 +7,7 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/limit_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 LimitTranslator::LimitTranslator(const planner::LimitPlanNode &plan, CompilationContext *compilation_context,
                                  Pipeline *pipeline)
@@ -53,4 +53,4 @@ void LimitTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder 
   function->Append(codegen->Assign(tuple_count_.Get(codegen), increment));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

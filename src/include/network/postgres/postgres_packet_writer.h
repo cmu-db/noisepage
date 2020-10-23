@@ -9,15 +9,15 @@
 #include "network/packet_writer.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 struct Val;
 }
 
-namespace terrier::common {
+namespace noisepage::common {
 class ErrorData;
 }
 
-namespace terrier::network {
+namespace noisepage::network {
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
@@ -189,4 +189,4 @@ class PostgresPacketWriter : public PacketWriter {
   uint32_t WriteTextAttribute(const execution::sql::Val *val, type::TypeId type);
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

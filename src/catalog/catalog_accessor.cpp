@@ -9,7 +9,7 @@
 #include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_proc.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {
   NormalizeObjectName(&name);
   return catalog_->GetDatabaseOid(txn_, name);
@@ -217,4 +217,4 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   return catalog_->GetBlockStore();
 }
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

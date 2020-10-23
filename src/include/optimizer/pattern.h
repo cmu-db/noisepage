@@ -5,7 +5,7 @@
 
 #include "optimizer/operator_node_contents.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Class defining a Pattern used for binding
@@ -65,4 +65,4 @@ class Pattern {
   std::vector<Pattern *> children_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

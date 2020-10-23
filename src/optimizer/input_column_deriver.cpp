@@ -12,7 +12,7 @@
 #include "parser/expression_util.h"
 #include "storage/data_table.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Definition for first type of pair
@@ -463,4 +463,4 @@ void InputColumnDeriver::Passdown() {
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

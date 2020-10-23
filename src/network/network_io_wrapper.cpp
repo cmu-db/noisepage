@@ -8,7 +8,7 @@
 #include "loggers/network_logger.h"
 #include "network/network_io_utils.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 static_assert(EAGAIN == EWOULDBLOCK, "If this trips, you'll have to #if guard all existing EAGAIN usages.");
 
@@ -118,4 +118,4 @@ void NetworkIoWrapper::RestartState() {
   out_->Reset();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

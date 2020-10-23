@@ -16,7 +16,7 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Internal object for representing output columns of a plan node. This object is to be differentiated from
@@ -196,4 +196,4 @@ class OutputSchema {
 DEFINE_JSON_HEADER_DECLARATIONS(OutputSchema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(OutputSchema);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

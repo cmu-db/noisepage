@@ -10,7 +10,7 @@
 #include "test_util/tpcc/tpcc_defs.h"
 #include "test_util/tpcc/util.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // Txn distribution. New Order is not provided because it's the implicit difference of the txns below from 100. Default
 // values come from TPC-C spec.
@@ -281,4 +281,4 @@ void Workload(int8_t worker_id, Database *tpcc_db, transaction::TransactionManag
  * @param precomputed_args args to look for non-inlined VarlenEntrys to free
  */
 void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *precomputed_args);
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

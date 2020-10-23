@@ -9,7 +9,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_allocator.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A ChunkedVector is similar to STL's std::vector, but with three important distinctions:
@@ -903,4 +903,4 @@ class ChunkedVectorT {
   ChunkedVector<ReboundAlloc> vec_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

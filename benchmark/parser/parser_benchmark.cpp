@@ -7,7 +7,7 @@
 #include "benchmark/benchmark.h"
 #include "parser/postgresparser.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Magic macro for our parser microbencmarks
@@ -32,7 +32,7 @@ class ParserBenchmark : public benchmark::Fixture {
     selects_simple_ = {
         "SELECT * FROM foo WHERE id = 123;",
         "SELECT a, b, c, d FROM foo WHERE e = 123;",
-        "SELECT col + 1 AS xxx FROM foo WHERE terrier = 'dangerous';",
+        "SELECT col + 1 AS xxx FROM foo WHERE noisepage = 'dangerous';",
         "SELECT COUNT(DISTINCT id) FROM foo WHERE wu_tang_clan = 'nuthin to fuck wit';"
     };
     // clang-format on
@@ -103,7 +103,7 @@ class ParserBenchmark : public benchmark::Fixture {
     deletes_simple_ = {
         "DELETE FROM xxx WHERE id = 123;",
         "DELETE FROM xxx WHERE id IS NULL;",
-        "DELETE FROM xxx WHERE id = 123 AND terrier = 'dangerous';",
+        "DELETE FROM xxx WHERE id = 123 AND noisepage = 'dangerous';",
         "DELETE FROM xxx WHERE col0 != col1;"
     };
     // clang-format on
@@ -227,4 +227,4 @@ BENCHMARK_REGISTER_F(ParserBenchmark, DeletesComplex)->Unit(benchmark::kNanoseco
 BENCHMARK_REGISTER_F(ParserBenchmark, NOOPs)->Unit(benchmark::kNanosecond);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

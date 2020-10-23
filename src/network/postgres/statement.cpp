@@ -9,7 +9,7 @@
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 Statement::Statement(std::string &&query_text, std::unique_ptr<parser::ParseResult> &&parse_result,
                      std::vector<type::TypeId> &&param_types)
@@ -21,4 +21,4 @@ Statement::Statement(std::string &&query_text, std::unique_ptr<parser::ParseResu
     type_ = trafficcop::TrafficCopUtil::QueryTypeForStatement(root_statement_);
   }
 }
-}  // namespace terrier::network
+}  // namespace noisepage::network

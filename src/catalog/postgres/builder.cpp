@@ -21,7 +21,7 @@
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 
@@ -785,4 +785,4 @@ storage::index::Index *Builder::BuildLookupIndex(const IndexSchema &key_schema, 
   return index_builder.Build();
 }
 
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

@@ -10,7 +10,7 @@ namespace {
 constexpr uint32_t MAIN_THREAD_ID = -1;
 }  // namespace
 
-namespace terrier::network {
+namespace noisepage::network {
 
 ConnectionDispatcherTask::ConnectionDispatcherTask(
     uint32_t num_handlers, common::DedicatedThreadOwner *dedicated_thread_owner,
@@ -105,4 +105,4 @@ uint64_t ConnectionDispatcherTask::NextDispatchHandlerOffset() {
   return handler_id;
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

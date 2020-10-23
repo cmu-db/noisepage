@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 constexpr int32_t FLATBUF_CONTINUZATION = -1;
 constexpr uint8_t ARROW_ALIGNMENT = 8;
@@ -279,4 +279,4 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   }
   outfile.close();
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

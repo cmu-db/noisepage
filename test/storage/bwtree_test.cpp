@@ -8,7 +8,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * These tests are adapted from https://github.com/wangziqi2013/BwTree/tree/master/test
@@ -511,4 +511,4 @@ TEST_F(BwTreeTests, EpochManager) {
   delete tree;
 }
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -13,7 +13,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
@@ -306,4 +306,4 @@ class LargeSqlTableTestObject {
   // Maps database and table oids to struct holding testing metadata for each table
   std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, SqlTableMetadata *>> tables_;
 };
-}  // namespace terrier
+}  // namespace noisepage

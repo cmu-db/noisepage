@@ -9,7 +9,7 @@
 #include "common/macros.h"
 #include "execution/util/bitfield.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class FunctionType;
@@ -326,4 +326,4 @@ class FunctionInfo {
 };
 
 }  // namespace vm
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

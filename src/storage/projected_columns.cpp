@@ -8,7 +8,7 @@
 
 #include "storage/block_layout.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 uint32_t ProjectedColumns::AttrSizeForColumn(const uint16_t projection_col_index) {
   TERRIER_ASSERT(projection_col_index < num_cols_, "Cannot get size for out-of-bounds column");
   uint8_t shift;
@@ -86,4 +86,4 @@ ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *const head) cons
   // No need to initialize the rest since we made it clear 0 tuples currently are in the buffer
   return result;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

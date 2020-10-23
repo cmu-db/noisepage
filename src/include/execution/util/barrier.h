@@ -5,7 +5,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A cyclic barrier is a synchronization construct that allows multiple threads to wait for each
@@ -72,4 +72,4 @@ class Barrier {
   uint32_t reset_value_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

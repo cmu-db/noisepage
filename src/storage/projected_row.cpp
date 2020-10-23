@@ -10,7 +10,7 @@
 
 #include "storage/block_layout.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRow &other) {
   auto *result = reinterpret_cast<ProjectedRow *>(head);
   auto header_size = reinterpret_cast<uintptr_t>(&other.Bitmap()) - reinterpret_cast<uintptr_t>(&other);
@@ -94,4 +94,4 @@ ProjectedRowInitializer ProjectedRowInitializer::Create(const std::vector<uint16
   return ProjectedRowInitializer(real_attr_sizes, col_ids);
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

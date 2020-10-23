@@ -6,7 +6,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * OperatorExpression represents a generic N-ary operator.
  */
@@ -47,4 +47,4 @@ class OperatorExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(OperatorExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

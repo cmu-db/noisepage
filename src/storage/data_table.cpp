@@ -9,7 +9,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
@@ -365,4 +365,4 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
   return visible;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

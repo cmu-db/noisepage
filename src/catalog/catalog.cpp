@@ -19,7 +19,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 Catalog::Catalog(const common::ManagedPointer<transaction::TransactionManager> txn_manager,
                  const common::ManagedPointer<storage::BlockStore> block_store,
@@ -334,4 +334,4 @@ common::ManagedPointer<storage::BlockStore> Catalog::GetBlockStore() const {
   return common::ManagedPointer(catalog_block_store_);
 }
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

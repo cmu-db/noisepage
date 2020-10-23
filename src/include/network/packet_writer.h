@@ -10,7 +10,7 @@
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Wrapper around an I/O layer WriteQueue to provide network protocol
@@ -186,4 +186,4 @@ class PacketWriter {
   const common::ManagedPointer<WriteQueue> queue_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

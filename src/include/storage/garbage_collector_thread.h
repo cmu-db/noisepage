@@ -6,11 +6,11 @@
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 class MetricsManager;
 }
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
@@ -87,4 +87,4 @@ class GarbageCollectorThread {
   }
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

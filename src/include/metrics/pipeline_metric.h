@@ -17,7 +17,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for the execution engine
@@ -202,4 +202,4 @@ class PipelineMetric : public AbstractMetric<PipelineMetricRawData> {
     GetRawData()->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

@@ -5,7 +5,7 @@
 
 #include "storage/projected_row.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord() {
   // Pointer to buffers for non-aligned varlen entries so we can clean them up down the road
@@ -143,4 +143,4 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
                                std::to_string(static_cast<uint8_t>(record_type)));
   }
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

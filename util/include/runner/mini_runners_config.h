@@ -5,7 +5,7 @@
 
 #include "type/type_id.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 /**
  * Configuration for mini-runner generated data.
@@ -117,4 +117,4 @@ class MiniRunnersDataConfig {
   }
 };
 
-};  // namespace terrier::runner
+};  // namespace noisepage::runner

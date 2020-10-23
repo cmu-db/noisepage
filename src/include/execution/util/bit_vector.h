@@ -14,7 +14,7 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/vector_util.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A BitVector represents a set of bits. It provides access to individual bits through
@@ -822,4 +822,4 @@ inline BitVector<T> operator^(BitVector<T> a, const BitVector<T> &b) {
   return a;
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

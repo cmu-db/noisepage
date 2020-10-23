@@ -9,7 +9,7 @@
 #include "common/macros.h"
 #include "loggers/common_logger.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Convenient MACRO to use a method as a libevent callback function. Example
@@ -181,4 +181,4 @@ class NotifiableTask : public DedicatedThreadTask {
   std::unordered_set<struct event *> events_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

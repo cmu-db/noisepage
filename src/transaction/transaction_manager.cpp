@@ -7,7 +7,7 @@
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
   timestamp_t start_time;
   TransactionContext *result;
@@ -304,4 +304,4 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     }
   }
 }
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * All possible expression types.
@@ -85,4 +85,4 @@ enum class ExpressionType : uint8_t {
  */
 std::string ExpressionTypeToString(ExpressionType type, bool short_str);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

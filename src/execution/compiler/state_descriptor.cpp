@@ -5,7 +5,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -63,4 +63,4 @@ std::size_t StateDescriptor::GetSize() const {
   return state_type_->TypeRepr()->GetType()->GetSize();
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

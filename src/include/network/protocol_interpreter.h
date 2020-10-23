@@ -9,7 +9,7 @@
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
 //
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionHandle;
 
@@ -154,4 +154,4 @@ class ProtocolInterpreterProvider {
   virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

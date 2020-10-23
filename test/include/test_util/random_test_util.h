@@ -6,7 +6,7 @@
 
 #include "common/macros.h"
 
-namespace terrier {
+namespace noisepage {
 /**
  * Utility class for random element selection
  */
@@ -66,4 +66,4 @@ struct RandomTestUtil {
   }
 };
 
-}  // namespace terrier
+}  // namespace noisepage

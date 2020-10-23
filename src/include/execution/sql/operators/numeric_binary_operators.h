@@ -5,7 +5,7 @@
 #include "common/macros.h"
 #include "execution/util/arithmetic_overflow.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // This file contains function objects that implement simple arithmetic operations.
 
@@ -126,4 +126,4 @@ struct Modulo<T, std::enable_if_t<std::is_floating_point_v<T>>> {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

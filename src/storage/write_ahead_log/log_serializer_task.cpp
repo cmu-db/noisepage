@@ -9,7 +9,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void LogSerializerTask::LogSerializerTaskLoop() {
   auto curr_sleep = serialization_interval_;
@@ -185,7 +185,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::SerializeBuffer(
   return {num_bytes, num_records, num_txns};
 }
 
-uint64_t LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &record) {
+uint64_t LogSerializerTask::SerializeRecord(const noisepage::storage::LogRecord &record) {
   uint64_t num_bytes = 0;
   // First, serialize out fields common across all LogRecordType's.
 
@@ -295,4 +295,4 @@ uint32_t LogSerializerTask::WriteValue(const void *val, const uint32_t size) {
   return size;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

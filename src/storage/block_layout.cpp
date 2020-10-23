@@ -7,7 +7,7 @@
 #include "storage/arrow_block_metadata.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 BlockLayout::BlockLayout(std::vector<uint16_t> attr_sizes)
     : attr_sizes_(std::move(attr_sizes)),
       tuple_size_(ComputeTupleSize()),
@@ -57,4 +57,4 @@ uint32_t BlockLayout::ComputeHeaderSize() const {
   return StorageUtil::PadUpToSize(sizeof(uint64_t), static_header_size_ + common::RawBitmap::SizeInBytes(NumSlots()));
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

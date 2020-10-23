@@ -14,7 +14,7 @@
 #include "settings/settings_defs.h"  // NOLINT
 #undef __SETTING_GFLAGS_DECLARE__    // NOLINT
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 using ActionContext = common::ActionContext;
 using ActionState = common::ActionState;
@@ -217,13 +217,13 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
 
 // clang-format off
 void SettingsManager::ConstructParamMap(                                                      // NOLINT
-    std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> &param_map) {  // NOLINT
+    std::unordered_map<noisepage::settings::Param, noisepage::settings::ParamInfo> &param_map) {  // NOLINT
   /*
    * Populate gflag values to param map.
    * This will expand to a list of code like:
    * param_map.emplace(
-   *     terrier::settings::Param::port,
-   *     terrier::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
+   *     noisepage::settings::Param::port,
+   *     noisepage::settings::ParamInfo(port, parser::ConstantValueExpression(type::TypeID::INTEGER,
    *     execution::sql::Integer(FLAGS_port)), "Terrier port (default: 15721)",
    *     parser::ConstantValueExpression(type::TypeID::INTEGER, execution::sql::Integer(15721)),
    *     is_mutable));
@@ -317,4 +317,4 @@ void SettingsManager::SetParameter(const std::string &name,
   }
 }
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

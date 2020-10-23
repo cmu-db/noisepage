@@ -17,7 +17,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for processing the execute command
@@ -97,4 +97,4 @@ class ExecuteCommandMetric : public AbstractMetric<ExecuteCommandMetricRawData> 
     GetRawData()->RecordExecuteCommandData(portal_name_size, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

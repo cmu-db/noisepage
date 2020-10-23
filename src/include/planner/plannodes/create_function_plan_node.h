@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for creating user defined functions
@@ -347,4 +347,4 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CreateFunctionPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

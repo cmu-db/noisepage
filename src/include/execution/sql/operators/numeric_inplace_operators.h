@@ -3,7 +3,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /** In-place addition. */
 template <typename T>
@@ -50,4 +50,4 @@ struct BitwiseANDInPlace {
   constexpr void operator()(T *a, T b) const noexcept { *a &= b; }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

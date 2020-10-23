@@ -12,11 +12,11 @@
 #include "execution/sql/vector.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class BlockLayout;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ColumnVectorIterator;
 
@@ -410,4 +410,4 @@ class EXPORT VectorProjection {
   std::vector<storage::TupleSlot> tuple_slots_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

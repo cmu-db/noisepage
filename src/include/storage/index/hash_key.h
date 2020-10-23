@@ -9,7 +9,7 @@
 #include "storage/projected_row.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 // This is the maximum number of bytes to pack into a single HashKey template. This constraint is arbitrary and can
 // be increased if 256 bytes is too small for future workloads.
@@ -99,7 +99,7 @@ extern template class HashKey<64>;
 extern template class HashKey<128>;
 extern template class HashKey<256>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index
 
 namespace std {
 
@@ -108,12 +108,12 @@ namespace std {
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
-struct hash<terrier::storage::index::HashKey<KeySize>> {
+struct hash<noisepage::storage::index::HashKey<KeySize>> {
   /**
    * @param key key to be hashed
    * @return hash of the key's underlying data
    */
-  size_t operator()(const terrier::storage::index::HashKey<KeySize> &key) const {
+  size_t operator()(const noisepage::storage::index::HashKey<KeySize> &key) const {
     // you're technically hashing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
     return static_cast<size_t>(XXH3_64bits(reinterpret_cast<const void *>(key.KeyData()), KeySize));
   }
@@ -124,14 +124,14 @@ struct hash<terrier::storage::index::HashKey<KeySize>> {
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
-struct equal_to<terrier::storage::index::HashKey<KeySize>> {
+struct equal_to<noisepage::storage::index::HashKey<KeySize>> {
   /**
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is equal to the second key
    */
-  bool operator()(const terrier::storage::index::HashKey<KeySize> &lhs,
-                  const terrier::storage::index::HashKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::HashKey<KeySize> &lhs,
+                  const noisepage::storage::index::HashKey<KeySize> &rhs) const {
     // you're technically comparing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) == 0;
   }

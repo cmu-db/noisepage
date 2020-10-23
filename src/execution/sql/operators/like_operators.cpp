@@ -2,7 +2,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 #define NextByte(p, plen) ((p)++, (plen)--)
 
@@ -81,4 +81,4 @@ bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pat
   return slen == 0 && plen == 0;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

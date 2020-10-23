@@ -14,7 +14,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * Wrapper around hw perf events provided by the Linux kernel. Instantiating and destroying PerfMonitors are a bit
  * expensive because they open multiple file descriptors (read: syscalls). Ideally you want to keep a PerfMonitor object
@@ -262,4 +262,4 @@ class PerfMonitor {
       PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
 #endif
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -16,12 +16,12 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
 class ExecutionContext;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class Vector;
@@ -364,4 +364,4 @@ class JoinHashTableIterator {
   EntryIterator entry_iter_, entry_end_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

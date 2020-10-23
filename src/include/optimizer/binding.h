@@ -14,7 +14,7 @@
 #include "optimizer/pattern.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Abstract interface for a BindingIterator defined similarly to
@@ -194,4 +194,4 @@ class GroupExprBindingIterator : public BindingIterator {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

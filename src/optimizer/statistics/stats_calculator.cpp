@@ -22,7 +22,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerContext *context) {
   gexpr_ = gexpr;
@@ -276,4 +276,4 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
   return selectivity;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

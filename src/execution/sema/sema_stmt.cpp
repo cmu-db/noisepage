@@ -3,7 +3,7 @@
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
   ast::Type *src_type = Resolve(node->Source());
@@ -158,4 +158,4 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   }
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

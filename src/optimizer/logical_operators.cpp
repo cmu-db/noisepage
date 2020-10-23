@@ -12,7 +12,7 @@
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 BaseOperatorNodeContents *LeafOperator::Copy() const { return new LeafOperator(*this); }
 
@@ -1366,4 +1366,4 @@ OpType OperatorNodeContents<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 template <>
 OpType OperatorNodeContents<LogicalAnalyze>::type = OpType::LOGICALANALYZE;
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

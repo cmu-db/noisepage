@@ -8,7 +8,7 @@
 #include "parser/select_statement.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * SubqueryExpression represents an expression which contains a select statement ("sub-select").
  */
@@ -74,4 +74,4 @@ class SubqueryExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(SubqueryExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

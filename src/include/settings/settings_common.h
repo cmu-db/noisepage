@@ -129,18 +129,18 @@
 #undef SETTING_string
 #endif
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)           \
-  ValidateSetting(terrier::settings::Param::name, {type::TypeId::INTEGER, execution::sql::Integer(min_value)}, \
+  ValidateSetting(noisepage::settings::Param::name, {type::TypeId::INTEGER, execution::sql::Integer(min_value)}, \
                   {type::TypeId::INTEGER, execution::sql::Integer(max_value)});
 #define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)        \
-  ValidateSetting(terrier::settings::Param::name, {type::TypeId::BIGINT, execution::sql::Integer(min_value)}, \
+  ValidateSetting(noisepage::settings::Param::name, {type::TypeId::BIGINT, execution::sql::Integer(min_value)}, \
                   {type::TypeId::BIGINT, execution::sql::Integer(max_value)});
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)     \
-  ValidateSetting(terrier::settings::Param::name, {type::TypeId::DECIMAL, execution::sql::Real(min_value)}, \
+  ValidateSetting(noisepage::settings::Param::name, {type::TypeId::DECIMAL, execution::sql::Real(min_value)}, \
                   {type::TypeId::DECIMAL, execution::sql::Real(max_value)});
 
 #define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                    \
-  ValidateSetting(terrier::settings::Param::name, {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)}, \
+  ValidateSetting(noisepage::settings::Param::name, {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)}, \
                   {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)});
 
 #define SETTING_string(name, description, default_value, is_mutable, callback_fn)            \
@@ -149,7 +149,7 @@
     auto string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);      \
     auto default_value_cve = std::make_unique<parser::ConstantValueExpression>(              \
         type::TypeId::VARCHAR, string_val.first, std::move(string_val.second));              \
-    ValidateSetting(terrier::settings::Param::name, *default_value_cve, *default_value_cve); \
+    ValidateSetting(noisepage::settings::Param::name, *default_value_cve, *default_value_cve); \
   }
 #endif
 
@@ -198,29 +198,29 @@
 #endif
 #define SETTING_int(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                   \
   param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, {type::TypeId::INTEGER, execution::sql::Integer(FLAGS_##name)}, description, \
+      noisepage::settings::Param::name,                                                                                  \
+      noisepage::settings::ParamInfo(#name, {type::TypeId::INTEGER, execution::sql::Integer(FLAGS_##name)}, description, \
                                    {type::TypeId::INTEGER, execution::sql::Integer(default_value)}, is_mutable,        \
                                    min_value, max_value, &callback_fn));
 
 #define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
   param_map.emplace(                                                                                                  \
-      terrier::settings::Param::name,                                                                                 \
-      terrier::settings::ParamInfo(#name, {type::TypeId::BIGINT, execution::sql::Integer(FLAGS_##name)}, description, \
+      noisepage::settings::Param::name,                                                                                 \
+      noisepage::settings::ParamInfo(#name, {type::TypeId::BIGINT, execution::sql::Integer(FLAGS_##name)}, description, \
                                    {type::TypeId::BIGINT, execution::sql::Integer(default_value)}, is_mutable,        \
                                    min_value, max_value, &callback_fn));
 
 #define SETTING_double(name, description, default_value, min_value, max_value, is_mutable, callback_fn)             \
   param_map.emplace(                                                                                                \
-      terrier::settings::Param::name,                                                                               \
-      terrier::settings::ParamInfo(#name, {type::TypeId::DECIMAL, execution::sql::Real(FLAGS_##name)}, description, \
+      noisepage::settings::Param::name,                                                                               \
+      noisepage::settings::ParamInfo(#name, {type::TypeId::DECIMAL, execution::sql::Real(FLAGS_##name)}, description, \
                                    {type::TypeId::DECIMAL, execution::sql::Real(default_value)}, is_mutable,        \
                                    min_value, max_value, &callback_fn));
 
 #define SETTING_bool(name, description, default_value, is_mutable, callback_fn)                                        \
   param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
-      terrier::settings::ParamInfo(#name, {type::TypeId::BOOLEAN, execution::sql::BoolVal(FLAGS_##name)}, description, \
+      noisepage::settings::Param::name,                                                                                  \
+      noisepage::settings::ParamInfo(#name, {type::TypeId::BOOLEAN, execution::sql::BoolVal(FLAGS_##name)}, description, \
                                    {type::TypeId::BOOLEAN, execution::sql::BoolVal(default_value)}, is_mutable, 0, 0,  \
                                    &callback_fn));
 
@@ -233,8 +233,8 @@
     auto default_value_string_val = execution::sql::ValueUtil::CreateStringVal(default_value_string);            \
                                                                                                                  \
     param_map.emplace(                                                                                           \
-        terrier::settings::Param::name,                                                                          \
-        terrier::settings::ParamInfo(                                                                            \
+        noisepage::settings::Param::name,                                                                          \
+        noisepage::settings::ParamInfo(                                                                            \
             #name, {type::TypeId::VARCHAR, string_val.first, std::move(string_val.second)}, description,         \
             {type::TypeId::VARCHAR, default_value_string_val.first, std::move(default_value_string_val.second)}, \
             is_mutable, 0, 0, &callback_fn));                                                                    \

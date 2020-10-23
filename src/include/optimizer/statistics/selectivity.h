@@ -10,7 +10,7 @@
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 static constexpr double DEFAULT_SELECTIVITY = 0.5;
 
@@ -127,4 +127,4 @@ class Selectivity {
   }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

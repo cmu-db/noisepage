@@ -10,11 +10,11 @@
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
@@ -174,4 +174,4 @@ class Index {
   IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
 };
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

@@ -35,7 +35,7 @@
 
 extern void *__dso_handle __attribute__((__visibility__("hidden")));  // NOLINT
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 namespace {
 
@@ -1173,4 +1173,4 @@ std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeMo
   return compiled_module;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

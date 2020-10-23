@@ -6,7 +6,7 @@
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void DiskLogConsumerTask::RunTask() {
   run_task_ = true;
@@ -132,4 +132,4 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   WriteBuffersToLogFile();
   PersistLogFile();
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

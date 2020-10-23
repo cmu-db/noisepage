@@ -2,7 +2,7 @@
 
 #include "optimizer/logical_operators.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 GroupExpression *OptimizerContext::MakeGroupExpression(common::ManagedPointer<AbstractOptimizerNode> node) {
   std::vector<group_id_t> child_groups;
@@ -30,4 +30,4 @@ GroupExpression *OptimizerContext::MakeGroupExpression(common::ManagedPointer<Ab
   return new GroupExpression(node->Contents(), std::move(child_groups));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> OperatorExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -40,4 +40,4 @@ void OperatorExpression::DeriveReturnValueType() {
 
 DEFINE_JSON_BODY_DECLARATIONS(OperatorExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

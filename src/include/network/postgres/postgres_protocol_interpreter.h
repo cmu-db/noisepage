@@ -16,7 +16,7 @@
 #include "network/postgres/statement_cache.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 constexpr uint32_t INITIAL_BACKOFF_TIME = 2;
 constexpr uint32_t BACKOFF_FACTOR = 2;
@@ -260,4 +260,4 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

@@ -7,7 +7,7 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr char AGG_ATTR_PREFIX[] = "agg_term_attr";
@@ -291,4 +291,4 @@ ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNU
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -16,7 +16,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 GarbageCollector::GarbageCollector(
     const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
@@ -250,4 +250,4 @@ void GarbageCollector::ProcessIndexes() {
   for (const auto &index : indexes_) index->PerformGarbageCollection();
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

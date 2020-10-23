@@ -8,7 +8,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Utility class containing various math/arithmetic functions
@@ -162,4 +162,4 @@ class MathUtil {
   static bool ApproxEqual(double left, double right);
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -8,7 +8,7 @@
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace binder {
 class BindNodeVisitor;
@@ -17,7 +17,7 @@ class BindNodeVisitor;
 namespace parser {
 
 enum OrderType { kOrderAsc, kOrderDesc };
-using terrier::parser::OrderType;
+using noisepage::parser::OrderType;
 
 /**
  * Describes OrderBy clause in a select statement.
@@ -428,4 +428,4 @@ class SelectStatement : public SQLStatement {
 DEFINE_JSON_HEADER_DECLARATIONS(SelectStatement);
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

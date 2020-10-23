@@ -22,7 +22,7 @@
 #include "common/macros.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace {
 
@@ -213,4 +213,4 @@ std::string CpuInfo::PrettyPrintInfo() const {
   return ss.str();
 }
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

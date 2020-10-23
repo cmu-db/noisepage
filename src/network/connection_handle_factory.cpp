@@ -3,7 +3,7 @@
 #include "network/connection_handle.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
                                                                std::unique_ptr<ProtocolInterpreter> interpreter,
                                                                common::ManagedPointer<ConnectionHandlerTask> task) {
@@ -29,4 +29,4 @@ ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
   reused_handle.ResetForReuse(connection_id_t(conn_fd), task, std::move(interpreter));
   return reused_handle;
 }
-}  // namespace terrier::network
+}  // namespace noisepage::network

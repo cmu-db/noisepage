@@ -6,11 +6,11 @@
 #include "execution/sql/generic_value.h"
 #include "execution/sql/vector.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class TupleIdList;
 
@@ -523,4 +523,4 @@ class EXPORT VectorOps {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

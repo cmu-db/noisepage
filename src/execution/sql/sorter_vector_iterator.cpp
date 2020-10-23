@@ -6,7 +6,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 SorterVectorIterator::SorterVectorIterator(const Sorter &sorter,
                                            const std::vector<const catalog::Schema::Column *> &column_info,
@@ -71,4 +71,4 @@ void SorterVectorIterator::BuildVectorProjection(const SorterVectorIterator::Tra
   vector_projection_->CheckIntegrity();
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

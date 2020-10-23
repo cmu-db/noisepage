@@ -9,7 +9,7 @@
 #include "common/constants.h"
 #include "execution/util/file.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 //===----------------------------------------------------------------------===//
 //
@@ -357,5 +357,5 @@ class CSVReader {
   Stats stats_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util
 #endif

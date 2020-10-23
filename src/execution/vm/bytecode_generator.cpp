@@ -17,7 +17,7 @@
 #include "loggers/execution_logger.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * ExpressionResultScope is an RAII class that provides metadata about the usage of an expression
@@ -3768,4 +3768,4 @@ std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, c
                                           std::move(generator.functions_), std::move(generator.static_locals_));
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

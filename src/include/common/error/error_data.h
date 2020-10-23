@@ -9,7 +9,7 @@
 #include "common/error/error_defs.h"
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Class to maintain error state when they occur in the system. These can be a variety of levels (@see ErrorSeverity).
@@ -92,5 +92,5 @@ class ErrorData {
   std::string message_;
   ErrorCode code_;
   std::vector<std::pair<ErrorField, std::string>> fields_;
-};  // namespace terrier::common
-}  // namespace terrier::common
+};  // namespace noisepage::common
+}  // namespace noisepage::common

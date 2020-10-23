@@ -7,7 +7,7 @@
 #include "common/math_util.h"
 #include "execution/ast/type.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // ---------------------------------------------------------
 // Local Information
@@ -91,4 +91,4 @@ const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(uint32_t offset) const {
   return nullptr;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

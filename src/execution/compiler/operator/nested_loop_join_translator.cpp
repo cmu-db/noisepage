@@ -6,7 +6,7 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 NestedLoopJoinTranslator::NestedLoopJoinTranslator(const planner::NestedLoopJoinPlanNode &plan,
                                                    CompilationContext *compilation_context, Pipeline *pipeline)
@@ -42,4 +42,4 @@ void NestedLoopJoinTranslator::PerformPipelineWork(WorkContext *context, Functio
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -10,7 +10,7 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 struct BuildRow {
   uint64_t key_, val1_, val2_, val3_;
@@ -121,4 +121,4 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleJoinProbe) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

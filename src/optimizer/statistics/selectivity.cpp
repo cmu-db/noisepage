@@ -4,7 +4,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats, const ValueCondition &condition) {
   switch (condition.GetType()) {
@@ -168,4 +168,4 @@ double Selectivity::Like(common::ManagedPointer<TableStats> table_stats, const V
   return DEFAULT_SELECTIVITY;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

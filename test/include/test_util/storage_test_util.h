@@ -29,7 +29,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 
-namespace terrier {
+namespace noisepage {
 class StorageTestUtil {
  public:
   StorageTestUtil() = delete;
@@ -605,4 +605,4 @@ class StorageTestUtil {
     return new catalog::Schema(columns);
   }
 };
-}  // namespace terrier
+}  // namespace noisepage

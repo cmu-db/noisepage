@@ -11,7 +11,7 @@
                     common::ManagedPointer<ConnectionContext> connection) override;                    \
   }
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Interface for the execution of the standard PostgresNetworkCommands for the postgres protocol. Any state/logic that
@@ -52,4 +52,4 @@ DEFINE_POSTGRES_COMMAND(CloseCommand, true);
 DEFINE_POSTGRES_COMMAND(TerminateCommand, true);
 DEFINE_POSTGRES_COMMAND(EmptyCommand, true);  // (Matt): This seems to be only for testing? Not a big fan of that.
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

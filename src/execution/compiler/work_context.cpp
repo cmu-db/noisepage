@@ -4,7 +4,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 WorkContext::WorkContext(CompilationContext *compilation_context, const Pipeline &pipeline)
     : compilation_context_(compilation_context),
@@ -50,4 +50,4 @@ void WorkContext::SetSource(OperatorTranslator *op) {
 
 bool WorkContext::IsParallel() const { return pipeline_.IsParallel(); }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

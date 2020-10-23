@@ -14,7 +14,7 @@
 #include "test_util/tpcc/worker.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Loads the TPC-C tables and indexes according to section 4.3.3.1 of the specification
@@ -1217,4 +1217,4 @@ struct Loader {
   }
 };
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

@@ -12,7 +12,7 @@
 #include "execution/util/execution_common.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * This is our typedef that we use throughout the entire code to represent a hash value.
@@ -296,4 +296,4 @@ class EXPORT HashUtil {
   }
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

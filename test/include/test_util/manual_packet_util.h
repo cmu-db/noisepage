@@ -9,7 +9,7 @@
 #include "network/network_io_wrapper.h"
 #include "test_util/manual_packet_util.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 /*
  * This util class includes some handy helper functions when testing with manual constructed packets.
  * */
@@ -100,4 +100,4 @@ class ManualPacketUtil {
   // Read and write buffer size for the test
   static const uint32_t TEST_BUFFER_SIZE = 1000;
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

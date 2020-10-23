@@ -5,7 +5,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * Helped class around get_rusage syscall that allows to profile specific sections of code. If Start() and Stop() are
  * called on the same object from separate threads then the results will likely be garbage.
@@ -108,5 +108,5 @@ class RusageMonitor {
 #endif
     TERRIER_ASSERT(ret == 0, "getrusage failed.");
   }
-};  // namespace terrier::common
-}  // namespace terrier::common
+};  // namespace noisepage::common
+}  // namespace noisepage::common

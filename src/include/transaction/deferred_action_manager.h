@@ -8,7 +8,7 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
@@ -135,4 +135,4 @@ class DeferredActionManager {
     return processed;
   }
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

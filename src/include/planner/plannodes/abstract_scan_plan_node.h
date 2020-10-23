@@ -8,7 +8,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Base class for sql scans
@@ -226,4 +226,4 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   bool scan_has_offset_{false};
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

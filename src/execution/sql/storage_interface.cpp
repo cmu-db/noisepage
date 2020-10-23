@@ -9,7 +9,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 StorageInterface::StorageInterface(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
                                    uint32_t num_oids, bool need_indexes)
@@ -98,4 +98,4 @@ bool StorageInterface::IndexInsertWithTuple(storage::TupleSlot table_tuple_slot,
   return curr_index_->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

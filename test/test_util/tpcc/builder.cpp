@@ -1,6 +1,6 @@
 #include "test_util/tpcc/builder.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 Database *Builder::Build(const storage::index::IndexType index_type) {
   // create the database in the catalog
@@ -362,4 +362,4 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
                       stock_primary_index_oid);
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

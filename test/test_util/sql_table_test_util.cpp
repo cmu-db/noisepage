@@ -7,7 +7,7 @@
 #include "storage/sql_table.h"
 #include "test_util/catalog_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 RandomSqlTableTransaction::RandomSqlTableTransaction(LargeSqlTableTestObject *test_object)
     : test_object_(test_object), txn_(test_object->txn_manager_->BeginTransaction()), aborted_(false) {}
@@ -194,7 +194,7 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
   return abort_count_;
 }
 
-void LargeSqlTableTestObject::SimulateOneTransaction(terrier::RandomSqlTableTransaction *txn, uint32_t txn_id) {
+void LargeSqlTableTestObject::SimulateOneTransaction(noisepage::RandomSqlTableTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto insert = [&] { txn->RandomInsert(&thread_generator); };
@@ -268,4 +268,4 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
   txn_manager_->Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -10,7 +10,7 @@
 #include "optimizer/rule.h"
 #include "optimizer/statistics/stats_storage.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace transaction {
 class TransactionContext;
@@ -201,4 +201,4 @@ class OptimizerContext {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

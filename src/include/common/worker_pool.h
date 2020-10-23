@@ -11,7 +11,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A task queue is a FIFO list of functions that we will execute.
@@ -187,4 +187,4 @@ class WorkerPool {
     });
   }
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -10,7 +10,7 @@
 #include "execution/sql/sorter.h"
 #include "planner/plannodes/order_by_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
@@ -450,4 +450,4 @@ ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE
   UNREACHABLE("Impossible output row option");
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

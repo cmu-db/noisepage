@@ -13,7 +13,7 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/vm_defs.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 namespace test {
 class BytecodeTrampolineTest;
@@ -251,4 +251,4 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   return true;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

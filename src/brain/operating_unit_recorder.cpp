@@ -51,7 +51,7 @@
 #include "storage/block_layout.h"
 #include "type/type_id.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
@@ -774,4 +774,4 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   return results;
 }
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

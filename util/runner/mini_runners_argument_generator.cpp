@@ -4,7 +4,7 @@
 #include "brain/brain_defs.h"
 #include "runner/mini_runners_argument_generator.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 void MiniRunnersArgumentGenerator::GenArithArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                      const MiniRunnersDataConfig &config) {
@@ -449,4 +449,4 @@ void MiniRunnersArgumentGenerator::GenerateMixedArguments(std::vector<std::vecto
   }
 }
 
-};  // namespace terrier::runner
+};  // namespace noisepage::runner

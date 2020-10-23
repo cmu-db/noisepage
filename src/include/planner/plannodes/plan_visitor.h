@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 class AggregatePlanNode;
 class AnalyzePlanNode;
@@ -221,4 +221,4 @@ class PlanVisitor {
   virtual void Visit(UNUSED_ATTRIBUTE const ResultPlanNode *plan) {}
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

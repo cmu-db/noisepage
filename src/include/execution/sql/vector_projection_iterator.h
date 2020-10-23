@@ -12,7 +12,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/util/bit_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A tuple-at-a-time iterator over VectorProjections. The iterator gives the <i>view</i> of
@@ -461,4 +461,4 @@ inline void VectorProjectionIterator::RunFilter(P p) {
   ResetFiltered();
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -14,7 +14,7 @@
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 Index *IndexBuilder::Build() const {
   TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
@@ -132,4 +132,4 @@ Index *IndexBuilder::BuildHashGenericKey(IndexMetadata metadata) const {
   TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
   return index;
 }
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

@@ -20,7 +20,7 @@
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 // Internally we use the sign bit to represent if a column is varlen or not. Down to the implementation detail though,
 // we always allocate 16 bytes for a varlen entry, with the first 8 bytes being the pointer to the value and following
@@ -559,19 +559,19 @@ struct VarlenContentCompare {
   bool operator()(const VarlenEntry &lhs, const VarlenEntry &rhs) const { return VarlenEntry::Compare(lhs, rhs) < 0; }
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
 namespace std {
 /**
  * Implements std::hash for TupleSlot.
  */
 template <>
-struct hash<terrier::storage::TupleSlot> {
+struct hash<noisepage::storage::TupleSlot> {
   /**
    * Returns the hash of the slot's contents.
    * @param slot the slot to be hashed.
    * @return the hash of the slot.
    */
-  size_t operator()(const terrier::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
+  size_t operator()(const noisepage::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
 };
 }  // namespace std

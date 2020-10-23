@@ -5,7 +5,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * DefaultValueExpression represents a default value, e.g. in an INSERT.
  * Note that the return value type is unspecified and that the expression should be replaced by the binder.
@@ -38,4 +38,4 @@ class DefaultValueExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DefaultValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

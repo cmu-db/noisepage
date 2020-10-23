@@ -11,7 +11,7 @@
 static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t), "unexpected std::atomic size for 8-bit ints");
 static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t), "unexpected std::atomic size for 64-bit ints");
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A RawConcurrentBitmap is a bitmap that does not have the compile-time
@@ -220,4 +220,4 @@ class RawConcurrentBitmap {
 // exact layout. Changes include marking a function as virtual, as that adds
 // a Vtable to the class layout,
 static_assert(sizeof(RawConcurrentBitmap) == 0, "Unexpected RawConcurrentBitmap layout!");
-}  // namespace terrier::common
+}  // namespace noisepage::common

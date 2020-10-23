@@ -13,7 +13,7 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for insert
@@ -238,4 +238,4 @@ class InsertPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

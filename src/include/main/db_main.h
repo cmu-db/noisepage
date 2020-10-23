@@ -13,7 +13,7 @@
 #include "network/connection_handle_factory.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
-#include "network/terrier_server.h"
+#include "network/noisepage_server.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -22,7 +22,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace settings {
 class SettingsManager;
@@ -56,7 +56,7 @@ class DBMain {
 
   /**
    * Shuts down the server.
-   * It is worth noting that in normal cases, terrier will shut down and return from Run().
+   * It is worth noting that in normal cases, noisepage will shut down and return from Run().
    * So, use this function only when you want to shutdown the server from code.
    * For example, in the end of unit tests when you want to shut down your test server.
    */
@@ -851,4 +851,4 @@ class DBMain {
   std::unique_ptr<NetworkLayer> network_layer_;
 };
 
-}  // namespace terrier
+}  // namespace noisepage

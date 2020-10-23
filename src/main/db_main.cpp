@@ -6,7 +6,7 @@
 
 #include "execution/execution_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 void DBMain::Run() {
   TERRIER_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
@@ -34,4 +34,4 @@ DBMain::ExecutionLayer::ExecutionLayer() { execution::ExecutionUtil::InitTPL(); 
 
 DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
 
-}  // namespace terrier
+}  // namespace noisepage

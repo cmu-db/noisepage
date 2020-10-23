@@ -9,7 +9,7 @@
 #include "execution/sql/join_hash_table.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 const char *row_attr_prefix = "attr";
@@ -537,4 +537,4 @@ ast::Expr *HashJoinTranslator::GetChildOutput(WorkContext *context, uint32_t chi
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -10,7 +10,7 @@
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * An execution frame where all function's local variables and parameters live
@@ -1652,7 +1652,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<terrier::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<noisepage::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
@@ -2591,4 +2591,4 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   return ip;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

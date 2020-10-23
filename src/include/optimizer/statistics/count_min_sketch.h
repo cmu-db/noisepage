@@ -11,7 +11,7 @@
 #include "loggers/optimizer_logger.h"
 #include "madoka/madoka.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * An approximate counting data structure.
@@ -156,4 +156,4 @@ class CountMinSketch {
   madoka::Sketch sketch_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

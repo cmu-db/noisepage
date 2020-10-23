@@ -9,11 +9,11 @@
 #include "loggers/optimizer_logger.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 /**
  * ValueCondition
  * This class stores the expression type and value used in the WHERE clause as well as the
@@ -99,4 +99,4 @@ class ValueCondition {
    */
   std::unique_ptr<parser::ConstantValueExpression> value_;
 };
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -5,7 +5,7 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/postgres_protocol_util.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 void PostgresPacketWriter::WriteReadyForQuery(NetworkTransactionStateType txn_status) {
   BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
@@ -390,4 +390,4 @@ uint32_t PostgresPacketWriter::WriteTextAttribute(const execution::sql::Val *con
   return execution::sql::ValUtil::GetSqlSize(type);
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

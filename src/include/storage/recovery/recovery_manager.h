@@ -21,15 +21,15 @@
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
 
-namespace terrier {
+namespace noisepage {
 class RecoveryBenchmark;
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Recovery Manager
@@ -74,7 +74,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            const common::ManagedPointer<catalog::Catalog> catalog,
                            const common::ManagedPointer<transaction::TransactionManager> txn_manager,
                            const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                           const common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
+                           const common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry,
                            const common::ManagedPointer<BlockStore> store)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
@@ -107,7 +107,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
-  friend class terrier::RecoveryBenchmark;
+  friend class noisepage::RecoveryBenchmark;
 
   // Log provider for reading in logs
   const common::ManagedPointer<AbstractLogProvider> log_provider_;
@@ -326,8 +326,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return number of EXTRA log records processed
    */
   uint32_t ProcessSpecialCasePGProcRecord(
-      terrier::transaction::TransactionContext *txn,
-      std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+      noisepage::transaction::TransactionContext *txn,
+      std::vector<std::pair<noisepage::storage::LogRecord *, std::vector<noisepage::byte *>>> *buffered_changes,
       uint32_t start_idx);
 
   /**
@@ -374,4 +374,4 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                                         const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog,
                                         catalog::table_oid_t table_oid) const;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -8,7 +8,7 @@
 #include "brain/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * Utility class for OperatingUnits
@@ -208,4 +208,4 @@ class OperatingUnitUtil {
   }
 };
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

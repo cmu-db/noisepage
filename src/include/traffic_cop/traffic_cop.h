@@ -11,50 +11,50 @@
 #include "network/network_defs.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Catalog;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::network {
+namespace noisepage::network {
 class ConnectionContext;
 class PostgresPacketWriter;
 class Statement;
 class Portal;
-}  // namespace terrier::network
+}  // namespace noisepage::network
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class StatsStorage;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
 class CreateStatement;
 class DropStatement;
 class TransactionStatement;
 class ParseResult;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::settings {
+namespace noisepage::settings {
 class SettingsManager;
-}  // namespace terrier::settings
+}  // namespace noisepage::settings
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class ReplicationLogProvider;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::common {
+namespace noisepage::common {
 class ErrorData;
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 /**
  * The TrafficCop acts as a translation layer between protocol implementations at at the front-end and execution of
@@ -155,7 +155,7 @@ class TrafficCop {
    */
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                    common::ManagedPointer<network::PostgresPacketWriter> out, bool explicit_txn_block,
-                                   terrier::network::QueryType query_type) const;
+                                   noisepage::network::QueryType query_type) const;
 
   /**
    * Contains logic to reason about binding, and basic IF EXISTS logic.
@@ -186,7 +186,7 @@ class TrafficCop {
    */
   TrafficCopResult ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                          terrier::network::QueryType query_type) const;
+                                          noisepage::network::QueryType query_type) const;
 
   /**
    * Contains the logic to reason about DROP execution.
@@ -197,7 +197,7 @@ class TrafficCop {
    */
   TrafficCopResult ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                         common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                        terrier::network::QueryType query_type) const;
+                                        noisepage::network::QueryType query_type) const;
 
   /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
@@ -245,4 +245,4 @@ class TrafficCop {
   const execution::vm::ExecutionMode execution_mode_;
 };
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

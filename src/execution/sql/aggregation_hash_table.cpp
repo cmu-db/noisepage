@@ -25,7 +25,7 @@
 #include "loggers/execution_logger.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class AggregationHashTable::HashToGroupIdMap {
   // Marker indicating an empty slot in the hash table
@@ -779,4 +779,4 @@ void AggregationHashTable::MergePartitions(AggregationHashTable *target, void *q
   target->owned_entries_.emplace_back(std::move(entries_));
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -4,7 +4,7 @@
 
 #include "execution/vm/bytecode_traits.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // static
 const char *Bytecodes::bytecode_names[] = {
@@ -61,4 +61,4 @@ uint32_t Bytecodes::GetNthOperandOffset(Bytecode bytecode, uint32_t operand_inde
   return offset;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

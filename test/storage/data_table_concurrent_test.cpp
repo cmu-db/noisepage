@@ -8,7 +8,7 @@
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 class FakeTransaction {
  public:
   FakeTransaction(const storage::BlockLayout &layout, storage::DataTable *table, const double null_bias,
@@ -165,4 +165,4 @@ TEST_F(DataTableConcurrentTests, ConcurrentUpdateOneWriterWins) {
   }
 }
 
-}  // namespace terrier
+}  // namespace noisepage

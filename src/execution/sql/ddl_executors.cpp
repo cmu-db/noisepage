@@ -19,7 +19,7 @@
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 bool DDLExecutors::CreateDatabaseExecutor(const common::ManagedPointer<planner::CreateDatabasePlanNode> node,
                                           const common::ManagedPointer<catalog::CatalogAccessor> accessor) {
@@ -157,4 +157,4 @@ bool DDLExecutors::CreateIndex(const common::ManagedPointer<catalog::CatalogAcce
   return true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

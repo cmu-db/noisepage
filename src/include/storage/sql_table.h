@@ -12,22 +12,22 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 // Forward Declaration
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 class TableVectorIterator;
 class VectorProjection;
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
@@ -243,8 +243,8 @@ class SqlTable {
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
-  friend class terrier::RandomSqlTableTransaction;
-  friend class terrier::LargeSqlTableTestObject;
+  friend class noisepage::RandomSqlTableTransaction;
+  friend class noisepage::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
   /*
@@ -278,4 +278,4 @@ class SqlTable {
    */
   catalog::col_oid_t OidForColId(col_id_t col_id) const;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

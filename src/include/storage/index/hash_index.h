@@ -12,14 +12,14 @@
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
 template <class Key, class T, class Hash, class KeyEqual, class Allocator, std::size_t SLOT_PER_BUCKET>
 class cuckoohash_map;
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 template <uint16_t KeySize>
 class HashKey;
@@ -122,4 +122,4 @@ extern template class HashIndex<GenericKey<64>>;
 extern template class HashIndex<GenericKey<128>>;
 extern template class HashIndex<GenericKey<256>>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

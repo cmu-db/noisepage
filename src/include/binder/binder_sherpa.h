@@ -8,7 +8,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 /**
  * BinderSherpa tracks state that is communicated throughout the visitor pattern such as the parse result and also
  * expression-specific metadata.
@@ -97,4 +97,4 @@ class BinderSherpa {
   const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types_ = nullptr;
   std::unordered_map<uintptr_t, type::TypeId> desired_expr_types_;
 };
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

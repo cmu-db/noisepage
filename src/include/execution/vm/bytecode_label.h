@@ -5,7 +5,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * A label represents a location in the bytecode and is used as the target of a jump instruction.
@@ -69,4 +69,4 @@ class BytecodeLabel {
   bool bound_{false};
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

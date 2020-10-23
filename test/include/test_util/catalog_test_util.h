@@ -10,7 +10,7 @@
 #include "test_util/storage_test_util.h"
 #include "type/type_id.h"
 
-namespace terrier {
+namespace noisepage {
 struct CatalogTestUtil {
   CatalogTestUtil() = delete;
 
@@ -45,4 +45,4 @@ struct CatalogTestUtil {
   static constexpr catalog::namespace_oid_t TEST_NAMESPACE_OID = catalog::namespace_oid_t(103);
   static constexpr catalog::index_oid_t TEST_INDEX_OID = catalog::index_oid_t(104);
 };
-}  // namespace terrier
+}  // namespace noisepage

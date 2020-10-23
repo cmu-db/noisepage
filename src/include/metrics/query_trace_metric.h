@@ -13,7 +13,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected at logging level
@@ -117,4 +117,4 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
     GetRawData()->RecordQueryTrace(query_id, timestamp);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

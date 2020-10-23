@@ -2,7 +2,7 @@
 
 #include "loggers/optimizer_logger.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 Group::~Group() {
   for (auto expr : logical_expressions_) {
@@ -74,4 +74,4 @@ bool Group::HasExpressions(PropertySet *properties) const {
   return (it != lowest_cost_expressions_.end());
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

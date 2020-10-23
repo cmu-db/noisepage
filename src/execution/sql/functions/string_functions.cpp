@@ -7,7 +7,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/operators/like_operators.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[],
                              uint32_t num_inputs) {
@@ -500,4 +500,4 @@ void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, co
   *result = StringVal(ptr, str.GetLength());
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

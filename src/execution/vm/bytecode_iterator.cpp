@@ -5,7 +5,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_traits.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 BytecodeIterator::BytecodeIterator(const std::vector<uint8_t> &bytecode, std::size_t start, std::size_t end)
     : bytecodes_(bytecode), start_offset_(start), end_offset_(end), curr_offset_(start) {}
@@ -152,4 +152,4 @@ uint32_t BytecodeIterator::CurrentBytecodeSize() const {
   return size;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

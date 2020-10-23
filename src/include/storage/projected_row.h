@@ -7,16 +7,16 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Catalog;
 class DatabaseCatalog;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 class StorageInterface;
 }
 
-namespace terrier::storage {
+namespace noisepage::storage {
 // TODO(Tianyu): To be consistent with other places, maybe move val_offset fields in front of col_ids
 /**
  * A projected row is a partial row image of a tuple. It also encodes
@@ -302,4 +302,4 @@ class ProjectedRowInitializer {
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

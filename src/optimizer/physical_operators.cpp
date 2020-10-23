@@ -14,7 +14,7 @@
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 //===--------------------------------------------------------------------===//
 // TableFreeScan
@@ -1521,4 +1521,4 @@ OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>
 OpType OperatorNodeContents<Analyze>::type = OpType::ANALYZE;
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -12,7 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 std::vector<ExprSet> ChildStatsDeriver::DeriveInputStats(GroupExpression *gexpr, ExprSet required_cols, Memo *memo) {
   required_cols_ = std::move(required_cols);
@@ -66,4 +66,4 @@ void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractEx
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

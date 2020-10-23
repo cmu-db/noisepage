@@ -15,7 +15,7 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Task that processes buffers handed over by transactions and serializes them into consumer buffers.
@@ -180,4 +180,4 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    */
   void HandFilledBufferToWriter();
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

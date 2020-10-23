@@ -14,15 +14,15 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier {
+namespace noisepage {
 class StorageTestUtil;
 }
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 class Schemas;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 namespace postgres {
 class Builder;
@@ -221,7 +221,7 @@ class Schema {
     friend class postgres::Builder;
 
     friend class tpcc::Schemas;
-    friend class terrier::StorageTestUtil;
+    friend class noisepage::StorageTestUtil;
   };
 
   /**
@@ -335,4 +335,4 @@ class Schema {
 DEFINE_JSON_HEADER_DECLARATIONS(Schema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(Schema);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

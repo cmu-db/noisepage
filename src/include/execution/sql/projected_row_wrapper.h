@@ -2,7 +2,7 @@
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Wrapper around projected rows.
@@ -62,4 +62,4 @@ class EXPORT ProjectedRowWrapper {
  private:
   storage::ProjectedRow *pr_;
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -5,7 +5,7 @@
 #include "storage/write_ahead_log/log_serializer_task.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void LogManager::Start() {
   TERRIER_ASSERT(!run_log_manager_, "Can't call Start on already started LogManager");
@@ -72,4 +72,4 @@ void LogManager::AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment
   log_serializer_task_->AddBufferToFlushQueue(buffer_segment);
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

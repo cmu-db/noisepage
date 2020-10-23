@@ -1,7 +1,7 @@
 #include "storage/write_ahead_log/log_io.h"
 
 #include <algorithm>
-namespace terrier::storage {
+namespace noisepage::storage {
 void PosixIoWrappers::Close(int fd) {
   while (true) {
     int ret = close(fd);
@@ -69,4 +69,4 @@ void BufferedLogReader::RefillBuffer() {
   }
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

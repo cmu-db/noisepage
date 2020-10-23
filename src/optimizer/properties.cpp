@@ -4,7 +4,7 @@
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Checks whether this is greater than or equal to another property.
@@ -65,4 +65,4 @@ common::hash_t PropertySort::Hash() const {
  */
 void PropertySort::Accept(PropertyVisitor *v) const { v->Visit(this); }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

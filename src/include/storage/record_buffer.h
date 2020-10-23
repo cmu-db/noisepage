@@ -6,11 +6,11 @@
 #include "common/strong_typedef.h"
 #include "storage/undo_record.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * A RecordBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
@@ -377,4 +377,4 @@ class RedoBuffer {
   // reserved for aborts where we will potentially need to garbage collect the last operation (which caused the abort)
   byte *last_record_ = nullptr;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // 2.6.2
 bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
@@ -146,4 +146,4 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   return true;
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

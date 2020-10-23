@@ -5,11 +5,11 @@
 #include "common/action_context.h"
 #include "common/managed_pointer.h"
 
-namespace terrier {
+namespace noisepage {
 class DBMain;
 }
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 /**
  * Utility class for defining callbacks for settings in settings_defs.h.
@@ -168,4 +168,4 @@ class Callbacks {
   static void MetricsQueryTrace(void *old_value, void *new_value, DBMain *db_main,
                                 common::ManagedPointer<common::ActionContext> action_context);
 };
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

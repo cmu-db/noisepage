@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/vm/bytecode_operands.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // Creates instances of a given opcode for all integer primitive types
 #define CREATE_FOR_INT_TYPES(F, op, ...) \
@@ -806,4 +806,4 @@ class Bytecodes {
   static const char *bytecode_handler_name[];
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

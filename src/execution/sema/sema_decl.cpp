@@ -4,7 +4,7 @@
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   if (GetCurrentScope()->LookupLocal(node->Name()) != nullptr) {
@@ -118,4 +118,4 @@ void Sema::VisitStructDecl(ast::StructDecl *node) {
   GetCurrentScope()->Declare(node->Name(), struct_type);
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

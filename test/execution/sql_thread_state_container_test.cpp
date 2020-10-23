@@ -10,7 +10,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class ThreadStateContainerTest : public TplTest {
  protected:
@@ -138,4 +138,4 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

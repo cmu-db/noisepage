@@ -2,7 +2,7 @@
 
 #include "storage/write_ahead_log/log_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 byte *UndoBuffer::NewEntry(const uint32_t size) {
   if (buffers_.empty() || !buffers_.back()->HasBytesLeft(size)) {
     // we are out of space in the buffer. Get a new buffer segment.
@@ -43,4 +43,4 @@ void RedoBuffer::Finalize(bool flush_buffer) {
     buffer_pool_->Release(buffer_seg_);
   }
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

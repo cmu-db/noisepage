@@ -17,7 +17,7 @@
 #include "loggers/execution_logger.h"
 #include "storage/index/index.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
                                          uint32_t num_oids)
@@ -168,4 +168,4 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   return true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

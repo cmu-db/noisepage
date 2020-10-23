@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalInnerJoinCommutativity
@@ -158,4 +158,4 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   transformed->emplace_back(std::move(new_parent_join));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

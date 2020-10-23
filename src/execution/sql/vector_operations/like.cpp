@@ -5,7 +5,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -68,4 +68,4 @@ void VectorOps::SelectNotLike(const exec::ExecutionSettings &exec_settings, cons
   TemplatedLikeOperation<sql::NotLike>(a, b, tid_list);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

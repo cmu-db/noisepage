@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
@@ -93,4 +93,4 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
   return oid_to_id->first;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

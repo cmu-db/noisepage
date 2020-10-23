@@ -8,7 +8,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 std::atomic<execution::translator_id_t> OperatorTranslator::translator_id_counter{20000};  // arbitrary number
 
@@ -245,4 +245,4 @@ util::RegionVector<ast::FieldDecl *> OperatorTranslator::GetHookParams(const Pip
   return params;
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -9,7 +9,7 @@
 #include "execution/sql/aggregation_hash_table.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr char GROUP_BY_TERM_ATTR_PREFIX[] = "gb_term_attr";
@@ -680,4 +680,4 @@ void HashAggregationTranslator::LaunchWork(FunctionBuilder *function, ast::Ident
                                                      GetThreadStateContainer(), work_func_name));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -16,7 +16,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 class CatalogBenchmark : public benchmark::Fixture {
  public:
@@ -139,7 +139,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetDatabaseOid)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_oid UNUSED_ATTRIBUTE = catalog_->GetDatabaseOid(common::ManagedPointer(txn), "terrier");
+    const auto test_oid UNUSED_ATTRIBUTE = catalog_->GetDatabaseOid(common::ManagedPointer(txn), "noisepage");
     TERRIER_ASSERT(test_oid == db_, "getting oid should not fail");
   }
 
@@ -348,4 +348,4 @@ BENCHMARK_REGISTER_F(CatalogBenchmark, GetTableOid)->Unit(benchmark::kNanosecond
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexObjects)->Unit(benchmark::kNanosecond);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

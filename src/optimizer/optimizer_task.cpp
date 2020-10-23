@@ -13,7 +13,7 @@
 #include "optimizer/statistics/child_stats_deriver.h"
 #include "optimizer/statistics/stats_calculator.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 //===--------------------------------------------------------------------===//
 // Base class
@@ -480,4 +480,4 @@ void BottomUpRewrite::Execute() {
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

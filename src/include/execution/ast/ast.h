@@ -13,7 +13,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace sema {
 class Sema;
@@ -1869,4 +1869,4 @@ class StructTypeRepr : public Expr {
 };
 
 }  // namespace ast
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

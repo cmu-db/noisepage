@@ -26,7 +26,7 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 class IndexKeyTests : public TerrierTest {
  public:
@@ -1276,4 +1276,4 @@ TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   delete index;
 }
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

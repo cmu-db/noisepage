@@ -5,7 +5,7 @@
 
 #include "parser/sql_statement.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * Represents the SQL "EXPLAIN ..."
@@ -27,4 +27,4 @@ class ExplainStatement : public SQLStatement {
   std::unique_ptr<SQLStatement> real_sql_stmt_;
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

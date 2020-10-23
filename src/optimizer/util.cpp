@@ -8,7 +8,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
                                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
@@ -69,4 +69,4 @@ std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValu
   return exprs;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

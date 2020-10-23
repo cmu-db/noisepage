@@ -8,7 +8,7 @@
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * Not sure what this is for. Inherited from old codebase.
@@ -56,4 +56,4 @@ class VariableSetStatement : public SQLStatement {
   bool is_set_default_;
 };
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

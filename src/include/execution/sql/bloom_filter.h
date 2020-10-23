@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "execution/sql/memory_pool.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A SIMD-optimized blocked bloom filter. The filter is composed of a contiguous set of partitions,
@@ -161,4 +161,4 @@ inline bool BloomFilter::Contains_Slow(hash_t hash) const {
 }
 #endif
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

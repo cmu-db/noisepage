@@ -8,7 +8,7 @@
 #include "loggers/optimizer_logger.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * HyperLogLog (HLL) is an approximate data structure that generates cardinality estimates.
@@ -82,4 +82,4 @@ class HyperLogLog {
   libcount::HLL *hll_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

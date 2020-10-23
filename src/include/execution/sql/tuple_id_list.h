@@ -9,7 +9,7 @@
 #include "execution/util/bit_vector.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * TupleIdList is an ordered set of tuple IDs (TID) used during query execution to efficiently
@@ -471,4 +471,4 @@ class TupleIdListIterator {
   sel_t curr_idx_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -11,7 +11,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/index/index_defs.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Schemas is a utility class that defines all 9 table schemas and 8 index schemas according to section 1.3 of the TPC-C
@@ -730,4 +730,4 @@ class Schemas {
   static constexpr uint8_t NUM_STOCK_PRIMARY_INDEX_COLS = 2;
 };
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

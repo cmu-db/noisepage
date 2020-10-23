@@ -15,16 +15,16 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 class VectorProjection;
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 class TransactionManager;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 namespace index {
 class Index;
@@ -380,4 +380,4 @@ class DataTable {
    */
   bool IsVisible(const transaction::TransactionContext &txn, TupleSlot slot) const;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

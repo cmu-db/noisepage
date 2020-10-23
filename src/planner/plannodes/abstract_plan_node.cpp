@@ -36,7 +36,7 @@
 #include "planner/plannodes/set_op_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 nlohmann::json AbstractPlanNode::ToJson() const {
   nlohmann::json j;
@@ -231,4 +231,4 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
 
 DEFINE_JSON_BODY_DECLARATIONS(AbstractPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

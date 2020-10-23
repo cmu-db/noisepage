@@ -15,7 +15,7 @@
 #include "loggers/optimizer_logger.h"
 #include "type/type_id.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Online histogram implementation based on this paper (referred to below as JMLR10):
@@ -373,4 +373,4 @@ class Histogram {
   }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

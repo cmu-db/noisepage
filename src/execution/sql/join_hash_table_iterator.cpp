@@ -1,6 +1,6 @@
 #include "execution/sql/join_hash_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 JoinHashTableIterator::JoinHashTableIterator(const JoinHashTable &table)
     : entry_list_iter_(table.owned_.begin()),
@@ -18,4 +18,4 @@ void JoinHashTableIterator::FindNextNonEmptyList() {
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace terrier {
+namespace noisepage {
 /**
  * This string specifies the environment variable that we will use to set the
  * number of threads to use for benchmarks.
@@ -27,16 +27,16 @@ class BenchmarkConfig {
    * This is a global variable that we use to specify the number of threads to use
    * for a microbenchmark. The default value is '1' but you can override it with
    * an environment variable.
-   * @see terrier::ENV_NUM_THREADS
+   * @see noisepage::ENV_NUM_THREADS
    */
   static uint32_t num_threads;
 
   /**
    * The path to use for the DBMS's WAL in benchmark runs.
    * The system assumes that the directory for the logfile is writable.
-   * @see terrier::ENV_LOGFILE_PATH
+   * @see noisepage::ENV_LOGFILE_PATH
    */
   static std::string_view logfile_path;
 };
 
-}  // namespace terrier
+}  // namespace noisepage

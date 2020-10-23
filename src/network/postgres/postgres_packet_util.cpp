@@ -12,7 +12,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 std::vector<FieldFormat> PostgresPacketUtil::ReadFormatCodes(const common::ManagedPointer<ReadBufferView> read_buffer) {
   const auto num_formats = read_buffer->ReadValue<int16_t>();
@@ -161,4 +161,4 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
   return params;
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

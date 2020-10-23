@@ -11,7 +11,7 @@
 #include "planner/plannodes/delete_plan_node.h"
 #include "storage/index/index.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 DeleteTranslator::DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context,
                                    Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DELETE),
@@ -136,4 +136,4 @@ void DeleteTranslator::SetOids(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->DeclareVar(col_oids_, arr_type, nullptr));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

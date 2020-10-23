@@ -21,7 +21,7 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * Collection of expression helpers for the optimizer and execution engine.
@@ -580,4 +580,4 @@ class ExpressionUtil {
   }
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

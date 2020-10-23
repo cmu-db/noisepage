@@ -7,7 +7,7 @@
 #include "execution/util/fast_double_parser.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 //===----------------------------------------------------------------------===//
 //
@@ -248,5 +248,5 @@ bool CSVReader::Advance() {
   return false;
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util
 #endif

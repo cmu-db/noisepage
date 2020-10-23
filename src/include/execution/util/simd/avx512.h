@@ -6,7 +6,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/simd/types.h"
 
-namespace terrier::execution::util::simd {
+namespace noisepage::execution::util::simd {
 
 #define USE_GATHER 1
 
@@ -1042,4 +1042,4 @@ static inline uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RES
   return out_pos;
 }
 
-}  // namespace terrier::execution::util::simd
+}  // namespace noisepage::execution::util::simd

@@ -7,7 +7,7 @@
 #include "transaction/transaction_context.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 template <typename KeyType>
 struct HashIndex<KeyType>::TupleSlotHash {
@@ -269,4 +269,4 @@ template class HashIndex<GenericKey<64>>;
 template class HashIndex<GenericKey<128>>;
 template class HashIndex<GenericKey<256>>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

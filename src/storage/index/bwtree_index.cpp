@@ -6,7 +6,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 template <typename KeyType>
 BwTreeIndex<KeyType>::BwTreeIndex(IndexMetadata metadata)
@@ -249,4 +249,4 @@ template class BwTreeIndex<GenericKey<128>>;
 template class BwTreeIndex<GenericKey<256>>;
 template class BwTreeIndex<GenericKey<512>>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

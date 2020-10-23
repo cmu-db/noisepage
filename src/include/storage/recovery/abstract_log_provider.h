@@ -8,7 +8,7 @@
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * @@brief Abstract class for log providers
@@ -68,4 +68,4 @@ class AbstractLogProvider {
    */
   std::pair<LogRecord *, std::vector<byte *>> ReadNextRecord();
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

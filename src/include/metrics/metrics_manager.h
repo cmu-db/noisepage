@@ -12,11 +12,11 @@
 #include "metrics/abstract_raw_data.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::settings {
+namespace noisepage::settings {
 class Callbacks;
 }
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Background thread that periodically collects data from thread level collectors
@@ -105,4 +105,4 @@ class MetricsManager {
   std::array<uint32_t, NUM_COMPONENTS> sample_interval_{0x0};
 };
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

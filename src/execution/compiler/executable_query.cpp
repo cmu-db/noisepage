@@ -14,7 +14,7 @@
 #include "loggers/execution_logger.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -170,4 +170,4 @@ void ExecutableQuery::Run(common::ManagedPointer<exec::ExecutionContext> exec_ct
   exec_ctx->SetQueryState(nullptr);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

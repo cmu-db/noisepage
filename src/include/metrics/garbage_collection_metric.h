@@ -13,7 +13,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for the garbage collection
@@ -109,4 +109,4 @@ class GarbageCollectionMetric : public AbstractMetric<GarbageCollectionMetricRaw
                                resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

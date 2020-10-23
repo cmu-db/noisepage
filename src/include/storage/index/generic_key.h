@@ -11,7 +11,7 @@
 #include "storage/storage_defs.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 // This is the maximum number of bytes to pack into a single GenericKey template. This constraint is arbitrary and can
 // be increased if 512 bytes is too small for future workloads.
@@ -160,7 +160,7 @@ class GenericKey {
       return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
     }                                                                                                                 \
     default:                                                                                                          \
-      throw std::runtime_error("Unknown TypeId in terrier::storage::index::GenericKey::TypeComparators.");            \
+      throw std::runtime_error("Unknown TypeId in noisepage::storage::index::GenericKey::TypeComparators.");            \
   }
 
     /**
@@ -231,11 +231,11 @@ class GenericKey {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
+      const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
-      if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
+      if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;
-      if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareGreaterThan(type_id, lhs_attr,
+      if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareGreaterThan(type_id, lhs_attr,
                                                                                             rhs_attr))
         return false;
 
@@ -264,7 +264,7 @@ extern template class GenericKey<64>;
 extern template class GenericKey<128>;
 extern template class GenericKey<256>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index
 
 namespace std {
 
@@ -273,13 +273,13 @@ namespace std {
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
-struct hash<terrier::storage::index::GenericKey<KeySize>> {
+struct hash<noisepage::storage::index::GenericKey<KeySize>> {
  public:
   /**
    * @param key key to be hashed
    * @return hash of the key's underlying data
    */
-  size_t operator()(terrier::storage::index::GenericKey<KeySize> const &key) const {
+  size_t operator()(noisepage::storage::index::GenericKey<KeySize> const &key) const {
     const auto &metadata = key.GetIndexMetadata();
 
     const auto &key_schema = metadata.GetSchema();
@@ -309,14 +309,14 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
-struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
+struct equal_to<noisepage::storage::index::GenericKey<KeySize>> {
   /**
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is equal to the second key
    */
-  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
-                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::GenericKey<KeySize> &lhs,
+                  const noisepage::storage::index::GenericKey<KeySize> &rhs) const {
     const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
 
     const auto &key_cols = key_schema.GetColumns();
@@ -344,9 +344,9 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
+      const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
-      if (!terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
+      if (!noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
         // one of the attrs didn't match, return non-equal
         return false;
       }
@@ -364,14 +364,14 @@ struct equal_to<terrier::storage::index::GenericKey<KeySize>> {
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
-struct less<terrier::storage::index::GenericKey<KeySize>> {
+struct less<noisepage::storage::index::GenericKey<KeySize>> {
   /**
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is less than the second key
    */
-  bool operator()(const terrier::storage::index::GenericKey<KeySize> &lhs,
-                  const terrier::storage::index::GenericKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::GenericKey<KeySize> &lhs,
+                  const noisepage::storage::index::GenericKey<KeySize> &rhs) const {
     const auto &key_schema = lhs.GetIndexMetadata().GetSchema();
     const auto &key_cols = key_schema.GetColumns();
 
@@ -399,11 +399,11 @@ struct less<terrier::storage::index::GenericKey<KeySize>> {
         return false;
       }
 
-      const terrier::type::TypeId type_id = key_schema.GetColumns()[i].Type();
+      const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
-      if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
+      if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;
-      if (terrier::storage::index::GenericKey<KeySize>::TypeComparators::CompareGreaterThan(type_id, lhs_attr,
+      if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareGreaterThan(type_id, lhs_attr,
                                                                                             rhs_attr))
         return false;
 

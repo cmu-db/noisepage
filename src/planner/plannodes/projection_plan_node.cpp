@@ -5,7 +5,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t ProjectionPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -36,4 +36,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ProjectionPlanNode::Fro
 
 DEFINE_JSON_BODY_DECLARATIONS(ProjectionPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

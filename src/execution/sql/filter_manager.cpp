@@ -9,7 +9,7 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -196,4 +196,4 @@ std::vector<const FilterManager::Clause *> FilterManager::GetOptimalClauseOrder(
   return opt;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

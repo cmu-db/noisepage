@@ -7,7 +7,7 @@
 #include "execution/sql/value_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 class CVETests : public TerrierTest {
  public:
@@ -465,4 +465,4 @@ TEST_F(CVETests, VarCharJsonTest) {
   delete[] data;
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

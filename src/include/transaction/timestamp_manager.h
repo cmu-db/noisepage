@@ -8,12 +8,12 @@
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 // Forward declaration
 class LogSerializerTask;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
 /**
  * Generates timestamps, and keeps track of the lifetime of transactions (whether they have entered or left the system)
@@ -108,4 +108,4 @@ class TimestampManager {
   std::unordered_set<timestamp_t> curr_running_txns_;
   mutable common::SpinLatch curr_running_txns_latch_;
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

@@ -7,7 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * ComparisonExpression represents comparisons between multiple expressions like < and >.
@@ -45,4 +45,4 @@ class ComparisonExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ComparisonExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

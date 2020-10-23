@@ -6,7 +6,7 @@
 #include "execution/sql/runtime_types.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VarlenEntryTest : public TplTest {};
 
@@ -91,4 +91,4 @@ TEST_F(VarlenEntryTest, Comparison) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

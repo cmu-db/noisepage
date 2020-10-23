@@ -3,7 +3,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // The operations in this file implement a fused gather+select operation. A
 // simple implementation iterates the TIDs in the input filter, loads a memory
@@ -145,32 +145,32 @@ void GatherAndSelectOperation(const Vector &input, const Vector &pointers, const
 
 void VectorOps::GatherAndSelectEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
                                      TupleIdList *tid_list) {
-  GatherAndSelectOperation<terrier::execution::sql::Equal>(input, pointers, offset, tid_list);
+  GatherAndSelectOperation<noisepage::execution::sql::Equal>(input, pointers, offset, tid_list);
 }
 
 void VectorOps::GatherAndSelectGreaterThan(const Vector &input, const Vector &pointers, const std::size_t offset,
                                            TupleIdList *tid_list) {
-  GatherAndSelectOperation<terrier::execution::sql::GreaterThan>(input, pointers, offset, tid_list);
+  GatherAndSelectOperation<noisepage::execution::sql::GreaterThan>(input, pointers, offset, tid_list);
 }
 
 void VectorOps::GatherAndSelectGreaterThanEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
                                                 TupleIdList *tid_list) {
-  GatherAndSelectOperation<terrier::execution::sql::GreaterThanEqual>(input, pointers, offset, tid_list);
+  GatherAndSelectOperation<noisepage::execution::sql::GreaterThanEqual>(input, pointers, offset, tid_list);
 }
 
 void VectorOps::GatherAndSelectLessThan(const Vector &input, const Vector &pointers, const std::size_t offset,
                                         TupleIdList *tid_list) {
-  GatherAndSelectOperation<terrier::execution::sql::LessThan>(input, pointers, offset, tid_list);
+  GatherAndSelectOperation<noisepage::execution::sql::LessThan>(input, pointers, offset, tid_list);
 }
 
 void VectorOps::GatherAndSelectLessThanEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
                                              TupleIdList *tid_list) {
-  GatherAndSelectOperation<terrier::execution::sql::LessThanEqual>(input, pointers, offset, tid_list);
+  GatherAndSelectOperation<noisepage::execution::sql::LessThanEqual>(input, pointers, offset, tid_list);
 }
 
 void VectorOps::GatherAndSelectNotEqual(const Vector &input, const Vector &pointers, const std::size_t offset,
                                         TupleIdList *tid_list) {
-  GatherAndSelectOperation<terrier::execution::sql::NotEqual>(input, pointers, offset, tid_list);
+  GatherAndSelectOperation<noisepage::execution::sql::NotEqual>(input, pointers, offset, tid_list);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

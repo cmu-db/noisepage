@@ -9,14 +9,14 @@
 #include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TimestampManager;
 class TransactionManager;
 class DeferredActionManager;
 class TransactionContext;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 class AccessObserver;
 class DataTable;
@@ -132,4 +132,4 @@ class GarbageCollector {
   uint64_t gc_interval_{0};
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

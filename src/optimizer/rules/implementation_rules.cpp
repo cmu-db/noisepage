@@ -20,7 +20,7 @@
 #include "parser/expression_util.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalGetToPhysicalTableFreeScan
@@ -1209,4 +1209,4 @@ void LogicalAnalyzeToPhysicalAnalyze::Transform(common::ManagedPointer<AbstractO
   transformed->emplace_back(std::move(op));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
