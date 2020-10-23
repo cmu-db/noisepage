@@ -124,7 +124,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
 }
 
 void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks) {
-  TERRIER_ASSERT(callbacks != nullptr, "Must provide callbacks");
+  NOISEPAGE_ASSERT(callbacks != nullptr, "Must provide callbacks");
   Compiler compiler(input);
   compiler.Run(callbacks);
 }

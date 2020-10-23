@@ -532,7 +532,7 @@ void JoinHashTable::LookupBatchInConciseHashTable(const Vector &hashes, Vector *
 }
 
 void JoinHashTable::LookupBatch(const Vector &hashes, Vector *results) const {
-  TERRIER_ASSERT(IsBuilt(), "Cannot perform lookup before table is built!");
+  NOISEPAGE_ASSERT(IsBuilt(), "Cannot perform lookup before table is built!");
   if (UsingConciseHashTable()) {
     LookupBatchInConciseHashTable(hashes, results);
   } else {
@@ -543,7 +543,7 @@ void JoinHashTable::LookupBatch(const Vector &hashes, Vector *results) const {
 template <bool Concurrent>
 void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   // TODO(pmenon): Support merging build of concise tables
-  TERRIER_ASSERT(!source->UsingConciseHashTable(), "Merging incomplete concise tables not supported");
+  NOISEPAGE_ASSERT(!source->UsingConciseHashTable(), "Merging incomplete concise tables not supported");
 
   // First, bulk-load all entries in the source table into our hash table
   chaining_hash_table_.InsertBatch<Concurrent>(&source->entries_);

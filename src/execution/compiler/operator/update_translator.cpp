@@ -119,7 +119,7 @@ void UpdateTranslator::GenUpdaterFree(noisepage::execution::compiler::FunctionBu
 }
 
 ast::Expr *UpdateTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
-  TERRIER_ASSERT(child_idx == 0, "Update plan can only have one child");
+  NOISEPAGE_ASSERT(child_idx == 0, "Update plan can only have one child");
   const auto &op = GetPlanAs<planner::UpdatePlanNode>();
   const auto &child_translator = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
   return child_translator->GetOutput(context, attr_idx);
@@ -248,7 +248,7 @@ void UpdateTranslator::GenTableDelete(FunctionBuilder *builder) const {
   // if (!@tableDelete(&deleter, &slot)) { Abort(); }
   const auto &op = GetPlanAs<planner::UpdatePlanNode>();
   const auto &child = GetCompilationContext()->LookupTranslator(*op.GetChild(0));
-  TERRIER_ASSERT(child != nullptr, "delete should have a child");
+  NOISEPAGE_ASSERT(child != nullptr, "delete should have a child");
   const auto &delete_slot = child->GetSlotAddress();
   std::vector<ast::Expr *> delete_args{GetCodeGen()->AddressOf(updater_), delete_slot};
   auto *delete_call = GetCodeGen()->CallBuiltin(ast::Builtin::TableDelete, delete_args);

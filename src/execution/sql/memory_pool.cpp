@@ -22,7 +22,7 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
 
   if (size >= mmap_threshold.load(std::memory_order_relaxed)) {
     buf = util::Memory::MallocHuge(size, true);
-    TERRIER_ASSERT(buf != nullptr, "Null memory pointer");
+    NOISEPAGE_ASSERT(buf != nullptr, "Null memory pointer");
     // No need to clear memory, guaranteed on Linux
   } else {
     if (alignment < MIN_MALLOC_ALIGNMENT) {

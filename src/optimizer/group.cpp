@@ -20,8 +20,8 @@ Group::~Group() {
 }
 
 void Group::EraseLogicalExpression() {
-  TERRIER_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
-  TERRIER_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
+  NOISEPAGE_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
+  NOISEPAGE_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
   delete logical_expressions_[0];
   logical_expressions_.clear();
 }

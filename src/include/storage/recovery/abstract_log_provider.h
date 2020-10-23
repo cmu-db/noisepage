@@ -57,7 +57,7 @@ class AbstractLogProvider {
   T ReadValue() {
     T result;
     bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
-    TERRIER_ASSERT(ret, "Reading of value failed");
+    NOISEPAGE_ASSERT(ret, "Reading of value failed");
     return result;
   }
 

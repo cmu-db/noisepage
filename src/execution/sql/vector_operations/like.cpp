@@ -28,7 +28,7 @@ void TemplatedLikeOperationVectorConstant(const Vector &a, const Vector &b, Tupl
 
 template <typename Op>
 void TemplatedLikeOperationVectorVector(const Vector &a, const Vector &b, TupleIdList *tid_list) {
-  TERRIER_ASSERT(a.GetSize() == tid_list->GetCapacity() && b.GetSize() == tid_list->GetCapacity(),
+  NOISEPAGE_ASSERT(a.GetSize() == tid_list->GetCapacity() && b.GetSize() == tid_list->GetCapacity(),
                  "Input/output TID list not large enough to store all TIDS from inputs to LIKE()");
 
   const auto *RESTRICT a_data = reinterpret_cast<const storage::VarlenEntry *>(a.GetData());

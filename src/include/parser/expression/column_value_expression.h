@@ -131,7 +131,7 @@ class ColumnValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "ColumnValueExpression should have no children");
+    NOISEPAGE_ASSERT(children.empty(), "ColumnValueExpression should have no children");
     return Copy();
   }
 

@@ -19,7 +19,7 @@ void StandardTemplatedCastOperation(const exec::ExecutionSettings &exec_settings
 
 template <typename InType>
 void CastToStringOperation(const exec::ExecutionSettings &exec_settings, const Vector &source, Vector *target) {
-  TERRIER_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
+  NOISEPAGE_ASSERT(target->GetTypeId() == TypeId::Varchar, "Result vector must be string");
   noisepage::execution::sql::Cast<InType, std::string> cast_op;
   UnaryOperationExecutor::Execute<InType, storage::VarlenEntry, true>(
       exec_settings, source, target,

@@ -67,7 +67,7 @@ class DataTable {
       if (LIKELY(slot_num_ < max_slot_num_)) {
         current_slot_ = {b, slot_num_};
       } else {
-        TERRIER_ASSERT(block_index_ <= end_index_, "block_index_ must always stay in range of table's size");
+        NOISEPAGE_ASSERT(block_index_ <= end_index_, "block_index_ must always stay in range of table's size");
         block_index_++;
         UpdateFromNextBlock();
       }
@@ -106,12 +106,12 @@ class DataTable {
 
     SlotIterator(const DataTable *table) : table_(table), block_index_(0) {  // NOLINT
       end_index_ = table_->blocks_size_;
-      TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+      NOISEPAGE_ASSERT(end_index_ >= 1, "there should always be at least one block");
       UpdateFromNextBlock();
     }
 
     void UpdateFromNextBlock() {
-      TERRIER_ASSERT(end_index_ >= 1, "there should always be at least one block");
+      NOISEPAGE_ASSERT(end_index_ >= 1, "there should always be at least one block");
 
       while (true) {
         if (UNLIKELY(block_index_ == end_index_)) {
@@ -227,7 +227,7 @@ class DataTable {
    * @return SlotIterator that will iterate over only the blocks in the range [start, end).
    */
   SlotIterator GetBlockedSlotIterator(uint32_t start, uint32_t end) const {
-    TERRIER_ASSERT(start <= end && end <= blocks_size_, "must have valid index for start and end");
+    NOISEPAGE_ASSERT(start <= end && end <= blocks_size_, "must have valid index for start and end");
     SlotIterator it(this);
     it.end_index_ = std::min<uint64_t>(it.end_index_, end);
     it.block_index_ = start;

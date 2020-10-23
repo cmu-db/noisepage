@@ -375,7 +375,7 @@ class PipelineOperatingUnits {
    */
   void RecordOperatingUnit(execution::pipeline_id_t pipeline, ExecutionOperatingUnitFeatureVector &&features) {
     UNUSED_ATTRIBUTE auto res = units_.insert(std::make_pair(pipeline, std::move(features)));
-    TERRIER_ASSERT(res.second, "Recording duplicate pipeline entry into PipelineOperatingUnits");
+    NOISEPAGE_ASSERT(res.second, "Recording duplicate pipeline entry into PipelineOperatingUnits");
   }
 
   /**
@@ -385,7 +385,7 @@ class PipelineOperatingUnits {
    */
   const ExecutionOperatingUnitFeatureVector &GetPipelineFeatures(execution::pipeline_id_t pipeline) const {
     UNUSED_ATTRIBUTE auto itr = units_.find(pipeline);
-    TERRIER_ASSERT(itr != units_.end(), "Requested pipeline could not be found in PipelineOperatingUnits");
+    NOISEPAGE_ASSERT(itr != units_.end(), "Requested pipeline could not be found in PipelineOperatingUnits");
     return itr->second;
   }
 

@@ -52,7 +52,7 @@ void AstPrettyPrintImpl::VisitArrayTypeRepr(ArrayTypeRepr *node) {
   Visit(node->ElementType());
 }
 
-void AstPrettyPrintImpl::VisitBadExpr(BadExpr *node) { TERRIER_ASSERT(false, "Invalid"); }
+void AstPrettyPrintImpl::VisitBadExpr(BadExpr *node) { NOISEPAGE_ASSERT(false, "Invalid"); }
 
 void AstPrettyPrintImpl::VisitBlockStmt(BlockStmt *node) {
   if (node->IsEmpty()) {

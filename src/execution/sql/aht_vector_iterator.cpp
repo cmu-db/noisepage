@@ -53,7 +53,7 @@ void AHTVectorIterator::BuildVectorProjection(const AHTVectorIterator::Transpose
 
   // The vector projection is now filled with vector aggregate data. Reset the VPI so that it's
   // ready for iteration.
-  TERRIER_ASSERT(!vector_projection_iterator_->IsFiltered(), "VPI shouldn't be filtered during a transpose");
+  NOISEPAGE_ASSERT(!vector_projection_iterator_->IsFiltered(), "VPI shouldn't be filtered during a transpose");
   vector_projection_iterator_->Reset();
 
   // Sanity check
@@ -61,7 +61,7 @@ void AHTVectorIterator::BuildVectorProjection(const AHTVectorIterator::Transpose
 }
 
 void AHTVectorIterator::Next(AHTVectorIterator::TransposeFn transpose_fn) {
-  TERRIER_ASSERT(HasNext(), "Iterator does not have more data");
+  NOISEPAGE_ASSERT(HasNext(), "Iterator does not have more data");
   iter_.Next();
   BuildVectorProjection(transpose_fn);
 }

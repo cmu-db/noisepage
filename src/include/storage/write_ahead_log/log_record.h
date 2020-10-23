@@ -36,7 +36,7 @@ class LogRecord {
    */
   template <class UnderlyingType>
   UnderlyingType *GetUnderlyingRecordBodyAs() {
-    TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
+    NOISEPAGE_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<UnderlyingType *>(varlen_contents_);
   }
 
@@ -48,7 +48,7 @@ class LogRecord {
    */
   template <class UnderlyingType>
   const UnderlyingType *GetUnderlyingRecordBodyAs() const {
-    TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
+    NOISEPAGE_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<const UnderlyingType *>(varlen_contents_);
   }
 

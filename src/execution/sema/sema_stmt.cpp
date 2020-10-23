@@ -70,7 +70,7 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   Visit(node->Body());
 }
 
-void Sema::VisitForInStmt(ast::ForInStmt *node) { TERRIER_ASSERT(false, "Not supported"); }
+void Sema::VisitForInStmt(ast::ForInStmt *node) { NOISEPAGE_ASSERT(false, "Not supported"); }
 
 void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->Expression()); }
 

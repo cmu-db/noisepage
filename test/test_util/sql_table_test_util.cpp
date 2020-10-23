@@ -218,7 +218,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
     // Create database in catalog
     auto database_oid =
         catalog_->CreateDatabase(common::ManagedPointer(initial_txn_), "database" + std::to_string(db_idx), true);
-    TERRIER_ASSERT(database_oid != catalog::INVALID_DATABASE_OID, "Database creation should always succeed");
+    NOISEPAGE_ASSERT(database_oid != catalog::INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
 
     // Create test namespace
@@ -231,14 +231,14 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
                                     : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
       auto table_oid = db_catalog_ptr->CreateTable(common::ManagedPointer(initial_txn_), namespace_oid,
                                                    "table" + std::to_string(table_idx), *schema);
-      TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
+      NOISEPAGE_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
       delete schema;
       table_oids_[database_oid].emplace_back(table_oid);
       auto catalog_schema = db_catalog_ptr->GetSchema(common::ManagedPointer(initial_txn_), table_oid);
       auto *sql_table = new storage::SqlTable(common::ManagedPointer(block_store), catalog_schema);
       auto result UNUSED_ATTRIBUTE =
           db_catalog_ptr->SetTablePointer(common::ManagedPointer(initial_txn_), table_oid, sql_table);
-      TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");
+      NOISEPAGE_ASSERT(result, "Setting table pointer in catalog should succeed");
 
       // Create metadata object
       auto *metadata = new SqlTableMetadata();

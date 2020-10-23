@@ -109,7 +109,7 @@ class InPlaceOperationExecutor {
         }
       }
     } else {
-      TERRIER_ASSERT(result->GetFilteredTupleIdList() == input.GetFilteredTupleIdList(),
+      NOISEPAGE_ASSERT(result->GetFilteredTupleIdList() == input.GetFilteredTupleIdList(),
                      "Filter list of inputs to in-place operation do not match");
 
       result->GetMutableNullMask()->Union(input.GetNullMask());

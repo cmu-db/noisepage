@@ -8,13 +8,13 @@ namespace noisepage {
  * This string specifies the environment variable that we will use to set the
  * number of threads to use for benchmarks.
  */
-constexpr char ENV_NUM_THREADS[] = "TERRIER_BENCHMARK_THREADS";
+constexpr char ENV_NUM_THREADS[] = "NOISEPAGE_BENCHMARK_THREADS";
 
 /**
  * This string specifies the environment variable that we will use to set the
  * file path of the logfile for benchmarks.
  */
-constexpr char ENV_LOGFILE_PATH[] = "TERRIER_BENCHMARK_LOGFILE_PATH";
+constexpr char ENV_LOGFILE_PATH[] = "NOISEPAGE_BENCHMARK_LOGFILE_PATH";
 
 /**
  * This class is a placeholder for any global configuration parameters for benchmarks.

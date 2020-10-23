@@ -29,25 +29,25 @@ ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const 
 
 void ConstantValueExpression::Validate() const {
   if (std::holds_alternative<execution::sql::Val>(value_)) {
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(
         std::get<execution::sql::Val>(value_).is_null_,
         "Should have only constructed a base-type Val in the event of a NULL (likely coming out of PostgresParser).");
   } else if (std::holds_alternative<execution::sql::BoolVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Integer>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
                        return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
                    "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Real>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
                    "Invalid TypeId for Val type.");
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(
         GetStringVal().is_null_ ||
             (buffer_ == nullptr && GetStringVal().GetLength() <= execution::sql::StringVal::InlineThreshold()) ||
             (buffer_ != nullptr && GetStringVal().GetLength() > execution::sql::StringVal::InlineThreshold()),

@@ -57,8 +57,8 @@ class OperatorNode : public AbstractOptimizerNode {
   std::unique_ptr<AbstractOptimizerNode> Copy() override {
     std::vector<std::unique_ptr<AbstractOptimizerNode>> new_children;
     for (auto &op : children_) {
-      TERRIER_ASSERT(op != nullptr, "OperatorNode should not have null children");
-      TERRIER_ASSERT(op->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
+      NOISEPAGE_ASSERT(op != nullptr, "OperatorNode should not have null children");
+      NOISEPAGE_ASSERT(op->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
 
       new_children.emplace_back(op->Copy());
     }
@@ -80,10 +80,10 @@ class OperatorNode : public AbstractOptimizerNode {
       auto &child = children_[idx];
       auto &other_child = other.children_[idx];
 
-      TERRIER_ASSERT(child != nullptr, "OperatorNode should not have null children");
-      TERRIER_ASSERT(child->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
-      TERRIER_ASSERT(other_child != nullptr, "OperatorNode should not have null children");
-      TERRIER_ASSERT(other_child->Contents()->GetOpType() != OpType::UNDEFINED,
+      NOISEPAGE_ASSERT(child != nullptr, "OperatorNode should not have null children");
+      NOISEPAGE_ASSERT(child->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
+      NOISEPAGE_ASSERT(other_child != nullptr, "OperatorNode should not have null children");
+      NOISEPAGE_ASSERT(other_child->Contents()->GetOpType() != OpType::UNDEFINED,
                      "OperatorNode should have operator children");
 
       auto *child_op = dynamic_cast<OperatorNode *>(child.get());

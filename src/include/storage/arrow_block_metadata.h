@@ -177,7 +177,7 @@ class ArrowColumnInfo {
    * @return the indices array
    */
   uint64_t *&Indices() {
-    TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
+    NOISEPAGE_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
                    "this array is only meaningful if the column is dicationary compressed");
     return indices_;
   }

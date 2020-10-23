@@ -12,7 +12,7 @@ namespace noisepage::execution::compiler {
 LimitTranslator::LimitTranslator(const planner::LimitPlanNode &plan, CompilationContext *compilation_context,
                                  Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::LIMIT) {
-  TERRIER_ASSERT(plan.GetOffset() != 0 || plan.GetLimit() != 0, "Both offset and limit cannot be 0");
+  NOISEPAGE_ASSERT(plan.GetOffset() != 0 || plan.GetLimit() != 0, "Both offset and limit cannot be 0");
   // Limits are serial ... for now.
   pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   // Prepare child.

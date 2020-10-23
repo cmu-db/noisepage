@@ -52,8 +52,8 @@ class GarbageCollector {
                    common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer);
 
   ~GarbageCollector() {
-    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
-    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
+    NOISEPAGE_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
+    NOISEPAGE_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
   }
 
   /**

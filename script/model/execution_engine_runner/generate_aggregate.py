@@ -15,7 +15,7 @@ def get_type_info(value_type):
     return get_name, type_size
 
 
-def tpl_type_to_terrier_type(value_type):
+def tpl_type_to_noisepage_type(value_type):
     if value_type == 'Integer':
         return "INTEGER"
     if value_type == 'Real':
@@ -65,7 +65,7 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
     for i in range(0, col_num):
         print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col31Row{}Car{}\", col_oids)".format(tpl_type_to_terrier_type(
+    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col31Row{}Car{}\", col_oids)".format(tpl_type_to_noisepage_type(
         value_type), row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")

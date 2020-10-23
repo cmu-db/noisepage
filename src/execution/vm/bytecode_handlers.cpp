@@ -16,17 +16,17 @@ extern "C" {
 void OpTableVectorIteratorInit(noisepage::execution::sql::TableVectorIterator *iter,
                                noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                                uint32_t *col_oids, uint32_t num_oids) {
-  TERRIER_ASSERT(iter != nullptr, "Null iterator to initialize");
+  NOISEPAGE_ASSERT(iter != nullptr, "Null iterator to initialize");
   new (iter) noisepage::execution::sql::TableVectorIterator(exec_ctx, table_oid, col_oids, num_oids);
 }
 
 void OpTableVectorIteratorPerformInit(noisepage::execution::sql::TableVectorIterator *iter) {
-  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to init");
+  NOISEPAGE_ASSERT(iter != nullptr, "NULL iterator given to init");
   iter->Init();
 }
 
 void OpTableVectorIteratorFree(noisepage::execution::sql::TableVectorIterator *iter) {
-  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
+  NOISEPAGE_ASSERT(iter != nullptr, "NULL iterator given to close");
   iter->~TableVectorIterator();
 }
 
@@ -88,7 +88,7 @@ void OpJoinHashTableFree(noisepage::execution::sql::JoinHashTable *join_hash_tab
 
 void OpJoinHashTableIteratorInit(noisepage::execution::sql::JoinHashTableIterator *iter,
                                  noisepage::execution::sql::JoinHashTable *join_hash_table) {
-  TERRIER_ASSERT(join_hash_table != nullptr, "Null hash table");
+  NOISEPAGE_ASSERT(join_hash_table != nullptr, "Null hash table");
   new (iter) noisepage::execution::sql::JoinHashTableIterator(*join_hash_table);
 }
 
@@ -122,7 +122,7 @@ void OpAggregationHashTableFree(noisepage::execution::sql::AggregationHashTable 
 
 void OpAggregationHashTableIteratorInit(noisepage::execution::sql::AHTIterator *iter,
                                         noisepage::execution::sql::AggregationHashTable *agg_hash_table) {
-  TERRIER_ASSERT(agg_hash_table != nullptr, "Null hash table");
+  NOISEPAGE_ASSERT(agg_hash_table != nullptr, "Null hash table");
   new (iter) noisepage::execution::sql::AHTIterator(*agg_hash_table);
 }
 

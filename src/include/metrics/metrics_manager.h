@@ -67,7 +67,7 @@ class MetricsManager {
    */
   void EnableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
+    NOISEPAGE_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
@@ -87,7 +87,7 @@ class MetricsManager {
    */
   void DisableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    TERRIER_ASSERT(ComponentEnabled(component), "Metric is already disabled.");
+    NOISEPAGE_ASSERT(ComponentEnabled(component), "Metric is already disabled.");
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }

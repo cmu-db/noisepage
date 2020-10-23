@@ -236,7 +236,7 @@ void ConnectionHandle::StopReceivingNetworkEvent() { EventUtil::EventDel(network
 void ConnectionHandle::Callback(void *callback_args) {
   // TODO(WAN): this is currently unused.
   auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
-  TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
+  NOISEPAGE_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
                  "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
   event_active(handle->workpool_event_, EV_WRITE, 0);
 }

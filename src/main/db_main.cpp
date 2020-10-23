@@ -9,7 +9,7 @@
 namespace noisepage {
 
 void DBMain::Run() {
-  TERRIER_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
+  NOISEPAGE_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
   try {
     server->RunServer();

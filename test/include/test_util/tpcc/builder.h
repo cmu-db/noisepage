@@ -23,9 +23,9 @@ class Builder {
           const common::ManagedPointer<catalog::Catalog> catalog,
           const common::ManagedPointer<transaction::TransactionManager> txn_manager)
       : store_(store), catalog_(catalog), txn_manager_(txn_manager) {
-    TERRIER_ASSERT(store_ != nullptr, "BlockStore cannot be nullptr.");
-    TERRIER_ASSERT(catalog_ != nullptr, "Catalog cannot be nullptr.");
-    TERRIER_ASSERT(txn_manager_ != nullptr, "TransactionManager cannot be nullptr.");
+    NOISEPAGE_ASSERT(store_ != nullptr, "BlockStore cannot be nullptr.");
+    NOISEPAGE_ASSERT(catalog_ != nullptr, "Catalog cannot be nullptr.");
+    NOISEPAGE_ASSERT(txn_manager_ != nullptr, "TransactionManager cannot be nullptr.");
   }
   Database *Build(storage::index::IndexType index_type);
 

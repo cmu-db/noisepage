@@ -66,7 +66,7 @@ class HyperLogLog {
   double RelativeError() const {
     // This comes from the original HLL++ algorithm.
     auto register_count = 1 << precision_;
-    TERRIER_ASSERT(register_count > 0, "Invalid register count");
+    NOISEPAGE_ASSERT(register_count > 0, "Invalid register count");
     return 1.04 / std::sqrt(register_count);
   }
 

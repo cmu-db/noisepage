@@ -22,7 +22,7 @@ void VectorProjection::SetStorageColIds(std::vector<storage::col_id_t> storage_c
 }
 
 void VectorProjection::InitializeEmpty(const std::vector<TypeId> &col_types) {
-  TERRIER_ASSERT(!col_types.empty(), "Cannot create projection with zero columns");
+  NOISEPAGE_ASSERT(!col_types.empty(), "Cannot create projection with zero columns");
   columns_.resize(col_types.size());
   for (uint32_t i = 0; i < col_types.size(); i++) {
     columns_[i] = std::make_unique<Vector>(col_types[i]);
@@ -75,7 +75,7 @@ void VectorProjection::RefreshFilteredTupleIdList() {
 }
 
 void VectorProjection::SetFilteredSelections(const TupleIdList &tid_list) {
-  TERRIER_ASSERT(tid_list.GetCapacity() == owned_tid_list_.GetCapacity(),
+  NOISEPAGE_ASSERT(tid_list.GetCapacity() == owned_tid_list_.GetCapacity(),
                  "Input TID list capacity doesn't match projection capacity");
 
   // Copy the input TID list.
@@ -152,7 +152,7 @@ void VectorProjection::ProjectColumns(const std::vector<uint32_t> &cols, VectorP
 }
 
 void VectorProjection::Hash(const std::vector<uint32_t> &cols, Vector *result) const {
-  TERRIER_ASSERT(!cols.empty(), "Must provide at least one column to hash.");
+  NOISEPAGE_ASSERT(!cols.empty(), "Must provide at least one column to hash.");
   VectorOps::Hash(*GetColumn(cols[0]), result);
   for (uint32_t i = 1; i < cols.size(); i++) {
     VectorOps::HashCombine(*GetColumn(cols[i]), result);
@@ -178,18 +178,18 @@ void VectorProjection::Dump(std::ostream &os) const { os << ToString() << std::e
 void VectorProjection::CheckIntegrity() const {
 #ifndef NDEBUG
   // Check that the TID list size is sufficient for this vector projection
-  TERRIER_ASSERT(owned_tid_list_.GetCapacity() == GetTotalTupleCount(),
+  NOISEPAGE_ASSERT(owned_tid_list_.GetCapacity() == GetTotalTupleCount(),
                  "TID list capacity doesn't match vector projection capacity!");
 
   // Check if the filtered TID list matches the owned list when filtered
-  TERRIER_ASSERT(!IsFiltered() || filter_ == &owned_tid_list_,
+  NOISEPAGE_ASSERT(!IsFiltered() || filter_ == &owned_tid_list_,
                  "Filtered list pointer doesn't match internal owned active TID list");
 
   // Check that all contained vectors have the same size and selection vector
   for (const auto &col : columns_) {
-    TERRIER_ASSERT(!IsFiltered() || filter_ == col->GetFilteredTupleIdList(),
+    NOISEPAGE_ASSERT(!IsFiltered() || filter_ == col->GetFilteredTupleIdList(),
                    "Vector in projection with different selection vector");
-    TERRIER_ASSERT(GetSelectedTupleCount() == col->GetCount(), "Vector size does not match rest of projection");
+    NOISEPAGE_ASSERT(GetSelectedTupleCount() == col->GetCount(), "Vector size does not match rest of projection");
   }
 
   // Let the vectors do an integrity check

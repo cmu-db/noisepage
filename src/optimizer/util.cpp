@@ -20,7 +20,7 @@ void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &
     if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL) {
       auto l_expr = expr->GetChild(0);
       auto r_expr = expr->GetChild(1);
-      TERRIER_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
+      NOISEPAGE_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
                          r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
                      "DerivedValue should not exist here");
 

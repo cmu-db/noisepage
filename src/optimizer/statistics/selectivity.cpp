@@ -37,7 +37,7 @@ double Selectivity::ComputeSelectivity(common::ManagedPointer<TableStats> stats,
 
 double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Convert value type to raw value (double)
-  TERRIER_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
+  NOISEPAGE_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
                  "It seems like there's an assumption that it's a DECIMAL type.");
   const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value)) {
@@ -55,18 +55,18 @@ double Selectivity::LessThan(common::ManagedPointer<TableStats> table_stats, con
   // Use histogram to estimate selectivity
   auto histogram = column_stats->GetHistogramBounds();
   size_t n = histogram.size();
-  TERRIER_ASSERT(n > 0, "Histogram must have some bounds");
+  NOISEPAGE_ASSERT(n > 0, "Histogram must have some bounds");
 
   // find correspond bin using binary search
   auto it = std::lower_bound(histogram.begin(), histogram.end(), value);
   double res = static_cast<double>(it - histogram.begin()) / static_cast<double>(n);
-  TERRIER_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
+  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
   return res;
 }
 
 double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const ValueCondition &condition) {
   // Convert value type to raw value (double)
-  TERRIER_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
+  NOISEPAGE_ASSERT(condition.GetPointerToValue()->GetReturnValueType() == type::TypeId::DECIMAL,
                  "It seems like there's an assumption that it's a DECIMAL type.");
   const auto value = condition.GetPointerToValue()->Peek<double>();
   if (std::isnan(value) || !table_stats->HasColumnStats(condition.GetColumnID())) {
@@ -117,7 +117,7 @@ double Selectivity::Equal(common::ManagedPointer<TableStats> table_stats, const 
           (column_stats->GetCardinality() - static_cast<double>(most_common_vals.size()));
   }
 
-  TERRIER_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
+  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
   return res;
 }
 

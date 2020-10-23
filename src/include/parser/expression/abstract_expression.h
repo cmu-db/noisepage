@@ -167,7 +167,7 @@ class AbstractExpression {
    * @return child of abstract expression at that index
    */
   common::ManagedPointer<AbstractExpression> GetChild(uint64_t index) const {
-    TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < children_.size(), "Index must be in bounds.");
     return common::ManagedPointer(children_[index]);
   }
 

@@ -109,7 +109,7 @@ class AbstractPlanNode {
    * @return child at provided index
    */
   const AbstractPlanNode *GetChild(uint32_t child_index) const {
-    TERRIER_ASSERT(child_index < children_.size(),
+    NOISEPAGE_ASSERT(child_index < children_.size(),
                    "index into children of plan node should be less than number of children");
     return children_[child_index].get();
   }

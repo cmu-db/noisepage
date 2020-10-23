@@ -34,7 +34,7 @@ StateDescriptor::StateDescriptor(ast::Identifier name, StateDescriptor::Instance
 
 StateDescriptor::Entry StateDescriptor::DeclareStateEntry(CodeGen *codegen, const std::string &name,
                                                           ast::Expr *type_repr) {
-  TERRIER_ASSERT(state_type_ == nullptr, "Cannot add to state after it's been finalized");
+  NOISEPAGE_ASSERT(state_type_ == nullptr, "Cannot add to state after it's been finalized");
   ast::Identifier member = codegen->MakeFreshIdentifier(name);
   slots_.emplace_back(member, type_repr);
   return Entry(this, member);
@@ -58,8 +58,8 @@ ast::StructDecl *StateDescriptor::ConstructFinalType(CodeGen *codegen) {
 }
 
 std::size_t StateDescriptor::GetSize() const {
-  TERRIER_ASSERT(state_type_ != nullptr, "State has not been constructed");
-  TERRIER_ASSERT(state_type_->TypeRepr()->GetType() != nullptr, "Type-checking not completed!");
+  NOISEPAGE_ASSERT(state_type_ != nullptr, "State has not been constructed");
+  NOISEPAGE_ASSERT(state_type_->TypeRepr()->GetType() != nullptr, "Type-checking not completed!");
   return state_type_->TypeRepr()->GetType()->GetSize();
 }
 

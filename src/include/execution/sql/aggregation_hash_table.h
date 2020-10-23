@@ -623,7 +623,7 @@ class AHTOverflowPartitionIterator {
    * @return The hash value of the current row.
    */
   hash_t GetRowHash() const {
-    TERRIER_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
+    NOISEPAGE_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
     return curr_->hash_;
   }
 
@@ -631,7 +631,7 @@ class AHTOverflowPartitionIterator {
    * @return The contents of the current row.
    */
   const byte *GetRow() const {
-    TERRIER_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
+    NOISEPAGE_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
     return curr_->payload_;
   }
 
@@ -641,7 +641,7 @@ class AHTOverflowPartitionIterator {
    */
   template <typename T>
   const T *GetRowAs() const {
-    TERRIER_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
+    NOISEPAGE_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
     return curr_->PayloadAs<T>();
   }
 

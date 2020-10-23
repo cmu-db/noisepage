@@ -89,7 +89,7 @@ void PrettyPrintFuncCode(std::ostream &os, const BytecodeModule &module, const F
 
     auto print_local = [&](const LocalVar local) {
       const auto *local_info = func.LookupLocalInfoByOffset(local.GetOffset());
-      TERRIER_ASSERT(local_info, "No local at offset");
+      NOISEPAGE_ASSERT(local_info, "No local at offset");
 
       os << "local=";
       if (local.GetAddressMode() == LocalVar::AddressMode::Address) {

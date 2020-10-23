@@ -18,14 +18,14 @@ timestamp_t TimestampManager::CachedOldestTransactionStartTime() { return cached
 void TimestampManager::RemoveTransaction(timestamp_t timestamp) {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(timestamp);
-  TERRIER_ASSERT(ret == 1, "erased timestamp did not exist");
+  NOISEPAGE_ASSERT(ret == 1, "erased timestamp did not exist");
 }
 
 void TimestampManager::RemoveTransactions(const std::vector<noisepage::transaction::timestamp_t> &timestamps) {
   common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
   for (const auto &timestamp : timestamps) {
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(timestamp);
-    TERRIER_ASSERT(ret == 1, "erased timestamp did not exist");
+    NOISEPAGE_ASSERT(ret == 1, "erased timestamp did not exist");
   }
 }
 

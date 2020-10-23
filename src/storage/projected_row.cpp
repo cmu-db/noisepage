@@ -21,11 +21,11 @@ ProjectedRow *ProjectedRow::CopyProjectedRowLayout(void *head, const ProjectedRo
 
 ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<uint16_t> &attr_sizes, std::vector<col_id_t> col_ids)
     : col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
-  TERRIER_ASSERT(!col_ids_.empty(), "Cannot initialize an empty ProjectedRow.");
-  TERRIER_ASSERT(col_ids_.size() == attr_sizes.size(), "Attribute sizes should correspond to the column indexes");
-  TERRIER_ASSERT(std::is_sorted(attr_sizes.cbegin(), attr_sizes.cend(), std::greater<>()),
+  NOISEPAGE_ASSERT(!col_ids_.empty(), "Cannot initialize an empty ProjectedRow.");
+  NOISEPAGE_ASSERT(col_ids_.size() == attr_sizes.size(), "Attribute sizes should correspond to the column indexes");
+  NOISEPAGE_ASSERT(std::is_sorted(attr_sizes.cbegin(), attr_sizes.cend(), std::greater<>()),
                  "Attribute sizes must be sorted descending.");
-  TERRIER_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
+  NOISEPAGE_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
                  "There should not be any duplicates in the col_ids.");
   // TODO(Tianyu): We should really assert that it has a subset of columns, but that is a bit more complicated.
 
@@ -51,7 +51,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<uint16_t> &at
 }
 
 ProjectedRow *ProjectedRowInitializer::InitializeRow(void *const head) const {
-  TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
+  NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
                  "start of ProjectedRow needs to be aligned to 8 bytes to"
                  "ensure correctness of alignment of its members");
   auto *result = reinterpret_cast<ProjectedRow *>(head);
@@ -64,7 +64,7 @@ ProjectedRow *ProjectedRowInitializer::InitializeRow(void *const head) const {
 }
 
 ProjectedRowInitializer ProjectedRowInitializer::Create(const BlockLayout &layout, std::vector<col_id_t> col_ids) {
-  TERRIER_ASSERT(col_ids.size() < layout.NumColumns(),
+  NOISEPAGE_ASSERT(col_ids.size() < layout.NumColumns(),
                  "ProjectedRow should have fewer columns than the table (can't read version vector)");
   // Sort the projection list for optimal space utilization and delta application performance
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees

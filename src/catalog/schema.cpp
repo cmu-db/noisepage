@@ -36,7 +36,7 @@ nlohmann::json Schema::ToJson() const {
 }
 
 void Schema::FromJson(const nlohmann::json &j) {
-  TERRIER_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
+  NOISEPAGE_ASSERT(false, "Schema::FromJson should never be invoked directly; use DeserializeSchema");
 }
 
 std::unique_ptr<Schema> Schema::DeserializeSchema(const nlohmann::json &j) {

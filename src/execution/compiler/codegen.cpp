@@ -264,7 +264,7 @@ ast::Expr *CodeGen::AggregateType(parser::ExpressionType agg_type, sql::TypeId r
         throw NOT_IMPLEMENTED_EXCEPTION(fmt::format("MAX() aggregates on type {}", TypeIdToString(ret_type)));
       }
     case parser::ExpressionType::AGGREGATE_SUM:
-      TERRIER_ASSERT(IsTypeNumeric(ret_type), "Only arithmetic types have sums.");
+      NOISEPAGE_ASSERT(IsTypeNumeric(ret_type), "Only arithmetic types have sums.");
       if (IsTypeIntegral(ret_type)) {
         return BuiltinType(ast::BuiltinType::IntegerSumAggregate);
       }
@@ -305,7 +305,7 @@ ast::Expr *CodeGen::PtrCast(ast::Identifier base_name, ast::Expr *arg) const {
 }
 
 ast::Expr *CodeGen::BinaryOp(parsing::Token::Type op, ast::Expr *left, ast::Expr *right) const {
-  TERRIER_ASSERT(parsing::Token::IsBinaryOp(op), "Provided operation isn't binary");
+  NOISEPAGE_ASSERT(parsing::Token::IsBinaryOp(op), "Provided operation isn't binary");
   return context_->GetNodeFactory()->NewBinaryOpExpr(position_, op, left, right);
 }
 

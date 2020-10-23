@@ -18,7 +18,7 @@ struct CatalogTestUtil {
   // with this function may have non-unique oids, but within a Schema, Column oids are unique.
   template <typename Random>
   static catalog::Schema RandomSchema(const uint16_t max_cols, Random *const generator) {
-    TERRIER_ASSERT(max_cols > 0, "There should be at least 1 columm.");
+    NOISEPAGE_ASSERT(max_cols > 0, "There should be at least 1 columm.");
     catalog::col_oid_t col_oid(0);
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
     std::vector<type::TypeId> possible_attr_types{

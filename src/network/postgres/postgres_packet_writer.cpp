@@ -65,7 +65,7 @@ void PostgresPacketWriter::WriteRowDescription(const std::vector<planner::Output
   for (uint32_t i = 0; i < columns.size(); i++) {
     const auto col_type = columns[i].GetType();
 
-    TERRIER_ASSERT(field_formats.size() == columns.size() || field_formats.size() == 1,
+    NOISEPAGE_ASSERT(field_formats.size() == columns.size() || field_formats.size() == 1,
                    "Field formats can either be the size of the number of columns, or size 1 where they all use the "
                    "same format");
     const auto field_format = field_formats[i < field_formats.size() ? i : 0];
@@ -260,7 +260,7 @@ void PostgresPacketWriter::WriteDataRow(const byte *const tuple,
 template <class native_type, class val_type>
 void PostgresPacketWriter::WriteBinaryVal(const execution::sql::Val *const val, const type::TypeId type) {
   const auto *const casted_val = reinterpret_cast<const val_type *const>(val);
-  TERRIER_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
+  NOISEPAGE_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
                  "Mismatched native type size and size reported by TypeUtil.");
   // write the length, write the attribute
   AppendValue<int32_t>(static_cast<int32_t>(type::TypeUtil::GetTypeSize(type)))
@@ -270,7 +270,7 @@ void PostgresPacketWriter::WriteBinaryVal(const execution::sql::Val *const val, 
 template <class native_type, class val_type>
 void PostgresPacketWriter::WriteBinaryValNeedsToNative(const execution::sql::Val *const val, const type::TypeId type) {
   const auto *const casted_val = reinterpret_cast<const val_type *const>(val);
-  TERRIER_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
+  NOISEPAGE_ASSERT(type::TypeUtil::GetTypeSize(type) == sizeof(native_type),
                  "Mismatched native type size and size reported by TypeUtil.");
   // write the length, write the attribute
   AppendValue<int32_t>(static_cast<int32_t>(type::TypeUtil::GetTypeSize(type)))

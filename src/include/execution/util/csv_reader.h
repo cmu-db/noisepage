@@ -229,7 +229,7 @@ class CSVReader {
      * @return This cell's value converted into a 64-bit signed integer.
      */
     int64_t AsInteger() const {
-      TERRIER_ASSERT(!escaped_, "Integer data cannot contain be escaped");
+      NOISEPAGE_ASSERT(!escaped_, "Integer data cannot contain be escaped");
       int64_t n = 0;
       std::from_chars(ptr_, ptr_ + len_, n);
       return n;
@@ -312,7 +312,7 @@ class CSVReader {
    * @return The parsed cell at the given index in the current row.
    */
   const CSVCell *GetRowCell(uint32_t idx) const {
-    TERRIER_ASSERT(idx < row_.count_, "Out-of-bounds access");
+    NOISEPAGE_ASSERT(idx < row_.count_, "Out-of-bounds access");
     return &row_.cells_[idx];
   }
 

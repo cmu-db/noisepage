@@ -36,7 +36,7 @@ class RecordBufferSegment {
    * @return pointer to the head of the allocated record
    */
   byte *Reserve(const uint32_t size) {
-    TERRIER_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
+    NOISEPAGE_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
     auto *result = bytes_ + size_;
     size_ += size;
     return result;
@@ -160,7 +160,7 @@ class RecordBufferSegmentAllocator {
    */
   RecordBufferSegment *New() {
     auto *result = new RecordBufferSegment;
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
+    NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
     return result;
   }
 

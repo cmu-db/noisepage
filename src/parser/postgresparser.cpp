@@ -1312,7 +1312,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResul
 std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *parse_result, IndexStmt *root) {
   auto unique = root->unique_;
 
-  TERRIER_ASSERT(root->relation_->relname_ != nullptr, "It can't be empty. See postgres spec.");
+  NOISEPAGE_ASSERT(root->relation_->relname_ != nullptr, "It can't be empty. See postgres spec.");
 
   auto table_name = root->relation_->relname_;
   auto schema_name = root->relation_->schemaname_ == nullptr ? "" : root->relation_->schemaname_;
@@ -1371,7 +1371,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateSchemaTransform(ParseResult 
   if (root->schemaname_ != nullptr) {
     schema_name = root->schemaname_;
   } else {
-    TERRIER_ASSERT(root->authrole_ != nullptr, "We need a schema name.");
+    NOISEPAGE_ASSERT(root->authrole_ != nullptr, "We need a schema name.");
     switch (root->authrole_->type) {
       case T_RoleSpec: {
         // TODO(WAN): old system said they didn't need the authrole.. not sure if that's true
@@ -1851,7 +1851,7 @@ std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *
 
 // Postgres.InsertStmt -> noisepage.InsertStatement
 std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(ParseResult *parse_result, InsertStmt *root) {
-  TERRIER_ASSERT(root->select_stmt_ != nullptr, "Selects from table or directly selects some values.");
+  NOISEPAGE_ASSERT(root->select_stmt_ != nullptr, "Selects from table or directly selects some values.");
 
   std::unique_ptr<InsertStatement> result;
 
@@ -1865,7 +1865,7 @@ std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(ParseResult *pa
     result = std::make_unique<InsertStatement>(std::move(column_names), std::move(table_ref), std::move(select_trans));
   } else {
     // directly insert some values
-    TERRIER_ASSERT(select_stmt->values_lists_ != nullptr, "Must have values to insert.");
+    NOISEPAGE_ASSERT(select_stmt->values_lists_ != nullptr, "Must have values to insert.");
     auto insert_values = ValueListsTransform(parse_result, select_stmt->values_lists_);
     result = std::make_unique<InsertStatement>(std::move(column_names), std::move(table_ref), std::move(insert_values));
   }
@@ -2023,8 +2023,8 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   std::vector<common::ManagedPointer<AbstractExpression>> values;
   if (name == "SESSION CHARACTERISTICS") {
     auto list_cell = root->args_->head;
-    TERRIER_ASSERT(reinterpret_cast<Node *>(list_cell->data.ptr_value)->type == T_DefElem, "Expect a DefElem.");
-    TERRIER_ASSERT(list_cell->next == nullptr, "Expect only one argument.");
+    NOISEPAGE_ASSERT(reinterpret_cast<Node *>(list_cell->data.ptr_value)->type == T_DefElem, "Expect a DefElem.");
+    NOISEPAGE_ASSERT(list_cell->next == nullptr, "Expect only one argument.");
     auto def_cell = reinterpret_cast<DefElem *>(list_cell->data.ptr_value);
     name = def_cell->defname_;
     auto expr = ConstTransform(parse_result, reinterpret_cast<AConst *>(def_cell->arg_));

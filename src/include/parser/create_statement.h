@@ -361,7 +361,7 @@ class IndexAttr {
 
   /** @return the name of the column that we're indexed on */
   std::string GetName() const {
-    TERRIER_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
+    NOISEPAGE_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
     return name_;
   }
 

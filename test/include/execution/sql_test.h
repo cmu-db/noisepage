@@ -98,7 +98,7 @@ static inline std::unique_ptr<sql::Vector> MakeVector(sql::TypeId type_id, uint3
   static inline std::unique_ptr<sql::Vector> Make##TYPE##Vector(/* NOLINT */                       \
                                                                 const std::vector<CPP_TYPE> &vals, \
                                                                 const std::vector<bool> &nulls) {  \
-    TERRIER_ASSERT(vals.size() == nulls.size(), "Value and NULL vector sizes don't match");        \
+    NOISEPAGE_ASSERT(vals.size() == nulls.size(), "Value and NULL vector sizes don't match");        \
     auto vec = Make##TYPE##Vector(vals.size());                                                    \
     for (uint64_t i = 0; i < vals.size(); i++) {                                                   \
       if (nulls[i]) {                                                                              \

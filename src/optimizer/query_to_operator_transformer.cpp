@@ -256,7 +256,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
                                          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
-      TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
+      NOISEPAGE_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
       prev_expr = std::move(join_expr);
     }
     output_expr_ = std::move(prev_expr);

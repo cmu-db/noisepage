@@ -100,7 +100,7 @@ class CaseExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "CaseExpression should have no children");
+    NOISEPAGE_ASSERT(children.empty(), "CaseExpression should have no children");
     return Copy();
   }
 
@@ -114,7 +114,7 @@ class CaseExpression : public AbstractExpression {
    * @return condition at that index
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
-    TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return common::ManagedPointer(when_clauses_[index].condition_);
   }
 
@@ -123,7 +123,7 @@ class CaseExpression : public AbstractExpression {
    * @return result at that index
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {
-    TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
     return common::ManagedPointer(when_clauses_[index].then_);
   }
 

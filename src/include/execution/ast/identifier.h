@@ -37,7 +37,7 @@ class Identifier {
    * @return The length of this identifier in bytes.
    */
   std::size_t GetLength() const {
-    TERRIER_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
+    NOISEPAGE_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
     return std::strlen(GetData());
   }
 

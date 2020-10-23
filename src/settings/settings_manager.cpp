@@ -210,7 +210,7 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
   callback_fn callback = param_map_.find(param)->second.callback_;
   (callback)(old_value, new_value, db_main_.Get(), action_context);
   ActionState action_state = action_context->GetState();
-  TERRIER_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
+  NOISEPAGE_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
                  "action context should have state of either SUCCESS or FAILURE on completion.");
   return action_state;
 }
@@ -248,7 +248,7 @@ Param SettingsManager::GetParam(const std::string &name) const {
 const settings::ParamInfo &SettingsManager::GetParamInfo(const Param &param) const {
   // Search for the parameter's information.
   auto search = param_map_.find(param);
-  TERRIER_ASSERT(search != param_map_.end(), "Mismatch between param_name_map_ and param_map_ keys.");
+  NOISEPAGE_ASSERT(search != param_map_.end(), "Mismatch between param_name_map_ and param_map_ keys.");
   const ParamInfo &info = search->second;
   return info;
 }
@@ -262,12 +262,12 @@ void SettingsManager::SetParameter(const std::string &name,
   // Search for the parameter to set.
   const Param param = GetParam(name);
   const ParamInfo &info = GetParamInfo(param);
-  TERRIER_ASSERT(info.name_ == name, "Inconsistent setting name.");
+  NOISEPAGE_ASSERT(info.name_ == name, "Inconsistent setting name.");
   const type::TypeId param_type = info.value_.GetReturnValueType();
 
   // Get the value to be set.
-  TERRIER_ASSERT(values.size() == 1, "The SettingsManager currently assumes that each setting only has one value.");
-  TERRIER_ASSERT(
+  NOISEPAGE_ASSERT(values.size() == 1, "The SettingsManager currently assumes that each setting only has one value.");
+  NOISEPAGE_ASSERT(
       std::all_of(values.begin(), values.end(),
                   [](const auto &expr) { return expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT; }),
       "Values should be constant value expressions.");

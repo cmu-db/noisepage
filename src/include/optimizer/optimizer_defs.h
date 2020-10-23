@@ -205,7 +205,7 @@ struct ExprEqualCmp {
    */
   bool operator()(common::ManagedPointer<noisepage::parser::AbstractExpression> lhs,
                   common::ManagedPointer<noisepage::parser::AbstractExpression> rhs) {
-    TERRIER_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
+    NOISEPAGE_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
     return (*lhs == *rhs);
   }
 
@@ -219,7 +219,7 @@ struct ExprEqualCmp {
    */
   bool operator()(const common::ManagedPointer<noisepage::parser::AbstractExpression> lhs,
                   const common::ManagedPointer<noisepage::parser::AbstractExpression> rhs) const {
-    TERRIER_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
+    NOISEPAGE_ASSERT(lhs != nullptr && rhs != nullptr, "AbstractExpressions should not be null");
     return (*lhs == *rhs);
   }
 };
@@ -236,7 +236,7 @@ struct ExprHasher {
    * @pre expr != nullptr
    */
   size_t operator()(const common::ManagedPointer<noisepage::parser::AbstractExpression> expr) const {
-    TERRIER_ASSERT(expr != nullptr, "AbstractExpression should not be null");
+    NOISEPAGE_ASSERT(expr != nullptr, "AbstractExpression should not be null");
     return expr->Hash();
   }
 };

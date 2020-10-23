@@ -92,7 +92,7 @@ VM_OP_HOT void OpNotSql(noisepage::execution::sql::BoolVal *const result, const 
                                                                                            \
   /* Primitive division (no zero-check) */                                                 \
   VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                        \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                   \
+    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");                                   \
     *result = lhs / rhs;                                                                   \
   }
 
@@ -103,14 +103,14 @@ ALL_NUMERIC_TYPES(ARITHMETIC);
 #define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = lhs % rhs;                                            \
   }
 
 #define FLOAT_MODULAR(type, ...)                                    \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = std::fmod(lhs, rhs);                                  \
   }
 
@@ -391,7 +391,7 @@ VM_OP_HOT void OpVPIGetSlot(noisepage::storage::TupleSlot *slot, noisepage::exec
                                 noisepage::execution::sql::VectorProjectionIterator *const vpi,       \
                                 const uint32_t col_idx) {                                           \
     auto *ptr = vpi->GetValue<CppType, false>(col_idx, nullptr);                                    \
-    TERRIER_ASSERT(ptr != nullptr, "Null data pointer when trying to read attribute");              \
+    NOISEPAGE_ASSERT(ptr != nullptr, "Null data pointer when trying to read attribute");              \
     out->is_null_ = false;                                                                          \
     out->val_ = *ptr;                                                                               \
   }                                                                                                 \
@@ -400,7 +400,7 @@ VM_OP_HOT void OpVPIGetSlot(noisepage::storage::TupleSlot *slot, noisepage::exec
                                       const uint32_t col_idx) {                                     \
     bool null = false;                                                                              \
     auto *ptr = vpi->GetValue<CppType, true>(col_idx, &null);                                       \
-    TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                     \
+    NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                     \
     out->is_null_ = null;                                                                           \
     out->val_ = *ptr;                                                                               \
   }
@@ -445,7 +445,7 @@ GEN_VPI_SET(String, StringVal, noisepage::storage::VarlenEntry);
 VM_OP_HOT void OpVPIGetPointer(noisepage::byte **out, noisepage::execution::sql::VectorProjectionIterator *const vpi,
                                const uint32_t col_idx) {
   auto *ptr = vpi->GetValue<noisepage::byte *, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null data pointer when trying to read attribute");
+  NOISEPAGE_ASSERT(ptr != nullptr, "Null data pointer when trying to read attribute");
   *out = *ptr;
 }
 
@@ -1771,7 +1771,7 @@ VM_OP_WARM void OpIndexIteratorGetSlot(noisepage::storage::TupleSlot *slot,
                                uint16_t col_idx) {                                                              \
     /* Read */                                                                                                  \
     auto *ptr = pr->Get<CppType, false>(col_idx, nullptr);                                                      \
-    TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                                 \
+    NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                                 \
     /* Set */                                                                                                   \
     out->is_null_ = false;                                                                                      \
     out->val_ = *ptr;                                                                                           \
@@ -1842,7 +1842,7 @@ VM_OP_HOT void OpPRGetDateVal(noisepage::execution::sql::DateVal *out, noisepage
                               uint16_t col_idx) {
   // Read
   auto *ptr = pr->Get<uint32_t, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
   // Set
   out->is_null_ = false;
   out->val_ = noisepage::execution::sql::Date::FromNative(*ptr);
@@ -1863,7 +1863,7 @@ VM_OP_HOT void OpPRGetTimestampVal(noisepage::execution::sql::TimestampVal *out,
                                    uint16_t col_idx) {
   // Read
   auto *ptr = pr->Get<uint64_t, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
   out->is_null_ = false;
@@ -1885,7 +1885,7 @@ VM_OP_HOT void OpPRGetVarlen(noisepage::execution::sql::StringVal *out, noisepag
                              uint16_t col_idx) {
   // Read
   auto *varlen = pr->Get<noisepage::storage::VarlenEntry, false>(col_idx, nullptr);
-  TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+  NOISEPAGE_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
   *out = noisepage::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());

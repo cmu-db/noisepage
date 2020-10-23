@@ -13,7 +13,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
   // If leaf, then just return
   if (gexpr->Contents()->GetOpType() == OpType::LEAF) {
     const auto leaf = gexpr->Contents()->GetContentsAs<LeafOperator>();
-    TERRIER_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
+    NOISEPAGE_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
                    "target_group does not match the LeafOperator's group");
     gexpr->SetGroupID(leaf->GetOriginGroup());
 
@@ -25,7 +25,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
   // Lookup in hash table
   auto it = group_expressions_.find(gexpr);
   if (it != group_expressions_.end()) {
-    TERRIER_ASSERT(*gexpr == *(*it), "GroupExpression should be equal");
+    NOISEPAGE_ASSERT(*gexpr == *(*it), "GroupExpression should be equal");
     delete gexpr;
     return *it;
   }

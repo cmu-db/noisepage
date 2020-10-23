@@ -97,7 +97,7 @@ void NetworkIoWrapper::RestartState() {
   // This causes all socket operations to return immediately with errno EWOULDBLOCK instead of blocking.
   {
     auto flags = fcntl(sock_fd_, F_GETFL);
-    TERRIER_ASSERT(flags != -1, "If this syscall returned an error, you have bigger problems.");
+    NOISEPAGE_ASSERT(flags != -1, "If this syscall returned an error, you have bigger problems.");
     flags |= O_NONBLOCK;
     err = fcntl(sock_fd_, F_SETFL, flags);
     if (err < 0) {

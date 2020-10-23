@@ -206,7 +206,7 @@ class BufferedLogReader {
   T ReadValue() {
     T result;
     bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
-    TERRIER_ASSERT(ret, "Reading of value failed");
+    NOISEPAGE_ASSERT(ret, "Reading of value failed");
     return result;
   }
 
@@ -216,7 +216,7 @@ class BufferedLogReader {
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   void ReadFromBuffer(void *dest, uint32_t size) {
-    TERRIER_ASSERT(read_head_ + size <= filled_size_, "Not enough bytes in buffer for the read");
+    NOISEPAGE_ASSERT(read_head_ + size <= filled_size_, "Not enough bytes in buffer for the read");
     std::memcpy(dest, buffer_ + read_head_, size);
     read_head_ += size;
   }

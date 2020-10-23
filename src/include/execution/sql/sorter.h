@@ -251,7 +251,7 @@ class SorterIterator {
    * @return A pointer to the current row. It assumed the called has checked the iterator is valid.
    */
   const byte *GetRow() const {
-    TERRIER_ASSERT(iter_ != end_, "Invalid iterator");
+    NOISEPAGE_ASSERT(iter_ != end_, "Invalid iterator");
     return *iter_;
   }
 

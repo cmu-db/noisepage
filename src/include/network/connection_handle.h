@@ -106,8 +106,8 @@ class ConnectionHandle {
   void StopReceivingNetworkEvent();
 
   /**
-   * issues a libevent to wake up the state machine in the WAIT_ON_TERRIER state
-   * @param callback_args this for a ConnectionHandle in WAIT_ON_TERRIER state
+   * issues a libevent to wake up the state machine in the WAIT_ON_NOISEPAGE state
+   * @param callback_args this for a ConnectionHandle in WAIT_ON_NOISEPAGE state
    */
   static void Callback(void *callback_args);
 

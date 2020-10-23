@@ -66,7 +66,7 @@ class TopKElements {
    * @param delta the amount to increase the key's count
    */
   void Increment(const KeyType &key, const size_t key_size, const uint32_t delta) {
-    TERRIER_ASSERT(delta >= 0, "Invalid delta");
+    NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
 
     // Increment the count for this item in the sketch
     sketch_->Increment(key, key_size, delta);
@@ -155,7 +155,7 @@ class TopKElements {
    * @param delta the amount to increase the key's count
    */
   void Decrement(const KeyType &key, const size_t key_size, uint32_t delta) {
-    TERRIER_ASSERT(delta >= 0, "Invalid delta");
+    NOISEPAGE_ASSERT(delta >= 0, "Invalid delta");
     OPTIMIZER_LOG_TRACE("Decrement(key={0}, delta={1}) // [size={2}]", key, delta, GetSize());
 
     // Decrement the count for this item in the sketch

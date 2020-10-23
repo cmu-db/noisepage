@@ -34,7 +34,7 @@ void OperatorExpression::DeriveReturnValueType() {
     return t1->GetReturnValueType() < t2->GetReturnValueType();
   });
   const auto &type = (*max_type_child)->GetReturnValueType();
-  TERRIER_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
+  NOISEPAGE_ASSERT(type <= type::TypeId::DECIMAL, "Invalid operand type in Operator Expression.");
   this->SetReturnValueType(type);
 }
 

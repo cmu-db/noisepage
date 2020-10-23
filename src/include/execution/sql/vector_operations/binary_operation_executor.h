@@ -85,7 +85,7 @@ class BinaryOperationExecutor {
                   "Binary operation has invalid interface for given template arguments.");
 
     // Ensure at least one of the inputs are vectors.
-    TERRIER_ASSERT(!left.IsConstant() || !right.IsConstant(), "Both inputs to binary cannot be constants");
+    NOISEPAGE_ASSERT(!left.IsConstant() || !right.IsConstant(), "Both inputs to binary cannot be constants");
 
     if (left.IsConstant()) {
       ExecuteImplConstantVector<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_settings, left, right, result,
@@ -170,9 +170,9 @@ class BinaryOperationExecutor {
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
   static void ExecuteImplVectorVector(const exec::ExecutionSettings &exec_settings, const Vector &left,
                                       const Vector &right, Vector *result, Op &&op) {
-    TERRIER_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
+    NOISEPAGE_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
                    "Mismatched selection vectors for comparison");
-    TERRIER_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
+    NOISEPAGE_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
 
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());

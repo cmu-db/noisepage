@@ -158,7 +158,7 @@ void TerrierServer::StopServer() {
   // Stop the dispatcher task and close the socket's file descriptor.
   const bool is_task_stopped UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
-  TERRIER_ASSERT(is_task_stopped, "Failed to stop ConnectionDispatcherTask.");
+  NOISEPAGE_ASSERT(is_task_stopped, "Failed to stop ConnectionDispatcherTask.");
 
   // Close the network socket
   TerrierClose(network_socket_fd_);

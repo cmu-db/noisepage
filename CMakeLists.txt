@@ -1285,9 +1285,9 @@ else ()
             -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
             USES_TERMINAL
             )
-    if (TERRIER_BUILD_BENCHMARKS)
+    if (NOISEPAGE_BUILD_BENCHMARKS)
         add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
-    elseif (TERRIER_BUILD_TESTS)
+    elseif (NOISEPAGE_BUILD_TESTS)
         add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
     endif ()
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")

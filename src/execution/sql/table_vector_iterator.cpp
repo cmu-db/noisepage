@@ -35,7 +35,7 @@ bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
 
   // Set up the table and the iterator.
   table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
-  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
+  NOISEPAGE_ASSERT(table_ != nullptr, "Table must exist!!");
   if (block_start == 0 && block_end == storage::DataTable::GetMaxBlocks()) {
     iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
   } else {

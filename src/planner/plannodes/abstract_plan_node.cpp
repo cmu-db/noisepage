@@ -52,7 +52,7 @@ nlohmann::json AbstractPlanNode::ToJson() const {
 
 std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJson(const nlohmann::json &j) {
   std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
-  TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
+  NOISEPAGE_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   // Deserialize output schema
   if (!j.at("output_schema").is_null()) {
     output_schema_ = std::make_unique<OutputSchema>();

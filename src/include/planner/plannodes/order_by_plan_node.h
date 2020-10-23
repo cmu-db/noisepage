@@ -141,7 +141,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @return limit for sort
    */
   size_t GetLimit() const {
-    TERRIER_ASSERT(HasLimit(), "OrderBy plan has no limit");
+    NOISEPAGE_ASSERT(HasLimit(), "OrderBy plan has no limit");
     return limit_;
   }
 

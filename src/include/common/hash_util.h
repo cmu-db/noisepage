@@ -227,13 +227,13 @@ class EXPORT HashUtil {
     switch (len) {
       case 3:
         hash ^= (static_cast<uint64_t>(buf[2])) << 16u;
-        TERRIER_FALLTHROUGH;
+        NOISEPAGE_FALLTHROUGH;
       case 2:
         hash ^= (static_cast<uint64_t>(buf[1])) << 8u;
-        TERRIER_FALLTHROUGH;
+        NOISEPAGE_FALLTHROUGH;
       case 1:
         hash ^= buf[0];
-        TERRIER_FALLTHROUGH;
+        NOISEPAGE_FALLTHROUGH;
       default:
         break;
     }

@@ -21,7 +21,7 @@ class TransactionManager;
 class TimestampManager {
  public:
   ~TimestampManager() {
-    TERRIER_ASSERT(curr_running_txns_.empty(),
+    NOISEPAGE_ASSERT(curr_running_txns_.empty(),
                    "Destroying the TimestampManager while txns are still running. That seems wrong.");
   }
 
@@ -78,7 +78,7 @@ class TimestampManager {
       start_time = time_++;
 
       const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(start_time);
-      TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
+      NOISEPAGE_ASSERT(ret.second, "commit start time should be globally unique");
     }  // Release latch on current running transactions
     return start_time;
   }

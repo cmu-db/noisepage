@@ -128,7 +128,7 @@ class Index {
   virtual void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
                              ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
                              std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -140,7 +140,7 @@ class Index {
    */
   virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                               const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -153,7 +153,7 @@ class Index {
    */
   virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                                    const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**

@@ -24,8 +24,8 @@ class DeferredActionManager {
 
   ~DeferredActionManager() {
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-    TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
-    TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
+    NOISEPAGE_ASSERT(back_log_.empty(), "Backlog is not empty");
+    NOISEPAGE_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
   }
 
   /**

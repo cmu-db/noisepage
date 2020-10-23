@@ -469,7 +469,7 @@ class EXPORT VectorOps {
         uint64_t k = 0;
         tid_list->ForEach([&](const uint64_t i) { f(i, k++); });
       } else {
-        TERRIER_ASSERT(tid_list->GetCapacity() <= common::Constants::K_DEFAULT_VECTOR_SIZE, "TID list too large");
+        NOISEPAGE_ASSERT(tid_list->GetCapacity() <= common::Constants::K_DEFAULT_VECTOR_SIZE, "TID list too large");
         alignas(common::Constants::CACHELINE_SIZE) sel_t sel_vector[common::Constants::K_DEFAULT_VECTOR_SIZE];
         UNUSED_ATTRIBUTE uint64_t size = tid_list->ToSelectionVector(sel_vector);
         for (uint64_t i = offset; i < count; i++) {

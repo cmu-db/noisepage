@@ -253,7 +253,7 @@ inline void ConciseHashTable::PrefetchSlotGroup(hash_t hash) const {
 }
 
 inline uint64_t ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlot slot) const {
-  TERRIER_ASSERT(IsBuilt(), "Table must be built");
+  NOISEPAGE_ASSERT(IsBuilt(), "Table must be built");
 
   const uint64_t group_idx = GroupIndex(slot);
   const uint64_t bit_idx = GroupSlotIndex(slot);

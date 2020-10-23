@@ -20,7 +20,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
     case (storage::LogRecordType::COMMIT): {
       auto txn_commit = ReadValue<transaction::timestamp_t>();
       auto oldest_active_txn = ReadValue<transaction::timestamp_t>();
-      TERRIER_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
+      NOISEPAGE_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
                      "INVALID_TXN_TIMESTAMP indicates this was a read only txn, which should "
                      "never have been flushed to disk/network");
       // Okay to fill in null since nobody will invoke the callback.
@@ -82,7 +82,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
       auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
       record_body->SetTupleSlot(tuple_slot);
       auto *delta = record_body->Delta();
-      TERRIER_ASSERT(delta->NumColumns() == num_cols,
+      NOISEPAGE_ASSERT(delta->NumColumns() == num_cols,
                      "ProjectedRow must have same number of columns as what was serialized.");
 
       // Get an in memory copy of the record's null bitmap. Note: this is used to guide how the rest of the log file is

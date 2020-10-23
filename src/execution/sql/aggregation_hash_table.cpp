@@ -75,7 +75,7 @@ class AggregationHashTable::HashToGroupIdMap {
 
   // Insert a new hash-group mapping.
   void Insert(const hash_t hash, const uint16_t gid) {
-    TERRIER_ASSERT(storage_used_ < common::Constants::K_DEFAULT_VECTOR_SIZE, "Too many elements in table");
+    NOISEPAGE_ASSERT(storage_used_ < common::Constants::K_DEFAULT_VECTOR_SIZE, "Too many elements in table");
 
     // Determine the spot in the storage the new entry occupies.
     uint16_t entry_pos = storage_used_++;
@@ -256,7 +256,7 @@ byte *AggregationHashTable::AllocInputTuple(const hash_t hash) {
 }
 
 void AggregationHashTable::AllocateOverflowPartitions() {
-  TERRIER_ASSERT((partition_heads_ == nullptr) == (partition_tails_ == nullptr),
+  NOISEPAGE_ASSERT((partition_heads_ == nullptr) == (partition_tails_ == nullptr),
                  "Head and tail of overflow partitions list are not equally allocated");
 
   if (partition_heads_ == nullptr) {
@@ -570,7 +570,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thr
     // Now, move over their memory
     owned_entries_.emplace_back(std::move(table->entries_));
 
-    TERRIER_ASSERT(table->owned_entries_.empty(),
+    NOISEPAGE_ASSERT(table->owned_entries_.empty(),
                    "A thread-local aggregation table should not have any owned "
                    "entries themselves. Nested/recursive aggregations not supported.");
 
@@ -594,10 +594,10 @@ void AggregationHashTable::TransferMemoryAndPartitions(ThreadStateContainer *thr
 
 AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *query_state,
                                                                          const uint32_t partition_idx) {
-  TERRIER_ASSERT(partition_idx < DEFAULT_NUM_PARTITIONS, "Out-of-bounds partition access");
-  TERRIER_ASSERT(partition_heads_[partition_idx] != nullptr,
+  NOISEPAGE_ASSERT(partition_idx < DEFAULT_NUM_PARTITIONS, "Out-of-bounds partition access");
+  NOISEPAGE_ASSERT(partition_heads_[partition_idx] != nullptr,
                  "Should not build aggregation table over empty partition!");
-  TERRIER_ASSERT(merge_partition_fn_ != nullptr,
+  NOISEPAGE_ASSERT(merge_partition_fn_ != nullptr,
                  "Merging function was not provided! Did you forget to call TransferMemoryAndPartitions()?");
 
   // If the table has already been built, return it
@@ -629,7 +629,7 @@ AggregationHashTable *AggregationHashTable::GetOrBuildTableOverPartition(void *q
 }
 
 void AggregationHashTable::ExecutePartitionedScan(void *query_state, AggregationHashTable::ScanPartitionFn scan_fn) {
-  TERRIER_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
+  NOISEPAGE_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
                  "No overflow partitions allocated, or no merging function allocated. Did you call "
                  "TransferMemoryAndPartitions() before issuing the partitioned scan?");
 
@@ -654,7 +654,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   // growth factor. Each aggregation hash table partition will be built and
   // scanned in parallel.
 
-  TERRIER_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
+  NOISEPAGE_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
                  "No overflow partitions allocated, or no merging function allocated. Did you call "
                  "TransferMemoryAndPartitions() before issuing the partitioned scan?");
 
@@ -703,7 +703,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
 }
 
 void AggregationHashTable::BuildAllPartitions(void *query_state) {
-  TERRIER_ASSERT(partition_tables_ == nullptr, "Should not have built aggregation hash tables already");
+  NOISEPAGE_ASSERT(partition_tables_ == nullptr, "Should not have built aggregation hash tables already");
   partition_tables_ = memory_->AllocateArray<AggregationHashTable *>(DEFAULT_NUM_PARTITIONS, true);
 
   // Find non-empty partitions.

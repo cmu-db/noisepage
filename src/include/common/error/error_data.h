@@ -62,8 +62,8 @@ class ErrorData {
    * @param message value of this field to be sent back to the client
    */
   void AddField(ErrorField field, const std::string_view message) {
-    TERRIER_ASSERT(field != ErrorField::HUMAN_READABLE_ERROR, "ErrorData already contains a required message.");
-    TERRIER_ASSERT(field != ErrorField::CODE, "ErrorData already contains a required code.");
+    NOISEPAGE_ASSERT(field != ErrorField::HUMAN_READABLE_ERROR, "ErrorData already contains a required message.");
+    NOISEPAGE_ASSERT(field != ErrorField::CODE, "ErrorData already contains a required code.");
     fields_.emplace_back(field, std::string(message));
   }
 

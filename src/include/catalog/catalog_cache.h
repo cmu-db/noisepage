@@ -61,7 +61,7 @@ class CatalogCache {
   void PutTable(const table_oid_t table, const common::ManagedPointer<storage::SqlTable> table_ptr) {
     const auto key = table.UnderlyingValue();
     const auto value = reinterpret_cast<uintptr_t>(table_ptr.Get());
-    TERRIER_ASSERT(pointers_.count(key) == 0, "Shouldn't be inserting something that already exists.");
+    NOISEPAGE_ASSERT(pointers_.count(key) == 0, "Shouldn't be inserting something that already exists.");
     pointers_[key] = value;
   }
 
@@ -78,7 +78,7 @@ class CatalogCache {
   void PutIndex(const index_oid_t index, const common::ManagedPointer<storage::index::Index> index_ptr) {
     const auto key = index.UnderlyingValue();
     const auto value = reinterpret_cast<uintptr_t>(index_ptr.Get());
-    TERRIER_ASSERT(pointers_.count(key) == 0, "Shouldn't be inserting something that already exists.");
+    NOISEPAGE_ASSERT(pointers_.count(key) == 0, "Shouldn't be inserting something that already exists.");
     pointers_[key] = value;
   }
 
@@ -93,7 +93,7 @@ class CatalogCache {
   }
 
   void PutIndexOids(const table_oid_t table, std::vector<index_oid_t> indexes) {
-    TERRIER_ASSERT(indexes_.count(table) == 0, "Shouldn't be inserting something that already exists.");
+    NOISEPAGE_ASSERT(indexes_.count(table) == 0, "Shouldn't be inserting something that already exists.");
     indexes_[table] = std::move(indexes);
   }
 

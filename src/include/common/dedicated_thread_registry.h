@@ -102,7 +102,7 @@ class DedicatedThreadRegistry {
       common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
       // Exposing the raw pointer like this is okay because we own the underlying raw pointer
       auto search = threads_table_.find(task.operator->());
-      TERRIER_ASSERT(search != threads_table_.end(), "Task is not registered");
+      NOISEPAGE_ASSERT(search != threads_table_.end(), "Task is not registered");
       task_ptr = search->first;
       task_thread = &search->second;
     }

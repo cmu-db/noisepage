@@ -58,7 +58,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
-  TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
+  NOISEPAGE_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
 std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
@@ -68,7 +68,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
 
   {
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-    TERRIER_ASSERT(serialized_txns_.empty(),
+    NOISEPAGE_ASSERT(serialized_txns_.empty(),
                    "Aggregated txn timestamps should have been handed off to TimestampManager");
     // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
     // came in during the previous serialization loop

@@ -74,7 +74,7 @@ class DBMain {
      */
     TransactionLayer(const common::ManagedPointer<storage::RecordBufferSegmentPool> buffer_segment_pool,
                      const bool gc_enabled, const common::ManagedPointer<storage::LogManager> log_manager) {
-      TERRIER_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
+      NOISEPAGE_ASSERT(buffer_segment_pool != nullptr, "Need a buffer segment pool for Transaction layer.");
       timestamp_manager_ = std::make_unique<transaction::TimestampManager>();
       deferred_action_manager_ =
           std::make_unique<transaction::DeferredActionManager>(common::ManagedPointer(timestamp_manager_));
@@ -185,7 +185,7 @@ class DBMain {
         : deferred_action_manager_(txn_layer->GetDeferredActionManager()),
           garbage_collector_(storage_layer->GetGarbageCollector()),
           log_manager_(log_manager) {
-      TERRIER_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
+      NOISEPAGE_ASSERT(garbage_collector_ != DISABLED, "Required component missing.");
 
       catalog_ = std::make_unique<catalog::Catalog>(txn_layer->GetTransactionManager(), storage_layer->GetBlockStore(),
                                                     garbage_collector_);
@@ -291,7 +291,7 @@ class DBMain {
 
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
-        TERRIER_ASSERT(use_metrics_ && metrics_manager != DISABLED,
+        NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
                        "Can't have a MetricsThread without a MetricsManager.");
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
                                                                   std::chrono::microseconds{metrics_interval_});
@@ -322,7 +322,7 @@ class DBMain {
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
-        TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED, "Catalog needs GarbageCollector.");
+        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED, "Catalog needs GarbageCollector.");
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
                                            common::ManagedPointer(log_manager), create_default_database_);
@@ -330,7 +330,7 @@ class DBMain {
 
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
       if (use_gc_thread_) {
-        TERRIER_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
+        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
                        "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::microseconds{gc_interval_},
@@ -349,10 +349,10 @@ class DBMain {
 
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
-        TERRIER_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
+        NOISEPAGE_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
                        "TrafficCopLayer needs the CatalogLayer.");
-        TERRIER_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
-        TERRIER_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
+        NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
+        NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
             txn_layer->GetTransactionManager(), catalog_layer->GetCatalog(), DISABLED,
             common::ManagedPointer(settings_manager), common::ManagedPointer(stats_storage), optimizer_timeout_,
@@ -361,7 +361,7 @@ class DBMain {
 
       std::unique_ptr<NetworkLayer> network_layer = DISABLED;
       if (use_network_) {
-        TERRIER_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
+        NOISEPAGE_ASSERT(use_traffic_cop_ && traffic_cop != DISABLED, "NetworkLayer needs TrafficCopLayer.");
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
                                            network_port_, connection_thread_count_, uds_file_directory_);
@@ -679,7 +679,7 @@ class DBMain {
      */
     std::unique_ptr<settings::SettingsManager> BootstrapSettingsManager(const common::ManagedPointer<DBMain> db_main) {
       std::unique_ptr<settings::SettingsManager> settings_manager;
-      TERRIER_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
+      NOISEPAGE_ASSERT(!param_map_.empty(), "Settings parameter map was never set.");
       settings_manager = std::make_unique<settings::SettingsManager>(db_main, std::move(param_map_));
 
       record_buffer_segment_size_ =

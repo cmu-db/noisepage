@@ -91,7 +91,7 @@ struct Divide {
    * @return The result of a/b;
    */
   constexpr T operator()(T a, T b) const {
-    TERRIER_ASSERT(b != 0, "Divide by zero");  // Assumed to have checked earlier.
+    NOISEPAGE_ASSERT(b != 0, "Divide by zero");  // Assumed to have checked earlier.
     return a / b;
   }
 };
@@ -106,7 +106,7 @@ struct Modulo {
    * @return The result of a%b;
    */
   constexpr T operator()(T a, T b) const {
-    TERRIER_ASSERT(b != 0, "Divide by zero");  // Assumed to have checked earlier.
+    NOISEPAGE_ASSERT(b != 0, "Divide by zero");  // Assumed to have checked earlier.
     return a % b;
   }
 };
@@ -121,7 +121,7 @@ struct Modulo<T, std::enable_if_t<std::is_floating_point_v<T>>> {
    * @return The result of a%b;
    */
   constexpr T operator()(T a, T b) const {
-    TERRIER_ASSERT(b != 0, "Divide by zero");  // Assumed to have checked earlier.
+    NOISEPAGE_ASSERT(b != 0, "Divide by zero");  // Assumed to have checked earlier.
     return std::fmod(a, b);
   }
 };

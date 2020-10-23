@@ -4,12 +4,12 @@
 namespace noisepage::execution::sql {
 
 void VectorOps::IsNull(const Vector &input, TupleIdList *tid_list) {
-  TERRIER_ASSERT(input.GetSize() == tid_list->GetCapacity(), "Input vector size != TID list size");
+  NOISEPAGE_ASSERT(input.GetSize() == tid_list->GetCapacity(), "Input vector size != TID list size");
   tid_list->GetMutableBits()->Intersect(input.GetNullMask());
 }
 
 void VectorOps::IsNotNull(const Vector &input, TupleIdList *tid_list) {
-  TERRIER_ASSERT(input.GetSize() == tid_list->GetCapacity(), "Input vector size != TID list size");
+  NOISEPAGE_ASSERT(input.GetSize() == tid_list->GetCapacity(), "Input vector size != TID list size");
   tid_list->GetMutableBits()->Difference(input.GetNullMask());
 }
 

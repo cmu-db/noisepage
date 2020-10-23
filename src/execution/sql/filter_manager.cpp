@@ -131,7 +131,7 @@ void FilterManager::StartNewClause() {
 }
 
 void FilterManager::InsertClauseTerm(const FilterManager::MatchFn term) {
-  TERRIER_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
+  NOISEPAGE_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
   clauses_.back()->AddTerm(term);
 }
 

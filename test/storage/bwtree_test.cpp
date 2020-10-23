@@ -30,7 +30,7 @@ struct BwTreeTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
-  TERRIER_ASSERT(num_threads_ % 2 == 0,
+  NOISEPAGE_ASSERT(num_threads_ % 2 == 0,
                  "This test requires an even number of threads. This should have been handled when it was assigned.");
 
   // This defines the key space (0 ~ (1M - 1))
@@ -272,7 +272,7 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ConcurrentMixed) {
-  TERRIER_ASSERT(num_threads_ % 2 == 0,
+  NOISEPAGE_ASSERT(num_threads_ % 2 == 0,
                  "This test requires an even number of threads. This should have been handled when it was assigned.");
 
   // This defines the key space (0 ~ (1M - 1))

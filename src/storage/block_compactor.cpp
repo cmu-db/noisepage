@@ -77,7 +77,7 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
   for (auto &entry : cg->blocks_to_compact_) {
     RawBlock *block = entry.first;
     std::vector<uint32_t> &empty_slots = entry.second;
-    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
+    NOISEPAGE_ASSERT(block->GetInsertHead() == layout.NumSlots(),
                    "The block should be full to stop inserts from coming in");
 
     // We will loop through each block and figure out if we are safe to proceed with compaction and identify
@@ -357,7 +357,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
     uint64_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
 
     byte *dictionary_word = new_col.Values() + new_col.Offsets()[dictionary_code];
-    TERRIER_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
+    NOISEPAGE_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
                    "varlen entry should be equal to the dictionary word it is encoded as ");
     // Similar to in CopyToArrowVarlen this is safe even when there are concurrent readers
     if (entry.Size() > VarlenEntry::InlineThreshold())

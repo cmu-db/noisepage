@@ -106,7 +106,7 @@ void InsertTranslator::GenInserterFree(noisepage::execution::compiler::FunctionB
 }
 
 ast::Expr *InsertTranslator::GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const {
-  TERRIER_ASSERT(child_idx == 0, "Insert plan can only have one child");
+  NOISEPAGE_ASSERT(child_idx == 0, "Insert plan can only have one child");
 
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }

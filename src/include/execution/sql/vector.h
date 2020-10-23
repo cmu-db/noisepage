@@ -224,10 +224,10 @@ class EXPORT Vector {
    * @param count The number of elements in the selection vector.
    */
   void SetFilteredTupleIdList(const TupleIdList *tid_list, const uint64_t count) {
-    TERRIER_ASSERT(tid_list == nullptr || tid_list->GetCapacity() == num_elements_,
+    NOISEPAGE_ASSERT(tid_list == nullptr || tid_list->GetCapacity() == num_elements_,
                    "TID list too small to capture all vector elements");
-    TERRIER_ASSERT(tid_list == nullptr || tid_list->GetTupleCount() == count, "TID list size and count do not match");
-    TERRIER_ASSERT(count <= num_elements_, "TID list count must be smaller than vector size");
+    NOISEPAGE_ASSERT(tid_list == nullptr || tid_list->GetTupleCount() == count, "TID list size and count do not match");
+    NOISEPAGE_ASSERT(count <= num_elements_, "TID list count must be smaller than vector size");
     tid_list_ = tid_list;
     count_ = count;
   }

@@ -32,7 +32,7 @@ class GarbageCollectorThread {
    * Kill the GC thread and run GC a few times to clean up the system.
    */
   void StopGC() {
-    TERRIER_ASSERT(run_gc_, "GC should already be running.");
+    NOISEPAGE_ASSERT(run_gc_, "GC should already be running.");
     run_gc_ = false;
     gc_thread_.join();
     for (uint8_t i = 0; i < transaction::MIN_GC_INVOCATIONS; i++) {
@@ -44,7 +44,7 @@ class GarbageCollectorThread {
    * Spawn the GC thread if it has been previously stopped.
    */
   void StartGC() {
-    TERRIER_ASSERT(!run_gc_, "GC should not already be running.");
+    NOISEPAGE_ASSERT(!run_gc_, "GC should not already be running.");
     run_gc_ = true;
     gc_paused_ = false;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
@@ -54,7 +54,7 @@ class GarbageCollectorThread {
    * Pause the GC from running, typically for use in tests when the state of tables need to be fixed.
    */
   void PauseGC() {
-    TERRIER_ASSERT(!gc_paused_, "GC should not already be paused.");
+    NOISEPAGE_ASSERT(!gc_paused_, "GC should not already be paused.");
     gc_paused_ = true;
   }
 
@@ -62,7 +62,7 @@ class GarbageCollectorThread {
    * Resume GC after being paused.
    */
   void ResumeGC() {
-    TERRIER_ASSERT(gc_paused_, "GC should already be paused.");
+    NOISEPAGE_ASSERT(gc_paused_, "GC should already be paused.");
     gc_paused_ = false;
   }
 

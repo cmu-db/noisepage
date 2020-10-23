@@ -84,7 +84,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // If code path reaches here, we have a REDO record.
-    TERRIER_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
+    NOISEPAGE_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
 
     // Read in col_ids
     // IDs read individually since we can't guarantee memory layout of vector

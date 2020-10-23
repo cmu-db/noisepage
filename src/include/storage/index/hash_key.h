@@ -51,7 +51,7 @@ class HashKey {
     const auto key_size = metadata.KeySize();
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. @jrolli verified this uses const methods
-    TERRIER_ASSERT(std::invoke([&]() -> bool {
+    NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
                      for (uint16_t i = 0; i < from.NumColumns(); i++) {
                        if (from.IsNull(i)) return false;
                      }
@@ -60,7 +60,7 @@ class HashKey {
                    "There should not be any NULL attributes in this key.");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. @jrolli verified this uses const methods
-    TERRIER_ASSERT(std::invoke([&]() -> bool {
+    NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
                      for (const auto &i : metadata.GetSchema().GetColumns()) {
                        if (i.Nullable()) return false;
                      }
@@ -68,7 +68,7 @@ class HashKey {
                    }),
                    "There should not be any NULL attributes in this schema.");
 
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(
         std::invoke([&]() -> bool {
           // we want the smallest attr size to add to the address of the last attribute since attributes are
           // ordered by size in a ProjectedRow

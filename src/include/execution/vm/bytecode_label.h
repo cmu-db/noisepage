@@ -48,12 +48,12 @@ class BytecodeLabel {
   friend class BytecodeEmitter;
 
   void SetReferrer(const std::size_t offset) {
-    TERRIER_ASSERT(!IsBound(), "Cannot set offset reference for already bound label");
+    NOISEPAGE_ASSERT(!IsBound(), "Cannot set offset reference for already bound label");
     referrer_offsets_.push_back(offset);
   }
 
   void BindTo(std::size_t offset) {
-    TERRIER_ASSERT(!IsBound() && offset != INVALID_OFFSET, "Cannot rebind an already bound label!");
+    NOISEPAGE_ASSERT(!IsBound() && offset != INVALID_OFFSET, "Cannot rebind an already bound label!");
     bound_ = true;
     offset_ = offset;
   }

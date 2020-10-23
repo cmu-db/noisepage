@@ -153,7 +153,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * @returns next AbstractOptimizerNode that matches
    */
   std::unique_ptr<AbstractOptimizerNode> Next() override {
-    TERRIER_ASSERT(current_binding_, "binding must exist");
+    NOISEPAGE_ASSERT(current_binding_, "binding must exist");
     return std::move(current_binding_);
   }
 

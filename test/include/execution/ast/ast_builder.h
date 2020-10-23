@@ -40,7 +40,7 @@ class TestAstBuilder {
 
   template <parsing::Token::Type OP>
   Expr *Cmp(Expr *left, Expr *right) {
-    TERRIER_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
+    NOISEPAGE_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
     return GetNodeFactory()->NewComparisonOpExpr(empty_, OP, left, right);
   }
 

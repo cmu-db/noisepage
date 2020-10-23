@@ -641,7 +641,7 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
   for (const auto &insert_vals : values) {
-    TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
+    NOISEPAGE_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
 #endif
 
@@ -1133,7 +1133,7 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
                               std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
                               std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                               parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace) {
-  TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
+  NOISEPAGE_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
                  "Mismatched number of items in vector and number of function parameters");
   auto *op = new CreateFunction();
   op->database_oid_ = database_oid;

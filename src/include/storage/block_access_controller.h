@@ -84,7 +84,7 @@ class BlockAccessController {
    * Releases the read lock acquired by an in-place reader on the block
    */
   void ReleaseInPlaceRead() {
-    TERRIER_ASSERT(GetReaderCount()->load() > 0, "Attempting to release read lock when there is none");
+    NOISEPAGE_ASSERT(GetReaderCount()->load() > 0, "Attempting to release read lock when there is none");
     // Increment reader count while holding the rest constant
     GetReaderCount()->fetch_sub(1);
   }

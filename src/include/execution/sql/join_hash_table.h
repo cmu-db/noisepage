@@ -335,7 +335,7 @@ class JoinHashTableIterator {
    * @return A read-only opaque byte pointer to the row at the current iteration position.
    */
   const byte *GetCurrentRow() const noexcept {
-    TERRIER_ASSERT(HasNext(), "HasNext() indicates no more data!");
+    NOISEPAGE_ASSERT(HasNext(), "HasNext() indicates no more data!");
     const auto entry = reinterpret_cast<const HashTableEntry *>(*entry_iter_);
     return entry->payload_;
   }

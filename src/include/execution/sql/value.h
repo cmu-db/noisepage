@@ -170,14 +170,14 @@ struct StringVal : public Val {
         val_(len <= storage::VarlenEntry::InlineThreshold()
                  ? storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str), len)
                  : storage::VarlenEntry::Create(reinterpret_cast<const byte *>(str), len, false)) {
-    TERRIER_ASSERT(str != nullptr, "String input cannot be NULL");
+    NOISEPAGE_ASSERT(str != nullptr, "String input cannot be NULL");
   }
 
   /**
    * @return std::string_view of StringVal's contents
    */
   std::string_view StringView() const {
-    TERRIER_ASSERT(!is_null_,
+    NOISEPAGE_ASSERT(!is_null_,
                    "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
     return val_.StringView();
   }

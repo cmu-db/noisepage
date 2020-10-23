@@ -191,7 +191,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return new tuple slot
    */
   TupleSlot GetTupleSlotMapping(TupleSlot slot) {
-    TERRIER_ASSERT(tuple_slot_map_.find(slot) != tuple_slot_map_.end(), "No tuple slot mapping exists");
+    NOISEPAGE_ASSERT(tuple_slot_map_.find(slot) != tuple_slot_map_.end(), "No tuple slot mapping exists");
     return tuple_slot_map_[slot];
   }
 
@@ -204,9 +204,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<catalog::DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
                                                                       catalog::db_oid_t db_oid) {
     auto db_catalog_ptr = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
-    TERRIER_ASSERT(db_catalog_ptr != nullptr, "No catalog for given database oid");
+    NOISEPAGE_ASSERT(db_catalog_ptr != nullptr, "No catalog for given database oid");
     auto result UNUSED_ATTRIBUTE = db_catalog_ptr->TryLock(common::ManagedPointer(txn));
-    TERRIER_ASSERT(result, "There should not be concurrent DDL changes during recovery.");
+    NOISEPAGE_ASSERT(result, "There should not be concurrent DDL changes during recovery.");
     return db_catalog_ptr;
   }
 
@@ -250,7 +250,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return true if log record is a special case catalog record, false otherwise
    */
   bool IsSpecialCaseCatalogRecord(const LogRecord *record) {
-    TERRIER_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
+    NOISEPAGE_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
                    "Special case catalog records must only be delete or redo records");
 
     if (record->RecordType() == LogRecordType::REDO) {

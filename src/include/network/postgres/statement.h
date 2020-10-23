@@ -111,7 +111,7 @@ class Statement {
    */
   void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
     desired_param_types_ = std::move(desired_param_types);
-    TERRIER_ASSERT(desired_param_types_.size() == param_types_.size(), "");
+    NOISEPAGE_ASSERT(desired_param_types_.size() == param_types_.size(), "");
   }
 
   /**

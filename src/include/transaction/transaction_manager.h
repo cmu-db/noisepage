@@ -43,7 +43,7 @@ class TransactionManager {
         buffer_pool_(buffer_pool),
         gc_enabled_(gc_enabled),
         log_manager_(log_manager) {
-    TERRIER_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
+    NOISEPAGE_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
   }
 
   /**

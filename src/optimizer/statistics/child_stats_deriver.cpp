@@ -53,7 +53,7 @@ void ChildStatsDeriver::PassDownRequiredCols() {
 }
 
 void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractExpression> col) {
-  TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
+  NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
   auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   for (size_t idx = 0; idx < gexpr_->GetChildrenGroupsSize(); ++idx) {
     auto child_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(static_cast<int>(idx)));

@@ -58,14 +58,14 @@ class CompactIntsKey {
     const auto &attr_sizes = metadata.GetAttributeSizes();
     const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
 
-    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
+    NOISEPAGE_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
+    NOISEPAGE_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
                    "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
-    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
+    NOISEPAGE_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+    NOISEPAGE_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
-    TERRIER_ASSERT(std::invoke([&]() -> bool {
+    NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
                      for (uint16_t i = 0; i < num_attrs; i++) {
                        if (from.IsNull(i)) return false;
                      }
@@ -74,7 +74,7 @@ class CompactIntsKey {
                    "There should not be any NULL attributes in this key.");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
-    TERRIER_ASSERT(std::invoke([&]() -> bool {
+    NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
                      for (const auto &i : metadata.GetSchema().GetColumns()) {
                        if (i.Nullable()) return false;
                      }
@@ -87,7 +87,7 @@ class CompactIntsKey {
     std::memset(key_data_, 0, KeySize);
 
     for (uint8_t i = 0; i < num_attrs; i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
+      NOISEPAGE_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
       CopyAttrFromProjection(from, from.ColumnIds()[i].UnderlyingValue(), attr_sizes[i], compact_ints_offsets[i]);
     }
   }
@@ -146,7 +146,7 @@ class CompactIntsKey {
   void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
                               const uint8_t attr_size, const uint8_t compact_ints_offset) {
     const byte *const stored_attr = from.AccessWithNullCheck(projection_list_offset);
-    TERRIER_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
+    NOISEPAGE_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
     switch (attr_size) {
       case sizeof(int8_t): {
         int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
@@ -303,7 +303,7 @@ class CompactIntsKey {
     // so we must use automatic type inference
     const auto big_endian = ToBigEndian(data);
 
-    TERRIER_ASSERT(offset + sizeof(IntType) <= KeySize, "Out of bounds access on key_data_.");
+    NOISEPAGE_ASSERT(offset + sizeof(IntType) <= KeySize, "Out of bounds access on key_data_.");
 
     // This will almost always be optimized into single move
     std::memcpy(key_data_ + offset, &big_endian, sizeof(IntType));

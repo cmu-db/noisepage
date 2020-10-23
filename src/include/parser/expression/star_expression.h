@@ -32,7 +32,7 @@ class StarExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "StarExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "StarExpression should have 0 children");
     return Copy();
   }
 

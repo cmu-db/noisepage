@@ -38,7 +38,7 @@ class SubqueryExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "SubqueryExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "SubqueryExpression should have 0 children");
     return Copy();
   }
 

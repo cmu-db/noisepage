@@ -108,7 +108,7 @@ class ObjectPool {
     }
     // If result is nullptr. The call to alloc_.New() failed (i.e. can't allocate more memory from the system).
     if (result == nullptr) throw AllocatorFailureException();
-    TERRIER_ASSERT(current_size_ <= size_limit_, "Object pool has exceeded its size limit.");
+    NOISEPAGE_ASSERT(current_size_ <= size_limit_, "Object pool has exceeded its size limit.");
     return result;
   }
 
@@ -126,7 +126,7 @@ class ObjectPool {
     if (new_size >= current_size_) {
       // current_size_ might increase and become > new_size if we don't use lock
       size_limit_ = new_size;
-      TERRIER_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
+      NOISEPAGE_ASSERT(current_size_ <= size_limit_, "object pool size exceed its size limit");
       return true;
     }
     return false;
@@ -167,7 +167,7 @@ class ObjectPool {
    * @param obj pointer to object to release
    */
   void Release(T *obj) {
-    TERRIER_ASSERT(obj != nullptr, "releasing a null pointer");
+    NOISEPAGE_ASSERT(obj != nullptr, "releasing a null pointer");
     SpinLatch::ScopedSpinLatch guard(&latch_);
     if (reuse_queue_.size() >= reuse_limit_) {
       alloc_.Delete(obj);

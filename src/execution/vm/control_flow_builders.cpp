@@ -10,7 +10,7 @@ namespace noisepage::execution::vm {
 // ---------------------------------------------------------
 
 BreakableBlockBuilder::~BreakableBlockBuilder() {
-  TERRIER_ASSERT(!GetBreakLabel()->IsBound(), "Break label cannot be bound!");
+  NOISEPAGE_ASSERT(!GetBreakLabel()->IsBound(), "Break label cannot be bound!");
   GetGenerator()->GetEmitter()->Bind(GetBreakLabel());
 }
 
@@ -27,7 +27,7 @@ void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) {
 LoopBuilder::~LoopBuilder() = default;
 
 void LoopBuilder::LoopHeader() {
-  TERRIER_ASSERT(!GetHeaderLabel()->IsBound(), "Header cannot be rebound");
+  NOISEPAGE_ASSERT(!GetHeaderLabel()->IsBound(), "Header cannot be rebound");
   GetGenerator()->GetEmitter()->Bind(GetHeaderLabel());
 }
 
@@ -36,7 +36,7 @@ void LoopBuilder::JumpToHeader() { GetGenerator()->GetEmitter()->EmitJump(Byteco
 void LoopBuilder::Continue() { EmitJump(GetContinueLabel()); }
 
 void LoopBuilder::BindContinueTarget() {
-  TERRIER_ASSERT(!GetContinueLabel()->IsBound(), "Continue label can only be bound once");
+  NOISEPAGE_ASSERT(!GetContinueLabel()->IsBound(), "Continue label can only be bound once");
   GetGenerator()->GetEmitter()->Bind(GetContinueLabel());
 }
 
@@ -49,7 +49,7 @@ IfThenElseBuilder::~IfThenElseBuilder() {
     GetGenerator()->GetEmitter()->Bind(GetElseLabel());
   }
 
-  TERRIER_ASSERT(!EndLabel()->IsBound(), "End label should not be bound yet");
+  NOISEPAGE_ASSERT(!EndLabel()->IsBound(), "End label should not be bound yet");
   GetGenerator()->GetEmitter()->Bind(EndLabel());
 }
 

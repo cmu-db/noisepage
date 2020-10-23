@@ -134,7 +134,7 @@ class Group {
    * @param column_name Column to get stats for
    */
   common::ManagedPointer<ColumnStats> GetStats(const std::string &column_name) {
-    TERRIER_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
+    NOISEPAGE_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
     return common::ManagedPointer<ColumnStats>(stats_[column_name].get());
   }
 
@@ -170,8 +170,8 @@ class Group {
    * Should only be called during rewrite phase.
    */
   GroupExpression *GetLogicalExpression() {
-    TERRIER_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
-    TERRIER_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
+    NOISEPAGE_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
+    NOISEPAGE_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
     return logical_expressions_[0];
   }
 

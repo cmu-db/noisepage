@@ -91,7 +91,7 @@ class GroupExpression {
    * @returns Child's GroupID
    */
   group_id_t GetChildGroupId(int child_idx) const {
-    TERRIER_ASSERT(child_idx >= 0 && static_cast<size_t>(child_idx) < child_groups_.size(),
+    NOISEPAGE_ASSERT(child_idx >= 0 && static_cast<size_t>(child_idx) < child_groups_.size(),
                    "child_idx is out of bounds");
     return child_groups_[child_idx];
   }
