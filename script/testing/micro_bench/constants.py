@@ -27,7 +27,7 @@ BENCHMARK_THREADS = 4
 BENCHMARK_LOGFILE_PATH = "/tmp/benchmark.log"
 
 # Where to find the benchmarks to execute
-BENCHMARK_PATH = os.path.realpath("../../build/release/")
+BENCHMARK_PATH = os.path.realpath("../../build/benchmark/")
 
 # if fewer than min_ref_values are available
 LAX_TOLERANCE = 50

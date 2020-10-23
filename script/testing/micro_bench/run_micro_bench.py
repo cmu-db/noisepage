@@ -7,77 +7,12 @@ import json
 base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, base_path)
 
-from micro_bench.google_benchmark.gbench_run_result import GBenchRunResult
-from micro_bench.text_table import TextTable
 from micro_bench.artifact_processor import ArtifactProcessor
 from micro_bench.micro_benchmarks_runner import MicroBenchmarksRunner
 from micro_bench.config import Config
-from reporting.report_result import report_microbenchmark_result
-from micro_bench.constants import (JENKINS_URL, LOCAL_REPO_DIR, BENCHMARK_THREADS,
-                                   BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH, MIN_REF_VALUES)
+from micro_bench.results_output import send_results, table_dump
+from micro_bench.constants import (BENCHMARK_THREADS, BENCHMARK_LOGFILE_PATH, BENCHMARK_PATH, MIN_REF_VALUES)
 from util.constants import LOG, PERFORMANCE_STORAGE_SERVICE_API
-
-
-def send_results(config, artifact_processor):
-    """ Iterate over the microbenchmark results to generate a comparison
-    against the histroical artifacts and send that comparrison to the 
-    performance storage service """
-    ret_code = 0
-    for bench_name in sorted(config.benchmarks):
-        filename = "{}.json".format(bench_name)
-        gbench_run_results = GBenchRunResult.from_benchmark_file(filename)
-
-        for key in sorted(gbench_run_results.benchmarks.keys()):
-            result = gbench_run_results.benchmarks.get(key)
-            LOG.debug("%s Result:\n%s", bench_name, result)
-
-            comparison = artifact_processor.get_comparison_for_publish_result(bench_name, result, config.lax_tolerance)
-            try:
-                report_microbenchmark_result(
-                    config.publish_results_env, result.timestamp, config, comparison)
-            except Exception as err:
-                LOG.error("Error reporting results to performance storage service")
-                LOG.error(err)
-                ret_code = 1
-
-    return ret_code
-
-
-def table_dump(config, artifact_processor):
-    """ Iterate over the microbenchmark results to generate a formatted table
-    to print out at the end of the test """
-    text_table = TextTable()
-    ret = 0
-    for bench_name in sorted(config.benchmarks):
-        filename = "{}.json".format(bench_name)
-        gbench_run_results = GBenchRunResult.from_benchmark_file(filename)
-
-        for key in sorted(gbench_run_results.benchmarks.keys()):
-            result = gbench_run_results.benchmarks.get(key)
-            LOG.debug("%s Result:\n%s", bench_name, result)
-
-            comparison = artifact_processor.get_comparison(
-                bench_name, result, config.lax_tolerance)
-            if comparison.get('pass') == 'FAIL':
-                ret = 1
-            text_table.add_row(comparison)
-
-    text_table.add_column("status")
-    text_table.add_column("iterations")
-    text_table.add_column("throughput", col_format="{:1.4e}")
-    text_table.add_column(
-        "ref_throughput", heading="ref throughput", col_format="{:1.4e}")
-    text_table.add_column("tolerance", heading="%tolerance")
-    text_table.add_column("change", heading="%change", col_format="{:+.0f}")
-    text_table.add_column("coef_var", heading="%coef var", col_format="{:.0f}")
-    text_table.add_column("reference_type", heading="ref type")
-    text_table.add_column("num_results", heading="#results")
-    text_table.add_column("suite")
-    text_table.add_column("test")
-    print("")
-    print(text_table)
-
-    return (ret)
 
 # =========================================================
 # MAIN
@@ -194,8 +129,8 @@ if __name__ == "__main__":
         config_args['branch'] = args.branch
     if args.publish_results != 'none':
         if (not args.publish_username) or (not args.publish_password):
-                LOG.error("Error: --publish-username and --publish-password are required to publish the results.")
-                sys.exit(1)
+            LOG.error("Error: --publish-username and --publish-password are required to publish the results.")
+            sys.exit(1)
         config_args['publish_results_username'] = args.publish_username
         config_args['publish_results_password'] = args.publish_password
 
@@ -230,7 +165,7 @@ if __name__ == "__main__":
         if args.csv_dump:
             LOG.error("--csv-dump is not currently supported")
         else:
-            ret_code = table_dump(config, artifact_processor)
+            table_dump(config, artifact_processor)
 
     LOG.debug("Exit code = {}".format(ret_code))
     sys.exit(ret_code)

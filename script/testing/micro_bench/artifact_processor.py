@@ -142,11 +142,11 @@ class ArtifactProcessor(object):
             "status": "PASS"
         }
         if ref_type != 'none':
-            if not comparison.get('ref_throughput') or comparison.get('ref_throughput') <= 0 or \
-               not comparison.get('throughput') or comparison.get('throughput') <=0:
+            historical_results = self.artifacts.get(key)
+            if historical_results.get_mean_throughput() <= 0 or \
+               not comparison.get('throughput') or comparison.get('throughput') <= 0:
                 return comparison
 
-            historical_results = self.artifacts.get(key)
             comparison['num_results'] = historical_results.get_num_results()
             comparison['tolerance'] = BENCHMARKS_TO_RUN[bench_name] if ref_type == 'historic' else lax_tolerance
             comparison['ref_throughput'] = historical_results.get_mean_throughput()
@@ -154,7 +154,7 @@ class ArtifactProcessor(object):
             comparison['change'] = 100 * (gbench_result.items_per_second -
                                           comparison.get('ref_throughput')) / comparison.get('throughput')
             comparison['status'] = 'PASS' if is_comparison_pass(comparison.get('ref_throughput'),
-                                                                gbench_result.items_per_second,
+                                                                comparison.get('throughput'),
                                                                 comparison.get('tolerance')) else 'FAIL'
         return comparison
 
@@ -164,4 +164,4 @@ def is_comparison_pass(avg_historical_throughput, test_throughput, tolerance, re
     if ref_type == 'none':
         return True
     min_allowed_throughput = avg_historical_throughput - float(avg_historical_throughput) * (float(tolerance) / 100)
-    return test_throughput < min_allowed_throughput
+    return test_throughput > min_allowed_throughput
