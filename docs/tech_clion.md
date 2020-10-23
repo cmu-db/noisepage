@@ -10,6 +10,9 @@ Note that **File** > **Settings** is **CLion** > **Preferences** on macOS.
 1. Launch CLion.
 2. **Get from Version Control** > **GitHub** > **Log In via GitHub** > Log in to your GitHub account.
 3. Pick `noisepage` from the dropdown list and then click `Clone`. By default, this clones to `~/CLionProjects/noisepage`.
+   - Note: if this is your first time installing NoisePage, you will need to install the necessary packages.
+   - Go to the folder: `cd ~/CLionProjects/noisepage/script/installation`
+   - Install all the necessary packages: `sudo bash ./packages.sh`
 
 **Required: Profiles**
 1. In the top left, go to **File** > **Settings** > **Build, Execution, Deployment** > **CMake**.  

@@ -30,13 +30,18 @@ Hi! Welcome to CMU DB.
 3. **IDE** We officially only support [CLion](https://www.jetbrains.com/clion/).
    - You can download CLion for free with the generous [Jetbrains educational license](https://www.jetbrains.com/community/education/#students).
    - More setup instructions are available [here](https://github.com/cmu-db/noisepage/tree/master/docs/tech_clion.md). This includes general CMake build flags.
+4. **Packages** This is covered in the CLion setup, but as a reminder:
+   - The default CLion cloned repository location is `~/CLionProjects/noisepage`.
+   - Go to the folder: `cd ~/CLionProjects/noisepage/script/installation`
+   - Install all the necessary packages: `sudo bash ./packages.sh`
 
-### Background Knowledge
+### Further reading
 
 You should learn a little about the following:
 
-- [CLion](https://github.com/cmu-db/noisepage/tree/master/docs/tech_clion.md)
-- [git](https://github.com/cmu-db/noisepage/tree/master/docs/tech_git.md)
+1. [CLion](https://github.com/cmu-db/noisepage/tree/master/docs/tech_clion.md)
+2. [git](https://github.com/cmu-db/noisepage/tree/master/docs/tech_git.md)
+3. [C++ and how we use it](https://github.com/cmu-db/noisepage/tree/master/docs/cpp_guidelines.md)
 
 ### Development 
 
