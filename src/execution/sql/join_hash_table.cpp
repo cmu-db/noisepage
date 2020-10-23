@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "count/hll.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
@@ -17,7 +18,6 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
-#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {
@@ -57,6 +57,9 @@ void JoinHashTable::BuildChainingHashTable() {
 
 #ifndef NDEBUG
   const auto [min, max, avg] = chaining_hash_table_.GetChainLengthStats();
+  (void)min;
+  (void)max;
+  (void)avg;
   EXECUTION_LOG_DEBUG("ChainingHashTable chain stats: min={}, max={}, avg={}", min, max, avg);
 #endif
 }
@@ -581,11 +584,11 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
     auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
     auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
     auto *tls = thread_state_container->AccessCurrentThreadState();
-    this->exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
+    exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
     llvm::for_each(tl_join_tables, [this](auto *source) { MergeIncomplete<false>(source); });
 
-    this->exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_elem_estimate));
+    exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(num_elem_estimate));
   } else {
     EXECUTION_LOG_TRACE("JHT: Estimated {} elements >= {} element parallel threshold. Using parallel merge.",
                         num_elem_estimate, DEFAULT_MIN_SIZE_FOR_PARALLEL_MERGE);
@@ -598,18 +601,18 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
       auto pre_hook = static_cast<uint32_t>(HookOffsets::StartHook);
       auto post_hook = static_cast<uint32_t>(HookOffsets::EndHook);
       auto *tls = thread_state_container->AccessCurrentThreadState();
-      this->exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
+      exec_ctx_->InvokeHook(pre_hook, tls, nullptr);
 
       size_t size = source->entries_.size();
       MergeIncomplete<true>(source);
-      this->exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(size));
+      exec_ctx_->InvokeHook(post_hook, tls, reinterpret_cast<void *>(size));
     });
     exec_ctx_->SetNumConcurrentEstimate(0);
   }
 
   timer.Stop();
 
-  const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
+  UNUSED_ATTRIBUTE const double tps = (chaining_hash_table_.GetElementCount() / timer.GetElapsed()) / 1000.0;
   EXECUTION_LOG_TRACE("JHT: {} merged {} JHTs. Estimated {}, actual {}. Time: {:.2f} ms ({:.2f} mtps)",
                       use_serial_build ? "Serial" : "Parallel", tl_join_tables.size(), num_elem_estimate,
                       chaining_hash_table_.GetElementCount(), timer.GetElapsed(), tps);

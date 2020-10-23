@@ -170,7 +170,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   size_t num_rows = 1;
   size_t cardinality = 1;
   size_t num_loops = 0;
-  size_t num_concurrent = 0;  // Will concurrent data be baked into plan nodes?
+  size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     if (accessor_->GetDatabaseOid("tpch_runner_db") != catalog::INVALID_DATABASE_OID) {
       // Unfortunately we don't know what kind of output callback that we're going to call at runtime, so we just

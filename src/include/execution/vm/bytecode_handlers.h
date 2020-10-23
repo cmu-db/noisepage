@@ -283,7 +283,7 @@ VM_OP_WARM void OpThreadStateContainerClear(terrier::execution::sql::ThreadState
   thread_state_container->Clear();
 }
 
-VM_OP_COLD void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx);
+VM_OP_COLD void OpRegisterThreadWithMetricsManager(terrier::execution::exec::ExecutionContext *exec_ctx);
 
 VM_OP_COLD void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx);
 

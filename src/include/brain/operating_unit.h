@@ -98,7 +98,7 @@ class ExecutionOperatingUnitFeature {
    * @param cardinality Estimated cardinality
    * @param mem_factor Memory adjustment factor
    * @param num_loops Number of loops
-   * @param num_concurrent Number concurrent tasks (including current one)
+   * @param num_concurrent Number of concurrent tasks (including current one)
    */
   ExecutionOperatingUnitFeature(execution::translator_id_t translator_id, ExecutionOperatingUnitType feature,
                                 size_t num_rows, size_t key_size, size_t num_keys, size_t cardinality,
@@ -140,17 +140,34 @@ class ExecutionOperatingUnitFeature {
   execution::feature_id_t GetFeatureId() const { return feature_id_; }
 
   /**
-   * @returns type
+   * @return type
    */
   ExecutionOperatingUnitType GetExecutionOperatingUnitType() const { return feature_; }
 
   /**
-   * @returns estimated number of output tuples as a reference
+   * Updates target with the value of update under a specific update mode.
+   *
+   * If mode == SET: *target = update
+   * If mode == ADD: *target += update
+   * If mode == MULT: *target *= update
+   *
+   * @param mode Mode to use for updating target
+   * @param target Target to update
+   * @param update Value to apply
    */
-  size_t &GetNumRows() { return num_rows_; }
+  void ApplyValueUpdate(ExecutionOperatingUnitFeatureUpdateMode mode, size_t *target, size_t update);
 
   /**
-   * @returns estimated number of output tuples
+   * Update num_rows under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
+   */
+  void UpdateNumRows(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_rows_, val);
+  }
+
+  /**
+   * @return estimated number of output tuples
    */
   size_t GetNumRows() const { return num_rows_; }
 
@@ -165,27 +182,35 @@ class ExecutionOperatingUnitFeature {
   size_t GetNumKeys() const { return num_keys_; }
 
   /**
-   * @returns estimated cardinality as a reference
+   * Update cardinality under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
    */
-  size_t &GetCardinality() { return cardinality_; }
+  void UpdateCardinality(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &cardinality_, val);
+  }
 
   /**
-   * @returns estimated cardinality
+   * @return estimated cardinality
    */
   size_t GetCardinality() const { return cardinality_; }
 
   /**
-   * @returns num concurrent as a reference
+   * Update num_concurrent under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
    */
-  size_t &GetNumConcurrent() { return num_concurrent_; }
+  void UpdateNumConcurrent(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_concurrent_, val);
+  }
 
   /**
-   * @returns num concurrent
+   * @return num concurrent
    */
   size_t GetNumConcurrent() const { return num_concurrent_; }
 
   /**
-   * @returns memory adjustment factor
+   * @return memory adjustment factor
    */
   double GetMemFactor() const {
     if (mem_factors_.empty()) return 1.0;
@@ -199,12 +224,12 @@ class ExecutionOperatingUnitFeature {
   }
 
   /**
-   * @returns number of iterations as a reference
+   * @return number of iterations as a reference
    */
   size_t &GetNumLoops() { return num_loops_; }
 
   /**
-   * @returns number of iterations
+   * @return number of iterations
    */
   size_t GetNumLoops() const { return num_loops_; }
 
@@ -367,7 +392,7 @@ class PipelineOperatingUnits {
   /**
    * Checks whether a certain pipeline exists
    * @param pipeline Pipeline Identifier
-   * @returns if exist or not
+   * @return if exist or not
    */
   bool HasPipelineFeatures(execution::pipeline_id_t pipeline) const { return units_.find(pipeline) != units_.end(); }
 

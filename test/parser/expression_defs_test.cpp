@@ -101,6 +101,8 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::ROW_SUBQUERY, false), "ROW_SUBQUERY");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::STAR, true), "STAR");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::STAR, false), "STAR");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::TABLE_STAR, true), "TABLE_STAR");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::TABLE_STAR, false), "TABLE_STAR");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::PLACEHOLDER, true), "PLACEHOLDER");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::PLACEHOLDER, false), "PLACEHOLDER");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_REF, true), "COLUMN_REF");

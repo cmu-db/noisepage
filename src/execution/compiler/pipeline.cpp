@@ -19,6 +19,8 @@
 
 namespace terrier::execution::compiler {
 
+query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
+
 Pipeline::Pipeline(CompilationContext *ctx)
     : id_(ctx->RegisterPipeline(this)),
       compilation_context_(ctx),
@@ -101,7 +103,7 @@ void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook
     builder->Append(codegen_->MakeStmt(call));
 
     args = {exec_ctx};
-    call = codegen_->CallBuiltin(ast::Builtin::RegisterMetricsThread, args);
+    call = codegen_->CallBuiltin(ast::Builtin::RegisterThreadWithMetricsManager, args);
     builder->Append(codegen_->MakeStmt(call));
 
     // Inject StartPipelineTracker()
@@ -111,13 +113,13 @@ void Pipeline::InjectStartResourceTracker(FunctionBuilder *builder, bool is_hook
   }
 }
 
-void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id, bool is_hook) const {
+void Pipeline::InjectEndResourceTracker(FunctionBuilder *builder, bool is_hook) const {
   if (compilation_context_->IsPipelineMetricsEnabled()) {
     auto *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
 
     // Inject EndPipelineTracker();
     std::vector<ast::Expr *> args = {exec_ctx};
-    args.push_back(codegen_->Const64(query_id.UnderlyingValue()));
+    args.push_back(codegen_->Const64(GetQueryId().UnderlyingValue()));
     args.push_back(codegen_->Const64(GetPipelineId().UnderlyingValue()));
     args.push_back(oufeatures_.GetPtr(codegen_));
     auto end_call = codegen_->CallBuiltin(ast::Builtin::ExecutionContextEndPipelineTracker, args);
@@ -277,13 +279,13 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
         op->EndParallelPipelineWork(*this, &builder);
       }
 
-      InjectEndResourceTracker(&builder, query_id_, false);
+      InjectEndResourceTracker(&builder, false);
     }
   }
   return builder.Finish();
 }
 
-ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() {
+ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
   bool started_tracker = false;
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
@@ -324,7 +326,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() {
     }
 
     if (started_tracker) {
-      InjectEndResourceTracker(&builder, query_id_, false);
+      InjectEndResourceTracker(&builder, false);
     }
   }
 
@@ -347,11 +349,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
   return builder.Finish();
 }
 
-void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id) {
-  TERRIER_ASSERT(query_id_ == query_id_t(0), "GenerateRunPipelineFunction re-entrant");
-  query_id_ = query_id;
-  pipeline_builder_ = builder;
-
+void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   // Declare the pipeline state.
   builder->DeclareStruct(state_.GetType());
 
@@ -368,14 +366,6 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_i
   auto teardown = GenerateTearDownPipelineFunction();
   builder->RegisterStep(teardown);
   builder->AddTeardownFn(teardown);
-
-  query_id_ = query_id_t(0);
-  pipeline_builder_ = nullptr;
-}
-
-void Pipeline::DeclareTLSDependentFunction(ast::FunctionDecl *fn) const {
-  TERRIER_ASSERT(pipeline_builder_, "Builder cannot be null");
-  pipeline_builder_->DeclareFunction(fn);
 }
 
 }  // namespace terrier::execution::compiler

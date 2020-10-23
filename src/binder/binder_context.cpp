@@ -11,6 +11,7 @@
 #include "catalog/catalog_accessor.h"
 #include "common/error/exception.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/table_star_expression.h"
 #include "parser/postgresparser.h"
 #include "parser/table_ref.h"
 
@@ -218,9 +219,18 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 }
 
 void BinderContext::GenerateAllColumnExpressions(
+    common::ManagedPointer<parser::TableStarExpression> table_star,
     common::ManagedPointer<parser::ParseResult> parse_result,
     common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs) {
+  bool target_specified = table_star->IsTargetTableSpecified();
+  bool target_found = false;
   for (auto &entry : regular_table_alias_list_) {
+    // If a target is specified, check that the entry matches the target table
+    if (target_specified && entry != table_star->GetTargetTable()) {
+      continue;
+    }
+
+    target_found = true;
     auto table_data = regular_table_alias_map_[entry];
     auto &schema = std::get<2>(table_data);
     auto col_cnt = schema.GetColumns().size();
@@ -242,22 +252,29 @@ void BinderContext::GenerateAllColumnExpressions(
     }
   }
 
-  for (auto &entry : nested_table_alias_map_) {
-    auto &table_alias = entry.first;
-    auto &cols = entry.second;
-    for (auto &col_entry : cols) {
-      auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
-      tv_expr->SetReturnValueType(col_entry.second);
-      tv_expr->DeriveExpressionName();
-      tv_expr->SetDepth(depth_);
+  if (!target_specified) {
+    // If a target is not specified, continue generating column value expressions
+    for (auto &entry : nested_table_alias_map_) {
+      auto &table_alias = entry.first;
+      auto &cols = entry.second;
+      for (auto &col_entry : cols) {
+        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
+        tv_expr->SetReturnValueType(col_entry.second);
+        tv_expr->DeriveExpressionName();
+        tv_expr->SetDepth(depth_);
 
-      auto unique_tv_expr =
-          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
-      parse_result->AddExpression(std::move(unique_tv_expr));
-      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
-      // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
-      exprs->push_back(new_tv_expr);
+        auto unique_tv_expr =
+            std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+        parse_result->AddExpression(std::move(unique_tv_expr));
+        auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
+        // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
+        exprs->push_back(new_tv_expr);
+      }
     }
+  } else if (target_specified && !target_found) {
+    // Case where a target is specified but not found
+    throw BINDER_EXCEPTION(fmt::format("Invalid table reference {}", table_star->GetTargetTable()),
+                           common::ErrorCode::ERRCODE_UNDEFINED_TABLE);
   }
 }
 

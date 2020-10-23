@@ -164,7 +164,15 @@ void CompilationContext::GeneratePlan(const planner::AbstractPlanNode &plan) {
     codegen_.GetPipelineOperatingUnits()->RecordOperatingUnit(pipeline->GetPipelineId(), std::move(features));
 
     pipeline->Prepare(query_->GetExecutionSettings());
-    pipeline->GeneratePipeline(&main_builder, query_id_t{unique_id_});
+    {
+      util::RegionVector<ast::FunctionDecl *> pipeline_decls(query_->GetContext()->GetRegion());
+      for (auto &[_, op] : ops_) {
+        (void)_;
+        op->DefineTLSDependentHelperFunctions(*pipeline, &pipeline_decls);
+      }
+      main_builder.DeclareAll(pipeline_decls);
+    }
+    pipeline->GeneratePipeline(&main_builder);
   }
 
   // Register the tear-down function.

@@ -74,7 +74,8 @@ class AggregationHashTableTest : public SqlBasedTest {
  public:
   AggregationHashTableTest() = default;
 
-  void Init() {
+  void SetUp() override {
+    SqlBasedTest::SetUp();
     exec_ctx_ = MakeExecCtx();
     agg_table_ =
         std::make_unique<AggregationHashTable>(exec_ctx_->GetExecutionSettings(), exec_ctx_.get(), sizeof(AggTuple));
@@ -89,7 +90,6 @@ class AggregationHashTableTest : public SqlBasedTest {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimpleRandomInsertionTest) {
-  Init();
   const uint32_t num_tuples = 10000;
 
   // The reference table
@@ -132,8 +132,6 @@ TEST_F(AggregationHashTableTest, IterationTest) {
   // Each group will receive G=num_inserts/10 tuples, count1 will be G,
   // count2 will be G*2, and count3 will be G*10.
   //
-
-  Init();
   const uint32_t num_inserts = 10000;
   const uint32_t num_groups = 10;
   const uint32_t tuples_per_group = num_inserts / num_groups;
@@ -174,7 +172,6 @@ TEST_F(AggregationHashTableTest, IterationTest) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
-  Init();
   const uint32_t num_tuples = 10000;
 
   for (uint32_t idx = 0; idx < num_tuples; idx++) {
@@ -196,7 +193,6 @@ TEST_F(AggregationHashTableTest, SimplePartitionedInsertionTest) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, BatchProcessTest) {
-  Init();
   constexpr uint32_t num_groups = 512;
   constexpr uint32_t num_group_updates_per_batch = common::Constants::K_DEFAULT_VECTOR_SIZE / num_groups;
   constexpr uint32_t count1_scale = 1;
@@ -273,7 +269,6 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
 
 // NOLINTNEXTLINE
 TEST_F(AggregationHashTableTest, OverflowPartitonIteratorTest) {
-  Init();
   struct Data {
     uint32_t key_{5};
     uint32_t val_{10};

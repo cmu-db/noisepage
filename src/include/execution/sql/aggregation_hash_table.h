@@ -7,7 +7,6 @@
 
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
-#include "execution/exec_defs.h"
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/vector.h"
@@ -113,7 +112,7 @@ class EXPORT AggregationHashTable {
     uint64_t num_growths_ = 0;
     /** Number of times that the hash table has been flushed. */
     uint64_t num_flushes_ = 0;
-    /** Number of times insert into hash table. */
+    /** Number of times that the hash table has been inserted into. */
     uint64_t num_inserts_ = 0;
   };
 
@@ -125,7 +124,7 @@ class EXPORT AggregationHashTable {
    * Construct an aggregation hash table using the provided memory pool, and configured to store
    * aggregates of size @em payload_size in bytes.
    * @param exec_settings The execution settings to run with.
-   * @param exec_ctx ExecutionContext
+   * @param exec_ctx The execution context being used to run the query.
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
   AggregationHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
@@ -136,7 +135,7 @@ class EXPORT AggregationHashTable {
    * aggregates of size @em payload_size in bytes, and whose initial size allows for
    * @em initial_size aggregates.
    * @param exec_settings The execution settings to run with.
-   * @param exec_ctx ExecutionContext
+   * @param exec_ctx The execution context being used to run the query.
    * @param payload_size The size of the elements in the hash table, in bytes.
    * @param initial_size The initial number of aggregates to support.
    */

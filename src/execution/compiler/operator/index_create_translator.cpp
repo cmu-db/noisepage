@@ -98,9 +98,12 @@ void IndexCreateTranslator::InitializePipelineState(const Pipeline &pipeline, Fu
   // Thread local member
   InitializeStorageInterface(function, local_storage_interface_.GetPtr(codegen_));
   DeclareIndexPR(function);
+}
 
+void IndexCreateTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                              util::RegionVector<ast::FunctionDecl *> *decls) {
   if (pipeline.IsParallel() && IsPipelineMetricsEnabled()) {
-    pipeline.DeclareTLSDependentFunction(GenerateEndHookFunction());
+    decls->push_back(GenerateEndHookFunction());
   }
 }
 
@@ -125,8 +128,11 @@ void IndexCreateTranslator::LaunchWork(FunctionBuilder *function, ast::Identifie
     function->Append(codegen->ExecCtxRegisterHook(exec_ctx, post, parallel_build_post_hook_fn_));
   }
 
-  function->Append(GetCodeGen()->IterateTableParallel(table_oid_, global_col_oids_.Get(codegen), GetQueryStatePtr(),
-                                                      exec_ctx, work_func));
+  ast::Expr *iter_table_parallel = codegen_->CallBuiltin(
+      ast::Builtin::TableIterParallel, {codegen_->Const32(table_oid_.UnderlyingValue()), global_col_oids_.Get(codegen_),
+                                        GetQueryStatePtr(), GetExecutionContext(), codegen_->MakeExpr(work_func)});
+  iter_table_parallel->SetType(ast::BuiltinType::Get(codegen_->GetAstContext().Get(), ast::BuiltinType::Nil));
+  function->Append(iter_table_parallel);
 
   if (IsPipelineMetricsEnabled()) {
     function->Append(codegen->ExecCtxClearHooks(exec_ctx));
@@ -308,7 +314,7 @@ ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
         codegen->CallBuiltin(ast::Builtin::ExecutionContextSetMemoryUseOverride, {exec_ctx, codegen->MakeExpr(heap)}));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
 }

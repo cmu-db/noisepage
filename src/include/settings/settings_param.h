@@ -27,12 +27,11 @@ using callback_fn = void (*)(void *, void *, DBMain *, common::ManagedPointer<co
  * settings_common.h
  */
 /// @cond DOXYGEN_IGNORE
-enum class Param {                     // NOLINT
-#define __SETTING_ENUM__               // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_ENUM__                // NOLINT
-};                                     // NOLINT
+enum class Param {                   // NOLINT
+#define __SETTING_ENUM__             // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_ENUM__              // NOLINT
+};                                   // NOLINT
 /// @endcond
 
 /**

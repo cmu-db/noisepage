@@ -574,9 +574,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
     DISPATCH_NEXT();
   }
 
-  OP(RegisterMetricsThread) : {
+  OP(RegisterThreadWithMetricsManager) : {
     auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpRegisterMetricsThread(exec_ctx);
+    OpRegisterThreadWithMetricsManager(exec_ctx);
     DISPATCH_NEXT();
   }
 

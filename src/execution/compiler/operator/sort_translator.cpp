@@ -122,6 +122,17 @@ void SortTranslator::DefineHelperFunctions(util::RegionVector<ast::FunctionDecl 
   decls->push_back(builder.Finish(codegen->Const32(0)));
 }
 
+void SortTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                       util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    decls->push_back(GenerateStartTLHookFunction(true));
+    decls->push_back(GenerateStartTLHookFunction(false));
+    decls->push_back(GenerateEndTLSortHookFunction());
+    decls->push_back(GenerateEndTLMergeHookFunction());
+    decls->push_back(GenerateEndSingleSorterHookFunction());
+  }
+}
+
 void SortTranslator::InitializeSorter(FunctionBuilder *function, ast::Expr *sorter_ptr) const {
   auto ctx = GetExecutionContext();
   function->Append(GetCodeGen()->SorterInit(sorter_ptr, ctx, compare_func_, sort_row_type_));
@@ -181,7 +192,7 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLSortHookFunction() const {
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
 }
@@ -206,7 +217,7 @@ ast::FunctionDecl *SortTranslator::GenerateEndTLMergeHookFunction() const {
                   codegen->MakeExpr(override_value));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
 }
@@ -233,24 +244,14 @@ ast::FunctionDecl *SortTranslator::GenerateEndSingleSorterHookFunction() const {
                   brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY, *pipeline, codegen->MakeExpr(num_tuples));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
 }
 
 void SortTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline)) {
-    if (build_pipeline_.IsParallel()) {
-      InitializeSorter(function, local_sorter_.GetPtr(GetCodeGen()));
-
-      if (IsPipelineMetricsEnabled()) {
-        pipeline.DeclareTLSDependentFunction(GenerateStartTLHookFunction(true));
-        pipeline.DeclareTLSDependentFunction(GenerateStartTLHookFunction(false));
-        pipeline.DeclareTLSDependentFunction(GenerateEndTLSortHookFunction());
-        pipeline.DeclareTLSDependentFunction(GenerateEndTLMergeHookFunction());
-        pipeline.DeclareTLSDependentFunction(GenerateEndSingleSorterHookFunction());
-      }
-    }
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
+    InitializeSorter(function, local_sorter_.GetPtr(GetCodeGen()));
   }
 
   InitializeCounters(pipeline, function);

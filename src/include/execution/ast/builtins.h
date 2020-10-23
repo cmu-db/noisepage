@@ -368,7 +368,7 @@ namespace terrier::execution::ast {
   F(ExecutionContextStartPipelineTracker, execCtxStartPipelineTracker)  \
   F(ExecutionContextEndPipelineTracker, execCtxEndPipelineTracker)      \
                                                                         \
-  F(RegisterMetricsThread, registerMetricsThread)                       \
+  F(RegisterThreadWithMetricsManager, registerThreadWithMetricsManager) \
   F(CheckTrackersStopped, checkTrackersStopped)                         \
   F(AggregateMetricsThread, aggregateMetricsThread)                     \
                                                                         \

@@ -22,13 +22,14 @@ OSX_BUILD_PACKAGES=(\
   "jemalloc" \
   "libevent" \
   "libpqxx" \
-  "openssl@1.1" \
+  "pkg-config" \
+  "ninja" \
   "tbb" \
 )
 OSX_TEST_PACKAGES=(\
   "ant" \
-  "postgresql" \
   "lsof" \
+  "postgresql" \
 )
 
 LINUX_BUILD_PACKAGES=(\
@@ -43,20 +44,21 @@ LINUX_BUILD_PACKAGES=(\
   "libjemalloc-dev" \
   "libpq-dev" \
   "libpqxx-dev" \
-  "libssl-dev" \
   "libtbb-dev" \
-  "zlib1g-dev" \
+  "lld" \
   "llvm-8" \
   "pkg-config" \
   "postgresql-client" \
-  "wget" \
   "python3-pip" \
+  "ninja-build"
+  "wget" \
+  "zlib1g-dev" \
 )
 LINUX_TEST_PACKAGES=(\
   "ant" \
+  "ccache" \
   "curl" \
   "lcov" \
-  "ccache" \
   "lsof" \
 )
 
@@ -66,6 +68,7 @@ PYTHON_PACKAGES=(\
   "pyarrow" \
   "pandas" \
   "requests" \
+  "psutil" \
   "distro"  \
 )
 

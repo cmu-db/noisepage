@@ -327,9 +327,17 @@ ast::FunctionDecl *HashAggregationTranslator::GenerateEndHookFunction() const {
                   codegen->MakeExpr(override_value));
 
     // End Tracker
-    pipeline->InjectEndResourceTracker(&builder, pipeline->GetQueryId(), true);
+    pipeline->InjectEndResourceTracker(&builder, true);
   }
   return builder.Finish();
+}
+
+void HashAggregationTranslator::DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                                  util::RegionVector<ast::FunctionDecl *> *decls) {
+  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel() && IsPipelineMetricsEnabled()) {
+    decls->push_back(GenerateStartHookFunction());
+    decls->push_back(GenerateEndHookFunction());
+  }
 }
 
 void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -339,11 +347,6 @@ void HashAggregationTranslator::InitializePipelineState(const Pipeline &pipeline
     // agg_count_ cannot be initialized in InitializeCounters.
     // @see HashAggregationTranslator::agg_count_ for reasoning.
     CounterSet(function, agg_count_, 0);
-
-    if (IsPipelineMetricsEnabled()) {
-      build_pipeline_.DeclareTLSDependentFunction(GenerateStartHookFunction());
-      build_pipeline_.DeclareTLSDependentFunction(GenerateEndHookFunction());
-    }
   }
 
   InitializeCounters(pipeline, function);

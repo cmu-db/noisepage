@@ -121,6 +121,14 @@ class OperatorTranslator : public ColumnValueProvider {
   virtual void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) {}
 
   /**
+   * Define any helper functions that rely on pipeline's thread local state.
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  virtual void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                                 util::RegionVector<ast::FunctionDecl *> *decls) {}
+
+  /**
    * Initialize all query state.
    * @param function The builder for the query state initialization function.
    */
@@ -147,15 +155,15 @@ class OperatorTranslator : public ColumnValueProvider {
   virtual void BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
   /**
-   * Function to initialize relevant countfers.
-   * @param pipeline The pipeline to initialize counters for
+   * Function to initialize relevant counters.
+   * @param pipeline The pipeline to initialize counters for.
    * @param function The function being built.
    */
   virtual void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}
 
   /**
-   * Function to record relevant countfers.
-   * @param pipeline The pipeline to record counters for
+   * Function to record relevant counters.
+   * @param pipeline The pipeline to record counters for.
    * @param function The function being built.
    */
   virtual void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {}

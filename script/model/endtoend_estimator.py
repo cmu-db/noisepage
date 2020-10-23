@@ -10,7 +10,7 @@ import global_model_config
 from util import io_util, logging_util
 from training_util import global_data_constructing_util, result_writing_util
 from info import data_info
-from type import ExecutionFeature
+from type import Target
 
 np.set_printoptions(precision=4)
 np.set_printoptions(edgeitems=10)
@@ -88,7 +88,7 @@ class EndtoendEstimator:
             data_list.append(d.target_grouped_op_unit_data)
             mini_model_y_pred.append(d.target_grouped_op_unit_data.y_pred)
             raw_y.append(d.target_grouped_op_unit_data.y)
-            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[ExecutionFeature.ELAPSED_US]]
+            predicted_elapsed_us = mini_model_y_pred[-1][data_info.TARGET_CSV_INDEX[Target.ELAPSED_US]]
             predicted_resource_util = None
             if model_name == "impact":
                 predicted_resource_util = d.get_y_pred()

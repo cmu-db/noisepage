@@ -387,6 +387,18 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
                  "CodegenAndRunPhysicalPlan called with invalid QueryType.");
   execution::exec::OutputWriter writer(physical_plan->GetOutputSchema(), out, portal->ResultFormats());
 
+  // A std::function<> requires the target to be CopyConstructible and CopyAssignable. In certain
+  // cases constructing a std::function<> copies the target. This can lead to cases where invoking
+  // the std::function<> will call operator() on a OutputWriter different from the writer above.
+  //
+  // We utilize an extra lambda to capture a pointer to writer. This will allow all OutputBuffers
+  // created during execution to write to the output consumer using the same writer instance
+  // (which will also yield a correct writer.NumRows()).
+  execution::exec::OutputWriter *capture_writer = &writer;
+  execution::exec::OutputCallback callback = [capture_writer](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+    (*capture_writer)(tuples, num_tuples, tuple_size);
+  };
+
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.UpdateFromSettingsManager(settings_manager_);
 
@@ -396,7 +408,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
   }
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), writer, physical_plan->GetOutputSchema().Get(),
+      connection_ctx->GetDatabaseOid(), connection_ctx->Transaction(), callback, physical_plan->GetOutputSchema().Get(),
       connection_ctx->Accessor(), exec_settings, metrics);
 
   exec_ctx->SetParams(portal->Parameters());

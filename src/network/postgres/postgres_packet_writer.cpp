@@ -235,8 +235,6 @@ void PostgresPacketWriter::WriteBindComplete() { BeginPacket(NetworkMessageType:
 void PostgresPacketWriter::WriteDataRow(const byte *const tuple,
                                         const std::vector<planner::OutputSchema::Column> &columns,
                                         const std::vector<FieldFormat> &field_formats) {
-  common::SpinLatch::ScopedSpinLatch guard(&latch_);
-
   BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
   uint32_t curr_offset = 0;
   for (uint32_t i = 0; i < columns.size(); i++) {

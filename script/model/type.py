@@ -4,6 +4,21 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
+class Target(enum.IntEnum):
+    """The output targets for the operating units
+    """
+    START_TIME = 0
+    CPU_ID = 1,
+    CPU_CYCLES = 2,
+    INSTRUCTIONS = 3,
+    CACHE_REF = 4,
+    CACHE_MISS = 5,
+    REF_CPU_CYCLES = 6,
+    BLOCK_READ = 7,
+    BLOCK_WRITE = 8,
+    MEMORY_B = 9,
+    ELAPSED_US = 10
+
 
 class OpUnit(enum.IntEnum):
     """The enum for all the operating units
@@ -64,7 +79,7 @@ class ExecutionFeature(enum.IntEnum):
 
     # input features
     EXEC_MODE = 4,
-    EST_OUTPUT_ROWS = 5,
+    NUM_ROWS = 5,
     KEY_SIZES = 6,
     NUM_KEYS = 7,
     EST_CARDINALITIES = 8,
@@ -78,19 +93,6 @@ class ExecutionFeature(enum.IntEnum):
     BUFFER_UNLINKED = 14,
     READONLY_UNLINKED = 15,
     INTERVAL = 16,
-
-    # outputs
-    START_TIME = 17,
-    CPU_ID = 18,
-    CPU_CYCLES = 19,
-    INSTRUCTIONS = 20,
-    CACHE_REF = 21,
-    CACHE_MISS = 22,
-    REF_CPU_CYCLES = 23,
-    BLOCK_READ = 24,
-    BLOCK_WRITE = 25,
-    MEMORY_B = 26,
-    ELAPSED_US = 27
 
 
 class ArithmeticFeature(enum.Enum):

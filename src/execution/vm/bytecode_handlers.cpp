@@ -332,7 +332,9 @@ void OpExecOUFeatureVectorFilter(terrier::brain::ExecOUFeatureVector *const ouve
       ouvec->pipeline_features_->end());
 }
 
-void OpRegisterMetricsThread(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->RegisterThread(); }
+void OpRegisterThreadWithMetricsManager(terrier::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->RegisterThreadWithMetricsManager();
+}
 
 void OpCheckTrackersStopped(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->CheckTrackersStopped(); }
 

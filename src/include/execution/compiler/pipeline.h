@@ -132,9 +132,8 @@ class Pipeline {
   /**
    * Generate all functions to execute this pipeline in the provided container.
    * @param builder The builder for the executable query container.
-   * @param query_id The ID of the query that generates this pipeline.
    */
-  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder, query_id_t query_id);
+  void GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const;
 
   /**
    * @return True if the pipeline is parallel; false otherwise.
@@ -194,26 +193,19 @@ class Pipeline {
   /**
    * Inject end resource tracker into function
    * @param builder Function being built
-   * @param query_id Query ID that we're ending trackers for
    * @param is_hook Injecting into a hook function
    */
-  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id, bool is_hook) const;
+  void InjectEndResourceTracker(FunctionBuilder *builder, bool is_hook) const;
 
   /**
-   * @returns query identifier that we're codegen-ing for
+   * @return query identifier of the query that we are codegen-ing
    */
-  query_id_t GetQueryId() const { return query_id_; }
+  query_id_t GetQueryId() const;
 
   /**
-   * @returns the OUFeatureVector pointer
+   * @return a pointer to the OUFeatureVector in the pipeline state
    */
   ast::Expr *OUFeatureVecPtr() const { return oufeatures_.GetPtr(codegen_); }
-
-  /**
-   * Declare Function that depends on thread-local state
-   * @param fn Function
-   */
-  void DeclareTLSDependentFunction(ast::FunctionDecl *fn) const;
 
  private:
   // Return the thread-local state initialization and tear-down function names.
@@ -236,7 +228,7 @@ class Pipeline {
   ast::FunctionDecl *GeneratePipelineWorkFunction() const;
 
   // Generate the main pipeline logic.
-  ast::FunctionDecl *GenerateRunPipelineFunction();
+  ast::FunctionDecl *GenerateRunPipelineFunction() const;
 
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
@@ -272,10 +264,8 @@ class Pipeline {
   ast::Identifier state_var_;
   // The pipeline state.
   StateDescriptor state_;
-  // Query Identifier
-  query_id_t query_id_ = query_id_t(0);
+  // The pipeline operating unit feature vector state.
   StateDescriptor::Entry oufeatures_;
-  ExecutableQueryFragmentBuilder *pipeline_builder_ = nullptr;
 };
 
 }  // namespace terrier::execution::compiler

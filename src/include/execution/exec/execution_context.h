@@ -15,7 +15,6 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/region.h"
 #include "metrics/metrics_defs.h"
-#include "metrics/metrics_manager.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::brain {
@@ -26,8 +25,12 @@ namespace terrier::catalog {
 class CatalogAccessor;
 }  // namespace terrier::catalog
 
-namespace terrier::execution::exec {
+namespace terrier::metrics {
+class MetricsManager;
+}  // namespace terrier::metrics
 
+namespace terrier::execution::exec {
+class ExecutionSettings;
 /**
  * Execution Context: Stores information handed in by upper layers.
  * TODO(Amadou): This class will change once we know exactly what we get from upper layers.
@@ -36,6 +39,24 @@ class EXPORT ExecutionContext {
  public:
   /**
    * Hook Function
+   *
+   * Hook functions stemmed from a discussion with Prashanth over the best way
+   * to gather runtime metrics for C++ code. The solution is "hooks". A hook is a
+   * TPL function generated for a pipeline by a specific translator that contains the
+   * necessary instrumentation logic.
+   *
+   * Hooks are registered prior to a function call that may require use of a hook
+   * and then unregistered afterwards. Note that the typical process for adding
+   * hooks to instrument some C++ code (that is invoked from TPL) is as follows:
+   * 1. Decide what C++ call from TPL requires instrumenting (this is function F)
+   * 2. Determine the number of hook sites required inside function F
+   * 3. Modify the translator(s) that invoke F to generate hook functions
+   * 4. Determine a mapping from hook sites in F to codegen'ed hook functions
+   * 4. Prior to codegen-ing the call to F, codegen calls to ExecutionContextRegisterHook
+   *    that map each hook function to a particular call site
+   * 5. After codegen-ing the call to F, codegen a call to ExecutionContextClearHooks
+   * 6. Modify F to invoke the designated hook at each call site
+   *
    * Convention: First argument is the query state.
    *             second argument is the thread state.
    *             Third is opaque function argument.
@@ -53,7 +74,7 @@ class EXPORT ExecutionContext {
    * @param metrics_manager The metrics manager for recording metrics
    */
   ExecutionContext(catalog::db_oid_t db_oid, common::ManagedPointer<transaction::TransactionContext> txn,
-                   OutputCallback callback, const planner::OutputSchema *schema,
+                   const OutputCallback &callback, const planner::OutputSchema *schema,
                    const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                    const exec::ExecutionSettings &exec_settings,
                    common::ManagedPointer<metrics::MetricsManager> metrics_manager)
@@ -63,7 +84,7 @@ class EXPORT ExecutionContext {
         mem_tracker_(std::make_unique<sql::MemoryTracker>()),
         mem_pool_(std::make_unique<sql::MemoryPool>(common::ManagedPointer<sql::MemoryTracker>(mem_tracker_))),
         schema_(schema),
-        callback_(std::move(callback)),
+        callback_(callback),
         thread_state_container_(std::make_unique<sql::ThreadStateContainer>(mem_pool_.get())),
         accessor_(accessor),
         metrics_manager_(metrics_manager) {}
@@ -196,7 +217,7 @@ class EXPORT ExecutionContext {
   }
 
   /**
-   * @returns PipelineOperatingUnits
+   * @return PipelineOperatingUnits
    */
   common::ManagedPointer<brain::PipelineOperatingUnits> GetPipelineOperatingUnits() {
     return pipeline_operating_units_;
@@ -206,12 +227,19 @@ class EXPORT ExecutionContext {
   void AddRowsAffected(int64_t num_rows) { rows_affected_ += num_rows; }
 
   /**
-   * Registers a thread with the attached metrics manager
+   * If the calling thread is not registered with any metrics manager, this function
+   * will register the calling thread with the metrics manager held by this ExecutionContext.
+   *
+   * This is particularly useful during parallel query execution: assume that thread A
+   * constructs an ExecutionContext with metrics manager B. Then all threads [T] spawned by TBB
+   * during parallel query execution that invoke this function will be registered with
+   * metrics manager B.
    */
-  void RegisterThread();
+  void RegisterThreadWithMetricsManager();
 
   /**
-   * Aggregate thread
+   * Requests that the metrics manager attached to this execution context
+   * aggregate metrics from registered threads.
    */
   void AggregateMetricsThread();
 
@@ -221,12 +249,12 @@ class EXPORT ExecutionContext {
   void CheckTrackersStopped();
 
   /**
-   * @returns metrics manager used by execution context
+   * @return metrics manager used by execution context
    */
   common::ManagedPointer<metrics::MetricsManager> GetMetricsManager() { return metrics_manager_; }
 
   /**
-   * @returns query identifier
+   * @return query identifier
    */
   execution::query_id_t GetQueryId() { return query_id_; }
 
@@ -254,17 +282,19 @@ class EXPORT ExecutionContext {
   /**
    * Sets the estimated concurrency of a parallel operation.
    * This value is used when initializing an ExecOUFeatureVector
-   * @param estimate Estimation
+   *
+   * @note this value is reset by setting it to 0.
+   * @param estimate Estimated number of concurrent tasks
    */
   void SetNumConcurrentEstimate(uint32_t estimate) { num_concurrent_estimate_ = estimate; }
 
   /**
    * Invoke a hook function if a hook function is available
-   * @param hookIndex Index of hook futnction to invoke
+   * @param hook_index Index of hook function to invoke
    * @param tls TLS argument
    * @param arg Opaque argument to pass
    */
-  void InvokeHook(size_t hookIndex, void *tls, void *arg);
+  void InvokeHook(size_t hook_index, void *tls, void *arg);
 
   /**
    * Registers a hook function
@@ -293,7 +323,7 @@ class EXPORT ExecutionContext {
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_ = nullptr;
   const planner::OutputSchema *schema_ = nullptr;
-  OutputCallback callback_;
+  const OutputCallback &callback_;
   // Container for thread-local state.
   // During parallel processing, execution threads access their thread-local state from this container.
   std::unique_ptr<sql::ThreadStateContainer> thread_state_container_;

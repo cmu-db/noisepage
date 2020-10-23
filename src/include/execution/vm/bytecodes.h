@@ -115,7 +115,7 @@ namespace terrier::execution::vm {
   F(ExecOUFeatureVectorFilter, OperandType::Local, OperandType::Local)                                                \
   F(ExecOUFeatureVectorReset, OperandType::Local)                                                                     \
                                                                                                                       \
-  F(RegisterMetricsThread, OperandType::Local)                                                                        \
+  F(RegisterThreadWithMetricsManager, OperandType::Local)                                                             \
   F(CheckTrackersStopped, OperandType::Local)                                                                         \
   F(AggregateMetricsThread, OperandType::Local)                                                                       \
   F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \

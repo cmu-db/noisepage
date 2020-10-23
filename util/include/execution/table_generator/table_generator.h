@@ -11,6 +11,7 @@
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
 #include "runner/mini_runners_config.h"
+#include "runner/mini_runners_settings.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::execution::sql {
@@ -104,13 +105,19 @@ class TableGenerator {
 
   /**
    * Generate the tables for the mini runner
+   * @param settings Mini-runners settings
+   * @param config Data Configuration for mini-runners
    */
-  void GenerateMiniRunnersData(const runner::MiniRunnersDataConfig &config);
+  void GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
+                               const runner::MiniRunnersDataConfig &config);
 
   /**
    * Generate mini runners indexes
+   * @param settings Mini-runners settings
+   * @param config Data Configuration for mini-runners
    */
-  void GenerateMiniRunnerIndexTables(const runner::MiniRunnersDataConfig &config);
+  void GenerateMiniRunnerIndexTables(const runner::MiniRunnersSettings &settings,
+                                     const runner::MiniRunnersDataConfig &config);
 
   /**
    * Adds a mini-runner index

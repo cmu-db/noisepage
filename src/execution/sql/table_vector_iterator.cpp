@@ -138,7 +138,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   timer.Start();
 
   // Execute parallel scan
-  size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberofThreads(), 0);
+  size_t num_threads = std::max(exec_ctx->GetExecutionSettings().GetNumberOfParallelExecutionThreads(), 0);
   size_t num_tasks = std::ceil(table->table_.data_table_->GetNumBlocks() * 1.0 / min_grain_size);
   size_t concurrent = std::min(num_threads, num_tasks);
   exec_ctx->SetNumConcurrentEstimate(concurrent);
@@ -161,7 +161,7 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   auto *tls = tsc->AccessCurrentThreadState();
   exec_ctx->InvokeHook(static_cast<uint32_t>(HookOffsets::EndHook), tls, nullptr);
 
-  double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
+  UNUSED_ATTRIBUTE double tps = table->GetNumTuple() / timer.GetElapsed() / 1000.0;
   EXECUTION_LOG_TRACE("Scanned {} blocks ({} tuples) in {} ms ({:.3f} mtps)", table->table_.data_table_->GetNumBlocks(),
                       table->GetNumTuple(), timer.GetElapsed(), tps);
 

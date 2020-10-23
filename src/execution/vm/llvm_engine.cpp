@@ -75,6 +75,11 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
     // If you're here because you tripped the assertion, check that you have EXPORT'd symbol definitions.
     // Symptoms may include your code working in interpreted, adaptive, and codegen, but not in JIT.
+#ifndef NDEBUG
+    if (symbol.getAddress().get() == 0) {
+      EXECUTION_LOG_ERROR("Resolved symbol has no address, you may need to EXPORT: {}", name);
+    }
+#endif  // NDEBUG
     TERRIER_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
     symbols_[name] = {symbol.getAddress().get(), symbol.getFlags()};
     return symbol;
@@ -641,6 +646,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 #ifndef NDEBUG
   EXECUTION_LOG_TRACE("Found blocks:");
   for (auto &[pos, block] : blocks) {
+    (void)pos;
+    (void)block;
     EXECUTION_LOG_TRACE("  Block {} @ {:x}", block->getName().str(), pos);
   }
 #endif

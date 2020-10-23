@@ -63,6 +63,14 @@ class IndexCreateTranslator : public OperatorTranslator, public PipelineDriver {
   void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
+   * Define all hook functions
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                         util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
    * Implement create index logic where it fills in the scanned tuples obtained from the StorageInterface struct
    * @param context The context of the work.
    * @param function The pipeline generating function.

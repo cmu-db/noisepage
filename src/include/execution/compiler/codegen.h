@@ -580,11 +580,11 @@ class CodeGen {
    * @param table_oid The OID of the table to be scanned.
    * @param col_oids The column OIDs from the table that should be scanned.
    * @param query_state The query state pointer.
-   * @param exec_ctx ExecutionContext
+   * @param exec_ctx The execution context that we are running in.
    * @param worker_name The work function name.
    * @return The call.
    */
-  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Expr *col_oids,
+  [[nodiscard]] ast::Expr *IterateTableParallel(catalog::table_oid_t table_oid, ast::Identifier col_oids,
                                                 ast::Expr *query_state, ast::Expr *exec_ctx,
                                                 ast::Identifier worker_name);
 
@@ -1180,7 +1180,7 @@ class CodeGen {
    * Call \@sorterInit(). Initialize the provided sorter instance using a memory pool, comparison
    * function and the struct that will be materialized into the sorter instance.
    * @param sorter The sorter instance.
-   * @param exec_ctx ExecutionContext
+   * @param exec_ctx The execution context that we are running in.
    * @param cmp_func_name The name of the comparison function to use.
    * @param sort_row_type_name The name of the materialized sort-row type.
    * @return The call.

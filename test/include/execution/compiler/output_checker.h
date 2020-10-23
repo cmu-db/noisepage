@@ -255,12 +255,24 @@ class MultiOutputCallback {
    * OutputCallback function
    */
   void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     for (auto &callback : callbacks_) {
       callback(tuples, num_tuples, tuple_size);
     }
   }
 
+  /**
+   * Constructs an OutputCallback such that invoking any copy of the OutputCallback
+   * will invoke operator() on the same MultiOutputCallback instance.
+   * @return OutputCallback that calls this MultiOutputCallback's operator()
+   */
+  exec::OutputCallback ConstructOutputCallback() {
+    return
+        [this](byte *tuples, uint32_t num_tuples, uint32_t tuple_size) { operator()(tuples, num_tuples, tuple_size); };
+  }
+
  private:
+  common::SpinLatch latch_;
   std::vector<exec::OutputCallback> callbacks_;
 };
 

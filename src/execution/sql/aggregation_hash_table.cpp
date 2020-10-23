@@ -11,6 +11,7 @@
 
 #include "common/error/exception.h"
 #include "common/math_util.h"
+#include "count/hll.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/constant_vector.h"
 #include "execution/sql/generic_value.h"
@@ -21,7 +22,6 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
-#include "libcount/hll.h"
 #include "loggers/execution_logger.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -697,7 +697,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
       std::accumulate(nonempty_parts.begin(), nonempty_parts.end(), uint64_t{0},
                       [&](const auto curr, const auto idx) { return curr + partition_tables_[idx]->GetTupleCount(); });
 
-  double tps = (tuple_count / timer.GetElapsed()) / 1000.0;
+  UNUSED_ATTRIBUTE double tps = (tuple_count / timer.GetElapsed()) / 1000.0;
   EXECUTION_LOG_TRACE("Built and scanned {} tables totalling {} tuples in {:.2f} ms ({:.2f} mtps)",
                       nonempty_parts.size(), tuple_count, timer.GetElapsed(), tps);
 }

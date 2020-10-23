@@ -56,7 +56,6 @@ llvm::cl::opt<bool> TPCH("tpch", llvm::cl::desc("Should the TPCH database be loa
 llvm::cl::opt<std::string> DATA_DIR("data", llvm::cl::desc("Where to find data files of tables to load"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<std::string> INPUT_FILE(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 llvm::cl::opt<std::string> OUTPUT_NAME("output-name", llvm::cl::desc("Print the output name"), llvm::cl::init("schema10"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
-llvm::cl::opt<bool> IS_MINI_RUNNER("mini-runner", llvm::cl::desc("Is this used for the mini runner?"), llvm::cl::cat(TPL_OPTIONS_CATEGORY));  // NOLINT
 // clang-format on
 
 tbb::task_scheduler_init scheduler;
@@ -73,21 +72,7 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
   // Initialize terrier objects
   auto db_main_builder = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true);
-  if (IS_MINI_RUNNER) {
-    db_main_builder.SetUseMetrics(true)
-        .SetUseMetricsThread(true)
-        .SetBlockStoreSize(1000000)
-        .SetBlockStoreReuse(1000000)
-        .SetRecordBufferSegmentSize(1000000)
-        .SetRecordBufferSegmentReuse(1000000);
-  }
   auto db_main = db_main_builder.Build();
-
-  if (IS_MINI_RUNNER) {
-    auto metrics_manager = db_main->GetMetricsManager();
-    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
-    metrics_manager->RegisterThread();
-  }
 
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
@@ -106,8 +91,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Make the execution context
   exec::ExecutionSettings exec_settings{};
   exec::OutputPrinter printer(output_schema);
+  exec::OutputCallback callback = printer;
   exec::ExecutionContext exec_ctx{
-      db_oid,        common::ManagedPointer(txn), printer, output_schema, common::ManagedPointer(accessor),
+      db_oid,        common::ManagedPointer(txn), callback, output_schema, common::ManagedPointer(accessor),
       exec_settings, db_main->GetMetricsManager()};
   // Add dummy parameters for tests
   std::vector<parser::ConstantValueExpression> params;
@@ -121,10 +107,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Generate test tables
   sql::TableGenerator table_generator{&exec_ctx, db_main->GetStorageLayer()->GetBlockStore(), ns_oid};
   table_generator.GenerateTestTables();
-  if (IS_MINI_RUNNER) {
-    runner::MiniRunnersDataConfig config;
-    table_generator.GenerateMiniRunnersData(config);
-  }
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
   // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
@@ -231,25 +213,23 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Adaptive
   //
 
-  if (!IS_MINI_RUNNER) {
-    exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Adaptive));
-    util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
+  exec_ctx.SetExecutionMode(static_cast<uint8_t>(vm::ExecutionMode::Adaptive));
+  util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
-    if (IS_SQL) {
-      std::function<int32_t(exec::ExecutionContext *)> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
-        return;
-      }
-      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
-    } else {
-      std::function<int32_t()> main;
-      if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
-        return;
-      }
-      EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
+  if (IS_SQL) {
+    std::function<int32_t(exec::ExecutionContext *)> main;
+    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
+      EXECUTION_LOG_ERROR("Missing 'main' entry function with signature (*ExecutionContext)->int32");
+      return;
     }
+    EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
+  } else {
+    std::function<int32_t()> main;
+    if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
+      EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+      return;
+    }
+    EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
   }
 
   //
@@ -286,9 +266,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // TODO(lma): When do we need this? I actually don't know...
-  if (IS_MINI_RUNNER) db_main->GetMetricsManager()->UnregisterThread();
 }
 
 /**

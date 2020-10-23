@@ -18,13 +18,12 @@ class StringFunctionsTests : public SqlBasedTest {
  public:
   StringFunctionsTests() : exec_ctx_(nullptr) {}
 
-  exec::ExecutionContext *Ctx() {
-    if (exec_ctx_ == nullptr) {
-      exec_ctx_ = MakeExecCtx();
-    }
-
-    return exec_ctx_.get();
+  void SetUp() override {
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
   }
+
+  exec::ExecutionContext *Ctx() { return exec_ctx_.get(); }
 
  protected:
   const char *test_string_1_ = "I only love my bed and my momma, I'm sorry";
