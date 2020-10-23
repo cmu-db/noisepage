@@ -92,11 +92,14 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
 }
 
 void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+
   // Write out the rows for this batch
   for (uint32_t row = 0; row < num_tuples; row++) {
     const byte *const tuple = tuples + row * tuple_size;
     out_->WriteDataRow(tuple, schema_->GetColumns(), field_formats_);
-    num_rows_++;
   }
+
+  num_rows_ += num_tuples;
 }
 }  // namespace terrier::execution::exec

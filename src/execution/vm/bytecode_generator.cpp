@@ -1003,15 +1003,21 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
     case ast::Builtin::AggHashTableInit: {
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, memory, entry_size);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableInit, agg_ht, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::AggHashTableGetTupleCount: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
       LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
       GetEmitter()->Emit(Bytecode::AggregationHashTableGetTupleCount, dest, agg_ht);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
+    case ast::Builtin::AggHashTableGetInsertCount: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      LocalVar agg_ht = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::AggregationHashTableGetInsertCount, dest, agg_ht);
       GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
@@ -1354,9 +1360,8 @@ void BytecodeGenerator::VisitBuiltinJoinHashTableCall(ast::CallExpr *call, ast::
   switch (builtin) {
     case ast::Builtin::JoinHashTableInit: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, memory, entry_size);
+      LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[2]);
+      GetEmitter()->Emit(Bytecode::JoinHashTableInit, join_hash_table, exec_ctx, entry_size);
       break;
     }
     case ast::Builtin::JoinHashTableInsert: {
@@ -1464,10 +1469,11 @@ void BytecodeGenerator::VisitBuiltinSorterCall(ast::CallExpr *call, ast::Builtin
       // TODO(pmenon): Fix me so that the comparison function doesn't have be
       // listed by name.
       LocalVar sorter = VisitExpressionForRValue(call->Arguments()[0]);
-      LocalVar memory = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       const std::string cmp_func_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name().GetData();
       LocalVar entry_size = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, memory, LookupFuncIdByName(cmp_func_name), entry_size);
+      GetEmitter()->EmitSorterInit(Bytecode::SorterInit, sorter, exec_ctx, LookupFuncIdByName(cmp_func_name),
+                                   entry_size);
       break;
     }
     case ast::Builtin::SorterGetTupleCount: {
@@ -1571,15 +1577,26 @@ void BytecodeGenerator::VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Bui
 }
 
 void BytecodeGenerator::VisitResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
-  LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+  LocalVar input = VisitExpressionForRValue(call->Arguments()[0]);
   switch (builtin) {
+    case ast::Builtin::ResultBufferNew: {
+      LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+      GetEmitter()->Emit(Bytecode::ResultBufferNew, dest, input);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
+      break;
+    }
     case ast::Builtin::ResultBufferAllocOutRow: {
       LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      GetEmitter()->Emit(Bytecode::ResultBufferAllocOutputRow, dest, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ResultBufferAllocOutputRow, dest, input);
+      GetExecutionResult()->SetDestination(dest.ValueOf());
       break;
     }
     case ast::Builtin::ResultBufferFinalize: {
-      GetEmitter()->Emit(Bytecode::ResultBufferFinalize, exec_ctx);
+      GetEmitter()->Emit(Bytecode::ResultBufferFinalize, input);
+      break;
+    }
+    case ast::Builtin::ResultBufferFree: {
+      GetEmitter()->Emit(Bytecode::ResultBufferFree, input);
       break;
     }
     default: {
@@ -1638,6 +1655,21 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
       GetEmitter()->Emit(Bytecode::ExecutionContextAddRowsAffected, exec_ctx, rows_affected);
       break;
     }
+    case ast::Builtin::ExecutionContextRegisterHook: {
+      auto hook_idx = VisitExpressionForRValue(call->Arguments()[1]);
+      const auto hook_fn_name = call->Arguments()[2]->As<ast::IdentifierExpr>()->Name();
+      GetEmitter()->EmitRegisterHook(exec_ctx, hook_idx, LookupFuncIdByName(hook_fn_name.GetData()));
+      break;
+    }
+    case ast::Builtin::ExecutionContextClearHooks: {
+      GetEmitter()->Emit(Bytecode::ExecutionContextClearHooks, exec_ctx);
+      break;
+    }
+    case ast::Builtin::ExecutionContextInitHooks: {
+      auto num_hooks = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextInitHooks, exec_ctx, num_hooks);
+      break;
+    }
     case ast::Builtin::ExecutionContextStartResourceTracker: {
       LocalVar metrics_component = VisitExpressionForRValue(call->Arguments()[1]);
       GetEmitter()->Emit(Bytecode::ExecutionContextStartResourceTracker, exec_ctx, metrics_component);
@@ -1661,26 +1693,15 @@ void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, ast::Buil
     case ast::Builtin::ExecutionContextEndPipelineTracker: {
       LocalVar query_id = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id);
+      LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecutionContextEndPipelineTracker, exec_ctx, query_id, pipeline_id, ouvec);
       break;
     }
-    case ast::Builtin::ExecutionContextGetFeature: {
-      LocalVar value = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextGetFeature, value, exec_ctx, pipeline_id, feature_id,
-                         feature_attribute);
-      GetExecutionResult()->SetDestination(value.ValueOf());
-      break;
-    }
-    case ast::Builtin::ExecutionContextRecordFeature: {
-      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
-      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
-      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
-      LocalVar value = VisitExpressionForRValue(call->Arguments()[4]);
-      GetEmitter()->Emit(Bytecode::ExecutionContextRecordFeature, exec_ctx, pipeline_id, feature_id, feature_attribute,
-                         value);
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar is_parallel = VisitExpressionForRValue(call->Arguments()[3]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorInitialize, exec_ctx, ouvector, pipeline_id, is_parallel);
       break;
     }
     case ast::Builtin::ExecutionContextGetMemoryPool: {
@@ -2255,6 +2276,7 @@ void BytecodeGenerator::VisitBuiltinStorageInterfaceCall(ast::CallExpr *call, as
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
       LocalVar unique = VisitExpressionForRValue(call->Arguments()[2]);
       GetEmitter()->Emit(Bytecode::StorageInterfaceIndexInsertWithSlot, cond, storage_interface, tuple_slot, unique);
+      GetExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::IndexDelete: {
@@ -2519,7 +2541,25 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinDateFunctionCall(call, builtin);
       break;
     }
+    case ast::Builtin::RegisterThreadWithMetricsManager: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::RegisterThreadWithMetricsManager, exec_ctx);
+      break;
+    }
+    case ast::Builtin::CheckTrackersStopped: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::CheckTrackersStopped, exec_ctx);
+      break;
+    }
+    case ast::Builtin::AggregateMetricsThread: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::AggregateMetricsThread, exec_ctx);
+      break;
+    }
     case ast::Builtin::ExecutionContextAddRowsAffected:
+    case ast::Builtin::ExecutionContextRegisterHook:
+    case ast::Builtin::ExecutionContextClearHooks:
+    case ast::Builtin::ExecutionContextInitHooks:
     case ast::Builtin::ExecutionContextGetMemoryPool:
     case ast::Builtin::ExecutionContextGetTLS:
     case ast::Builtin::ExecutionContextStartResourceTracker:
@@ -2527,9 +2567,30 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::ExecutionContextEndResourceTracker:
     case ast::Builtin::ExecutionContextStartPipelineTracker:
     case ast::Builtin::ExecutionContextEndPipelineTracker:
-    case ast::Builtin::ExecutionContextGetFeature:
-    case ast::Builtin::ExecutionContextRecordFeature: {
+    case ast::Builtin::ExecOUFeatureVectorInitialize: {
       VisitExecutionContextCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorReset: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorReset, ouvector);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorFilter: {
+      LocalVar ouvector = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar filter = VisitExpressionForRValue(call->Arguments()[1]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorFilter, ouvector, filter);
+      break;
+    }
+    case ast::Builtin::ExecOUFeatureVectorRecordFeature: {
+      LocalVar ouvec = VisitExpressionForRValue(call->Arguments()[0]);
+      LocalVar pipeline_id = VisitExpressionForRValue(call->Arguments()[1]);
+      LocalVar feature_id = VisitExpressionForRValue(call->Arguments()[2]);
+      LocalVar feature_attribute = VisitExpressionForRValue(call->Arguments()[3]);
+      LocalVar mode = VisitExpressionForRValue(call->Arguments()[4]);
+      LocalVar value = VisitExpressionForRValue(call->Arguments()[5]);
+      GetEmitter()->Emit(Bytecode::ExecOUFeatureVectorRecordFeature, ouvec, pipeline_id, feature_id, feature_attribute,
+                         mode, value);
       break;
     }
     case ast::Builtin::ThreadStateContainerIterate:
@@ -2634,6 +2695,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
     case ast::Builtin::AggHashTableInit:
     case ast::Builtin::AggHashTableGetTupleCount:
+    case ast::Builtin::AggHashTableGetInsertCount:
     case ast::Builtin::AggHashTableInsert:
     case ast::Builtin::AggHashTableLinkEntry:
     case ast::Builtin::AggHashTableLookup:
@@ -2712,8 +2774,10 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinSorterIterCall(call, builtin);
       break;
     }
+    case ast::Builtin::ResultBufferNew:
     case ast::Builtin::ResultBufferAllocOutRow:
-    case ast::Builtin::ResultBufferFinalize: {
+    case ast::Builtin::ResultBufferFinalize:
+    case ast::Builtin::ResultBufferFree: {
       VisitResultBufferCall(call, builtin);
       break;
     }

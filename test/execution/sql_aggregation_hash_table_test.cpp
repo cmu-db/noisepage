@@ -72,16 +72,20 @@ static bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2) {
 
 class AggregationHashTableTest : public SqlBasedTest {
  public:
-  AggregationHashTableTest() : agg_table_(exec_settings_, &memory_, sizeof(AggTuple)) {}
+  AggregationHashTableTest() = default;
 
-  MemoryPool *Memory() { return &memory_; }
+  void SetUp() override {
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+    agg_table_ =
+        std::make_unique<AggregationHashTable>(exec_ctx_->GetExecutionSettings(), exec_ctx_.get(), sizeof(AggTuple));
+  }
 
-  AggregationHashTable *AggTable() { return &agg_table_; }
+  AggregationHashTable *AggTable() { return agg_table_.get(); }
 
  private:
-  exec::ExecutionSettings exec_settings_{};
-  MemoryPool memory_{nullptr};
-  AggregationHashTable agg_table_;
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+  std::unique_ptr<AggregationHashTable> agg_table_;
 };
 
 // NOLINTNEXTLINE
@@ -128,7 +132,6 @@ TEST_F(AggregationHashTableTest, IterationTest) {
   // Each group will receive G=num_inserts/10 tuples, count1 will be G,
   // count2 will be G*2, and count3 will be G*10.
   //
-
   const uint32_t num_inserts = 10000;
   const uint32_t num_groups = 10;
   const uint32_t tuples_per_group = num_inserts / num_groups;
@@ -373,7 +376,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
       // Init function.
       [](void *ctx, void *aht) {
         auto exec_ctx = reinterpret_cast<exec::ExecutionContext *>(ctx);
-        new (aht) AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx->GetMemoryPool(), sizeof(AggTuple));
+        new (aht) AggregationHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, sizeof(AggTuple));
       },
       // Tear-down function.
       [](void *ctx, void *aht) { std::destroy_at(reinterpret_cast<AggregationHashTable *>(aht)); }, exec_ctx.get());
@@ -403,7 +406,7 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   // -------------------------------------------------------
   // Step 2: Transfer thread-local memory into global/main hash table.
-  AggregationHashTable main_table(exec_ctx->GetExecutionSettings(), &memory, sizeof(AggTuple));
+  AggregationHashTable main_table(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
   main_table.TransferMemoryAndPartitions(
       &container, 0,
       // Merging function merges a set of overflow partitions into the provided

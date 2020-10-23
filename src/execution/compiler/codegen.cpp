@@ -762,19 +762,40 @@ ast::Expr *CodeGen::FilterManagerRunFilters(ast::Expr *filter_manager, ast::Expr
   return call;
 }
 
+ast::Expr *CodeGen::ExecCtxRegisterHook(ast::Expr *exec_ctx, uint32_t hook_idx, ast::Identifier hook) {
+  ast::Expr *call =
+      CallBuiltin(ast::Builtin::ExecutionContextRegisterHook, {exec_ctx, Const32(hook_idx), MakeExpr(hook)});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::ExecCtxClearHooks(ast::Expr *exec_ctx) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextClearHooks, {exec_ctx});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
+ast::Expr *CodeGen::ExecCtxInitHooks(ast::Expr *exec_ctx, uint32_t num_hooks) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextInitHooks, {exec_ctx, Const32(num_hooks)});
+  call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
+  return call;
+}
+
 ast::Expr *CodeGen::ExecCtxAddRowsAffected(ast::Expr *exec_ctx, int64_t num_rows_affected) {
   ast::Expr *call = CallBuiltin(ast::Builtin::ExecutionContextAddRowsAffected, {exec_ctx, Const64(num_rows_affected)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
 
-ast::Expr *CodeGen::ExecCtxRecordFeature(ast::Expr *exec_ctx, pipeline_id_t pipeline_id, feature_id_t feature_id,
-                                         brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                         ast::Expr *value) {
+ast::Expr *CodeGen::ExecOUFeatureVectorRecordFeature(ast::Expr *ouvec, pipeline_id_t pipeline_id,
+                                                     feature_id_t feature_id,
+                                                     brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
+                                                     brain::ExecutionOperatingUnitFeatureUpdateMode mode,
+                                                     ast::Expr *value) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::ExecutionContextRecordFeature,
-                  {exec_ctx, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
-                   Const32(static_cast<int32_t>(feature_attribute)), value});
+      CallBuiltin(ast::Builtin::ExecOUFeatureVectorRecordFeature,
+                  {ouvec, Const32(pipeline_id.UnderlyingValue()), Const32(feature_id.UnderlyingValue()),
+                   Const32(static_cast<int32_t>(feature_attribute)), Const32(static_cast<int32_t>(mode)), value});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -831,10 +852,10 @@ ast::Expr *CodeGen::Hash(const std::vector<ast::Expr *> &values) {
 // Joins
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx, ast::Expr *mem_pool,
+ast::Expr *CodeGen::JoinHashTableInit(ast::Expr *join_hash_table, ast::Expr *exec_ctx,
                                       ast::Identifier build_row_type_name) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::JoinHashTableInit, {join_hash_table, exec_ctx, mem_pool, SizeOf(build_row_type_name)});
+      CallBuiltin(ast::Builtin::JoinHashTableInit, {join_hash_table, exec_ctx, SizeOf(build_row_type_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -918,9 +939,8 @@ ast::Expr *CodeGen::JoinHTIteratorFree(ast::Expr *iter) {
 // Hash aggregations
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Expr *mem_pool,
-                                     ast::Identifier agg_payload_type) {
-  ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableInit, {agg_ht, exec_ctx, mem_pool, SizeOf(agg_payload_type)});
+ast::Expr *CodeGen::AggHashTableInit(ast::Expr *agg_ht, ast::Expr *exec_ctx, ast::Identifier agg_payload_type) {
+  ast::Expr *call = CallBuiltin(ast::Builtin::AggHashTableInit, {agg_ht, exec_ctx, SizeOf(agg_payload_type)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }
@@ -1059,10 +1079,10 @@ ast::Expr *CodeGen::AggregatorResult(ast::Expr *agg) { return CallBuiltin(ast::B
 // Sorters
 // ---------------------------------------------------------
 
-ast::Expr *CodeGen::SorterInit(ast::Expr *sorter, ast::Expr *mem_pool, ast::Identifier cmp_func_name,
+ast::Expr *CodeGen::SorterInit(ast::Expr *sorter, ast::Expr *exec_ctx, ast::Identifier cmp_func_name,
                                ast::Identifier sort_row_type_name) {
   ast::Expr *call =
-      CallBuiltin(ast::Builtin::SorterInit, {sorter, mem_pool, MakeExpr(cmp_func_name), SizeOf(sort_row_type_name)});
+      CallBuiltin(ast::Builtin::SorterInit, {sorter, exec_ctx, MakeExpr(cmp_func_name), SizeOf(sort_row_type_name)});
   call->SetType(ast::BuiltinType::Get(context_, ast::BuiltinType::Nil));
   return call;
 }

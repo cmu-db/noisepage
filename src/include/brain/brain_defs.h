@@ -104,7 +104,12 @@ enum class ExecutionOperatingUnitType : uint32_t {
    */
   LIMIT,
 
+  PARALLEL_MERGE_HASHJOIN,
+  PARALLEL_MERGE_AGGBUILD,
+  PARALLEL_SORT_STEP,
+  PARALLEL_SORT_MERGE_STEP,
   CREATE_INDEX,
+  CREATE_INDEX_MAIN,
 
   /**
    * Use to demarcate plan and operations.
@@ -125,5 +130,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
 
 /** The attributes of an ExecutionOperatingUnitFeature that can be set from TPL. */
 enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINALITY, NUM_LOOPS };
+
+enum class ExecutionOperatingUnitFeatureUpdateMode : uint8_t { SET, ADD, MULT };
 
 }  // namespace terrier::brain

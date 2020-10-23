@@ -52,7 +52,7 @@ class ResourceTracker {
 
     /** Column headers to emit when writing to CSV */
     static constexpr std::string_view COLUMNS = {
-        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, "
+        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles, "
         "block_read, block_write, memory_b, elapsed_us"};
   };
 
