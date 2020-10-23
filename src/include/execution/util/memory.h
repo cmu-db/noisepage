@@ -43,7 +43,7 @@ class Memory {
   [[nodiscard]] static void *MallocAligned(const std::size_t size, const std::size_t alignment) {
     NOISEPAGE_ASSERT(common::MathUtil::IsPowerOf2(alignment), "Alignment must be a power of two");
     NOISEPAGE_ASSERT(common::MathUtil::IsAligned(alignment, sizeof(void *)),
-                   "Alignment must be a multiple of sizeof(void*)");
+                     "Alignment must be a multiple of sizeof(void*)");
 
     void *ptr = nullptr;
 #if defined(__APPLE__)

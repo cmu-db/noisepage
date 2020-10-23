@@ -149,7 +149,7 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
 Sema::CheckResult Sema::CheckSqlComparisonOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
                                                    ast::Expr *right) {
   NOISEPAGE_ASSERT(left->GetType()->IsSqlValueType() || right->GetType()->IsSqlValueType(),
-                 "At least one input to comparison must be SQL value");
+                   "At least one input to comparison must be SQL value");
 
   // Primitive bool <cmp> SQL Boolean -> cast left.
   if (left->GetType()->IsBoolType() && right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {

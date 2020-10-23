@@ -135,22 +135,22 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
       "Invalid schema configurations for D_ID.");
 
   NOISEPAGE_ASSERT(customer_schema.GetColumn(0).Name() == "c_id" && history_schema.GetColumn(0).Name() == "h_c_id" &&
-                     order_schema.GetColumn(3).Name() == "o_c_id" &&
-                     (customer_schema.GetColumn(0).Type() == history_schema.GetColumn(0).Type() &&
-                      customer_schema.GetColumn(0).Type() == order_schema.GetColumn(3).Type()),
-                 "Invalid schema configurations for C_ID.");
+                       order_schema.GetColumn(3).Name() == "o_c_id" &&
+                       (customer_schema.GetColumn(0).Type() == history_schema.GetColumn(0).Type() &&
+                        customer_schema.GetColumn(0).Type() == order_schema.GetColumn(3).Type()),
+                   "Invalid schema configurations for C_ID.");
 
   NOISEPAGE_ASSERT(new_order_schema.GetColumn(0).Name() == "no_o_id" && order_schema.GetColumn(0).Name() == "o_id" &&
-                     order_line_schema.GetColumn(0).Name() == "ol_o_id" &&
-                     (new_order_schema.GetColumn(0).Type() == order_schema.GetColumn(0).Type() &&
-                      new_order_schema.GetColumn(0).Type() == order_line_schema.GetColumn(0).Type()),
-                 "Invalid schema configurations for O_ID.");
+                       order_line_schema.GetColumn(0).Name() == "ol_o_id" &&
+                       (new_order_schema.GetColumn(0).Type() == order_schema.GetColumn(0).Type() &&
+                        new_order_schema.GetColumn(0).Type() == order_line_schema.GetColumn(0).Type()),
+                   "Invalid schema configurations for O_ID.");
 
   NOISEPAGE_ASSERT(order_line_schema.GetColumn(4).Name() == "ol_i_id" && item_schema.GetColumn(0).Name() == "i_id" &&
-                     stock_schema.GetColumn(0).Name() == "s_i_id" &&
-                     (order_line_schema.GetColumn(4).Type() == item_schema.GetColumn(0).Type() &&
-                      order_line_schema.GetColumn(4).Type() == stock_schema.GetColumn(0).Type()),
-                 "Invalid schema configurations for I_ID.");
+                       stock_schema.GetColumn(0).Name() == "s_i_id" &&
+                       (order_line_schema.GetColumn(4).Type() == item_schema.GetColumn(0).Type() &&
+                        order_line_schema.GetColumn(4).Type() == stock_schema.GetColumn(0).Type()),
+                   "Invalid schema configurations for I_ID.");
 
   // generate all of the index schemas
   auto warehouse_primary_index_schema =
@@ -266,75 +266,78 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // Verify that we got the indexes and key types that we expect out of the builder
   if (index_type == storage::index::IndexType::HASHMAP) {
-    NOISEPAGE_ASSERT(warehouse_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(warehouse_index->Type() == storage::index::IndexType::HASHMAP,
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(district_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(customer_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::HASHMAP,
-                   "Constructed the wrong index type.");
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(new_order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(order_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BWTREE,
-                   "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE,
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(item_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(stock_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
 
     NOISEPAGE_ASSERT(warehouse_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(district_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(customer_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(customer_secondary_index->KeyKind() == storage::index::IndexKeyKind::GENERICKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(new_order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(order_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
-                   "Constructed the wrong index type.");
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(order_secondary_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(order_line_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(item_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
   } else {
     NOISEPAGE_ASSERT(index_type == storage::index::IndexType::BWTREE,
-                   "This branch expects the BwTree. Did you add another IndexType to the system?");
+                     "This branch expects the BwTree. Did you add another IndexType to the system?");
     NOISEPAGE_ASSERT(warehouse_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(district_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(customer_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::BWTREE,
-                   "Constructed the wrong index type.");
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(new_order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BWTREE,
-                   "Constructed the wrong index type.");
-    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+                     "Constructed the wrong index type.");
+    NOISEPAGE_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE,
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(item_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(stock_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
 
     NOISEPAGE_ASSERT(warehouse_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(district_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(customer_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(customer_secondary_index->KeyKind() == storage::index::IndexKeyKind::GENERICKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(new_order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index type.");
+                     "Constructed the wrong index type.");
     NOISEPAGE_ASSERT(order_secondary_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(order_line_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(item_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
     NOISEPAGE_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
-                   "Constructed the wrong index key type.");
+                     "Constructed the wrong index key type.");
   }
 
   return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,

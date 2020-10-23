@@ -225,7 +225,7 @@ class EXPORT Vector {
    */
   void SetFilteredTupleIdList(const TupleIdList *tid_list, const uint64_t count) {
     NOISEPAGE_ASSERT(tid_list == nullptr || tid_list->GetCapacity() == num_elements_,
-                   "TID list too small to capture all vector elements");
+                     "TID list too small to capture all vector elements");
     NOISEPAGE_ASSERT(tid_list == nullptr || tid_list->GetTupleCount() == count, "TID list size and count do not match");
     NOISEPAGE_ASSERT(count <= num_elements_, "TID list count must be smaller than vector size");
     tid_list_ = tid_list;

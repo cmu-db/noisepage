@@ -171,7 +171,7 @@ class BinaryOperationExecutor {
   static void ExecuteImplVectorVector(const exec::ExecutionSettings &exec_settings, const Vector &left,
                                       const Vector &right, Vector *result, Op &&op) {
     NOISEPAGE_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
-                   "Mismatched selection vectors for comparison");
+                     "Mismatched selection vectors for comparison");
     NOISEPAGE_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
 
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());

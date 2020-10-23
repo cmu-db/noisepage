@@ -81,10 +81,11 @@ class OperatorNode : public AbstractOptimizerNode {
       auto &other_child = other.children_[idx];
 
       NOISEPAGE_ASSERT(child != nullptr, "OperatorNode should not have null children");
-      NOISEPAGE_ASSERT(child->Contents()->GetOpType() != OpType::UNDEFINED, "OperatorNode should have operator children");
+      NOISEPAGE_ASSERT(child->Contents()->GetOpType() != OpType::UNDEFINED,
+                       "OperatorNode should have operator children");
       NOISEPAGE_ASSERT(other_child != nullptr, "OperatorNode should not have null children");
       NOISEPAGE_ASSERT(other_child->Contents()->GetOpType() != OpType::UNDEFINED,
-                     "OperatorNode should have operator children");
+                       "OperatorNode should have operator children");
 
       auto *child_op = dynamic_cast<OperatorNode *>(child.get());
       auto *other_child_op = dynamic_cast<OperatorNode *>(other_child.get());

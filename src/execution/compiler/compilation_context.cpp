@@ -207,7 +207,7 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
 
 uint32_t CompilationContext::RegisterPipeline(Pipeline *pipeline) {
   NOISEPAGE_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
-                 "Duplicate pipeline in context");
+                   "Duplicate pipeline in context");
   pipelines_.push_back(pipeline);
   return pipelines_.size();
 }

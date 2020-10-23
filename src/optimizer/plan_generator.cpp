@@ -138,7 +138,7 @@ std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan(const pars
   std::unordered_set<catalog::col_oid_t> unique_oids;
   for (auto &output_expr : output_cols_) {
     NOISEPAGE_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                   "Scan columns should all be base table columns");
+                     "Scan columns should all be base table columns");
 
     auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_id = tve->GetColumnOid();
@@ -172,7 +172,7 @@ std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(c
   std::vector<planner::OutputSchema::Column> columns;
   for (auto &output_expr : output_cols_) {
     NOISEPAGE_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                   "Scan columns should all be base table columns");
+                     "Scan columns should all be base table columns");
 
     auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
 
@@ -329,7 +329,7 @@ void PlanGenerator::Visit(const Limit *op) {
     auto &child_cols_map = children_expr_map_[0];
 
     NOISEPAGE_ASSERT(op->GetSortExpressions().size() == op->GetSortAscending().size(),
-                   "Limit sort expressions and sort ascending size should match");
+                     "Limit sort expressions and sort ascending size should match");
 
     // OrderBy OutputSchema does not add/drop columns. All output columns of OrderBy
     // are the same as the output columns of the child plan. As such, the OutputSchema
@@ -573,9 +573,13 @@ void PlanGenerator::Visit(const InnerNLJoin *op) {
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { NOISEPAGE_ASSERT(0, "LeftNLJoin not implemented"); }
 
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) { NOISEPAGE_ASSERT(0, "RightNLJoin not implemented"); }
+void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {
+  NOISEPAGE_ASSERT(0, "RightNLJoin not implemented");
+}
 
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) { NOISEPAGE_ASSERT(0, "OuterNLJoin not implemented"); }
+void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
+  NOISEPAGE_ASSERT(0, "OuterNLJoin not implemented");
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // A hashjoin B (what you should do for large relations.....)
@@ -729,7 +733,7 @@ void PlanGenerator::BuildAggregatePlan(
       // We need to evaluate the expression first, convert ColumnValue => DerivedValue
       auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
       NOISEPAGE_ASSERT(parser::ExpressionUtil::IsAggregateExpression(eval->GetExpressionType()),
-                     "Evaluated AggregateExpression should still be an aggregate expression");
+                       "Evaluated AggregateExpression should still be an aggregate expression");
 
       auto agg_expr = reinterpret_cast<parser::AggregateExpression *>(eval);
       RegisterPointerCleanup<parser::AggregateExpression>(agg_expr, true, true);

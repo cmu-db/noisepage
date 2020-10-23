@@ -619,7 +619,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
   // Scan the class index
   NOISEPAGE_ASSERT(get_columns_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be large enough to fit largest PR");
+                   "Buffer must be large enough to fit largest PR");
   auto *pr = oid_pri.InitializeRow(buffer);
   auto *pr_high = oid_pri.InitializeRow(key_buffer);
 
@@ -635,8 +635,8 @@ std::vector<Column> DatabaseCatalog::GetColumns(const common::ManagedPointer<tra
   columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, pr_high, 0, &index_results);
 
   NOISEPAGE_ASSERT(!index_results.empty(),
-                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
-                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+                   "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                   "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   // Step 2: Scan the table to get the columns
   std::vector<Column> cols;
@@ -686,8 +686,8 @@ bool DatabaseCatalog::DeleteColumns(const common::ManagedPointer<transaction::Tr
   columns_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr, key_pr, 0, &index_results);
 
   NOISEPAGE_ASSERT(!index_results.empty(),
-                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
-                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+                   "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                   "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
   // another catalog table maybe?
@@ -770,7 +770,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   NOISEPAGE_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated for largest ProjectedRow size");
+                   "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
@@ -804,7 +804,7 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   const table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELOID_COL_OID])));
   NOISEPAGE_ASSERT(table == table_oid,
-                 "table oid from pg_classes did not match what was found by the index scan from the argument.");
+                   "table oid from pg_classes did not match what was found by the index scan from the argument.");
   const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
       table_pr->AccessForceNotNull(pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
@@ -883,7 +883,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(
   NOISEPAGE_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
   NOISEPAGE_ASSERT(get_class_oid_kind_pri_.ProjectedRowSize() <= name_pri.ProjectedRowSize(),
-                 "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
+                   "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
   pr = get_class_oid_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], pr);
   NOISEPAGE_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
@@ -910,9 +910,10 @@ table_oid_t DatabaseCatalog::GetTableOid(const common::ManagedPointer<transactio
 
 bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const table_oid_t table, const storage::SqlTable *const table_ptr) {
-  NOISEPAGE_ASSERT(write_lock_.load() == txn->FinishTime(),
-                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
-                 "should already have the lock.");
+  NOISEPAGE_ASSERT(
+      write_lock_.load() == txn->FinishTime(),
+      "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+      "should already have the lock.");
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -974,7 +975,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(
 
   // Do not need projection map when there is only one column
   NOISEPAGE_ASSERT(get_indexes_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_indexes_pri_.ProjectedRowSize());
 
   // Find all entries for the given table using the index
@@ -1023,7 +1024,7 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
 
   // Allocate buffer for largest PR
   NOISEPAGE_ASSERT(pg_class_all_cols_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated for largest ProjectedRow size");
+                   "Buffer must be allocated for largest ProjectedRow size");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pg_class_all_cols_pri_.ProjectedRowSize());
   auto *key_pr = class_oid_pri.InitializeRow(buffer);
 
@@ -1090,9 +1091,9 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   const auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
 
   NOISEPAGE_ASSERT((pg_class_all_cols_pri_.ProjectedRowSize() >= delete_index_pri_.ProjectedRowSize()) &&
-                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
-                     (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
-                 "Buffer must be allocated for largest ProjectedRow size");
+                       (pg_class_all_cols_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
+                       (pg_class_all_cols_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
+                   "Buffer must be allocated for largest ProjectedRow size");
 
   // Find the entry in pg_index using the oid index
   index_results.clear();
@@ -1100,9 +1101,9 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   NOISEPAGE_ASSERT(index_results.size() == 1,
-                 "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
-                 "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
-                 "pg_index. Something broke.");
+                   "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+                   "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
+                   "pg_index. Something broke.");
 
   // Select the tuple out of pg_index before deletion. We need the attributes to do index deletions later
   table_pr = delete_index_pri_.InitializeRow(buffer);
@@ -1110,8 +1111,8 @@ bool DatabaseCatalog::DeleteIndex(const common::ManagedPointer<transaction::Tran
   NOISEPAGE_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   NOISEPAGE_ASSERT(index == *(reinterpret_cast<const index_oid_t *const>(
-                              table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
-                 "index oid from pg_index did not match what was found by the index scan from the argument.");
+                                table_pr->AccessForceNotNull(delete_index_prm_[postgres::INDOID_COL_OID]))),
+                   "index oid from pg_index did not match what was found by the index scan from the argument.");
 
   // Delete from pg_index table
   txn->StageDelete(db_oid_, postgres::INDEX_TABLE_OID, index_results[0]);
@@ -1167,11 +1168,12 @@ bool DatabaseCatalog::SetIndexSchemaPointer(const common::ManagedPointer<transac
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const ClassOid oid, const Ptr *const pointer, const col_oid_t class_col) {
-  NOISEPAGE_ASSERT((std::is_same<ClassOid, table_oid_t>::value &&
-                  (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
-                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
-                                                                     std::is_same<Ptr, catalog::IndexSchema>::value)),
-                 "OID type must correspond to the same object type (Table or index)");
+  NOISEPAGE_ASSERT(
+      (std::is_same<ClassOid, table_oid_t>::value &&
+       (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
+          (std::is_same<ClassOid, index_oid_t>::value &&
+           (std::is_same<Ptr, storage::index::Index>::value || std::is_same<Ptr, catalog::IndexSchema>::value)),
+      "OID type must correspond to the same object type (Table or index)");
   NOISEPAGE_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
@@ -1206,9 +1208,10 @@ bool DatabaseCatalog::SetClassPointer(const common::ManagedPointer<transaction::
 
 bool DatabaseCatalog::SetIndexPointer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                       const index_oid_t index, storage::index::Index *const index_ptr) {
-  NOISEPAGE_ASSERT(write_lock_.load() == txn->FinishTime(),
-                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
-                 "should already have the lock.");
+  NOISEPAGE_ASSERT(
+      write_lock_.load() == txn->FinishTime(),
+      "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+      "should already have the lock.");
   if (index_ptr->Type() == storage::index::IndexType::BWTREE) {
     garbage_collector_->RegisterIndexForGC(common::ManagedPointer(index_ptr));
   }
@@ -1260,10 +1263,10 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 
   // Do not need projection map when there is only one column
   NOISEPAGE_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
-                     get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
-                     get_class_object_and_schema_pri_.ProjectedRowSize() >=
-                         classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+                       get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
+                       get_class_object_and_schema_pri_.ProjectedRowSize() >=
+                           classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_object_and_schema_pri_.ProjectedRowSize());
 
   // Find all entries for the given table using the index
@@ -1297,15 +1300,16 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
     // Find the entry using the index
     *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = index_oid.UnderlyingValue();
     classes_oid_index_->ScanKey(*txn, *class_key_pr, &index_scan_results);
-    NOISEPAGE_ASSERT(index_scan_results.size() == 1,
-                   "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
-                   "implies an error in Catalog state because scanning pg_index returned the index oid, but it doesn't "
-                   "exist in pg_class. Something broke.");
+    NOISEPAGE_ASSERT(
+        index_scan_results.size() == 1,
+        "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+        "implies an error in Catalog state because scanning pg_index returned the index oid, but it doesn't "
+        "exist in pg_class. Something broke.");
     class_tuple_slots.push_back(index_scan_results[0]);
     index_scan_results.clear();
   }
   NOISEPAGE_ASSERT(class_tuple_slots.size() == index_oids.size(),
-                 "We should have found an entry in pg_class for every index oid");
+                   "We should have found an entry in pg_class for every index oid");
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
@@ -1317,13 +1321,14 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
 
     auto *index = *(reinterpret_cast<storage::index::Index *const *const>(
         class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_PTR_COL_OID])));
-    NOISEPAGE_ASSERT(index != nullptr,
-                   "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
-                   "SetIndexPointer?");
+    NOISEPAGE_ASSERT(
+        index != nullptr,
+        "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
+        "SetIndexPointer?");
     auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(
         class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_SCHEMA_COL_OID])));
     NOISEPAGE_ASSERT(schema != nullptr,
-                   "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
+                     "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
 
     index_objects.emplace_back(common::ManagedPointer(index), *schema);
   }
@@ -1493,8 +1498,8 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
   const auto class_ns_index_init = classes_namespace_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT((class_name_index_init.ProjectedRowSize() >= class_oid_index_init.ProjectedRowSize()) &&
-                     (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
-                 "Index buffer must be allocated based on the largest PR initializer");
+                       (class_name_index_init.ProjectedRowSize() >= class_ns_index_init.ProjectedRowSize()),
+                   "Index buffer must be allocated based on the largest PR initializer");
   auto *index_buffer = common::AllocationUtil::AllocateAligned(class_name_index_init.ProjectedRowSize());
 
   // Insert into oid_index
@@ -1566,8 +1571,8 @@ bool DatabaseCatalog::CreateIndexEntry(const common::ManagedPointer<transaction:
   const auto indexes_oid_index_init = indexes_oid_index_->GetProjectedRowInitializer();
   const auto indexes_table_index_init = indexes_table_index_->GetProjectedRowInitializer();
   NOISEPAGE_ASSERT((class_name_index_init.ProjectedRowSize() >= indexes_oid_index_init.ProjectedRowSize()) &&
-                     (class_name_index_init.ProjectedRowSize() > indexes_table_index_init.ProjectedRowSize()),
-                 "Index buffer must be allocated based on the largest PR initializer");
+                       (class_name_index_init.ProjectedRowSize() > indexes_table_index_init.ProjectedRowSize()),
+                   "Index buffer must be allocated based on the largest PR initializer");
 
   // Insert into indexes_oid_index
   index_pr = indexes_oid_index_init.InitializeRow(index_buffer);
@@ -1659,10 +1664,10 @@ void DatabaseCatalog::InsertType(const common::ManagedPointer<transaction::Trans
 
   // Allocate buffer of largest size needed
   NOISEPAGE_ASSERT((types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-                  types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
-                     (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
-                      types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
-                 "Buffer must be allocated for largest ProjectedRow size");
+                    types_oid_index_->GetProjectedRowInitializer().ProjectedRowSize()) &&
+                       (types_name_index_->GetProjectedRowInitializer().ProjectedRowSize() >=
+                        types_namespace_index_->GetProjectedRowInitializer().ProjectedRowSize()),
+                   "Buffer must be allocated for largest ProjectedRow size");
   byte *buffer =
       common::AllocationUtil::AllocateAligned(types_name_index_->GetProjectedRowInitializer().ProjectedRowSize());
 
@@ -2133,9 +2138,10 @@ void DatabaseCatalog::BootstrapProcContexts(const common::ManagedPointer<transac
 bool DatabaseCatalog::SetProcCtxPtr(common::ManagedPointer<transaction::TransactionContext> txn,
                                     const proc_oid_t proc_oid,
                                     const execution::functions::FunctionContext *func_context) {
-  NOISEPAGE_ASSERT(write_lock_.load() == txn->FinishTime(),
-                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
-                 "should already have the lock.");
+  NOISEPAGE_ASSERT(
+      write_lock_.load() == txn->FinishTime(),
+      "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+      "should already have the lock.");
 
   // The catalog owns this pointer now, so if the txn ends up aborting, we need to make sure it gets freed.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -2364,7 +2370,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
   NOISEPAGE_ASSERT(get_class_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_pointer_kind_pri_.ProjectedRowSize());
 
   // Find the entry using the index
@@ -2403,7 +2409,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
   NOISEPAGE_ASSERT(get_class_schema_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must be allocated to fit largest PR");
+                   "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_schema_pointer_kind_pri_.ProjectedRowSize());
 
   // Find the entry using the index

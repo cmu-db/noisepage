@@ -52,21 +52,21 @@ class HashKey {
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. @jrolli verified this uses const methods
     NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
-                     for (uint16_t i = 0; i < from.NumColumns(); i++) {
-                       if (from.IsNull(i)) return false;
-                     }
-                     return true;
-                   }),
-                   "There should not be any NULL attributes in this key.");
+                       for (uint16_t i = 0; i < from.NumColumns(); i++) {
+                         if (from.IsNull(i)) return false;
+                       }
+                       return true;
+                     }),
+                     "There should not be any NULL attributes in this key.");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. @jrolli verified this uses const methods
     NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
-                     for (const auto &i : metadata.GetSchema().GetColumns()) {
-                       if (i.Nullable()) return false;
-                     }
-                     return true;
-                   }),
-                   "There should not be any NULL attributes in this schema.");
+                       for (const auto &i : metadata.GetSchema().GetColumns()) {
+                         if (i.Nullable()) return false;
+                       }
+                       return true;
+                     }),
+                     "There should not be any NULL attributes in this schema.");
 
     NOISEPAGE_ASSERT(
         std::invoke([&]() -> bool {

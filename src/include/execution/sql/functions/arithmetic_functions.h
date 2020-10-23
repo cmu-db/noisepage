@@ -256,7 +256,7 @@ class EXPORT ArithmeticFunctions {
       *result = RET_TYPE::Null();                                              \
       return;                                                                  \
     }                                                                          \
-    *result = RET_TYPE(noisepage::execution::sql::OP<CppType>{}(v.val_));        \
+    *result = RET_TYPE(noisepage::execution::sql::OP<CppType>{}(v.val_));      \
   }
 
 #define BINARY_MATH_FAST_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                        \

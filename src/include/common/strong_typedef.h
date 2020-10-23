@@ -56,14 +56,14 @@ namespace noisepage::common {
  * of the template in common/strong_typedef.cpp.
  *
  */
-#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                          \
-  namespace tags {                                                                            \
-  struct name##_typedef_tag {};                                                               \
-  }                                                                                           \
+#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                            \
+  namespace tags {                                                                              \
+  struct name##_typedef_tag {};                                                                 \
+  }                                                                                             \
   using name = ::noisepage::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
-  namespace tags {                                                                            \
-  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                              \
-  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                              \
+  namespace tags {                                                                              \
+  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                                \
+  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                                \
   }
 
 /**

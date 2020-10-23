@@ -145,8 +145,8 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
     const std::vector<FieldFormat> &param_formats) {
   const auto num_params = static_cast<size_t>(read_buffer->ReadValue<int16_t>());
   NOISEPAGE_ASSERT(num_params == param_types.size(),
-                 "We don't support type inference on parameters yet, so the size of param_types should equal the "
-                 "number of parameters.");
+                   "We don't support type inference on parameters yet, so the size of param_types should equal the "
+                   "number of parameters.");
   std::vector<parser::ConstantValueExpression> params;
   params.reserve(num_params);
   for (uint16_t i = 0; i < num_params; i++) {

@@ -54,7 +54,7 @@ class Schema {
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
       NOISEPAGE_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
-                     "This constructor is meant for non-VARLEN columns.");
+                       "This constructor is meant for non-VARLEN columns.");
       NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
@@ -230,7 +230,7 @@ class Schema {
    */
   explicit Schema(std::vector<Column> columns) : columns_(std::move(columns)) {
     NOISEPAGE_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
-                   "Number of columns must be between 1 and MAX_COL.");
+                     "Number of columns must be between 1 and MAX_COL.");
     for (uint32_t i = 0; i < columns_.size(); i++) {
       // If not all columns assigned OIDs, then clear the map because this is
       // a definition of a new/modified table not a catalog generated schema.

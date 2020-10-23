@@ -798,7 +798,7 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
                                      bool replace) {
   auto *op = new LogicalCreateFunction();
   NOISEPAGE_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
-                 "Mismatched number of items in vector and number of function parameters");
+                   "Mismatched number of items in vector and number of function parameters");
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->function_name_ = std::move(function_name);

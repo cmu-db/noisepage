@@ -190,7 +190,8 @@ class RawConcurrentBitmap {
    */
   template <class T>
   bool FindUnsetBit(uint32_t *const byte_pos, uint32_t *const bits_left) const {
-    NOISEPAGE_ASSERT(*bits_left >= sizeof(T) * BYTE_SIZE, "Need to check that there are enough bits left before calling");
+    NOISEPAGE_ASSERT(*bits_left >= sizeof(T) * BYTE_SIZE,
+                     "Need to check that there are enough bits left before calling");
     // for a signed integer, -1 represents that all the bits are set
     T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {

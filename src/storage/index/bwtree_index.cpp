@@ -50,7 +50,7 @@ template <typename KeyType>
 bool BwTreeIndex<KeyType>::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                                   const ProjectedRow &tuple, const TupleSlot location) {
   NOISEPAGE_ASSERT(!(metadata_.GetSchema().Unique()),
-                 "This Insert is designed for secondary indexes with no uniqueness constraints.");
+                   "This Insert is designed for secondary indexes with no uniqueness constraints.");
   KeyType index_key;
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
   const bool result = bwtree_->Insert(index_key, location, false);
@@ -115,8 +115,8 @@ void BwTreeIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Tran
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
   NOISEPAGE_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
-                     !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
-                 "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
+                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
   // Register a deferred action for the GC with txn manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -150,7 +150,7 @@ void BwTreeIndex<KeyType>::ScanKey(const transaction::TransactionContext &txn, c
   }
 
   NOISEPAGE_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
-                 "Invalid number of results for unique index.");
+                   "Invalid number of results for unique index.");
 }
 
 template <typename KeyType>
@@ -159,8 +159,8 @@ void BwTreeIndex<KeyType>::ScanAscending(const transaction::TransactionContext &
                                          uint32_t limit, std::vector<TupleSlot> *value_list) {
   NOISEPAGE_ASSERT(value_list->empty(), "Result set should begin empty.");
   NOISEPAGE_ASSERT(scan_type == ScanType::Closed || scan_type == ScanType::OpenLow || scan_type == ScanType::OpenHigh ||
-                     scan_type == ScanType::OpenBoth,
-                 "Invalid scan_type passed into BwTreeIndex::Scan");
+                       scan_type == ScanType::OpenBoth,
+                   "Invalid scan_type passed into BwTreeIndex::Scan");
 
   bool low_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenHigh);
   bool high_key_exists = (scan_type == ScanType::Closed || scan_type == ScanType::OpenLow);

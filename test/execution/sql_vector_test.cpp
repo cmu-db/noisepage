@@ -61,8 +61,8 @@ TEST_F(VectorTest, InitFromArray) {
   {
     VarlenHeap varlens;
     noisepage::storage::VarlenEntry arr[num_elems] = {varlens.AddVarlen("go loko"), varlens.AddVarlen("hot-line bling"),
-                                                    varlens.AddVarlen("kawhi"), varlens.AddVarlen("6ix"),
-                                                    varlens.AddVarlen("king city")};
+                                                      varlens.AddVarlen("kawhi"), varlens.AddVarlen("6ix"),
+                                                      varlens.AddVarlen("king city")};
     Vector vec(TypeId::Varchar);
     vec.Reference(reinterpret_cast<byte *>(arr), nullptr, num_elems);
     EXPECT_EQ(num_elems, vec.GetSize());

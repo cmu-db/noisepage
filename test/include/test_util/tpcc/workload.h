@@ -88,13 +88,13 @@ class Deck {
       return txn == tpcc::TransactionType::StockLevel;
     });
     NOISEPAGE_ASSERT(static_cast<double>(c_payment) / 23.0 * 100 >= txn_weights.w_payment_,
-                   "Payment weight unsatisfied.");
+                     "Payment weight unsatisfied.");
     NOISEPAGE_ASSERT(static_cast<double>(c_order_status) / 23.0 * 100 >= txn_weights.w_order_status_,
-                   "Order status weight unsatisfied.");
+                     "Order status weight unsatisfied.");
     NOISEPAGE_ASSERT(static_cast<double>(c_delivery) / 23.0 * 100 >= txn_weights.w_delivery_,
-                   "Delivery weight unsatisfied.");
+                     "Delivery weight unsatisfied.");
     NOISEPAGE_ASSERT(static_cast<double>(c_stock_level) / 23.0 * 100 >= txn_weights.w_stock_level_,
-                   "Stock level weight unsatisfied.");
+                     "Stock level weight unsatisfied.");
 
     std::shuffle(cards_.begin(), cards_.end(), generator_);
   }

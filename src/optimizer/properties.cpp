@@ -23,7 +23,7 @@ bool PropertySort::operator>=(const Property &r) const {
   size_t l_num_sort_columns = sort_columns_.size();
   size_t r_num_sort_columns = r_sort.sort_columns_.size();
   NOISEPAGE_ASSERT(r_num_sort_columns == r_sort.sort_ascending_.size(),
-                 "Sort property num_sort_columns not match sort_ascending_.size()");
+                   "Sort property num_sort_columns not match sort_ascending_.size()");
 
   // We want to ensure that Sort(a, b, c, d, e) >= Sort(a, b, c)
   if (l_num_sort_columns < r_num_sort_columns) {

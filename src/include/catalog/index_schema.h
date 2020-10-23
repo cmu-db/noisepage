@@ -57,7 +57,7 @@ class IndexSchema {
     Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &definition)
         : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       NOISEPAGE_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
-                     "Non-varlen constructor.");
+                       "Non-varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
     }
@@ -331,7 +331,7 @@ class IndexSchema {
    */
   const std::vector<col_oid_t> &GetIndexedColOids() const {
     NOISEPAGE_ASSERT(!indexed_oids_.empty(),
-                   "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
+                     "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
     return indexed_oids_;
   }
 

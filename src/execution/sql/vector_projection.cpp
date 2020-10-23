@@ -76,7 +76,7 @@ void VectorProjection::RefreshFilteredTupleIdList() {
 
 void VectorProjection::SetFilteredSelections(const TupleIdList &tid_list) {
   NOISEPAGE_ASSERT(tid_list.GetCapacity() == owned_tid_list_.GetCapacity(),
-                 "Input TID list capacity doesn't match projection capacity");
+                   "Input TID list capacity doesn't match projection capacity");
 
   // Copy the input TID list.
   owned_tid_list_.AssignFrom(tid_list);
@@ -179,16 +179,16 @@ void VectorProjection::CheckIntegrity() const {
 #ifndef NDEBUG
   // Check that the TID list size is sufficient for this vector projection
   NOISEPAGE_ASSERT(owned_tid_list_.GetCapacity() == GetTotalTupleCount(),
-                 "TID list capacity doesn't match vector projection capacity!");
+                   "TID list capacity doesn't match vector projection capacity!");
 
   // Check if the filtered TID list matches the owned list when filtered
   NOISEPAGE_ASSERT(!IsFiltered() || filter_ == &owned_tid_list_,
-                 "Filtered list pointer doesn't match internal owned active TID list");
+                   "Filtered list pointer doesn't match internal owned active TID list");
 
   // Check that all contained vectors have the same size and selection vector
   for (const auto &col : columns_) {
     NOISEPAGE_ASSERT(!IsFiltered() || filter_ == col->GetFilteredTupleIdList(),
-                   "Vector in projection with different selection vector");
+                     "Vector in projection with different selection vector");
     NOISEPAGE_ASSERT(GetSelectedTupleCount() == col->GetCount(), "Vector size does not match rest of projection");
   }
 

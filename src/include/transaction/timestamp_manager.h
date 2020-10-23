@@ -22,7 +22,7 @@ class TimestampManager {
  public:
   ~TimestampManager() {
     NOISEPAGE_ASSERT(curr_running_txns_.empty(),
-                   "Destroying the TimestampManager while txns are still running. That seems wrong.");
+                     "Destroying the TimestampManager while txns are still running. That seems wrong.");
   }
 
   /**

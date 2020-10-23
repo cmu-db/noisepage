@@ -33,7 +33,7 @@ struct Util {
                                 const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
                                 T value) {
     NOISEPAGE_ASSERT(storage::AttrSizeBytes(schema.GetColumn(col_offset).AttrSize()) == sizeof(T),
-                   "Invalid attribute size.");
+                     "Invalid attribute size.");
     const auto col_oid = schema.GetColumn(col_offset).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -46,7 +46,7 @@ struct Util {
                               storage::ProjectedRow *const pr, T value) {
     const auto &key_cols = schema.GetColumns();
     NOISEPAGE_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT16_MAX) == sizeof(T),
-                   "Invalid attribute size.");
+                     "Invalid attribute size.");
     const auto col_oid = key_cols.at(col_offset).Oid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));
     auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -62,9 +62,9 @@ struct Util {
   template <class Random>
   static uint32_t NURand(const uint32_t A, const uint32_t x, const uint32_t y, Random *const generator) {
     NOISEPAGE_ASSERT((A == 255 && x == 0 && y == 999)              // C_LAST
-                       || (A == 1023 && x == 1 && y == 3000)     // C_ID
-                       || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
-                   "Invalid inputs to NURand().");
+                         || (A == 1023 && x == 1 && y == 3000)     // C_ID
+                         || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
+                     "Invalid inputs to NURand().");
 
     static const auto c_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
     static const auto c_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);

@@ -55,7 +55,7 @@ void ExecutionContext::AggregateMetricsThread() {
 
 void ExecutionContext::StartResourceTracker(metrics::MetricsComponent component) {
   NOISEPAGE_ASSERT(component == metrics::MetricsComponent::EXECUTION,
-                 "StartResourceTracker() invoked with incorrect MetricsComponent");
+                   "StartResourceTracker() invoked with incorrect MetricsComponent");
 
   if (common::thread_context.metrics_store_ != nullptr &&
       common::thread_context.metrics_store_->ComponentToRecord(component)) {

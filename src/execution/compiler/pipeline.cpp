@@ -38,7 +38,8 @@ Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : 
 }
 
 void Pipeline::RegisterStep(OperatorTranslator *op) {
-  NOISEPAGE_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0, "Duplicate registration of operator in pipeline.");
+  NOISEPAGE_ASSERT(std::count(steps_.begin(), steps_.end(), op) == 0,
+                   "Duplicate registration of operator in pipeline.");
   auto num_steps = steps_.size();
   if (num_steps > 0) {
     auto last_step = common::ManagedPointer(steps_[num_steps - 1]);
@@ -64,7 +65,7 @@ void Pipeline::SetParallelCheck(bool check) { check_parallelism_ = check; }
 
 void Pipeline::RegisterExpression(ExpressionTranslator *expression) {
   NOISEPAGE_ASSERT(std::find(expressions_.begin(), expressions_.end(), expression) == expressions_.end(),
-                 "Expression already registered in pipeline");
+                   "Expression already registered in pipeline");
   expressions_.push_back(expression);
 }
 

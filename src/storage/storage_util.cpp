@@ -78,7 +78,7 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
     if (delta_col_id == buffer_col_id) {
       // Should apply changes
       NOISEPAGE_ASSERT(delta_col_id != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should never return the version vector column.");
+                       "Output buffer should never return the version vector column.");
       uint8_t attr_size = layout.AttrSize(delta_col_id);
       StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(delta_i), buffer, attr_size, buffer_i);
       delta_i++;
@@ -154,7 +154,7 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
 
 uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, const uint16_t col_idx) {
   NOISEPAGE_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
-                 "Boudaries vector size should equal to number of boundaries");
+                   "Boudaries vector size should equal to number of boundaries");
   // Since the columns are sorted (DESC) by size, the boundaries denote the index boundaries between columns of size
   // 16|8|4|2|1. Iterate through boundaries until we find a boundary greater than the index.
   uint8_t shift;
@@ -189,7 +189,7 @@ void StorageUtil::ComputeAttributeSizeBoundaries(const noisepage::storage::Block
     // for this boundary
     if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_boundaries[attr_size_index]++;
     NOISEPAGE_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_boundaries[attr_size_index] == i + 1,
-                   "Inconsistent state on attribute bounds");
+                     "Inconsistent state on attribute bounds");
   }
 }
 

@@ -110,7 +110,7 @@ class AbstractPlanNode {
    */
   const AbstractPlanNode *GetChild(uint32_t child_index) const {
     NOISEPAGE_ASSERT(child_index < children_.size(),
-                   "index into children of plan node should be less than number of children");
+                     "index into children of plan node should be less than number of children");
     return children_[child_index].get();
   }
 

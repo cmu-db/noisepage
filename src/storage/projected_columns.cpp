@@ -25,9 +25,9 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
     : max_tuples_(max_tuples), col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
   NOISEPAGE_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedColumns");
   NOISEPAGE_ASSERT(col_ids_.size() < layout.NumColumns(),
-                 "ProjectedColumns should have fewer columns than the table (can't read version vector)");
+                   "ProjectedColumns should have fewer columns than the table (can't read version vector)");
   NOISEPAGE_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
-                 "There should not be any duplicated in the col_ids!");
+                   "There should not be any duplicated in the col_ids!");
 
   // Sort the projection list for optimal space utilization and delta application performance
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
@@ -61,7 +61,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
     NOISEPAGE_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
     if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_ends_[attr_size_index]++;
     NOISEPAGE_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_ends_[attr_size_index] == i + 1,
-                   "Inconsistent state on attribute bounds");
+                     "Inconsistent state on attribute bounds");
 
     // space needed to store the bitmap, padded up to 8 bytes
     size_ = StorageUtil::PadUpToSize(sizeof(uint64_t),
@@ -73,8 +73,8 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
 
 ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *const head) const {
   NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
-                 "start of ProjectedRow needs to be aligned to 8 bytes to"
-                 "ensure correctness of alignment of its members");
+                   "start of ProjectedRow needs to be aligned to 8 bytes to"
+                   "ensure correctness of alignment of its members");
   auto *result = reinterpret_cast<ProjectedColumns *>(head);
   result->size_ = size_;
   result->max_tuples_ = max_tuples_;

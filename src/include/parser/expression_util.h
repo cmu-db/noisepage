@@ -329,7 +329,7 @@ class ExpressionUtil {
       tv_exprs->push_back(expr);
     } else {
       NOISEPAGE_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
-                     "DerivedValueExpression should not exist here.");
+                       "DerivedValueExpression should not exist here.");
       for (size_t i = 0; i < children_size; i++) {
         GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i));
       }

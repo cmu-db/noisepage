@@ -140,7 +140,7 @@ void ExecutableQuery::Setup(std::vector<std::unique_ptr<Fragment>> &&fragments, 
       std::all_of(fragments.begin(), fragments.end(), [](const auto &fragment) { return fragment->IsCompiled(); }),
       "All query fragments are not compiled!");
   NOISEPAGE_ASSERT(query_state_size >= sizeof(void *),
-                 "Query state must be large enough to store at least an ExecutionContext pointer.");
+                   "Query state must be large enough to store at least an ExecutionContext pointer.");
 
   fragments_ = std::move(fragments);
   query_state_size_ = query_state_size;

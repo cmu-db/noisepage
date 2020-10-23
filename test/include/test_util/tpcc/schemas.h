@@ -58,7 +58,7 @@ class Schemas {
                                    parser::ConstantValueExpression(type::TypeId::DECIMAL));
 
     NOISEPAGE_ASSERT(warehouse_columns.size() == NUM_WAREHOUSE_TABLE_COLS,
-                   "Wrong number of columns for Warehouse table schema.");
+                     "Wrong number of columns for Warehouse table schema.");
 
     return catalog::Schema(warehouse_columns);
   }
@@ -81,7 +81,7 @@ class Schemas {
                                       parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(warehouse_key_schema.size() == NUM_WAREHOUSE_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for Warehouse primary index schema.");
+                     "Wrong number of columns for Warehouse primary index schema.");
 
     return catalog::IndexSchema(warehouse_key_schema, index_type, true, true, false, true);
   }
@@ -129,7 +129,7 @@ class Schemas {
                                   parser::ConstantValueExpression(type::TypeId::INTEGER));
 
     NOISEPAGE_ASSERT(district_columns.size() == NUM_DISTRICT_TABLE_COLS,
-                   "Wrong number of columns for District table schema.");
+                     "Wrong number of columns for District table schema.");
 
     return catalog::Schema(district_columns);
   }
@@ -155,7 +155,7 @@ class Schemas {
                                      parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(district_key_schema.size() == NUM_DISTRICT_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for District primary index schema.");
+                     "Wrong number of columns for District primary index schema.");
 
     return catalog::IndexSchema(district_key_schema, index_type, true, true, false, true);
   }
@@ -233,7 +233,7 @@ class Schemas {
                                   parser::ConstantValueExpression(type::TypeId::VARCHAR));
 
     NOISEPAGE_ASSERT(customer_columns.size() == NUM_CUSTOMER_TABLE_COLS,
-                   "Wrong number of columns for Customer table schema.");
+                     "Wrong number of columns for Customer table schema.");
 
     return catalog::Schema(customer_columns);
   }
@@ -262,7 +262,7 @@ class Schemas {
                                      parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(customer_key_schema.size() == NUM_CUSTOMER_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for Customer primary index schema.");
+                     "Wrong number of columns for Customer primary index schema.");
 
     return catalog::IndexSchema(customer_key_schema, index_type, true, true, false, true);
   }
@@ -291,7 +291,7 @@ class Schemas {
         schema.GetColumn(5).Nullable(), parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(5).Oid()));
 
     NOISEPAGE_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,
-                   "Wrong number of columns for Customer secondary index schema.");
+                     "Wrong number of columns for Customer secondary index schema.");
 
     return catalog::IndexSchema(customer_secondary_key_schema, index_type, false, false, false, true);
   }
@@ -330,7 +330,7 @@ class Schemas {
                                  parser::ConstantValueExpression(type::TypeId::VARCHAR));
 
     NOISEPAGE_ASSERT(history_columns.size() == NUM_HISTORY_TABLE_COLS,
-                   "Wrong number of columns for History table schema.");
+                     "Wrong number of columns for History table schema.");
 
     return catalog::Schema(history_columns);
   }
@@ -354,7 +354,7 @@ class Schemas {
                                    parser::ConstantValueExpression(type::TypeId::TINYINT));
 
     NOISEPAGE_ASSERT(new_order_columns.size() == NUM_NEW_ORDER_TABLE_COLS,
-                   "Wrong number of columns for New Order table schema.");
+                     "Wrong number of columns for New Order table schema.");
 
     return catalog::Schema(new_order_columns);
   }
@@ -383,7 +383,7 @@ class Schemas {
                                       parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(new_order_key_schema.size() == NUM_NEW_ORDER_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for New Order primary index schema.");
+                     "Wrong number of columns for New Order primary index schema.");
 
     return catalog::IndexSchema(new_order_key_schema, index_type, true, true, false, true);
   }
@@ -450,7 +450,7 @@ class Schemas {
                                   parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(order_key_schema.size() == NUM_ORDER_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for Order primary index schema.");
+                     "Wrong number of columns for Order primary index schema.");
 
     return catalog::IndexSchema(order_key_schema, index_type, true, true, false, true);
   }
@@ -482,7 +482,7 @@ class Schemas {
         parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(order_secondary_key_schema.size() == NUM_ORDER_SECONDARY_INDEX_COLS,
-                   "Wrong number of columns for Order secondary index schema.");
+                     "Wrong number of columns for Order secondary index schema.");
 
     return catalog::IndexSchema(order_secondary_key_schema, index_type, true, false, false, true);
   }
@@ -527,7 +527,7 @@ class Schemas {
                                     parser::ConstantValueExpression(type::TypeId::VARCHAR));
 
     NOISEPAGE_ASSERT(order_line_columns.size() == NUM_ORDER_LINE_TABLE_COLS,
-                   "Wrong number of columns for Order Line table schema.");
+                     "Wrong number of columns for Order Line table schema.");
 
     return catalog::Schema(order_line_columns);
   }
@@ -559,7 +559,7 @@ class Schemas {
                                        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(3).Oid()));
 
     NOISEPAGE_ASSERT(order_line_key_schema.size() == NUM_ORDER_LINE_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for Order Line key schema.");
+                     "Wrong number of columns for Order Line key schema.");
 
     return catalog::IndexSchema(order_line_key_schema, index_type, true, true, false, true);
   }
@@ -610,7 +610,7 @@ class Schemas {
                                  parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(item_key_schema.size() == NUM_ITEM_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for Item primary index schema.");
+                     "Wrong number of columns for Item primary index schema.");
 
     return catalog::IndexSchema(item_key_schema, index_type, true, true, false, true);
   }
@@ -701,7 +701,7 @@ class Schemas {
                                   parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
 
     NOISEPAGE_ASSERT(stock_key_schema.size() == NUM_STOCK_PRIMARY_INDEX_COLS,
-                   "Wrong number of columns for Stock primary index schema.");
+                     "Wrong number of columns for Stock primary index schema.");
 
     return catalog::IndexSchema(stock_key_schema, index_type, true, true, false, true);
   }

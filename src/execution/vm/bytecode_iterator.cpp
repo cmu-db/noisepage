@@ -81,7 +81,7 @@ uint64_t BytecodeIterator::GetUnsignedImmediateIntegerOperand(uint32_t operand_i
 
 int32_t BytecodeIterator::GetJumpOffsetOperand(uint32_t operand_index) const {
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::JumpOffset,
-                 "Operand isn't a jump offset");
+                   "Operand isn't a jump offset");
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
 
@@ -90,7 +90,7 @@ int32_t BytecodeIterator::GetJumpOffsetOperand(uint32_t operand_index) const {
 
 LocalVar BytecodeIterator::GetLocalOperand(uint32_t operand_index) const {
   NOISEPAGE_ASSERT(OperandTypes::IsLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-                 "Operand type is not a local variable reference");
+                   "Operand type is not a local variable reference");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -100,7 +100,7 @@ LocalVar BytecodeIterator::GetLocalOperand(uint32_t operand_index) const {
 
 LocalVar BytecodeIterator::GetStaticLocalOperand(uint32_t operand_index) const {
   NOISEPAGE_ASSERT(OperandTypes::IsStaticLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-                 "Operand type is not a static local reference");
+                   "Operand type is not a static local reference");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -110,7 +110,7 @@ LocalVar BytecodeIterator::GetStaticLocalOperand(uint32_t operand_index) const {
 
 uint16_t BytecodeIterator::GetLocalCountOperand(uint32_t operand_index, std::vector<LocalVar> *locals) const {
   NOISEPAGE_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-                 "Operand type is not a local variable count");
+                   "Operand type is not a local variable count");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -131,7 +131,7 @@ uint16_t BytecodeIterator::GetLocalCountOperand(uint32_t operand_index, std::vec
 
 uint16_t BytecodeIterator::GetFunctionIdOperand(uint32_t operand_index) const {
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::FunctionId,
-                 "Operand type is not a function");
+                   "Operand type is not a function");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);

@@ -66,7 +66,7 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name) {
 LocalVar FunctionInfo::GetReturnValueLocal() const {
   // This invocation only makes sense if the function actually returns a value
   NOISEPAGE_ASSERT(!func_type_->GetReturnType()->IsNilType(),
-                 "Cannot lookup local slot for function that does not have return value");
+                   "Cannot lookup local slot for function that does not have return value");
   return LocalVar(0u, LocalVar::AddressMode::Address);
 }
 

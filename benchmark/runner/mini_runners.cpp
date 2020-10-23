@@ -1120,8 +1120,9 @@ void MiniRunners::ExecuteInsert(benchmark::State *state) {
       std::stringstream col_name;
       col_name << "col" << col_no++;
       if (i.first == type::TypeId::INTEGER) {
-        cols.emplace_back(col_name.str(), i.first, false,
-                          noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
+        cols.emplace_back(
+            col_name.str(), i.first, false,
+            noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0)));
       } else {
         cols.emplace_back(col_name.str(), i.first, false,
                           noisepage::parser::ConstantValueExpression(type::TypeId::DECIMAL, execution::sql::Real(0.f)));
@@ -1704,8 +1705,8 @@ void InitializeRunnersState() {
   param_map.find(settings::Param::record_buffer_segment_reuse)->second.max_value_ = limit;
 
   // Set Network Port
-  param_map.find(settings::Param::port)->second.value_ =
-      parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(noisepage::runner::settings.port_));
+  param_map.find(settings::Param::port)->second.value_ = parser::ConstantValueExpression(
+      type::TypeId::INTEGER, execution::sql::Integer(noisepage::runner::settings.port_));
 
   // Need to disable metrics thread
   param_map.find(settings::Param::use_metrics_thread)->second.value_ =
@@ -1955,7 +1956,8 @@ void RunBenchmarkSequence(int rerun_counter) {
   argv[0] = "mini_runners";
   argv[1] = buffer;
 
-  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret, noisepage::execution::vm::ExecutionMode::Compiled};
+  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret,
+                   noisepage::execution::vm::ExecutionMode::Compiled};
   for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {

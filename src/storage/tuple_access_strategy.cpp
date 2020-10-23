@@ -11,7 +11,8 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
   // Calculate the start position of each column
   // we use 64-bit vectorized scans on bitmaps.
   uint32_t acc_offset = layout_.HeaderSize();
-  NOISEPAGE_ASSERT(acc_offset % sizeof(uint64_t) == 0, "size of a header should already be padded to aligned to 8 bytes");
+  NOISEPAGE_ASSERT(acc_offset % sizeof(uint64_t) == 0,
+                   "size of a header should already be padded to aligned to 8 bytes");
   for (uint16_t i = 0; i < layout_.NumColumns(); i++) {
     column_offsets_[i] = acc_offset;
     uint32_t column_size =

@@ -29,7 +29,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
     buffer_seg_ = buffer_pool_->Get();
   }
   NOISEPAGE_ASSERT(buffer_seg_->HasBytesLeft(size),
-                 "Staged write does not fit into redo buffer (even after a fresh one is requested)");
+                   "Staged write does not fit into redo buffer (even after a fresh one is requested)");
   last_record_ = buffer_seg_->Reserve(size);
   return last_record_;
 }

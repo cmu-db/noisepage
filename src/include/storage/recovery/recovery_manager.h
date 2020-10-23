@@ -251,7 +251,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   bool IsSpecialCaseCatalogRecord(const LogRecord *record) {
     NOISEPAGE_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
-                   "Special case catalog records must only be delete or redo records");
+                     "Special case catalog records must only be delete or redo records");
 
     if (record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();

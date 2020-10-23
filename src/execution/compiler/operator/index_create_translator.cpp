@@ -256,7 +256,7 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
   for (const auto &index_col : index_schema.GetColumns()) {
     auto stored_expr = index_col.StoredExpression();
     NOISEPAGE_ASSERT(stored_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                   "CREATE INDEX supported on base columns only");
+                     "CREATE INDEX supported on base columns only");
 
     // col_expr comes from the base table so we need to use TableSchema to get the correct scan_offset.
     // col_expr = @VPIGet(vpi_var_, attr_sql_type, true, oid)

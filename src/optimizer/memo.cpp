@@ -14,7 +14,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
   if (gexpr->Contents()->GetOpType() == OpType::LEAF) {
     const auto leaf = gexpr->Contents()->GetContentsAs<LeafOperator>();
     NOISEPAGE_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
-                   "target_group does not match the LeafOperator's group");
+                     "target_group does not match the LeafOperator's group");
     gexpr->SetGroupID(leaf->GetOriginGroup());
 
     // Let the caller delete!

@@ -11,9 +11,9 @@
 #include "common/managed_pointer.h"
 #include "metrics/metrics_thread.h"
 #include "network/connection_handle_factory.h"
+#include "network/noisepage_server.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
-#include "network/noisepage_server.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -292,7 +292,7 @@ class DBMain {
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
         NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
-                       "Can't have a MetricsThread without a MetricsManager.");
+                         "Can't have a MetricsThread without a MetricsManager.");
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
                                                                   std::chrono::microseconds{metrics_interval_});
       }
@@ -322,7 +322,8 @@ class DBMain {
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
-        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED, "Catalog needs GarbageCollector.");
+        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
+                         "Catalog needs GarbageCollector.");
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
                                            common::ManagedPointer(log_manager), create_default_database_);
@@ -331,7 +332,7 @@ class DBMain {
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
       if (use_gc_thread_) {
         NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
-                       "GarbageCollectorThread needs GarbageCollector.");
+                         "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::microseconds{gc_interval_},
                                                                       common::ManagedPointer(metrics_manager));
@@ -350,7 +351,7 @@ class DBMain {
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
         NOISEPAGE_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
-                       "TrafficCopLayer needs the CatalogLayer.");
+                         "TrafficCopLayer needs the CatalogLayer.");
         NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
         NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(

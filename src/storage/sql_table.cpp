@@ -20,7 +20,7 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
   }
 
   NOISEPAGE_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
-                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
+                   "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   for (const auto &column : schema.GetColumns()) {
     attr_sizes.push_back(column.AttrSize());

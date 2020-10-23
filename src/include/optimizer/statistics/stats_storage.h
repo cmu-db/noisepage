@@ -32,7 +32,8 @@ struct hash<noisepage::optimizer::StatsStorageKey> {
    */
   size_t operator()(const noisepage::optimizer::StatsStorageKey &stats_storage_key) const {
     noisepage::common::hash_t hash = noisepage::common::HashUtil::Hash(get<0>(stats_storage_key));
-    hash = noisepage::common::HashUtil::CombineHashes(hash, noisepage::common::HashUtil::Hash(get<1>(stats_storage_key)));
+    hash =
+        noisepage::common::HashUtil::CombineHashes(hash, noisepage::common::HashUtil::Hash(get<1>(stats_storage_key)));
     return hash;
   }
 };

@@ -818,7 +818,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         std::size_t fallthrough_bb_pos = iter.GetPosition() + iter.CurrentBytecodeSize();
         std::size_t branch_target_bb_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 1) + iter.GetJumpOffsetOperand(1);
-        NOISEPAGE_ASSERT(blocks[fallthrough_bb_pos] != nullptr, "Branch fallthrough does not point to valid basic block");
+        NOISEPAGE_ASSERT(blocks[fallthrough_bb_pos] != nullptr,
+                         "Branch fallthrough does not point to valid basic block");
         NOISEPAGE_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
 
         auto *check = llvm::ConstantInt::get(type_map_->Int8Type(), 1, false);
@@ -874,7 +875,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
           ir_builder->CreateStore(addr, args[0]);
         } else {
           NOISEPAGE_ASSERT(llvm::cast<llvm::ConstantInt>(args[4])->getSExtValue() == 0,
-                         "LeaScaled on arrays cannot have a displacement");
+                           "LeaScaled on arrays cannot have a displacement");
           llvm::SmallVector<llvm::Value *, 2> gep_args;
           if (llvm::isa<llvm::ArrayType>(pointee_type)) {
             gep_args.push_back(llvm::ConstantInt::get(type_map_->Int64Type(), 0));

@@ -21,8 +21,8 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
       auto txn_commit = ReadValue<transaction::timestamp_t>();
       auto oldest_active_txn = ReadValue<transaction::timestamp_t>();
       NOISEPAGE_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
-                     "INVALID_TXN_TIMESTAMP indicates this was a read only txn, which should "
-                     "never have been flushed to disk/network");
+                       "INVALID_TXN_TIMESTAMP indicates this was a read only txn, which should "
+                       "never have been flushed to disk/network");
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
@@ -83,7 +83,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
       record_body->SetTupleSlot(tuple_slot);
       auto *delta = record_body->Delta();
       NOISEPAGE_ASSERT(delta->NumColumns() == num_cols,
-                     "ProjectedRow must have same number of columns as what was serialized.");
+                       "ProjectedRow must have same number of columns as what was serialized.");
 
       // Get an in memory copy of the record's null bitmap. Note: this is used to guide how the rest of the log file is
       // read in. It doesn't populate the delta's bitmap yet. This will happen naturally as we proceed column-by-column.

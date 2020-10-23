@@ -14,8 +14,8 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
 
   // At this point, the variable either has a declared type or an initial value.
   NOISEPAGE_ASSERT(node->HasTypeDecl() || node->HasInitialValue(),
-                 "Variable has neither a type declaration or an initial expression. This should have "
-                 "been caught during parsing.");
+                   "Variable has neither a type declaration or an initial expression. This should have "
+                   "been caught during parsing.");
 
   ast::Type *declared_type = nullptr, *initializer_type = nullptr;
 

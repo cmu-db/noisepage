@@ -200,7 +200,7 @@ class StorageTestUtil {
       storage::TupleSlot slot;
       bool ret UNUSED_ATTRIBUTE = accessor.Allocate(block, &slot);
       NOISEPAGE_ASSERT(ret && slot == storage::TupleSlot(block, i),
-                     "slot allocation should happen sequentially and succeed");
+                       "slot allocation should happen sequentially and succeed");
       if (coin(*generator)) {
         // slot will be marked empty
         accessor.Deallocate(slot);
@@ -240,7 +240,7 @@ class StorageTestUtil {
       storage::TupleSlot slot;
       bool ret UNUSED_ATTRIBUTE = accessor.Allocate(block, &slot);
       NOISEPAGE_ASSERT(ret && slot == storage::TupleSlot(block, i),
-                     "slot allocation should happen sequentially and succeed");
+                       "slot allocation should happen sequentially and succeed");
       if (coin(*generator)) {
         // slot will be marked empty
         accessor.Deallocate(slot);
@@ -561,7 +561,8 @@ class StorageTestUtil {
  private:
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
-    NOISEPAGE_ASSERT(max_cols > storage::NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
+    NOISEPAGE_ASSERT(max_cols > storage::NUM_RESERVED_COLUMNS,
+                     "There should be at least 2 cols (reserved for version).");
     // We probably won't allow tables with fewer than 2 columns
     const uint16_t num_attrs =
         std::uniform_int_distribution<uint16_t>(storage::NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);

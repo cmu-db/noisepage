@@ -27,7 +27,7 @@ class VariableSetStatement : public SQLStatement {
         values_(std::move(values)),
         is_set_default_(is_set_default) {
     NOISEPAGE_ASSERT((values_.empty() && is_set_default_) || (values_.size() == 1 && !is_set_default_),
-                   "There is only support for setting one value or setting to default.");
+                     "There is only support for setting one value or setting to default.");
   }
 
   ~VariableSetStatement() override = default;

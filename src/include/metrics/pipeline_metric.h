@@ -43,8 +43,8 @@ class PipelineMetricRawData : public AbstractRawData {
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
     NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
     NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
 

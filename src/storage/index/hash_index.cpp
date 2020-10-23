@@ -55,26 +55,26 @@ uint64_t HashIndex<KeyType>::GetSize() const {
         for (const auto i : value_map) {                                                                               \
           if (i != location) {                                                                                         \
             value = i; /* Assigning TupleSlot type will change the std::variant to TupleSlot and free the ValueMap */  \
-            NOISEPAGE_ASSERT(std::holds_alternative<TupleSlot>(value), "value should now be a TupleSlot.");              \
+            NOISEPAGE_ASSERT(std::holds_alternative<TupleSlot>(value), "value should now be a TupleSlot.");            \
             return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase key/value pair */                \
           }                                                                                                            \
         }                                                                                                              \
       }                                                                                                                \
       /* ValueMap contains more than 2 elements, erase location from the ValueMap */                                   \
       const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);                                            \
-      NOISEPAGE_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");                                 \
-      NOISEPAGE_ASSERT(value_map.size() > 1, "ValueMap should not have fewer than 2 elements.");                         \
+      NOISEPAGE_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");                               \
+      NOISEPAGE_ASSERT(value_map.size() > 1, "ValueMap should not have fewer than 2 elements.");                       \
       return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase key/value pair */                      \
     };                                                                                                                 \
     const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn);                         \
-    NOISEPAGE_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");             \
+    NOISEPAGE_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");           \
   }
 
 template <typename KeyType>
 bool HashIndex<KeyType>::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                                 const ProjectedRow &tuple, const TupleSlot location) {
   NOISEPAGE_ASSERT(!(metadata_.GetSchema().Unique()),
-                 "This Insert is designed for secondary indexes with no uniqueness constraints.");
+                   "This Insert is designed for secondary indexes with no uniqueness constraints.");
   KeyType index_key;
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
@@ -110,8 +110,8 @@ bool HashIndex<KeyType>::Insert(const common::ManagedPointer<transaction::Transa
   const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, location);
 
   NOISEPAGE_ASSERT(insert_result != uprase_result,
-                 "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
-                 "inserted (insert_result).");
+                   "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
+                   "inserted (insert_result).");
   // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
   // a better way
   common::SpinLatch::ScopedSpinLatch guard(&transaction_context_latch_);
@@ -172,8 +172,8 @@ bool HashIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction::
         // insert the location to the cuckoohash_map
         insert_result = value_map.emplace(location).second;
         NOISEPAGE_ASSERT(insert_result,
-                       " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
-                       "inside the hash map itself.");
+                         " index shouldn't fail to insert after predicate check. If it did, something went wrong deep "
+                         "inside the hash map itself.");
       }
     }
     return false;
@@ -183,10 +183,10 @@ bool HashIndex<KeyType>::InsertUnique(const common::ManagedPointer<transaction::
   const bool UNUSED_ATTRIBUTE overall_result = insert_result || uprase_result;
 
   NOISEPAGE_ASSERT(predicate_satisfied != overall_result,
-                 "Cant have satisfied the predicate and also succeeded to insert.");
+                   "Cant have satisfied the predicate and also succeeded to insert.");
   NOISEPAGE_ASSERT(predicate_satisfied || (insert_result != uprase_result),
-                 "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
-                 "inserted (insert_result).");
+                   "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
+                   "inserted (insert_result).");
 
   if (overall_result) {
     // TODO(wuwenw): transaction context is not thread safe for now, and a latch is used here to protect it, may need
@@ -209,8 +209,8 @@ void HashIndex<KeyType>::Delete(const common::ManagedPointer<transaction::Transa
   index_key.SetFromProjectedRow(tuple, metadata_, metadata_.GetSchema().GetColumns().size());
 
   NOISEPAGE_ASSERT(!(location.GetBlock()->data_table_->HasConflict(*txn, location)) &&
-                     !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
-                 "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
+                       !(location.GetBlock()->data_table_->IsVisible(*txn, location)),
+                   "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
   // Register a deferred action for the GC with txn manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -253,7 +253,7 @@ void HashIndex<KeyType>::ScanKey(const transaction::TransactionContext &txn, con
   const bool UNUSED_ATTRIBUTE find_result = hash_map_->find_fn(index_key, key_found_fn);
 
   NOISEPAGE_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
-                 "Invalid number of results for unique index.");
+                   "Invalid number of results for unique index.");
 }
 
 #undef ERASE_KEY_ACTION

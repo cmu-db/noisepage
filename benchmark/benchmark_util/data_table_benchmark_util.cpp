@@ -152,7 +152,8 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
   return {abort_count_, elapsed_ms};
 }
 
-void LargeDataTableBenchmarkObject::SimulateOneTransaction(noisepage::RandomDataTableTransaction *txn, uint32_t txn_id) {
+void LargeDataTableBenchmarkObject::SimulateOneTransaction(noisepage::RandomDataTableTransaction *txn,
+                                                           uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto insert = [&] { txn->RandomInsert(&thread_generator); };

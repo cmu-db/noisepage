@@ -84,7 +84,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
-  NOISEPAGE_ASSERT(input_cols.size() == required_input_props.size(), "input columns and input properties size mismatch");
+  NOISEPAGE_ASSERT(input_cols.size() == required_input_props.size(),
+                   "input columns and input properties size mismatch");
 
   // Derive chidren plans first because they are useful in the derivation of
   // root plan. Also keep propagate expression to column offset mapping

@@ -85,9 +85,10 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // start the operating unit resource tracker
   if (txn_metrics_enabled) common::thread_context.resource_tracker_.Start();
 
-  NOISEPAGE_ASSERT(!txn->must_abort_,
-                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
-                 "stack trace for when this flag is getting tripped.");
+  NOISEPAGE_ASSERT(
+      !txn->must_abort_,
+      "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+      "stack trace for when this flag is getting tripped.");
   result = txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
 
   txn->finish_time_.store(result);
@@ -214,7 +215,7 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
   // was installed or not.
   auto *redo = last_log_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   NOISEPAGE_ASSERT(redo->GetTupleSlot() == last_undo_record->Slot(),
-                 "Last undo record and redo record must correspond to each other");
+                   "Last undo record and redo record must correspond to each other");
   if (last_undo_record->Table() != nullptr) return;  // the update was installed and will be handled by the GC
 
   // We need to free any varlen memory in the last update if the code reaches here
@@ -225,7 +226,8 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessWithNullCheck(i));
       if (varlen != nullptr) {
-        NOISEPAGE_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
+        NOISEPAGE_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(),
+                         "Fresh updates cannot be compacted or compressed");
         if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }
@@ -250,7 +252,7 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   // In a loop, we will need to undo all updates belonging to this transaction. Because we do not unlink undo records,
   // otherwise this ends up being a quadratic operation to rollback the first record not yet rolled back in the chain.
   NOISEPAGE_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load(),
-                 "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
+                   "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
   while (undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load()) {
     switch (undo_record->Type()) {
       case storage::DeltaRecordType::UPDATE:

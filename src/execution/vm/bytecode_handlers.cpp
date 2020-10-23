@@ -30,12 +30,14 @@ void OpTableVectorIteratorFree(noisepage::execution::sql::TableVectorIterator *i
   iter->~TableVectorIterator();
 }
 
-void OpVPIInit(noisepage::execution::sql::VectorProjectionIterator *vpi, noisepage::execution::sql::VectorProjection *vp) {
+void OpVPIInit(noisepage::execution::sql::VectorProjectionIterator *vpi,
+               noisepage::execution::sql::VectorProjection *vp) {
   new (vpi) noisepage::execution::sql::VectorProjectionIterator(vp);
 }
 
 void OpVPIInitWithList(noisepage::execution::sql::VectorProjectionIterator *vpi,
-                       noisepage::execution::sql::VectorProjection *vp, noisepage::execution::sql::TupleIdList *tid_list) {
+                       noisepage::execution::sql::VectorProjection *vp,
+                       noisepage::execution::sql::TupleIdList *tid_list) {
   new (vpi) noisepage::execution::sql::VectorProjectionIterator(vp, tid_list);
 }
 
@@ -73,7 +75,8 @@ void OpFilterManagerFree(noisepage::execution::sql::FilterManager *filter_manage
 
 void OpJoinHashTableInit(noisepage::execution::sql::JoinHashTable *join_hash_table,
                          noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t tuple_size) {
-  new (join_hash_table) noisepage::execution::sql::JoinHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, tuple_size);
+  new (join_hash_table)
+      noisepage::execution::sql::JoinHashTable(exec_ctx->GetExecutionSettings(), exec_ctx, tuple_size);
 }
 
 void OpJoinHashTableBuild(noisepage::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
@@ -84,7 +87,9 @@ void OpJoinHashTableBuildParallel(noisepage::execution::sql::JoinHashTable *join
   join_hash_table->MergeParallel(thread_state_container, jht_offset);
 }
 
-void OpJoinHashTableFree(noisepage::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
+void OpJoinHashTableFree(noisepage::execution::sql::JoinHashTable *join_hash_table) {
+  join_hash_table->~JoinHashTable();
+}
 
 void OpJoinHashTableIteratorInit(noisepage::execution::sql::JoinHashTableIterator *iter,
                                  noisepage::execution::sql::JoinHashTable *join_hash_table) {
@@ -198,8 +203,8 @@ void OpCSVReaderClose(noisepage::execution::util::CSVReader *reader) { std::dest
 void OpStorageInterfaceInit(noisepage::execution::sql::StorageInterface *storage_interface,
                             noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                             uint32_t *col_oids, uint32_t num_oids, bool need_indexes) {
-  new (storage_interface) noisepage::execution::sql::StorageInterface(exec_ctx, noisepage::catalog::table_oid_t(table_oid),
-                                                                    col_oids, num_oids, need_indexes);
+  new (storage_interface) noisepage::execution::sql::StorageInterface(
+      exec_ctx, noisepage::catalog::table_oid_t(table_oid), col_oids, num_oids, need_indexes);
 }
 
 void OpStorageInterfaceGetTablePR(noisepage::storage::ProjectedRow **pr_result,
@@ -227,7 +232,8 @@ void OpStorageInterfaceGetIndexPR(noisepage::storage::ProjectedRow **pr_result,
   *pr_result = storage_interface->GetIndexPR(noisepage::catalog::index_oid_t(index_oid));
 }
 
-void OpStorageInterfaceGetIndexHeapSize(uint32_t *size, noisepage::execution::sql::StorageInterface *storage_interface) {
+void OpStorageInterfaceGetIndexHeapSize(uint32_t *size,
+                                        noisepage::execution::sql::StorageInterface *storage_interface) {
   *size = storage_interface->GetIndexHeapSize();
 }
 
@@ -301,7 +307,8 @@ void OpExecOUFeatureVectorRecordFeature(noisepage::brain::ExecOUFeatureVector *o
                                         noisepage::execution::pipeline_id_t pipeline_id,
                                         noisepage::execution::feature_id_t feature_id,
                                         noisepage::brain::ExecutionOperatingUnitFeatureAttribute feature_attribute,
-                                        noisepage::brain::ExecutionOperatingUnitFeatureUpdateMode mode, uint32_t value) {
+                                        noisepage::brain::ExecutionOperatingUnitFeatureUpdateMode mode,
+                                        uint32_t value) {
   ouvec->UpdateFeature(pipeline_id, feature_id, feature_attribute, mode, value);
 }
 
@@ -336,7 +343,9 @@ void OpRegisterThreadWithMetricsManager(noisepage::execution::exec::ExecutionCon
   exec_ctx->RegisterThreadWithMetricsManager();
 }
 
-void OpCheckTrackersStopped(noisepage::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->CheckTrackersStopped(); }
+void OpCheckTrackersStopped(noisepage::execution::exec::ExecutionContext *exec_ctx) {
+  exec_ctx->CheckTrackersStopped();
+}
 
 void OpAggregateMetricsThread(noisepage::execution::exec::ExecutionContext *exec_ctx) {
   exec_ctx->AggregateMetricsThread();

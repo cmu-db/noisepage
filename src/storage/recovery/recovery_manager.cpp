@@ -81,7 +81,8 @@ void RecoveryManager::RecoverFromLogs() {
   }
   // Process all deferred txns
   ProcessDeferredTransactions(transaction::INVALID_TXN_TIMESTAMP);
-  NOISEPAGE_ASSERT(deferred_txns_.empty(), "We should have no unprocessed deferred transactions at the end of recovery");
+  NOISEPAGE_ASSERT(deferred_txns_.empty(),
+                   "We should have no unprocessed deferred transactions at the end of recovery");
 
   // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
   // They are unrecoverable, so we need to clean up the memory of their records.
@@ -164,15 +165,15 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     // Stage the write. This way the recovery operation is logged if logging is enabled.
     auto staged_record = txn->StageRecoveryWrite(record);
     NOISEPAGE_ASSERT(redo_record->Delta()->Size() == staged_record->Delta()->Size(),
-                   "Redo record must be the same size after staging in recovery");
+                     "Redo record must be the same size after staging in recovery");
     NOISEPAGE_ASSERT(memcmp(redo_record->Delta(), staged_record->Delta(), redo_record->Delta()->Size()) == 0,
-                   "ProjectedRow of original and staged records must be identical");
+                     "ProjectedRow of original and staged records must be identical");
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(common::ManagedPointer(txn), staged_record);
     UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr,
                          new_tuple_slot, staged_record->Delta(), true /* insert */);
     NOISEPAGE_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot,
-                   "Insert should update redo record with new tuple slot");
+                     "Insert should update redo record with new tuple slot");
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
     tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
   } else {
@@ -347,7 +348,8 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
     // Copy in each value from the table PR into the index PR
     auto num_index_cols = schema.GetColumns().size();
-    NOISEPAGE_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
+    NOISEPAGE_ASSERT(num_index_cols == indexed_attributes.size(),
+                     "Only support index keys that are a single column oid");
     for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
       const auto &col = schema.GetColumn(col_idx);
       auto index_col_oid = col.Oid();
@@ -378,8 +380,9 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     transaction::TransactionContext *txn, std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
     uint32_t start_idx) {
   auto *curr_record = buffered_changes->at(start_idx).first;
-  NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::REDO || curr_record->RecordType() == LogRecordType::DELETE,
-                 "Special case catalog record must be redo or delete");
+  NOISEPAGE_ASSERT(
+      curr_record->RecordType() == LogRecordType::REDO || curr_record->RecordType() == LogRecordType::DELETE,
+      "Special case catalog record must be redo or delete");
 
   // Get oid of table this record modifies
   catalog::table_oid_t table_oid;
@@ -400,7 +403,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
     case (catalog::postgres::COLUMN_TABLE_OID.UnderlyingValue()): {
       NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
-                     "Special case pg_attribute record must be a delete");
+                       "Special case pg_attribute record must be a delete");
       // A delete into pg_attribute means we are deleting a column. There are two cases:
       //  1. Drop column: This requires some additional processing to actually clean up the column
       //  2. Cascading delete from drop table: In this case, we don't process the record because the DeleteTable catalog
@@ -411,7 +414,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
     case (catalog::postgres::INDEX_TABLE_OID.UnderlyingValue()): {
       NOISEPAGE_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
-                     "Special case pg_index record must be a delete");
+                       "Special case pg_index record must be a delete");
       // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
       // DeleteIndex catalog function will cleanup the entry in pg_index for us.
       return 0;  // No additional logs processed
@@ -435,7 +438,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
     NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID,
-                   "This function must be only called with records modifying pg_database");
+                     "This function must be only called with records modifying pg_database");
 
     // An insert into pg_database is a special case because we need the catalog to actually create the necessary
     // database catalog objects
@@ -444,9 +447,10 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
     // Step 1: Extract inserted values from the PR in redo record
     storage::SqlTable *pg_database = catalog_->databases_;
     auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, redo_record));
-    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(), "PR Map must contain database oid");
+    NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(),
+                     "PR Map must contain database oid");
     NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATNAME_COL_OID) != pr_map.end(),
-                   "PR Map must contain database name");
+                     "PR Map must contain database name");
     catalog::db_oid_t db_oid(*(reinterpret_cast<uint32_t *>(
         redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID]))));
     VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
@@ -480,7 +484,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
   auto *delete_record = curr_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
 
   NOISEPAGE_ASSERT(delete_record->GetTableOid() == catalog::postgres::DATABASE_TABLE_OID,
-                 "Special case for delete should be on pg_class or pg_database");
+                   "Special case for delete should be on pg_class or pg_database");
 
   // Step 1: Determine the database oid for the database that is being deleted
   storage::SqlTable *pg_database = catalog_->databases_;
@@ -505,9 +509,10 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
           IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
         // Step 3: Get the oid and name for the database being created
         pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, next_redo_record));
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATOID_COL_OID) != pr_map.end(),
+                         "PR Map must contain class oid");
         NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::DATNAME_COL_OID) != pr_map.end(),
-                       "PR Map must contain class name");
+                         "PR Map must contain class name");
         auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
             next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::DATOID_COL_OID])));
 
@@ -562,7 +567,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
     NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::CLASS_TABLE_OID,
-                   "This function must be only called with records modifying pg_class");
+                     "This function must be only called with records modifying pg_class");
 
     NOISEPAGE_ASSERT(!IsInsertRecord(redo_record), "Special case pg_class record should only be updates");
     auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
@@ -616,7 +621,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             auto *schema = new catalog::Schema(std::move(schema_cols));
             bool result UNUSED_ATTRIBUTE =
                 db_catalog->SetTableSchemaPointer(common::ManagedPointer(txn), catalog::table_oid_t(class_oid), schema);
-            NOISEPAGE_ASSERT(result, "Setting table schema pointer should succeed, entry should be in pg_class already");
+            NOISEPAGE_ASSERT(result,
+                             "Setting table schema pointer should succeed, entry should be in pg_class already");
 
             // Step 4: Create and set table pointers in catalog
             storage::SqlTable *sql_table;
@@ -680,7 +686,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
                 new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
             result = db_catalog->SetIndexSchemaPointer(common::ManagedPointer(txn), catalog::index_oid_t(class_oid),
                                                        index_schema);
-            NOISEPAGE_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
+            NOISEPAGE_ASSERT(result,
+                             "Setting index schema pointer should succeed, entry should be in pg_class already");
 
             // Step 5: Create and set index pointer in catalog
             storage::index::Index *index;
@@ -746,11 +753,12 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
           IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
         // Step 3: Get the oid and kind of the object being inserted
         auto pr_map = pg_class->ProjectionMapForOids(GetOidsForRedoRecord(pg_class, next_redo_record));
-        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
+        NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELOID_COL_OID) != pr_map.end(),
+                         "PR Map must contain class oid");
         NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELNAME_COL_OID) != pr_map.end(),
-                       "PR Map must contain class name");
+                         "PR Map must contain class name");
         NOISEPAGE_ASSERT(pr_map.find(catalog::postgres::RELKIND_COL_OID) != pr_map.end(),
-                       "PR Map must contain class kind");
+                         "PR Map must contain class kind");
         auto next_class_oid = *(reinterpret_cast<uint32_t *>(
             next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::RELOID_COL_OID])));
         auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
@@ -758,7 +766,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
 
         if (class_oid == next_class_oid) {  // Condition 4: If the oid matches on the next record, this is a renaming
           NOISEPAGE_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE && class_kind == next_class_kind,
-                         "We only allow renaming of tables");
+                           "We only allow renaming of tables");
           // Step 4: Extract out the new name
           VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
               next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::postgres::RELNAME_COL_OID])));
@@ -992,7 +1000,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGProcRecord(
       return 0;
     }
     NOISEPAGE_ASSERT(redo_record->GetTableOid() == catalog::postgres::PRO_TABLE_OID,
-                   "This function must be only called with records modifying pg_proc");
+                     "This function must be only called with records modifying pg_proc");
 
     // An insert into pg_proc is a special case because we need the catalog to actually create the necessary
     // database catalog objects

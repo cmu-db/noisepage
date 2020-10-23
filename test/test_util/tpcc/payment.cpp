@@ -40,7 +40,8 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
   *reinterpret_cast<double *>(warehouse_update_redo->Delta()->AccessForceNotNull(0)) = w_ytd + args.h_amount_;
   warehouse_update_redo->SetTupleSlot(index_scan_results[0]);
   bool UNUSED_ATTRIBUTE result = db->warehouse_table_->Update(common::ManagedPointer(txn), warehouse_update_redo);
-  NOISEPAGE_ASSERT(result, "Warehouse update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+  NOISEPAGE_ASSERT(result,
+                   "Warehouse update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   // Look up D_ID, W_ID in index
   const auto district_key_pr_initializer = db->district_primary_index_->GetProjectedRowInitializer();
@@ -156,7 +157,7 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
 
   const auto c_credit_str = c_credit.StringView();
   NOISEPAGE_ASSERT(c_credit_str.compare("BC") == 0 || c_credit_str.compare("GC") == 0,
-                 "Invalid c_credit read from the Customer table.");
+                   "Invalid c_credit read from the Customer table.");
   if (c_credit_str.compare("BC") == 0) {
     auto *const c_data_update_redo = txn->StageWrite(db->db_oid_, db->customer_table_oid_, c_data_pr_initializer_);
 
@@ -177,7 +178,8 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
 
     c_data_update_redo->SetTupleSlot(customer_slot);
     result = db->customer_table_->Update(common::ManagedPointer(txn), c_data_update_redo);
-    NOISEPAGE_ASSERT(result, "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+    NOISEPAGE_ASSERT(result,
+                     "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }
 
   auto h_data_str = std::string(reinterpret_cast<const char *const>(w_name.Content()), w_name.Size());

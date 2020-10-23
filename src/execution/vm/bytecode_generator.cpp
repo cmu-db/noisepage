@@ -390,13 +390,13 @@ void BytecodeGenerator::VisitVariableDecl(ast::VariableDecl *node) {
   ast::Type *type = nullptr;
   if (node->TypeRepr() != nullptr) {
     NOISEPAGE_ASSERT(node->TypeRepr()->GetType() != nullptr,
-                   "Variable with explicit type declaration is missing resolved "
-                   "type at runtime!");
+                     "Variable with explicit type declaration is missing resolved "
+                     "type at runtime!");
     type = node->TypeRepr()->GetType();
   } else {
     NOISEPAGE_ASSERT(node->Initial() != nullptr,
-                   "Variable without explicit type declaration is missing an "
-                   "initialization expression!");
+                     "Variable without explicit type declaration is missing an "
+                     "initialization expression!");
     NOISEPAGE_ASSERT(node->Initial()->GetType() != nullptr, "Variable with initial value is missing resolved type");
     type = node->Initial()->GetType();
   }
@@ -867,7 +867,7 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
 
 void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
   NOISEPAGE_ASSERT(call->GetType()->IsSpecificBuiltin(ast::BuiltinType::Uint64),
-                 "Return type of @hash(...) expected to be 8-byte unsigned hash");
+                   "Return type of @hash(...) expected to be 8-byte unsigned hash");
   NOISEPAGE_ASSERT(!call->Arguments().empty(), "@hash() must contain at least one input argument");
   NOISEPAGE_ASSERT(GetExecutionResult() != nullptr, "Caller of @hash() must use result");
 
@@ -1875,8 +1875,8 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
       LocalVar second_input = VisitExpressionForSQLValue(call->Arguments()[1]);
       if (!is_integer_math) {
         NOISEPAGE_ASSERT(call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
-                           call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real),
-                       "Inputs must both be of type Real");
+                             call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real),
+                         "Inputs must both be of type Real");
       }
       GetEmitter()->Emit(is_integer_math ? Bytecode::ModInteger : Bytecode::ModReal, dest, first_input, second_input);
       break;
@@ -3220,12 +3220,12 @@ void BytecodeGenerator::VisitLogicalAndOrExpr(ast::BinaryOpExpr *node) {
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
-#define MATH_BYTECODE(CODE_RESULT, MATH_OP, TPL_TYPE)                                           \
-  if (TPL_TYPE->IsIntegerType()) {                                                              \
-    CODE_RESULT = GetIntTypedBytecode(GET_BASE_FOR_INT_TYPES(Bytecode::MATH_OP), TPL_TYPE);     \
-  } else {                                                                                      \
+#define MATH_BYTECODE(CODE_RESULT, MATH_OP, TPL_TYPE)                                             \
+  if (TPL_TYPE->IsIntegerType()) {                                                                \
+    CODE_RESULT = GetIntTypedBytecode(GET_BASE_FOR_INT_TYPES(Bytecode::MATH_OP), TPL_TYPE);       \
+  } else {                                                                                        \
     NOISEPAGE_ASSERT(TPL_TYPE->IsFloatType(), "Only integer and floating point math operations"); \
-    CODE_RESULT = GetFloatTypedBytecode(GET_BASE_FOR_FLOAT_TYPES(Bytecode::MATH_OP), TPL_TYPE); \
+    CODE_RESULT = GetFloatTypedBytecode(GET_BASE_FOR_FLOAT_TYPES(Bytecode::MATH_OP), TPL_TYPE);   \
   }
 
 void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
@@ -3376,7 +3376,7 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar right = VisitExpressionForSQLValue(compare->Right());
 
   NOISEPAGE_ASSERT(compare->Left()->GetType() == compare->Right()->GetType(),
-                 "Left and right input types to comparison are not equal");
+                   "Left and right input types to comparison are not equal");
 
   const auto arg_kind = compare->Left()->GetType()->As<ast::BuiltinType>()->GetKind();
 
@@ -3426,7 +3426,7 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   } else if (TPL_TYPE->IsFloatType()) {                                                                 \
     CODE_RESULT = GetFloatTypedBytecode(GET_BASE_FOR_FLOAT_TYPES(Bytecode::COMPARISON_TYPE), TPL_TYPE); \
   } else {                                                                                              \
-    NOISEPAGE_ASSERT(TPL_TYPE->IsBoolType(), "Only integer, floating point, and boolean comparisons");    \
+    NOISEPAGE_ASSERT(TPL_TYPE->IsBoolType(), "Only integer, floating point, and boolean comparisons");  \
     CODE_RESULT = Bytecode::COMPARISON_TYPE##_bool;                                                     \
   }
 
@@ -3448,9 +3448,9 @@ void BytecodeGenerator::VisitPrimitiveCompareOpExpr(ast::ComparisonOpExpr *compa
   // regular comparison
 
   NOISEPAGE_ASSERT(compare->Left()->GetType()->IsArithmetic() || compare->Left()->GetType()->IsBoolType(),
-                 "Invalid type to comparison");
+                   "Invalid type to comparison");
   NOISEPAGE_ASSERT(compare->Right()->GetType()->IsArithmetic() || compare->Right()->GetType()->IsBoolType(),
-                 "Invalid type to comparison");
+                   "Invalid type to comparison");
 
   LocalVar left = VisitExpressionForRValue(compare->Left());
   LocalVar right = VisitExpressionForRValue(compare->Right());

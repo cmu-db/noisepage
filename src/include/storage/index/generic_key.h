@@ -35,7 +35,7 @@ class GenericKey {
    */
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata, size_t num_attrs) {
     NOISEPAGE_ASSERT(from.NumColumns() == metadata.GetSchema().GetColumns().size(),
-                   "ProjectedRow should have the same number of columns at the original key schema.");
+                     "ProjectedRow should have the same number of columns at the original key schema.");
     metadata_ = &metadata;
     std::memset(key_data_, 0, KeySize);
 
@@ -69,8 +69,8 @@ class GenericKey {
             const auto varlen_size = varlen.Size();
             *reinterpret_cast<uint32_t *const>(to_attr) = varlen_size;
             NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(to_attr) + sizeof(uint32_t) + varlen_size <=
-                               reinterpret_cast<uintptr_t>(this) + KeySize,
-                           "ProjectedRow will access out of bounds.");
+                                 reinterpret_cast<uintptr_t>(this) + KeySize,
+                             "ProjectedRow will access out of bounds.");
             std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen_size);
           }
         }
@@ -90,9 +90,9 @@ class GenericKey {
   const ProjectedRow *GetProjectedRow() const {
     const auto *pr = reinterpret_cast<const ProjectedRow *>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
-                   "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
+                     "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
     NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() <= reinterpret_cast<uintptr_t>(this) + KeySize,
-                   "ProjectedRow will access out of bounds.");
+                     "ProjectedRow will access out of bounds.");
     return pr;
   }
 
@@ -160,7 +160,7 @@ class GenericKey {
       return CompareVarlens(lhs_attr, rhs_attr) OP 0;                                                                 \
     }                                                                                                                 \
     default:                                                                                                          \
-      throw std::runtime_error("Unknown TypeId in noisepage::storage::index::GenericKey::TypeComparators.");            \
+      throw std::runtime_error("Unknown TypeId in noisepage::storage::index::GenericKey::TypeComparators.");          \
   }
 
     /**
@@ -236,7 +236,7 @@ class GenericKey {
       if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;
       if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareGreaterThan(type_id, lhs_attr,
-                                                                                            rhs_attr))
+                                                                                              rhs_attr))
         return false;
 
       // attributes are equal, continue
@@ -250,9 +250,9 @@ class GenericKey {
   ProjectedRow *GetProjectedRow() {
     auto *pr = reinterpret_cast<ProjectedRow *>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
-                   "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
+                     "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
     NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + KeySize,
-                   "ProjectedRow will access out of bounds.");
+                     "ProjectedRow will access out of bounds.");
     return pr;
   }
 
@@ -346,7 +346,8 @@ struct equal_to<noisepage::storage::index::GenericKey<KeySize>> {
 
       const noisepage::type::TypeId type_id = key_schema.GetColumns()[i].Type();
 
-      if (!noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr, rhs_attr)) {
+      if (!noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareEquals(type_id, lhs_attr,
+                                                                                          rhs_attr)) {
         // one of the attrs didn't match, return non-equal
         return false;
       }
@@ -404,7 +405,7 @@ struct less<noisepage::storage::index::GenericKey<KeySize>> {
       if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareLessThan(type_id, lhs_attr, rhs_attr))
         return true;
       if (noisepage::storage::index::GenericKey<KeySize>::TypeComparators::CompareGreaterThan(type_id, lhs_attr,
-                                                                                            rhs_attr))
+                                                                                              rhs_attr))
         return false;
 
       // attributes are equal, continue

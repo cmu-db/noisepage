@@ -465,7 +465,8 @@ void Vector::CheckIntegrity() const {
   }
 
   // Ensure that the NULL bit mask has the same size at the vector it represents
-  NOISEPAGE_ASSERT(num_elements_ == null_mask_.GetNumBits(), "NULL indication bit vector size doesn't match vector size");
+  NOISEPAGE_ASSERT(num_elements_ == null_mask_.GetNumBits(),
+                   "NULL indication bit vector size doesn't match vector size");
 
   // Check the strings in the vector, if it's a string vector
   if (type_ == TypeId::Varchar) {

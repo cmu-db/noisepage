@@ -183,7 +183,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
             auto child = f_expr->GetChild(0);
             NOISEPAGE_ASSERT(child, "NpRunnersEmit should have children");
             NOISEPAGE_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
-                           "Child should be constants");
+                             "Child should be constants");
 
             auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
             num_rows = cve->GetInteger().val_;

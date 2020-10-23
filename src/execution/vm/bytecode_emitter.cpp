@@ -9,8 +9,8 @@ namespace noisepage::execution::vm {
 
 void BytecodeEmitter::EmitDeref(Bytecode bytecode, LocalVar dest, LocalVar src) {
   NOISEPAGE_ASSERT(bytecode == Bytecode::Deref1 || bytecode == Bytecode::Deref2 || bytecode == Bytecode::Deref4 ||
-                     bytecode == Bytecode::Deref8,
-                 "Bytecode is not a Deref code");
+                       bytecode == Bytecode::Deref8,
+                   "Bytecode is not a Deref code");
   EmitAll(bytecode, dest, src);
 }
 
@@ -20,8 +20,8 @@ void BytecodeEmitter::EmitDerefN(LocalVar dest, LocalVar src, uint32_t len) {
 
 void BytecodeEmitter::EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src) {
   NOISEPAGE_ASSERT(bytecode == Bytecode::Assign1 || bytecode == Bytecode::Assign2 || bytecode == Bytecode::Assign4 ||
-                     bytecode == Bytecode::Assign8,
-                 "Bytecode is not an Assign code");
+                       bytecode == Bytecode::Assign8,
+                   "Bytecode is not an Assign code");
   EmitAll(bytecode, dest, src);
 }
 
@@ -53,7 +53,7 @@ void BytecodeEmitter::EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index,
 
 void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &params) {
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandSize(Bytecode::Call, 1) == OperandSize::Short,
-                 "Expected argument count to be 2-byte short");
+                   "Expected argument count to be 2-byte short");
   NOISEPAGE_ASSERT(params.size() < std::numeric_limits<uint16_t>::max(), "Too many parameters!");
 
   EmitAll(Bytecode::Call, static_cast<uint16_t>(func_id), static_cast<uint16_t>(params.size()));
@@ -76,9 +76,9 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 
     for (const auto &jump_location : jump_locations) {
       NOISEPAGE_ASSERT(jump_location < curr_offset,
-                     "Referencing jump position for label must be before label's bytecode position!");
+                       "Referencing jump position for label must be before label's bytecode position!");
       NOISEPAGE_ASSERT((curr_offset - jump_location) < static_cast<std::size_t>(std::numeric_limits<int32_t>::max()),
-                     "Jump delta exceeds 32-bit value for jump offsets!");
+                       "Jump delta exceeds 32-bit value for jump offsets!");
 
       auto delta = static_cast<int32_t>(curr_offset - jump_location);
       auto *raw_delta = reinterpret_cast<uint8_t *>(&delta);
@@ -101,10 +101,10 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
     // The label is already bound so this must be a backwards jump. We just need to emit the delta
     // offset directly into the bytestream.
     NOISEPAGE_ASSERT(label->GetOffset() <= curr_offset,
-                   "Label for backwards jump cannot be beyond current bytecode position");
+                     "Label for backwards jump cannot be beyond current bytecode position");
     std::size_t delta = curr_offset - label->GetOffset();
     NOISEPAGE_ASSERT(delta < static_cast<std::size_t>(std::numeric_limits<int32_t>::max()),
-                   "Jump delta exceeds 32-bit value for jump offsets!");
+                     "Jump delta exceeds 32-bit value for jump offsets!");
 
     // Immediately emit the delta
     EmitScalarValue(-static_cast<int32_t>(delta));
@@ -132,27 +132,27 @@ void BytecodeEmitter::EmitConditionalJump(Bytecode bytecode, LocalVar cond, Byte
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 1, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   EmitAll(bytecode, operand_1);
 }
 
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 2, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   EmitAll(bytecode, operand_1, operand_2);
 }
 
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 3, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3);
 }
 
@@ -160,13 +160,13 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 4, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-                 "Incorrect operand type at index 3 for bytecode");
+                   "Incorrect operand type at index 3 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4);
 }
 
@@ -174,15 +174,15 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4, LocalVar operand_5) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 5, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-                 "Incorrect operand type at index 3 for bytecode");
+                   "Incorrect operand type at index 3 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-                 "Incorrect operand type at index 4 for bytecode");
+                   "Incorrect operand type at index 4 for bytecode");
 
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5);
 }
@@ -191,17 +191,17 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4, LocalVar operand_5, LocalVar operand_6) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 6, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-                 "Incorrect operand type at index 3 for bytecode");
+                   "Incorrect operand type at index 3 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-                 "Incorrect operand type at index 4 for bytecode");
+                   "Incorrect operand type at index 4 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-                 "Incorrect operand type at index 5 for bytecode");
+                   "Incorrect operand type at index 5 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6);
 }
 
@@ -209,19 +209,19 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4, LocalVar operand_5, LocalVar operand_6, LocalVar operand_7) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 7, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-                 "Incorrect operand type at index 3 for bytecode");
+                   "Incorrect operand type at index 3 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-                 "Incorrect operand type at index 4 for bytecode");
+                   "Incorrect operand type at index 4 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-                 "Incorrect operand type at index 5 for bytecode");
+                   "Incorrect operand type at index 5 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 6) == OperandType::Local,
-                 "Incorrect operand type at index 6 for bytecode");
+                   "Incorrect operand type at index 6 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7);
 }
 
@@ -230,21 +230,21 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_8) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 8, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-                 "Incorrect operand type at index 3 for bytecode");
+                   "Incorrect operand type at index 3 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-                 "Incorrect operand type at index 4 for bytecode");
+                   "Incorrect operand type at index 4 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-                 "Incorrect operand type at index 5 for bytecode");
+                   "Incorrect operand type at index 5 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 6) == OperandType::Local,
-                 "Incorrect operand type at index 6 for bytecode");
+                   "Incorrect operand type at index 6 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 7) == OperandType::Local,
-                 "Incorrect operand type at index 7 for bytecode");
+                   "Incorrect operand type at index 7 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8);
 }
 
@@ -253,23 +253,23 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_8, LocalVar operand_9) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(bytecode) == 9, "Incorrect operand count for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-                 "Incorrect operand type at index 0 for bytecode");
+                   "Incorrect operand type at index 0 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-                 "Incorrect operand type at index 1 for bytecode");
+                   "Incorrect operand type at index 1 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-                 "Incorrect operand type at index 2 for bytecode");
+                   "Incorrect operand type at index 2 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-                 "Incorrect operand type at index 3 for bytecode");
+                   "Incorrect operand type at index 3 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-                 "Incorrect operand type at index 4 for bytecode");
+                   "Incorrect operand type at index 4 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-                 "Incorrect operand type at index 5 for bytecode");
+                   "Incorrect operand type at index 5 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 6) == OperandType::Local,
-                 "Incorrect operand type at index 6 for bytecode");
+                   "Incorrect operand type at index 6 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 7) == OperandType::Local,
-                 "Incorrect operand type at index 7 for bytecode");
+                   "Incorrect operand type at index 7 for bytecode");
   NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(bytecode, 8) == OperandType::Local,
-                 "Incorrect operand type at index 8 for bytecode");
+                   "Incorrect operand type at index 8 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8, operand_9);
 }
 
@@ -315,7 +315,7 @@ void BytecodeEmitter::EmitFilterManagerInsertFilter(LocalVar filter_manager, Fun
 void BytecodeEmitter::EmitAggHashTableLookup(LocalVar dest, LocalVar agg_ht, LocalVar hash, FunctionId key_eq_fn,
                                              LocalVar arg) {
   NOISEPAGE_ASSERT(Bytecodes::NumOperands(Bytecode::AggregationHashTableLookup) == 5,
-                 "AggregationHashTableLookup expects 5 bytecodes");
+                   "AggregationHashTableLookup expects 5 bytecodes");
   EmitAll(Bytecode::AggregationHashTableLookup, dest, agg_ht, hash, key_eq_fn, arg);
 }
 

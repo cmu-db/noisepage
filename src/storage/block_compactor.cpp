@@ -78,7 +78,7 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
     RawBlock *block = entry.first;
     std::vector<uint32_t> &empty_slots = entry.second;
     NOISEPAGE_ASSERT(block->GetInsertHead() == layout.NumSlots(),
-                   "The block should be full to stop inserts from coming in");
+                     "The block should be full to stop inserts from coming in");
 
     // We will loop through each block and figure out if we are safe to proceed with compaction and identify
     // any gaps
@@ -358,7 +358,7 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
 
     byte *dictionary_word = new_col.Values() + new_col.Offsets()[dictionary_code];
     NOISEPAGE_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
-                   "varlen entry should be equal to the dictionary word it is encoded as ");
+                     "varlen entry should be equal to the dictionary word it is encoded as ");
     // Similar to in CopyToArrowVarlen this is safe even when there are concurrent readers
     if (entry.Size() > VarlenEntry::InlineThreshold())
       entry = VarlenEntry::Create(dictionary_word, entry.Size(), false);

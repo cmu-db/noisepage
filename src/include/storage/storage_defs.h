@@ -118,9 +118,9 @@ class TupleSlot {
    */
   TupleSlot(const RawBlock *const block, const uint32_t offset) : bytes_(reinterpret_cast<uintptr_t>(block) | offset) {
     NOISEPAGE_ASSERT(!((static_cast<uintptr_t>(common::Constants::BLOCK_SIZE) - 1) & ((uintptr_t)block)),
-                   "Address must be aligned to block size (last bits zero).");
+                     "Address must be aligned to block size (last bits zero).");
     NOISEPAGE_ASSERT(offset < common::Constants::BLOCK_SIZE,
-                   "Offset must be smaller than block size (to fit in the last bits).");
+                     "Offset must be smaller than block size (to fit in the last bits).");
   }
 
   /**
@@ -357,7 +357,7 @@ class VarlenEntry {
     const byte *contents = Content();
     size_t num_elements = *reinterpret_cast<const size_t *>(contents);
     NOISEPAGE_ASSERT(sizeof(T) == (Size() - sizeof(size_t)) / num_elements,
-                   "Deserializing the wrong element types from array");
+                     "Deserializing the wrong element types from array");
     const T *payload = reinterpret_cast<const T *>(contents + sizeof(size_t));
     return std::vector<T>(payload, payload + num_elements);
   }
@@ -452,11 +452,11 @@ class VarlenEntry {
         // inspect the remaining non-inlined bytes, skipping prefix-size bytes since those are duplicated at the start
         // of content
         NOISEPAGE_ASSERT(std::memcmp(left.content_, &left.prefix_, PrefixSize()) == 0,
-                       "The prefix should be at the beginning of the non-inlined content again. We assert this since "
-                       "we're about to skip it on the real comparison.");
+                         "The prefix should be at the beginning of the non-inlined content again. We assert this since "
+                         "we're about to skip it on the real comparison.");
         NOISEPAGE_ASSERT(std::memcmp(right.content_, &right.prefix_, PrefixSize()) == 0,
-                       "The prefix should be at the beginning of the non-inlined content again. We assert this since "
-                       "we're about to skip it on the real comparison.");
+                         "The prefix should be at the beginning of the non-inlined content again. We assert this since "
+                         "we're about to skip it on the real comparison.");
         if (std::memcmp(left.content_ + PrefixSize(), right.content_ + PrefixSize(), left.Size() - PrefixSize()) == 0) {
           return EqualityCheck;
         }

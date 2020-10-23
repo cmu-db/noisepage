@@ -69,7 +69,8 @@ ALL_TYPES(COMPARISONS);
 
 VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 
-VM_OP_HOT void OpNotSql(noisepage::execution::sql::BoolVal *const result, const noisepage::execution::sql::BoolVal *input) {
+VM_OP_HOT void OpNotSql(noisepage::execution::sql::BoolVal *const result,
+                        const noisepage::execution::sql::BoolVal *input) {
   noisepage::execution::sql::ComparisonFunctions::NotBoolVal(result, *input);
 }
 
@@ -92,7 +93,7 @@ VM_OP_HOT void OpNotSql(noisepage::execution::sql::BoolVal *const result, const 
                                                                                            \
   /* Primitive division (no zero-check) */                                                 \
   VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                        \
-    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");                                   \
+    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");                                 \
     *result = lhs / rhs;                                                                   \
   }
 
@@ -103,14 +104,14 @@ ALL_NUMERIC_TYPES(ARITHMETIC);
 #define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
-    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");          \
     *result = lhs % rhs;                                            \
   }
 
 #define FLOAT_MODULAR(type, ...)                                    \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpMod##_##type(type *result, type lhs, type rhs) { \
-    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    NOISEPAGE_ASSERT(rhs != 0, "Division-by-zero error!");          \
     *result = std::fmod(lhs, rhs);                                  \
   }
 
@@ -183,7 +184,8 @@ VM_OP_HOT void OpAssignImm8F(double *dest, double src) { *dest = src; }
 
 VM_OP_HOT void OpLea(noisepage::byte **dest, noisepage::byte *base, uint32_t offset) { *dest = base + offset; }
 
-VM_OP_HOT void OpLeaScaled(noisepage::byte **dest, noisepage::byte *base, uint32_t index, uint32_t scale, uint32_t offset) {
+VM_OP_HOT void OpLeaScaled(noisepage::byte **dest, noisepage::byte *base, uint32_t index, uint32_t scale,
+                           uint32_t offset) {
   *dest = base + (scale * index) + offset;
 }
 
@@ -206,7 +208,8 @@ VM_OP_HOT void OpExecutionContextAddRowsAffected(noisepage::execution::exec::Exe
   exec_ctx->AddRowsAffected(rows_affected);
 }
 
-VM_OP_COLD void OpExecutionContextRegisterHook(noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t hook_idx,
+VM_OP_COLD void OpExecutionContextRegisterHook(noisepage::execution::exec::ExecutionContext *exec_ctx,
+                                               uint32_t hook_idx,
                                                noisepage::execution::exec::ExecutionContext::HookFn hook);
 
 VM_OP_COLD void OpExecutionContextClearHooks(noisepage::execution::exec::ExecutionContext *exec_ctx);
@@ -320,7 +323,7 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
                                    noisepage::execution::exec::ExecutionContext *exec_ctx,
                                    const noisepage::execution::sql::TableVectorIterator::ScanFn scanner) {
   noisepage::execution::sql::TableVectorIterator::ParallelScan(table_oid, col_oids, num_oids, query_state, exec_ctx,
-                                                             scanner);
+                                                               scanner);
 }
 
 // ---------------------------------------------------------
@@ -340,7 +343,8 @@ VM_OP_HOT void OpVPIIsFiltered(bool *is_filtered, const noisepage::execution::sq
   *is_filtered = vpi->IsFiltered();
 }
 
-VM_OP_HOT void OpVPIGetSelectedRowCount(uint32_t *count, const noisepage::execution::sql::VectorProjectionIterator *vpi) {
+VM_OP_HOT void OpVPIGetSelectedRowCount(uint32_t *count,
+                                        const noisepage::execution::sql::VectorProjectionIterator *vpi) {
   *count = vpi->GetSelectedTupleCount();
 }
 
@@ -359,7 +363,9 @@ VM_OP_HOT void OpVPIHasNextFiltered(bool *has_more, const noisepage::execution::
 
 VM_OP_HOT void OpVPIAdvance(noisepage::execution::sql::VectorProjectionIterator *vpi) { vpi->Advance(); }
 
-VM_OP_HOT void OpVPIAdvanceFiltered(noisepage::execution::sql::VectorProjectionIterator *vpi) { vpi->AdvanceFiltered(); }
+VM_OP_HOT void OpVPIAdvanceFiltered(noisepage::execution::sql::VectorProjectionIterator *vpi) {
+  vpi->AdvanceFiltered();
+}
 
 VM_OP_HOT void OpVPISetPosition(noisepage::execution::sql::VectorProjectionIterator *vpi, const uint32_t index) {
   vpi->SetPosition<false>(index);
@@ -378,7 +384,8 @@ VM_OP_HOT void OpVPIReset(noisepage::execution::sql::VectorProjectionIterator *v
 
 VM_OP_HOT void OpVPIResetFiltered(noisepage::execution::sql::VectorProjectionIterator *vpi) { vpi->ResetFiltered(); }
 
-VM_OP_HOT void OpVPIGetSlot(noisepage::storage::TupleSlot *slot, noisepage::execution::sql::VectorProjectionIterator *vpi) {
+VM_OP_HOT void OpVPIGetSlot(noisepage::storage::TupleSlot *slot,
+                            noisepage::execution::sql::VectorProjectionIterator *vpi) {
   *slot = vpi->GetCurrentSlot();
 }
 
@@ -386,33 +393,33 @@ VM_OP_HOT void OpVPIGetSlot(noisepage::storage::TupleSlot *slot, noisepage::exec
 // VPI Get
 // ---------------------------------------------------------
 
-#define GEN_VPI_GET(Name, SqlValueType, CppType)                                                    \
+#define GEN_VPI_GET(Name, SqlValueType, CppType)                                                      \
   VM_OP_HOT void OpVPIGet##Name(noisepage::execution::sql::SqlValueType *out,                         \
                                 noisepage::execution::sql::VectorProjectionIterator *const vpi,       \
-                                const uint32_t col_idx) {                                           \
-    auto *ptr = vpi->GetValue<CppType, false>(col_idx, nullptr);                                    \
+                                const uint32_t col_idx) {                                             \
+    auto *ptr = vpi->GetValue<CppType, false>(col_idx, nullptr);                                      \
     NOISEPAGE_ASSERT(ptr != nullptr, "Null data pointer when trying to read attribute");              \
-    out->is_null_ = false;                                                                          \
-    out->val_ = *ptr;                                                                               \
-  }                                                                                                 \
+    out->is_null_ = false;                                                                            \
+    out->val_ = *ptr;                                                                                 \
+  }                                                                                                   \
   VM_OP_HOT void OpVPIGet##Name##Null(noisepage::execution::sql::SqlValueType *out,                   \
                                       noisepage::execution::sql::VectorProjectionIterator *const vpi, \
-                                      const uint32_t col_idx) {                                     \
-    bool null = false;                                                                              \
-    auto *ptr = vpi->GetValue<CppType, true>(col_idx, &null);                                       \
+                                      const uint32_t col_idx) {                                       \
+    bool null = false;                                                                                \
+    auto *ptr = vpi->GetValue<CppType, true>(col_idx, &null);                                         \
     NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                     \
-    out->is_null_ = null;                                                                           \
-    out->val_ = *ptr;                                                                               \
+    out->is_null_ = null;                                                                             \
+    out->val_ = *ptr;                                                                                 \
   }
 
-#define GEN_VPI_SET(Name, SqlValueType, CppType)                                                              \
+#define GEN_VPI_SET(Name, SqlValueType, CppType)                                                                \
   VM_OP_HOT void OpVPISet##Name(noisepage::execution::sql::VectorProjectionIterator *const vpi,                 \
                                 noisepage::execution::sql::SqlValueType *input, const uint32_t col_idx) {       \
-    vpi->SetValue<CppType, false>(col_idx, input->val_, false);                                               \
-  }                                                                                                           \
+    vpi->SetValue<CppType, false>(col_idx, input->val_, false);                                                 \
+  }                                                                                                             \
   VM_OP_HOT void OpVPISet##Name##Null(noisepage::execution::sql::VectorProjectionIterator *const vpi,           \
                                       noisepage::execution::sql::SqlValueType *input, const uint32_t col_idx) { \
-    vpi->SetValue<CppType, true>(col_idx, input->val_, input->is_null_);                                      \
+    vpi->SetValue<CppType, true>(col_idx, input->val_, input->is_null_);                                        \
   }
 
 GEN_VPI_GET(Bool, BoolVal, bool);
@@ -479,7 +486,8 @@ VM_OP_HOT void OpHashDate(noisepage::hash_t *const hash_val, const noisepage::ex
 }
 
 VM_OP_HOT void OpHashTimestamp(noisepage::hash_t *const hash_val,
-                               const noisepage::execution::sql::TimestampVal *const input, const noisepage::hash_t seed) {
+                               const noisepage::execution::sql::TimestampVal *const input,
+                               const noisepage::hash_t seed) {
   *hash_val = input->is_null_ ? 0 : input->val_.Hash(seed);
 }
 
@@ -509,20 +517,20 @@ VM_OP void OpFilterManagerFree(noisepage::execution::sql::FilterManager *filter)
 // Vector Filter Executor
 // ---------------------------------------------------------
 
-#define GEN_VECTOR_FILTER(Name)                                                                                      \
+#define GEN_VECTOR_FILTER(Name)                                                                                        \
   VM_OP_HOT void OpVectorFilter##Name(const noisepage::execution::exec::ExecutionSettings &exec_settings,              \
                                       noisepage::execution::sql::VectorProjection *vector_projection,                  \
-                                      const uint32_t left_col_idx, const uint32_t right_col_idx,                     \
+                                      const uint32_t left_col_idx, const uint32_t right_col_idx,                       \
                                       noisepage::execution::sql::TupleIdList *tid_list) {                              \
     noisepage::execution::sql::VectorFilterExecutor::Select##Name(exec_settings, vector_projection, left_col_idx,      \
-                                                                right_col_idx, tid_list);                            \
-  }                                                                                                                  \
+                                                                  right_col_idx, tid_list);                            \
+  }                                                                                                                    \
   VM_OP_HOT void OpVectorFilter##Name##Val(const noisepage::execution::exec::ExecutionSettings &exec_settings,         \
                                            noisepage::execution::sql::VectorProjection *vector_projection,             \
                                            const uint32_t left_col_idx, const noisepage::execution::sql::Val *val,     \
                                            noisepage::execution::sql::TupleIdList *tid_list) {                         \
     noisepage::execution::sql::VectorFilterExecutor::Select##Name##Val(exec_settings, vector_projection, left_col_idx, \
-                                                                     *val, tid_list);                                \
+                                                                       *val, tid_list);                                \
   }
 
 GEN_VECTOR_FILTER(Equal)
@@ -598,7 +606,8 @@ VM_OP_WARM void OpIntegerToBool(noisepage::execution::sql::BoolVal *result,
   noisepage::execution::sql::CastingFunctions::CastToBoolVal(result, *input);
 }
 
-VM_OP_WARM void OpIntegerToReal(noisepage::execution::sql::Real *result, const noisepage::execution::sql::Integer *input) {
+VM_OP_WARM void OpIntegerToReal(noisepage::execution::sql::Real *result,
+                                const noisepage::execution::sql::Integer *input) {
   noisepage::execution::sql::CastingFunctions::CastToReal(result, *input);
 }
 
@@ -612,7 +621,8 @@ VM_OP_WARM void OpRealToBool(noisepage::execution::sql::BoolVal *result, const n
   noisepage::execution::sql::CastingFunctions::CastToBoolVal(result, *input);
 }
 
-VM_OP_WARM void OpRealToInteger(noisepage::execution::sql::Integer *result, const noisepage::execution::sql::Real *input) {
+VM_OP_WARM void OpRealToInteger(noisepage::execution::sql::Integer *result,
+                                const noisepage::execution::sql::Real *input) {
   noisepage::execution::sql::CastingFunctions::CastToInteger(result, *input);
 }
 
@@ -654,7 +664,8 @@ VM_OP_WARM void OpStringToInteger(noisepage::execution::sql::Integer *result,
   noisepage::execution::sql::CastingFunctions::CastToInteger(result, *input);
 }
 
-VM_OP_WARM void OpStringToReal(noisepage::execution::sql::Real *result, const noisepage::execution::sql::StringVal *input) {
+VM_OP_WARM void OpStringToReal(noisepage::execution::sql::Real *result,
+                               const noisepage::execution::sql::StringVal *input) {
   noisepage::execution::sql::CastingFunctions::CastToReal(result, *input);
 }
 
@@ -668,32 +679,32 @@ VM_OP_WARM void OpStringToTimestamp(noisepage::execution::sql::TimestampVal *res
   noisepage::execution::sql::CastingFunctions::CastToTimestampVal(result, *input);
 }
 
-#define GEN_SQL_COMPARISONS(NAME, TYPE)                                                       \
+#define GEN_SQL_COMPARISONS(NAME, TYPE)                                                         \
   VM_OP_HOT void OpGreaterThan##NAME(noisepage::execution::sql::BoolVal *const result,          \
                                      const noisepage::execution::sql::TYPE *const left,         \
                                      const noisepage::execution::sql::TYPE *const right) {      \
     noisepage::execution::sql::ComparisonFunctions::Gt##TYPE(result, *left, *right);            \
-  }                                                                                           \
+  }                                                                                             \
   VM_OP_HOT void OpGreaterThanEqual##NAME(noisepage::execution::sql::BoolVal *const result,     \
                                           const noisepage::execution::sql::TYPE *const left,    \
                                           const noisepage::execution::sql::TYPE *const right) { \
     noisepage::execution::sql::ComparisonFunctions::Ge##TYPE(result, *left, *right);            \
-  }                                                                                           \
+  }                                                                                             \
   VM_OP_HOT void OpEqual##NAME(noisepage::execution::sql::BoolVal *const result,                \
                                const noisepage::execution::sql::TYPE *const left,               \
                                const noisepage::execution::sql::TYPE *const right) {            \
     noisepage::execution::sql::ComparisonFunctions::Eq##TYPE(result, *left, *right);            \
-  }                                                                                           \
+  }                                                                                             \
   VM_OP_HOT void OpLessThan##NAME(noisepage::execution::sql::BoolVal *const result,             \
                                   const noisepage::execution::sql::TYPE *const left,            \
                                   const noisepage::execution::sql::TYPE *const right) {         \
     noisepage::execution::sql::ComparisonFunctions::Lt##TYPE(result, *left, *right);            \
-  }                                                                                           \
+  }                                                                                             \
   VM_OP_HOT void OpLessThanEqual##NAME(noisepage::execution::sql::BoolVal *const result,        \
                                        const noisepage::execution::sql::TYPE *const left,       \
                                        const noisepage::execution::sql::TYPE *const right) {    \
     noisepage::execution::sql::ComparisonFunctions::Le##TYPE(result, *left, *right);            \
-  }                                                                                           \
+  }                                                                                             \
   VM_OP_HOT void OpNotEqual##NAME(noisepage::execution::sql::BoolVal *const result,             \
                                   const noisepage::execution::sql::TYPE *const left,            \
                                   const noisepage::execution::sql::TYPE *const right) {         \
@@ -754,28 +765,33 @@ VM_OP_HOT void OpModInteger(noisepage::execution::sql::Integer *const result,
   noisepage::execution::sql::ArithmeticFunctions::IntMod(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpAddReal(noisepage::execution::sql::Real *const result, const noisepage::execution::sql::Real *const left,
+VM_OP_HOT void OpAddReal(noisepage::execution::sql::Real *const result,
+                         const noisepage::execution::sql::Real *const left,
                          const noisepage::execution::sql::Real *const right) {
   noisepage::execution::sql::ArithmeticFunctions::Add(result, *left, *right);
 }
 
-VM_OP_HOT void OpSubReal(noisepage::execution::sql::Real *const result, const noisepage::execution::sql::Real *const left,
+VM_OP_HOT void OpSubReal(noisepage::execution::sql::Real *const result,
+                         const noisepage::execution::sql::Real *const left,
                          const noisepage::execution::sql::Real *const right) {
   noisepage::execution::sql::ArithmeticFunctions::Sub(result, *left, *right);
 }
 
-VM_OP_HOT void OpMulReal(noisepage::execution::sql::Real *const result, const noisepage::execution::sql::Real *const left,
+VM_OP_HOT void OpMulReal(noisepage::execution::sql::Real *const result,
+                         const noisepage::execution::sql::Real *const left,
                          const noisepage::execution::sql::Real *const right) {
   noisepage::execution::sql::ArithmeticFunctions::Mul(result, *left, *right);
 }
 
-VM_OP_HOT void OpDivReal(noisepage::execution::sql::Real *const result, const noisepage::execution::sql::Real *const left,
+VM_OP_HOT void OpDivReal(noisepage::execution::sql::Real *const result,
+                         const noisepage::execution::sql::Real *const left,
                          const noisepage::execution::sql::Real *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
   noisepage::execution::sql::ArithmeticFunctions::Div(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpModReal(noisepage::execution::sql::Real *const result, const noisepage::execution::sql::Real *const left,
+VM_OP_HOT void OpModReal(noisepage::execution::sql::Real *const result,
+                         const noisepage::execution::sql::Real *const left,
                          const noisepage::execution::sql::Real *const right) {
   UNUSED_ATTRIBUTE bool div_by_zero = false;
   noisepage::execution::sql::ArithmeticFunctions::Mod(result, *left, *right, &div_by_zero);
@@ -874,7 +890,8 @@ VM_OP_HOT void OpAggregationOverflowPartitionIteratorHasNext(
   *has_more = iter->HasNext();
 }
 
-VM_OP_HOT void OpAggregationOverflowPartitionIteratorNext(noisepage::execution::sql::AHTOverflowPartitionIterator *iter) {
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorNext(
+    noisepage::execution::sql::AHTOverflowPartitionIterator *iter) {
   iter->Next();
 }
 
@@ -1246,7 +1263,8 @@ VM_OP_HOT void OpJoinHashTableAllocTuple(noisepage::byte **result,
   *result = join_hash_table->AllocInputTuple(hash);
 }
 
-VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result, noisepage::execution::sql::JoinHashTable *join_hash_table) {
+VM_OP_HOT void OpJoinHashTableGetTupleCount(uint32_t *result,
+                                            noisepage::execution::sql::JoinHashTable *join_hash_table) {
   *result = join_hash_table->GetTupleCount();
 }
 
@@ -1294,7 +1312,8 @@ VM_OP void OpJoinHashTableIteratorFree(noisepage::execution::sql::JoinHashTableI
 // Sorting
 // ---------------------------------------------------------
 
-VM_OP void OpSorterInit(noisepage::execution::sql::Sorter *sorter, noisepage::execution::exec::ExecutionContext *exec_ctx,
+VM_OP void OpSorterInit(noisepage::execution::sql::Sorter *sorter,
+                        noisepage::execution::exec::ExecutionContext *exec_ctx,
                         noisepage::execution::sql::Sorter::ComparisonFunction cmp_fn, uint32_t tuple_size);
 
 VM_OP_HOT void OpSorterGetTupleCount(uint32_t *result, noisepage::execution::sql::Sorter *sorter) {
@@ -1305,7 +1324,8 @@ VM_OP_HOT void OpSorterAllocTuple(noisepage::byte **result, noisepage::execution
   *result = sorter->AllocInputTuple();
 }
 
-VM_OP_HOT void OpSorterAllocTupleTopK(noisepage::byte **result, noisepage::execution::sql::Sorter *sorter, uint64_t top_k) {
+VM_OP_HOT void OpSorterAllocTupleTopK(noisepage::byte **result, noisepage::execution::sql::Sorter *sorter,
+                                      uint64_t top_k) {
   *result = sorter->AllocInputTupleTopK(top_k);
 }
 
@@ -1325,7 +1345,8 @@ VM_OP void OpSorterSortTopKParallel(noisepage::execution::sql::Sorter *sorter,
 
 VM_OP void OpSorterFree(noisepage::execution::sql::Sorter *sorter);
 
-VM_OP void OpSorterIteratorInit(noisepage::execution::sql::SorterIterator *iter, noisepage::execution::sql::Sorter *sorter);
+VM_OP void OpSorterIteratorInit(noisepage::execution::sql::SorterIterator *iter,
+                                noisepage::execution::sql::Sorter *sorter);
 
 VM_OP_HOT void OpSorterIteratorHasNext(bool *has_more, noisepage::execution::sql::SorterIterator *iter) {
   *has_more = iter->HasNext();
@@ -1399,7 +1420,9 @@ VM_OP_WARM void OpPi(noisepage::execution::sql::Real *result) {
   noisepage::execution::sql::ArithmeticFunctions::Pi(result);
 }
 
-VM_OP_WARM void OpE(noisepage::execution::sql::Real *result) { noisepage::execution::sql::ArithmeticFunctions::E(result); }
+VM_OP_WARM void OpE(noisepage::execution::sql::Real *result) {
+  noisepage::execution::sql::ArithmeticFunctions::E(result);
+}
 
 VM_OP_WARM void OpAcos(noisepage::execution::sql::Real *result, const noisepage::execution::sql::Real *input) {
   noisepage::execution::sql::ArithmeticFunctions::Acos(result, *input);
@@ -1534,7 +1557,8 @@ VM_OP_WARM void OpNpRunnersEmitInt(noisepage::execution::exec::ExecutionContext 
                                    const noisepage::execution::sql::Integer *num_cols,
                                    const noisepage::execution::sql::Integer *num_int_cols,
                                    const noisepage::execution::sql::Integer *num_real_cols) {
-  noisepage::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols, *num_real_cols);
+  noisepage::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols,
+                                                              *num_real_cols);
 }
 
 VM_OP_WARM void OpNpRunnersEmitReal(noisepage::execution::exec::ExecutionContext *ctx,
@@ -1542,7 +1566,8 @@ VM_OP_WARM void OpNpRunnersEmitReal(noisepage::execution::exec::ExecutionContext
                                     const noisepage::execution::sql::Integer *num_cols,
                                     const noisepage::execution::sql::Integer *num_int_cols,
                                     const noisepage::execution::sql::Integer *num_real_cols) {
-  noisepage::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols, *num_real_cols);
+  noisepage::execution::sql::MiniRunnersFunctions::EmitTuples(ctx, *num_tuples, *num_cols, *num_int_cols,
+                                                              *num_real_cols);
 }
 
 VM_OP_WARM void OpNpRunnersDummyInt(UNUSED_ATTRIBUTE noisepage::execution::exec::ExecutionContext *ctx) {}
@@ -1562,12 +1587,14 @@ VM_OP_WARM void OpASCII(noisepage::execution::sql::Integer *result, noisepage::e
   noisepage::execution::sql::StringFunctions::ASCII(result, ctx, *str);
 }
 
-VM_OP_WARM void OpCharLength(noisepage::execution::sql::Integer *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpCharLength(noisepage::execution::sql::Integer *result,
+                             noisepage::execution::exec::ExecutionContext *ctx,
                              const noisepage::execution::sql::StringVal *str) {
   noisepage::execution::sql::StringFunctions::CharLength(result, ctx, *str);
 }
 
-VM_OP_WARM void OpConcat(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpConcat(noisepage::execution::sql::StringVal *result,
+                         noisepage::execution::exec::ExecutionContext *ctx,
                          const noisepage::execution::sql::StringVal *inputs[], const int64_t num_inputs) {
   noisepage::execution::sql::StringFunctions::Concat(result, ctx, inputs, num_inputs);
 }
@@ -1592,40 +1619,49 @@ VM_OP_WARM void OpLower(noisepage::execution::sql::StringVal *result, noisepage:
   noisepage::execution::sql::StringFunctions::Lower(result, ctx, *str);
 }
 
-VM_OP_WARM void OpPosition(noisepage::execution::sql::Integer *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpPosition(noisepage::execution::sql::Integer *result,
+                           noisepage::execution::exec::ExecutionContext *ctx,
                            const noisepage::execution::sql::StringVal *search_str,
                            const noisepage::execution::sql::StringVal *search_sub_str) {
   noisepage::execution::sql::StringFunctions::Position(result, ctx, *search_str, *search_sub_str);
 }
 
-VM_OP_WARM void OpLPad3Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
-                           const noisepage::execution::sql::StringVal *str, const noisepage::execution::sql::Integer *len,
+VM_OP_WARM void OpLPad3Arg(noisepage::execution::sql::StringVal *result,
+                           noisepage::execution::exec::ExecutionContext *ctx,
+                           const noisepage::execution::sql::StringVal *str,
+                           const noisepage::execution::sql::Integer *len,
                            const noisepage::execution::sql::StringVal *pad) {
   noisepage::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len, *pad);
 }
 
-VM_OP_WARM void OpLPad2Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
-                           const noisepage::execution::sql::StringVal *str, const noisepage::execution::sql::Integer *len) {
+VM_OP_WARM void OpLPad2Arg(noisepage::execution::sql::StringVal *result,
+                           noisepage::execution::exec::ExecutionContext *ctx,
+                           const noisepage::execution::sql::StringVal *str,
+                           const noisepage::execution::sql::Integer *len) {
   noisepage::execution::sql::StringFunctions::Lpad(result, ctx, *str, *len);
 }
 
-VM_OP_WARM void OpLTrim2Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpLTrim2Arg(noisepage::execution::sql::StringVal *result,
+                            noisepage::execution::exec::ExecutionContext *ctx,
                             const noisepage::execution::sql::StringVal *str,
                             const noisepage::execution::sql::StringVal *chars) {
   noisepage::execution::sql::StringFunctions::Ltrim(result, ctx, *str, *chars);
 }
 
-VM_OP_WARM void OpLTrim1Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpLTrim1Arg(noisepage::execution::sql::StringVal *result,
+                            noisepage::execution::exec::ExecutionContext *ctx,
                             const noisepage::execution::sql::StringVal *str) {
   noisepage::execution::sql::StringFunctions::Ltrim(result, ctx, *str);
 }
 
-VM_OP_WARM void OpRepeat(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpRepeat(noisepage::execution::sql::StringVal *result,
+                         noisepage::execution::exec::ExecutionContext *ctx,
                          const noisepage::execution::sql::StringVal *str, const noisepage::execution::sql::Integer *n) {
   noisepage::execution::sql::StringFunctions::Repeat(result, ctx, *str, *n);
 }
 
-VM_OP_WARM void OpReverse(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpReverse(noisepage::execution::sql::StringVal *result,
+                          noisepage::execution::exec::ExecutionContext *ctx,
                           const noisepage::execution::sql::StringVal *str) {
   noisepage::execution::sql::StringFunctions::Reverse(result, ctx, *str);
 }
@@ -1635,42 +1671,52 @@ VM_OP_WARM void OpRight(noisepage::execution::sql::StringVal *result, noisepage:
   noisepage::execution::sql::StringFunctions::Right(result, ctx, *str, *n);
 }
 
-VM_OP_WARM void OpRPad3Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
-                           const noisepage::execution::sql::StringVal *str, const noisepage::execution::sql::Integer *len,
+VM_OP_WARM void OpRPad3Arg(noisepage::execution::sql::StringVal *result,
+                           noisepage::execution::exec::ExecutionContext *ctx,
+                           const noisepage::execution::sql::StringVal *str,
+                           const noisepage::execution::sql::Integer *len,
                            const noisepage::execution::sql::StringVal *pad) {
   noisepage::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len, *pad);
 }
 
-VM_OP_WARM void OpRPad2Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
-                           const noisepage::execution::sql::StringVal *str, const noisepage::execution::sql::Integer *len) {
+VM_OP_WARM void OpRPad2Arg(noisepage::execution::sql::StringVal *result,
+                           noisepage::execution::exec::ExecutionContext *ctx,
+                           const noisepage::execution::sql::StringVal *str,
+                           const noisepage::execution::sql::Integer *len) {
   noisepage::execution::sql::StringFunctions::Rpad(result, ctx, *str, *len);
 }
 
-VM_OP_WARM void OpRTrim2Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpRTrim2Arg(noisepage::execution::sql::StringVal *result,
+                            noisepage::execution::exec::ExecutionContext *ctx,
                             const noisepage::execution::sql::StringVal *str,
                             const noisepage::execution::sql::StringVal *chars) {
   noisepage::execution::sql::StringFunctions::Rtrim(result, ctx, *str, *chars);
 }
 
-VM_OP_WARM void OpRTrim1Arg(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpRTrim1Arg(noisepage::execution::sql::StringVal *result,
+                            noisepage::execution::exec::ExecutionContext *ctx,
                             const noisepage::execution::sql::StringVal *str) {
   noisepage::execution::sql::StringFunctions::Rtrim(result, ctx, *str);
 }
 
-VM_OP_WARM void OpSplitPart(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpSplitPart(noisepage::execution::sql::StringVal *result,
+                            noisepage::execution::exec::ExecutionContext *ctx,
                             const noisepage::execution::sql::StringVal *str,
                             const noisepage::execution::sql::StringVal *delim,
                             const noisepage::execution::sql::Integer *field) {
   noisepage::execution::sql::StringFunctions::SplitPart(result, ctx, *str, *delim, *field);
 }
 
-VM_OP_WARM void OpSubstring(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
-                            const noisepage::execution::sql::StringVal *str, const noisepage::execution::sql::Integer *pos,
+VM_OP_WARM void OpSubstring(noisepage::execution::sql::StringVal *result,
+                            noisepage::execution::exec::ExecutionContext *ctx,
+                            const noisepage::execution::sql::StringVal *str,
+                            const noisepage::execution::sql::Integer *pos,
                             const noisepage::execution::sql::Integer *len) {
   noisepage::execution::sql::StringFunctions::Substring(result, ctx, *str, *pos, *len);
 }
 
-VM_OP_WARM void OpStartsWith(noisepage::execution::sql::BoolVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpStartsWith(noisepage::execution::sql::BoolVal *result,
+                             noisepage::execution::exec::ExecutionContext *ctx,
                              const noisepage::execution::sql::StringVal *str,
                              const noisepage::execution::sql::StringVal *start) {
   noisepage::execution::sql::StringFunctions::StartsWith(result, ctx, *str, *start);
@@ -1692,11 +1738,13 @@ VM_OP_WARM void OpUpper(noisepage::execution::sql::StringVal *result, noisepage:
   noisepage::execution::sql::StringFunctions::Upper(result, ctx, *str);
 }
 
-VM_OP_WARM void OpVersion(noisepage::execution::exec::ExecutionContext *ctx, noisepage::execution::sql::StringVal *result) {
+VM_OP_WARM void OpVersion(noisepage::execution::exec::ExecutionContext *ctx,
+                          noisepage::execution::sql::StringVal *result) {
   noisepage::execution::sql::SystemFunctions::Version(ctx, result);
 }
 
-VM_OP_WARM void OpInitCap(noisepage::execution::sql::StringVal *result, noisepage::execution::exec::ExecutionContext *ctx,
+VM_OP_WARM void OpInitCap(noisepage::execution::sql::StringVal *result,
+                          noisepage::execution::exec::ExecutionContext *ctx,
                           const noisepage::execution::sql::StringVal *str) {
   noisepage::execution::sql::StringFunctions::InitCap(result, ctx, *str);
 }
@@ -1720,7 +1768,9 @@ VM_OP_WARM void OpIndexIteratorScanAscending(noisepage::execution::sql::IndexIte
   iter->ScanAscending(scan_type, limit);
 }
 
-VM_OP_WARM void OpIndexIteratorScanDescending(noisepage::execution::sql::IndexIterator *iter) { iter->ScanDescending(); }
+VM_OP_WARM void OpIndexIteratorScanDescending(noisepage::execution::sql::IndexIterator *iter) {
+  iter->ScanDescending();
+}
 
 VM_OP_WARM void OpIndexIteratorScanLimitDescending(noisepage::execution::sql::IndexIterator *iter, uint32_t limit) {
   iter->ScanLimitDescending(limit);
@@ -1755,36 +1805,36 @@ VM_OP_WARM void OpIndexIteratorGetSlot(noisepage::storage::TupleSlot *slot,
   *slot = iter->CurrentSlot();
 }
 
-#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                    \
+#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                      \
   VM_OP_HOT void OpPRSet##Name(noisepage::storage::ProjectedRow *pr, uint16_t col_idx,       \
                                noisepage::execution::sql::SqlType *val) {                    \
-    pr->Set<CppType, false>(col_idx, static_cast<CppType>(val->val_), val->is_null_);      \
-  }                                                                                        \
-                                                                                           \
+    pr->Set<CppType, false>(col_idx, static_cast<CppType>(val->val_), val->is_null_);        \
+  }                                                                                          \
+                                                                                             \
   VM_OP_HOT void OpPRSet##Name##Null(noisepage::storage::ProjectedRow *pr, uint16_t col_idx, \
                                      noisepage::execution::sql::SqlType *val) {              \
-    pr->Set<CppType, true>(col_idx, static_cast<CppType>(val->val_), val->is_null_);       \
+    pr->Set<CppType, true>(col_idx, static_cast<CppType>(val->val_), val->is_null_);         \
   }
 
-#define GEN_PR_SCALAR_GET_CALLS(Name, SqlType, CppType)                                                         \
+#define GEN_PR_SCALAR_GET_CALLS(Name, SqlType, CppType)                                                             \
   VM_OP_HOT void OpPRGet##Name(noisepage::execution::sql::SqlType *out, noisepage::storage::ProjectedRow *pr,       \
-                               uint16_t col_idx) {                                                              \
-    /* Read */                                                                                                  \
-    auto *ptr = pr->Get<CppType, false>(col_idx, nullptr);                                                      \
-    NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                                 \
-    /* Set */                                                                                                   \
-    out->is_null_ = false;                                                                                      \
-    out->val_ = *ptr;                                                                                           \
-  }                                                                                                             \
-                                                                                                                \
+                               uint16_t col_idx) {                                                                  \
+    /* Read */                                                                                                      \
+    auto *ptr = pr->Get<CppType, false>(col_idx, nullptr);                                                          \
+    NOISEPAGE_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                                   \
+    /* Set */                                                                                                       \
+    out->is_null_ = false;                                                                                          \
+    out->val_ = *ptr;                                                                                               \
+  }                                                                                                                 \
+                                                                                                                    \
   VM_OP_HOT void OpPRGet##Name##Null(noisepage::execution::sql::SqlType *out, noisepage::storage::ProjectedRow *pr, \
-                                     uint16_t col_idx) {                                                        \
-    /* Read */                                                                                                  \
-    bool null = false;                                                                                          \
-    auto *ptr = pr->Get<CppType, true>(col_idx, &null);                                                         \
-    /* Set */                                                                                                   \
-    out->is_null_ = null;                                                                                       \
-    out->val_ = null ? 0 : *ptr;                                                                                \
+                                     uint16_t col_idx) {                                                            \
+    /* Read */                                                                                                      \
+    bool null = false;                                                                                              \
+    auto *ptr = pr->Get<CppType, true>(col_idx, &null);                                                             \
+    /* Set */                                                                                                       \
+    out->is_null_ = null;                                                                                           \
+    out->val_ = null ? 0 : *ptr;                                                                                    \
   }
 
 GEN_PR_SCALAR_SET_CALLS(Bool, BoolVal, bool);
@@ -1870,8 +1920,8 @@ VM_OP_HOT void OpPRGetTimestampVal(noisepage::execution::sql::TimestampVal *out,
   out->val_ = noisepage::execution::sql::Timestamp::FromNative(*ptr);
 }
 
-VM_OP_HOT void OpPRGetTimestampValNull(noisepage::execution::sql::TimestampVal *out, noisepage::storage::ProjectedRow *pr,
-                                       uint16_t col_idx) {
+VM_OP_HOT void OpPRGetTimestampValNull(noisepage::execution::sql::TimestampVal *out,
+                                       noisepage::storage::ProjectedRow *pr, uint16_t col_idx) {
   // Read
   bool null = false;
   auto *ptr = pr->Get<uint64_t, true>(col_idx, &null);
@@ -1969,15 +2019,15 @@ VM_OP_WARM void OpAbortTxn(noisepage::execution::exec::ExecutionContext *exec_ct
 }
 
 // Parameter calls
-#define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                   \
+#define GEN_SCALAR_PARAM_GET(Name, SqlType)                                                                     \
   VM_OP_HOT void OpGetParam##Name(noisepage::execution::sql::SqlType *ret,                                      \
                                   noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t param_idx) { \
-    const auto &cve = exec_ctx->GetParam(param_idx);                                                          \
-    if (cve.IsNull()) {                                                                                       \
-      ret->is_null_ = true;                                                                                   \
-    } else {                                                                                                  \
-      *ret = cve.Get##SqlType();                                                                              \
-    }                                                                                                         \
+    const auto &cve = exec_ctx->GetParam(param_idx);                                                            \
+    if (cve.IsNull()) {                                                                                         \
+      ret->is_null_ = true;                                                                                     \
+    } else {                                                                                                    \
+      *ret = cve.Get##SqlType();                                                                                \
+    }                                                                                                           \
   }
 
 GEN_SCALAR_PARAM_GET(Bool, BoolVal)
@@ -2002,7 +2052,8 @@ VM_OP_WARM void OpTestCatalogLookup(uint32_t *oid_var, noisepage::execution::exe
   // TODO(WAN): wasteful std::string
   noisepage::execution::sql::StringVal table_name{reinterpret_cast<const char *>(table_name_str), table_name_length};
   noisepage::execution::sql::StringVal col_name{reinterpret_cast<const char *>(col_name_str), col_name_length};
-  noisepage::catalog::table_oid_t table_oid = exec_ctx->GetAccessor()->GetTableOid(std::string(table_name.StringView()));
+  noisepage::catalog::table_oid_t table_oid =
+      exec_ctx->GetAccessor()->GetTableOid(std::string(table_name.StringView()));
 
   uint32_t out_oid;
   if (col_name.GetLength() == 0) {
@@ -2019,7 +2070,8 @@ VM_OP_WARM void OpTestCatalogIndexLookup(uint32_t *oid_var, noisepage::execution
                                          const uint8_t *index_name_str, uint32_t index_name_length) {
   // TODO(WAN): wasteful std::string
   noisepage::execution::sql::StringVal table_name{reinterpret_cast<const char *>(index_name_str), index_name_length};
-  noisepage::catalog::index_oid_t index_oid = exec_ctx->GetAccessor()->GetIndexOid(std::string(table_name.StringView()));
+  noisepage::catalog::index_oid_t index_oid =
+      exec_ctx->GetAccessor()->GetIndexOid(std::string(table_name.StringView()));
   *oid_var = index_oid.UnderlyingValue();
 }
 

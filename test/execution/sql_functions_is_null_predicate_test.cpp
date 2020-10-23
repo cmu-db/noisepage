@@ -8,8 +8,8 @@ class IsNullPredicateTests : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNull) {
-#define CHECK_NULL_FOR_TYPE(NullVal, NonNullVal)                                  \
-  {                                                                               \
+#define CHECK_NULL_FOR_TYPE(NullVal, NonNullVal)                                    \
+  {                                                                                 \
     EXPECT_TRUE(noisepage::execution::sql::IsNullPredicate::IsNull(NullVal));       \
     EXPECT_FALSE(noisepage::execution::sql::IsNullPredicate::IsNotNull(NullVal));   \
     EXPECT_FALSE(noisepage::execution::sql::IsNullPredicate::IsNull(NonNullVal));   \

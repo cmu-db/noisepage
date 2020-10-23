@@ -211,7 +211,7 @@ common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value
   (callback)(old_value, new_value, db_main_.Get(), action_context);
   ActionState action_state = action_context->GetState();
   NOISEPAGE_ASSERT(action_state == ActionState::FAILURE || action_state == ActionState::SUCCESS,
-                 "action context should have state of either SUCCESS or FAILURE on completion.");
+                   "action context should have state of either SUCCESS or FAILURE on completion.");
   return action_state;
 }
 

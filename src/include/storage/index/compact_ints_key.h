@@ -60,27 +60,27 @@ class CompactIntsKey {
 
     NOISEPAGE_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
     NOISEPAGE_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
-                   "attr_sizes and attr_offsets must be equal in size.");
+                     "attr_sizes and attr_offsets must be equal in size.");
     NOISEPAGE_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
     NOISEPAGE_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
     NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
-                     for (uint16_t i = 0; i < num_attrs; i++) {
-                       if (from.IsNull(i)) return false;
-                     }
-                     return true;
-                   }),
-                   "There should not be any NULL attributes in this key.");
+                       for (uint16_t i = 0; i < num_attrs; i++) {
+                         if (from.IsNull(i)) return false;
+                       }
+                       return true;
+                     }),
+                     "There should not be any NULL attributes in this key.");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
     NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
-                     for (const auto &i : metadata.GetSchema().GetColumns()) {
-                       if (i.Nullable()) return false;
-                     }
-                     return true;
-                   }),
-                   "There should not be any NULL attributes in this schema.");
+                       for (const auto &i : metadata.GetSchema().GetColumns()) {
+                         if (i.Nullable()) return false;
+                       }
+                       return true;
+                     }),
+                     "There should not be any NULL attributes in this schema.");
 
     // we hash and compare KeySize bytes in all of our operations. Since there might be over-provisioned bytes, we want
     // to make sure the entire key is memset to 0

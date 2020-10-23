@@ -28,7 +28,7 @@ GarbageCollector::GarbageCollector(
       observer_(observer),
       last_unlinked_{0} {
   NOISEPAGE_ASSERT(txn_manager_->GCEnabled(),
-                 "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
 }
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {

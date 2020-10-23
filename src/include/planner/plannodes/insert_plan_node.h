@@ -86,7 +86,7 @@ class InsertPlanNode : public AbstractPlanNode {
     std::unique_ptr<InsertPlanNode> Build() {
       NOISEPAGE_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
       NOISEPAGE_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
-                     "Must have parameter info for each value");
+                       "Must have parameter info for each value");
       return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, table_oid_, std::move(values_),
                                                                 std::move(parameter_info_)));

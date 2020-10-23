@@ -41,9 +41,9 @@ ast::FunctionDecl *FunctionBuilder::Finish(ast::Expr *ret) {
   }
 
   NOISEPAGE_ASSERT(ret == nullptr || statements_->IsEmpty() || !statements_->GetLast()->IsReturnStmt(),
-                 "Double-return at end of function. You should either call FunctionBuilder::Finish() "
-                 "with an explicit return expression, or use the factory to manually append a return "
-                 "statement and call FunctionBuilder::Finish() with a null return.");
+                   "Double-return at end of function. You should either call FunctionBuilder::Finish() "
+                   "with an explicit return expression, or use the factory to manually append a return "
+                   "statement and call FunctionBuilder::Finish() with a null return.");
 
   // Add the return.
   if (!statements_->IsEmpty() && !statements_->GetLast()->IsReturnStmt()) {

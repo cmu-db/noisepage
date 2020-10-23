@@ -202,7 +202,9 @@ void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
 
 void InputColumnDeriver::Visit(const InnerNLJoin *op) { JoinHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { NOISEPAGE_ASSERT(0, "LeftNLJoin not supported"); }
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {
+  NOISEPAGE_ASSERT(0, "LeftNLJoin not supported");
+}
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {
   NOISEPAGE_ASSERT(0, "RightNLJoin not supported");

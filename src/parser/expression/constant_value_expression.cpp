@@ -36,8 +36,8 @@ void ConstantValueExpression::Validate() const {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Integer>(value_)) {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
-                       return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
-                   "Invalid TypeId for Val type.");
+                         return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
+                     "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Real>(value_)) {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
@@ -46,7 +46,7 @@ void ConstantValueExpression::Validate() const {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
     NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
-                   "Invalid TypeId for Val type.");
+                     "Invalid TypeId for Val type.");
     NOISEPAGE_ASSERT(
         GetStringVal().is_null_ ||
             (buffer_ == nullptr && GetStringVal().GetLength() <= execution::sql::StringVal::InlineThreshold()) ||

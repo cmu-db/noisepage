@@ -12,9 +12,9 @@ namespace noisepage {
 /**
  * Magic macro for our parser microbencmarks
  */
-#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                     \
-  for (const auto &sql : QUERIES) {                                                                                 \
-    auto result = parser::PostgresParser::BuildParseTree(sql);                                                      \
+#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                       \
+  for (const auto &sql : QUERIES) {                                                                                   \
+    auto result = parser::PostgresParser::BuildParseTree(sql);                                                        \
     NOISEPAGE_ASSERT(result->GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
   }
 

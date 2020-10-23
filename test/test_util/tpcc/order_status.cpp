@@ -99,13 +99,13 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   db->order_secondary_index_->ScanLimitDescending(*txn, *order_secondary_low_key, *order_secondary_high_key,
                                                   &index_scan_results, 1);
   NOISEPAGE_ASSERT(index_scan_results.size() == 1,
-                 "Order index lookup failed. There should always be at least one order for each customer.");
+                   "Order index lookup failed. There should always be at least one order for each customer.");
 
   // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table for largest key (back of vector)
   auto *const order_select_tuple = order_select_pr_initializer_.InitializeRow(worker->order_tuple_buffer_);
   select_result = db->order_table_->Select(common::ManagedPointer(txn), index_scan_results[0], order_select_tuple);
   NOISEPAGE_ASSERT(select_result,
-                 "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                   "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   const auto o_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(o_id_select_pr_offset_));
 
@@ -130,7 +130,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
                                                order_line_high_key, 0, &index_scan_results);
 
   NOISEPAGE_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
-                 "There should be at least 1 Order Line item, but no more than 15.");
+                   "There should be at least 1 Order Line item, but no more than 15.");
 
   // Select OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DELIVERY_D for every result of the index scan
   auto *const order_line_select_tuple =
@@ -138,7 +138,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   for (const auto &tuple_slot : index_scan_results) {
     select_result = db->order_line_table_->Select(common::ManagedPointer(txn), tuple_slot, order_line_select_tuple);
     NOISEPAGE_ASSERT(select_result,
-                   "We already confirmed that this is a committed order above, so none of these should fail.");
+                     "We already confirmed that this is a committed order above, so none of these should fail.");
   }
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

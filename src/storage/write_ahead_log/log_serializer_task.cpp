@@ -69,7 +69,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> LogSerializerTask::Process() {
   {
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
     NOISEPAGE_ASSERT(serialized_txns_.empty(),
-                   "Aggregated txn timestamps should have been handed off to TimestampManager");
+                     "Aggregated txn timestamps should have been handed off to TimestampManager");
     // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
     // came in during the previous serialization loop
 

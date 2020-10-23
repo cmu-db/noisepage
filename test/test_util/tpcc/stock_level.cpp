@@ -52,7 +52,7 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_key_lo,
                                                order_line_key_hi, 0, &index_scan_results);
   NOISEPAGE_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
-                 "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
+                   "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
 
   // Select matching S_I_ID and S_W_ID with S_QUANTITY lower than threshold.
   // Aggregate quantity counts, report number of items with count < threshold.

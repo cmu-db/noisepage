@@ -161,7 +161,8 @@ class MetricsStore {
   void RecordBindCommandData(uint64_t param_num, uint64_t query_text_size,
                              const common::ResourceTracker::Metrics &resource_metrics) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::BIND_COMMAND), "BindCommandMetric not enabled.");
-    NOISEPAGE_ASSERT(bind_command_metric_ != nullptr, "BindCommandMetric not allocated. Check MetricsStore constructor.");
+    NOISEPAGE_ASSERT(bind_command_metric_ != nullptr,
+                     "BindCommandMetric not allocated. Check MetricsStore constructor.");
     bind_command_metric_->RecordBindCommandData(param_num, query_text_size, resource_metrics);
   }
 
@@ -173,7 +174,7 @@ class MetricsStore {
   void RecordExecuteCommandData(uint64_t portal_name_size, const common::ResourceTracker::Metrics &resource_metrics) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::EXECUTE_COMMAND), "ExecuteCommandMetric not enabled.");
     NOISEPAGE_ASSERT(execute_command_metric_ != nullptr,
-                   "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
+                     "ExecuteCommandMetric not allocated. Check MetricsStore constructor.");
     execute_command_metric_->RecordExecuteCommandData(portal_name_size, resource_metrics);
   }
 

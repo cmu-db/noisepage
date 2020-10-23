@@ -177,8 +177,8 @@ struct StringVal : public Val {
    * @return std::string_view of StringVal's contents
    */
   std::string_view StringView() const {
-    NOISEPAGE_ASSERT(!is_null_,
-                   "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
+    NOISEPAGE_ASSERT(
+        !is_null_, "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
     return val_.StringView();
   }
 
@@ -206,10 +206,10 @@ struct StringVal : public Val {
         return noisepage::storage::VarlenEntry::Create(contents, str.GetLength(), true);
       }
       return noisepage::storage::VarlenEntry::Create(reinterpret_cast<const noisepage::byte *>(str.GetContent()),
-                                                   str.GetLength(), false);
+                                                     str.GetLength(), false);
     }
     return noisepage::storage::VarlenEntry::CreateInline(reinterpret_cast<const noisepage::byte *>(str.GetContent()),
-                                                       str.GetLength());
+                                                         str.GetLength());
   }
 
   /**

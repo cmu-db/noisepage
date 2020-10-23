@@ -17,7 +17,7 @@ BlockLayout::BlockLayout(std::vector<uint16_t> attr_sizes)
   for (uint16_t size UNUSED_ATTRIBUTE : attr_sizes_)
     NOISEPAGE_ASSERT(size == VARLEN_COLUMN || (size >= 0 && size <= INT16_MAX), "Invalid size of a column");
   NOISEPAGE_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
-                 "number of columns must be between 1 and MAX_COL");
+                   "number of columns must be between 1 and MAX_COL");
   NOISEPAGE_ASSERT(num_slots_ != 0, "number of slots cannot be 0!");
   // sort the attributes when laying out memory to minimize impact of padding
   // skip the reserved columns because we still want those first and shouldn't mess up 8-byte alignment

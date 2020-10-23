@@ -21,8 +21,8 @@ void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &
       auto l_expr = expr->GetChild(0);
       auto r_expr = expr->GetChild(1);
       NOISEPAGE_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
-                         r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
-                     "DerivedValue should not exist here");
+                           r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
+                       "DerivedValue should not exist here");
 
       // equi-join between two ColumnValueExpressions
       if (l_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&

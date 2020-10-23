@@ -87,9 +87,9 @@ class SqlTable {
   bool Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
     NOISEPAGE_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
     NOISEPAGE_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
+                                 ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                     "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                     "immediately before?");
     const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
@@ -110,9 +110,9 @@ class SqlTable {
   TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
     NOISEPAGE_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
     NOISEPAGE_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
+                                 ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                     "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                     "immediately before?");
     const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
@@ -126,7 +126,7 @@ class SqlTable {
    */
   bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
     NOISEPAGE_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
-                   "The RedoBuffer is empty even though StageDelete should have been called.");
+                     "The RedoBuffer is empty even though StageDelete should have been called.");
     NOISEPAGE_ASSERT(
         reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                 ->GetUnderlyingRecordBodyAs<DeleteRecord>()
@@ -201,10 +201,10 @@ class SqlTable {
   ProjectedColumnsInitializer InitializerForProjectedColumns(const std::vector<catalog::col_oid_t> &col_oids,
                                                              const uint32_t max_tuples) const {
     NOISEPAGE_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                   "There should not be any duplicated in the col_ids!");
+                     "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     NOISEPAGE_ASSERT(col_ids.size() == col_oids.size(),
-                   "Projection should be the same number of columns as requested col_oids.");
+                     "Projection should be the same number of columns as requested col_oids.");
     return ProjectedColumnsInitializer(table_.layout_, col_ids, max_tuples);
   }
 
@@ -217,10 +217,10 @@ class SqlTable {
    */
   ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids) const {
     NOISEPAGE_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                   "There should not be any duplicated in the col_ids!");
+                     "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     NOISEPAGE_ASSERT(col_ids.size() == col_oids.size(),
-                   "Projection should be the same number of columns as requested col_oids.");
+                     "Projection should be the same number of columns as requested col_oids.");
     return ProjectedRowInitializer::Create(table_.layout_, col_ids);
   }
 

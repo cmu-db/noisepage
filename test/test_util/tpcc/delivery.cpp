@@ -39,15 +39,15 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     bool select_result UNUSED_ATTRIBUTE =
         db->new_order_table_->Select(common::ManagedPointer(txn), new_order_slot, new_order_select_tuple);
     NOISEPAGE_ASSERT(select_result,
-                   "New Order select failed. This assertion assumes 1:1 mapping between warehouse and workers and "
-                   "that indexes are getting cleaned.");
+                     "New Order select failed. This assertion assumes 1:1 mapping between warehouse and workers and "
+                     "that indexes are getting cleaned.");
     const auto no_o_id = *reinterpret_cast<int32_t *>(new_order_select_tuple->AccessWithNullCheck(0));
 
     // Delete the corresponding New Order table row
     txn->StageDelete(db->db_oid_, db->new_order_table_oid_, new_order_slot);
     bool delete_result UNUSED_ATTRIBUTE = db->new_order_table_->Delete(common::ManagedPointer(txn), new_order_slot);
     NOISEPAGE_ASSERT(delete_result,
-                   "New Order delete failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                     "New Order delete failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     // Delete the New Order index entry. Would need to defer this in a many:1 worker:warehouse scenario
     auto *const new_order_delete_key = new_order_key_pr_initializer.InitializeRow(worker->new_order_key_buffer_);
@@ -74,7 +74,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     auto *order_select_tuple = order_select_pr_initializer_.InitializeRow(worker->order_tuple_buffer_);
     select_result = db->order_table_->Select(common::ManagedPointer(txn), order_slot, order_select_tuple);
     NOISEPAGE_ASSERT(select_result,
-                   "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                     "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     const auto o_c_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(0));
     NOISEPAGE_ASSERT(o_c_id >= 1 && o_c_id <= 3000, "Invalid o_c_id read from the Order table.");
@@ -85,7 +85,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     order_update_redo->SetTupleSlot(order_slot);
     bool update_result UNUSED_ATTRIBUTE = db->order_table_->Update(common::ManagedPointer(txn), order_update_redo);
     NOISEPAGE_ASSERT(select_result,
-                   "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                     "Order update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
     // Look up OL_W_ID, OL_D_ID, OL_O_ID
     const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
@@ -106,7 +106,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_key_lo,
                                                  order_line_key_hi, 0, &index_scan_results);
     NOISEPAGE_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
-                   "There should be at least 1 Order Line item, but no more than 15.");
+                     "There should be at least 1 Order Line item, but no more than 15.");
 
     // Retrieve sum of all OL_AMOUNT, update every OL_DELIVERY_D to current system time
     storage::ProjectedRow *order_line_select_tuple;
@@ -116,7 +116,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
       select_result =
           db->order_line_table_->Select(common::ManagedPointer(txn), order_line_slot, order_line_select_tuple);
       NOISEPAGE_ASSERT(select_result,
-                     "Order Line select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                       "Order Line select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
       const auto ol_amount = *reinterpret_cast<double *>(order_line_select_tuple->AccessForceNotNull(0));
       ol_amount_sum += ol_amount;
       NOISEPAGE_ASSERT(ol_amount >= 0.01 && ol_amount <= 9999.99, "Invalid ol_amount read from the Order Line table.");
@@ -127,7 +127,7 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
       order_line_update_redo->SetTupleSlot(order_line_slot);
       update_result = db->order_line_table_->Update(common::ManagedPointer(txn), order_line_update_redo);
       NOISEPAGE_ASSERT(update_result,
-                     "Order Line update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                       "Order Line update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     }
 
     // Look up C_W_ID, C_D_ID, C_ID
@@ -149,13 +149,13 @@ bool Delivery::Execute(transaction::TransactionManager *const txn_manager, Datab
     select_result =
         db->customer_table_->Select(common::ManagedPointer(txn), index_scan_results[0], customer_update_tuple);
     NOISEPAGE_ASSERT(select_result,
-                   "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                     "Customer select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
     *reinterpret_cast<double *>(customer_update_tuple->AccessForceNotNull(c_balance_pr_offset_)) += ol_amount_sum;
     (*reinterpret_cast<int16_t *>(customer_update_tuple->AccessForceNotNull(c_delivery_cnt_pr_offset_)))++;
     customer_update_redo->SetTupleSlot(index_scan_results[0]);
     update_result = db->customer_table_->Update(common::ManagedPointer(txn), customer_update_redo);
     NOISEPAGE_ASSERT(update_result,
-                   "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+                     "Customer update failed. This assertion assumes 1:1 mapping between warehouse and workers.");
   }
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

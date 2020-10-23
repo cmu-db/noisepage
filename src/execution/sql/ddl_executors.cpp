@@ -110,8 +110,8 @@ bool DDLExecutors::DropDatabaseExecutor(const common::ManagedPointer<planner::Dr
                                         const common::ManagedPointer<catalog::CatalogAccessor> accessor,
                                         const catalog::db_oid_t connection_db) {
   NOISEPAGE_ASSERT(connection_db != node->GetDatabaseOid(),
-                 "This command cannot be executed while connected to the target database. This should be checked in "
-                 "the binder.");
+                   "This command cannot be executed while connected to the target database. This should be checked in "
+                   "the binder.");
   const bool result = accessor->DropDatabase(node->GetDatabaseOid());
   return result;
 }

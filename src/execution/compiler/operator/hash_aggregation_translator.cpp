@@ -28,7 +28,7 @@ HashAggregationTranslator::HashAggregationTranslator(const planner::AggregatePla
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
   NOISEPAGE_ASSERT(!plan.GetGroupByTerms().empty(), "Hash aggregation should have grouping keys");
   NOISEPAGE_ASSERT(plan.GetAggregateStrategyType() == planner::AggregateStrategyType::HASH,
-                 "Expected hash-based aggregation plan node");
+                   "Expected hash-based aggregation plan node");
   NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Hash aggregations should only have one child");
 
   for (size_t agg_term_idx = 0; agg_term_idx < plan.GetAggregateTerms().size(); agg_term_idx++) {
