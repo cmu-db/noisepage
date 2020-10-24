@@ -16,20 +16,20 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier {
+namespace noisepage {
 class StorageTestUtil;
 class TpccPlanTest;
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class RecoveryManager;
 }
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 class Schemas;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class DatabaseCatalog;
 
 namespace postgres {
@@ -56,8 +56,8 @@ class IndexSchema {
      */
     Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &definition)
         : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
-      TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
-                     "Non-varlen constructor.");
+      NOISEPAGE_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
+                       "Non-varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
     }
@@ -73,7 +73,7 @@ class IndexSchema {
     Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
            const parser::AbstractExpression &definition)
         : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
-      TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
+      NOISEPAGE_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
       SetMaxVarlenSize(max_varlen_size);
@@ -208,25 +208,25 @@ class IndexSchema {
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
 
     void SetMaxVarlenSize(uint16_t max_varlen_size) {
-      TERRIER_ASSERT((packed_type_ & MASK_VARLEN) == 0, "Should only set max varlen size once.");
+      NOISEPAGE_ASSERT((packed_type_ & MASK_VARLEN) == 0, "Should only set max varlen size once.");
       const auto varlen_bits = (max_varlen_size << OFFSET_VARLEN) & MASK_VARLEN;
       packed_type_ = packed_type_ | varlen_bits;
     }
 
     void SetTypeId(type::TypeId type_id) {
-      TERRIER_ASSERT((packed_type_ & MASK_TYPE) == 0, "Should only set type once.");
+      NOISEPAGE_ASSERT((packed_type_ & MASK_TYPE) == 0, "Should only set type once.");
       packed_type_ = packed_type_ | (static_cast<uint32_t>(type_id) & MASK_TYPE);
     }
 
     void SetNullable(bool nullable) {
-      TERRIER_ASSERT((packed_type_ & MASK_NULLABLE) == 0, "Should only set nullability once.");
+      NOISEPAGE_ASSERT((packed_type_ & MASK_NULLABLE) == 0, "Should only set nullability once.");
       packed_type_ = nullable ? packed_type_ | MASK_NULLABLE : packed_type_;
     }
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
     friend class tpcc::Schemas;
-    friend class terrier::StorageTestUtil;
+    friend class noisepage::StorageTestUtil;
   };
 
   /**
@@ -246,7 +246,7 @@ class IndexSchema {
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
         is_immediate_(is_immediate) {
-    TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    NOISEPAGE_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
     ExtractIndexedColOids();
   }
 
@@ -274,7 +274,7 @@ class IndexSchema {
         return c;
       }
     }
-    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // TODO(John): Should this be a NOISEPAGE_ASSERT to have the same semantics
     // as the other accessor methods above?
     throw std::out_of_range("Column name doesn't exist");
   }
@@ -315,7 +315,7 @@ class IndexSchema {
   nlohmann::json ToJson() const;
 
   /**
-   * Should not be used. See TERRIER_ASSERT
+   * Should not be used. See NOISEPAGE_ASSERT
    */
   void FromJson(const nlohmann::json &j);
 
@@ -330,8 +330,8 @@ class IndexSchema {
    * @return map of index key oid to col_oid contained in that index key
    */
   const std::vector<col_oid_t> &GetIndexedColOids() const {
-    TERRIER_ASSERT(!indexed_oids_.empty(),
-                   "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
+    NOISEPAGE_ASSERT(!indexed_oids_.empty(),
+                     "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
     return indexed_oids_;
   }
 
@@ -346,7 +346,7 @@ class IndexSchema {
 
     // Traverse expression tree for each index key
     for (auto &col : GetColumns()) {
-      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
+      NOISEPAGE_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
       // Add root of expression of tree for the column
       expr_queue.push_back(col.StoredExpression());
 
@@ -362,7 +362,7 @@ class IndexSchema {
 
         // Add children to queue
         for (const auto &child : expr->GetChildren()) {
-          TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
+          NOISEPAGE_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
           expr_queue.emplace_back(child.CastManagedPointerTo<const parser::AbstractExpression>());
         }
       }
@@ -419,10 +419,10 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
-  friend class terrier::TpccPlanTest;
+  friend class noisepage::TpccPlanTest;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(IndexSchema);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

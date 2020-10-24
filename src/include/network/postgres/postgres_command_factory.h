@@ -6,7 +6,7 @@
 #define MAKE_POSTGRES_COMMAND(type) \
   std::unique_ptr<PostgresNetworkCommand>(reinterpret_cast<PostgresNetworkCommand *>(new type(packet)))
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * PostgresCommandFactory constructs PostgresNetworkCommands that parses input packets to API calls
@@ -24,4 +24,4 @@ class PostgresCommandFactory {
   virtual ~PostgresCommandFactory() = default;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

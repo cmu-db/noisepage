@@ -6,7 +6,7 @@
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/property_set.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class OptimizerContext;
 
@@ -69,4 +69,4 @@ class OptimizationContext {
   double cost_upper_bound_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

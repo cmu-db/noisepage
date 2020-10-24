@@ -11,7 +11,7 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 /**
  * An input tuple, this is what we use to probe and update aggregates
@@ -62,7 +62,6 @@ static void Transpose(const HashTableEntry *agg_entries[], const uint64_t size, 
 class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
  public:
   AggregationHashTableVectorIteratorTest() {
-    memory_ = std::make_unique<MemoryPool>(nullptr);
     std::vector<catalog::Schema::Column> cols = {
         {"key", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
         {"count1", type::TypeId::BIGINT, true, parser::ConstantValueExpression(type::TypeId::BIGINT)},
@@ -71,8 +70,6 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
     };
     schema_ = std::make_unique<catalog::Schema>(std::move(cols));
   }
-
-  MemoryPool *Memory() { return memory_.get(); }
 
   std::vector<const catalog::Schema::Column *> OutputSchema() {
     std::vector<const catalog::Schema::Column *> ret;
@@ -96,7 +93,6 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
   }
 
  private:
-  std::unique_ptr<MemoryPool> memory_;
   std::unique_ptr<catalog::Schema> schema_;
 };
 
@@ -104,7 +100,7 @@ class AggregationHashTableVectorIteratorTest : public SqlBasedTest {
 TEST_F(AggregationHashTableVectorIteratorTest, IterateEmptyAggregation) {
   auto exec_ctx = MakeExecCtx();
   // Empty table
-  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
 
   // Iterate
   AHTVectorIterator iter(agg_ht, OutputSchema(), Transpose);
@@ -129,7 +125,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, IterateSmallAggregation) {
   // 1. After transposition, we receive exactly 'num_aggs' unique aggregates.
   // 2. For each aggregate, the associated count/sums is correct.
 
-  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
 
   // Populate
   PopulateAggHT(&agg_ht, num_aggs, num_tuples, 1 /* cola */);
@@ -178,7 +174,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, FilterPostAggregation) {
   // Apply a filter to the output of the iterator looking for a unique key.
   // There should only be one match since keys are unique.
 
-  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+  AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
 
   PopulateAggHT(&agg_ht, num_aggs, num_tuples, 1 /* cola */);
 
@@ -204,7 +200,7 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
 
   for (uint32_t size : {10, 100, 1000, 10000, 100000, 1000000, 10000000}) {
     // The table
-    AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), Memory(), sizeof(AggTuple));
+    AggregationHashTable agg_ht(exec_ctx->GetExecutionSettings(), exec_ctx.get(), sizeof(AggTuple));
 
     // Populate
     PopulateAggHT(&agg_ht, size, size * 10, 1 /* cola */);
@@ -241,4 +237,4 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

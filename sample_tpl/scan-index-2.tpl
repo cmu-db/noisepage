@@ -11,6 +11,7 @@ struct output_struct {
 }
 
 fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
   var res = 0
 
   // Initialize the index iterator.
@@ -36,13 +37,14 @@ fun main(execCtx: *ExecutionContext) -> int {
     var table_pr = @indexIteratorGetTablePR(&index)
 
     // Output (note the reordering of the columns)
-    var out = @ptrCast(*output_struct, @resultBufferAllocRow(execCtx))
+    var out = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out.col1 = @prGetSmallInt(table_pr, 1)
     out.col2 = @prGetIntNull(table_pr, 0)
     res = res + 1
   }
   // Finalize output
   @indexIteratorFree(&index)
-  @resultBufferFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return res
 }

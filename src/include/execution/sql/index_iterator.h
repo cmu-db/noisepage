@@ -8,11 +8,11 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "storage/index/index.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class SqlTable;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 /**
  * Allows iteration for indices from TPL.
  */
@@ -117,4 +117,4 @@ class EXPORT IndexIterator {
   std::vector<storage::TupleSlot> tuples_{};
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

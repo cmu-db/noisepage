@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 #include "test_util/random_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 /**
  * Normally we restrict the scope of util files to named directories/namespaces (storage, transaction, etc.) but the
  * BwTree is a unique case because it's third party code but we want to test it rigorously. This isn't a
@@ -68,4 +68,4 @@ struct BwTreeTestUtil {
   }
 };
 
-}  // namespace terrier
+}  // namespace noisepage

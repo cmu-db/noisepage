@@ -15,7 +15,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Primary key
@@ -718,4 +718,4 @@ DEFINE_JSON_HEADER_DECLARATIONS(UniqueInfo);
 DEFINE_JSON_HEADER_DECLARATIONS(CheckInfo);
 DEFINE_JSON_HEADER_DECLARATIONS(CreateTablePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

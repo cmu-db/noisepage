@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// UnnestMarkJoinToInnerJoin
@@ -42,7 +42,7 @@ bool UnnestMarkJoinToInnerJoin::Check(common::ManagedPointer<AbstractOptimizerNo
   (void)plan;
 
   UNUSED_ATTRIBUTE auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "LogicalMarkJoin should have 2 children");
+  NOISEPAGE_ASSERT(children.size() == 2, "LogicalMarkJoin should have 2 children");
   return true;
 }
 
@@ -51,7 +51,7 @@ void UnnestMarkJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptimiz
                                           UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestMarkJoinToInnerJoin::Transform");
   UNUSED_ATTRIBUTE auto mark_join = input->Contents()->GetContentsAs<LogicalMarkJoin>();
-  TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
+  NOISEPAGE_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have 0 predicates");
 
   auto join_children = input->GetChildren();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
@@ -86,7 +86,7 @@ bool UnnestSingleJoinToInnerJoin::Check(common::ManagedPointer<AbstractOptimizer
   (void)plan;
 
   UNUSED_ATTRIBUTE auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "SingleJoin should have 2 children");
+  NOISEPAGE_ASSERT(children.size() == 2, "SingleJoin should have 2 children");
   return true;
 }
 
@@ -95,7 +95,7 @@ void UnnestSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOptim
                                             UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("UnnestSingleJoinToInnerJoin::Transform");
   UNUSED_ATTRIBUTE auto single_join = input->Contents()->GetContentsAs<LogicalSingleJoin>();
-  TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
+  NOISEPAGE_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
 
   auto join_children = input->GetChildren();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
@@ -132,7 +132,7 @@ bool DependentSingleJoinToInnerJoin::Check(common::ManagedPointer<AbstractOptimi
   (void)plan;
 
   UNUSED_ATTRIBUTE auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "SingleJoin should have 2 children");
+  NOISEPAGE_ASSERT(children.size() == 2, "SingleJoin should have 2 children");
   return true;
 }
 
@@ -140,7 +140,7 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
                                                std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                UNUSED_ATTRIBUTE OptimizationContext *context) const {
   UNUSED_ATTRIBUTE auto single_join = input->Contents()->GetContentsAs<LogicalSingleJoin>();
-  TERRIER_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
+  NOISEPAGE_ASSERT(single_join->GetJoinPredicates().empty(), "SingleJoin should have no predicates");
   // From LOGICALSINGLEJOIN -> LOGICALFILTER -> LOGICALAGGREGATEANDGROUPBY
   //  to LOGICALFILTER -> LOGICALINNERJOIN -> LOGICALFILTER -> LOGICALAGGREGATEANDGROUPBY
   auto &memo = context->GetOptimizerContext()->GetMemo();
@@ -223,4 +223,4 @@ void DependentSingleJoinToInnerJoin::Transform(common::ManagedPointer<AbstractOp
   transformed->emplace_back(std::move(output));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

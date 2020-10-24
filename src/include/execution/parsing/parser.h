@@ -11,7 +11,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 /**
  * Parses TPL files.
@@ -153,4 +153,4 @@ class Parser {
   sema::ErrorReporter *error_reporter_;
 };
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

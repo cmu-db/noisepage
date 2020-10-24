@@ -6,7 +6,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeLabel;
 
@@ -21,7 +21,7 @@ class BytecodeEmitter {
    * @param bytecode The bytecode array to emit bytecode into.
    */
   explicit BytecodeEmitter(std::vector<uint8_t> *bytecode) : bytecode_(bytecode) {
-    TERRIER_ASSERT(bytecode_ != nullptr, "NULL bytecode pointer provided to emitter");
+    NOISEPAGE_ASSERT(bytecode_ != nullptr, "NULL bytecode pointer provided to emitter");
   }
 
   /**
@@ -323,6 +323,9 @@ class BytecodeEmitter {
   void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
                              LocalVar exec_ctx, FunctionId scan_fn);
 
+  /** Emit a register hook function. */
+  void EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn);
+
   /** Reading values from an iterator. */
   void EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint32_t col_idx);
 
@@ -347,7 +350,7 @@ class BytecodeEmitter {
                                                FunctionId scan_part_fn);
 
   /** Initialize a sorter instance. */
-  void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn, LocalVar tuple_size);
+  void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar exec_ctx, FunctionId cmp_fn, LocalVar tuple_size);
 
   /** Initialize a CSV reader. */
   // void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);
@@ -446,4 +449,4 @@ class BytecodeEmitter {
   std::vector<uint8_t> *bytecode_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

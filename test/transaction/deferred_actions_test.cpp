@@ -13,12 +13,12 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class DeferredActionsTest : public TerrierTest {
  protected:
   void SetUp() override {
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).Build();
     txn_mgr_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     deferred_action_manager_ = db_main_->GetTransactionLayer()->GetDeferredActionManager();
     gc_ = db_main_->GetStorageLayer()->GetGarbageCollector();
@@ -241,4 +241,4 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_TRUE(defer1);
   EXPECT_TRUE(defer2);
 }
-}  // namespace terrier
+}  // namespace noisepage

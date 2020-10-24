@@ -6,7 +6,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A cheap synchronization primitive to prevent execution from proceeding past
@@ -84,4 +84,4 @@ class Gate {
   std::atomic<int64_t> count_ = 0;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

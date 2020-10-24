@@ -5,7 +5,7 @@
 
 #include "optimizer/optimizer_task.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Abstract base class for a task pool.
@@ -84,4 +84,4 @@ class OptimizerTaskStack : public OptimizerTaskPool {
   std::stack<OptimizerTask *> task_stack_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

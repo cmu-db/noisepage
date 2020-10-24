@@ -15,7 +15,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 // Not thread-safe
 class GarbageCollectorDataTableTestObject {
  public:
@@ -82,7 +82,7 @@ class GarbageCollectorDataTableTestObject {
   bool select_result_;
 };
 
-struct GarbageCollectorTests : public ::terrier::TerrierTest {
+struct GarbageCollectorTests : public ::noisepage::TerrierTest {
   storage::BlockStore block_store_{100, 100};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
@@ -699,4 +699,4 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     EXPECT_EQ(std::make_pair(2U, 0U), gc->PerformGarbageCollection());
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

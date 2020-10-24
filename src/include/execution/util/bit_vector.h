@@ -14,7 +14,7 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/vector_util.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A BitVector represents a set of bits. It provides access to individual bits through
@@ -137,14 +137,14 @@ class BitVector {
    */
   explicit BitVector(uint32_t num_bits, Allocator allocator = Allocator())
       : num_bits_(num_bits), words_(NumNeededWords(num_bits), WordType(0), allocator) {
-    TERRIER_ASSERT(num_bits_ > 0, "Cannot create bit vector with zero bits");
+    NOISEPAGE_ASSERT(num_bits_ > 0, "Cannot create bit vector with zero bits");
   }
 
   /**
    * @return True if the bit at the provided position is set; false otherwise.
    */
   bool Test(const uint32_t position) const {
-    TERRIER_ASSERT(position < GetNumBits(), "Index out of range");
+    NOISEPAGE_ASSERT(position < GetNumBits(), "Index out of range");
     const WordType mask = WordType(1) << (position % WORD_SIZE_BITS);
     return words_[position / WORD_SIZE_BITS] & mask;
   }
@@ -155,7 +155,7 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &Set(const uint32_t position) {
-    TERRIER_ASSERT(position < GetNumBits(), "Index out of range");
+    NOISEPAGE_ASSERT(position < GetNumBits(), "Index out of range");
     words_[position / WORD_SIZE_BITS] |= WordType(1) << (position % WORD_SIZE_BITS);
     return *this;
   }
@@ -167,7 +167,7 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &Set(const uint32_t position, const bool v) {
-    TERRIER_ASSERT(position < GetNumBits(), "Index out of range");
+    NOISEPAGE_ASSERT(position < GetNumBits(), "Index out of range");
     WordType mask = static_cast<WordType>(1) << (position % WORD_SIZE_BITS);
     words_[position / WORD_SIZE_BITS] ^= (-static_cast<WordType>(v) ^ words_[position / WORD_SIZE_BITS]) & mask;
     return *this;
@@ -183,8 +183,8 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &SetRange(uint32_t start, uint32_t end) {
-    TERRIER_ASSERT(start <= end, "Cannot set backward range");
-    TERRIER_ASSERT(end <= GetNumBits(), "End position out of range");
+    NOISEPAGE_ASSERT(start <= end, "Cannot set backward range");
+    NOISEPAGE_ASSERT(end <= GetNumBits(), "End position out of range");
 
     if (start == end) {
       return *this;
@@ -232,7 +232,7 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &Unset(const uint32_t position) {
-    TERRIER_ASSERT(position < GetNumBits(), "Index out of range");
+    NOISEPAGE_ASSERT(position < GetNumBits(), "Index out of range");
     words_[position / WORD_SIZE_BITS] &= ~(WordType(1) << (position % WORD_SIZE_BITS));
     return *this;
   }
@@ -254,7 +254,7 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &Flip(const uint32_t position) {
-    TERRIER_ASSERT(position < GetNumBits(), "Index out of range");
+    NOISEPAGE_ASSERT(position < GetNumBits(), "Index out of range");
     words_[position / WORD_SIZE_BITS] ^= WordType(1) << (position % WORD_SIZE_BITS);
     return *this;
   }
@@ -277,7 +277,7 @@ class BitVector {
    * @return Value of the word.
    */
   WordType GetWord(const uint32_t word_position) const {
-    TERRIER_ASSERT(word_position < GetNumWords(), "Index out of range");
+    NOISEPAGE_ASSERT(word_position < GetNumWords(), "Index out of range");
     return words_[word_position];
   }
 
@@ -289,7 +289,7 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &SetWord(const uint32_t word_position, const WordType word_val) {
-    TERRIER_ASSERT(word_position < GetNumWords(), "Index out of range");
+    NOISEPAGE_ASSERT(word_position < GetNumWords(), "Index out of range");
     words_[word_position] = word_val;
     if (word_position == GetNumWords() - 1) ZeroUnusedBits();
     return *this;
@@ -372,7 +372,7 @@ class BitVector {
    * @return This bit vector.
    */
   BitVector &Copy(const BitVector &other) {
-    TERRIER_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
+    NOISEPAGE_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
     for (uint32_t i = 0; i < GetNumWords(); i++) {
       words_[i] = other.words_[i];
     }
@@ -388,7 +388,7 @@ class BitVector {
    * @return This modified bit vector.
    */
   BitVector &Intersect(const BitVector &other) {
-    TERRIER_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
+    NOISEPAGE_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
     for (uint32_t i = 0; i < GetNumWords(); i++) {
       words_[i] &= other.words_[i];
     }
@@ -404,7 +404,7 @@ class BitVector {
    * @return This modified bit vector.
    */
   BitVector &Union(const BitVector &other) {
-    TERRIER_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
+    NOISEPAGE_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
     for (uint32_t i = 0; i < GetNumWords(); i++) {
       words_[i] |= other.words_[i];
     }
@@ -420,7 +420,7 @@ class BitVector {
    * @return This modified bit vector.
    */
   BitVector &Difference(const BitVector &other) {
-    TERRIER_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
+    NOISEPAGE_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
     for (uint32_t i = 0; i < GetNumWords(); i++) {
       words_[i] &= ~other.words_[i];
     }
@@ -436,7 +436,7 @@ class BitVector {
    * @return This modified bit vector.
    */
   BitVector &Xor(const BitVector &other) {
-    TERRIER_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
+    NOISEPAGE_ASSERT(GetNumBits() == other.GetNumBits(), "Mismatched bit vector size");
     for (uint32_t i = 0; i < GetNumWords(); i++) {
       words_[i] ^= other.words_[i];
     }
@@ -560,8 +560,8 @@ class BitVector {
    * @param num_bytes The number of bytes in the input array.
    */
   void SetFromBytes(const uint8_t *const bytes, const uint32_t num_bytes) {
-    TERRIER_ASSERT(bytes != nullptr, "Null input");
-    TERRIER_ASSERT(num_bytes == GetNumBits(), "Byte vector too small");
+    NOISEPAGE_ASSERT(bytes != nullptr, "Null input");
+    NOISEPAGE_ASSERT(num_bytes == GetNumBits(), "Byte vector too small");
     VectorUtil::ByteVectorToBitVector(bytes, num_bytes, words_.data());
   }
 
@@ -654,7 +654,7 @@ class BitVector {
    * @return A reference to the bit at the input position.
    */
   BitReference operator[](const uint32_t position) {
-    TERRIER_ASSERT(position < GetNumBits(), "Out-of-range access");
+    NOISEPAGE_ASSERT(position < GetNumBits(), "Out-of-range access");
     return BitReference(&words_[position / WORD_SIZE_BITS], position % WORD_SIZE_BITS);
   }
 
@@ -822,4 +822,4 @@ inline BitVector<T> operator^(BitVector<T> a, const BitVector<T> &b) {
   return a;
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

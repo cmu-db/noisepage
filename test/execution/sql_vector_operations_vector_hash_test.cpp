@@ -6,7 +6,7 @@
 #include "execution/sql_test.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorHashTest : public TplTest {};
 
@@ -91,4 +91,4 @@ TEST_F(VectorHashTest, StringHash) {
   EXPECT_EQ(Hash<storage::VarlenEntry>{}(raw_input[3], input->IsNull(3)), raw_hash[3]);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

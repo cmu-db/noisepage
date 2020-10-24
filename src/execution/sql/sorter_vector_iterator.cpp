@@ -6,7 +6,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 SorterVectorIterator::SorterVectorIterator(const Sorter &sorter,
                                            const std::vector<const catalog::Schema::Column *> &column_info,
@@ -64,11 +64,11 @@ void SorterVectorIterator::BuildVectorProjection(const SorterVectorIterator::Tra
 
   // The vector projection is now filled with sorted rows in columnar format.
   // Reset the VPI so that it's ready for iteration.
-  TERRIER_ASSERT(!vector_projection_iterator_->IsFiltered(), "VPI shouldn't be filtered during a transpose");
+  NOISEPAGE_ASSERT(!vector_projection_iterator_->IsFiltered(), "VPI shouldn't be filtered during a transpose");
   vector_projection_iterator_->Reset();
 
   // Sanity check
   vector_projection_->CheckIntegrity();
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

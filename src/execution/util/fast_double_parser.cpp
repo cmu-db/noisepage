@@ -1,6 +1,6 @@
 #include "execution/util/fast_double_parser.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 const double FastDoubleParser::POWER_OF_TEN[] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,  1e10, 1e11,
                                                  1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
@@ -801,4 +801,4 @@ const uint64_t FastDoubleParser::MANTISSA_128[] = {0x419ea3bd35385e2d,
                                                    0x58180fddd97723a6,
                                                    0x570f09eaa7ea7648};
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

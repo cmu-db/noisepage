@@ -4,7 +4,7 @@
 #include "test_util/data_table_test_util.h"
 #include "transaction/deferred_action_manager.h"
 
-namespace terrier {
+namespace noisepage {
 class LargeTransactionTests : public TerrierTest {
  public:
   void RunTest(const LargeDataTableTestConfiguration &config) {
@@ -154,4 +154,4 @@ TEST_F(LargeTransactionTests, TPCCishHighThread) {
                     .Build();
   RunTest(config);
 }
-}  // namespace terrier
+}  // namespace noisepage

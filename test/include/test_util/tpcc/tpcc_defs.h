@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 enum class TransactionType : uint8_t { NewOrder, Payment, OrderStatus, Delivery, StockLevel };
 
@@ -38,4 +38,4 @@ struct TransactionArgs {
   uint64_t ol_delivery_d_;           // Delivery
   int8_t s_quantity_threshold_;      // StockLevel
 };
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

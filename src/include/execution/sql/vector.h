@@ -13,11 +13,11 @@
 #include "execution/util/bit_vector.h"
 #include "execution/util/string_heap.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A Vector represents a contiguous chunk of values of a single type. A vector may allocate and own
@@ -224,10 +224,10 @@ class EXPORT Vector {
    * @param count The number of elements in the selection vector.
    */
   void SetFilteredTupleIdList(const TupleIdList *tid_list, const uint64_t count) {
-    TERRIER_ASSERT(tid_list == nullptr || tid_list->GetCapacity() == num_elements_,
-                   "TID list too small to capture all vector elements");
-    TERRIER_ASSERT(tid_list == nullptr || tid_list->GetTupleCount() == count, "TID list size and count do not match");
-    TERRIER_ASSERT(count <= num_elements_, "TID list count must be smaller than vector size");
+    NOISEPAGE_ASSERT(tid_list == nullptr || tid_list->GetCapacity() == num_elements_,
+                     "TID list too small to capture all vector elements");
+    NOISEPAGE_ASSERT(tid_list == nullptr || tid_list->GetTupleCount() == count, "TID list size and count do not match");
+    NOISEPAGE_ASSERT(count <= num_elements_, "TID list count must be smaller than vector size");
     tid_list_ = tid_list;
     count_ = count;
   }
@@ -430,4 +430,4 @@ class EXPORT Vector {
   std::unique_ptr<byte[]> owned_data_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

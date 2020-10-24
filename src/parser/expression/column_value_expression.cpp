@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> ColumnValueExpression::Copy() const {
   auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
@@ -69,4 +69,4 @@ std::vector<std::unique_ptr<AbstractExpression>> ColumnValueExpression::FromJson
 
 DEFINE_JSON_BODY_DECLARATIONS(ColumnValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

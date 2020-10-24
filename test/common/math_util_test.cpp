@@ -2,7 +2,7 @@
 
 #include "test_util/test_harness.h"
 
-namespace terrier::common::test {
+namespace noisepage::common::test {
 
 TEST(MathUtilTest, AlignToTest) {
   EXPECT_EQ(2u, MathUtil::AlignTo(1, 2));
@@ -29,4 +29,4 @@ TEST(MathUtilTest, Factorial) {
   }
 }
 
-}  // namespace terrier::common::test
+}  // namespace noisepage::common::test

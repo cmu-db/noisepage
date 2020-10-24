@@ -9,11 +9,11 @@
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class LoggingBenchmark : public benchmark::Fixture {
  public:
-  void TearDown(const benchmark::State &state) final { unlink(terrier::BenchmarkConfig::logfile_path.data()); }
+  void TearDown(const benchmark::State &state) final { unlink(noisepage::BenchmarkConfig::logfile_path.data()); }
 
   const std::vector<uint16_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
   const uint32_t initial_table_size_ = 1000000;
@@ -44,8 +44,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
   const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
-    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
+    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                            log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                            common::ManagedPointer(&buffer_pool_),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
@@ -70,7 +70,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     delete log_manager_;
     delete gc_thread_;
     delete gc_;
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -85,9 +85,9 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
   const std::vector<double> insert_update_select_ratio = {0.0, 0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     // use a smaller table to make aborts more likely
-    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                            log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                            common::ManagedPointer(&buffer_pool_),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     delete log_manager_;
     delete gc_thread_;
     delete gc_;
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -127,8 +127,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
-    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
+    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                            log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                            common::ManagedPointer(&buffer_pool_),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
@@ -153,7 +153,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     delete log_manager_;
     delete gc_thread_;
     delete gc_;
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -168,8 +168,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
-    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
+    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                            log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                            common::ManagedPointer(&buffer_pool_),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
@@ -194,7 +194,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     delete log_manager_;
     delete gc_thread_;
     delete gc_;
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -209,8 +209,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
   const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
-    log_manager_ = new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
+    log_manager_ = new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                            log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                            common::ManagedPointer(&buffer_pool_),
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
@@ -235,7 +235,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     delete log_manager_;
     delete gc_thread_;
     delete gc_;
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
@@ -266,4 +266,4 @@ BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementSelect)
     ->MinTime(1);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

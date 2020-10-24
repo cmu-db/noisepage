@@ -10,7 +10,7 @@
 #include "test_util/storage_test_util.h"
 #include "transaction/deferred_action_manager.h"
 
-namespace terrier {
+namespace noisepage {
 class BlockCompactorBenchmark : public benchmark::Fixture {
  protected:
   storage::BlockStore block_store_{5000, 5000};
@@ -177,4 +177,4 @@ BENCHMARK_REGISTER_F(BlockCompactorBenchmark, Gather)->Unit(benchmark::kMillisec
 BENCHMARK_REGISTER_F(BlockCompactorBenchmark, DictionaryCompression)->Unit(benchmark::kMillisecond)->UseManualTime();
 
 BENCHMARK_REGISTER_F(BlockCompactorBenchmark, EndToEndGather)->Unit(benchmark::kMillisecond)->UseManualTime();
-}  // namespace terrier
+}  // namespace noisepage

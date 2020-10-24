@@ -7,7 +7,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * TableStarExpression represents a star in a SELECT list
  */
@@ -41,7 +41,7 @@ class TableStarExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "TableStarExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "TableStarExpression should have 0 children");
     return Copy();
   }
 
@@ -60,4 +60,4 @@ class TableStarExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(TableStarExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

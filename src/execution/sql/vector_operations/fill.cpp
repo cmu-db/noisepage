@@ -4,7 +4,7 @@
 #include "execution/util/bit_vector.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -78,4 +78,4 @@ void VectorOps::Fill(Vector *vector, const GenericValue &value) {
 
 void VectorOps::FillNull(Vector *vector) { vector->null_mask_.SetAll(); }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

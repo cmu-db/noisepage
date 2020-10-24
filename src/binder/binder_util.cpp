@@ -7,12 +7,12 @@
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 void BinderUtil::PromoteParameters(
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression> > parameters,
     const std::vector<type::TypeId> &desired_parameter_types) {
-  TERRIER_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
+  NOISEPAGE_ASSERT(parameters->size() == desired_parameter_types.size(), "They have to be equal in size.");
   for (uint32_t parameter_index = 0; parameter_index < desired_parameter_types.size(); parameter_index++) {
     const auto desired_type = desired_parameter_types[parameter_index];
 
@@ -285,4 +285,4 @@ template bool BinderUtil::IsRepresentable<int32_t>(const double int_val);
 template bool BinderUtil::IsRepresentable<int64_t>(const double int_val);
 template bool BinderUtil::IsRepresentable<double>(const double int_val);
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

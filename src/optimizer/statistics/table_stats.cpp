@@ -7,7 +7,7 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/column_stats.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void TableStats::UpdateNumRows(size_t new_num_rows) {
   num_rows_ = new_num_rows;
@@ -73,4 +73,4 @@ void TableStats::FromJson(const nlohmann::json &j) {
 
 DEFINE_JSON_BODY_DECLARATIONS(TableStats);
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

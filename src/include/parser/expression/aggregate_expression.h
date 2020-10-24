@@ -8,7 +8,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * AggregateExpression is only used for parsing, planning and optimizing.
@@ -80,4 +80,4 @@ class AggregateExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(AggregateExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

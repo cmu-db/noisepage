@@ -146,7 +146,7 @@ This method provides clear, human friendly output. This requires Java 8 or later
 1. Compile the tests.
    `ant compile`
 
-2. Start the database server manually in a separate shell (e.g., `./terrier`)
+2. Start the database server manually in a separate shell (e.g., `./noisepage`)
 
 3. To run a trace test, pass in file path as an environment variable.
 Example command: NOISEPAGE_TRACE_FILE=./traces/select.test ant test-trace

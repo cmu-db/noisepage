@@ -2,14 +2,14 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 #define NextByte(p, plen) ((p)++, (plen)--)
 
 // Inspired by Postgres
 bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pattern_len, char escape) {
-  TERRIER_ASSERT(str != nullptr, "Input string cannot be NULL");
-  TERRIER_ASSERT(pattern != nullptr, "Pattern cannot be NULL");
+  NOISEPAGE_ASSERT(str != nullptr, "Input string cannot be NULL");
+  NOISEPAGE_ASSERT(pattern != nullptr, "Pattern cannot be NULL");
 
   const char *s = str, *p = pattern;
   std::size_t slen = str_len, plen = pattern_len;
@@ -50,7 +50,7 @@ bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pat
 
       if (*p == escape) {
         NextByte(p, plen);
-        TERRIER_ASSERT(*p != 0, "LIKE pattern must not end with an escape character");
+        NOISEPAGE_ASSERT(*p != 0, "LIKE pattern must not end with an escape character");
         if (plen == 0) {
           return false;
         }
@@ -81,4 +81,4 @@ bool Like::Impl(const char *str, size_t str_len, const char *pattern, size_t pat
   return slen == 0 && plen == 0;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -12,7 +12,7 @@
 
 extern std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;  // NOLINT
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Debug loggers get initialized here in a single static class.
@@ -31,4 +31,4 @@ class LoggersUtil {
    */
   static void ShutDown();
 };
-}  // namespace terrier
+}  // namespace noisepage

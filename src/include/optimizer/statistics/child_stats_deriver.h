@@ -5,11 +5,11 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_visitor.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class Memo;
 
@@ -100,4 +100,4 @@ class ChildStatsDeriver : public OperatorVisitor {
   std::vector<ExprSet> output_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

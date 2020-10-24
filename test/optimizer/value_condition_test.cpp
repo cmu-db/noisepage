@@ -10,7 +10,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 // NOLINTNEXTLINE
 TEST(ValueConditionTests, GetColumnIDTest) {
   auto val = std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(1));
@@ -42,4 +42,4 @@ TEST(ValueConditionTests, GetPointerToValueTest) {
 
   EXPECT_EQ(parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(1)), *v.GetPointerToValue());
 }
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

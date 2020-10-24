@@ -7,12 +7,7 @@
 #include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
 
-namespace terrier::execution::exec {
-class ExecutionSettings;
-}  // namespace terrier::execution::exec
-
-namespace terrier::execution::sql {
-
+namespace noisepage::execution::sql {
 /**
  * General Information:
  * -------------------
@@ -274,4 +269,4 @@ class EXPORT ThreadStateContainer {
   std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -11,7 +11,7 @@
 #include "network/network_defs.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * A ConnectionContext stores the state of a connection. There should be as little as possible that is protocol-specific
@@ -126,7 +126,7 @@ class ConnectionContext {
    * @return current CatalogAccesor for connection
    */
   common::ManagedPointer<catalog::CatalogAccessor> Accessor() const {
-    TERRIER_ASSERT(accessor_ != nullptr, "Requesting CatalogAccessor that doesn't exist yet.");
+    NOISEPAGE_ASSERT(accessor_ != nullptr, "Requesting CatalogAccessor that doesn't exist yet.");
     // TODO(Matt): I'd like an assert here that the accessor's txn matches the connection context's txn, but the
     // accessor doesn't expose a getter.
     return common::ManagedPointer(accessor_);
@@ -150,13 +150,13 @@ class ConnectionContext {
   }
 
   /**
-   * @return handle to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * @return handle to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_NOISEPAGE
    * state. Currently not used, but may in the future for asynchronous execution.
    */
   network::NetworkCallback Callback() const { return callback_; }
 
   /**
-   * @return args to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * @return args to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_NOISEPAGE
    * state. Currently not used, but may in the future for asynchronous execution.
    */
   void *CallbackArg() const { return callback_arg_; }
@@ -208,7 +208,7 @@ class ConnectionContext {
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
 
   /**
-   * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_TERRIER state. Currently
+   * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_NOISEPAGE state. Currently
    * not used, but may in the future for asynchronous execution.
    */
   network::NetworkCallback callback_;
@@ -217,4 +217,4 @@ class ConnectionContext {
   catalog::CatalogCache catalog_cache_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

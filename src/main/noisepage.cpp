@@ -14,7 +14,7 @@
  * the system, you're probably doing something wrong.
  */
 namespace {
-terrier::common::ManagedPointer<terrier::DBMain> db_main_handler_ptr = nullptr;
+noisepage::common::ManagedPointer<noisepage::DBMain> db_main_handler_ptr = nullptr;
 }
 
 /**
@@ -64,13 +64,13 @@ int main(int argc, char *argv[]) {
   ::gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   // Initialize debug loggers
-  terrier::LoggersUtil::Initialize();
+  noisepage::LoggersUtil::Initialize();
 
   // Generate Settings Manager map
-  std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
-  terrier::settings::SettingsManager::ConstructParamMap(param_map);
+  std::unordered_map<noisepage::settings::Param, noisepage::settings::ParamInfo> param_map;
+  noisepage::settings::SettingsManager::ConstructParamMap(param_map);
 
-  auto db_main = terrier::DBMain::Builder()
+  auto db_main = noisepage::DBMain::Builder()
                      .SetSettingsParameterMap(std::move(param_map))
                      .SetUseSettingsManager(true)
                      .SetUseGC(true)
@@ -86,6 +86,6 @@ int main(int argc, char *argv[]) {
 
   db_main->Run();
 
-  terrier::LoggersUtil::ShutDown();
+  noisepage::LoggersUtil::ShutDown();
   return 0;
 }

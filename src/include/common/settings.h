@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * Declare all system-level settings here.
  * There should be no hard-coded values in the code.
@@ -18,4 +18,4 @@ struct Settings {
    */
   static const int CONNECTION_BACKLOG = 12;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

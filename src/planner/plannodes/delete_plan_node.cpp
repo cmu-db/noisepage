@@ -6,7 +6,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 // TODO(Gus,Wen) Add SetParameters
 
@@ -54,4 +54,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DeletePlanNode::FromJso
 
 DEFINE_JSON_BODY_DECLARATIONS(DeletePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

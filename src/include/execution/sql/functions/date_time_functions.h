@@ -2,7 +2,7 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Date/timestamp functions.
@@ -110,4 +110,4 @@ class DateTimeFunctions {
   static void Microseconds(Integer *result, const TimestampVal &time) noexcept;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
