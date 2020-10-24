@@ -17,7 +17,7 @@ NoisePage is a relational database management system developed by the [Carnegie 
 * 100% Open-Source (MIT License)
 
 ## Quickstart
-The NoisePage project is build and tested on **Ubuntu 20.04** or **macOS 10.14+**. No other environments are officially supported.
+The NoisePage project is built and tested on **Ubuntu 20.04** or **macOS 10.14+**. No other environments are officially supported.
 
 ```
 git clone https://github.com/cmu-db/noisepage.git
