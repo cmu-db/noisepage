@@ -61,6 +61,7 @@ def table_dump(config, artifact_processor):
             text_table.add_row(row_values)
     print("")
     print(text_table)
+    print("")
 
 
 def formatFields(field_name, field_value):
