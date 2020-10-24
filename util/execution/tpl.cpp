@@ -60,7 +60,7 @@ llvm::cl::opt<std::string> OUTPUT_NAME("output-name", llvm::cl::desc("Print the 
 
 tbb::task_scheduler_init scheduler;
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 static constexpr const char *K_EXIT_KEYWORD = ".exit";
 
@@ -70,8 +70,8 @@ static constexpr const char *K_EXIT_KEYWORD = ".exit";
  * @param name The name of the TPL file.
  */
 static void CompileAndRun(const std::string &source, const std::string &name = "tmp-tpl") {
-  // Initialize terrier objects
-  auto db_main_builder = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true);
+  // Initialize noisepage objects
+  auto db_main_builder = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).SetUseGCThread(true);
   auto db_main = db_main_builder.Build();
 
   // Get the correct output format for this test
@@ -339,24 +339,24 @@ void InitTPL() {
  * Shutdown all TPL subsystems.
  */
 void ShutdownTPL() {
-  terrier::execution::vm::LLVMEngine::Shutdown();
+  noisepage::execution::vm::LLVMEngine::Shutdown();
 
   scheduler.terminate();
 
   EXECUTION_LOG_INFO("TPL cleanly shutdown ...");
 }
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution
 
 void SignalHandler(int32_t sig_num) {
   if (sig_num == SIGINT) {
-    terrier::execution::ShutdownTPL();
+    noisepage::execution::ShutdownTPL();
     exit(0);
   }
 }
 
 int main(int argc, char **argv) {
-  terrier::LoggersUtil::Initialize();
+  noisepage::LoggersUtil::Initialize();
 
   // Parse options
   llvm::cl::HideUnrelatedOptions(TPL_OPTIONS_CATEGORY);
@@ -375,22 +375,22 @@ int main(int argc, char **argv) {
   }
 
   // Init TPL
-  terrier::execution::InitTPL();
+  noisepage::execution::InitTPL();
 
-  EXECUTION_LOG_INFO("\n{}", terrier::execution::CpuInfo::Instance()->PrettyPrintInfo());
+  EXECUTION_LOG_INFO("\n{}", noisepage::execution::CpuInfo::Instance()->PrettyPrintInfo());
 
   EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!INPUT_FILE.empty()) {
-    terrier::execution::RunFile(INPUT_FILE);
+    noisepage::execution::RunFile(INPUT_FILE);
   } else {
-    terrier::execution::RunRepl();
+    noisepage::execution::RunRepl();
   }
 
   // Cleanup
-  terrier::execution::ShutdownTPL();
-  terrier::LoggersUtil::ShutDown();
+  noisepage::execution::ShutdownTPL();
+  noisepage::LoggersUtil::ShutDown();
 
   return 0;
 }

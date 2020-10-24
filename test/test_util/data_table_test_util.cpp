@@ -10,7 +10,7 @@
 #include "test_util/catalog_test_util.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableTestObject *test_object)
     : test_object_(test_object),
       txn_(test_object->txn_manager_->BeginTransaction()),
@@ -146,7 +146,7 @@ void LargeDataTableTestObject::CheckReadsCorrect(std::vector<RandomDataTableTran
   }
 }
 
-void LargeDataTableTestObject::SimulateOneTransaction(terrier::RandomDataTableTransaction *txn, uint32_t txn_id) {
+void LargeDataTableTestObject::SimulateOneTransaction(noisepage::RandomDataTableTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
@@ -231,4 +231,4 @@ void LargeDataTableTestObject::UpdateLastCheckedVersion(const TableSnapshot &sna
     entry.second = snapshot.find(entry.first)->second;
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

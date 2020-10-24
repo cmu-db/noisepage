@@ -8,7 +8,7 @@
 #include "optimizer/property_set.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 class AbstractExpression;
 }
@@ -458,4 +458,4 @@ class BottomUpRewrite : public OptimizerTask {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

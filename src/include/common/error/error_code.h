@@ -25,7 +25,7 @@
 
 #include <string_view>
 
-namespace terrier::common {
+namespace noisepage::common {
 
 // This was generated from https://github.com/postgres/postgres/blob/master/src/backend/utils/errcodes.txt so stuck the
 // Postgres license at the top to be safe.
@@ -987,4 +987,4 @@ constexpr std::string_view ErrorCodeToString(const ErrorCode code) {
   }
 }
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

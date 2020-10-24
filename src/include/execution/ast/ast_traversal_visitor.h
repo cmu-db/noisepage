@@ -4,7 +4,7 @@
 #include "execution/ast/ast_visitor.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
  * A visitor that fully and recursively traverses an entire AST tree. Clients
@@ -46,7 +46,7 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
    * Run the traversal.
    */
   void Run() {
-    TERRIER_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
+    NOISEPAGE_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
     AstVisitor<Subclass>::Visit(root_);
   }
 
@@ -304,4 +304,4 @@ inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRep
 }
 // \endcond
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

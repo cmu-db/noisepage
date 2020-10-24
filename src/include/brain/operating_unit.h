@@ -10,11 +10,11 @@
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 class MiniRunners;
-}  // namespace terrier::runner
+}  // namespace noisepage::runner
 
-namespace terrier::execution::compiler::test {
+namespace noisepage::execution::compiler::test {
 class CompilerTest_SimpleSeqScanTest_Test;
 class CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
 class CompilerTest_SimpleSeqScanWithProjectionTest_Test;
@@ -39,24 +39,24 @@ class CompilerTest_SimpleInsertTest_Test;
 class CompilerTest_InsertIntoSelectWithParamTest_Test;
 class CompilerTest_SimpleInsertWithParamsTest_Test;
 class CompilerTest_StaticDistinctAggregateTest_Test;
-}  // namespace terrier::execution::compiler::test
+}  // namespace noisepage::execution::compiler::test
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 class TableVectorIterator;
 class Sorter;
 class JoinHashTable;
 class AggregationHashTable;
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 class ExecOUFeatureVector;
 class OperatingUnitRecorder;
@@ -75,7 +75,7 @@ class OperatingUnitRecorder;
  * - Estimated cardinality
  */
 class ExecutionOperatingUnitFeature {
-  friend class terrier::runner::MiniRunners;
+  friend class noisepage::runner::MiniRunners;
   friend class execution::exec::ExecutionContext;
   friend class OperatingUnitRecorder;
   friend class ExecOUFeatureVector;
@@ -335,32 +335,32 @@ class EXPORT ExecOUFeatureVector {
  */
 class PipelineOperatingUnits {
  public:
-  friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanAscendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAscendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanDescendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDescendingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_CountStarTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleSortTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleAggregateHavingTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleHashJoinTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_MultiWayHashJoinTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleNestedLoopJoinTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexNestedLoopJoinTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleIndexNestedLoopJoinMultiColumnTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleDeleteTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleUpdateTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_InsertIntoSelectWithParamTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_SimpleInsertWithParamsTest_Test;
-  friend class terrier::execution::compiler::test::CompilerTest_StaticDistinctAggregateTest_Test;
-  friend class terrier::runner::MiniRunners;
+  friend class noisepage::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleSeqScanTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleSeqScanNonVecFilterTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleSeqScanWithProjectionTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleSeqScanWithParamsTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexScanTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexScanAscendingTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexScanLimitAscendingTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexScanDescendingTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexScanLimitDescendingTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleAggregateTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_CountStarTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleSortTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleAggregateHavingTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleHashJoinTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_MultiWayHashJoinTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleNestedLoopJoinTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexNestedLoopJoinTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleIndexNestedLoopJoinMultiColumnTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleDeleteTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleUpdateTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleInsertTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_InsertIntoSelectWithParamTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_SimpleInsertWithParamsTest_Test;
+  friend class noisepage::execution::compiler::test::CompilerTest_StaticDistinctAggregateTest_Test;
+  friend class noisepage::runner::MiniRunners;
 
   /**
    * Constructor
@@ -375,7 +375,7 @@ class PipelineOperatingUnits {
    */
   void RecordOperatingUnit(execution::pipeline_id_t pipeline, ExecutionOperatingUnitFeatureVector &&features) {
     UNUSED_ATTRIBUTE auto res = units_.insert(std::make_pair(pipeline, std::move(features)));
-    TERRIER_ASSERT(res.second, "Recording duplicate pipeline entry into PipelineOperatingUnits");
+    NOISEPAGE_ASSERT(res.second, "Recording duplicate pipeline entry into PipelineOperatingUnits");
   }
 
   /**
@@ -385,7 +385,7 @@ class PipelineOperatingUnits {
    */
   const ExecutionOperatingUnitFeatureVector &GetPipelineFeatures(execution::pipeline_id_t pipeline) const {
     UNUSED_ATTRIBUTE auto itr = units_.find(pipeline);
-    TERRIER_ASSERT(itr != units_.end(), "Requested pipeline could not be found in PipelineOperatingUnits");
+    NOISEPAGE_ASSERT(itr != units_.end(), "Requested pipeline could not be found in PipelineOperatingUnits");
     return itr->second;
   }
 
@@ -400,4 +400,4 @@ class PipelineOperatingUnits {
   std::unordered_map<execution::pipeline_id_t, ExecutionOperatingUnitFeatureVector> units_{};
 };
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

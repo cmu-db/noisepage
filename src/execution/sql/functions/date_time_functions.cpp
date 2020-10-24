@@ -1,6 +1,6 @@
 #include "execution/sql/functions/date_time_functions.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 void DateTimeFunctions::Century(Integer *result, const TimestampVal &time) noexcept {
   if (time.is_null_) {
@@ -119,4 +119,4 @@ void DateTimeFunctions::Microseconds(Integer *result, const TimestampVal &time) 
   *result = Integer(time.val_.ExtractMicros());
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

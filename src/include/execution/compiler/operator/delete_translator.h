@@ -6,15 +6,15 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class DeletePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * Delete Translator
@@ -94,4 +94,4 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry num_deletes_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

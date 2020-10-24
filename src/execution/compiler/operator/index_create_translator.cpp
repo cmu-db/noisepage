@@ -17,7 +17,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 IndexCreateTranslator::IndexCreateTranslator(const planner::CreateIndexPlanNode &plan,
                                              CompilationContext *compilation_context, Pipeline *pipeline)
@@ -255,14 +255,14 @@ void IndexCreateTranslator::IndexInsert(WorkContext *ctx, FunctionBuilder *funct
 
   for (const auto &index_col : index_schema.GetColumns()) {
     auto stored_expr = index_col.StoredExpression();
-    TERRIER_ASSERT(stored_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                   "CREATE INDEX supported on base columns only");
+    NOISEPAGE_ASSERT(stored_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
+                     "CREATE INDEX supported on base columns only");
 
     // col_expr comes from the base table so we need to use TableSchema to get the correct scan_offset.
     // col_expr = @VPIGet(vpi_var_, attr_sql_type, true, oid)
     auto cve = stored_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
-    TERRIER_ASSERT(cve->GetColumnOid() != catalog::INVALID_COLUMN_OID, "CREATE INDEX column oid not bound");
-    TERRIER_ASSERT(oid_offset.find(cve->GetColumnOid()) != oid_offset.end(), "CREATE INDEX missing column scan");
+    NOISEPAGE_ASSERT(cve->GetColumnOid() != catalog::INVALID_COLUMN_OID, "CREATE INDEX column oid not bound");
+    NOISEPAGE_ASSERT(oid_offset.find(cve->GetColumnOid()) != oid_offset.end(), "CREATE INDEX missing column scan");
     auto &tbl_col = table_schema_.GetColumn(cve->GetColumnOid());
     auto sql_type = sql::GetTypeId(tbl_col.Type());
     auto scan_offset = oid_offset[cve->GetColumnOid()];
@@ -319,4 +319,4 @@ ast::FunctionDecl *IndexCreateTranslator::GenerateEndHookFunction() const {
   return builder.Finish();
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

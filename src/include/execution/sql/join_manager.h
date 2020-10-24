@@ -8,7 +8,7 @@
 #include "execution/sql/filter_manager.h"
 #include "execution/sql/sql.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 struct HashTableEntry;
 class JoinHashTable;
@@ -116,4 +116,4 @@ class JoinManager {
   bool first_join_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

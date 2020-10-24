@@ -4,7 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 constexpr table_oid_t TYPE_TABLE_OID = table_oid_t(51);
 constexpr index_oid_t TYPE_OID_INDEX_OID = index_oid_t(52);
@@ -14,7 +14,7 @@ constexpr index_oid_t TYPE_NAMESPACE_INDEX_OID = index_oid_t(54);
 /*
  * Column names of the form "TYP[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "TYP_[name]_COL_OID" are
- * terrier-specific addtions (generally pointers to internal objects).
+ * noisepage-specific addtions (generally pointers to internal objects).
  */
 constexpr col_oid_t TYPOID_COL_OID = col_oid_t(1);        // INTEGER (pkey)
 constexpr col_oid_t TYPNAME_COL_OID = col_oid_t(2);       // VARCHAR
@@ -39,4 +39,4 @@ enum class Type : char {
 
 // TODO(tanujnay112): Not sure how to do this without hardcoding
 constexpr type_oid_t VAR_ARRAY_OID = type_oid_t(11);
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

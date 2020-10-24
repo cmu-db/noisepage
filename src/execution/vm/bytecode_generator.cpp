@@ -17,7 +17,7 @@
 #include "loggers/execution_logger.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * ExpressionResultScope is an RAII class that provides metadata about the usage of an expression
@@ -187,7 +187,7 @@ void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
 }
 
 void BytecodeGenerator::VisitForInStmt(UNUSED_ATTRIBUTE ast::ForInStmt *node) {
-  TERRIER_ASSERT(false, "For-in statements not supported");
+  NOISEPAGE_ASSERT(false, "For-in statements not supported");
 }
 
 void BytecodeGenerator::VisitFieldDecl(ast::FieldDecl *node) { AstVisitor::VisitFieldDecl(node); }
@@ -344,7 +344,7 @@ void BytecodeGenerator::VisitArrayIndexExpr(ast::IndexExpr *node) {
 
   if (node->Index()->IsIntegerLiteral()) {
     const auto index = static_cast<int32_t>(node->Index()->As<ast::LitExpr>()->Int64Val());
-    TERRIER_ASSERT(index >= 0, "Array indexes must be non-negative");
+    NOISEPAGE_ASSERT(index >= 0, "Array indexes must be non-negative");
     GetEmitter()->EmitLea(elem_ptr, arr, (elem_size * index));
   } else {
     LocalVar index = VisitExpressionForRValue(node->Index());
@@ -389,15 +389,15 @@ void BytecodeGenerator::VisitVariableDecl(ast::VariableDecl *node) {
   // initial value resolved after semantic analysis.
   ast::Type *type = nullptr;
   if (node->TypeRepr() != nullptr) {
-    TERRIER_ASSERT(node->TypeRepr()->GetType() != nullptr,
-                   "Variable with explicit type declaration is missing resolved "
-                   "type at runtime!");
+    NOISEPAGE_ASSERT(node->TypeRepr()->GetType() != nullptr,
+                     "Variable with explicit type declaration is missing resolved "
+                     "type at runtime!");
     type = node->TypeRepr()->GetType();
   } else {
-    TERRIER_ASSERT(node->Initial() != nullptr,
-                   "Variable without explicit type declaration is missing an "
-                   "initialization expression!");
-    TERRIER_ASSERT(node->Initial()->GetType() != nullptr, "Variable with initial value is missing resolved type");
+    NOISEPAGE_ASSERT(node->Initial() != nullptr,
+                     "Variable without explicit type declaration is missing an "
+                     "initialization expression!");
+    NOISEPAGE_ASSERT(node->Initial()->GetType() != nullptr, "Variable with initial value is missing resolved type");
     type = node->Initial()->GetType();
   }
 
@@ -411,7 +411,7 @@ void BytecodeGenerator::VisitVariableDecl(ast::VariableDecl *node) {
 }
 
 void BytecodeGenerator::VisitAddressOfExpr(ast::UnaryOpExpr *op) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Address-of expressions must be R-values!");
+  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Address-of expressions must be R-values!");
   LocalVar addr = VisitExpressionForLValue(op->Input());
   if (GetExecutionResult()->HasDestination()) {
     LocalVar dest = GetExecutionResult()->GetDestination();
@@ -512,7 +512,7 @@ void BytecodeGenerator::VisitReturnStmt(ast::ReturnStmt *node) {
 }
 
 void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
-  TERRIER_ASSERT(call->GetType() != nullptr, "No return type set for call!");
+  NOISEPAGE_ASSERT(call->GetType() != nullptr, "No return type set for call!");
 
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(call->GetType());
 
@@ -716,7 +716,7 @@ void BytecodeGenerator::VisitBuiltinTableIterParallelCall(ast::CallExpr *call) {
 }
 
 void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin builtin) {
-  TERRIER_ASSERT(call->GetType() != nullptr, "No return type set for call!");
+  NOISEPAGE_ASSERT(call->GetType() != nullptr, "No return type set for call!");
 
   // The first argument to all calls is a pointer to the VPI
   LocalVar vpi = VisitExpressionForRValue(call->Arguments()[0]);
@@ -866,10 +866,10 @@ void BytecodeGenerator::VisitBuiltinVPICall(ast::CallExpr *call, ast::Builtin bu
 }
 
 void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
-  TERRIER_ASSERT(call->GetType()->IsSpecificBuiltin(ast::BuiltinType::Uint64),
-                 "Return type of @hash(...) expected to be 8-byte unsigned hash");
-  TERRIER_ASSERT(!call->Arguments().empty(), "@hash() must contain at least one input argument");
-  TERRIER_ASSERT(GetExecutionResult() != nullptr, "Caller of @hash() must use result");
+  NOISEPAGE_ASSERT(call->GetType()->IsSpecificBuiltin(ast::BuiltinType::Uint64),
+                   "Return type of @hash(...) expected to be 8-byte unsigned hash");
+  NOISEPAGE_ASSERT(!call->Arguments().empty(), "@hash() must contain at least one input argument");
+  NOISEPAGE_ASSERT(GetExecutionResult() != nullptr, "Caller of @hash() must use result");
 
   // The running hash value initialized to zero
   LocalVar hash_val = GetExecutionResult()->GetOrCreateDestination(call->GetType());
@@ -877,7 +877,7 @@ void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call) {
   GetEmitter()->EmitAssignImm8(hash_val, 0);
 
   for (uint32_t idx = 0; idx < call->NumArgs(); idx++) {
-    TERRIER_ASSERT(call->Arguments()[idx]->GetType()->IsSqlValueType(), "Input to hash must be a SQL value type");
+    NOISEPAGE_ASSERT(call->Arguments()[idx]->GetType()->IsSqlValueType(), "Input to hash must be a SQL value type");
 
     LocalVar input = VisitExpressionForSQLValue(call->Arguments()[idx]);
     const auto *type = call->Arguments()[idx]->GetType()->As<ast::BuiltinType>();
@@ -1027,7 +1027,7 @@ void BytecodeGenerator::VisitBuiltinAggHashTableCall(ast::CallExpr *call, ast::B
       LocalVar hash = VisitExpressionForRValue(call->Arguments()[1]);
       Bytecode bytecode = Bytecode::AggregationHashTableAllocTuple;
       if (call->Arguments().size() > 2) {
-        TERRIER_ASSERT(call->Arguments()[2]->IsBoolLiteral(), "Last argument must be a boolean literal");
+        NOISEPAGE_ASSERT(call->Arguments()[2]->IsBoolLiteral(), "Last argument must be a boolean literal");
         const bool partitioned = call->Arguments()[2]->As<ast::LitExpr>()->BoolVal();
         bytecode = partitioned ? Bytecode::AggregationHashTableAllocTuplePartitioned
                                : Bytecode::AggregationHashTableAllocTuple;
@@ -1611,7 +1611,7 @@ void BytecodeGenerator::VisitCSVReaderCall(ast::CallExpr *call, ast::Builtin bui
   switch (builtin) {
     case ast::Builtin::CSVReaderInit: {
       LocalVar result = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-      TERRIER_ASSERT(call->Arguments()[1]->IsLitExpr(), "Second argument expected to be string literal");
+      NOISEPAGE_ASSERT(call->Arguments()[1]->IsLitExpr(), "Second argument expected to be string literal");
       auto string_lit = call->Arguments()[1]->As<ast::LitExpr>()->StringVal();
       auto file_name = NewStaticString(call->GetType()->GetContext(), string_lit);
       GetEmitter()->EmitCSVReaderInit(reader, file_name, string_lit.GetLength());
@@ -1874,9 +1874,9 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
       LocalVar first_input = VisitExpressionForSQLValue(call->Arguments()[0]);
       LocalVar second_input = VisitExpressionForSQLValue(call->Arguments()[1]);
       if (!is_integer_math) {
-        TERRIER_ASSERT(call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
-                           call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real),
-                       "Inputs must both be of type Real");
+        NOISEPAGE_ASSERT(call->Arguments()[0]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real) &&
+                             call->Arguments()[1]->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real),
+                         "Inputs must both be of type Real");
       }
       GetEmitter()->Emit(is_integer_math ? Bytecode::ModInteger : Bytecode::ModReal, dest, first_input, second_input);
       break;
@@ -3081,7 +3081,7 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
 
 void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
   bool caller_wants_result = GetExecutionResult() != nullptr;
-  TERRIER_ASSERT(!caller_wants_result || GetExecutionResult()->IsRValue(), "Calls can only be R-Values!");
+  NOISEPAGE_ASSERT(!caller_wants_result || GetExecutionResult()->IsRValue(), "Calls can only be R-Values!");
 
   std::vector<LocalVar> params;
 
@@ -3109,7 +3109,7 @@ void BytecodeGenerator::VisitRegularCallExpr(ast::CallExpr *call) {
 
   // Emit call
   const auto func_id = LookupFuncIdByName(call->GetFuncName().GetData());
-  TERRIER_ASSERT(func_id != FunctionInfo::K_INVALID_FUNC_ID, "Function not found!");
+  NOISEPAGE_ASSERT(func_id != FunctionInfo::K_INVALID_FUNC_ID, "Function not found!");
   GetEmitter()->EmitCall(func_id, params);
 }
 
@@ -3135,7 +3135,7 @@ void BytecodeGenerator::VisitFile(ast::File *node) {
 }
 
 void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Literal expressions cannot be R-Values!");
+  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Literal expressions cannot be R-Values!");
 
   LocalVar target = GetExecutionResult()->GetOrCreateDestination(node->GetType());
 
@@ -3182,8 +3182,8 @@ void BytecodeGenerator::VisitStructDecl(UNUSED_ATTRIBUTE ast::StructDecl *node) 
 }
 
 void BytecodeGenerator::VisitLogicalAndOrExpr(ast::BinaryOpExpr *node) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Binary expressions must be R-Values!");
-  TERRIER_ASSERT(node->GetType()->IsBoolType(), "Boolean binary operation must be of type bool");
+  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Binary expressions must be R-Values!");
+  NOISEPAGE_ASSERT(node->GetType()->IsBoolType(), "Boolean binary operation must be of type bool");
 
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
 
@@ -3220,16 +3220,16 @@ void BytecodeGenerator::VisitLogicalAndOrExpr(ast::BinaryOpExpr *node) {
   GetExecutionResult()->SetDestination(dest.ValueOf());
 }
 
-#define MATH_BYTECODE(CODE_RESULT, MATH_OP, TPL_TYPE)                                           \
-  if (TPL_TYPE->IsIntegerType()) {                                                              \
-    CODE_RESULT = GetIntTypedBytecode(GET_BASE_FOR_INT_TYPES(Bytecode::MATH_OP), TPL_TYPE);     \
-  } else {                                                                                      \
-    TERRIER_ASSERT(TPL_TYPE->IsFloatType(), "Only integer and floating point math operations"); \
-    CODE_RESULT = GetFloatTypedBytecode(GET_BASE_FOR_FLOAT_TYPES(Bytecode::MATH_OP), TPL_TYPE); \
+#define MATH_BYTECODE(CODE_RESULT, MATH_OP, TPL_TYPE)                                             \
+  if (TPL_TYPE->IsIntegerType()) {                                                                \
+    CODE_RESULT = GetIntTypedBytecode(GET_BASE_FOR_INT_TYPES(Bytecode::MATH_OP), TPL_TYPE);       \
+  } else {                                                                                        \
+    NOISEPAGE_ASSERT(TPL_TYPE->IsFloatType(), "Only integer and floating point math operations"); \
+    CODE_RESULT = GetFloatTypedBytecode(GET_BASE_FOR_FLOAT_TYPES(Bytecode::MATH_OP), TPL_TYPE);   \
   }
 
 void BytecodeGenerator::VisitPrimitiveArithmeticExpr(ast::BinaryOpExpr *node) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Arithmetic expressions must be R-Values!");
+  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Arithmetic expressions must be R-Values!");
 
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(node->GetType());
   LocalVar left = VisitExpressionForRValue(node->Left());
@@ -3375,8 +3375,8 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar left = VisitExpressionForSQLValue(compare->Left());
   LocalVar right = VisitExpressionForSQLValue(compare->Right());
 
-  TERRIER_ASSERT(compare->Left()->GetType() == compare->Right()->GetType(),
-                 "Left and right input types to comparison are not equal");
+  NOISEPAGE_ASSERT(compare->Left()->GetType() == compare->Right()->GetType(),
+                   "Left and right input types to comparison are not equal");
 
   const auto arg_kind = compare->Left()->GetType()->As<ast::BuiltinType>()->GetKind();
 
@@ -3426,12 +3426,12 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   } else if (TPL_TYPE->IsFloatType()) {                                                                 \
     CODE_RESULT = GetFloatTypedBytecode(GET_BASE_FOR_FLOAT_TYPES(Bytecode::COMPARISON_TYPE), TPL_TYPE); \
   } else {                                                                                              \
-    TERRIER_ASSERT(TPL_TYPE->IsBoolType(), "Only integer, floating point, and boolean comparisons");    \
+    NOISEPAGE_ASSERT(TPL_TYPE->IsBoolType(), "Only integer, floating point, and boolean comparisons");  \
     CODE_RESULT = Bytecode::COMPARISON_TYPE##_bool;                                                     \
   }
 
 void BytecodeGenerator::VisitPrimitiveCompareOpExpr(ast::ComparisonOpExpr *compare) {
-  TERRIER_ASSERT(GetExecutionResult()->IsRValue(), "Comparison expressions must be R-Values!");
+  NOISEPAGE_ASSERT(GetExecutionResult()->IsRValue(), "Comparison expressions must be R-Values!");
 
   LocalVar dest = GetExecutionResult()->GetOrCreateDestination(compare->GetType());
 
@@ -3447,10 +3447,10 @@ void BytecodeGenerator::VisitPrimitiveCompareOpExpr(ast::ComparisonOpExpr *compa
 
   // regular comparison
 
-  TERRIER_ASSERT(compare->Left()->GetType()->IsArithmetic() || compare->Left()->GetType()->IsBoolType(),
-                 "Invalid type to comparison");
-  TERRIER_ASSERT(compare->Right()->GetType()->IsArithmetic() || compare->Right()->GetType()->IsBoolType(),
-                 "Invalid type to comparison");
+  NOISEPAGE_ASSERT(compare->Left()->GetType()->IsArithmetic() || compare->Left()->GetType()->IsBoolType(),
+                   "Invalid type to comparison");
+  NOISEPAGE_ASSERT(compare->Right()->GetType()->IsArithmetic() || compare->Right()->GetType()->IsBoolType(),
+                   "Invalid type to comparison");
 
   LocalVar left = VisitExpressionForRValue(compare->Left());
   LocalVar right = VisitExpressionForRValue(compare->Right());
@@ -3591,7 +3591,7 @@ void BytecodeGenerator::VisitMemberExpr(ast::MemberExpr *node) {
   }
 
   if (GetExecutionResult()->IsLValue()) {
-    TERRIER_ASSERT(!GetExecutionResult()->HasDestination(), "L-Values produce their destination");
+    NOISEPAGE_ASSERT(!GetExecutionResult()->HasDestination(), "L-Values produce their destination");
     GetExecutionResult()->SetDestination(field_ptr);
     return;
   }
@@ -3611,27 +3611,27 @@ void BytecodeGenerator::VisitDeclStmt(ast::DeclStmt *node) { Visit(node->Declara
 void BytecodeGenerator::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->Expression()); }
 
 void BytecodeGenerator::VisitBadExpr(ast::BadExpr *node) {
-  TERRIER_ASSERT(false, "Visiting bad expression during code generation!");
+  NOISEPAGE_ASSERT(false, "Visiting bad expression during code generation!");
 }
 
 void BytecodeGenerator::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
-  TERRIER_ASSERT(false, "Should not visit type-representation nodes!");
+  NOISEPAGE_ASSERT(false, "Should not visit type-representation nodes!");
 }
 
 void BytecodeGenerator::VisitFunctionTypeRepr(ast::FunctionTypeRepr *node) {
-  TERRIER_ASSERT(false, "Should not visit type-representation nodes!");
+  NOISEPAGE_ASSERT(false, "Should not visit type-representation nodes!");
 }
 
 void BytecodeGenerator::VisitPointerTypeRepr(ast::PointerTypeRepr *node) {
-  TERRIER_ASSERT(false, "Should not visit type-representation nodes!");
+  NOISEPAGE_ASSERT(false, "Should not visit type-representation nodes!");
 }
 
 void BytecodeGenerator::VisitStructTypeRepr(ast::StructTypeRepr *node) {
-  TERRIER_ASSERT(false, "Should not visit type-representation nodes!");
+  NOISEPAGE_ASSERT(false, "Should not visit type-representation nodes!");
 }
 
 void BytecodeGenerator::VisitMapTypeRepr(ast::MapTypeRepr *node) {
-  TERRIER_ASSERT(false, "Should not visit type-representation nodes!");
+  NOISEPAGE_ASSERT(false, "Should not visit type-representation nodes!");
 }
 
 FunctionInfo *BytecodeGenerator::AllocateFunc(const std::string &func_name, ast::FunctionType *const func_type) {
@@ -3744,14 +3744,14 @@ void BytecodeGenerator::VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *t
 }
 
 Bytecode BytecodeGenerator::GetIntTypedBytecode(Bytecode bytecode, ast::Type *type) {
-  TERRIER_ASSERT(type->IsIntegerType(), "Type must be integer type");
+  NOISEPAGE_ASSERT(type->IsIntegerType(), "Type must be integer type");
   auto int_kind = type->SafeAs<ast::BuiltinType>()->GetKind();
   auto kind_idx = static_cast<uint8_t>(int_kind - ast::BuiltinType::Int8);
   return Bytecodes::FromByte(Bytecodes::ToByte(bytecode) + kind_idx);
 }
 
 Bytecode BytecodeGenerator::GetFloatTypedBytecode(Bytecode bytecode, ast::Type *type) {
-  TERRIER_ASSERT(type->IsFloatType(), "Type must be floating-point type");
+  NOISEPAGE_ASSERT(type->IsFloatType(), "Type must be floating-point type");
   auto float_kind = type->SafeAs<ast::BuiltinType>()->GetKind();
   auto kind_idx = static_cast<uint8_t>(float_kind - ast::BuiltinType::Float32);
   return Bytecodes::FromByte(Bytecodes::ToByte(bytecode) + kind_idx);
@@ -3768,4 +3768,4 @@ std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, c
                                           std::move(generator.functions_), std::move(generator.static_locals_));
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

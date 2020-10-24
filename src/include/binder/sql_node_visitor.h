@@ -2,7 +2,7 @@
 
 #include "common/managed_pointer.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace parser {
 class ParseResult;
@@ -267,4 +267,4 @@ class SqlNodeVisitor {
 };
 
 }  // namespace binder
-}  // namespace terrier
+}  // namespace noisepage

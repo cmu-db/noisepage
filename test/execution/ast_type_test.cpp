@@ -7,7 +7,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/region.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class TypeTest : public TplTest {
  public:
@@ -260,4 +260,4 @@ TEST_F(TypeTest, FunctionTypeCacheTest) {
   }
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

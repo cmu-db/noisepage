@@ -3,7 +3,7 @@
 #include "common/allocator.h"
 #include "test_util/tpcc/database.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Worker contains buffers for each worker thread (running txns) to use for PRs for tables and indexes to avoid
@@ -112,4 +112,4 @@ struct Worker {
 
   std::default_random_engine *const generator_;
 };
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

@@ -13,15 +13,15 @@
 #include "network/network_defs.h"
 #include "parser/parser_defs.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 class PostgresPacketWriter;
-}  // namespace terrier::network
+}  // namespace noisepage::network
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class OutputSchema;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 
 // Callback function
 // Params(): tuples, num_tuples, tuple_size;
@@ -180,4 +180,4 @@ class NoOpResultConsumer {
   void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {}
 };
 
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

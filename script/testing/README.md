@@ -34,7 +34,7 @@ If you specify the `--query-mode extended`, you then can also indicate the prepa
 `TestServer` is the base class for running all types of the tests. 
 
 ### Test workflow
-- check if the terrier bin exists
+- check if the noisepage bin exists
 - run the pre-suite task (test suite specific)
   - e.g. install oltp bin 
 - run the test sequentially

@@ -20,11 +20,11 @@
 #include "parser/expression_defs.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * Bundles convenience methods needed by other classes during code generation.
@@ -697,7 +697,7 @@ class CodeGen {
    * @param attr_idx Index of the column being accessed.
    * @return The expression corresponding to the builtin call.
    */
-  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
+  [[nodiscard]] ast::Expr *PRGet(ast::Expr *pr, noisepage::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
    * Call \@prSet(pr, attr_idx, val, [own]).
@@ -1476,4 +1476,4 @@ class CodeGen {
   std::unique_ptr<brain::PipelineOperatingUnits> pipeline_operating_units_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

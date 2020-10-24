@@ -10,16 +10,16 @@
 #include "planner/plannodes/plan_node_defs.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
 class IndexSchema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class IndexJoinPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * Index join translator.
@@ -91,4 +91,4 @@ class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
   // The number of outer loop iterations.
   StateDescriptor::Entry num_loops_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

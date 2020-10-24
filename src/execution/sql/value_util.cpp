@@ -3,7 +3,7 @@
 #include "common/allocator.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 std::pair<StringVal, std::unique_ptr<byte[]>> ValueUtil::CreateStringVal(
     const common::ManagedPointer<const char> string, const uint32_t length) {
@@ -28,4 +28,4 @@ std::pair<StringVal, std::unique_ptr<byte[]>> ValueUtil::CreateStringVal(const S
   return CreateStringVal(common::ManagedPointer(string.GetContent()), string.GetLength());
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -9,7 +9,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * FunctionExpression represents a function invocation (except for CAST(), which is a TypeCastExpression).
@@ -107,4 +107,4 @@ class FunctionExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(FunctionExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

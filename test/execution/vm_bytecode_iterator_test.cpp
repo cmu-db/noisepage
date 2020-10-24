@@ -7,7 +7,7 @@
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/vm.h"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 class BytecodeIteratorTest : public TplTest {
  public:
@@ -86,4 +86,4 @@ TEST_F(BytecodeIteratorTest, JumpTest) {
   EXPECT_EQ(v1, iter.GetLocalOperand(2));
 }
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

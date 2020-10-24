@@ -5,7 +5,7 @@
 
 #include "common/math_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -141,4 +141,4 @@ void ChainingHashTableVectorIterator<UseTag>::Next() {
 template class ChainingHashTableVectorIterator<true>;
 template class ChainingHashTableVectorIterator<false>;
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

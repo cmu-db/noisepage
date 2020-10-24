@@ -2,7 +2,7 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class WorkContext;
 
@@ -20,4 +20,4 @@ class ColumnValueProvider {
   virtual ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const = 0;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

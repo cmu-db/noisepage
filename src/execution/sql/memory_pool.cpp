@@ -7,7 +7,7 @@
 #include "execution/sql/memory_tracker.h"
 #include "execution/util/memory.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
 std::atomic<std::size_t> MemoryPool::mmap_threshold = 64 * common::Constants::MB;
@@ -22,7 +22,7 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
 
   if (size >= mmap_threshold.load(std::memory_order_relaxed)) {
     buf = util::Memory::MallocHuge(size, true);
-    TERRIER_ASSERT(buf != nullptr, "Null memory pointer");
+    NOISEPAGE_ASSERT(buf != nullptr, "Null memory pointer");
     // No need to clear memory, guaranteed on Linux
   } else {
     if (alignment < MIN_MALLOC_ALIGNMENT) {
@@ -57,4 +57,4 @@ void MemoryPool::Deallocate(void *ptr, std::size_t size) {
 
 void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { mmap_threshold = size; }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -8,7 +8,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/scope.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class Context;
@@ -178,7 +178,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void EnterScope(Scope::Kind scope_kind) {
     if (num_cached_scopes_ > 0) {
       Scope *scope = scope_cache_[--num_cached_scopes_].release();
-      TERRIER_ASSERT(scope != nullptr, "Cached scope was null");
+      NOISEPAGE_ASSERT(scope != nullptr, "Cached scope was null");
       scope->Init(GetCurrentScope(), scope_kind);
       scope_ = scope;
     } else {
@@ -188,7 +188,7 @@ class Sema : public ast::AstVisitor<Sema> {
 
   // Exit the current scope
   void ExitScope() {
-    TERRIER_ASSERT(GetCurrentScope() != nullptr, "Mismatched scope exit");
+    NOISEPAGE_ASSERT(GetCurrentScope() != nullptr, "Mismatched scope exit");
 
     Scope *scope = GetCurrentScope();
     scope_ = scope->Outer();
@@ -266,4 +266,4 @@ class Sema : public ast::AstVisitor<Sema> {
 };
 
 }  // namespace sema
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

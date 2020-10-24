@@ -14,7 +14,7 @@
 #include "test_util/tpcc/worker.h"
 #include "test_util/tpcc/workload.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 #define LOG_TEST_LOG_FILE_NAME "./test_tpcc_test.log"
 
@@ -46,7 +46,7 @@ class TPCCTests : public TerrierTest {
     std::vector<Worker> workers;
     workers.reserve(num_threads_);
 
-    auto db_main = terrier::DBMain::Builder()
+    auto db_main = noisepage::DBMain::Builder()
                        .SetUseMetrics(metrics_enabled)
                        .SetUseMetricsThread(metrics_enabled)
                        .SetUseLogging(logging_enabled)
@@ -112,4 +112,4 @@ TEST_F(TPCCTests, DISABLED_WithLogging) { RunTPCC(true, false, storage::index::I
 // NOLINTNEXTLINE
 TEST_F(TPCCTests, DISABLED_WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

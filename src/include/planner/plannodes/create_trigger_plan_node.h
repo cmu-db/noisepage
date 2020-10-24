@@ -11,7 +11,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for creating triggers
@@ -321,4 +321,4 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CreateTriggerPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

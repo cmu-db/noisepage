@@ -13,7 +13,7 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for insert
@@ -84,9 +84,9 @@ class InsertPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<InsertPlanNode> Build() {
-      TERRIER_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
-      TERRIER_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
-                     "Must have parameter info for each value");
+      NOISEPAGE_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
+      NOISEPAGE_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
+                       "Must have parameter info for each value");
       return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, table_oid_, std::move(values_),
                                                                 std::move(parameter_info_)));
@@ -238,4 +238,4 @@ class InsertPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

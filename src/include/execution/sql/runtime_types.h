@@ -7,7 +7,7 @@
 #include "execution/util/string_heap.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class Timestamp;
 
@@ -645,4 +645,4 @@ inline Timestamp Date::ConvertToTimestamp() const { return Timestamp(value_ * K_
 /** Converts the provided timestamp into a date. */
 inline Date Timestamp::ConvertToDate() const { return Date(value_ / K_MICRO_SECONDS_PER_DAY); }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -6,7 +6,7 @@
 #include "common/spin_latch.h"
 #include "metrics/abstract_raw_data.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 /**
  * @brief Interface representing a metric.
  *
@@ -145,4 +145,4 @@ class AbstractMetric {
    */
   common::SpinLatch latch_;
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

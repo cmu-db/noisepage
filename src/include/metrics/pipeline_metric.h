@@ -17,7 +17,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for the execution engine
@@ -41,10 +41,10 @@ class PipelineMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
 
@@ -202,4 +202,4 @@ class PipelineMetric : public AbstractMetric<PipelineMetricRawData> {
     GetRawData()->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

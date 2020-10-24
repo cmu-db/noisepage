@@ -3,7 +3,7 @@
 #include "brain/brain_defs.h"
 #include "brain/operating_unit_util.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 bool OperatingUnitUtil::IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature) {
   switch (feature) {
@@ -33,4 +33,4 @@ ExecutionOperatingUnitType OperatingUnitUtil::GetNonParallelType(ExecutionOperat
   }
 }
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

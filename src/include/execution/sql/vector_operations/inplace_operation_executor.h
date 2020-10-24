@@ -8,7 +8,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Check:
@@ -45,7 +45,7 @@ class InPlaceOperationExecutor {
    *
    * @pre Both input vectors have the same shape.
    *
-   * @note This function leverages the terrier::execution::sql::traits::ShouldPerformFullCompute trait to determine
+   * @note This function leverages the noisepage::execution::sql::traits::ShouldPerformFullCompute trait to determine
    *       whether the operation should be performed on ALL vector elements or just the active
    *       elements. Callers can control this feature by optionally specialization the trait for
    *       their operation type. If you want to use this optimization, you cannot pass in a
@@ -72,7 +72,7 @@ class InPlaceOperationExecutor {
    *
    * @pre Both input vectors have the same shape.
    *
-   * @note This function leverages the terrier::execution::sql::traits::ShouldPerformFullCompute trait to determine
+   * @note This function leverages the noisepage::execution::sql::traits::ShouldPerformFullCompute trait to determine
    *       whether the operation should be performed on ALL vector elements or just the active
    *       elements. Callers can control this feature by optionally specialization the trait for
    *       their operation type. If you want to use this optimization, you cannot pass in a
@@ -109,8 +109,8 @@ class InPlaceOperationExecutor {
         }
       }
     } else {
-      TERRIER_ASSERT(result->GetFilteredTupleIdList() == input.GetFilteredTupleIdList(),
-                     "Filter list of inputs to in-place operation do not match");
+      NOISEPAGE_ASSERT(result->GetFilteredTupleIdList() == input.GetFilteredTupleIdList(),
+                       "Filter list of inputs to in-place operation do not match");
 
       result->GetMutableNullMask()->Union(input.GetNullMask());
       if (traits::ShouldPerformFullCompute<Op>()(exec_settings, result->GetFilteredTupleIdList())) {
@@ -122,4 +122,4 @@ class InPlaceOperationExecutor {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

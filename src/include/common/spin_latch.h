@@ -9,7 +9,7 @@
 #undef FALSE
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A cheap and easy spin latch, currently wraps tbb::spin_mutex to optimize for various architectures' PAUSE
@@ -62,4 +62,4 @@ class SpinLatch {
   tbb::spin_mutex latch_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -7,7 +7,7 @@ namespace llvm {
 class StringRef;
 }  // namespace llvm
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 /**
  * Info about the CPU.
@@ -119,4 +119,4 @@ y   * @return The size of a cache line at level @em level.
   std::bitset<Feature::MAX> hardware_flags_;
 };
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

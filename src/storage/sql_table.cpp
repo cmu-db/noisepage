@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
@@ -19,8 +19,8 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
     attr_sizes.emplace_back(8);
   }
 
-  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
-                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
+  NOISEPAGE_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
+                   "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   for (const auto &column : schema.GetColumns()) {
     attr_sizes.push_back(column.AttrSize());
@@ -57,12 +57,12 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const {
-  TERRIER_ASSERT(!col_oids.empty(), "Should be used to access at least one column.");
+  NOISEPAGE_ASSERT(!col_oids.empty(), "Should be used to access at least one column.");
   std::vector<col_id_t> col_ids;
 
   // Build the input to the initializer constructor
   for (const catalog::col_oid_t col_oid : col_oids) {
-    TERRIER_ASSERT(table_.column_map_.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
+    NOISEPAGE_ASSERT(table_.column_map_.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
     const col_id_t col_id = table_.column_map_.at(col_oid).col_id_;
     col_ids.push_back(col_id);
   }
@@ -93,4 +93,4 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
   return oid_to_id->first;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

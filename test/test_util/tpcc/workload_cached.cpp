@@ -17,7 +17,7 @@
 #include "test_util/tpcc/worker.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 WorkloadCached::WorkloadCached(common::ManagedPointer<DBMain> db_main, const std::vector<std::string> &txn_names,
                                int8_t num_threads) {
@@ -248,4 +248,4 @@ void WorkloadCached::InitializeSQLs() {
   InitSeqScan();
   InitStockLevel();
 }
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

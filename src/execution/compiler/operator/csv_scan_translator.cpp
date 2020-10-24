@@ -10,7 +10,7 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr const char FIELD_PREFIX[] = "field";
@@ -115,4 +115,4 @@ ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

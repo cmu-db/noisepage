@@ -7,15 +7,15 @@
 #include "execution/compiler/pipeline_driver.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class UpdatePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * Update Translator
@@ -135,4 +135,4 @@ class UpdateTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry num_updates_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

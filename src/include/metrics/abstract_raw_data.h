@@ -5,7 +5,7 @@
 #include "common/macros.h"
 #include "metrics/metrics_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 /**
  * @brief An always-consistent storage unit for intermediate stats results.
  *
@@ -41,4 +41,4 @@ class AbstractRawData {
    */
   virtual void ToCSV(std::vector<std::ofstream> *outfile) = 0;
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

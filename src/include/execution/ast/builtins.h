@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // The list of all builtin functions
 // Args: internal name, function name
@@ -420,4 +420,4 @@ class Builtins {
   static const char *builtin_function_names[];
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

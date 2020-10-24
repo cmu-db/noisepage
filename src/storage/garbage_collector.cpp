@@ -16,7 +16,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 GarbageCollector::GarbageCollector(
     const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
@@ -27,8 +27,8 @@ GarbageCollector::GarbageCollector(
       txn_manager_(txn_manager),
       observer_(observer),
       last_unlinked_{0} {
-  TERRIER_ASSERT(txn_manager_->GCEnabled(),
-                 "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+  NOISEPAGE_ASSERT(txn_manager_->GCEnabled(),
+                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
 }
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
@@ -232,16 +232,16 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
 }
 
 void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  NOISEPAGE_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
+  NOISEPAGE_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
   indexes_.insert(index);
 }
 
 void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  NOISEPAGE_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
+  NOISEPAGE_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
   indexes_.erase(index);
 }
 
@@ -250,4 +250,4 @@ void GarbageCollector::ProcessIndexes() {
   for (const auto &index : indexes_) index->PerformGarbageCollection();
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

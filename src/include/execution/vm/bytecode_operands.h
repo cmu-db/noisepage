@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * This enumeration lists all possible <b>sizes</b> of operands to any bytecode.
@@ -80,4 +80,4 @@ class OperandTypes {
   static int32_t MaxJumpOffset();
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

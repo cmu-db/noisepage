@@ -12,7 +12,7 @@
 #include "execution/util/execution_common.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * This is our typedef that we use throughout the entire code to represent a hash value.
@@ -227,13 +227,13 @@ class EXPORT HashUtil {
     switch (len) {
       case 3:
         hash ^= (static_cast<uint64_t>(buf[2])) << 16u;
-        TERRIER_FALLTHROUGH;
+        NOISEPAGE_FALLTHROUGH;
       case 2:
         hash ^= (static_cast<uint64_t>(buf[1])) << 8u;
-        TERRIER_FALLTHROUGH;
+        NOISEPAGE_FALLTHROUGH;
       case 1:
         hash ^= buf[0];
-        TERRIER_FALLTHROUGH;
+        NOISEPAGE_FALLTHROUGH;
       default:
         break;
     }
@@ -296,4 +296,4 @@ class EXPORT HashUtil {
   }
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -11,7 +11,7 @@
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 class AstDumperImpl : public AstVisitor<AstDumperImpl> {
  public:
@@ -383,4 +383,4 @@ std::string AstDump::Dump(AstNode *node) {
   return buffer.str();
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

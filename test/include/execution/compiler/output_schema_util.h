@@ -8,7 +8,7 @@
 #include "execution/compiler/expression_maker.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::compiler::test {
+namespace noisepage::execution::compiler::test {
 using OutputColumn = planner::OutputSchema::Column;
 
 /**
@@ -131,4 +131,4 @@ class OutputSchemaHelper {
   std::vector<ExpressionMaker::ManagedAggExpression> aggs_;
   ExpressionMaker *expr_maker_;
 };
-}  // namespace terrier::execution::compiler::test
+}  // namespace noisepage::execution::compiler::test

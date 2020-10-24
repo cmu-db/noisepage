@@ -5,7 +5,7 @@
 #include "runner/mini_runners_config.h"
 #include "runner/mini_runners_settings.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 
 /**
  * Argument generator for mini-runners
@@ -326,4 +326,4 @@ class MiniRunnersArgumentGenerator {
                                      uint32_t varchar_mix);
 };
 
-};  // namespace terrier::runner
+};  // namespace noisepage::runner

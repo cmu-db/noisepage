@@ -14,10 +14,10 @@
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 Index *IndexBuilder::Build() const {
-  TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
+  NOISEPAGE_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
 
   IndexMetadata metadata(key_schema_);
   const auto &key_cols = key_schema_.GetColumns();
@@ -53,7 +53,7 @@ IndexBuilder &IndexBuilder::SetKeySchema(const catalog::IndexSchema &key_schema)
 Index *IndexBuilder::BuildBwTreeIntsKey(IndexMetadata metadata) const {
   metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
   const auto key_size = metadata.KeySize();
-  TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+  NOISEPAGE_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
   Index *index = nullptr;
   if (key_size <= 8) {
     index = new BwTreeIndex<CompactIntsKey<8>>(std::move(metadata));
@@ -64,7 +64,7 @@ Index *IndexBuilder::BuildBwTreeIntsKey(IndexMetadata metadata) const {
   } else if (key_size <= 32) {
     index = new BwTreeIndex<CompactIntsKey<32>>(std::move(metadata));
   }
-  TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+  NOISEPAGE_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
   return index;
 }
 
@@ -76,7 +76,7 @@ Index *IndexBuilder::BuildBwTreeGenericKey(IndexMetadata metadata) const {
   const auto key_size =
       (pr_size + 8) +
       sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
-  TERRIER_ASSERT(key_size <= GENERICKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+  NOISEPAGE_ASSERT(key_size <= GENERICKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
 
   if (key_size <= 64) {
     index = new BwTreeIndex<GenericKey<64>>(std::move(metadata));
@@ -87,14 +87,14 @@ Index *IndexBuilder::BuildBwTreeGenericKey(IndexMetadata metadata) const {
   } else if (key_size <= 512) {
     index = new BwTreeIndex<GenericKey<512>>(std::move(metadata));
   }
-  TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
+  NOISEPAGE_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
   return index;
 }
 
 Index *IndexBuilder::BuildHashIntsKey(IndexMetadata metadata) const {
   metadata.SetKeyKind(IndexKeyKind::HASHKEY);
   const auto key_size = metadata.KeySize();
-  TERRIER_ASSERT(metadata.KeySize() <= HASHKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+  NOISEPAGE_ASSERT(metadata.KeySize() <= HASHKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
   Index *index = nullptr;
   if (key_size <= 8) {
     index = new HashIndex<HashKey<8>>(std::move(metadata));
@@ -109,7 +109,7 @@ Index *IndexBuilder::BuildHashIntsKey(IndexMetadata metadata) const {
   } else if (key_size <= 256) {
     index = new HashIndex<HashKey<256>>(std::move(metadata));
   }
-  TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+  NOISEPAGE_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
   return index;
 }
 
@@ -129,7 +129,7 @@ Index *IndexBuilder::BuildHashGenericKey(IndexMetadata metadata) const {
   } else if (key_size <= 256) {
     index = new HashIndex<GenericKey<256>>(std::move(metadata));
   }
-  TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+  NOISEPAGE_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
   return index;
 }
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index
