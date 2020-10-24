@@ -36,7 +36,7 @@ psql -h localhost -U noisepage -p 15721
 ```
 
 Additiona Notes:
-- If you have less than 8 GB of RAM, use `-DNOISEPAGE_UNITY_BUILD=OFF` in the `cmake` commands below.
+- If you have less than 16 GB of RAM, use `-DNOISEPAGE_UNITY_BUILD=OFF` in the `cmake` commands above.
 - If you know what you're doing, install the prerequisite packages from `./script/installation/packages.sh` manually.
 
 
@@ -47,4 +47,8 @@ Please see the [docs](https://github.com/cmu-db/noisepage/tree/master/docs/).
 
 ## Contributing
 
-See the [New Student Guide](https://github.com/cmu-db/noisepage/wiki/New-Student-Guide). If you are a current student at CMU, then you should consider enrolling in one of the [database courses](https://db.cs.cmu.edu/courses/). Non-CMU students are also welcome to contribute.
+If you are a current student at CMU,
+  - See the [New Student Guide](https://github.com/cmu-db/noisepage/tree/master/docs/). 
+  - Consider enrolling in one of the [database courses](https://db.cs.cmu.edu/courses/).
+
+Contributions from non-CMU students are also welcome!
