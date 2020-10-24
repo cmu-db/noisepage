@@ -35,7 +35,7 @@ You can now connect to NoisePage over the Postgres client `psql`.
 psql -h localhost -U noisepage -p 15721
 ```
 
-Additiona Notes:
+Additional Notes:
 - If you have less than 16 GB of RAM, use `-DNOISEPAGE_UNITY_BUILD=OFF` in the `cmake` commands above.
 - If you know what you're doing, install the prerequisite packages from `./script/installation/packages.sh` manually.
 
