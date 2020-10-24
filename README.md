@@ -1,11 +1,13 @@
+<a href="https://noise.page/">
 <img src="https://noise.page/logos/noisepage-horizontal.svg" alt="NoisePage Logo" height="200">
+</a>
 
 -----------------
 
 [![Jenkins Status](http://jenkins.db.cs.cmu.edu:8080/job/terrier/job/master/badge/icon)](http://jenkins.db.cs.cmu.edu:8080/job/terrier/)
 [![codecov](https://codecov.io/gh/cmu-db/noisepage/branch/master/graph/badge.svg)](https://codecov.io/gh/cmu-db/noisepage)
 
-NoisePage is a relational database management system developed by the [Carnegie Mellon Database Group](https://db.cs.cmu.edu). The research goal of the NoisePage project is to develop high-performance system components that support autonomous operation and optimization as a first-class design principle.
+[NoisePage](https://noise.page) is a relational database management system developed by the [Carnegie Mellon Database Group](https://db.cs.cmu.edu). The research goal of the NoisePage project is to develop high-performance system components that support autonomous operation and optimization as a first-class design principle.
 
 ## Key Features
 * Integrated machine learning components to forecast, model, and plan the system's behavior.
