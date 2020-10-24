@@ -4,10 +4,12 @@
 
 namespace noisepage::execution::sql {
 
+/**
+ * Class for tracking memory on a per-thread granularity.
+ * Currently tracks allocation size in bytes during thread's execution.
+ */
 class EXPORT MemoryTracker {
  public:
-  // TODO(pmenon): Fill me in
-
   /**
    * Reset tracker
    */
