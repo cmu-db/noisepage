@@ -398,9 +398,6 @@ function(message)
             # Therefore we're suppressing that specific warning message.
             return()
         endif ()
-        if (Message MATCHES ".*fast_float.* defined but not used.*")
-            return()
-        endif()
 
         list(REMOVE_AT ARGV 0)
         _message(${MessageType} "${ARGV}")
@@ -613,6 +610,12 @@ target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inh
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         ${NOISEPAGE_LINK_OPTIONS}
         )
+
+# Unfortunately, some libraries do not have clean target_link_libraries hygiene.
+# The symptoms are typically weird -Werror warnings because.
+# The hacky solution is to manually specify their target_include_directories as SYSTEM.
+target_include_directories(noisepage_objlib SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/_deps/src/fast_float/include/)
+
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
         fast_float
