@@ -2,7 +2,7 @@
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class AggregatorsTest : public TplTest {};
 
@@ -488,4 +488,4 @@ TEST_F(AggregatorsTest, Avg) {
   EXPECT_DOUBLE_EQ(0.0, avg1.GetResultAvg().val_);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

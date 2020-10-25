@@ -19,9 +19,10 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 void AbstractExpression::SetMutableStateForCopy(const AbstractExpression &copy_expr) {
   SetExpressionName(copy_expr.GetExpressionName());
@@ -195,6 +196,11 @@ JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
       break;
     }
 
+    case ExpressionType::TABLE_STAR: {
+      expr = std::make_unique<TableStarExpression>();
+      break;
+    }
+
     case ExpressionType::ROW_SUBQUERY: {
       expr = std::make_unique<SubqueryExpression>();
       break;
@@ -257,4 +263,4 @@ void AbstractExpression::DeriveExpressionName() {
 
 DEFINE_JSON_BODY_DECLARATIONS(AbstractExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

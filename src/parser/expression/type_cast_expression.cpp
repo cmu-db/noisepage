@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> TypeCastExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -21,4 +21,4 @@ std::unique_ptr<AbstractExpression> TypeCastExpression::CopyWithChildren(
 
 DEFINE_JSON_BODY_DECLARATIONS(TypeCastExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

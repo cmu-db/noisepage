@@ -7,7 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t OrderByPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -98,4 +98,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
 
 DEFINE_JSON_BODY_DECLARATIONS(OrderByPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

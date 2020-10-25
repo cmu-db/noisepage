@@ -6,7 +6,7 @@
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/property_set.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class OptimizerContext;
 
@@ -87,4 +87,4 @@ class OptimizationContext {
   PropertySet *optional_props_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

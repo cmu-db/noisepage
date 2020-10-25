@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 #include "loggers/loggers_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 class TerrierTest : public ::testing::Test {
  public:
@@ -14,4 +14,4 @@ class TerrierTest : public ::testing::Test {
   ~TerrierTest() override { LoggersUtil::ShutDown(); }
 };
 
-}  // namespace terrier
+}  // namespace noisepage

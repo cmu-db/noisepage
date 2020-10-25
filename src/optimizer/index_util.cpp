@@ -11,7 +11,7 @@
 #include "optimizer/properties.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(
     catalog::CatalogAccessor *accessor, const PropertySort *prop, catalog::table_oid_t tbl_oid,
@@ -250,7 +250,7 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
                                            const catalog::IndexSchema &index_schema,
                                            std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> *key_map,
                                            std::vector<catalog::col_oid_t> *col_oids) {
-  TERRIER_ASSERT(SatisfiesBaseColumnRequirement(index_schema), "GetIndexColOid() pre-cond not satisfied");
+  NOISEPAGE_ASSERT(SatisfiesBaseColumnRequirement(index_schema), "GetIndexColOid() pre-cond not satisfied");
   auto &tbl_schema = accessor->GetSchema(tbl_oid);
   if (tbl_schema.GetColumns().size() < index_schema.GetColumns().size()) {
     return false;
@@ -272,7 +272,7 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
       }
 
       auto it = tbl_col_to_oid_map.find(tv_expr->GetColumnName());
-      TERRIER_ASSERT(it != tbl_col_to_oid_map.end(), "Inconsistency between IndexSchema and table schema");
+      NOISEPAGE_ASSERT(it != tbl_col_to_oid_map.end(), "Inconsistency between IndexSchema and table schema");
       col_oids->push_back(it->second);
       key_map->insert(std::make_pair(it->second, index_column.Oid()));
     }
@@ -281,4 +281,4 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
   return true;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

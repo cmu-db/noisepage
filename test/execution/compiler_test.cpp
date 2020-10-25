@@ -41,7 +41,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::compiler::test {
+namespace noisepage::execution::compiler::test {
 class CompilerTest : public SqlBasedTest {
  public:
   void SetUp() override {
@@ -49,7 +49,7 @@ class CompilerTest : public SqlBasedTest {
     // Make the test tables
     auto exec_ctx = MakeExecCtx();
     sql::TableGenerator table_generator{exec_ctx.get(), BlockStore(), NSOid()};
-    table_generator.GenerateTestTables(false);
+    table_generator.GenerateTestTables();
   }
 
   bool CheckFeatureVectorEquality(const std::vector<brain::ExecutionOperatingUnitFeature> &vec_a,
@@ -179,7 +179,8 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
@@ -263,7 +264,8 @@ TEST_F(CompilerTest, SimpleSeqScanNonVecFilterTest) {
   OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
@@ -340,7 +342,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithProjectionTest) {
   OutputStore store{&multi_checker, proj->GetOutputSchema().Get()};
   exec::OutputPrinter printer(proj->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), proj->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, proj->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*proj, exec_ctx->GetExecutionSettings(),
@@ -412,7 +415,8 @@ TEST_F(CompilerTest, SimpleSeqScanWithParamsTest) {
   OutputStore store{&multi_checker, seq_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
   std::vector<parser::ConstantValueExpression> params;
   params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(100));
   params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(500));
@@ -476,7 +480,8 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   OutputStore store{&multi_checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
@@ -556,7 +561,8 @@ TEST_F(CompilerTest, SimpleIndexScanAscendingTest) {
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
@@ -635,7 +641,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitAscendingTest) {
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
@@ -714,7 +721,8 @@ TEST_F(CompilerTest, SimpleIndexScanDescendingTest) {
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
@@ -793,7 +801,8 @@ TEST_F(CompilerTest, SimpleIndexScanLimitDescendingTest) {
   OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
@@ -877,7 +886,8 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -901,8 +911,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_AggregateWithDistinctAndGroupByTest) {
-  // TODO(WAN): distinct doesn't work yet in TPL2
+TEST_F(CompilerTest, AggregateWithDistinctAndGroupByTest) {
   // SELECT col2, SUM(col1), COUNT(DISTINCT col2), SUM(DISTINCT col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -983,7 +992,8 @@ TEST_F(CompilerTest, DISABLED_AggregateWithDistinctAndGroupByTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -1043,7 +1053,8 @@ TEST_F(CompilerTest, CountStarTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -1113,7 +1124,8 @@ TEST_F(CompilerTest, StaticAggregateTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -1123,8 +1135,7 @@ TEST_F(CompilerTest, StaticAggregateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
-  // TODO(WAN): distinct doesn't work yet in TPL2
+TEST_F(CompilerTest, StaticDistinctAggregateTest) {
   // SELECT COUNT(DISTINCT colb), SUM(DISTINCT colb), COUNT(*) FROM test_1;
   // Get accessor
   auto accessor = MakeAccessor();
@@ -1191,7 +1202,8 @@ TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -1201,16 +1213,15 @@ TEST_F(CompilerTest, DISABLED_StaticDistinctAggregateTest) {
 
   // Pipeline Units
   auto pipeline = executable->GetPipelineOperatingUnits();
-  EXPECT_FALSE(true);
-  // TODO(WAN): re-enable when distinct works EXPECT_EQ(pipeline->units_.size(), 2);
+  EXPECT_EQ(pipeline->units_.size(), 2);
 
   auto feature_vec0 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   auto feature_vec1 = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
-  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{
-      brain::ExecutionOperatingUnitType::AGGREGATE_BUILD, brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS,
-      brain::ExecutionOperatingUnitType::SEQ_SCAN};
-  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
+  auto exp_vec0 = std::vector<brain::ExecutionOperatingUnitType>{brain::ExecutionOperatingUnitType::AGGREGATE_ITERATE,
                                                                  brain::ExecutionOperatingUnitType::OUTPUT};
+  auto exp_vec1 = std::vector<brain::ExecutionOperatingUnitType>{
+      brain::ExecutionOperatingUnitType::SEQ_SCAN, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
+      brain::ExecutionOperatingUnitType::OP_INTEGER_PLUS_OR_MINUS};
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec0, exp_vec0));
   EXPECT_TRUE(CheckFeatureVectorEquality(feature_vec1, exp_vec1));
 }
@@ -1294,7 +1305,8 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   OutputStore store{&checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -1369,7 +1381,8 @@ TEST_F(CompilerTest, StaticAggregateHavingTest) {
   OutputStore store{&multi_checker, agg->GetOutputSchema().Get()};
   exec::OutputPrinter printer(agg->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), agg->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, agg->GetOutputSchema().Get());
 
   // Run & Check
   auto executable =
@@ -1497,7 +1510,8 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   OutputStore store{&checker, hash_join->GetOutputSchema().Get()};
   exec::OutputPrinter printer(hash_join->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), hash_join->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, hash_join->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*hash_join, exec_ctx->GetExecutionSettings(),
@@ -1679,7 +1693,8 @@ TEST_F(CompilerTest, MultiWayHashJoinTest) {
   OutputStore store{&checker, hash_join2->GetOutputSchema().Get()};
   exec::OutputPrinter printer(hash_join2->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), hash_join2->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, hash_join2->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*hash_join2, exec_ctx->GetExecutionSettings(),
@@ -1803,7 +1818,8 @@ TEST_F(CompilerTest, SimpleSortTest) {
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
   exec::OutputPrinter printer(order_by->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, order_by->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*order_by, exec_ctx->GetExecutionSettings(),
@@ -1918,7 +1934,8 @@ TEST_F(CompilerTest, SortWithLimitTest) {
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
   exec::OutputPrinter printer(order_by->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, order_by->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*order_by, exec_ctx->GetExecutionSettings(),
@@ -2007,7 +2024,8 @@ TEST_F(CompilerTest, SortWithLimitAndOffsetTest) {
   OutputStore store{&checker, order_by->GetOutputSchema().Get()};
   exec::OutputPrinter printer(order_by->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), order_by->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, order_by->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*order_by, exec_ctx->GetExecutionSettings(),
@@ -2090,7 +2108,8 @@ TEST_F(CompilerTest, LimitAndOffsetTest) {
   OutputStore store{&checker, limit->GetOutputSchema().Get()};
   exec::OutputPrinter printer(limit->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), limit->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, limit->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*limit, exec_ctx->GetExecutionSettings(),
@@ -2216,7 +2235,8 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   OutputStore store{&checker, nl_join->GetOutputSchema().Get()};
   exec::OutputPrinter printer(nl_join->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), nl_join->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, nl_join->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*nl_join, exec_ctx->GetExecutionSettings(),
@@ -2341,7 +2361,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   OutputStore store{&checker, index_join->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_join->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_join->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_join, exec_ctx->GetExecutionSettings(),
@@ -2456,7 +2477,8 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   OutputStore store{&checker, index_join->GetOutputSchema().Get()};
   exec::OutputPrinter printer(index_join->GetOutputSchema().Get());
   MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().Get());
+  exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+  auto exec_ctx = MakeExecCtx(&callback_fn, index_join->GetOutputSchema().Get());
 
   // Run & Check
   auto executable = execution::compiler::CompilationContext::Compile(*index_join, exec_ctx->GetExecutionSettings(),
@@ -2517,7 +2539,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), delete_node->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, delete_node->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*delete_node, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2562,7 +2585,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2597,7 +2621,8 @@ TEST_F(CompilerTest, SimpleDeleteTest) {
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2671,7 +2696,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), update_node->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, update_node->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*update_node, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2740,7 +2766,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2782,7 +2809,8 @@ TEST_F(CompilerTest, SimpleUpdateTest) {
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2834,7 +2862,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*insert, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2907,7 +2936,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -2954,7 +2984,8 @@ TEST_F(CompilerTest, SimpleInsertTest) {
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3027,7 +3058,8 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
     std::vector<parser::ConstantValueExpression> params;
     params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(495));
     params.emplace_back(type::TypeId::INTEGER, execution::sql::Integer(505));
@@ -3105,7 +3137,8 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3151,7 +3184,8 @@ TEST_F(CompilerTest, DISABLED_InsertIntoSelectWithParamTest) {
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*index_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3245,7 +3279,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
   {
     // Make Exec Ctx
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, insert->GetOutputSchema().Get());
     std::vector<parser::ConstantValueExpression> params;
     // First parameter list
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
@@ -3382,7 +3417,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     OutputStore store{&checker, seq_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(seq_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), seq_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, seq_scan->GetOutputSchema().Get());
     auto executable = execution::compiler::CompilationContext::Compile(*seq_scan, exec_ctx->GetExecutionSettings(),
                                                                        exec_ctx->GetAccessor());
     executable->Run(common::ManagedPointer(exec_ctx), MODE);
@@ -3443,7 +3479,8 @@ TEST_F(CompilerTest, SimpleInsertWithParamsTest) {
     OutputStore store{&checker, index_scan->GetOutputSchema().Get()};
     exec::OutputPrinter printer(index_scan->GetOutputSchema().Get());
     MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
-    auto exec_ctx = MakeExecCtx(std::move(callback), index_scan->GetOutputSchema().Get());
+    exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
+    auto exec_ctx = MakeExecCtx(&callback_fn, index_scan->GetOutputSchema().Get());
     std::vector<parser::ConstantValueExpression> params;
     auto str1_val = sql::ValueUtil::CreateStringVal(str1);
     auto str2_val = sql::ValueUtil::CreateStringVal(str2);
@@ -3475,13 +3512,13 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Read all needed columns
-    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), terrier::type::TypeId::VARCHAR);
-    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), terrier::type::TypeId::VARCHAR);
-    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), terrier::type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), terrier::type::TypeId::DECIMAL);
-    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), terrier::type::TypeId::DECIMAL);
-    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), terrier::type::TypeId::DECIMAL);
-    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), terrier::type::TypeId::DATE);
+    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), noisepage::type::TypeId::VARCHAR);
+    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), noisepage::type::TypeId::VARCHAR);
+    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), noisepage::type::TypeId::DECIMAL);
+    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), noisepage::type::TypeId::DECIMAL);
+    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), noisepage::type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), noisepage::type::TypeId::DECIMAL);
+    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), noisepage::type::TypeId::DATE);
     // Make the output schema
     seq_scan_out.AddOutput("l_returnflag", l_returnflag);
     seq_scan_out.AddOutput("l_linestatus", l_linestatus);
@@ -3591,12 +3628,4 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   executable->Run(common::ManagedPointer(exec_ctx), MODE); checker.CheckCorrectness();
 }
 */
-}  // namespace terrier::execution::compiler::test
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  terrier::execution::ExecutionUtil::InitTPL();
-  int ret = RUN_ALL_TESTS();
-  terrier::execution::ExecutionUtil::ShutdownTPL();
-  return ret;
-}
+}  // namespace noisepage::execution::compiler::test

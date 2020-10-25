@@ -9,7 +9,7 @@
 #include "network/network_io_wrapper.h"
 #include "test_util/manual_packet_util.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 /*
  * This util class includes some handy helper functions when testing with manual constructed packets.
  * */
@@ -52,7 +52,7 @@ class ManualPacketUtil {
   static std::unique_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
     // Manually open a socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    TERRIER_ASSERT(socket_fd >= 0, "Failed to create socket");
+    NOISEPAGE_ASSERT(socket_fd >= 0, "Failed to create socket");
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -61,7 +61,7 @@ class ManualPacketUtil {
     serv_addr.sin_port = htons(port);
 
     int64_t ret UNUSED_ATTRIBUTE = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
-    TERRIER_ASSERT(ret >= 0, "Connector Error");
+    NOISEPAGE_ASSERT(ret >= 0, "Connector Error");
 
     auto io_socket = std::make_unique<NetworkIoWrapper>(socket_fd);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
@@ -91,7 +91,7 @@ class ManualPacketUtil {
     int len = sizeof(int32_t) + sizeof(char);
     reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
     UNUSED_ATTRIBUTE auto result = write(socket_fd, out_buffer, len + 1);
-    TERRIER_ASSERT(result == len + 1, "Unsuccessful write");
+    NOISEPAGE_ASSERT(result == len + 1, "Unsuccessful write");
   }
 
  private:
@@ -100,4 +100,4 @@ class ManualPacketUtil {
   // Read and write buffer size for the test
   static const uint32_t TEST_BUFFER_SIZE = 1000;
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

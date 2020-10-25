@@ -17,7 +17,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class TpccPlanIndexScanTests : public TpccPlanTest {};
 
@@ -516,4 +516,4 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
   OptimizeQuery(query, tbl_new_order_, check);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

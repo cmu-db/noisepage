@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "common/container/concurrent_vector.h"
 #include "gtest/gtest.h"
 #include "storage/data_table.h"
 #include "test_util/storage_test_util.h"
@@ -13,7 +12,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class LargeDataTableTestObject;
 class RandomDataTableTransaction;
@@ -333,4 +332,4 @@ class LargeDataTableTestObject {
   storage::ProjectedRowInitializer row_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
 };
-}  // namespace terrier
+}  // namespace noisepage

@@ -7,12 +7,12 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/limit_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 LimitTranslator::LimitTranslator(const planner::LimitPlanNode &plan, CompilationContext *compilation_context,
                                  Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::LIMIT) {
-  TERRIER_ASSERT(plan.GetOffset() != 0 || plan.GetLimit() != 0, "Both offset and limit cannot be 0");
+  NOISEPAGE_ASSERT(plan.GetOffset() != 0 || plan.GetLimit() != 0, "Both offset and limit cannot be 0");
   // Limits are serial ... for now.
   pipeline->UpdateParallelism(Pipeline::Parallelism::Serial);
   // Prepare child.
@@ -53,4 +53,4 @@ void LimitTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder 
   function->Append(codegen->Assign(tuple_count_.Get(codegen), increment));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

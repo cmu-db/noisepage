@@ -8,11 +8,11 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AggregatePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -99,6 +99,10 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
     UNREACHABLE("Static aggregations do not produce columns from base tables.");
   }
 
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
  private:
   // Access the plan.
   const planner::AggregatePlanNode &GetAggPlan() const { return GetPlanAs<planner::AggregatePlanNode>(); }
@@ -149,4 +153,4 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   StateDescriptor::Entry num_agg_outputs_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

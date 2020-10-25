@@ -4,7 +4,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorGenerateTest : public TplTest {};
 
@@ -39,4 +39,4 @@ TEST_F(VectorGenerateTest, Simple) {
 #undef CHECK_SIMPLE_GENERATE
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

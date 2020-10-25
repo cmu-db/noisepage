@@ -14,15 +14,15 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier {
+namespace noisepage {
 class StorageTestUtil;
 }
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 class Schemas;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 namespace postgres {
 class Builder;
@@ -53,9 +53,9 @@ class Schema {
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
-      TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
-                     "This constructor is meant for non-VARLEN columns.");
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
+                       "This constructor is meant for non-VARLEN columns.");
+      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
     /**
@@ -75,8 +75,8 @@ class Schema {
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
           default_value_(default_value.Copy()) {
-      TERRIER_ASSERT(attr_size_ == storage::VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(attr_size_ == storage::VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
+      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
     /**
@@ -91,7 +91,7 @@ class Schema {
           nullable_(old_column.nullable_),
           oid_(old_column.oid_),
           default_value_(old_column.default_value_->Copy()) {
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
     /**
@@ -128,7 +128,7 @@ class Schema {
      * @return The maximum length of this column (only valid if it's VARLEN)
      */
     uint16_t MaxVarlenSize() const {
-      TERRIER_ASSERT(attr_size_ == storage::VARLEN_COLUMN, "This attribute has no meaning for non-VARLEN columns.");
+      NOISEPAGE_ASSERT(attr_size_ == storage::VARLEN_COLUMN, "This attribute has no meaning for non-VARLEN columns.");
       return max_varlen_size_;
     }
 
@@ -221,7 +221,7 @@ class Schema {
     friend class postgres::Builder;
 
     friend class tpcc::Schemas;
-    friend class terrier::StorageTestUtil;
+    friend class noisepage::StorageTestUtil;
   };
 
   /**
@@ -229,8 +229,8 @@ class Schema {
    * @param columns description of this SQL table's schema as a collection of Columns
    */
   explicit Schema(std::vector<Column> columns) : columns_(std::move(columns)) {
-    TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
-                   "Number of columns must be between 1 and MAX_COL.");
+    NOISEPAGE_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
+                     "Number of columns must be between 1 and MAX_COL.");
     for (uint32_t i = 0; i < columns_.size(); i++) {
       // If not all columns assigned OIDs, then clear the map because this is
       // a definition of a new/modified table not a catalog generated schema.
@@ -252,7 +252,7 @@ class Schema {
    * @return description of the schema for a specific column
    */
   const Column &GetColumn(const uint32_t col_offset) const {
-    TERRIER_ASSERT(col_offset < columns_.size(), "column id is out of bounds for this Schema");
+    NOISEPAGE_ASSERT(col_offset < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[col_offset];
   }
   /**
@@ -260,7 +260,7 @@ class Schema {
    * @return description of the schema for a specific column
    */
   const Column &GetColumn(const col_oid_t col_oid) const {
-    TERRIER_ASSERT(col_oid_to_offset_.count(col_oid) > 0, "col_oid does not exist in this Schema");
+    NOISEPAGE_ASSERT(col_oid_to_offset_.count(col_oid) > 0, "col_oid does not exist in this Schema");
     const uint32_t col_offset = col_oid_to_offset_.at(col_oid);
     return columns_[col_offset];
   }
@@ -276,7 +276,7 @@ class Schema {
         return c;
       }
     }
-    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // TODO(John): Should this be a NOISEPAGE_ASSERT to have the same semantics
     // as the other accessor methods above?
     //  (Ling): Probably not? Or is there a proper way for binder to check if a column exists?
     throw std::out_of_range("Column name doesn't exist");
@@ -292,7 +292,7 @@ class Schema {
   nlohmann::json ToJson() const;
 
   /**
-   * Should not be used. See TERRIER_ASSERT
+   * Should not be used. See NOISEPAGE_ASSERT
    */
   void FromJson(const nlohmann::json &j);
 
@@ -335,4 +335,4 @@ class Schema {
 DEFINE_JSON_HEADER_DECLARATIONS(Schema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(Schema);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

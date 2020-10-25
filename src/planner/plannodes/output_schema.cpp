@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 nlohmann::json OutputSchema::Column::ToJson() const {
   nlohmann::json j;
@@ -52,4 +52,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OutputSchema::FromJson(
 DEFINE_JSON_BODY_DECLARATIONS(OutputSchema::Column);
 DEFINE_JSON_BODY_DECLARATIONS(OutputSchema);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

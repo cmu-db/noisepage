@@ -10,7 +10,7 @@
 #include "execution/util/region.h"
 #include "type/type_id.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace sema {
 class ErrorReporter;
@@ -130,4 +130,4 @@ class Context {
 };
 
 }  // namespace ast
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

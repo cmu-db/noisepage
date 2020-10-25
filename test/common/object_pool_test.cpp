@@ -9,7 +9,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
@@ -128,4 +128,4 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   common::WorkerPool thread_pool(MultiThreadTestUtil::HardwareConcurrency(), {});
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, MultiThreadTestUtil::HardwareConcurrency(), workload, 100);
 }
-}  // namespace terrier
+}  // namespace noisepage

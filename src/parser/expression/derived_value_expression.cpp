@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> DerivedValueExpression::Copy() const {
   auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
@@ -42,4 +42,4 @@ std::vector<std::unique_ptr<AbstractExpression>> DerivedValueExpression::FromJso
 
 DEFINE_JSON_BODY_DECLARATIONS(DerivedValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

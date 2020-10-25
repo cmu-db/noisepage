@@ -6,11 +6,11 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class OrderByPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -38,6 +38,14 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
    * @param decls The top-level declarations.
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
+   * Define all hook functions
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                         util::RegionVector<ast::FunctionDecl *> *decls) override;
 
   /**
    * Initialize the sorter instance.
@@ -107,6 +115,26 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
     UNREACHABLE("Order-by operators do not produce columns from base tables");
   }
 
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * Generates start thread-local hook function
+   * @param is_sort Whether starting a sort or a merge
+   * @returns function decl
+   */
+  ast::FunctionDecl *GenerateStartTLHookFunction(bool is_sort) const;
+
+  /** Generates end thread-local sort hook function */
+  ast::FunctionDecl *GenerateEndTLSortHookFunction() const;
+
+  /** Generates end thread-local merge hook function */
+  ast::FunctionDecl *GenerateEndTLMergeHookFunction() const;
+
+  /** Generates end hook in the case where main-thread sorts all thread-local sorters */
+  ast::FunctionDecl *GenerateEndSingleSorterHookFunction() const;
+
  private:
   friend class brain::OperatingUnitRecorder;
 
@@ -161,6 +189,12 @@ class SortTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry num_sort_build_rows_;
   // The number of rows that are iterated over by the sorter.
   StateDescriptor::Entry num_sort_iterate_rows_;
+
+  ast::Identifier parallel_starttlsort_hook_fn_;
+  ast::Identifier parallel_starttlmerge_hook_fn_;
+  ast::Identifier parallel_endtlsort_hook_fn_;
+  ast::Identifier parallel_endtlmerge_hook_fn_;
+  ast::Identifier parallel_endsinglesorter_hook_fn_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

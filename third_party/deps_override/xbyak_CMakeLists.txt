@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(xbyak
+        VERSION 0.1.0.0
+        DESCRIPTION "NoisePage trying to use xbyak."
+        LANGUAGES CXX
+        )
+
+add_library(xbyak INTERFACE)                        # Create the xbyak library as an interface.
+add_library(${PROJECT_NAME}::xbyak ALIAS xbyak)     # Create a namespaced alias.
+
+target_include_directories(
+        xbyak
+        INTERFACE
+        # These includes make up the xbyak interface.
+        ${PROJECT_SOURCE_DIR}/
+)

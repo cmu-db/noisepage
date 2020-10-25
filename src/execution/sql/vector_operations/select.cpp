@@ -7,7 +7,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -195,32 +195,32 @@ void SelectOperation(const exec::ExecutionSettings &exec_settings, const Vector 
 
 void VectorOps::SelectEqual(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                             TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::Equal>(exec_settings, left, right, tid_list);
+  SelectOperation<noisepage::execution::sql::Equal>(exec_settings, left, right, tid_list);
 }
 
 void VectorOps::SelectGreaterThan(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                                   TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::GreaterThan>(exec_settings, left, right, tid_list);
+  SelectOperation<noisepage::execution::sql::GreaterThan>(exec_settings, left, right, tid_list);
 }
 
 void VectorOps::SelectGreaterThanEqual(const exec::ExecutionSettings &exec_settings, const Vector &left,
                                        const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::GreaterThanEqual>(exec_settings, left, right, tid_list);
+  SelectOperation<noisepage::execution::sql::GreaterThanEqual>(exec_settings, left, right, tid_list);
 }
 
 void VectorOps::SelectLessThan(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                                TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::LessThan>(exec_settings, left, right, tid_list);
+  SelectOperation<noisepage::execution::sql::LessThan>(exec_settings, left, right, tid_list);
 }
 
 void VectorOps::SelectLessThanEqual(const exec::ExecutionSettings &exec_settings, const Vector &left,
                                     const Vector &right, TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::LessThanEqual>(exec_settings, left, right, tid_list);
+  SelectOperation<noisepage::execution::sql::LessThanEqual>(exec_settings, left, right, tid_list);
 }
 
 void VectorOps::SelectNotEqual(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                                TupleIdList *tid_list) {
-  SelectOperation<terrier::execution::sql::NotEqual>(exec_settings, left, right, tid_list);
+  SelectOperation<noisepage::execution::sql::NotEqual>(exec_settings, left, right, tid_list);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

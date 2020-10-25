@@ -9,7 +9,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_allocator.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A ChunkedVector is similar to STL's std::vector, but with three important distinctions:
@@ -442,7 +442,7 @@ class ChunkedVector {
    * @return The first element in the vector. Undefined if the vector is empty.
    */
   byte *front() noexcept {  // NOLINT
-    TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
+    NOISEPAGE_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
 
@@ -450,7 +450,7 @@ class ChunkedVector {
    * @return The first element in the vector. Undefined if the vector is empty.
    */
   const byte *front() const noexcept {  // NOLINT
-    TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
+    NOISEPAGE_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
 
@@ -458,7 +458,7 @@ class ChunkedVector {
    * @return The last element in the vector. Undefined if the vector is empty.
    */
   byte *back() noexcept {  // NOLINT
-    TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
+    NOISEPAGE_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
 
@@ -466,7 +466,7 @@ class ChunkedVector {
    * @return The first element in the vector. Undefined if the vector is empty.
    */
   const byte *back() const noexcept {  // NOLINT
-    TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
+    NOISEPAGE_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
 
@@ -503,7 +503,7 @@ class ChunkedVector {
    * Remove the last element from the vector.
    */
   void pop_back() {  // NOLINT
-    TERRIER_ASSERT(!empty(), "Popping empty vector");
+    NOISEPAGE_ASSERT(!empty(), "Popping empty vector");
     if (position_ == chunks_[active_chunk_idx_]) {
       end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(ElementSize());
       position_ = end_;
@@ -892,7 +892,7 @@ class ChunkedVectorT {
    * Remove the last element from the vector. Undefined if the vector is empty.
    */
   void pop_back() {  // NOLINT
-    TERRIER_ASSERT(!empty(), "Popping from an empty vector");
+    NOISEPAGE_ASSERT(!empty(), "Popping from an empty vector");
     T &removed = back();
     vec_.pop_back();
     std::destroy_at(&removed);
@@ -903,4 +903,4 @@ class ChunkedVectorT {
   ChunkedVector<ReboundAlloc> vec_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

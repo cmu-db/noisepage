@@ -45,7 +45,7 @@
 #include "test_util/test_harness.h"
 #include "type/type_id.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 class PlanNodeJsonTest : public TerrierTest {
  public:
@@ -901,4 +901,4 @@ TEST(PlanNodeJsonTest, UpdatePlanNodeJsonTest) {
   EXPECT_EQ(plan_node->Hash(), deserialized_plan->Hash());
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

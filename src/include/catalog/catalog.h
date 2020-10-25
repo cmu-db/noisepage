@@ -11,17 +11,17 @@
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 class TransactionManager;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class GarbageCollector;
 class RecoveryManager;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 class CatalogCache;
 class DatabaseCatalog;
@@ -42,7 +42,7 @@ class Catalog {
  public:
   /**
    * Initializes the Catalog object which creates the primary table for databases
-   * and bootstraps the default database ("terrier").  This also constructs the
+   * and bootstraps the default database ("noisepage").  This also constructs the
    * debootstrap logic (i.e. table deallocations) that gets deferred using the
    * action framework in the destructor.
    * @param txn_manager for spawning read-only transactions in destructors
@@ -202,4 +202,4 @@ class Catalog {
    */
   std::function<void()> DeallocateDatabaseCatalog(DatabaseCatalog *dbc);
 };
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

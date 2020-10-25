@@ -5,7 +5,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/bit_vector.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 namespace {
 
@@ -126,15 +126,6 @@ TEST(BitVectorTest, SetAll) {
   for (uint32_t i = 0; i < bv.GetNumBits(); i++) {
     EXPECT_TRUE(bv[i]);
   }
-}
-
-TEST(BitVectorDeathTest, SetRange) {
-  BitVector<> bv(300);
-
-#ifndef NDEBUG
-  EXPECT_DEATH(bv.SetRange(20, 10), "backward");
-  EXPECT_DEATH(bv.SetRange(10, bv.GetNumBits() + 20), "range");
-#endif
 }
 
 TEST(BitVectorTest, SetRange) {
@@ -575,4 +566,4 @@ TEST(BitVectorTest, Iterate) {
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

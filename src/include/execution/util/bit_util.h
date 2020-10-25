@@ -7,7 +7,7 @@
 #include "common/macros.h"
 #include "common/math_util.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Utility class to deal with bit-level operations.
@@ -56,7 +56,7 @@ class BitUtil {
    *         the next word size.
    */
   static constexpr uint64_t Num32BitWordsFor(uint64_t num_bits) {
-    return terrier::common::MathUtil::DivRoundUp(num_bits, K_BIT_WORD_SIZE);
+    return noisepage::common::MathUtil::DivRoundUp(num_bits, K_BIT_WORD_SIZE);
   }
 
   /**
@@ -122,4 +122,4 @@ class BitUtil {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

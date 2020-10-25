@@ -4,11 +4,11 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 class TrafficCop;
 }
 
-namespace terrier::network {
+namespace noisepage::network {
 class PostgresPacketWriter;
 class ReadBuffer;
 
@@ -143,4 +143,4 @@ enum class NetworkTransactionStateType : unsigned char {
 // postgres uses 0 for text, 1 for binary, so this is fine
 enum class FieldFormat : bool { text = false, binary = true };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

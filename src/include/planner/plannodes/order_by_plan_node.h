@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, catalog::OrderByOrderingType>;
 
@@ -140,7 +140,7 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @return limit for sort
    */
   size_t GetLimit() const {
-    TERRIER_ASSERT(HasLimit(), "OrderBy plan has no limit");
+    NOISEPAGE_ASSERT(HasLimit(), "OrderBy plan has no limit");
     return limit_;
   }
 
@@ -178,4 +178,4 @@ class OrderByPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(OrderByPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

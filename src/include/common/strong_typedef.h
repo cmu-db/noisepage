@@ -12,7 +12,7 @@
 #include "common/json_header.h"
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
  * conversion for you.
@@ -56,14 +56,14 @@ namespace terrier::common {
  * of the template in common/strong_typedef.cpp.
  *
  */
-#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                          \
-  namespace tags {                                                                            \
-  struct name##_typedef_tag {};                                                               \
-  }                                                                                           \
-  using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
-  namespace tags {                                                                            \
-  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                              \
-  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                              \
+#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                            \
+  namespace tags {                                                                              \
+  struct name##_typedef_tag {};                                                                 \
+  }                                                                                             \
+  using name = ::noisepage::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
+  namespace tags {                                                                              \
+  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                                \
+  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                                \
   }
 
 /**
@@ -234,15 +234,15 @@ class StrongTypeAlias {
  private:
   IntType val_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
 /* Define all typedefs here */
-namespace terrier {
+namespace noisepage {
 using byte = std::byte;
 using int128_t = __int128;
 using uint128_t = unsigned __int128;
 using hash_t = uint64_t;
-}  // namespace terrier
+}  // namespace noisepage
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
@@ -251,13 +251,13 @@ namespace std {
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
 template <class Tag, class IntType>
-struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
+struct atomic<noisepage::common::StrongTypeAlias<Tag, IntType>> {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
   /**
    * Type alias shorthand.
    */
-  using t = terrier::common::StrongTypeAlias<Tag, IntType>;
+  using t = noisepage::common::StrongTypeAlias<Tag, IntType>;
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
@@ -367,13 +367,13 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
  * @tparam T the underlying type.
  */
 template <class Tag, typename T>
-struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
+struct hash<noisepage::common::StrongTypeAlias<Tag, T>> {
   /**
    * Returns the hash of the underlying type's contents.
    * @param alias the aliased type to be hashed.
    * @return the hash of the aliased type.
    */
-  size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const {
+  size_t operator()(const noisepage::common::StrongTypeAlias<Tag, T> &alias) const {
     return hash<T>()(alias.UnderlyingValue());
   }
 };
@@ -384,14 +384,14 @@ struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
  * @tparam T the underlying type.
  */
 template <class Tag, class T>
-struct less<terrier::common::StrongTypeAlias<Tag, T>> {
+struct less<noisepage::common::StrongTypeAlias<Tag, T>> {
   /**
    * @param x one value
    * @param y other value
    * @return x < y (underlying value)
    */
-  bool operator()(const terrier::common::StrongTypeAlias<Tag, T> &x,
-                  const terrier::common::StrongTypeAlias<Tag, T> &y) const {
+  bool operator()(const noisepage::common::StrongTypeAlias<Tag, T> &x,
+                  const noisepage::common::StrongTypeAlias<Tag, T> &y) const {
     return std::less<T>()(x.UnderlyingValue(), y.UnderlyingValue());
   }
 };

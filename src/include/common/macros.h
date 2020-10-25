@@ -34,14 +34,14 @@
 //===--------------------------------------------------------------------===//
 
 #ifdef NDEBUG
-#define TERRIER_ASSERT(expr, message) ((void)0)
+#define NOISEPAGE_ASSERT(expr, message) ((void)0)
 #else
 /*
  * On assert failure, most existing implementations of C++ will print out the condition.
  * By ANDing the truthy not-null message and our initial expression together, we get
  * asserts-with-messages without needing to bring in iostream or logging.
  */
-#define TERRIER_ASSERT(expr, message) assert((expr) && (message))
+#define NOISEPAGE_ASSERT(expr, message) assert((expr) && (message))
 #endif /* NDEBUG */
 
 //===--------------------------------------------------------------------===//
@@ -141,11 +141,11 @@
 // switch statements
 //===----------------------------------------------------------------------===//
 #if defined __clang__
-#define TERRIER_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
+#define NOISEPAGE_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
 #elif defined __GNUC__ && __GNUC__ >= 7
-#define TERRIER_FALLTHROUGH [[fallthrough]]  // NOLINT
+#define NOISEPAGE_FALLTHROUGH [[fallthrough]]  // NOLINT
 #else
-#define TERRIER_FALLTHROUGH
+#define NOISEPAGE_FALLTHROUGH
 #endif
 
 //===----------------------------------------------------------------------===//

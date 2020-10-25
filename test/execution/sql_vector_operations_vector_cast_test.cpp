@@ -6,7 +6,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/bit_util.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorCastTest : public TplTest {};
 
@@ -179,4 +179,4 @@ TEST_F(VectorCastTest, CastStringToFloat) {
   EXPECT_EQ(GenericValue::CreateFloat(910), a->GetValue(5));
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

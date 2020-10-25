@@ -5,7 +5,7 @@
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 namespace {
 
@@ -52,7 +52,7 @@ void AstPrettyPrintImpl::VisitArrayTypeRepr(ArrayTypeRepr *node) {
   Visit(node->ElementType());
 }
 
-void AstPrettyPrintImpl::VisitBadExpr(BadExpr *node) { TERRIER_ASSERT(false, "Invalid"); }
+void AstPrettyPrintImpl::VisitBadExpr(BadExpr *node) { NOISEPAGE_ASSERT(false, "Invalid"); }
 
 void AstPrettyPrintImpl::VisitBlockStmt(BlockStmt *node) {
   if (node->IsEmpty()) {
@@ -304,4 +304,4 @@ void AstPrettyPrint::Dump(std::ostream &os, AstNode *node) {
   os << std::endl;
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

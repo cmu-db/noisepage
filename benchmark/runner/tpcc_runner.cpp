@@ -6,7 +6,7 @@
 #include "main/db_main.h"
 #include "test_util/tpcc/workload_cached.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 // Modified from TPCHRunner
 class TPCCRunner : public benchmark::Fixture {
  public:
@@ -25,7 +25,7 @@ class TPCCRunner : public benchmark::Fixture {
   };
 
   void SetUp(const benchmark::State &state) final {
-    terrier::execution::ExecutionUtil::InitTPL();
+    noisepage::execution::ExecutionUtil::InitTPL();
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
     auto db_main_builder = DBMain::Builder()
@@ -45,13 +45,16 @@ class TPCCRunner : public benchmark::Fixture {
     db_main_ = db_main_builder.Build();
 
     auto metrics_manager = db_main_->GetMetricsManager();
-    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::EXECUTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::EXECUTION);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::GARBAGECOLLECTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::GARBAGECOLLECTION);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
   }
 
   void TearDown(const benchmark::State &state) final {
-    terrier::execution::ExecutionUtil::ShutdownTPL();
+    noisepage::execution::ExecutionUtil::ShutdownTPL();
     // free db main here so we don't need to use the loggers anymore
     db_main_.reset();
   }
@@ -91,4 +94,4 @@ BENCHMARK_DEFINE_F(TPCCRunner, Runner)(benchmark::State &state) {
 
 BENCHMARK_REGISTER_F(TPCCRunner, Runner)->Unit(benchmark::kMillisecond)->UseManualTime()->Iterations(1);
 
-}  // namespace terrier::runner
+}  // namespace noisepage::runner

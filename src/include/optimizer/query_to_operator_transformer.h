@@ -11,7 +11,7 @@
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace parser {
 class ParseResult;
@@ -169,4 +169,4 @@ class QueryToOperatorTransformer : public binder::SqlNodeVisitor {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

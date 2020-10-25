@@ -2,7 +2,7 @@
 
 #include <tbb/enumerable_thread_specific.h>
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * TODO: track memory usage
@@ -40,4 +40,4 @@ class EXPORT MemoryTracker {
   size_t allocated_bytes_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
