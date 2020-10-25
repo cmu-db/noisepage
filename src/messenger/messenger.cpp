@@ -171,6 +171,8 @@ class MessengerPolledSockets {
    public:
     /** The items to be polled. */
     std::vector<zmq::pollitem_t> items_;
+    /** The server callback function to invoke on messages received. */
+    std::vector<common::ManagedPointer<CallbackFn>> server_callbacks_;
   };
 
   /**
@@ -187,18 +189,29 @@ class MessengerPolledSockets {
       std::scoped_lock lock(mutex_);
       read_.items_.insert(read_.items_.cend(), writer_.items_.cbegin(), writer_.items_.cend());
       writer_.items_.clear();
+      read_.server_callbacks_.insert(read_.server_callbacks_.cend(), writer_.server_callbacks_.cbegin(),
+                                     writer_.server_callbacks_.cend());
+      writer_.server_callbacks_.clear();
     }
     return read_;
   }
 
   /** Include the specified @p socket on all subsequent calls to pollitems. */
-  void AddPollItem(zmq::socket_t *socket) {
+
+  /**
+   * Add a new socket to all subsequent calls to GetPollItems().
+   * @param socket      The socket to be added.
+   * @param callback    The callback to be invoked on the socket when it receives a message.
+   *                    If nullptr, the default messenger server loop will be used to process the message.
+   */
+  void AddPollItem(zmq::socket_t *socket, common::ManagedPointer<CallbackFn> callback) {
     zmq::pollitem_t pollitem;
     pollitem.socket = socket->operator void *();  // Poll on this raw socket.
     pollitem.events = ZMQ_POLLIN;                 // Event: at least one message can be received on the socket.
     {
       std::scoped_lock lock(mutex_);
       writer_.items_.emplace_back(pollitem);
+      writer_.server_callbacks_.emplace_back(callback);
     }
   }
 
@@ -220,6 +233,12 @@ namespace noisepage {
  * If perf indicates that these functions are a bottleneck, switch to the zero-copy messages of ZeroMQ.
  */
 class ZmqUtil {
+ private:
+  /** @return True if there are more parts of the same multipart message to be received. */
+  static bool HasMoreMessagePartsToReceive(common::ManagedPointer<zmq::socket_t> socket) {
+    return socket->get(zmq::sockopt::rcvmore) > 0;
+  }
+
  public:
   /** ZmqUtil is a static utility class that should not be instantiated. */
   ZmqUtil() = delete;
@@ -251,7 +270,9 @@ class ZmqUtil {
    */
   static messenger::ZmqMessage RecvMsg(common::ManagedPointer<zmq::socket_t> socket) {
     std::string identity = Recv(socket, zmq::recv_flags::none);
+    NOISEPAGE_ASSERT(HasMoreMessagePartsToReceive(socket), "Bad multipart message.");
     std::string delimiter = Recv(socket, zmq::recv_flags::none);
+    NOISEPAGE_ASSERT(HasMoreMessagePartsToReceive(socket), "Bad multipart message.");
     std::string payload = Recv(socket, zmq::recv_flags::none);
 
     return messenger::ZmqMessage::Parse(identity, payload);
@@ -303,10 +324,25 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
   MESSENGER_LOG_TRACE(fmt::format("[PID={}] Connected to {} ({}) as {}.", ::getpid(), target_name_,
                                   target.GetDestination(), routing_id_.c_str()));
   // Add the new socket to the list of sockets that will be polled by the server loop.
-  messenger->polled_sockets_->AddPollItem(socket_.get());
+  messenger->polled_sockets_->AddPollItem(socket_.get(), nullptr);
 }
 
 ConnectionId::~ConnectionId() = default;
+
+ConnectionRouter::ConnectionRouter(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
+                                   const std::string &identity, CallbackFn callback)
+    : callback_(callback), identity_(identity) {
+  // See how zmq_default_socket_ is instantiated for an explanation of these options.
+  socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_ROUTER);
+  socket_->set(zmq::sockopt::router_mandatory, true);
+  socket_->set(zmq::sockopt::routing_id, identity.c_str());
+  socket_->bind(target.GetDestination());
+  MESSENGER_LOG_INFO(
+      fmt::format("[PID={}] Messenger ({}) listening: {}", ::getpid(), identity, target.GetDestination()));
+  messenger->polled_sockets_->AddPollItem(socket_.get(), common::ManagedPointer(&callback_));
+}
+
+ConnectionRouter::~ConnectionRouter() = default;
 
 ConnectionDestination Messenger::GetEndpointTCP(std::string target_name, const uint16_t port) {
   return ConnectionDestination::MakeTCP(std::move(target_name), MESSENGER_DEFAULT_TCP, port);
@@ -360,7 +396,7 @@ Messenger::Messenger(const uint16_t port, std::string identity) : port_(port), i
   }
 
   polled_sockets_ = std::make_unique<MessengerPolledSockets>();
-  polled_sockets_->AddPollItem(zmq_default_socket_.get());
+  polled_sockets_->AddPollItem(zmq_default_socket_.get(), nullptr);
   is_messenger_running_ = true;
 }
 
@@ -382,8 +418,11 @@ void Messenger::Terminate() {
   MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger terminated.", ::getpid()));
 }
 
-void Messenger::ListenForConnection(const ConnectionDestination &target) {
-  zmq_default_socket_->bind(target.GetDestination());
+void Messenger::ListenForConnection(const ConnectionDestination &target, const std::string &identity,
+                                    CallbackFn callback) {
+  std::lock_guard lock(routers_add_mutex_);
+  // TODO(WAN): all this copying is stupid.
+  routers_to_be_added_.emplace_back(RouterToBeAdded{target, identity, callback});
 }
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
@@ -391,20 +430,15 @@ ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
 }
 
 void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message,
-                            CallbackFn fn, uint64_t recv_cb_id) {
+                            CallbackFn callback, uint64_t recv_cb_id) {
   // Note that a ConnectionId cannot be used from multiple threads. This is an inherent ZeroMQ limitation.
   // If you need another thread to connect to the same ConnectionDestination, just get a new ConnectionId.
   // This allows us to avoid taking latches around the socket that the ConnectionId wraps.
-
-  uint64_t send_msg_id = message_id_++;
-  // Check for wraparound.
-  if (0 == message_id_) {
-    message_id_ = static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
-  }
+  uint64_t send_msg_id = GetNextSendMessageId();
 
   // Register the callback that will be invoked when a response to this message is received.
   callbacks_mutex_.lock();
-  callbacks_[send_msg_id] = fn;
+  callbacks_[send_msg_id] = callback;
   callbacks_mutex_.unlock();
 
   // Build and send the message.
@@ -414,8 +448,54 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
       fmt::format("[PID={}] Messenger SENT-TO {}: {} ", ::getpid(), connection_id->target_name_, msg.GetRawPayload()));
 }
 
+void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, const std::string &recv_id,
+                            const std::string &message, CallbackFn callback, uint64_t recv_cb_id) {
+  uint64_t send_msg_id = GetNextSendMessageId();
+
+  // Register the callback that will be invoked when a response to this message is received.
+  callbacks_mutex_.lock();
+  callbacks_[send_msg_id] = callback;
+  callbacks_mutex_.unlock();
+
+  // Build and send the message. Note that ConnectionRouter is a ROUTER socket.
+  zmq::message_t router_data(recv_id.data(), recv_id.size());
+  if (router_id->socket_->send(router_data, zmq::send_flags::sndmore).has_value()) {
+    ZmqMessage reply = ZmqMessage::Build(send_msg_id, recv_cb_id, router_id->identity_, message);
+    ZmqUtil::SendMsgIdentity(common::ManagedPointer(router_id->socket_.get()), router_id->identity_);
+    ZmqUtil::SendMsgPayload(common::ManagedPointer(router_id->socket_.get()), reply);
+    MESSENGER_LOG_TRACE(fmt::format("[PID={}] Messenger ({}) SENT-TO {}: {} ", ::getpid(), router_id->identity_,
+                                    recv_id, reply.GetRawPayload()));
+  }
+}
+
+common::ManagedPointer<ConnectionRouter> Messenger::GetConnectionRouter(const std::string &router_id) {
+  return common::ManagedPointer(routers_.at(router_id).get());
+}
+
+uint64_t Messenger::GetNextSendMessageId() {
+  uint64_t send_msg_id = message_id_++;
+  // Check for wraparound.
+  if (0 == message_id_) {
+    message_id_ = static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
+    MESSENGER_LOG_INFO("[PID={}] Messenger: Message ID wrapped around!");
+  }
+  return send_msg_id;
+}
+
 void Messenger::ServerLoop() {
   while (is_messenger_running_) {
+    // Add any new routers that need to be added.
+    {
+      std::lock_guard lock(routers_add_mutex_);
+      for (auto &item : routers_to_be_added_) {
+        // TODO(WAN): I think I am missing something very obvious on how to handle this. The types involved suck.
+        auto router = std::make_unique<ConnectionRouter>(common::ManagedPointer(this), item.target_, item.identity_,
+                                                         item.callback_);
+        routers_.try_emplace(item.identity_, std::move(router));
+      }
+      routers_to_be_added_.clear();
+    }
+
     // Get the latest set of poll items.
     auto poll_items = polled_sockets_->GetPollItems();
     // Poll on the current set of poll items.
@@ -431,8 +511,16 @@ void Messenger::ServerLoop() {
       if (socket_has_data) {
         common::ManagedPointer<zmq::socket_t> socket(reinterpret_cast<zmq::socket_t *>(&item.socket));
         ZmqMessage msg = ZmqUtil::RecvMsg(socket);
-        MESSENGER_LOG_TRACE("[PID={}] Messenger RECV-FR {}: {}", ::getpid(), msg.GetRoutingId(), msg.GetRawPayload());
-        ProcessMessage(msg);
+        bool has_custom_serverloop = poll_items.server_callbacks_[i] != nullptr;
+        MESSENGER_LOG_TRACE("[PID={}] Messenger RECV-FR {} (custom serverloop: {}): {}", ::getpid(), msg.GetRoutingId(),
+                            has_custom_serverloop, msg.GetRawPayload());
+        if (!has_custom_serverloop) {
+          ProcessMessage(msg);
+        } else {
+          auto &server_callback = poll_items.server_callbacks_[i];
+          (*server_callback)(common::ManagedPointer(this), msg.GetRoutingId(), msg.GetMessage(),
+                             msg.GetMessageIdSender());
+        }
         --num_sockets_with_data;
       }
     }
@@ -466,7 +554,7 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
       // Default: there should be a stored callback.
       MESSENGER_LOG_TRACE(fmt::format("Callback: invoking stored callback {}", recv_cb_id));
       auto &callback = callbacks_.at(recv_cb_id);
-      callback(msg.GetRoutingId(), msg.GetMessage());
+      callback(common::ManagedPointer(this), msg.GetRoutingId(), msg.GetMessage(), msg.GetMessageIdSender());
       callbacks_.erase(recv_cb_id);
     }
   }

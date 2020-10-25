@@ -116,7 +116,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
     primary->GetNetworkLayer()->GetServer()->RunServer();
 
-    while (!done[1]) {
+    while (!(done[1] && done[2])) {
     }
 
     MESSENGER_LOG_TRACE("Primary done.");
@@ -139,7 +139,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "potato",
-          [&reply_primary_potato](std::string_view sender_id, std::string_view message) {
+          [&reply_primary_potato](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
+                                  std::string_view message, uint64_t recv_cb_id) {
             MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
             EXPECT_EQ("potato", message);
             reply_primary_potato = true;
@@ -152,7 +153,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "tomato",
-          [&reply_primary_tomato](std::string_view sender_id, std::string_view message) {
+          [&reply_primary_tomato](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
+                                  std::string_view message, uint64_t recv_cb_id) {
             MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
             EXPECT_EQ("tomato", message);
             reply_primary_tomato = true;
@@ -183,7 +185,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "elephant",
-          [&reply_primary_elephant](std::string_view sender_id, std::string_view message) {
+          [&reply_primary_elephant](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
+                                    std::string_view message, uint64_t recv_cb_id) {
             MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
             EXPECT_EQ("elephant", message);
             reply_primary_elephant = true;
@@ -196,7 +199,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
     {
       messenger->SendMessage(
           common::ManagedPointer(&con_primary), "correct HORSE battery staple",
-          [&reply_primary_chbs](std::string_view sender_id, std::string_view message) {
+          [&reply_primary_chbs](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
+                                std::string_view message, uint64_t recv_cb_id) {
             MESSENGER_LOG_TRACE(fmt::format("Replica 2 received from {}: {}", sender_id, message));
             EXPECT_EQ("correct HORSE battery staple", message);
             reply_primary_chbs = true;
@@ -220,6 +224,106 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   }
 
   UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
+  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
+}
+
+// NOLINTNEXTLINE
+TEST_F(MessengerTests, BasicListenTest) {
+  messenger_logger->set_level(spdlog::level::trace);
+
+  uint16_t port_primary = 15721;
+  uint16_t port_replica1 = 15722;
+
+  uint16_t port_messenger_primary = 9022;
+  uint16_t port_messenger_replica1 = port_messenger_primary + 1;
+
+  uint16_t port_listen = 8030;
+
+  volatile bool *done = static_cast<volatile bool *>(
+      mmap(nullptr, 2 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
+
+  done[0] = false;
+  done[1] = false;
+
+  auto spin_until_done = [done]() {
+    while (!(done[0] && done[1])) {
+    }
+  };
+
+  VoidFn primary_fn = [=]() {
+    auto primary = BuildDBMain(port_primary, port_messenger_primary, "primary");
+    primary->GetNetworkLayer()->GetServer()->RunServer();
+
+    ConnectionDestination dest_listen = Messenger::GetEndpointIPC("listen", port_listen);
+    primary->GetMessengerLayer()->GetMessenger()->ListenForConnection(
+        dest_listen, "listen",
+        [](common::ManagedPointer<Messenger> messenger, std::string_view sender_id, std::string_view message,
+           uint64_t recv_cb_id) {
+          MESSENGER_LOG_TRACE("Messenger (listen) received from {}: {} {}", sender_id, message,
+                              message.compare("KILLME") == 0);
+          if (message.compare("KILLME") == 0) {
+            messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(sender_id), "QUIT",
+                                   CallbackFnNoop, recv_cb_id);
+          }
+        });
+
+    while (!done[1]) {
+    }
+
+    MESSENGER_LOG_TRACE("Primary done.");
+    done[0] = true;
+    spin_until_done();
+    MESSENGER_LOG_TRACE("Primary exit.");
+  };
+
+  VoidFn replica1_fn = [=]() {
+    auto replica1 = BuildDBMain(port_replica1, port_messenger_replica1, "replica1");
+    replica1->GetNetworkLayer()->GetServer()->RunServer();
+
+    // Set up a connection to the primary via the listen endpoint.
+    auto messenger = replica1->GetMessengerLayer()->GetMessenger();
+    ConnectionDestination dest_listen = Messenger::GetEndpointIPC("listen", port_listen);
+    auto con_primary = messenger->MakeConnection(dest_listen);
+
+    // Send "replica1" to the primary to let them know who we are.
+    messenger->SendMessage(common::ManagedPointer(&con_primary), "replica1", CallbackFnNoop,
+                           static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
+
+    // Send "KILLME" to the primary and expect "QUIT" as a reply.
+    volatile bool reply_primary_quit = false;
+    {
+      messenger->SendMessage(
+          common::ManagedPointer(&con_primary), "KILLME",
+          [&reply_primary_quit](common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
+                                std::string_view message, uint64_t recv_cb_id) {
+            MESSENGER_LOG_TRACE(fmt::format("Replica 1 received from {}: {}", sender_id, message));
+            EXPECT_EQ("QUIT", message);
+            reply_primary_quit = true;
+          },
+          static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
+    }
+
+    while (!reply_primary_quit) {
+    }
+
+    // Send "BYE" to the primary to let them know we're going.
+    messenger->SendMessage(common::ManagedPointer(&con_primary), "BYE", CallbackFnNoop,
+                           static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
+
+    MESSENGER_LOG_TRACE("Replica 1 done.");
+    done[1] = true;
+    spin_until_done();
+    MESSENGER_LOG_TRACE("Replica 1 exit.");
+  };
+
+  std::vector<pid_t> pids = ForkTests({primary_fn, replica1_fn});
+
+  // Spin until all done.
+  while (!(done[0] && done[1])) {
+  }
+
+  UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
   NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
 }
 
