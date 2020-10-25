@@ -19,7 +19,7 @@ class context_t;
 class socket_t;
 }  // namespace zmq
 
-namespace terrier::messenger {
+namespace noisepage::messenger {
 
 class ConnectionDestination;
 class Messenger;
@@ -183,4 +183,4 @@ class MessengerManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<Messenger> messenger_;
 };
 
-}  // namespace terrier::messenger
+}  // namespace noisepage::messenger

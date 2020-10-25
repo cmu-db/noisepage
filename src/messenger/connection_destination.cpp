@@ -2,7 +2,7 @@
 
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::messenger {
+namespace noisepage::messenger {
 
 ConnectionDestination ConnectionDestination::MakeTCP(std::string target_name, std::string_view hostname, int port) {
   return ConnectionDestination(std::move(target_name), fmt::format("tcp://{}:{}", hostname, port));
@@ -16,4 +16,4 @@ ConnectionDestination ConnectionDestination::MakeInProc(std::string target_name,
   return ConnectionDestination(std::move(target_name), fmt::format("inproc://{}", endpoint));
 }
 
-}  // namespace terrier::messenger
+}  // namespace noisepage::messenger

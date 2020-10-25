@@ -2,8 +2,8 @@
 
 #include <memory>
 
-namespace terrier::messenger {
-
+namespace noisepage::messenger {
+#ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> messenger_logger = nullptr;  // NOLINT
 
 void InitMessengerLogger() {
@@ -12,5 +12,5 @@ void InitMessengerLogger() {
     spdlog::register_logger(messenger_logger);
   }
 }
-
-}  // namespace terrier::messenger
+#endif
+}  // namespace noisepage::messenger

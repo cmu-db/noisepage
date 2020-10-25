@@ -379,7 +379,7 @@ macro(VARS_AFTER)
     endforeach ()
 endmacro()
 
-# Some libraries (cough Google Benchmark cough) just won't shut up, so this redefines the message function.
+# Some libraries just won't shut up, so this redefines the message function.
 set(MESSAGE_QUIET OFF)
 function(message)
     list(GET ARGV 0 MessageType)
@@ -389,13 +389,20 @@ function(message)
             MessageType STREQUAL WARNING OR
             MessageType STREQUAL AUTHOR_WARNING)
         list(GET ARGV 1 Message)
-        if (Message MATCHES ".*but CMAKE_THREAD_LIBS_INIT ended up being empty.*")
-            # SOME LIBRARIES (cough Google Benchmark cough) ...
-            # Official CMake documentation:
-            #   CMAKE_THREAD_LIBS_INIT
-            #       The thread library to use. This may be empty if the thread functions are provided by the system
-            #       libraries and no special flags are needed to use them.
-            # Therefore we're suppressing that specific warning message.
+
+        # Special-casing for messages to ignore.
+        set(IGNORED_MESSAGES
+                ""
+                # ZeroMQ has a bunch of warnings.
+                "No WSS support, you may want to install GnuTLS and run cmake again"
+                "The package name passed to `find_package_handle_standard_args` ;(sodium) does not match the name of the calling package ;(Sodium).  This can lead to problems in calling ;code that expects `find_package` result variables (e.g., `_FOUND`) ;to follow a certain pattern."
+                "Test 'test_bind_stream_fuzzer' is not known to CTest."
+                "Test 'test_bind_ws_fuzzer' is not known to CTest."
+                "Test 'test_connect_stream_fuzzer' is not known to CTest."
+                "Test 'test_connect_ws_fuzzer' is not known to CTest."
+                "Test 'test_socket_options_fuzzer' is not known to CTest."
+                )
+        if (Message IN_LIST IGNORED_MESSAGES)
             return()
         endif ()
 
@@ -516,6 +523,7 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
+add_noisepage_dep(zmq https://github.com/zeromq/libzmq v4.3.3)
 
 # Handle other dependencies.
 
@@ -612,6 +620,7 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         count
         gflags
         ips4o::ips4o
+        libzmq
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
@@ -877,6 +886,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/common/*.cpp"
         "test/execution/*.cpp"
         "test/integration/*.cpp"
+        "test/messenger/*.cpp"
         "test/metrics/*.cpp"
         "test/network/*.cpp"
         "test/optimizer/*.cpp"

@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-namespace terrier::messenger {
+namespace noisepage::messenger {
 
 /**
  * ConnectionDestination abstracts over the different types of connections that the messenger system can make.
@@ -67,4 +67,4 @@ class ConnectionDestination {
   const std::string zmq_address_;
 };
 
-}  // namespace terrier::messenger
+}  // namespace noisepage::messenger

@@ -90,7 +90,7 @@
  *
  */
 
-namespace terrier::messenger {
+namespace noisepage::messenger {
 
 /** An abstraction around ZeroMQ messages which explicitly have the sender specified. */
 class ZmqMessage {
@@ -145,7 +145,7 @@ class ZmqMessage {
     } else {
       // TODO(WAN): atoi, stoull, from_chars, etc? Error checking in general.
       UNUSED_ATTRIBUTE int check = std::sscanf(payload_.c_str(), "%lu-%lu-", &send_msg_id_, &recv_cb_id_);
-      TERRIER_ASSERT(2 == check, "Couldn't parse the message header.");
+      NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
       message_.remove_prefix(message_.find_last_of('-') + 1);
     }
   }
@@ -211,9 +211,9 @@ class MessengerPolledSockets {
   std::mutex mutex_;
 };
 
-}  // namespace terrier::messenger
+}  // namespace noisepage::messenger
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Useful ZeroMQ utility functions implemented in a naive manner. Most functions have wasteful copies.
@@ -288,9 +288,9 @@ class ZmqUtil {
   }
 };
 
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::messenger {
+namespace noisepage::messenger {
 
 ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                            const std::string &identity)
@@ -462,7 +462,7 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
       break;
     }
     default: {
-      TERRIER_ASSERT(recv_cb_id > static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS), "Bad message ID.");
+      NOISEPAGE_ASSERT(recv_cb_id > static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS), "Bad message ID.");
       // Default: there should be a stored callback.
       MESSENGER_LOG_TRACE(fmt::format("Callback: invoking stored callback {}", recv_cb_id));
       auto &callback = callbacks_.at(recv_cb_id);
@@ -477,4 +477,4 @@ MessengerManager::MessengerManager(const common::ManagedPointer<common::Dedicate
     : DedicatedThreadOwner(thread_registry),
       messenger_(thread_registry_->RegisterDedicatedThread<Messenger>(this, port, identity)) {}
 
-}  // namespace terrier::messenger
+}  // namespace noisepage::messenger

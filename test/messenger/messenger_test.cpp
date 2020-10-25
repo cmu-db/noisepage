@@ -11,7 +11,7 @@
 #include "messenger/connection_destination.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::messenger {
+namespace noisepage::messenger {
 
 class MessengerTests : public TerrierTest {
  protected:
@@ -48,7 +48,7 @@ class MessengerTests : public TerrierTest {
         }
         default: {
           // Parent process. Continues to fork.
-          TERRIER_ASSERT(pid > 0, "Parent's kid has a bad pid.");
+          NOISEPAGE_ASSERT(pid > 0, "Parent's kid has a bad pid.");
           pids.emplace_back(pid);
         }
       }
@@ -61,9 +61,9 @@ class MessengerTests : public TerrierTest {
   static std::unique_ptr<DBMain> BuildDBMain(uint16_t network_port, uint16_t messenger_port,
                                              const std::string &messenger_identity) {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+    noisepage::settings::SettingsManager::ConstructParamMap(param_map);
 
-    auto db_main = terrier::DBMain::Builder()
+    auto db_main = noisepage::DBMain::Builder()
                        .SetSettingsParameterMap(std::move(param_map))
                        .SetUseSettingsManager(true)
                        .SetUseGC(true)
@@ -101,7 +101,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   // done[0] : primary, done[1] : replica1, done[2] : replica2.
   volatile bool *done = static_cast<volatile bool *>(
       mmap(nullptr, 3 * sizeof(bool), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
-  TERRIER_ASSERT(MAP_FAILED != done, "mmap() failed.");
+  NOISEPAGE_ASSERT(MAP_FAILED != done, "mmap() failed.");
 
   done[0] = false;
   done[1] = false;
@@ -220,7 +220,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   }
 
   UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
-  TERRIER_ASSERT(-1 != munmap_retval, "munmap() failed.");
+  NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
 }
 
-}  // namespace terrier::messenger
+}  // namespace noisepage::messenger
