@@ -3,7 +3,7 @@
 #include "execution/sql/operators/like_operators.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class LikeOperatorsTests : public TplTest {};
 
@@ -80,4 +80,4 @@ TEST_F(LikeOperatorsTests, MultiCharacter_Wildcard) {
   EXPECT_TRUE(Like{}(storage::VarlenEntry::Create(s), storage::VarlenEntry::Create(p)));  // NOLINT
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

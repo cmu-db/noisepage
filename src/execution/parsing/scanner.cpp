@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 Scanner::Scanner(const std::string &source) : Scanner(source.data(), source.length()) {}
 
@@ -412,4 +412,4 @@ Token::Type Scanner::ScanString() {
   }
 }
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

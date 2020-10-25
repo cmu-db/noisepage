@@ -7,7 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t AbstractScanPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -73,4 +73,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractScanPlanNode::F
   return exprs;
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

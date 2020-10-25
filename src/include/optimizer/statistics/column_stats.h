@@ -7,7 +7,7 @@
 #include "common/json_header.h"
 #include "common/macros.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 /**
  * Represents the statistics of a given column. Stores relevant oids,
  * important trends (most common values/their frequencies in the column), and other
@@ -153,4 +153,4 @@ class ColumnStats {
   bool is_base_table_;
 };
 DEFINE_JSON_HEADER_DECLARATIONS(ColumnStats);
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

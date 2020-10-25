@@ -16,7 +16,7 @@
 #include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
-namespace terrier {
+namespace noisepage {
 void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::AggregateExpression> expr) {
   expr->AcceptChildren(common::ManagedPointer(this));
 }
@@ -63,4 +63,4 @@ void binder::SqlNodeVisitor::Visit(common::ManagedPointer<parser::TypeCastExpres
   expr->AcceptChildren(common::ManagedPointer(this));
 }
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -9,7 +9,7 @@
 #include "common/managed_pointer.h"
 #include "optimizer/statistics/column_stats.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 /**
  * Represents the statistics of a given table. Stores relevant oids and
  * other important information, as well as a list of all the ColumnStats objects for
@@ -140,4 +140,4 @@ class TableStats {
   std::unordered_map<catalog::col_oid_t, std::unique_ptr<ColumnStats>> column_stats_;
 };
 DEFINE_JSON_HEADER_DECLARATIONS(TableStats);
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

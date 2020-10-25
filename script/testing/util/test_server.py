@@ -84,7 +84,7 @@ class TestServer:
 
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
-            # Kill any other terrier processes that our listening on our target port
+            # Kill any other noisepage processes that our listening on our target port
 
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)

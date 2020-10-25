@@ -21,7 +21,7 @@
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink = nullptr;  // NOLINT
 #endif
 
-namespace terrier {
+namespace noisepage {
 void LoggersUtil::Initialize() {
 #ifdef NOISEPAGE_USE_LOGGING
   try {
@@ -62,4 +62,4 @@ void LoggersUtil::ShutDown() {
   }
 #endif
 }
-}  // namespace terrier
+}  // namespace noisepage

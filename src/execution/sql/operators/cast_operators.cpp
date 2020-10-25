@@ -2,7 +2,7 @@
 
 #include "execution/util/fast_double_parser.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 bool TryCast<storage::VarlenEntry, float>::operator()(const storage::VarlenEntry &input, float *output) const {
   double double_output;
@@ -17,4 +17,4 @@ bool TryCast<storage::VarlenEntry, double>::operator()(const storage::VarlenEntr
   return util::FastDoubleParser::ParseNumber(buf, output);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

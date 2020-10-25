@@ -1,7 +1,7 @@
 #include "network/postgres/postgres_command_factory.h"
 
 #include <memory>
-namespace terrier::network {
+namespace noisepage::network {
 
 std::unique_ptr<PostgresNetworkCommand> PostgresCommandFactory::PacketToCommand(
     const common::ManagedPointer<InputPacket> packet) {
@@ -27,4 +27,4 @@ std::unique_ptr<PostgresNetworkCommand> PostgresCommandFactory::PacketToCommand(
   }
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

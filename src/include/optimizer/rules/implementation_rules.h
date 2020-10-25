@@ -6,7 +6,7 @@
 #include "catalog/index_schema.h"
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Rule transforms Logical Scan -> Sequential Scan
@@ -952,4 +952,4 @@ class LogicalAnalyzeToPhysicalAnalyze : public Rule {
                  OptimizationContext *context) const override;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

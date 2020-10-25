@@ -8,7 +8,7 @@
 #include "common/json.h"
 #include "parser/parser_defs.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t CreateNamespacePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -44,4 +44,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateNamespacePlanNode
 
 DEFINE_JSON_BODY_DECLARATIONS(CreateNamespacePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -4,7 +4,7 @@
 #include "execution/sql/value.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t num_attrs, uint32_t table_oid,
                              uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids)
@@ -16,7 +16,7 @@ IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t num_attr
 
 void IndexIterator::Init() {
   // Initialize projected rows for the index and the table
-  TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
+  NOISEPAGE_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
   // Table's PR
   auto table_pri = table_->InitializerForProjectedRow(col_oids_);
   table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), alignof(uint64_t), false);
@@ -78,4 +78,4 @@ IndexIterator::~IndexIterator() {
   exec_ctx_->GetMemoryPool()->Deallocate(index_buffer_, index_pr_->Size());
   exec_ctx_->GetMemoryPool()->Deallocate(hi_index_buffer_, hi_index_pr_->Size());
 }
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

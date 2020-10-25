@@ -11,7 +11,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A task queue is a FIFO list of functions that we will execute.
@@ -60,7 +60,7 @@ class WorkerPool {
    * workers will be put into sleep.
    */
   void Startup() {
-    TERRIER_ASSERT(!is_running_, "Trying to start a WorkerPool that is already running");
+    NOISEPAGE_ASSERT(!is_running_, "Trying to start a WorkerPool that is already running");
     {
       std::lock_guard lock(task_lock_);
       is_running_ = true;
@@ -99,7 +99,7 @@ class WorkerPool {
    */
   template <typename F>
   void SubmitTask(const F &func) {
-    TERRIER_ASSERT(is_running_, "Only allow to submit task after the thread pool has been started up");
+    NOISEPAGE_ASSERT(is_running_, "Only allow to submit task after the thread pool has been started up");
     {
       std::lock_guard<std::mutex> lock(task_lock_);
       task_queue_.emplace(std::move(func));
@@ -132,7 +132,7 @@ class WorkerPool {
    * @param num the number of worker threads.
    */
   void SetNumWorkers(uint32_t num) {
-    TERRIER_ASSERT(!is_running_, "Only allow to set num of workers when the thread pool is not running");
+    NOISEPAGE_ASSERT(!is_running_, "Only allow to set num of workers when the thread pool is not running");
     num_workers_ = num;
   }
 
@@ -187,4 +187,4 @@ class WorkerPool {
     });
   }
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

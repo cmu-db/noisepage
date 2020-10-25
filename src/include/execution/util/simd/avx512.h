@@ -6,7 +6,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/simd/types.h"
 
-namespace terrier::execution::util::simd {
+namespace noisepage::execution::util::simd {
 
 #define USE_GATHER 1
 
@@ -208,7 +208,7 @@ class Vec8 : public Vec512b {
    * @return the element at the given index
    */
   int64_t Extract(uint32_t index) const {
-    TERRIER_ASSERT(index < 8, "Out-of-bounds mask element access");
+    NOISEPAGE_ASSERT(index < 8, "Out-of-bounds mask element access");
     alignas(64) int64_t x[Size()];
     Store(x);
     return x[index & 7];
@@ -1042,4 +1042,4 @@ static inline uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RES
   return out_pos;
 }
 
-}  // namespace terrier::execution::util::simd
+}  // namespace noisepage::execution::util::simd

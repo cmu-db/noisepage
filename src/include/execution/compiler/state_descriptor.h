@@ -9,7 +9,7 @@
 #include "execution/ast/ast_fwd.h"
 #include "execution/ast/identifier.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class CodeGen;
 
@@ -143,4 +143,4 @@ class StateDescriptor {
   ast::StructDecl *state_type_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

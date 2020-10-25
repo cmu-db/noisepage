@@ -570,7 +570,7 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
         )
 # Remove the main program from NoisePage sources.
-list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/noisepage.cpp)
 
 # Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
 # The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
@@ -625,13 +625,6 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${TBB_LIBRARIES_RELEASE}
         )
 
-# Dependencies are built in release because the debug versions have unacceptable performance for coverage builds.
-# An example is spdlog. spdlog is not added as a true dependency because the library name changes between
-# debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
-# Due to the different names, the build system (especially make) gets confused.
-# Therefore the dependencies are manually built here.
-add_custom_target(TARGET noisepage_objlib DEPENDS spdlog)
-
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
 add_library(noisepage_static STATIC $<TARGET_OBJECTS:noisepage_objlib>)     # Bundle up these objects into static lib.
 target_link_libraries(noisepage_static PUBLIC noisepage_objlib)             # Consumers will inherit this link.
@@ -641,6 +634,13 @@ target_compile_options(noisepage_static PUBLIC      # PUBLIC: all consumers of t
 target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         "-fvisibility=hidden"                       # Hide symbols by default.
         )
+
+# Dependencies are built in release because the debug versions have unacceptable performance for coverage builds.
+# An example is spdlog. spdlog is not added as a true dependency because the library name changes between
+# debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
+# Due to the different names, the build system (especially make) gets confused.
+# Therefore the dependencies are manually built here.
+add_custom_command(TARGET noisepage_static DEPENDS spdlog)
 
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)   # Bundle up these objects into shared lib.
@@ -652,7 +652,7 @@ endif ()
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
-add_executable(noisepage src/main/terrier.cpp)
+add_executable(noisepage src/main/noisepage.cpp)
 target_compile_options(noisepage PRIVATE "-Werror" "-Wall")
 target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -1285,11 +1285,27 @@ else ()
             -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
             USES_TERMINAL
             )
-    if (TERRIER_BUILD_BENCHMARKS)
-        add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
-    elseif (TERRIER_BUILD_TESTS)
-        add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
-    endif ()
+    add_custom_command(TARGET check-clang-tidy DEPENDS benchmark gflags gtest)
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)
+
+#######################################################################################################################
+# Apply +x permissions to all scripts in the build-support folder.
+#######################################################################################################################
+
+# CLion's remote toolchain functionality seems to lose the +x permissions when the files are rsync'd to the remote box.
+# This creates a list of the executable scripts in the build-support folder and applies +x to them to ensure building
+# dependent CMake targets doesn't fail.
+
+file(GLOB_RECURSE
+        BUILD_SUPPORT_SCRIPTS
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/build-support/*.pl
+        ${PROJECT_SOURCE_DIR}/build-support/*.py
+        ${PROJECT_SOURCE_DIR}/build-support/*.sh
+        )
+
+foreach (_var IN LISTS BUILD_SUPPORT_SCRIPTS)
+    execute_process(COMMAND chmod +x "${_var}")
+endforeach ()

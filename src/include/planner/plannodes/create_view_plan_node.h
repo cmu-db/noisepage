@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for creating views
@@ -155,4 +155,4 @@ class CreateViewPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CreateViewPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

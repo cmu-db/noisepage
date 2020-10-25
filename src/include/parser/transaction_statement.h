@@ -3,7 +3,7 @@
 #include "binder/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * @class TransactionStatement
@@ -36,4 +36,4 @@ class TransactionStatement : public SQLStatement {
   const CommandType type_;
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

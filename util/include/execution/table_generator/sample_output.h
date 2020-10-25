@@ -7,7 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 /**
  * Used by the tpl executable to retrieve hard-coded test output schemas.
  */
@@ -143,4 +143,4 @@ class SampleOutput {
 
   std::unordered_map<std::string, planner::OutputSchema> schemas_;
 };
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

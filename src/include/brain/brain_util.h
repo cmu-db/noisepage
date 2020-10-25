@@ -4,7 +4,7 @@
 
 #include "brain/brain_defs.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * Utility class for helper functions
@@ -18,4 +18,4 @@ class BrainUtil {
   static std::string ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f);
 };
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

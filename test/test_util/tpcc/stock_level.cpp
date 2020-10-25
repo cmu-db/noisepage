@@ -3,12 +3,12 @@
 #include <unordered_map>
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // 2.8.2
 bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
                          const TransactionArgs &args) const {
-  TERRIER_ASSERT(args.type_ == TransactionType::StockLevel, "Wrong transaction type.");
+  NOISEPAGE_ASSERT(args.type_ == TransactionType::StockLevel, "Wrong transaction type.");
   // ARGS: W_ID, D_ID, S_QUANTITY_THRESHOLD
 
   auto *const txn = txn_manager->BeginTransaction();
@@ -23,15 +23,15 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
 
   index_scan_results.clear();
   db->district_primary_index_->ScanKey(*txn, *district_key, &index_scan_results);
-  TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
+  NOISEPAGE_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
   auto *district_select_tuple = district_select_pr_initializer_.InitializeRow(worker->district_tuple_buffer_);
   bool select_result UNUSED_ATTRIBUTE =
       db->district_table_->Select(common::ManagedPointer(txn), index_scan_results[0], district_select_tuple);
-  TERRIER_ASSERT(select_result, "District should be present.");
+  NOISEPAGE_ASSERT(select_result, "District should be present.");
 
   const auto d_next_o_id = *reinterpret_cast<int32_t *>(district_select_tuple->AccessWithNullCheck(0));
-  TERRIER_ASSERT(d_next_o_id >= 3001, "Invalid d_next_o_id read from the District table.");
+  NOISEPAGE_ASSERT(d_next_o_id >= 3001, "Invalid d_next_o_id read from the District table.");
 
   // Select all matching OL_W_ID and OL_D_ID and OL_O_ID in range [D_NEXT_O_ID - 20, D_NEXT_OID)
   const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
@@ -51,8 +51,8 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   index_scan_results.clear();
   db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_key_lo,
                                                order_line_key_hi, 0, &index_scan_results);
-  TERRIER_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
-                 "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
+  NOISEPAGE_ASSERT(index_scan_results.size() >= 100 && index_scan_results.size() <= 300,
+                   "ol_number can be between 5 and 15, and we're looking up 20 previous orders.");
 
   // Select matching S_I_ID and S_W_ID with S_QUANTITY lower than threshold.
   // Aggregate quantity counts, report number of items with count < threshold.
@@ -63,9 +63,9 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
         order_line_select_pr_initializer_.InitializeRow(worker->order_line_tuple_buffer_);
     select_result =
         db->order_line_table_->Select(common::ManagedPointer(txn), order_line_tuple_slot, order_line_select_tuple);
-    TERRIER_ASSERT(select_result, "Order line index contained this.");
+    NOISEPAGE_ASSERT(select_result, "Order line index contained this.");
     const auto ol_i_id = *reinterpret_cast<int32_t *>(order_line_select_tuple->AccessForceNotNull(0));
-    TERRIER_ASSERT(ol_i_id >= 1 && ol_i_id <= 100000, "Invalid ol_i_id read from the Order Line table.");
+    NOISEPAGE_ASSERT(ol_i_id >= 1 && ol_i_id <= 100000, "Invalid ol_i_id read from the Order Line table.");
 
     if (item_counts.count(ol_i_id) > 0) continue;  // don't look up items we've already checked
 
@@ -77,14 +77,14 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
     std::vector<storage::TupleSlot> stock_index_scan_results;
     stock_index_scan_results.clear();
     db->stock_primary_index_->ScanKey(*txn, *stock_key, &stock_index_scan_results);
-    TERRIER_ASSERT(stock_index_scan_results.size() == 1, "Couldn't find a matching stock item.");
+    NOISEPAGE_ASSERT(stock_index_scan_results.size() == 1, "Couldn't find a matching stock item.");
 
     auto *const stock_select_tuple = stock_select_pr_initializer_.InitializeRow(worker->stock_tuple_buffer_);
     select_result =
         db->stock_table_->Select(common::ManagedPointer(txn), stock_index_scan_results[0], stock_select_tuple);
-    TERRIER_ASSERT(select_result, "Stock index contained this.");
+    NOISEPAGE_ASSERT(select_result, "Stock index contained this.");
     const auto s_quantity = *reinterpret_cast<int16_t *>(stock_select_tuple->AccessForceNotNull(0));
-    TERRIER_ASSERT(s_quantity >= 10 && s_quantity <= 100, "Invalid s_quantity read from the Stock table.");
+    NOISEPAGE_ASSERT(s_quantity >= 10 && s_quantity <= 100, "Invalid s_quantity read from the Stock table.");
 
     item_counts[ol_i_id] = s_quantity;
   }
@@ -98,4 +98,4 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
   return true;
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

@@ -5,11 +5,11 @@
 
 #include "network/connection_handle.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 class TrafficCop;
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionHandlerTask;
 class ProtocolInterpreter;
@@ -51,4 +51,4 @@ class ConnectionHandleFactory {
   std::unordered_map<int, ConnectionHandle> reusable_handles_;
   common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

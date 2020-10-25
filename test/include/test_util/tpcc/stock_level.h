@@ -11,7 +11,7 @@
 #include "test_util/tpcc/worker.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Stock-Level transaction according to section 2.8.2 of the specification
@@ -64,4 +64,4 @@ class StockLevel {
                const TransactionArgs &args) const;
 };
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

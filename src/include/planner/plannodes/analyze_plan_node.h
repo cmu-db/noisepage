@@ -9,7 +9,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * The plan node for ANALYZE
@@ -154,4 +154,4 @@ class AnalyzePlanNode : public AbstractPlanNode {
   std::vector<catalog::col_oid_t> column_oids_;
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Bitwise AND two elements.
@@ -56,4 +56,4 @@ struct BitwiseXor {
   constexpr T operator()(const T &a, const T &b) const noexcept { return a ^ b; }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -13,7 +13,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace sema {
 class Sema;
@@ -174,7 +174,7 @@ class AstNode : public util::RegionObject {
    */
   template <typename T>
   T *As() {
-    TERRIER_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
+    NOISEPAGE_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
     return reinterpret_cast<T *>(this);
   }
 
@@ -187,7 +187,7 @@ class AstNode : public util::RegionObject {
    */
   template <typename T>
   const T *As() const {
-    TERRIER_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
+    NOISEPAGE_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
     return reinterpret_cast<const T *>(this);
   }
 
@@ -832,7 +832,7 @@ class IfStmt : public Stmt {
   friend class sema::Sema;
 
   void SetCondition(Expr *cond) {
-    TERRIER_ASSERT(cond != nullptr, "Cannot set null condition");
+    NOISEPAGE_ASSERT(cond != nullptr, "Cannot set null condition");
     cond_ = cond;
   }
 
@@ -1024,12 +1024,12 @@ class BinaryOpExpr : public Expr {
   friend class sema::Sema;
 
   void SetLeft(Expr *left) {
-    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
+    NOISEPAGE_ASSERT(left != nullptr, "Left cannot be null!");
     left_ = left;
   }
 
   void SetRight(Expr *right) {
-    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
+    NOISEPAGE_ASSERT(right != nullptr, "Right cannot be null!");
     right_ = right;
   }
 
@@ -1110,7 +1110,7 @@ class CallExpr : public Expr {
   void SetCallKind(CallKind call_kind) { call_kind_ = call_kind; }
 
   void SetArgument(uint32_t arg_idx, Expr *expr) {
-    TERRIER_ASSERT(arg_idx < NumArgs(), "Out-of-bounds argument access");
+    NOISEPAGE_ASSERT(arg_idx < NumArgs(), "Out-of-bounds argument access");
     args_[arg_idx] = expr;
   }
 
@@ -1174,12 +1174,12 @@ class ComparisonOpExpr : public Expr {
   friend class sema::Sema;
 
   void SetLeft(Expr *left) {
-    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
+    NOISEPAGE_ASSERT(left != nullptr, "Left cannot be null!");
     left_ = left;
   }
 
   void SetRight(Expr *right) {
-    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
+    NOISEPAGE_ASSERT(right != nullptr, "Right cannot be null!");
     right_ = right;
   }
 
@@ -1507,7 +1507,7 @@ class LitExpr : public Expr {
    * @return The boolean literal value. No check to ensure expression is a boolean literal.
    */
   bool BoolVal() const {
-    TERRIER_ASSERT(IsBoolLitExpr(), "Literal is not a boolean value literal");
+    NOISEPAGE_ASSERT(IsBoolLitExpr(), "Literal is not a boolean value literal");
     return boolean_;
   }
 
@@ -1515,7 +1515,7 @@ class LitExpr : public Expr {
    * @return The raw string value. No check to ensure expression is a string.
    */
   Identifier StringVal() const {
-    TERRIER_ASSERT(IsStringLitExpr(), "Literal is not a string or identifier");
+    NOISEPAGE_ASSERT(IsStringLitExpr(), "Literal is not a string or identifier");
     return str_;
   }
 
@@ -1523,7 +1523,7 @@ class LitExpr : public Expr {
    * @return The integer value. No check to ensure expression is an integer.
    */
   int64_t Int64Val() const {
-    TERRIER_ASSERT(IsIntLitExpr(), "Literal is not an integer literal");
+    NOISEPAGE_ASSERT(IsIntLitExpr(), "Literal is not an integer literal");
     return int64_;
   }
 
@@ -1531,7 +1531,7 @@ class LitExpr : public Expr {
    * @return The floating point value. No check to ensure expression is a floating point value.
    */
   double Float64Val() const {
-    TERRIER_ASSERT(IsFloatLitExpr(), "Literal is not a floating point literal");
+    NOISEPAGE_ASSERT(IsFloatLitExpr(), "Literal is not a floating point literal");
     return float64_;
   }
 
@@ -1850,7 +1850,7 @@ class StructTypeRepr : public Expr {
    * @return The field at the provided index. No bounds checking is performed!
    */
   FieldDecl *GetFieldAt(uint32_t field_idx) const {
-    TERRIER_ASSERT(field_idx < fields_.size(), "Out-of-bounds field access");
+    NOISEPAGE_ASSERT(field_idx < fields_.size(), "Out-of-bounds field access");
     return fields_[field_idx];
   }
 
@@ -1869,4 +1869,4 @@ class StructTypeRepr : public Expr {
 };
 
 }  // namespace ast
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

@@ -8,7 +8,7 @@
 
 #include "common/error/error_code.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Use the macros below for generating exceptions.
@@ -216,4 +216,4 @@ class ParserException : public Exception {
   uint32_t GetCursorPos() const { return cursorpos_; }
 };
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -2,7 +2,7 @@
 
 #include "storage/block_compactor.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 void AccessObserver::ObserveGCInvocation() {
   gc_epoch_++;
   for (auto it = last_touched_.begin(), end = last_touched_.end(); it != end;) {
@@ -18,7 +18,8 @@ void AccessObserver::ObserveGCInvocation() {
 void AccessObserver::ObserveWrite(RawBlock *block) {
   // The compactor is only concerned with blocks that are already full. We assume that partially empty blocks are
   // always hot.
-  if (block->GetInsertHead() == block->data_table_->GetBlockLayout().NumSlots()) last_touched_[block] = gc_epoch_;
+  if (block->GetInsertHead() == block->data_table_->accessor_.GetBlockLayout().NumSlots())
+    last_touched_[block] = gc_epoch_;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

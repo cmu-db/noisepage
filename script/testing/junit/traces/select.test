@@ -805,6 +805,14 @@ DROP TABLE tab3;
 statement ok
 DROP TABLE tab4;
 
+# #1020 SELECT * TODO(WAN): no good way of testing exceptions being thrown right now
+
+# #1191 SELECT NULL
+query T
+SELECT NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
 # Fix #780
 statement ok
 CREATE TABLE t (a INT, aa INT);
@@ -817,9 +825,6 @@ INSERT INTO t VALUES (1,1), (2,2), (3,3), (4,4), (5,5);
 
 statement ok
 INSERT INTO tt VALUES (10,10), (20,20), (30,30), (40,40), (50,50);
-
-statement ok
-
 
 query II nosort
 SELECT * FROM t;
@@ -907,9 +912,6 @@ SELECT *, * FROM t, tt;
 ----
 200 values hashing to f63c5b706ef9235039ca4a62161936e9
 
-statement ok
-
-
 query II nosort
 SELECT t.* FROM t;
 ----
@@ -957,9 +959,6 @@ query IIII nosort
 SELECT ta.*, tb.* FROM t ta, tt tb;
 ----
 100 values hashing to fd753217f4567732025d25d3a856ea0b
-
-statement ok
-
 
 query II nosort
 SELECT t.* FROM t, tt;
@@ -1176,4 +1175,3 @@ SELECT tb.* FROM t, tt tb;
 40
 50
 50
-

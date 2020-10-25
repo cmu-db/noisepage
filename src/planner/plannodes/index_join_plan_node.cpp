@@ -6,7 +6,7 @@
 #include "common/hash_util.h"
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t IndexJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
 
@@ -38,4 +38,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> IndexJoinPlanNode::From
 
 DEFINE_JSON_BODY_DECLARATIONS(IndexJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

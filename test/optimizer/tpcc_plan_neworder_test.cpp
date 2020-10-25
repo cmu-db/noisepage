@@ -9,7 +9,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct TpccPlanNewOrderTests : public TpccPlanTest {};
 
@@ -212,4 +212,4 @@ TEST_F(TpccPlanNewOrderTests, InsertOrderLine) {
   OptimizeInsert(query, tbl_order_line_);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

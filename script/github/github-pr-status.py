@@ -44,7 +44,7 @@ LOG.setLevel(logging.INFO)
 ## ==============================================
 
 GITHUB_USER = 'cmu-db'
-GITHUB_REPO = 'terrier'
+GITHUB_REPO = 'noisepage'
 GITHUB_REPO_API_URL = "https://api.github.com/repos/%s/%s" % (GITHUB_USER, GITHUB_REPO)
 
 CACHE_FILEPATH = "/tmp/github-cache/%s.cache"

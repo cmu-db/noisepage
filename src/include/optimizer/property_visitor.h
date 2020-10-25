@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 // Forward Declaration
 class PropertySort;
@@ -22,4 +22,4 @@ class PropertyVisitor {
   virtual void Visit(const PropertySort *prop) = 0;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

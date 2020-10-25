@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  *  The plan node for dropping databases
  */
@@ -99,4 +99,4 @@ class DropDatabasePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropDatabasePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

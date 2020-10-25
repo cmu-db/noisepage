@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace terrier::binder {
+namespace noisepage::binder {
 #ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> binder_logger = nullptr;  // NOLINT
 
@@ -13,4 +13,4 @@ void InitBinderLogger() {
   }
 }
 #endif
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

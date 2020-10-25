@@ -16,7 +16,7 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Internal object for representing output columns of a plan node. This object is to be differentiated from
@@ -38,7 +38,7 @@ class OutputSchema {
      */
     Column(std::string name, const type::TypeId type, std::unique_ptr<parser::AbstractExpression> expr)
         : name_(std::move(name)), type_(type), expr_(std::move(expr)) {
-      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      NOISEPAGE_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
     /**
@@ -128,7 +128,7 @@ class OutputSchema {
    * @return description of the schema for a specific column
    */
   const Column &GetColumn(size_t col_id) const {
-    TERRIER_ASSERT(col_id < columns_.size(), "column id is out of bounds for this Schema");
+    NOISEPAGE_ASSERT(col_id < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[col_id];
   }
 
@@ -196,4 +196,4 @@ class OutputSchema {
 DEFINE_JSON_HEADER_DECLARATIONS(OutputSchema::Column);
 DEFINE_JSON_HEADER_DECLARATIONS(OutputSchema);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

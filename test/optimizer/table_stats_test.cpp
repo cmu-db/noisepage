@@ -6,7 +6,7 @@
 #include "gtest/gtest.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class TableStatsTests : public TerrierTest {
  protected:
   ColumnStats column_stats_obj_1_;
@@ -95,4 +95,4 @@ TEST_F(TableStatsTests, TableStatsJsonTest) {
   deserialized_table_stats_obj.FromJson(table_stats_obj_json);
   EXPECT_EQ(table_stats_obj_.GetNumRows(), deserialized_table_stats_obj.GetNumRows());
 }
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

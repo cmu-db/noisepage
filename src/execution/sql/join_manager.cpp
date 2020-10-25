@@ -7,7 +7,7 @@
 #include "loggers/execution_logger.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 JoinManager::JoinManager(const exec::ExecutionSettings &exec_settings, void *opaque_context)
     : filter_(exec_settings, true, opaque_context),
@@ -32,7 +32,7 @@ void JoinManager::InsertJoinStep(const JoinHashTable &table, const std::vector<u
 
 // Called during a single filter-join step.
 void JoinManager::PrepareSingleJoin(VectorProjection *input_batch, TupleIdList *tid_list, const uint32_t step_idx) {
-  TERRIER_ASSERT(step_idx < probes_.size(), "Out-of-bounds join index access");
+  NOISEPAGE_ASSERT(step_idx < probes_.size(), "Out-of-bounds join index access");
 
   // Filter the input first according to the current filter.
   input_batch->SetFilteredSelections(*tid_list);
@@ -107,7 +107,7 @@ bool JoinManager::Advance(const uint32_t idx) {
 }
 
 bool JoinManager::Next() {
-  TERRIER_ASSERT(curr_vpi_ != nullptr, "No input batch! Did you forget to call SetInputBatch()?");
+  NOISEPAGE_ASSERT(curr_vpi_ != nullptr, "No input batch! Did you forget to call SetInputBatch()?");
   // Reset the TID list for this round.
   auto input_batch = curr_vpi_->GetVectorProjection();
 
@@ -128,4 +128,4 @@ void JoinManager::GetOutputBatch(const HashTableEntry **matches[]) {
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
