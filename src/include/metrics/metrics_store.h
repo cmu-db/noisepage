@@ -22,7 +22,6 @@
 #include "metrics/pipeline_metric.h"
 #include "metrics/query_trace_metric.h"
 #include "metrics/transaction_metric.h"
-#include "parser/expression/constant_value_expression.h"
 
 namespace noisepage::metrics {
 
@@ -196,12 +195,12 @@ class MetricsStore {
    * @param query_id id of the query
    * @param timestamp time of the query execution
    */
-
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp, 
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
     query_trace_metric_->RecordQueryTrace(query_id, timestamp, param);
+  }
 
   /**
    * @param component metrics component to test

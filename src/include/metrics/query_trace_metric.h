@@ -4,12 +4,14 @@
 #include <chrono>  //NOLINT
 #include <fstream>
 #include <list>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "execution/exec_defs.h"
 #include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
+#include "execution/exec_defs.h"
 #include "metrics/abstract_metric.h"
 #include "metrics/metrics_util.h"
 #include "parser/expression/constant_value_expression.h"
@@ -56,7 +58,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
     }
     for (const auto &data : query_trace_) {
       query_trace_outfile << data.query_id_ << ", " << data.timestamp_ << ", " << data.param_string_ 
-          << ", " << data.param_string_ << ", ";
+          << ", " << data.type_string_ << ", ";
       query_trace_outfile << std::endl;
     }
     query_text_.clear();

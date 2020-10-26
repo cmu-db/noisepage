@@ -39,7 +39,7 @@ class Pilot {
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  void PerformPilotLogic();
+  // void PerformPilotLogic();
 
   std::unique_ptr<brain::WorkloadForecast> forecastor_;
 

@@ -251,39 +251,40 @@ std::string ConstantValueExpression::ToString() const {
 }
 
 ConstantValueExpression ConstantValueExpression::FromString(std::string val, uint64_t type_id) {
-  type::TypeId cve_type = static_cast<type::TypeId>(type_id);
+  const type::TypeId cve_type = static_cast<type::TypeId>(type_id);
 
   switch (cve_type) {
     case type::TypeId::BOOLEAN: {
-      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::BoolVal(std::stoi(val)));
+      return ConstantValueExpression(cve_type, execution::sql::BoolVal(std::stoi(val)));
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::Integer(std::stoi(val)));
+      return ConstantValueExpression(cve_type, execution::sql::Integer(std::stoi(val)));
     }
     case type::TypeId::DECIMAL: {
-      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::Real(std::stod(val)));
+      return ConstantValueExpression(cve_type, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
-      return ConstantValueExpression::ConstantValueExpression(cve_type, 
+      return ConstantValueExpression(cve_type, 
                                      execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(std::stoi(val))));
     }
     case type::TypeId::DATE: {
-      return ConstantValueExpression::ConstantValueExpression(cve_type, 
+      return ConstantValueExpression(cve_type, 
                                      execution::sql::DateVal(execution::sql::Date::FromNative(std::stoi(val))));
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::ValueUtil::CreateStringVal(val));
+      auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
+      return ConstantValueExpression(cve_type, string_val.first, std::move(string_val.second));
     }
     default:
       UNREACHABLE("Invalid TypeId.");
   }
 }
 
-std::string GetTypeAsString() const {
+std::string ConstantValueExpression::GetTypeAsString() const {
   type::TypeId retValType = GetReturnValueType();
   switch (retValType) {
     case type::TypeId::BOOLEAN: 

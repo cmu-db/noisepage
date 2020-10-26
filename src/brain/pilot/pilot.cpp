@@ -23,7 +23,7 @@ Pilot::Pilot() {
 
 void Pilot::LoadQueryTrace() {
   uint8_t NUM_COLS = 4;
-  std::ifstream myFile("/Users/jiaojie/myterrier/terrier/debug/test/query_trace.csv");
+  std::ifstream myFile("./query_trace.csv");
   // Make sure the file is open
   if(!myFile.is_open()) throw std::runtime_error("Could not open file");
   
@@ -102,7 +102,7 @@ void Pilot::LoadQueryTrace() {
 void Pilot::LoadQueryText() {
   uint8_t NUM_COLS = 3;
   // Create an input filestream
-  std::ifstream myFile("/Users/jiaojie/myterrier/terrier/debug/test/query_text.csv");
+  std::ifstream myFile("./query_text.csv");
   // Make sure the file is open
   if(!myFile.is_open()) throw std::runtime_error("Could not open file");
   
