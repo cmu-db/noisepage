@@ -193,6 +193,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    use_pilot_thread,
+    "Use a thread for the metrics sub-system (default: true).",
+    true,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_bool(
     logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
     false,
