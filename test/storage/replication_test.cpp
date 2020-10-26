@@ -64,7 +64,6 @@ namespace terrier::storage {
           .SetUseGC(true)
           .SetUseGCThread(true)
           .SetUseCatalog(true)
-          .SetReplicationDestination("127.0.0.1", 9022)
           .Build();
       master_txn_manager_ = master_db_main_->GetTransactionLayer()->GetTransactionManager();
       master_log_manager_ = master_db_main_->GetLogManager();
@@ -78,7 +77,6 @@ namespace terrier::storage {
           .SetUseGCThread(true)
           .SetUseCatalog(true)
           .SetCreateDefaultDatabase(false)
-          .SetReplicationDestination("127.0.0.1", 9023)
           .Build();
       replica_txn_manager_ = replica_db_main_->GetTransactionLayer()->GetTransactionManager();
       replica_deferred_action_manager_ = replica_db_main_->GetTransactionLayer()->GetDeferredActionManager();
@@ -87,10 +85,6 @@ namespace terrier::storage {
       replica_thread_registry_ = replica_db_main_->GetThreadRegistry();
       replica_replication_manager_ = replica_db_main_->GetReplicationManager();
       replica_log_provider_ = common::ManagedPointer(new ReplicationLogProvider(replication_timeout_));
-      replica_recovery_manager_ =  new RecoveryManager(common::ManagedPointer<storage::AbstractLogProvider>(replica_log_provider_),
-                                                       common::ManagedPointer(replica_catalog_), replica_txn_manager_,
-                                                       replica_deferred_action_manager_,
-                                                       common::ManagedPointer(replica_thread_registry_), &block_store_);
     }
 
     catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,

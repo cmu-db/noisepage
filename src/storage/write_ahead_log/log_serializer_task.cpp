@@ -139,6 +139,12 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
+  if (replication_manager_ != DISABLED) {
+    BufferedLogWriter *network_buffer;
+    empty_buffer_queue_->Dequeue(&network_buffer);
+    network_buffer->CopyFromBuffer(filled_buffer_);
+    replication_manager_->AddRecordBuffer(network_buffer);
+  }
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
   // Signal disk log consumer task thread that a buffer has been handed over

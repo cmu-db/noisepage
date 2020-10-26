@@ -4,19 +4,19 @@
 #include "common/container/concurrent_queue.h"
 #include "storage/recovery/replication_log_provider.h"
 #include "network/network_io_utils.h"
+#include "messenger/messenger.h"
 #include "messenger/connection_destination.h"
 #include "common/json.h"
 #include "loggers/storage_logger.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "messenger/messenger.h"
 
 namespace terrier::storage {
 
 class ReplicationManager {
 public:
   // Each line in the config file should be formatted as ip:port.
-  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string& config_path, const std::string& destination_ip, int destination_port) : messenger_(messenger), destination_id_(Connect(destination_ip, destination_port)) {
+  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger) : messenger_(messenger) {
     // Read from config file.
     /*std::ifstream replica_config(config_path);
     if (replica_config.is_open()) {
@@ -27,6 +27,10 @@ public:
     }*/
   }
 
+  void SetReplicationLogProvider(common::ManagedPointer<storage::ReplicationLogProvider> provider) {
+    provider_ = provider;
+  }
+
   messenger::ConnectionId Connect(const std::string& destination_ip, int destination_port) {
     destination_ip_ = destination_ip;
     if (destination_port == 9022) {
@@ -34,9 +38,8 @@ public:
     } else {
       destination_port_ = 9022;
     }
-    auto destination = messenger::ConnectionDestination::MakeTCP(destination_ip_, destination_port_);
-    messenger_->ListenForConnection(destination);
-    return messenger_->MakeConnection(destination, destination_ip_ + std::to_string(destination_port_));
+    auto destination = messenger::ConnectionDestination::MakeTCP("replica", destination_ip_, destination_port_);
+    return messenger_->MakeConnection(destination);
   }
 
   void AddRecordBuffer(BufferedLogWriter *network_buffer) {
@@ -44,7 +47,7 @@ public:
   }
 
   // Serialize log record buffer to json and send the message across the network.
-  void SendMessage() {
+  bool SendMessage(common::ManagedPointer<messenger::Messenger> messenger, messenger::ConnectionId &target) {
     // Grab buffers in queue.
     std::deque<BufferedLogWriter*> temp_buffer_queue;
     uint64_t data_size = 0;
@@ -69,26 +72,36 @@ public:
 
     j["size"] = size;
     j["content"] = nlohmann::json::to_cbor(content);
-    STORAGE_LOG_ERROR("ok" + std::to_string(size));
+    STORAGE_LOG_ERROR("ok1" + std::to_string(size));
 
     // Send the message.
-    messenger_->SendMessage(common::ManagedPointer<messenger::ConnectionId>(&destination_id_), j.dump());
+    bool message_sent = false;
+    messenger->SendMessage(common::ManagedPointer(&target), j.dump(),
+        [&message_sent](std::string_view sender_id, std::string_view message) {
+            STORAGE_LOG_ERROR("invoked");
+            message_sent = true;
+          },
+          static_cast<uint8_t>(messenger::Messenger::BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1);
+    return message_sent;
   }
 
   // Fills content of message into buffer.
-  void RecvMessage(nlohmann::json message, std::unique_ptr<network::ReadBuffer>& buffer) {
-    //size_t size = message["size"];
-    /*std::string content = nlohmann::json::from_cbor(message["content"]);
+  void RecvMessage(const nlohmann::json& message, std::unique_ptr<network::ReadBuffer>& buffer) {
+    size_t size = message["size"];
+    std::vector<uint8_t> content_raw = message["content"];
+    std::string content = nlohmann::json::from_cbor(content_raw);
+    STORAGE_LOG_ERROR("ok2" + std::to_string(size));
     std::vector<unsigned char> content_buffer(content.begin(), content.end());
     network::ReadBufferView view(size, content_buffer.begin());
-    buffer->FillBufferFrom(view, size);*/
+    buffer->FillBufferFrom(view, size);
   }
 
-  void Recover(nlohmann::json message) {
+  void Recover(const std::string& string_view) {
+    nlohmann::json message = nlohmann::json::parse(string_view);
     size_t size = message["size"];
     std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(size));
     RecvMessage(message, buffer);
-    //provider_->HandBufferToReplication(buffer);
+    provider_->HandBufferToReplication(std::move(buffer));
   }
 
 private:
@@ -98,8 +111,7 @@ private:
   int destination_port_;
   common::ConcurrentQueue<SerializedLogs> replication_consumer_queue_;
   common::ManagedPointer<messenger::Messenger> messenger_;
-  messenger::ConnectionId destination_id_;
-  //common::ManagedPointer<storage::ReplicationLogProvider> provider_;
+  common::ManagedPointer<storage::ReplicationLogProvider> provider_;
 };
 
 }  // namespace terrier::storage;

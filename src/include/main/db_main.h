@@ -337,7 +337,7 @@ class DBMain {
 
       std::unique_ptr<storage::ReplicationManager> replication_manager = DISABLED;
       if (use_messenger_) {
-        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(), "", "localhost", messenger_port_);
+        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger());
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;

@@ -129,6 +129,10 @@ class Messenger : public common::DedicatedThreadTask {
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message, CallbackFn callback,
                    uint64_t recv_msg_id);
 
+  void SetCallback(uint64_t msg_id, CallbackFn callback) {
+    callbacks_[msg_id] = callback;
+  }
+
  private:
   friend ConnectionId;
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
