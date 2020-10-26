@@ -374,15 +374,15 @@ Messenger::Messenger(const uint16_t port, std::string identity) : port_(port), i
 
   // Bind the same ZeroMQ socket over the default TCP, IPC, and in-process channels.
   {
-    ConnectionDestination dest_tcp = GetEndpointTCP("localhost", port);
+    ConnectionDestination dest_tcp = GetEndpointTCP("localhost", port_);
     zmq_default_socket_->bind(dest_tcp.GetDestination());
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger listening: {}", ::getpid(), dest_tcp.GetDestination()));
 
-    ConnectionDestination dest_ipc = GetEndpointIPC("localhost", port);
+    ConnectionDestination dest_ipc = GetEndpointIPC("localhost", port_);
     zmq_default_socket_->bind(dest_ipc.GetDestination());
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger listening: {}", ::getpid(), dest_ipc.GetDestination()));
 
-    ConnectionDestination dest_inproc = GetEndpointINPROC("localhost", port);
+    ConnectionDestination dest_inproc = GetEndpointINPROC("localhost", port_);
     zmq_default_socket_->bind(dest_inproc.GetDestination());
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger listening: {}", ::getpid(), dest_inproc.GetDestination()));
   }

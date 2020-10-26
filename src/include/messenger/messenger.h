@@ -3,9 +3,10 @@
 #include <atomic>
 #include <functional>
 #include <memory>
-#include <mutex>
+#include <mutex>  // NOLINT
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_task.h"
@@ -222,7 +223,6 @@ class Messenger : public common::DedicatedThreadTask {
 
   std::mutex callbacks_mutex_;
   bool is_messenger_running_ = false;
-  uint32_t connection_id_count_ = 0;
   /** The message ID that gets automatically prefixed to messages. */
   std::atomic<uint64_t> message_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
 };

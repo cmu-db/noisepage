@@ -61,8 +61,8 @@ class ConnectionDestination {
 
  private:
   /** Construct a new ConnectionDestination with the specified address. */
-  explicit ConnectionDestination(const std::string target_name, const std::string zmq_address)
-      : target_name_(target_name), zmq_address_(std::move(zmq_address)) {}
+  explicit ConnectionDestination(std::string target_name, std::string zmq_address)
+      : target_name_(std::move(target_name)), zmq_address_(std::move(zmq_address)) {}
   const std::string target_name_;
   const std::string zmq_address_;
 };
