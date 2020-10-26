@@ -264,7 +264,7 @@ TEST_F(MessengerTests, BasicListenTest) {
                               message.compare("KILLME") == 0);
           if (message.compare("KILLME") == 0) {
             messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(sender_id), "QUIT",
-                                   CallbackFnNoop, recv_cb_id);
+                                   CallbackFns::Noop, recv_cb_id);
           }
         });
 
@@ -287,7 +287,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     auto con_primary = messenger->MakeConnection(dest_listen);
 
     // Send "replica1" to the primary to let them know who we are.
-    messenger->SendMessage(common::ManagedPointer(&con_primary), "replica1", CallbackFnNoop,
+    messenger->SendMessage(common::ManagedPointer(&con_primary), "replica1", CallbackFns::Noop,
                            static_cast<uint8_t>(Messenger::BuiltinCallback::ECHO));
 
     // Send "KILLME" to the primary and expect "QUIT" as a reply.
@@ -308,7 +308,7 @@ TEST_F(MessengerTests, BasicListenTest) {
     }
 
     // Send "BYE" to the primary to let them know we're going.
-    messenger->SendMessage(common::ManagedPointer(&con_primary), "BYE", CallbackFnNoop,
+    messenger->SendMessage(common::ManagedPointer(&con_primary), "BYE", CallbackFns::Noop,
                            static_cast<uint8_t>(Messenger::BuiltinCallback::NOOP));
 
     MESSENGER_LOG_TRACE("Replica 1 done.");
