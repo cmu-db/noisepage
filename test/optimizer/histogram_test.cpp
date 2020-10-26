@@ -7,7 +7,7 @@
 #include "gtest/gtest.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class HistogramTests : public TerrierTest {};
 
@@ -147,4 +147,4 @@ TEST_F(HistogramTests, OutputTest) {
   EXPECT_FALSE(os.str().empty());
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

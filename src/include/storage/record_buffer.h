@@ -6,11 +6,11 @@
 #include "common/strong_typedef.h"
 #include "storage/undo_record.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * A RecordBufferSegment is a piece of (reusable) memory used to hold undo records. The segment internally keeps track
@@ -36,7 +36,7 @@ class RecordBufferSegment {
    * @return pointer to the head of the allocated record
    */
   byte *Reserve(const uint32_t size) {
-    TERRIER_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
+    NOISEPAGE_ASSERT(HasBytesLeft(size), "buffer segment allocation out of bounds");
     auto *result = bytes_ + size_;
     size_ += size;
     return result;
@@ -160,7 +160,7 @@ class RecordBufferSegmentAllocator {
    */
   RecordBufferSegment *New() {
     auto *result = new RecordBufferSegment;
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
+    NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(result) % 8 == 0, "buffer segments should be aligned to 8 bytes");
     return result;
   }
 
@@ -377,4 +377,4 @@ class RedoBuffer {
   // reserved for aborts where we will potentially need to garbage collect the last operation (which caused the abort)
   byte *last_record_ = nullptr;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -1,7 +1,7 @@
 #include "brain/brain_util.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnitType f) {
   // NOTE: Before adding any extra case to this switch statement,
@@ -70,4 +70,4 @@ std::string BrainUtil::ExecutionOperatingUnitTypeToString(ExecutionOperatingUnit
   }
 }
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

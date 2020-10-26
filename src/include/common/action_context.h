@@ -4,7 +4,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/strong_typedef.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * An action's id is an internal identifier of the invocation of an action in the system.
@@ -83,4 +83,4 @@ class ActionContext {
   std::atomic<ActionState> state_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

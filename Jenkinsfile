@@ -8,7 +8,7 @@ pipeline {
         stage('Ready For CI') {
             agent {
                 docker {
-                    image 'terrier:focal'
+                    image 'noisepage:focal'
                     args '-v /jenkins/ccache:/home/jenkins/.ccache'
                 }
             }
@@ -62,7 +62,7 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/format/lint/censored)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                         }
                     }
                     steps {
@@ -85,7 +85,7 @@ pipeline {
                 stage('ubuntu-20.04/clang-8.0 (Debug/format/lint/censored)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                         }
                     }
                     environment {
@@ -148,7 +148,7 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -178,7 +178,7 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/Coverage/unittest)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                             args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -222,7 +222,7 @@ pipeline {
                 stage('ubuntu-20.04/clang-8.0 (Debug/ASAN/jumbotests)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -287,7 +287,7 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Release/jumbotests)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                             args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -316,7 +316,7 @@ pipeline {
                 stage('ubuntu-20.04/clang-8.0 (Release/jumbotests)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                             args '-v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }
@@ -382,7 +382,7 @@ pipeline {
                 stage('ubuntu-20.04/gcc-9.3 (Debug/e2etest/oltpbench)') {
                     agent {
                         docker {
-                            image 'terrier:focal'
+                            image 'noisepage:focal'
                             args '--cap-add sys_ptrace -v /jenkins/ccache:/home/jenkins/.ccache'
                         }
                     }

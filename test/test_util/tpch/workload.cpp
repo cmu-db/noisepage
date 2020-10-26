@@ -17,7 +17,7 @@
 #include "test_util/ssb/star_schema_query.h"
 #include "test_util/tpch/tpch_query.h"
 
-namespace terrier::tpch {
+namespace noisepage::tpch {
 
 Workload::Workload(common::ManagedPointer<DBMain> db_main, const std::string &db_name, const std::string &table_root,
                    enum BenchmarkType type) {
@@ -163,4 +163,4 @@ void Workload::Execute(int8_t worker_id, uint64_t execution_us_per_worker, uint6
   db_main_->GetMetricsManager()->UnregisterThread();
 }
 
-}  // namespace terrier::tpch
+}  // namespace noisepage::tpch

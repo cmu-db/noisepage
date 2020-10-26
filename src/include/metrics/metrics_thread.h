@@ -5,7 +5,7 @@
 
 #include "metrics/metrics_manager.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Class for spinning off a thread that runs metrics collection at a fixed interval. This should be used in most cases
@@ -35,7 +35,7 @@ class MetricsThread {
    * Pause the metrics from running, typically for use in tests when the state needs to be fixed.
    */
   void PauseMetrics() {
-    TERRIER_ASSERT(!metrics_paused_, "Metrics should not already be paused.");
+    NOISEPAGE_ASSERT(!metrics_paused_, "Metrics should not already be paused.");
     metrics_paused_ = true;
   }
 
@@ -43,7 +43,7 @@ class MetricsThread {
    * Resume metrics after being paused.
    */
   void ResumeMetrics() {
-    TERRIER_ASSERT(metrics_paused_, "Metrics should already be paused.");
+    NOISEPAGE_ASSERT(metrics_paused_, "Metrics should already be paused.");
     metrics_paused_ = false;
   }
 
@@ -70,4 +70,4 @@ class MetricsThread {
   }
 };
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

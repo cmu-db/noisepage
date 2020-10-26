@@ -17,7 +17,7 @@
 #include "loggers/execution_logger.h"
 #include "storage/index/index.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
                                          uint32_t num_oids)
@@ -35,7 +35,7 @@ bool TableVectorIterator::Init(uint32_t block_start, uint32_t block_end) {
 
   // Set up the table and the iterator.
   table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
-  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
+  NOISEPAGE_ASSERT(table_ != nullptr, "Table must exist!!");
   if (block_start == 0 && block_end == storage::DataTable::GetMaxBlocks()) {
     iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
   } else {
@@ -168,4 +168,4 @@ bool TableVectorIterator::ParallelScan(uint32_t table_oid, uint32_t *col_oids, u
   return true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

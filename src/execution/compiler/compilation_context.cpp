@@ -70,7 +70,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 // A unique ID generator used to generate globally unique TPL function names and keep track of query ID for minirunners.
@@ -206,8 +206,8 @@ std::unique_ptr<ExecutableQuery> CompilationContext::Compile(const planner::Abst
 }
 
 uint32_t CompilationContext::RegisterPipeline(Pipeline *pipeline) {
-  TERRIER_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
-                 "Duplicate pipeline in context");
+  NOISEPAGE_ASSERT(std::find(pipelines_.begin(), pipelines_.end(), pipeline) == pipelines_.end(),
+                   "Duplicate pipeline in context");
   pipelines_.push_back(pipeline);
   return pipelines_.size();
 }
@@ -415,4 +415,4 @@ util::RegionVector<ast::FieldDecl *> CompilationContext::QueryParams() const {
 
 ast::Expr *CompilationContext::GetExecutionContextPtrFromQueryState() { return exec_ctx_.Get(&codegen_); }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

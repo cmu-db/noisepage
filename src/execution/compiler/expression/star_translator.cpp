@@ -6,7 +6,7 @@
 #include "execution/compiler/work_context.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 StarTranslator::StarTranslator(const parser::AbstractExpression &expr, CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {}
@@ -18,4 +18,4 @@ ast::Expr *StarTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvid
   return codegen->IntToSql(0);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

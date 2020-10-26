@@ -11,7 +11,7 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 /**
  * An input tuple, this is what we use to probe and update aggregates
@@ -237,4 +237,4 @@ TEST_F(AggregationHashTableVectorIteratorTest, DISABLED_Perf) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

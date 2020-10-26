@@ -14,7 +14,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context,
                                      Pipeline *pipeline)
@@ -375,4 +375,4 @@ std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(const catalog::
   return op.GetColumnOids();
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -5,19 +5,19 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 class OperatingUnitRecorder;
-}  // namespace terrier::brain
+}  // namespace noisepage::brain
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class HashJoinPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -212,4 +212,4 @@ class HashJoinTranslator : public OperatorTranslator {
   ast::Identifier parallel_build_post_hook_fn_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

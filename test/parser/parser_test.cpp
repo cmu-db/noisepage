@@ -19,7 +19,7 @@
 #include "parser/statements.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 class ParserTestBase : public TerrierTest {
  protected:
@@ -1578,7 +1578,7 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldDropTriggerTest) {
-  std::string query = "DROP TRIGGER if_dist_exists ON terrier.films;";
+  std::string query = "DROP TRIGGER if_dist_exists ON noisepage.films;";
   auto result = parser::PostgresParser::BuildParseTree(query);
   EXPECT_EQ(result->GetStatement(0)->GetType(), StatementType::DROP);
   auto drop_trigger_stmt = result->GetStatement(0).CastManagedPointerTo<DropStatement>();
@@ -1756,4 +1756,4 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
   }
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

@@ -16,7 +16,7 @@
 // TODO(Gus, Wen): Replace VisitParameters
 // TODO(Gus, Wen): figure out global aggregates
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 using GroupByTerm = common::ManagedPointer<parser::AbstractExpression>;
 using AggregateTerm = common::ManagedPointer<parser::AggregateExpression>;
@@ -184,4 +184,4 @@ class AggregatePlanNode : public AbstractPlanNode {
   AggregateStrategyType aggregate_strategy_;
 };
 DEFINE_JSON_HEADER_DECLARATIONS(AggregatePlanNode);
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

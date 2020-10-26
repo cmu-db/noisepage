@@ -14,7 +14,7 @@
 #include "runner/mini_runners_settings.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // Keep small so that nested loop join won't take too long.
 /**
@@ -359,9 +359,9 @@ class TableGenerator {
                  const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,
                  const catalog::Schema &table_schema);
 
-  terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+  noisepage::parser::ConstantValueExpression DummyCVE() {
+    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

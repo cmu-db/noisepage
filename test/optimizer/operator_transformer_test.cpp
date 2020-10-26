@@ -50,7 +50,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class OperatorTransformerTest : public TerrierTest {
  protected:
@@ -136,7 +136,7 @@ class OperatorTransformerTest : public TerrierTest {
   }
 
   void SetUp() override {
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
 
@@ -1955,4 +1955,4 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);
 }
-}  // namespace terrier
+}  // namespace noisepage

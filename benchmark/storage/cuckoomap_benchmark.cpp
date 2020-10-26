@@ -8,7 +8,7 @@
 #include "test_util/multithread_test_util.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * CuckooMap Benchmarks
@@ -279,4 +279,4 @@ BENCHMARK_REGISTER_F(CuckooMapBenchmark, SequentialInsertSequentialRead)
     ->MinTime(3);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

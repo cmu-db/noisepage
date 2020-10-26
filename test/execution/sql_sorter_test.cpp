@@ -26,7 +26,7 @@
 
 #define TestAllIntegral(FuncName, Args...) TestAllSigned(FuncName, Args) TestAllUnsigned(FuncName, Args)
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class SorterTest : public SqlBasedTest {
  public:
@@ -262,4 +262,4 @@ TEST_F(SorterTest, UnbalancedParallelSortTest) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

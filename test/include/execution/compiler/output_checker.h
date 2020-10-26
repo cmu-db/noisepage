@@ -13,7 +13,7 @@
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
 // expressions, but this is no simple task. We would basically need an expression evaluator on output rows.
 
-namespace terrier::execution::compiler::test {
+namespace noisepage::execution::compiler::test {
 /**
  * Helper class to check if the output of a query is corrected.
  */
@@ -286,7 +286,7 @@ class OutputStore {
    * @param checker checker to run
    * @param schema output schema of the query.
    */
-  OutputStore(OutputChecker *checker, const terrier::planner::OutputSchema *schema)
+  OutputStore(OutputChecker *checker, const noisepage::planner::OutputSchema *schema)
       : schema_(schema), checker_(checker) {}
 
   /**
@@ -303,35 +303,35 @@ class OutputStore {
         }
         // TODO(Amadou): Figure out to print other types.
         switch (col.GetType()) {
-          case terrier::type::TypeId::TINYINT:
-          case terrier::type::TypeId::SMALLINT:
-          case terrier::type::TypeId::BIGINT:
-          case terrier::type::TypeId::INTEGER: {
+          case noisepage::type::TypeId::TINYINT:
+          case noisepage::type::TypeId::SMALLINT:
+          case noisepage::type::TypeId::BIGINT:
+          case noisepage::type::TypeId::INTEGER: {
             auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case terrier::type::TypeId::BOOLEAN: {
+          case noisepage::type::TypeId::BOOLEAN: {
             auto *val = reinterpret_cast<sql::BoolVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case terrier::type::TypeId::DECIMAL: {
+          case noisepage::type::TypeId::DECIMAL: {
             auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case terrier::type::TypeId::DATE: {
+          case noisepage::type::TypeId::DATE: {
             auto *val = reinterpret_cast<sql::DateVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case terrier::type::TypeId::TIMESTAMP: {
+          case noisepage::type::TypeId::TIMESTAMP: {
             auto *val = reinterpret_cast<sql::TimestampVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
           }
-          case terrier::type::TypeId::VARCHAR: {
+          case noisepage::type::TypeId::VARCHAR: {
             auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
             vals.emplace_back(val);
             break;
@@ -351,8 +351,8 @@ class OutputStore {
   // Current output batch
   std::vector<std::vector<sql::Val *>> output_;
   // output schema
-  const terrier::planner::OutputSchema *schema_;
+  const noisepage::planner::OutputSchema *schema_;
   // checker to run
   OutputChecker *checker_;
 };
-}  // namespace terrier::execution::compiler::test
+}  // namespace noisepage::execution::compiler::test

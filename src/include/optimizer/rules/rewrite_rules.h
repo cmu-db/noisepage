@@ -5,7 +5,7 @@
 
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Rule performs predicate push-down to push a filter through join. For
@@ -233,4 +233,4 @@ class RewritePullFilterThroughAggregation : public Rule {
                  OptimizationContext *context) const override;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

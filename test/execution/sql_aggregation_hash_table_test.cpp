@@ -15,7 +15,7 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * An input tuple, this is what we use to probe and update aggregates
@@ -438,4 +438,4 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   EXPECT_EQ(num_aggs, query_state.row_count_.load(std::memory_order_seq_cst));
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

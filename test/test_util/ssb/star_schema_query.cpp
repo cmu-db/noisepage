@@ -12,7 +12,7 @@
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
-namespace terrier::ssb {
+namespace noisepage::ssb {
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 SSBQuery::SSBMakeExecutableQ1Part1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                                    const execution::exec::ExecutionSettings &exec_settings) {
@@ -3098,4 +3098,4 @@ SSBQuery::SSBMakeExecutableQ4Part3(const std::unique_ptr<catalog::CatalogAccesso
   return std::make_tuple(std::move(query), std::move(sort));
 }
 
-}  // namespace terrier::ssb
+}  // namespace noisepage::ssb

@@ -11,7 +11,7 @@
 #include "loggers/optimizer_logger.h"
 #include "madoka/madoka.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * An approximate counting data structure.
@@ -30,7 +30,7 @@ class CountMinSketch {
    * @param width the number of 'slots' in each bucket level in this sketch.
    */
   explicit CountMinSketch(uint64_t width) : total_count_{0} {
-    TERRIER_ASSERT(width > 0, "Invalid width");
+    NOISEPAGE_ASSERT(width > 0, "Invalid width");
 
     // The only thing that we need to set in madoka when we initialize the
     // sketch is its the width. You can set the seed value but the documentation
@@ -156,4 +156,4 @@ class CountMinSketch {
   madoka::Sketch sketch_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

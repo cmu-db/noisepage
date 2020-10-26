@@ -5,7 +5,7 @@
 
 #include "loggers/optimizer_logger.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 common::ManagedPointer<TableStats> StatsStorage::GetTableStats(catalog::db_oid_t database_id,
                                                                catalog::table_oid_t table_id) {
   StatsStorageKey stats_storage_key = std::make_pair(database_id, table_id);
@@ -41,4 +41,4 @@ bool StatsStorage::DeleteTableStats(catalog::db_oid_t database_id, catalog::tabl
   }
   return false;
 }
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

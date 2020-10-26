@@ -18,7 +18,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 class PlanNodeTest : public TerrierTest {
  public:
@@ -328,4 +328,4 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
     EXPECT_NE(plan->Hash(), plan3->Hash());
   }
 }
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

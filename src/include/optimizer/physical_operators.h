@@ -18,7 +18,7 @@
 #include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace catalog {
 class IndexSchema;
@@ -2173,4 +2173,4 @@ class Analyze : public OperatorNodeContents<Analyze> {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

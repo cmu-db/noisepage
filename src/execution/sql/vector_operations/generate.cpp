@@ -2,7 +2,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -62,4 +62,4 @@ void VectorOps::Generate(Vector *vector, int64_t start, int64_t increment) {
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

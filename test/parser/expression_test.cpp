@@ -26,7 +26,7 @@
 #include "parser/postgresparser.h"
 #include "type/type_id.h"
 
-namespace terrier::parser::expression {
+namespace noisepage::parser::expression {
 
 bool CompareExpressionsEqual(const std::vector<common::ManagedPointer<AbstractExpression>> &expr_children,
                              const std::vector<std::unique_ptr<AbstractExpression>> &copy_children) {
@@ -1180,4 +1180,4 @@ TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
             *subselect->GetSelectTable()->GetJoin()->GetJoinCondition());
 }
 
-}  // namespace terrier::parser::expression
+}  // namespace noisepage::parser::expression

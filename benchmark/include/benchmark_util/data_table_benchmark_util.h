@@ -12,7 +12,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class LargeDataTableBenchmarkObject;
 class RandomDataTableTransaction;
@@ -168,4 +168,4 @@ class LargeDataTableBenchmarkObject {
   uint32_t txn_length_;
   bool gc_on_;
 };
-}  // namespace terrier
+}  // namespace noisepage

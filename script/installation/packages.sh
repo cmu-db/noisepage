@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## =================================================================
-## TERRIER PACKAGE INSTALLATION
+## NOISEPAGE PACKAGE INSTALLATION
 ##
 ## This script will install all the packages that are needed to
 ## build and run the DBMS.
@@ -122,7 +122,7 @@ give_up() {
   echo "Be sure to include the contents of this message."
   echo "Platform: $(uname -a)"
   echo
-  echo "https://github.com/cmu-db/terrier/issues"
+  echo "https://github.com/cmu-db/noisepage/issues"
   echo
   exit 1
 }

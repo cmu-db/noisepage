@@ -14,7 +14,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected at logging level
@@ -41,10 +41,10 @@ class QueryTraceMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &query_text_outfile = (*outfiles)[0];
     auto &query_trace_outfile = (*outfiles)[1];
@@ -133,4 +133,4 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
     GetRawData()->RecordQueryTrace(query_id, timestamp, param_stream.str());
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

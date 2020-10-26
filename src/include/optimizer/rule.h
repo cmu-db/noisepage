@@ -8,7 +8,7 @@
 #include "optimizer/optimization_context.h"
 #include "optimizer/pattern.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Enum defining the types of rules
@@ -305,4 +305,4 @@ class RuleSet {
   std::unordered_map<uint32_t, std::vector<Rule *>> rules_map_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

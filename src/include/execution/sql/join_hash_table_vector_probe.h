@@ -6,7 +6,7 @@
 #include "execution/sql/vector.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class JoinHashTable;
 class VectorProjection;
@@ -102,4 +102,4 @@ class JoinHashTableVectorProbe {
   bool first_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

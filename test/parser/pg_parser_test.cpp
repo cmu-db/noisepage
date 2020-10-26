@@ -4,7 +4,7 @@
 #include "libpg_query/pg_query.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * A very basic test, to verify that we can invoke the parser in libpg_query.
@@ -56,4 +56,4 @@ TEST(PGParserTests, CreateFunctionTest) {
   }
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

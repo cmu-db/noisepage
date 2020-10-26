@@ -4,7 +4,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
 #include "planner/plannodes/create_index_plan_node.h"
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class IndexCreateTest : public SqlBasedTest {
   void SetUp() override {
@@ -158,4 +158,4 @@ TEST_F(IndexCreateTest, MultiColumnIndexCreate) {
   VerifyIndexResult(table_oid, "indexAB", {1, 2, 3, 4}, 2);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

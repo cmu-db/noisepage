@@ -5,7 +5,7 @@
 #include "execution/sql/sql.h"
 #include "execution/sql/vector.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A static data whose type is known at compile-time and whose vector data is directly inlined into
@@ -31,4 +31,4 @@ class StaticVector : public Vector {
   std::array<T, common::Constants::K_DEFAULT_VECTOR_SIZE> inlined_data_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

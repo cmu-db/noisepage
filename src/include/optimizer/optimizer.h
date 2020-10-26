@@ -9,7 +9,7 @@
 #include "optimizer/optimizer_context.h"
 #include "optimizer/property_set.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace planner {
 class AbstractPlanNode;
@@ -107,4 +107,4 @@ class Optimizer : public AbstractOptimizer {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

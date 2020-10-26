@@ -4,7 +4,7 @@
 
 #include "execution/sql/vector.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A constant vector is a vector with a single, constant value in it.
@@ -20,4 +20,4 @@ class ConstantVector : public Vector {
   GenericValue value_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

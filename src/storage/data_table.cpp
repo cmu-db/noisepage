@@ -9,15 +9,15 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
     : accessor_(layout), block_store_(store), layout_version_(layout_version) {
-  TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
-                 "First column must have size 8 for the version chain.");
-  TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
-                 "First column is reserved for version info, second column is reserved for logical delete.");
+  NOISEPAGE_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
+                   "First column must have size 8 for the version chain.");
+  NOISEPAGE_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
+                   "First column is reserved for version info, second column is reserved for logical delete.");
   if (store != DISABLED) {
     blocks_.push_back(NewBlock());
     blocks_size_++;
@@ -77,9 +77,9 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
 
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
                        const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
-  TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
+  NOISEPAGE_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                   "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
+  NOISEPAGE_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
@@ -105,8 +105,8 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
 
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Input buffer should not change the version pointer column.");
+    NOISEPAGE_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Input buffer should not change the version pointer column.");
     // TODO(Matt): It would be nice to check that a ProjectedRow that modifies the logical delete column only originated
     // from the DataTable calling Update() within Delete(), rather than an outside soure modifying this column, but
     // that's difficult with this implementation
@@ -118,9 +118,9 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
 
 TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
-                 "attribute than the DataTable's layout.");
+  NOISEPAGE_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                   "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
+                   "attribute than the DataTable's layout.");
 
   // Insertion index points to the first block that has free tuple slots
   // Once a txn arrives, it will start from the insertion index to find the first
@@ -159,7 +159,7 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
         // so we retry on the next index
         bool UNUSED_ATTRIBUTE result =
             insert_index_.compare_exchange_strong(current_insert_idx, current_insert_idx + 1);
-        TERRIER_ASSERT(result, "only one thread should be able to try (and fail) to insert into a block at a time");
+        NOISEPAGE_ASSERT(result, "only one thread should be able to try (and fail) to insert into a block at a time");
       }
 
       // Fail to insert into the block, flip back the status bit
@@ -179,21 +179,21 @@ TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::Transactio
 
 void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
                            TupleSlot dest) {
-  TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
-  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
-                 "The slot needs to be logically deleted to every running transaction");
+  NOISEPAGE_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
+  NOISEPAGE_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
+                   "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
-  TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
-                 "Should only be able to insert into hot blocks");
+  NOISEPAGE_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
+                   "Should only be able to insert into hot blocks");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Insert buffer should not change the version pointer column.");
+    NOISEPAGE_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Insert buffer should not change the version pointer column.");
     StorageUtil::CopyAttrFromProjection(accessor_, dest, redo, i);
   }
 }
@@ -225,10 +225,10 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                  const TupleSlot slot, RowType *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The output buffer never returns the version pointer columns, so it should have "
-                 "fewer attributes.");
-  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
+  NOISEPAGE_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                   "The output buffer never returns the version pointer columns, so it should have "
+                   "fewer attributes.");
+  NOISEPAGE_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
   // This cannot be visible if it's already deallocated.
   if (!accessor_.Allocated(slot)) return false;
 
@@ -237,8 +237,8 @@ bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::Trans
   // and apply the pre-image of the writer before returning anyway.  In the worst case, we accidentally overwrite
   // a good read with the exact same data, but there is no way to detect this.
   for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-    TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Output buffer should not read the version pointer column.");
+    NOISEPAGE_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Output buffer should not read the version pointer column.");
     StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
   }
 
@@ -365,4 +365,4 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
   return visible;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

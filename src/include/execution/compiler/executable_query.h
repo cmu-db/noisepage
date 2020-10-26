@@ -11,7 +11,7 @@
 #include "execution/exec_defs.h"
 #include "execution/vm/vm_defs.h"
 
-namespace terrier {
+namespace noisepage {
 namespace brain {
 class PipelineOperatingUnits;
 }  // namespace brain
@@ -44,9 +44,9 @@ class MiniRunners;
 class MiniRunners_SEQ0_OutputRunners_Benchmark;
 }  // namespace runner
 
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * An compiled and executable query object.
@@ -195,8 +195,8 @@ class ExecutableQuery {
   common::ManagedPointer<const std::string> query_text_;
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
-  friend class terrier::runner::MiniRunners;
-  friend class terrier::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
+  friend class noisepage::runner::MiniRunners;
+  friend class noisepage::runner::MiniRunners_SEQ0_OutputRunners_Benchmark;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

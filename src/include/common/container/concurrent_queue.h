@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * A thread-safe queue implementation
  * @tparam T element type
@@ -54,4 +54,4 @@ class ConcurrentQueue {
  private:
   tbb::concurrent_queue<T, Alloc> queue_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> StarExpression::Copy() const {
   auto expr = std::make_unique<StarExpression>();
@@ -12,4 +12,4 @@ std::unique_ptr<AbstractExpression> StarExpression::Copy() const {
 
 DEFINE_JSON_BODY_DECLARATIONS(StarExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

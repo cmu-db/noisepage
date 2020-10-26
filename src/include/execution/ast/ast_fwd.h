@@ -3,7 +3,7 @@
 // Forward-declare a few of the common AST nodes here to reduce coupling between
 // the SQL code generation components and the TPL AST systems.
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 class BlockStmt;
 class Context;
@@ -16,4 +16,4 @@ class Stmt;
 class StructDecl;
 class VariableDecl;
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

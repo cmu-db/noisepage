@@ -3,7 +3,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /** In-place addition. */
 template <typename T>
@@ -18,7 +18,7 @@ struct ModuloInPlace {
   /** Perform a %= b. */
   constexpr void operator()(T *a, T b) const noexcept {
     // Ensure divisor isn't zero. This should have been checked before here!
-    TERRIER_ASSERT(b != 0, "Divide by zero");
+    NOISEPAGE_ASSERT(b != 0, "Divide by zero");
     *a %= b;
   }
 };
@@ -28,7 +28,7 @@ template <>
 struct ModuloInPlace<float> {
   /** Perform a %= b. */
   void operator()(float *a, float b) const noexcept {
-    TERRIER_ASSERT(b != 0, "Divide by zero");
+    NOISEPAGE_ASSERT(b != 0, "Divide by zero");
     *a = std::fmod(*a, b);
   }
 };
@@ -38,7 +38,7 @@ template <>
 struct ModuloInPlace<double> {
   /** Perform a %= b. */
   void operator()(double *a, double b) const noexcept {
-    TERRIER_ASSERT(b != 0, "Divide by zero");
+    NOISEPAGE_ASSERT(b != 0, "Divide by zero");
     *a = std::fmod(*a, b);
   }
 };
@@ -50,4 +50,4 @@ struct BitwiseANDInPlace {
   constexpr void operator()(T *a, T b) const noexcept { *a &= b; }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

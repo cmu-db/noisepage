@@ -10,7 +10,7 @@
 #include "execution/vm/module.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * An execution frame where all function's local variables and parameters live
@@ -21,8 +21,8 @@ class VM::Frame {
 
  public:
   Frame(uint8_t *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
-    TERRIER_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
-    TERRIER_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
+    NOISEPAGE_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
+    NOISEPAGE_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
     (void)frame_size_;
   }
 
@@ -87,7 +87,7 @@ VM::VM(const Module *module) : module_(module) {}
 void VM::InvokeFunction(const Module *module, const FunctionId func_id, const uint8_t args[]) {
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
-  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  NOISEPAGE_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->GetFrameSize();
 
   // Let's try to get some space
@@ -1652,7 +1652,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {  // NOLINT
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *exec_ctx = frame->LocalAt<terrier::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<noisepage::execution::exec::ExecutionContext *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
@@ -2551,7 +2551,7 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
 
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);
-  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  NOISEPAGE_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->GetFrameSize();
 
   // Get some space for the function's frame
@@ -2591,4 +2591,4 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   return ip;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

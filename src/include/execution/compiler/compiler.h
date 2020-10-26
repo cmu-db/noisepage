@@ -9,7 +9,7 @@
 #include "common/managed_pointer.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class AstNode;
@@ -266,4 +266,4 @@ class TimePasses : public Compiler::Callbacks {
 };
 
 }  // namespace compiler
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

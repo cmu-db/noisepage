@@ -21,7 +21,7 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 class HashIndexTests : public TerrierTest {
  private:
@@ -51,7 +51,7 @@ class HashIndexTests : public TerrierTest {
  protected:
   void SetUp() override {
     thread_pool_.Startup();
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetRecordBufferSegmentSize(1e6).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
     auto col = catalog::Schema::Column("attribute", type::TypeId::INTEGER, false,
@@ -1640,4 +1640,4 @@ TEST_F(HashIndexTests, AbortDelete2) {
   txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index
