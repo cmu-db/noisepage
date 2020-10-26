@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "brain/pilot/pilot.h"
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/dedicated_thread_registry.h"
@@ -338,6 +339,11 @@ class DBMain {
                                                                       common::ManagedPointer(metrics_manager));
       }
 
+      std::unique_ptr<brain::Pilot> pilot_thread = DISABLED;
+      if (use_pilot_) {
+        pilot_thread = std::make_unique<brain::Pilot>();
+      }
+
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
       if (use_stats_storage_) {
         stats_storage = std::make_unique<optimizer::StatsStorage>();
@@ -382,6 +388,7 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->pilot_thread_ = std::move(pilot_thread);
 
       return db_main;
     }
@@ -657,6 +664,7 @@ class DBMain {
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
+    bool use_pilot_ = false;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -702,6 +710,7 @@ class DBMain {
 
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
       use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
+      use_pilot_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
@@ -850,6 +859,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<brain::Pilot> pilot_thread_;
 };
 
 }  // namespace noisepage
