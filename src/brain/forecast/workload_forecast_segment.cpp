@@ -11,13 +11,13 @@
 #include "execution/exec_defs.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 WorkloadForecastSegment::WorkloadForecastSegment(
     std::vector<execution::query_id_t> query_ids,
-    std::vector<const uint64_t> num_executions)
-    : query_ids(query_ids_),
-      num_executions(num_executions_) {
+    std::vector<uint64_t> num_executions)
+    : query_ids_(query_ids),
+      num_executions_(num_executions) {
 }
 
 

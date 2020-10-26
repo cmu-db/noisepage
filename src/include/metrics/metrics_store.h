@@ -22,6 +22,7 @@
 #include "metrics/pipeline_metric.h"
 #include "metrics/query_trace_metric.h"
 #include "metrics/transaction_metric.h"
+#include "parser/expression/constant_value_expression.h"
 
 namespace noisepage::metrics {
 

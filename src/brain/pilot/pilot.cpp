@@ -5,13 +5,20 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <iostream>
+#include <fstream>
 
-namespace terrier::brain {
+#include "parser/expression/constant_value_expression.h"
+#include "brain/forecast/workload_forecast.h"
+#include "execution/exec_defs.h"
+
+namespace noisepage::brain {
 
 Pilot::Pilot() {
-  Pilot::LoadQueryTrace();
-  Pilot::LoadQueryText();
-  forecastor_ = brain::WorkloadForecast(queries_, query_params_, forecast_interval_);
+  LoadQueryTrace();
+  LoadQueryText();
+  forecastor_ = std::make_unique<WorkloadForecast>(query_id_to_timestamps_, num_executions_, query_id_to_text_, 
+                                                   query_text_to_id_, query_id_to_params_, forecast_interval_);
 }
 
 void Pilot::LoadQueryTrace() {
@@ -37,7 +44,7 @@ void Pilot::LoadQueryTrace() {
   while(std::getline(myFile, line))
   {
     colnum = 0;
-    val_vec.assign("", NUM_COLS);
+    val_vec.assign(NUM_COLS, "");
     // std::cout << line << "\n" << std::flush;
     while ((pos = line.find(",")) != std::string::npos && colnum < NUM_COLS) {
       if (pos > 0) {
@@ -63,7 +70,7 @@ void Pilot::LoadQueryTrace() {
         auto cve = parser::ConstantValueExpression::FromString(val_string.substr(0, pos), 
                                                                std::stoi(type_string.substr(0, pos2)));
           
-        TERRIER_ASSERT(cve.ToString() == val_string);
+        NOISEPAGE_ASSERT(cve.ToString() == val_string, "String Conversion failed.");
         param_vec.push_back(cve);
         // std::cout << cve.ToString() << "," << std::flush;
         // std::cout << val_vec.at(counter) << " " << val_string << ",\n" << std::flush;
@@ -114,7 +121,7 @@ void Pilot::LoadQueryText() {
   while(std::getline(myFile, line))
   {
     colnum = 0;
-    val_vec.assign("", NUM_COLS);
+    val_vec.assign(NUM_COLS, "");
     // std::cout << line << "\n" << std::flush;
     while ((pos = line.find(",")) != std::string::npos && colnum < NUM_COLS) {
       if (pos > 0) {
@@ -128,7 +135,7 @@ void Pilot::LoadQueryText() {
       // query_id not found
       continue;
     }
-    query_id = static_cast<execution::query_id_t>(val_vec[0]);
+    query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[0]));
     query_id_to_text_[query_id] = val_vec[1];
     query_text_to_id_[val_vec[1]] = query_id;
     // std::cout << "\n" << std::flush;
@@ -140,4 +147,4 @@ void Pilot::LoadQueryText() {
   // Initialize queries_, query_params_ here, by loading from CSV files
 }
 
-}  // namespace terrier::storage
+}  // namespace terrier::brain

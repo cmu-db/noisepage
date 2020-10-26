@@ -6,7 +6,7 @@
 #include "brain/pilot/pilot.h"
 
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases

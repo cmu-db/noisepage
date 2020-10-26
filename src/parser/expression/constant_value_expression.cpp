@@ -12,6 +12,7 @@
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "spdlog/fmt/fmt.h"
+#include "type/type_util.h"
 
 namespace noisepage::parser {
 
@@ -249,33 +250,53 @@ std::string ConstantValueExpression::ToString() const {
   }
 }
 
-ConstantValueExpression ConstantValueExpression::FromString(std::string val, std::string type_string) {
-  type::TypeId cve_type = static_cast<type::TypeId>(type_string);
+ConstantValueExpression ConstantValueExpression::FromString(std::string val, uint64_t type_id) {
+  type::TypeId cve_type = static_cast<type::TypeId>(type_id);
 
-  switch (cve_type ) {
+  switch (cve_type) {
     case type::TypeId::BOOLEAN: {
-      return ConstantValueExpression(execution::sql::BoolVal(std::stoi(val)), cve_type);
+      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::BoolVal(std::stoi(val)));
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      return ConstantValueExpression(execution::sql::Integer(std::stoi(val)), cve_type);
+      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::Integer(std::stoi(val)));
     }
     case type::TypeId::DECIMAL: {
-      return ConstantValueExpression(execution::sql::Real(std::stod(val)), cve_type);
+      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
-      return ConstantValueExpression(execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(std::stoi(val))), 
-                                     cve_type);
+      return ConstantValueExpression::ConstantValueExpression(cve_type, 
+                                     execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(std::stoi(val))));
     }
     case type::TypeId::DATE: {
-      return ConstantValueExpression(execution::sql::DateVal(execution::sql::Date::FromNative(std::stoi(val))), 
-                                     cve_type);
+      return ConstantValueExpression::ConstantValueExpression(cve_type, 
+                                     execution::sql::DateVal(execution::sql::Date::FromNative(std::stoi(val))));
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      return ConstantValueExpression(execution::sql::ValueUtil::CreateStringVal(val), cve_type);
+      return ConstantValueExpression::ConstantValueExpression(cve_type, execution::sql::ValueUtil::CreateStringVal(val));
+    }
+    default:
+      UNREACHABLE("Invalid TypeId.");
+  }
+}
+
+std::string GetTypeAsString() const {
+  type::TypeId retValType = GetReturnValueType();
+  switch (retValType) {
+    case type::TypeId::BOOLEAN: 
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT:
+    case type::TypeId::DECIMAL: 
+    case type::TypeId::TIMESTAMP: 
+    case type::TypeId::DATE:
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      return fmt::format("{}", retValType);
     }
     default:
       UNREACHABLE("Invalid TypeId.");

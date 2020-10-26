@@ -194,9 +194,9 @@ SETTING_bool(
 
 SETTING_bool(
     use_pilot_thread,
-    "Use a thread for the metrics sub-system (default: true).",
-    true,
+    "Use a thread for the pilot (default: false).",
     false,
+    true,
     noisepage::settings::Callbacks::NoOp
 )
 

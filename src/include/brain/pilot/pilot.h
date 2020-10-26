@@ -5,12 +5,14 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <iostream>
+#include <fstream>
 
 #include "brain/forecast/workload_forecast.h"
 #include "execution/exec_defs.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * The garbage collector is responsible for processing a queue of completed transactions from the transaction manager.
@@ -39,19 +41,18 @@ class Pilot {
    */
   void PerformPilotLogic();
 
-  void LoadQueryTrace();
-  void LoadQueryText();
+  std::unique_ptr<brain::WorkloadForecast> forecastor_;
 
  private:
-
-  brain::WorkloadForecast forecastor_;
+  void LoadQueryTrace();
+  void LoadQueryText();
   std::map<std::pair<execution::query_id_t, uint64_t>, uint64_t> query_id_to_timestamps_;
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>> query_id_to_params_;
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
   std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
   std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions_;
   uint64_t num_sample_ {5};
-  uint64_t forecast_interval_;
+  uint64_t forecast_interval_ {10000000};
 
 };
 

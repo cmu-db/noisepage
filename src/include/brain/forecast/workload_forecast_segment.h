@@ -5,9 +5,10 @@
 #include <unordered_set>
 #include <utility>
 
+#include "execution/exec_defs.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 /**
  * 
  */
@@ -18,8 +19,7 @@ class WorkloadForecastSegment {
    * @param query_ids
    * @param num_executions_ the 
    */
-  WorkloadForecastSegment(std::vector<const uint64_t> query_ids, std::vector<const uint64_t> num_executions_);
-
+  WorkloadForecastSegment(std::vector<execution::query_id_t> query_ids, std::vector<uint64_t> num_executions_);
 
  private:
  
@@ -27,8 +27,8 @@ class WorkloadForecastSegment {
    * 
    */
   
-  std::vector<const uint64_t> query_ids_;
-  std::vector<const uint64_t> num_executions_;
+  std::vector<execution::query_id_t> query_ids_;
+  std::vector<uint64_t> num_executions_;
 };
 
 }  // namespace terrier::brain::forecast
