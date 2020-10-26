@@ -15,7 +15,7 @@ class Messenger;
 using CallbackFn = std::function<void(common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
                                       std::string_view message, uint64_t recv_cb_id)>;
 
-/** A noop version of CallbackFn. */
+/** A noop version of CallbackFn, provided for convenience. NOLINTNEXTLINE */
 static inline void CallbackFnNoop(common::ManagedPointer<Messenger> messenger, std::string_view sender_id,
                                   std::string_view message, uint64_t recv_cb_id) {}
 
