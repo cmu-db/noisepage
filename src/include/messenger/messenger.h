@@ -61,6 +61,7 @@ class ConnectionRouter {
    * @param messenger   The messenger that owns this connection router.
    * @param target      The target to listen on.
    * @param identity    The name that the router should have.
+   * @param callback    The server loop for this connection router.
    */
   explicit ConnectionRouter(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                             const std::string &identity, CallbackFn callback);
