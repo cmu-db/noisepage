@@ -249,6 +249,39 @@ std::string ConstantValueExpression::ToString() const {
   }
 }
 
+ConstantValueExpression ConstantValueExpression::FromString(std::string val, std::string type_string) {
+  type::TypeId cve_type = static_cast<type::TypeId>(type_string);
+
+  switch (cve_type ) {
+    case type::TypeId::BOOLEAN: {
+      return ConstantValueExpression(execution::sql::BoolVal(std::stoi(val)), cve_type);
+    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT: {
+      return ConstantValueExpression(execution::sql::Integer(std::stoi(val)), cve_type);
+    }
+    case type::TypeId::DECIMAL: {
+      return ConstantValueExpression(execution::sql::Real(std::stod(val)), cve_type);
+    }
+    case type::TypeId::TIMESTAMP: {
+      return ConstantValueExpression(execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(std::stoi(val))), 
+                                     cve_type);
+    }
+    case type::TypeId::DATE: {
+      return ConstantValueExpression(execution::sql::DateVal(execution::sql::Date::FromNative(std::stoi(val))), 
+                                     cve_type);
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      return ConstantValueExpression(execution::sql::ValueUtil::CreateStringVal(val), cve_type);
+    }
+    default:
+      UNREACHABLE("Invalid TypeId.");
+  }
+}
+
 nlohmann::json ConstantValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
 
