@@ -615,10 +615,10 @@ namespace terrier::execution::vm {
   F(AtomicOr2, OperandType::Local, OperandType::Local)                                                                \
   F(AtomicOr4, OperandType::Local, OperandType::Local)                                                                \
   F(AtomicOr8, OperandType::Local, OperandType::Local)                                                                \
-  F(AtomicCompareExchange1, OperandType::Local, OperandType::Local)                                                   \
-  F(AtomicCompareExchange2, OperandType::Local, OperandType::Local)                                                   \
-  F(AtomicCompareExchange4, OperandType::Local, OperandType::Local)                                                   \
-  F(AtomicCompareExchange8, OperandType::Local, OperandType::Local)                                                   \
+  F(AtomicCompareExchange1, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(AtomicCompareExchange2, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(AtomicCompareExchange4, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(AtomicCompareExchange8, OperandType::Local, OperandType::Local, OperandType::Local)                               \
                                                                                                                       \
   /* String functions */                                                                                              \
   F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \

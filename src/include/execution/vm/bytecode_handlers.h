@@ -1517,50 +1517,62 @@ VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::exec
 // Atomic memory operations
 // ---------------------------------------------------------
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicAnd1(uint8_t *dest, uint8_t val) {
   reinterpret_cast<std::atomic<uint8_t> *>(dest)->fetch_and(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicAnd2(uint16_t *dest, uint16_t val) {
   reinterpret_cast<std::atomic<uint16_t> *>(dest)->fetch_and(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicAnd4(uint32_t *dest, uint32_t val) {
   reinterpret_cast<std::atomic<uint32_t> *>(dest)->fetch_and(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicAnd8(uint64_t *dest, uint64_t val) {
   reinterpret_cast<std::atomic<uint64_t> *>(dest)->fetch_and(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicOr1(uint8_t *dest, uint8_t val) {
   reinterpret_cast<std::atomic<uint8_t> *>(dest)->fetch_or(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicOr2(uint16_t *dest, uint16_t val) {
   reinterpret_cast<std::atomic<uint16_t> *>(dest)->fetch_or(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicOr4(uint32_t *dest, uint32_t val) {
   reinterpret_cast<std::atomic<uint32_t> *>(dest)->fetch_or(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT void OpAtomicOr8(uint64_t *dest, uint64_t val) {
   reinterpret_cast<std::atomic<uint64_t> *>(dest)->fetch_or(val);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT bool OpAtomicCompareExchange1(uint8_t *dest, uint8_t *expected, uint8_t desired) {
   return reinterpret_cast<std::atomic<uint8_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT bool OpAtomicCompareExchange2(uint16_t *dest, uint16_t *expected, uint16_t desired) {
   return reinterpret_cast<std::atomic<uint16_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT bool OpAtomicCompareExchange4(uint32_t *dest, uint32_t *expected, uint32_t desired) {
   return reinterpret_cast<std::atomic<uint32_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
+// NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
 VM_OP_HOT bool OpAtomicCompareExchange8(uint64_t *dest, uint64_t *expected, uint64_t desired) {
   return reinterpret_cast<std::atomic<uint64_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }

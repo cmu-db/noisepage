@@ -1842,7 +1842,7 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
 
 void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
-  
+
   int arg_count;
   ast::BuiltinType::Kind operand_kind;
   switch (builtin) {
@@ -1868,15 +1868,19 @@ void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     case ast::Builtin::AtomicCompareExchange1:
       arg_count = 3;
+      operand_kind = ast::BuiltinType::Uint8;
       break;
     case ast::Builtin::AtomicCompareExchange2:
       arg_count = 3;
+      operand_kind = ast::BuiltinType::Uint16;
       break;
     case ast::Builtin::AtomicCompareExchange4:
       arg_count = 3;
+      operand_kind = ast::BuiltinType::Uint32;
       break;
     case ast::Builtin::AtomicCompareExchange8:
       arg_count = 3;
+      operand_kind = ast::BuiltinType::Uint64;
       break;
     default:
       UNREACHABLE("Impossible atomic call");
@@ -1894,19 +1898,18 @@ void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
       return;
     }
   } else {
-    auto operand_type = call_args[2]->GetType();
-    /* TODO(John): Figure out how to make this do consistent type-checking.
-    pointer_type = operand_type.PointerTo();
-    if (call_args[0]->GetType().SafeAs<, operand_kind)) {
-      ReportIncorrectCallArg(call, 0, operand_type);
+    // TODO(John): The typing for this should probably be relaxed some to
+    // allow CAS on any type that is of a supported width.
+    if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), operand_kind)) {
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(operand_kind));
       return;
     }
     if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), operand_kind)) {
-      ReportIncorrectCallArg(call, 1, operand_type);
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(operand_kind));
       return;
-    } */
-    if (operand_type->GetSize() > 8) {
-      ReportIncorrectCallArg(call, 2, "type size not supported");
+    }
+    if (!call_args[2]->GetType()->IsSpecificBuiltin(operand_kind)) {
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(operand_kind));
       return;
     }
   }
