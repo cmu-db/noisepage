@@ -144,7 +144,8 @@ class ZmqMessage {
       recv_cb_id_ = 0;
     } else {
       // TODO(WAN): atoi, stoull, from_chars, etc? Error checking in general.
-      UNUSED_ATTRIBUTE int check = std::sscanf(payload_.c_str(), "%llu-%llu-", &send_msg_id_, &recv_cb_id_);
+      UNUSED_ATTRIBUTE int check =
+          std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &send_msg_id_, &recv_cb_id_);
       NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
       message_.remove_prefix(message_.find_last_of('-') + 1);
     }
