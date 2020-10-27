@@ -16,7 +16,7 @@
 #include "execution/vm/vm_defs.h"
 #include "test_util/multithread_test_util.h"
 
-namespace terrier::execution::test {
+namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
@@ -670,4 +670,4 @@ TEST_F(AtomicsTest, AtomicCompareExchange8) {
     EXPECT_EQ(target.load(), num_threads);
   }
 }
-}  // namespace terrier::execution::test
+}  // namespace noisepage::execution::test
