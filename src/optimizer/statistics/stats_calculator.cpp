@@ -178,7 +178,7 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
   }
 
   size_t num_rows = root_group->GetNumRows();
-  // Uncomment when required_cols_ is supported in system
+  // TODO(elenac): For now we comment this because required_cols_ is always empty in the system
   /*
   for (auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
