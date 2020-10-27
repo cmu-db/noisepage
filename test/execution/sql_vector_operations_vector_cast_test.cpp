@@ -201,9 +201,10 @@ TEST_F(VectorCastTest, CastStringToDouble) {
 TEST_F(VectorCastTest, CastStringToFloatParseError) {
   exec::ExecutionSettings exec_settings{};
 
-  // a = [NULL, "-123.45", "6.75", NULL, "0.8", "910"]
+  // a = [NULL, "-123.45", "6.75E", NULL, "0.8", "910"]
   auto a = MakeVarcharVector({{}, "-123.45", "6.75E", {}, "0.8", "910"}, {true, false, false, true, false, false});
 
+  // Casting should fail because "6.75E" is not a valid number
   EXPECT_THROW(a->Cast(exec_settings, TypeId::Float), ExecutionException);
 }
 
