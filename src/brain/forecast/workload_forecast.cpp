@@ -24,6 +24,10 @@ WorkloadForecast::WorkloadForecast(
       query_id_to_param_(query_id_to_param),
       forecast_interval_(forecast_interval) {
   CreateSegments(query_id_to_timestamps, num_executions);
+  std::cout << "num_forecast_segment_" << num_forecast_segment_ << std::endl;
+  for (auto it = forecast_segments_.begin(); it != forecast_segments_.end(); it ++) {
+    (*it).Peek();
+  }
 }
 
 void WorkloadForecast::CreateSegments(

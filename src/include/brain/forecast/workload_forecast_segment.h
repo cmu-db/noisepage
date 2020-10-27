@@ -20,6 +20,8 @@ class WorkloadForecastSegment {
    * @param num_executions_ the 
    */
   WorkloadForecastSegment(std::vector<execution::query_id_t> query_ids, std::vector<uint64_t> num_executions_);
+  
+  void Peek();
 
  private:
  

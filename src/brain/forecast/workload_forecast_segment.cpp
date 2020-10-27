@@ -20,5 +20,12 @@ WorkloadForecastSegment::WorkloadForecastSegment(
       num_executions_(num_executions) {
 }
 
+void WorkloadForecastSegment::Peek() {
+  std::cout << "size: " << query_ids_.size() << std::endl;
+  for (auto i = 0; i < query_ids_.size(); i++){
+    std::cout << "qid: " << query_ids_[i] << "; num_exec: " << num_executions_[i] << std::endl;
+  }
+  std::cout << std::endl;
+}
 
 }  // namespace terrier::brain::forecast
