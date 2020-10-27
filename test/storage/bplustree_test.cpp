@@ -6,7 +6,7 @@
 #include "storage/storage_defs.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 unsigned int globalseed = 9;
 
@@ -1363,28 +1363,37 @@ void BPlusTreeCompleteDeleteAndReinsertTest() {
 }
 
 // NOLINTNEXTLINE
+
 TEST_F(BPlusTreeTests, InsertTests) {
-BasicBPlusTreeInsertTestNoSplittingOfRoot();
-BasicBPlusTreeInsertTestSplittingOfRootOnce();
-LargeKeyRandomInsertSiblingSequenceTest();
-KeyRandomInsertAndDeleteSiblingSequenceTest();
-DuplicateKeyValueInsertTest();
-ScanKeyTest();
-LargeKeySequentialInsertAndRetrievalTest();
-LargeKeyRandomInsertAndRetrievalTest();
-StructuralIntegrityTestWithRandomInsert();
-StructuralIntegrityTestWithCornerCase();
-StructuralIntegrityTestWithCornerCase2();
-BasicBPlusTreeDeleteTestNoSplittingOfRoot();
-LargeKeySequentialInsertAndDeleteTest();
-LargeKeyRandomInsertAndDeleteTest();
-DuplicateKeyDeleteTest();
-StructuralIntegrityTestWithRandomInsertAndDelete();
-StructuralIntegrityTestWithRandomInsertAndDelete2();
-LargeStructuralIntegrityVerificationTest();
-StructuralIntegrityTestWithRandomInsertAndDelete2Reverse();
-LargeStructuralIntegrityVerificationTestReverse();
-BPlusTreeCompleteDeleteAndReinsertTest();
+  BasicBPlusTreeInsertTestNoSplittingOfRoot();
+  BasicBPlusTreeInsertTestSplittingOfRootOnce();
+  LargeKeyRandomInsertSiblingSequenceTest();
+  DuplicateKeyValueInsertTest();
+  ScanKeyTest();
+  LargeKeySequentialInsertAndRetrievalTest();
+  LargeKeyRandomInsertAndRetrievalTest();
+}
+
+TEST_F(BPlusTreeTests, DeleteTests) {
+  BasicBPlusTreeDeleteTestNoSplittingOfRoot();
+  LargeKeySequentialInsertAndDeleteTest();
+  LargeKeyRandomInsertAndDeleteTest();
+  DuplicateKeyDeleteTest();
+  KeyRandomInsertAndDeleteSiblingSequenceTest();
+}
+
+TEST_F(BPlusTreeTests, StructuralIntegrityTests) {
+  StructuralIntegrityTestWithRandomInsert();
+  StructuralIntegrityTestWithCornerCase();
+  StructuralIntegrityTestWithCornerCase2();
+  StructuralIntegrityTestWithRandomInsertAndDelete();
+  StructuralIntegrityTestWithRandomInsertAndDelete2();
+  StructuralIntegrityTestWithRandomInsertAndDelete2Reverse();
+}
+
+TEST_F(BPlusTreeTests, LargeTests) {
+  LargeStructuralIntegrityVerificationTest();
+  BPlusTreeCompleteDeleteAndReinsertTest();
 }
 
 }  // namespace terrier::storage::index

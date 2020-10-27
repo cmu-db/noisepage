@@ -10,11 +10,11 @@
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
-namespace terrier::transaction {
+namespace noispage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 template <uint8_t KeySize>
 class CompactIntsKey;
 template <uint16_t KeySize>
@@ -140,4 +140,4 @@ extern template class BPlusTreeIndex<GenericKey<128>>;
 extern template class BPlusTreeIndex<GenericKey<256>>;
 extern template class BPlusTreeIndex<GenericKey<512>>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

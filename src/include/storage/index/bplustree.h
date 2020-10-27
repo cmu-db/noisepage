@@ -16,7 +16,7 @@
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 // This is the value we use in epoch manager to make sure
 // no thread sneaking in while GC decision is being made
@@ -706,7 +706,7 @@ class BPlusTree : public BPlusTreeBase {
      */
     void PushBack(const ElementType *copy_start_p, const ElementType *copy_end_p) {
       // Make sure the loop will come to an end
-      TERRIER_ASSERT(copy_start_p <= copy_end_p, "Loop will not come to an end.");
+      NOISEPAGE_ASSERT(copy_start_p <= copy_end_p, "Loop will not come to an end.");
 
       while (copy_start_p != copy_end_p) {
         PushBack(*copy_start_p);
@@ -915,14 +915,14 @@ class BPlusTree : public BPlusTreeBase {
      */
     ElementType &At(const int index) {
       // The index must be inside the valid range
-      TERRIER_ASSERT(index < GetSize(), "Index out of range.");
+      NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
 
       return *(Begin() + index);
     }
 
     const ElementType &At(const int index) const {
       // The index must be inside the valid range
-      TERRIER_ASSERT(index < GetSize(), "Index out of range.");
+      NOISEPAGE_ASSERT(index < GetSize(), "Index out of range.");
 
       return *(Begin() + index);
     }
@@ -2953,4 +2953,4 @@ class BPlusTree : public BPlusTreeBase {
   ~BPlusTree() { FreeTree(); }
 };  // class BPlusTree
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

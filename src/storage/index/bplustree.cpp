@@ -1,3 +1,3 @@
 #include "storage/index/bplustree.h"
 
-namespace terrier::storage::index {}
+namespace noisepage::storage::index {}

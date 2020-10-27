@@ -100,7 +100,7 @@ Index *IndexBuilder::BuildBwTreeGenericKey(IndexMetadata metadata) const {
 Index *IndexBuilder::BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
   metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
   const auto key_size = metadata.KeySize();
-  TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+  NOISEPAGE_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
   Index *index = nullptr;
   if (key_size <= 8) {
     index = new BPlusTreeIndex<CompactIntsKey<8>>(std::move(metadata));
@@ -111,7 +111,7 @@ Index *IndexBuilder::BuildBPlusTreeIntsKey(IndexMetadata metadata) const {
   } else if (key_size <= 32) {
     index = new BPlusTreeIndex<CompactIntsKey<32>>(std::move(metadata));
   }
-  TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+  NOISEPAGE_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
   return index;
 }
 
@@ -123,7 +123,7 @@ Index *IndexBuilder::BuildBPlusTreeGenericKey(IndexMetadata metadata) const {
   const auto key_size =
       (pr_size + 8) +
       sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
-  TERRIER_ASSERT(key_size <= GENERICKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
+  NOISEPAGE_ASSERT(key_size <= GENERICKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
 
   if (key_size <= 64) {
     index = new BPlusTreeIndex<GenericKey<64>>(std::move(metadata));
@@ -134,7 +134,7 @@ Index *IndexBuilder::BuildBPlusTreeGenericKey(IndexMetadata metadata) const {
   } else if (key_size <= 512) {
     index = new BPlusTreeIndex<GenericKey<512>>(std::move(metadata));
   }
-  TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
+  NOISEPAGE_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
   return index;
 }
 
