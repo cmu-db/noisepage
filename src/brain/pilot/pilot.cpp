@@ -8,9 +8,11 @@
 #include <iostream>
 #include <fstream>
 
+#include "common/macros.h"
 #include "parser/expression/constant_value_expression.h"
 #include "brain/forecast/workload_forecast.h"
 #include "execution/exec_defs.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace noisepage::brain {
 
@@ -70,7 +72,9 @@ void Pilot::LoadQueryTrace() {
         auto cve = parser::ConstantValueExpression::FromString(val_string.substr(0, pos), 
                                                                std::stoi(type_string.substr(0, pos2)));
           
-        NOISEPAGE_ASSERT(cve.ToString() == val_string, "String Conversion failed.");
+        // if (cve.ToString() != val_string.substr(0, pos)) {
+        //   std::cout << cve.ToString() << " " << val_string.substr(0, pos) << std::endl;
+        // }
         param_vec.push_back(cve);
         // std::cout << cve.ToString() << "," << std::flush;
         // std::cout << val_vec.at(counter) << " " << val_string << ",\n" << std::flush;
@@ -86,7 +90,7 @@ void Pilot::LoadQueryTrace() {
     if (!null_detected) {
       if ((curr_size = query_id_to_params_[query_id].size()) < num_sample_) {
         query_id_to_params_[query_id].push_back(param_vec);
-        query_id_to_timestamps_[{query_id, curr_size}] = std::stoi(val_vec[1]);
+        query_id_to_timestamps_[{query_id, curr_size}] = std::stoull(val_vec[1]);
         num_executions_[query_id].push_back(1);
       } else {
         num_executions_[query_id][rand() % num_sample_] ++;

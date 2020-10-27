@@ -261,18 +261,18 @@ ConstantValueExpression ConstantValueExpression::FromString(std::string val, uin
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      return ConstantValueExpression(cve_type, execution::sql::Integer(std::stoi(val)));
+      return ConstantValueExpression(cve_type, execution::sql::Integer(std::stoll(val)));
     }
     case type::TypeId::DECIMAL: {
       return ConstantValueExpression(cve_type, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
       return ConstantValueExpression(cve_type, 
-                                     execution::sql::TimestampVal(execution::sql::Timestamp::FromNative(std::stoi(val))));
+                                     execution::sql::TimestampVal(execution::sql::Timestamp::FromString(val)));
     }
     case type::TypeId::DATE: {
       return ConstantValueExpression(cve_type, 
-                                     execution::sql::DateVal(execution::sql::Date::FromNative(std::stoi(val))));
+                                     execution::sql::DateVal(execution::sql::Date::FromString(val)));
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
