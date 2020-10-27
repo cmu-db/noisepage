@@ -177,9 +177,9 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
     root_group->SetNumRows(static_cast<int>(curr_rows));
   }
 
-  size_t num_rows = root_group->GetNumRows();
   // TODO(elenac): For now we comment this because required_cols_ is always empty in the system
   /*
+  size_t num_rows = root_group->GetNumRows();
   for (auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
