@@ -296,11 +296,15 @@ TEST_F(AtomicsTest, AtomicCompareExchange1) {
     std::atomic<uint8_t> target = 0;
     auto workload = [&](uint32_t thread_id) {
       uint8_t expected;
+      bool success = false;
       do {
         expected = thread_id;
-        cmpxchg(reinterpret_cast<uint8_t *>(&target), &expected, static_cast<uint8_t>(thread_id + 1));
+        EXPECT_FALSE(success);
+        success = cmpxchg(reinterpret_cast<uint8_t *>(&target), &expected, static_cast<uint8_t>(thread_id + 1));
         EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
+        EXPECT_TRUE(!success || expected == thread_id);
       } while (expected != thread_id);
+      EXPECT_TRUE(success);
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
@@ -344,11 +348,15 @@ TEST_F(AtomicsTest, AtomicCompareExchange2) {
     std::atomic<uint16_t> target = 0;
     auto workload = [&](uint32_t thread_id) {
       uint16_t expected;
+      bool success = false;
       do {
         expected = thread_id;
-        cmpxchg(reinterpret_cast<uint16_t *>(&target), &expected, static_cast<uint16_t>(thread_id + 1));
+        EXPECT_FALSE(success);
+        success = cmpxchg(reinterpret_cast<uint16_t *>(&target), &expected, static_cast<uint16_t>(thread_id + 1));
         EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
+        EXPECT_TRUE(!success || expected == thread_id);
       } while (expected != thread_id);
+      EXPECT_TRUE(success);
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
@@ -392,11 +400,15 @@ TEST_F(AtomicsTest, AtomicCompareExchange4) {
     std::atomic<uint32_t> target = 0;
     auto workload = [&](uint32_t thread_id) {
       uint32_t expected;
+      bool success = false;
       do {
         expected = thread_id;
-        cmpxchg(reinterpret_cast<uint32_t *>(&target), &expected, static_cast<uint32_t>(thread_id + 1));
+        EXPECT_FALSE(success);
+        success = cmpxchg(reinterpret_cast<uint32_t *>(&target), &expected, static_cast<uint32_t>(thread_id + 1));
         EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
+        EXPECT_TRUE(!success || expected == thread_id);
       } while (expected != thread_id);
+      EXPECT_TRUE(success);
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
@@ -440,11 +452,15 @@ TEST_F(AtomicsTest, AtomicCompareExchange8) {
     std::atomic<uint64_t> target = 0;
     auto workload = [&](uint32_t thread_id) {
       uint64_t expected;
+      bool success = false;
       do {
         expected = thread_id;
-        cmpxchg(reinterpret_cast<uint64_t *>(&target), &expected, thread_id + 1);
+        EXPECT_FALSE(success);
+        success = cmpxchg(reinterpret_cast<uint64_t *>(&target), &expected, thread_id + 1);
         EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
+        EXPECT_TRUE(!success || expected == thread_id);
       } while (expected != thread_id);
+      EXPECT_TRUE(success);
     };
 
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
