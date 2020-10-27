@@ -612,7 +612,7 @@ target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of t
         )
 
 # Unfortunately, some libraries do not have clean target_link_libraries hygiene.
-# The symptoms are typically weird -Werror warnings because.
+# The symptoms are typically weird -Werror warnings because the NoisePage Werror flags get applied to library code.
 # The hacky solution is to manually specify their target_include_directories as SYSTEM.
 target_include_directories(noisepage_objlib SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/_deps/src/fast_float/include/)
 
