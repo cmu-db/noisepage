@@ -543,8 +543,8 @@ find_package(TBB REQUIRED)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
 
 # ZeroMQ. Used for Messenger.
-find_package(ZeroMQ REQUIRED)
-message(STATUS "[FOUND] ZeroMQ ${ZeroMQ_VERSION}")
+pkg_search_module(ZEROMQ REQUIRED libzmq)
+message(STATUS "[FOUND] ZeroMQ ${ZEROMQ_VERSION}")
 
 # DISGUSTING HACK: Restore the old CMAKE_BUILD_TYPE, CMAKE_C_FLAGS, and CMAKE_CXX_FLAGS.
 set(CMAKE_BUILD_TYPE "${OLD_CMAKE_BUILD_TYPE}")     # Restore the old CMAKE_BUILD_TYPE.
