@@ -499,6 +499,9 @@ set(GFLAGS_BUILD_gflags_nothreads_LIB OFF)          # Disable building the nothr
 set(GFLAGS_BUILD_TESTING OFF)                       # Disable building gflags tests.
 set(GFLAGS_BUILD_PACKAGING OFF)                     # Disable building gflags packaging.
 
+# ZeroMQ build settings.
+set(CPPZMQ_BUILD_TESTS OFF CACHE INTERNAL "Disable building CPPZMQ tests.")
+
 # Include the source of the dependencies as sources that NoisePage can include.
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_deps/src/)
 
@@ -508,6 +511,7 @@ add_noisepage_dep_singlefile(portable_endian https://gist.githubusercontent.com/
 
 # Fetch project dependencies.
 add_noisepage_dep(count https://github.com/pmenon/libcount.git 6eef9d048d4577f144506ffc076c1913f8faf3ef)
+add_noisepage_dep(cppzmq https://github.com/zeromq/cppzmq.git v4.7.1)
 add_noisepage_dep(gflags https://github.com/gflags/gflags.git v2.2.2)
 add_noisepage_dep(googlebenchmark https://github.com/google/benchmark.git v1.5.2)
 add_noisepage_dep(googletest https://github.com/google/googletest.git release-1.10.0)
@@ -543,10 +547,6 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen nati
 # TBB.
 find_package(TBB REQUIRED)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
-
-# ZeroMQ. Used for Messenger.
-pkg_search_module(ZEROMQ REQUIRED libzmq)
-message(STATUS "[FOUND] ZeroMQ ${ZEROMQ_VERSION}")
 
 # DISGUSTING HACK: Restore the old CMAKE_BUILD_TYPE, CMAKE_C_FLAGS, and CMAKE_CXX_FLAGS.
 set(CMAKE_BUILD_TYPE "${OLD_CMAKE_BUILD_TYPE}")     # Restore the old CMAKE_BUILD_TYPE.
@@ -615,6 +615,7 @@ target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of t
         )
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
+        cppzmq
         gflags
         ips4o::ips4o
         madoka::madoka
@@ -628,7 +629,6 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${NOISEPAGE_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
         ${TBB_LIBRARIES_RELEASE}
-        ${ZEROMQ_LINK_LIBRARIES}
         )
 
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
