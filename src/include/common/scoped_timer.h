@@ -4,7 +4,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * The ScopedTimer provided an easy way to collect the elapsed time for a block of code. It stores the current time when
@@ -39,4 +39,4 @@ class ScopedTimer {
   const std::chrono::high_resolution_clock::time_point start_;
   uint64_t *const elapsed_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

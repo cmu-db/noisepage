@@ -13,7 +13,7 @@
 #include "network/itp/itp_packet_writer.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Interprets the network protocol for ITP
@@ -88,4 +88,4 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   common::ManagedPointer<ITPCommandFactory> command_factory_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

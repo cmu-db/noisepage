@@ -4,7 +4,7 @@
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 class BytecodeGeneratorTest : public TplTest {
  public:
@@ -318,4 +318,4 @@ TEST_F(BytecodeGeneratorTest, FunctionTest) {
   EXPECT_EQ(20, s.b_);
 }
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

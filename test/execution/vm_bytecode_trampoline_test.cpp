@@ -12,7 +12,7 @@
 #include "execution/vm/module_compiler.h"
 #include "ips4o/ips4o.hpp"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 //
 // These tests use the trampoline to call into bytecode functions.
@@ -276,9 +276,9 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   auto num2 = numbers;
   auto num3 = numbers;
 
-  auto tramp_ms = bench_trampoline(numbers);
-  auto func_ms = bench_func(num2);
-  auto std_ms = bench_std(num3);
+  UNUSED_ATTRIBUTE auto tramp_ms = bench_trampoline(numbers);
+  UNUSED_ATTRIBUTE auto func_ms = bench_func(num2);
+  UNUSED_ATTRIBUTE auto std_ms = bench_std(num3);
 
   // TODO(Amadou): Move this test to benchmark folder.
   EXECUTION_LOG_TRACE("Trampoline: {} ms", tramp_ms);
@@ -286,4 +286,4 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   EXECUTION_LOG_TRACE("Std: {} ms", std_ms);
 }
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

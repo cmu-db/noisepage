@@ -7,7 +7,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/bit_util.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorTest : public TplTest {};
 
@@ -60,9 +60,9 @@ TEST_F(VectorTest, InitFromArray) {
   // Now a string array
   {
     VarlenHeap varlens;
-    terrier::storage::VarlenEntry arr[num_elems] = {varlens.AddVarlen("go loko"), varlens.AddVarlen("hot-line bling"),
-                                                    varlens.AddVarlen("kawhi"), varlens.AddVarlen("6ix"),
-                                                    varlens.AddVarlen("king city")};
+    noisepage::storage::VarlenEntry arr[num_elems] = {varlens.AddVarlen("go loko"), varlens.AddVarlen("hot-line bling"),
+                                                      varlens.AddVarlen("kawhi"), varlens.AddVarlen("6ix"),
+                                                      varlens.AddVarlen("king city")};
     Vector vec(TypeId::Varchar);
     vec.Reference(reinterpret_cast<byte *>(arr), nullptr, num_elems);
     EXPECT_EQ(num_elems, vec.GetSize());
@@ -493,4 +493,4 @@ TEST_F(VectorTest, Print) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

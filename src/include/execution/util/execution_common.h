@@ -61,7 +61,7 @@ using uint128_t = unsigned __int128;
 //===----------------------------------------------------------------------===//
 #define UNREACHABLE(msg) llvm_unreachable(msg)
 
-namespace terrier::execution {
+namespace noisepage::execution {
 /**
  * A compact structure used during parsing to capture and describe the position in the source as 1-based line and column
  * number
@@ -81,4 +81,4 @@ struct SourcePosition {
  * Use to classify locality of reference for memory accesses
  */
 enum class Locality : uint8_t { None = 0, Low = 1, Medium = 2, High = 3 };
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

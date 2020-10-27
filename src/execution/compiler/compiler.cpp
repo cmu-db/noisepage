@@ -9,7 +9,7 @@
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/module.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 //===----------------------------------------------------------------------===//
 //
@@ -124,7 +124,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
 }
 
 void Compiler::RunCompilation(const Compiler::Input &input, Compiler::Callbacks *callbacks) {
-  TERRIER_ASSERT(callbacks != nullptr, "Must provide callbacks");
+  NOISEPAGE_ASSERT(callbacks != nullptr, "Must provide callbacks");
   Compiler compiler(input);
   compiler.Run(callbacks);
 }
@@ -165,4 +165,4 @@ std::string Compiler::CompilerPhaseToString(Compiler::Phase phase) {
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -10,7 +10,7 @@
 #include "network/packet_writer.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Interface for the execution of a NetworkCommand
@@ -44,4 +44,4 @@ class NetworkCommand {
  private:
   bool flush_on_complete_;
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

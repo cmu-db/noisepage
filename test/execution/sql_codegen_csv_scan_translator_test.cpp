@@ -13,15 +13,15 @@
 #include "execution/vm/llvm_engine.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
 
-namespace terrier::execution::sql::codegen::test {
+namespace noisepage::execution::sql::codegen::test {
 
 using namespace std::chrono_literals;  // NOLINT
 
 class CSVScanTranslatorTest : public SqlBasedTest {
  protected:
   void SetUp() override { SqlBasedTest::SetUp(); }
-  static void SetUpTestSuite() { terrier::execution::vm::LLVMEngine::Initialize(); }
-  static void TearDownTestSuite() { terrier::execution::vm::LLVMEngine::Shutdown(); }
+  static void SetUpTestSuite() { noisepage::execution::vm::LLVMEngine::Initialize(); }
+  static void TearDownTestSuite() { noisepage::execution::vm::LLVMEngine::Shutdown(); }
 
  private:
   tbb::task_scheduler_init anonymous_;
@@ -77,5 +77,5 @@ TEST_F(CSVScanTranslatorTest, ManyTypesTest) {
   multi_checker.CheckCorrectness();
 }
 
-}  // namespace terrier::execution::sql::codegen::test
+}  // namespace noisepage::execution::sql::codegen::test
 #endif

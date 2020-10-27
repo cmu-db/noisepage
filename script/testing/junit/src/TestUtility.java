@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
 
 public class TestUtility {
     public static Connection makeDefaultConnection() throws SQLException {
-        return makeConnection("localhost", 15721, "terrier");
+        return makeConnection("localhost", 15721, "noisepage");
     }
 
     public static Connection makeConnection(String host, int port, String username) throws SQLException {
@@ -33,16 +33,16 @@ public class TestUtility {
         props.setProperty("prepareThreshold", "0"); // suppress switchover to binary protocol
 
         // Set prepferQueryMode
-        String preferQueryMode = System.getenv("TERRIER_QUERY_MODE");
+        String preferQueryMode = System.getenv("NOISEPAGE_QUERY_MODE");
         if (preferQueryMode == null || preferQueryMode.isEmpty()) {
-            // Default as "simple" if TERRIER_QUERY_MODE is not specified
+            // Default as "simple" if NOISEPAGE_QUERY_MODE is not specified
             preferQueryMode = "simple";
         }
         props.setProperty("preferQueryMode", preferQueryMode);
 
         // Set prepareThreshold if the prepferQueryMode is 'extended'
         if (preferQueryMode.equals("extended")) {
-            String prepareThreshold = System.getenv("TERRIER_PREPARE_THRESHOLD");
+            String prepareThreshold = System.getenv("NOISEPAGE_PREPARE_THRESHOLD");
             if (prepareThreshold != null && !prepareThreshold.isEmpty()) {
                 props.setProperty("prepareThreshold", prepareThreshold);
             }

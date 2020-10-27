@@ -8,7 +8,7 @@
 #include "common/json.h"
 #include "parser/select_statement.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * @return JoinDefinition serialized to json
@@ -193,4 +193,4 @@ std::unique_ptr<TableRef> TableRef::Copy() {
   }
   return table_ref;
 }
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

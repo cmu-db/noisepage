@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/sql/runtime_types.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * All internal types underlying the SQL types. This is a superset of the SQL types meant to capture
@@ -147,4 +147,4 @@ bool IsTypeNumeric(TypeId type);
  */
 std::string TypeIdToString(TypeId type);
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

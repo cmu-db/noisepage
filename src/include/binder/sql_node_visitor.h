@@ -2,7 +2,7 @@
 
 #include "common/managed_pointer.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace parser {
 class ParseResult;
@@ -40,6 +40,7 @@ class FunctionExpression;
 class OperatorExpression;
 class ParameterValueExpression;
 class StarExpression;
+class TableStarExpression;
 class SubqueryExpression;
 class TypeCastExpression;
 }  // namespace parser
@@ -213,6 +214,12 @@ class SqlNodeVisitor {
   virtual void Visit(common::ManagedPointer<parser::StarExpression> expr);
 
   /**
+   * Visitor pattern for TableStarExpression
+   * @param expr to be visited
+   */
+  virtual void Visit(common::ManagedPointer<parser::TableStarExpression> expr);
+
+  /**
    * Visitor pattern for SubqueryExpression
    * @param expr to be visited
    */
@@ -260,4 +267,4 @@ class SqlNodeVisitor {
 };
 
 }  // namespace binder
-}  // namespace terrier
+}  // namespace noisepage

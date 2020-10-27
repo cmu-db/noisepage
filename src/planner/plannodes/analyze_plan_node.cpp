@@ -8,7 +8,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t AnalyzePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -59,4 +59,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AnalyzePlanNode::FromJs
   column_oids_ = j.at("column_oids").get<std::vector<catalog::col_oid_t>>();
   return exprs;
 }
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

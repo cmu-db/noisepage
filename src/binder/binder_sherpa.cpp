@@ -5,7 +5,7 @@
 #include "binder/binder_util.h"
 #include "parser/expression/abstract_expression.h"
 #include "spdlog/fmt/fmt.h"
-namespace terrier::binder {
+namespace noisepage::binder {
 
 void BinderSherpa::SetDesiredTypePair(const common::ManagedPointer<parser::AbstractExpression> left,
                                       const common::ManagedPointer<parser::AbstractExpression> right) {
@@ -73,4 +73,4 @@ void BinderSherpa::CheckDesiredType(const common::ManagedPointer<parser::Abstrac
   }
 }
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

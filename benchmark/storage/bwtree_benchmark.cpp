@@ -7,7 +7,7 @@
 #include "test_util/bwtree_test_util.h"
 #include "test_util/multithread_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // Adapted from benchmarks in https://github.com/wangziqi2013/BwTree/blob/master/test/
 
@@ -303,4 +303,4 @@ BENCHMARK_REGISTER_F(BwTreeBenchmark, SequentialInsertSequentialRead)
     ->MinTime(3);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

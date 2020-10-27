@@ -13,7 +13,7 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class GarbageCollector;
 class LogManager;
 class BlockCompactor;
@@ -22,9 +22,9 @@ class SqlTable;
 class WriteAheadLoggingTests;
 class RecoveryManager;
 class RecoveryTests;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 /**
  * A transaction context encapsulates the information kept while the transaction is running
  */
@@ -250,4 +250,4 @@ class TransactionContext {
     return new_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

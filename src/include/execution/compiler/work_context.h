@@ -8,11 +8,11 @@
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/pipeline.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class CompilationContext;
 class FunctionBuilder;
@@ -104,4 +104,4 @@ class WorkContext {
   bool cache_enabled_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -2,7 +2,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -62,13 +62,13 @@ void GenericCopyOperation(const Vector &source, void *target, uint64_t offset, u
 }  // namespace
 
 void VectorOps::Copy(const Vector &source, void *target, uint64_t offset, uint64_t element_count) {
-  TERRIER_ASSERT(IsTypeFixedSize(source.type_), "Copy should only be used for fixed-length types");
+  NOISEPAGE_ASSERT(IsTypeFixedSize(source.type_), "Copy should only be used for fixed-length types");
   GenericCopyOperation(source, target, offset, element_count);
 }
 
 void VectorOps::Copy(const Vector &source, Vector *target, uint64_t offset) {
-  TERRIER_ASSERT(offset < source.count_, "Out-of-bounds offset");
-  TERRIER_ASSERT(target->GetFilteredTupleIdList() == nullptr, "Cannot copy into filtered vector");
+  NOISEPAGE_ASSERT(offset < source.count_, "Out-of-bounds offset");
+  NOISEPAGE_ASSERT(target->GetFilteredTupleIdList() == nullptr, "Cannot copy into filtered vector");
 
   // Resize the target vector to accommodate count-offset elements from the source vector
   target->Resize(source.GetCount() - offset);
@@ -81,4 +81,4 @@ void VectorOps::Copy(const Vector &source, Vector *target, uint64_t offset) {
   Copy(source, target->GetData(), offset, target->GetCount());
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

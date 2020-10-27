@@ -8,7 +8,7 @@
 #include "network/network_defs.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionHandleFactory;
 
@@ -65,4 +65,4 @@ class ConnectionHandlerTask : public common::NotifiableTask {
   common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

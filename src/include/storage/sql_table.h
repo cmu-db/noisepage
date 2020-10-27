@@ -12,22 +12,22 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 // Forward Declaration
 class LargeSqlTableTestObject;
 class RandomSqlTableTransaction;
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 class TableVectorIterator;
 class VectorProjection;
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * A SqlTable is a thin layer above DataTable that replaces storage layer concepts like BlockLayout with SQL layer
@@ -85,11 +85,11 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Update(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
+    NOISEPAGE_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
+    NOISEPAGE_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                                 ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                     "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                     "immediately before?");
     const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
@@ -108,11 +108,11 @@ class SqlTable {
    * @return TupleSlot for the inserted tuple
    */
   TupleSlot Insert(const common::ManagedPointer<transaction::TransactionContext> txn, RedoRecord *const redo) const {
-    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
-    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-                   "immediately before?");
+    NOISEPAGE_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+    NOISEPAGE_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                                 ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                     "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                     "immediately before?");
     const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
@@ -125,9 +125,9 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
-    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
-                   "The RedoBuffer is empty even though StageDelete should have been called.");
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
+                     "The RedoBuffer is empty even though StageDelete should have been called.");
+    NOISEPAGE_ASSERT(
         reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
                 ->GetUnderlyingRecordBodyAs<DeleteRecord>()
                 ->GetTupleSlot() == slot,
@@ -200,11 +200,11 @@ class SqlTable {
    */
   ProjectedColumnsInitializer InitializerForProjectedColumns(const std::vector<catalog::col_oid_t> &col_oids,
                                                              const uint32_t max_tuples) const {
-    TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                   "There should not be any duplicated in the col_ids!");
+    NOISEPAGE_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
+                     "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
-    TERRIER_ASSERT(col_ids.size() == col_oids.size(),
-                   "Projection should be the same number of columns as requested col_oids.");
+    NOISEPAGE_ASSERT(col_ids.size() == col_oids.size(),
+                     "Projection should be the same number of columns as requested col_oids.");
     return ProjectedColumnsInitializer(table_.layout_, col_ids, max_tuples);
   }
 
@@ -216,11 +216,11 @@ class SqlTable {
    * @warning col_oids must be a set (no repeats)
    */
   ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids) const {
-    TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
-                   "There should not be any duplicated in the col_ids!");
+    NOISEPAGE_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
+                     "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
-    TERRIER_ASSERT(col_ids.size() == col_oids.size(),
-                   "Projection should be the same number of columns as requested col_oids.");
+    NOISEPAGE_ASSERT(col_ids.size() == col_oids.size(),
+                     "Projection should be the same number of columns as requested col_oids.");
     return ProjectedRowInitializer::Create(table_.layout_, col_ids);
   }
 
@@ -243,8 +243,8 @@ class SqlTable {
 
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
-  friend class terrier::RandomSqlTableTransaction;
-  friend class terrier::LargeSqlTableTestObject;
+  friend class noisepage::RandomSqlTableTransaction;
+  friend class noisepage::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
   /*
@@ -278,4 +278,4 @@ class SqlTable {
    */
   catalog::col_oid_t OidForColId(col_id_t col_id) const;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

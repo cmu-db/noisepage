@@ -1,7 +1,7 @@
 #include "execution/sql/tuple_id_list.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class TupleIdListTest : public TplTest {};
 
@@ -285,4 +285,4 @@ TEST_F(TupleIdListTest, BuildFromSelectionVector) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

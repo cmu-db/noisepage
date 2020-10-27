@@ -9,7 +9,7 @@
 #include "storage/projected_row.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 // This is the maximum number of bytes to pack into a single CompactIntsKey template. This constraint is not
 // arbitrary and cannot be increased beyond 32 bytes (256 bits) until AVX-512 is more widely available.
@@ -58,36 +58,36 @@ class CompactIntsKey {
     const auto &attr_sizes = metadata.GetAttributeSizes();
     const auto &compact_ints_offsets = metadata.GetCompactIntsOffsets();
 
-    TERRIER_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
-    TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
-                   "attr_sizes and attr_offsets must be equal in size.");
-    TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
-    TERRIER_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
+    NOISEPAGE_ASSERT(attr_sizes.size() == from.NumColumns(), "attr_sizes and ProjectedRow must be equal in size.");
+    NOISEPAGE_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
+                     "attr_sizes and attr_offsets must be equal in size.");
+    NOISEPAGE_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+    NOISEPAGE_ASSERT(num_attrs > 0 && num_attrs <= from.NumColumns(), "num_attrs invariant failed");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
-    TERRIER_ASSERT(std::invoke([&]() -> bool {
-                     for (uint16_t i = 0; i < num_attrs; i++) {
-                       if (from.IsNull(i)) return false;
-                     }
-                     return true;
-                   }),
-                   "There should not be any NULL attributes in this key.");
+    NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
+                       for (uint16_t i = 0; i < num_attrs; i++) {
+                         if (from.IsNull(i)) return false;
+                       }
+                       return true;
+                     }),
+                     "There should not be any NULL attributes in this key.");
 
     // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
-    TERRIER_ASSERT(std::invoke([&]() -> bool {
-                     for (const auto &i : metadata.GetSchema().GetColumns()) {
-                       if (i.Nullable()) return false;
-                     }
-                     return true;
-                   }),
-                   "There should not be any NULL attributes in this schema.");
+    NOISEPAGE_ASSERT(std::invoke([&]() -> bool {
+                       for (const auto &i : metadata.GetSchema().GetColumns()) {
+                         if (i.Nullable()) return false;
+                       }
+                       return true;
+                     }),
+                     "There should not be any NULL attributes in this schema.");
 
     // we hash and compare KeySize bytes in all of our operations. Since there might be over-provisioned bytes, we want
     // to make sure the entire key is memset to 0
     std::memset(key_data_, 0, KeySize);
 
     for (uint8_t i = 0; i < num_attrs; i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
+      NOISEPAGE_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
       CopyAttrFromProjection(from, from.ColumnIds()[i].UnderlyingValue(), attr_sizes[i], compact_ints_offsets[i]);
     }
   }
@@ -146,7 +146,7 @@ class CompactIntsKey {
   void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
                               const uint8_t attr_size, const uint8_t compact_ints_offset) {
     const byte *const stored_attr = from.AccessWithNullCheck(projection_list_offset);
-    TERRIER_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
+    NOISEPAGE_ASSERT(stored_attr != nullptr, "Cannot index a nullable attribute with CompactIntsKey.");
     switch (attr_size) {
       case sizeof(int8_t): {
         int8_t data = *reinterpret_cast<const int8_t *>(stored_attr);
@@ -303,7 +303,7 @@ class CompactIntsKey {
     // so we must use automatic type inference
     const auto big_endian = ToBigEndian(data);
 
-    TERRIER_ASSERT(offset + sizeof(IntType) <= KeySize, "Out of bounds access on key_data_.");
+    NOISEPAGE_ASSERT(offset + sizeof(IntType) <= KeySize, "Out of bounds access on key_data_.");
 
     // This will almost always be optimized into single move
     std::memcpy(key_data_ + offset, &big_endian, sizeof(IntType));
@@ -347,7 +347,7 @@ extern template class CompactIntsKey<16>;
 extern template class CompactIntsKey<24>;
 extern template class CompactIntsKey<32>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index
 
 namespace std {
 
@@ -356,12 +356,12 @@ namespace std {
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
-struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
+struct hash<noisepage::storage::index::CompactIntsKey<KeySize>> {
   /**
    * @param key key to be hashed
    * @return hash of the key's underlying data
    */
-  size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
+  size_t operator()(const noisepage::storage::index::CompactIntsKey<KeySize> &key) const {
     const auto *const data = reinterpret_cast<const void *const>(key.KeyData());
     return static_cast<size_t>(XXH3_64bits(data, KeySize));
   }
@@ -372,15 +372,15 @@ struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
-struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
+struct equal_to<noisepage::storage::index::CompactIntsKey<KeySize>> {
   /**
    * Due to the KeySize constraints this should be optimized to a single SIMD instruction.
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is equal to the second key
    */
-  bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
-                  const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::CompactIntsKey<KeySize> &lhs,
+                  const noisepage::storage::index::CompactIntsKey<KeySize> &rhs) const {
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) == 0;
   }
 };
@@ -390,15 +390,15 @@ struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
-struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
+struct less<noisepage::storage::index::CompactIntsKey<KeySize>> {
   /**
    * Due to the KeySize constraints, this should be optimized to a single SIMD instruction.
    * @param lhs first key to be compared
    * @param rhs second key to be compared
    * @return true if first key is less than the second key
    */
-  bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
-                  const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
+  bool operator()(const noisepage::storage::index::CompactIntsKey<KeySize> &lhs,
+                  const noisepage::storage::index::CompactIntsKey<KeySize> &rhs) const {
     return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) < 0;
   }
 };

@@ -3,7 +3,7 @@
 #include "common/macros.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class Memo;
 class GroupExpression;
@@ -201,4 +201,4 @@ class TrivialCostModel : public AbstractCostModel {
   double output_cost_ = 0;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

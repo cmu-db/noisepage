@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // ---------------------------------------------------------
 // Function Declaration
@@ -104,14 +104,14 @@ Identifier CallExpr::GetFuncName() const { return func_->As<IdentifierExpr>()->N
 // ---------------------------------------------------------
 
 bool IndexExpr::IsArrayAccess() const {
-  TERRIER_ASSERT(Object() != nullptr, "Object cannot be NULL");
-  TERRIER_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Object cannot be NULL");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
   return Object()->GetType()->IsArrayType();
 }
 
 bool IndexExpr::IsMapAccess() const {
-  TERRIER_ASSERT(Object() != nullptr, "Object cannot be NULL");
-  TERRIER_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Object cannot be NULL");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
   return Object()->GetType()->IsMapType();
 }
 
@@ -120,7 +120,7 @@ bool IndexExpr::IsMapAccess() const {
 // ---------------------------------------------------------
 
 bool MemberExpr::IsSugaredArrow() const {
-  TERRIER_ASSERT(Object()->GetType() != nullptr, "Cannot determine sugared-arrow before type checking!");
+  NOISEPAGE_ASSERT(Object()->GetType() != nullptr, "Cannot determine sugared-arrow before type checking!");
   return Object()->GetType()->IsPointerType();
 }
 
@@ -173,4 +173,4 @@ std::string CastKindToString(const CastKind cast_kind) {
   }
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
