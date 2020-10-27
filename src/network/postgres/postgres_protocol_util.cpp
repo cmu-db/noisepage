@@ -4,7 +4,7 @@
 
 #include "loggers/network_logger.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 type::TypeId PostgresProtocolUtil::PostgresValueTypeToInternalValueType(const PostgresValueType type) {
   switch (type) {
@@ -94,4 +94,4 @@ PostgresValueType PostgresProtocolUtil::InternalValueTypeToPostgresValueType(con
   }
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

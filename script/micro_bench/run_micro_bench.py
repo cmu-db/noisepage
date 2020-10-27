@@ -115,7 +115,7 @@ class Config(object):
         # Pull reference benchmark runs from this ordered list
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
-            {"project" : "terrier-nightly",
+            {"project" : "noisepage-nightly",
              "min_build" : None, # 363,
             },
         ]
@@ -827,8 +827,8 @@ class RunMicroBenchmarks(object):
             cmd = "perf record --output={} {}".format(perf_result, cmd)
         
         # Environment Variables
-        os.environ["TERRIER_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
-        os.environ["TERRIER_BENCHMARK_LOGFILE_PATH"] = BENCHMARK_LOGFILE_PATH
+        os.environ["NOISEPAGE_BENCHMARK_THREADS"] = str(BENCHMARK_THREADS) # has to be a str
+        os.environ["NOISEPAGE_BENCHMARK_LOGFILE_PATH"] = BENCHMARK_LOGFILE_PATH
 
         # use all the cpus from the highest numbered numa node
         output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
@@ -897,7 +897,7 @@ class Jenkins(object):
         # Each build dict looks like:
         # {'_class': 'org.jenkinsci.plugins.workflow.job.WorkflowRun',
         #  'number': 8,
-        #  'url': 'http://jenkins.db.cs.cmu.edu:8080/job/pa_terrier/job/micro_bench/8/'},
+        #  'url': 'http://jenkins.db.cs.cmu.edu:8080/job/pa_noisepage/job/micro_bench/8/'},
 
         # retrieve data for each build and turn into a Build object
         ret_list = []

@@ -5,7 +5,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * StarExpression represents a star in expressions like COUNT(*).
  */
@@ -32,7 +32,7 @@ class StarExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "StarExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "StarExpression should have 0 children");
     return Copy();
   }
 
@@ -41,4 +41,4 @@ class StarExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(StarExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

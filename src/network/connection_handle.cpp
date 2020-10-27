@@ -6,7 +6,7 @@
 #include "network/connection_handler_task.h"
 #include "network/network_io_wrapper.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /** ConnectionHandleStateMachineTransition implements ConnectionHandle::StateMachine::Delta's transition function. */
 class ConnectionHandleStateMachineTransition {
@@ -18,7 +18,7 @@ class ConnectionHandleStateMachineTransition {
       case Transition::NEED_READ:           return {ConnState::READ, WaitForRead};
       case Transition::NEED_READ_TIMEOUT:   return {ConnState::READ, WaitForReadWithTimeout};
       // Allegedly, the NEED_WRITE case happens only when we use SSL and are blocked on a write
-      // during handshake. From terrier's perspective we are still waiting for reads.
+      // during handshake. From noisepage's perspective we are still waiting for reads.
       case Transition::NEED_WRITE:          return {ConnState::READ, WaitForWrite};
       case Transition::PROCEED:             return {ConnState::PROCESS, Process};
       case Transition::TERMINATE:           return {ConnState::CLOSING, TryCloseConnection};
@@ -236,8 +236,8 @@ void ConnectionHandle::StopReceivingNetworkEvent() { EventUtil::EventDel(network
 void ConnectionHandle::Callback(void *callback_args) {
   // TODO(WAN): this is currently unused.
   auto *const handle = reinterpret_cast<ConnectionHandle *>(callback_args);
-  TERRIER_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
-                 "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
+  NOISEPAGE_ASSERT(handle->state_machine_.CurrentState() == ConnState::PROCESS,
+                   "Should be waking up a ConnectionHandle that's in PROCESS state waiting on query result.");
   event_active(handle->workpool_event_, EV_WRITE, 0);
 }
 
@@ -255,4 +255,4 @@ void ConnectionHandle::ResetForReuse(connection_id_t connection_id, common::Mana
   context_.SetConnectionID(connection_id);
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

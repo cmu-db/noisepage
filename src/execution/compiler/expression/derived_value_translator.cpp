@@ -6,7 +6,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 DerivedValueTranslator::DerivedValueTranslator(const parser::DerivedValueExpression &expr,
                                                CompilationContext *compilation_context)
@@ -17,4 +17,4 @@ ast::Expr *DerivedValueTranslator::DeriveValue(WorkContext *ctx, const ColumnVal
   return provider->GetChildOutput(ctx, derived_expr.GetTupleIdx(), derived_expr.GetValueIdx());
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

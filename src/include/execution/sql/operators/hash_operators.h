@@ -3,7 +3,7 @@
 #include "common/hash_util.h"
 #include "execution/sql/runtime_types.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Hash operation functor.
@@ -99,4 +99,4 @@ struct HashCombine<storage::VarlenEntry> {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

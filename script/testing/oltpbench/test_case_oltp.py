@@ -129,7 +129,7 @@ class TestCaseOLTPBench(TestCase):
     def get_db_url(self):
         """ format the DB URL for the JDBC connection """
         # format the url base
-        db_url_base = "jdbc:postgresql://{}:{}/terrier".format(
+        db_url_base = "jdbc:postgresql://{}:{}/noisepage".format(
             self.db_host, self.db_port)
         # format the url params
         db_url_params = ""

@@ -21,7 +21,7 @@
 
 #define LOG_TEST_LOG_FILE_NAME "./test_log_test.log"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
   std::default_random_engine generator_;
@@ -35,7 +35,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     unlink(LOG_TEST_LOG_FILE_NAME);
 
     db_main_ =
-        terrier::DBMain::Builder().SetWalFilePath(LOG_TEST_LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
+        noisepage::DBMain::Builder().SetWalFilePath(LOG_TEST_LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     log_manager_ = db_main_->GetLogManager();
     store_ = db_main_->GetStorageLayer()->GetBlockStore();
@@ -84,7 +84,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // If code path reaches here, we have a REDO record.
-    TERRIER_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
+    NOISEPAGE_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
 
     // Read in col_ids
     // IDs read individually since we can't guarantee memory layout of vector
@@ -448,4 +448,4 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
   // DeferredAction
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -7,7 +7,7 @@
 #include "common/hash_util.h"
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t SeqScanPlanNode::Hash() const {
   common::hash_t hash = AbstractScanPlanNode::Hash();
@@ -41,4 +41,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> SeqScanPlanNode::FromJs
 
 DEFINE_JSON_BODY_DECLARATIONS(SeqScanPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

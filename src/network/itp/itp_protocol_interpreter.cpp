@@ -7,9 +7,9 @@
 
 #include "network/itp/itp_network_commands.h"
 #include "network/network_defs.h"
-#include "network/terrier_server.h"
+#include "network/noisepage_server.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 Transition ITPProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
                                            common::ManagedPointer<WriteQueue> out,
                                            common::ManagedPointer<trafficcop::TrafficCop> t_cop,
@@ -40,4 +40,4 @@ void ITPProtocolInterpreter::SetPacketMessageType(const common::ManagedPointer<R
   curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

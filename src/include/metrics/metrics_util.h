@@ -2,7 +2,7 @@
 
 #include <chrono>  // NOLINT
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Static utility methods for the metrics component
@@ -20,4 +20,4 @@ struct MetricsUtil {
         .count();
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

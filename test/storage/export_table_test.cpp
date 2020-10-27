@@ -23,9 +23,9 @@
   "pa_table = pa_table.to_pandas()\n"                             \
   "pa_table.to_csv('" EXPORT_TEST_CSV_TABLE_NAME "', index=False, header=False)\n"
 
-namespace terrier {
+namespace noisepage {
 
-struct ExportTableTest : public ::terrier::TerrierTest {
+struct ExportTableTest : public ::noisepage::TerrierTest {
   // This function decodes a utf-8 string from a csv file char by char
   // Example:
   //             \xc8\x99\r&x""
@@ -223,7 +223,7 @@ TEST_F(ExportTableTest, ExportDictionaryCompressedTableTest) {
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
                            storage::layout_version_t(0));
-  storage::RawBlock *block = table.begin()->GetBlock();
+  storage::RawBlock *block = *table.GetBlocks().begin();
   accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
   // Enable GC to cleanup transactions started by the block compactor
@@ -301,7 +301,7 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
   storage::DataTable table(common::ManagedPointer<storage::BlockStore>(&block_store_), layout,
                            storage::layout_version_t(0));
-  storage::RawBlock *block = table.begin()->GetBlock();
+  storage::RawBlock *block = *table.GetBlocks().begin();
   accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
   // Enable GC to cleanup transactions started by the block compactor
@@ -362,4 +362,4 @@ TEST_F(ExportTableTest, ExportVarlenTableTest) {
   gc.PerformGarbageCollection();  // Second call to deallocate.
 }
 
-}  // namespace terrier
+}  // namespace noisepage

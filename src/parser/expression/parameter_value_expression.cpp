@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> ParameterValueExpression::Copy() const {
   auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
@@ -26,4 +26,4 @@ std::vector<std::unique_ptr<AbstractExpression>> ParameterValueExpression::FromJ
 
 DEFINE_JSON_BODY_DECLARATIONS(ParameterValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

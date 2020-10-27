@@ -9,11 +9,11 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 
 /* Forward Declare for optimized compilation */
-namespace terrier::planner {
+namespace noisepage::planner {
 class AggregatePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 constexpr char AGG_VALUE_NAME[] = "agg_distinct";
 constexpr char GROUPBY_VALUE_NAME[] = "groupby_distinct";
@@ -61,10 +61,9 @@ class DistinctAggregationFilter {
    * @param codegen  CodegGen object
    * @param function function builder
    * @param exec_ctx execution context
-   * @param memory_pool memory pool
    */
-  void Initialize(CodeGen *codegen, FunctionBuilder *function, ast::Expr *exec_ctx, ast::Expr *memory_pool) const {
-    function->Append(codegen->AggHashTableInit(ht_.GetPtr(codegen), exec_ctx, memory_pool, key_type_));
+  void Initialize(CodeGen *codegen, FunctionBuilder *function, ast::Expr *exec_ctx) const {
+    function->Append(codegen->AggHashTableInit(ht_.GetPtr(codegen), exec_ctx, key_type_));
   }
 
   /**
@@ -148,4 +147,4 @@ class DistinctAggregationFilter {
   uint32_t num_group_by_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

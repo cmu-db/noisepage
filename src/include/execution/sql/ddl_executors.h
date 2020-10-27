@@ -4,7 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-namespace terrier::planner {
+namespace noisepage::planner {
 class CreateDatabasePlanNode;
 class CreateNamespacePlanNode;
 class CreateTablePlanNode;
@@ -14,14 +14,14 @@ class DropDatabasePlanNode;
 class DropNamespacePlanNode;
 class DropTablePlanNode;
 class DropIndexPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 class IndexSchema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * static utility class to execute DDL plan nodes, can be called directly by C++ or eventually through TPL builtins
@@ -103,4 +103,4 @@ class DDLExecutors {
                           const std::string &name, catalog::table_oid_t table,
                           const catalog::IndexSchema &input_schema);
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

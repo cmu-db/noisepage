@@ -17,7 +17,7 @@
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void Optimizer::Reset() { context_ = std::make_unique<OptimizerContext>(common::ManagedPointer(cost_model_)); }
 
@@ -32,7 +32,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(transaction:
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
   UNUSED_ATTRIBUTE bool insert = context_->RecordOptimizerNodeIntoGroup(common::ManagedPointer(op_tree), &gexpr);
-  TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
+  NOISEPAGE_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   group_id_t root_id = gexpr->GetGroupID();
 
@@ -76,7 +76,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   // required_input_props is owned by the GroupExpression
   auto required_input_props = gexpr->GetInputProperties(required_props);
-  TERRIER_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
+  NOISEPAGE_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver(txn, accessor);
@@ -84,7 +84,8 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
-  TERRIER_ASSERT(input_cols.size() == required_input_props.size(), "input columns and input properties size mismatch");
+  NOISEPAGE_ASSERT(input_cols.size() == required_input_props.size(),
+                   "input columns and input properties size mismatch");
 
   // Derive chidren plans first because they are useful in the derivation of
   // root plan. Also keep propagate expression to column offset mapping
@@ -93,12 +94,12 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   for (size_t i = 0; i < child_groups.size(); ++i) {
     ExprMap child_expr_map;
     for (unsigned offset = 0; offset < input_cols[i].size(); ++offset) {
-      TERRIER_ASSERT(input_cols[i][offset] != nullptr, "invalid input column found");
+      NOISEPAGE_ASSERT(input_cols[i][offset] != nullptr, "invalid input column found");
       child_expr_map[input_cols[i][offset]] = offset;
     }
 
     auto child_plan = ChooseBestPlan(txn, accessor, child_groups[i], required_input_props[i], input_cols[i]);
-    TERRIER_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
+    NOISEPAGE_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
 
     children_plans.emplace_back(std::move(child_plan));
     children_expr_map.push_back(child_expr_map);
@@ -163,4 +164,4 @@ void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, group_id_t root
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

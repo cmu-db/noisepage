@@ -25,7 +25,7 @@
 // you nuts...
 #define RECOVERY_TEST_LOG_FILE_NAME "./test_recovery_test.log"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class RecoveryTests : public TerrierTest {
  protected:
   std::default_random_engine generator_;
@@ -49,7 +49,7 @@ class RecoveryTests : public TerrierTest {
     // Unlink log file incase one exists from previous test iteration
     unlink(RECOVERY_TEST_LOG_FILE_NAME);
 
-    db_main_ = terrier::DBMain::Builder()
+    db_main_ = noisepage::DBMain::Builder()
                    .SetWalFilePath(RECOVERY_TEST_LOG_FILE_NAME)
                    .SetUseLogging(true)
                    .SetUseGC(true)
@@ -61,7 +61,7 @@ class RecoveryTests : public TerrierTest {
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
 
-    recovery_db_main_ = terrier::DBMain::Builder()
+    recovery_db_main_ = noisepage::DBMain::Builder()
                             .SetUseThreadRegistry(true)
                             .SetUseGC(true)
                             .SetUseGCThread(true)
@@ -638,7 +638,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   ShutdownAndRestartSystem();
 
   // Override the recovery DBMain to now log out
-  recovery_db_main_ = terrier::DBMain::Builder()
+  recovery_db_main_ = noisepage::DBMain::Builder()
                           .SetWalFilePath(secondary_log_file)
                           .SetUseLogging(true)
                           .SetUseGC(true)
@@ -703,7 +703,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   log_manager_->Start();
 
   // Create a new DBMain with logging disabled
-  auto secondary_recovery_db_main = terrier::DBMain::Builder()
+  auto secondary_recovery_db_main = noisepage::DBMain::Builder()
                                         .SetUseThreadRegistry(true)
                                         .SetUseGC(true)
                                         .SetUseGCThread(true)
@@ -767,4 +767,4 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
       [=]() { unlink(secondary_log_file.c_str()); });
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

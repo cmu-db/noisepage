@@ -2,7 +2,7 @@
 
 #include "catalog/index_schema.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 class Index;
 class IndexMetadata;
@@ -38,4 +38,4 @@ class IndexBuilder {
   Index *BuildHashGenericKey(IndexMetadata metadata) const;
 };
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

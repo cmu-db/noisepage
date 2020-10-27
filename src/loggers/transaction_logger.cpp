@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 #ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> transaction_logger = nullptr;  // NOLINT
 
@@ -13,4 +13,4 @@ void InitTransactionLogger() {
   }
 }
 #endif
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

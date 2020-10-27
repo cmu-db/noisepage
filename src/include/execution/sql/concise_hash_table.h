@@ -11,7 +11,7 @@
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A concise hash table that uses a bitmap to determine slot occupation. A concise hash table is
@@ -253,7 +253,7 @@ inline void ConciseHashTable::PrefetchSlotGroup(hash_t hash) const {
 }
 
 inline uint64_t ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlot slot) const {
-  TERRIER_ASSERT(IsBuilt(), "Table must be built");
+  NOISEPAGE_ASSERT(IsBuilt(), "Table must be built");
 
   const uint64_t group_idx = GroupIndex(slot);
   const uint64_t bit_idx = GroupSlotIndex(slot);
@@ -277,4 +277,4 @@ inline std::pair<bool, uint64_t> ConciseHashTable::Lookup(const hash_t hash) con
   return std::pair(exists, pos);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

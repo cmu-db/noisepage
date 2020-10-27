@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 constexpr int INVALID_TYPE_ID = 0;
 
@@ -76,4 +76,4 @@ enum class PLType {
 
 enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

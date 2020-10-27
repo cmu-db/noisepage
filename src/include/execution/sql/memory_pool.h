@@ -11,7 +11,7 @@
 #include "common/spin_latch.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class MemoryTracker;
 
@@ -385,4 +385,4 @@ class MemPoolVector : public std::vector<T, MemoryPoolAllocator<T>> {
       : BaseType(first, last, MemoryPoolAllocator<T>(memory)) {}
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

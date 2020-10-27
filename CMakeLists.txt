@@ -570,7 +570,7 @@ file(GLOB_RECURSE
         ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
         )
 # Remove the main program from NoisePage sources.
-list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
+list(REMOVE_ITEM NOISEPAGE_SRCS ${PROJECT_SOURCE_DIR}/src/main/noisepage.cpp)
 
 # Build NoisePage as an OBJECT library first, i.e., a .o file per corresponding .cpp file.
 # The OBJECT library is built first so that the same .o files can be linked into static and shared libraries.
@@ -635,6 +635,13 @@ target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of t
         "-fvisibility=hidden"                       # Hide symbols by default.
         )
 
+# Dependencies are built in release because the debug versions have unacceptable performance for coverage builds.
+# An example is spdlog. spdlog is not added as a true dependency because the library name changes between
+# debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
+# Due to the different names, the build system (especially make) gets confused.
+# Therefore the dependencies are manually built here.
+add_custom_command(TARGET noisepage_static DEPENDS spdlog)
+
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)   # Bundle up these objects into shared lib.
     target_link_libraries(noisepage_shared PUBLIC noisepage_objlib)           # Consumers will inherit this link.
@@ -645,7 +652,7 @@ endif ()
 # noisepage             :   The main DBMS binary.
 #######################################################################################################################
 
-add_executable(noisepage src/main/terrier.cpp)
+add_executable(noisepage src/main/noisepage.cpp)
 target_compile_options(noisepage PRIVATE "-Werror" "-Wall")
 target_link_libraries(noisepage noisepage_static)
 set_target_properties(noisepage PROPERTIES CXX_EXTENSIONS OFF ENABLE_EXPORTS ON)
@@ -795,6 +802,7 @@ file(GLOB_RECURSE
 function(add_test_util_lib TYPE)
     string(TOLOWER ${TYPE} TYPE_LOWER)
     add_library(noisepage_test_util_${TYPE_LOWER} ${TYPE} ${NOISEPAGE_TEST_UTIL_SRCS})
+    add_custom_command(TARGET noisepage_test_util_${TYPE_LOWER} DEPENDS gtest gtest_main gmock gmock_main)
     target_compile_options(noisepage_test_util_${TYPE_LOWER} PRIVATE "-Werror" "-Wall")
     target_include_directories(noisepage_test_util_${TYPE_LOWER} PUBLIC ${PROJECT_SOURCE_DIR}/test/include/)
     target_include_directories(noisepage_test_util_${TYPE_LOWER} SYSTEM PUBLIC
@@ -982,6 +990,7 @@ file(GLOB_RECURSE
         )
 
 add_library(noisepage_benchmark_util STATIC ${NOISEPAGE_BENCHMARK_UTIL_SRCS})
+add_custom_command(TARGET noisepage_benchmark_util DEPENDS gtest gtest_main gmock gmock_main)
 target_compile_options(noisepage_benchmark_util PRIVATE "-Werror" "-Wall")
 target_include_directories(noisepage_benchmark_util PUBLIC ${PROJECT_SOURCE_DIR}/benchmark/include)
 target_link_libraries(noisepage_benchmark_util PUBLIC ${CMAKE_BINARY_DIR}/lib/libgmock_main.a noisepage_test_util_static benchmark)
@@ -1001,6 +1010,7 @@ function(add_noisepage_benchmark BENCHMARK_NAME BENCHMARK_CPP)
     target_link_directories(${BENCHMARK_NAME} PRIVATE ${CMAKE_BINARY_DIR})
     set_target_properties(${BENCHMARK_NAME} PROPERTIES
             CXX_EXTENSIONS OFF
+            ENABLE_EXPORTS ON
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/benchmark"
             )
 
@@ -1275,11 +1285,27 @@ else ()
             -p ${CMAKE_BINARY_DIR}                                            # Using the generated compile commands.
             USES_TERMINAL
             )
-    if (TERRIER_BUILD_BENCHMARKS)
-        add_dependencies(check-clang-tidy benchmark gtest gflags)             # clang-tidy needs their headers to exist
-    elseif (TERRIER_BUILD_TESTS)
-        add_dependencies(check-clang-tidy gtest gflags)                       # clang-tidy needs their headers to exist
-    endif ()
+    add_custom_command(TARGET check-clang-tidy DEPENDS benchmark gflags gtest)
     message(STATUS "[ADDED] check-clang-tidy (${CLANG_TIDY_BIN})")
 endif ()
 unset(CLANG_TIDY_BIN)
+
+#######################################################################################################################
+# Apply +x permissions to all scripts in the build-support folder.
+#######################################################################################################################
+
+# CLion's remote toolchain functionality seems to lose the +x permissions when the files are rsync'd to the remote box.
+# This creates a list of the executable scripts in the build-support folder and applies +x to them to ensure building
+# dependent CMake targets doesn't fail.
+
+file(GLOB_RECURSE
+        BUILD_SUPPORT_SCRIPTS
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/build-support/*.pl
+        ${PROJECT_SOURCE_DIR}/build-support/*.py
+        ${PROJECT_SOURCE_DIR}/build-support/*.sh
+        )
+
+foreach (_var IN LISTS BUILD_SUPPORT_SCRIPTS)
+    execute_process(COMMAND chmod +x "${_var}")
+endforeach ()

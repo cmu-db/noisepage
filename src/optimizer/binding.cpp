@@ -9,7 +9,7 @@
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 bool GroupBindingIterator::HasNext() {
   if (pattern_->Type() == OpType::LEAF) {
@@ -134,7 +134,7 @@ bool GroupExprBindingIterator::HasNext() {
         children.emplace_back(child_binding[children_bindings_pos_[idx]]->Copy());
       }
 
-      TERRIER_ASSERT(!current_binding_, "Next() should have been called");
+      NOISEPAGE_ASSERT(!current_binding_, "Next() should have been called");
       current_binding_ = std::make_unique<OperatorNode>(gexpr_->Contents(), std::move(children), txn_);
     }
   }
@@ -142,4 +142,4 @@ bool GroupExprBindingIterator::HasNext() {
   return has_next_;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

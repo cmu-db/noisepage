@@ -5,7 +5,7 @@
 #include "execution/compiler/work_context.h"
 #include "parser/expression/operator_expression.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 UnaryTranslator::UnaryTranslator(const parser::OperatorExpression &expr, CompilationContext *compilation_context)
     : ExpressionTranslator(expr, compilation_context) {
@@ -30,4 +30,4 @@ ast::Expr *UnaryTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvi
   return codegen->UnaryOp(type, input);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

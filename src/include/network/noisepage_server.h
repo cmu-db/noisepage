@@ -6,7 +6,7 @@
 
 #include "common/dedicated_thread_owner.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionDispatcherTask;
 class ConnectionHandleFactory;
@@ -71,4 +71,4 @@ class TerrierServer : public common::DedicatedThreadOwner {
   common::ManagedPointer<ProtocolInterpreterProvider> provider_;
   common::ManagedPointer<ConnectionDispatcherTask> dispatcher_task_;
 };
-}  // namespace terrier::network
+}  // namespace noisepage::network

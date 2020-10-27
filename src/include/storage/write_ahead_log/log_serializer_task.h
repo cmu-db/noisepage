@@ -15,7 +15,7 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Task that processes buffers handed over by transactions and serializes them into consumer buffers.
@@ -57,7 +57,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   void Terminate() override {
     // If the task hasn't run yet, yield the thread until it's started
     while (!run_task_) std::this_thread::yield();
-    TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+    NOISEPAGE_ASSERT(run_task_, "Cant terminate a task that isnt running");
     run_task_ = false;
   }
 
@@ -180,4 +180,4 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    */
   void HandFilledBufferToWriter();
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

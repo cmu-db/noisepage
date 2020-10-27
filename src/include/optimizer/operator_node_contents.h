@@ -10,11 +10,11 @@
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Base class for operators
@@ -261,7 +261,7 @@ class Operator : public AbstractOptimizerNodeContents {
    */
   Operator RegisterWithTxnContext(transaction::TransactionContext *txn);
 };
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
 namespace std {
 
@@ -269,11 +269,11 @@ namespace std {
  * Hash function object of a BaseOperatorNodeContents
  */
 template <>
-struct hash<terrier::optimizer::BaseOperatorNodeContents> {
+struct hash<noisepage::optimizer::BaseOperatorNodeContents> {
   /**
    * Argument type of the base operator
    */
-  using argument_type = terrier::optimizer::BaseOperatorNodeContents;
+  using argument_type = noisepage::optimizer::BaseOperatorNodeContents;
 
   /**
    * Result type of the base operator

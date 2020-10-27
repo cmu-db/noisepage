@@ -2,7 +2,7 @@
 
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 // NOLINTNEXTLINE
 TEST(BitUtilTest, BitVectorSize) {
@@ -123,4 +123,4 @@ TEST(BitUtilTest, SetToValue) {
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

@@ -8,7 +8,7 @@
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class ChainingHashTableTest : public TplTest {};
 
@@ -450,4 +450,4 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
   EXECUTION_LOG_TRACE("TaaT: {:.2f} ms ({}), VaaT: {:2f} ms ({})", taat_ms, sum1, vaat_ms, sum2);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

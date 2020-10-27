@@ -7,7 +7,7 @@
 #include "parser/expression/operator_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ArithmeticTranslator::ArithmeticTranslator(const parser::OperatorExpression &expr,
                                            CompilationContext *compilation_context)
@@ -40,4 +40,4 @@ ast::Expr *ArithmeticTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -2,11 +2,11 @@
 
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConjunctionExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * A translator for conjunction expressions.
@@ -29,4 +29,4 @@ class ConjunctionTranslator : public ExpressionTranslator {
   ast::Expr *DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const override;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

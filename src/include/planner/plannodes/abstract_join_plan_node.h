@@ -7,7 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Base class for table joins.
@@ -130,4 +130,4 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

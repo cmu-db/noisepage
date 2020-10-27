@@ -35,7 +35,7 @@
 
 extern void *__dso_handle __attribute__((__visibility__("hidden")));  // NOLINT
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 namespace {
 
@@ -80,7 +80,7 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
       EXECUTION_LOG_ERROR("Resolved symbol has no address, you may need to EXPORT: {}", name);
     }
 #endif  // NDEBUG
-    TERRIER_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
+    NOISEPAGE_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
     symbols_[name] = {symbol.getAddress().get(), symbol.getFlags()};
     return symbol;
   }
@@ -210,7 +210,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
   // Update the cache with the constructed type
   //
 
-  TERRIER_ASSERT(llvm_type != nullptr, "No LLVM type found!");
+  NOISEPAGE_ASSERT(llvm_type != nullptr, "No LLVM type found!");
 
   iter->second = llvm_type;
 
@@ -218,7 +218,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
 }
 
 llvm::Type *LLVMEngine::TypeMap::GetLLVMTypeForBuiltin(const ast::BuiltinType *builtin_type) {
-  TERRIER_ASSERT(!builtin_type->IsPrimitive(), "Primitive types should be cached!");
+  NOISEPAGE_ASSERT(!builtin_type->IsPrimitive(), "Primitive types should be cached!");
 
   // For the builtins, we perform a lookup using the C++ name
   const std::string name = builtin_type->GetCppName();
@@ -472,7 +472,7 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &
     target_machine_.reset(target->createTargetMachine(target_triple, llvm::sys::getHostCPUName(),
                                                       target_features.getString(), target_options, reloc, {}, opt_level,
                                                       true));
-    TERRIER_ASSERT(target_machine_ != nullptr, "LLVM: Unable to find a suitable target machine!");
+    NOISEPAGE_ASSERT(target_machine_ != nullptr, "LLVM: Unable to find a suitable target machine!");
   }
 
   //
@@ -715,7 +715,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         case OperandType::FunctionId: {
           const FunctionInfo *target_func_info = tpl_module_.GetFuncInfoById(iter.GetFunctionIdOperand(i));
           llvm::Function *target_func = llvm_module_->getFunction(target_func_info->GetName());
-          TERRIER_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
+          NOISEPAGE_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
           args.push_back(target_func);
           break;
         }
@@ -731,7 +731,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         case OperandType::StaticLocal: {
           const uint32_t offset = iter.GetStaticLocalOperand(i).GetOffset();
           const auto static_locals_iter = static_locals_.find(offset);
-          TERRIER_ASSERT(static_locals_iter != static_locals_.end(), "Static local at offset does not exist");
+          NOISEPAGE_ASSERT(static_locals_iter != static_locals_.end(), "Static local at offset does not exist");
           args.push_back(static_locals_iter->second);
           break;
         }
@@ -763,7 +763,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
             args[i] = ir_builder->CreateIntCast(args[i], expected_type, true);
           }
         } else if (expected_type->isPointerTy()) {
-          TERRIER_ASSERT(provided_type->isPointerTy(), "Mismatched types");
+          NOISEPAGE_ASSERT(provided_type->isPointerTy(), "Mismatched types");
           args[i] = ir_builder->CreateBitCast(args[i], expected_type);
         }
       }
@@ -805,7 +805,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
         std::size_t branch_target_bb_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 0) + iter.GetJumpOffsetOperand(0);
-        TERRIER_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
+        NOISEPAGE_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
         ir_builder->CreateBr(blocks[branch_target_bb_pos]);
         break;
       }
@@ -818,8 +818,9 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         std::size_t fallthrough_bb_pos = iter.GetPosition() + iter.CurrentBytecodeSize();
         std::size_t branch_target_bb_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 1) + iter.GetJumpOffsetOperand(1);
-        TERRIER_ASSERT(blocks[fallthrough_bb_pos] != nullptr, "Branch fallthrough does not point to valid basic block");
-        TERRIER_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
+        NOISEPAGE_ASSERT(blocks[fallthrough_bb_pos] != nullptr,
+                         "Branch fallthrough does not point to valid basic block");
+        NOISEPAGE_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
 
         auto *check = llvm::ConstantInt::get(type_map_->Int8Type(), 1, false);
         llvm::Value *cond = ir_builder->CreateICmpEQ(args[0], check);
@@ -833,7 +834,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
       }
 
       case Bytecode::Lea: {
-        TERRIER_ASSERT(args[1]->getType()->isPointerTy(), "First argument must be a pointer");
+        NOISEPAGE_ASSERT(args[1]->getType()->isPointerTy(), "First argument must be a pointer");
         const llvm::DataLayout &dl = llvm_module_->getDataLayout();
         llvm::Type *pointee_type = args[1]->getType()->getPointerElementType();
         int64_t offset = llvm::cast<llvm::ConstantInt>(args[2])->getSExtValue();
@@ -858,7 +859,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
       }
 
       case Bytecode::LeaScaled: {
-        TERRIER_ASSERT(args[1]->getType()->isPointerTy(), "First argument must be a pointer");
+        NOISEPAGE_ASSERT(args[1]->getType()->isPointerTy(), "First argument must be a pointer");
         // For any LeaScaled, the scale is handled by LLVM's GEP. If it's an
         // array of structures, we need to handle the final offset/displacement
         // into the struct as the last GEP index.
@@ -873,8 +874,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
           }
           ir_builder->CreateStore(addr, args[0]);
         } else {
-          TERRIER_ASSERT(llvm::cast<llvm::ConstantInt>(args[4])->getSExtValue() == 0,
-                         "LeaScaled on arrays cannot have a displacement");
+          NOISEPAGE_ASSERT(llvm::cast<llvm::ConstantInt>(args[4])->getSExtValue() == 0,
+                           "LeaScaled on arrays cannot have a displacement");
           llvm::SmallVector<llvm::Value *, 2> gep_args;
           if (llvm::isa<llvm::ArrayType>(pointee_type)) {
             gep_args.push_back(llvm::ConstantInt::get(type_map_->Int64Type(), 0));
@@ -1056,7 +1057,7 @@ LLVMEngine::CompiledModule::CompiledModule(std::unique_ptr<llvm::MemoryBuffer> o
 LLVMEngine::CompiledModule::~CompiledModule() { memory_manager_->deregisterEHFrames(); }
 
 void *LLVMEngine::CompiledModule::GetFunctionPointer(const std::string &name) const {
-  TERRIER_ASSERT(IsLoaded(), "Compiled module isn't loaded!");
+  NOISEPAGE_ASSERT(IsLoaded(), "Compiled module isn't loaded!");
 
   if (auto iter = functions_.find(name); iter != functions_.end()) {
     return iter->second;
@@ -1127,7 +1128,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
       symbol = loader.getSymbol("_" + func.GetName());
     }
     functions_[func.GetName()] = reinterpret_cast<void *>(symbol.getAddress());
-    TERRIER_ASSERT(symbol.getAddress() != 0, "symbol came out to be badly defined or missing");
+    NOISEPAGE_ASSERT(symbol.getAddress() != 0, "symbol came out to be badly defined or missing");
   }
 
   // Done
@@ -1173,4 +1174,4 @@ std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::Compile(const BytecodeMo
   return compiled_module;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

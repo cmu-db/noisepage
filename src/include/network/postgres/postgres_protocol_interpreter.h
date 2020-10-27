@@ -16,7 +16,7 @@
 #include "network/postgres/statement_cache.h"
 #include "network/protocol_interpreter.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 constexpr uint32_t INITIAL_BACKOFF_TIME = 2;
 constexpr uint32_t BACKOFF_FACTOR = 2;
@@ -122,7 +122,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * Sets the flag that the current transaction was initiated with a BEGIN statement, false otherwise
    */
   void SetExplicitTransactionBlock() {
-    TERRIER_ASSERT(!explicit_txn_block_, "Explicit transaction block flag is already set. That seems wrong.");
+    NOISEPAGE_ASSERT(!explicit_txn_block_, "Explicit transaction block flag is already set. That seems wrong.");
     explicit_txn_block_ = true;
   }
 
@@ -136,7 +136,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * Sets the flag that we are now waiting for a Sync command, caused by an error state in the Extended Query protocol
    */
   void SetWaitingForSync() {
-    TERRIER_ASSERT(!waiting_for_sync_, "Waiting for sync flag is already set. That seems wrong.");
+    NOISEPAGE_ASSERT(!waiting_for_sync_, "Waiting for sync flag is already set. That seems wrong.");
     waiting_for_sync_ = true;
   }
 
@@ -144,7 +144,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * Issued after a Sync command is received from the client when already in a Sync state.
    */
   void ResetWaitingForSync() {
-    TERRIER_ASSERT(waiting_for_sync_, "Waiting for sync flag not already set. That seems wrong.");
+    NOISEPAGE_ASSERT(waiting_for_sync_, "Waiting for sync flag not already set. That seems wrong.");
     waiting_for_sync_ = false;
   }
 
@@ -260,4 +260,4 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

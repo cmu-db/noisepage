@@ -9,7 +9,7 @@
 #include "execution/util/chunked_vector.h"
 #include "ips4o/ips4o.hpp"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 class ChunkedVectorTest : public TplTest {};
 
@@ -387,4 +387,4 @@ TEST_F(ChunkedVectorTest, SortTest) {
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

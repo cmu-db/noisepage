@@ -5,7 +5,7 @@
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Utility class to handle arithmetic operations that can overflow.
@@ -317,4 +317,4 @@ class ArithmeticOverflow {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

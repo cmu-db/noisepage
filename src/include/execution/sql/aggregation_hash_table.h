@@ -18,11 +18,12 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+class ExecutionContext;
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class VectorProjectionIterator;
@@ -43,6 +44,14 @@ class AHTOverflowPartitionIterator;
  */
 class EXPORT AggregationHashTable {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
+  enum class HookOffsets : uint32_t {
+    StartHook = 0,
+    EndHook,
+
+    NUM_HOOKS
+  };
+
   /** The default load factor we allow the hash table to reach before resizing. */
   static constexpr const float DEFAULT_LOAD_FACTOR = 0.7f;
 
@@ -103,6 +112,8 @@ class EXPORT AggregationHashTable {
     uint64_t num_growths_ = 0;
     /** Number of times that the hash table has been flushed. */
     uint64_t num_flushes_ = 0;
+    /** Number of times that the hash table has been inserted into. */
+    uint64_t num_inserts_ = 0;
   };
 
   // -------------------------------------------------------
@@ -113,22 +124,23 @@ class EXPORT AggregationHashTable {
    * Construct an aggregation hash table using the provided memory pool, and configured to store
    * aggregates of size @em payload_size in bytes.
    * @param exec_settings The execution settings to run with.
-   * @param memory The memory pool to allocate memory from.
+   * @param exec_ctx The execution context being used to run the query.
    * @param payload_size The size of the elements in the hash table, in bytes.
    */
-  AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, std::size_t payload_size);
+  AggregationHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                       std::size_t payload_size);
 
   /**
    * Construct an aggregation hash table using the provided memory pool, configured to store
    * aggregates of size @em payload_size in bytes, and whose initial size allows for
    * @em initial_size aggregates.
    * @param exec_settings The execution settings to run with.
-   * @param memory The memory pool to allocate memory from.
+   * @param exec_ctx The execution context being used to run the query.
    * @param payload_size The size of the elements in the hash table, in bytes.
    * @param initial_size The initial number of aggregates to support.
    */
-  AggregationHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, std::size_t payload_size,
-                       uint32_t initial_size);
+  AggregationHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                       std::size_t payload_size, uint32_t initial_size);
 
   /**
    * This class cannot be copied or moved.
@@ -256,6 +268,14 @@ class EXPORT AggregationHashTable {
   uint64_t GetTupleCount() const { return hash_table_.GetElementCount(); }
 
   /**
+   * @return Number of insertions into the aggregation hash table
+   *
+   * @note this function differs from GetTupleCount() in that it is not affected
+   * by the behavior of overflow partitions.
+   */
+  uint64_t GetInsertCount() const { return stats_.num_inserts_; }
+
+  /**
    * @return A read-only view of this aggregation table's statistics.
    */
   const Stats *GetStatistics() const { return &stats_; }
@@ -361,6 +381,8 @@ class EXPORT AggregationHashTable {
  private:
   // Execution context
   const exec::ExecutionSettings &exec_settings_;
+
+  exec::ExecutionContext *exec_ctx_;
 
   // Memory allocator.
   MemoryPool *memory_;
@@ -601,7 +623,7 @@ class AHTOverflowPartitionIterator {
    * @return The hash value of the current row.
    */
   hash_t GetRowHash() const {
-    TERRIER_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
+    NOISEPAGE_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
     return curr_->hash_;
   }
 
@@ -609,7 +631,7 @@ class AHTOverflowPartitionIterator {
    * @return The contents of the current row.
    */
   const byte *GetRow() const {
-    TERRIER_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
+    NOISEPAGE_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
     return curr_->payload_;
   }
 
@@ -619,7 +641,7 @@ class AHTOverflowPartitionIterator {
    */
   template <typename T>
   const T *GetRowAs() const {
-    TERRIER_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
+    NOISEPAGE_ASSERT(curr_ != nullptr, "Iterator not pointing to an overflow entry");
     return curr_->PayloadAs<T>();
   }
 
@@ -644,4 +666,4 @@ class AHTOverflowPartitionIterator {
   HashTableEntry *next_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

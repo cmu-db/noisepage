@@ -8,7 +8,7 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  * Plan node for a CSV scan
  */
@@ -193,4 +193,4 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CSVScanPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

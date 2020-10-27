@@ -12,7 +12,7 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class ProjectedRowDeepEqual {
  public:
@@ -53,7 +53,7 @@ class ProjectedRowDeepEqualHash {
 using TupleMultiSet =
     std::unordered_map<storage::ProjectedRow *, uint32_t, ProjectedRowDeepEqualHash, ProjectedRowDeepEqual>;
 
-struct BlockCompactorTest : public ::terrier::TerrierTest {
+struct BlockCompactorTest : public ::noisepage::TerrierTest {
   storage::BlockStore block_store_{5000, 5000};
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool buffer_pool_{100000, 100000};
@@ -385,4 +385,4 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
   }
 }
 
-}  // namespace terrier
+}  // namespace noisepage

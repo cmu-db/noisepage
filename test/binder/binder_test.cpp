@@ -24,7 +24,7 @@ using std::make_tuple;
 using std::unique_ptr;
 using std::vector;
 
-namespace terrier {
+namespace noisepage {
 
 class BinderCorrectnessTest : public TerrierTest {
  protected:
@@ -89,7 +89,7 @@ class BinderCorrectnessTest : public TerrierTest {
   }
 
   void SetUp() override {
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
 
@@ -944,4 +944,4 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

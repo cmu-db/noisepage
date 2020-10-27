@@ -13,11 +13,11 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class LogManager;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 /**
  * A transaction manager maintains global state about all running transactions, and is responsible for creating,
  * committing and aborting transactions
@@ -43,7 +43,7 @@ class TransactionManager {
         buffer_pool_(buffer_pool),
         gc_enabled_(gc_enabled),
         log_manager_(log_manager) {
-    TERRIER_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
+    NOISEPAGE_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
   }
 
   /**
@@ -107,4 +107,4 @@ class TransactionManager {
                                        const storage::TupleAccessStrategy &accessor) const;
   void GCLastUpdateOnAbort(TransactionContext *txn);
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
