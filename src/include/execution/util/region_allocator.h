@@ -4,7 +4,7 @@
 
 #include "execution/util/region.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * An STL-compliant allocator that uses a region-based strategy
@@ -118,4 +118,4 @@ class LLVMRegionAllocator : public llvm::AllocatorBase<LLVMRegionAllocator> {
   Region *region_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

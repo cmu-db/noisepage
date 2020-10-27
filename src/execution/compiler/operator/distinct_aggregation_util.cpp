@@ -1,6 +1,6 @@
 #include "execution/compiler/operator/distinct_aggregation_util.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 DistinctAggregationFilter::DistinctAggregationFilter(size_t agg_term_idx, const planner::AggregateTerm &agg_term,
                                                      uint32_t num_group_by, CompilationContext *ctx, Pipeline *pipeline,
@@ -162,4 +162,4 @@ void DistinctAggregationFilter::AssignPayload(CodeGen *codegen, FunctionBuilder 
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

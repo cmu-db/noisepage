@@ -6,7 +6,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t NestedLoopJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
 
@@ -27,4 +27,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> NestedLoopJoinPlanNode:
 
 DEFINE_JSON_BODY_DECLARATIONS(NestedLoopJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -14,7 +14,7 @@
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode &plan,
                                          CompilationContext *compilation_context, Pipeline *pipeline)
@@ -159,7 +159,7 @@ void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(init_call));
 }
 
-void IndexScanTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexScanTranslator::DeclareIndexPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   const auto &op = GetPlanAs<planner::IndexScanPlanNode>();
   if (op.GetScanType() == planner::IndexScanType::Exact) {
     // var index_pr = @indexIteratorGetPR(&index_iter)
@@ -178,14 +178,14 @@ void IndexScanTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionB
   }
 }
 
-void IndexScanTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexScanTranslator::DeclareTablePR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var table_pr = @indexIteratorGetTablePR(&index_iter)
   ast::Expr *get_pr_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetTablePR, {GetCodeGen()->AddressOf(index_iter_)});
   builder->Append(GetCodeGen()->DeclareVar(table_pr_, nullptr, get_pr_call));
 }
 
-void IndexScanTranslator::DeclareSlot(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndexScanTranslator::DeclareSlot(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var slot = @indexIteratorGetSlot(&index_iter)
   ast::Expr *get_slot_call =
       GetCodeGen()->CallBuiltin(ast::Builtin::IndexIteratorGetSlot, {GetCodeGen()->AddressOf(index_iter_)});
@@ -219,4 +219,4 @@ void IndexScanTranslator::FreeIterator(FunctionBuilder *builder) const {
   builder->Append(GetCodeGen()->MakeStmt(free_call));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

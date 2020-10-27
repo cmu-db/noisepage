@@ -9,7 +9,7 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -131,7 +131,7 @@ void FilterManager::StartNewClause() {
 }
 
 void FilterManager::InsertClauseTerm(const FilterManager::MatchFn term) {
-  TERRIER_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
+  NOISEPAGE_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
   clauses_.back()->AddTerm(term);
 }
 
@@ -196,4 +196,4 @@ std::vector<const FilterManager::Clause *> FilterManager::GetOptimalClauseOrder(
   return opt;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

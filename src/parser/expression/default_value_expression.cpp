@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> DefaultValueExpression::Copy() const {
   auto expr = std::make_unique<DefaultValueExpression>();
@@ -12,4 +12,4 @@ std::unique_ptr<AbstractExpression> DefaultValueExpression::Copy() const {
 
 DEFINE_JSON_BODY_DECLARATIONS(DefaultValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

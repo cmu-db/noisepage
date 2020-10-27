@@ -7,15 +7,15 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class SqlTable;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 
@@ -142,4 +142,4 @@ class EXPORT TableVectorIterator {
   bool initialized_{false};
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

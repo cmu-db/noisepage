@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-namespace terrier {
+namespace noisepage {
 
 // NOLINTNEXTLINE
 TEST(ManagedPointerTests, EqualityTest) {
@@ -92,4 +92,4 @@ TEST(ManagedPointerTests, OutputHashTest) {
   EXPECT_EQ(hash0, hash1);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

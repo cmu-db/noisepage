@@ -41,7 +41,7 @@
 #include "planner/plannodes/update_plan_node.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::compiler::test {
+namespace noisepage::execution::compiler::test {
 class CompilerTest : public SqlBasedTest {
  public:
   void SetUp() override {
@@ -3512,13 +3512,13 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   OutputSchemaHelper seq_scan_out{0, &expr_maker};
   {
     // Read all needed columns
-    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), terrier::type::TypeId::VARCHAR);
-    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), terrier::type::TypeId::VARCHAR);
-    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), terrier::type::TypeId::DECIMAL);
-    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), terrier::type::TypeId::DECIMAL);
-    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), terrier::type::TypeId::DECIMAL);
-    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), terrier::type::TypeId::DECIMAL);
-    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), terrier::type::TypeId::DATE);
+    auto l_returnflag = expr_maker.TVE(0, catalog_table->ColNumToOffset(8), noisepage::type::TypeId::VARCHAR);
+    auto l_linestatus = expr_maker.TVE(0, catalog_table->ColNumToOffset(9), noisepage::type::TypeId::VARCHAR);
+    auto l_extendedprice = expr_maker.TVE(0, catalog_table->ColNumToOffset(5), noisepage::type::TypeId::DECIMAL);
+    auto l_discount = expr_maker.TVE(0, catalog_table->ColNumToOffset(6), noisepage::type::TypeId::DECIMAL);
+    auto l_tax = expr_maker.TVE(0, catalog_table->ColNumToOffset(7), noisepage::type::TypeId::DECIMAL);
+    auto l_quantity = expr_maker.TVE(0, catalog_table->ColNumToOffset(4), noisepage::type::TypeId::DECIMAL);
+    auto l_shipdate = expr_maker.TVE(0, catalog_table->ColNumToOffset(10), noisepage::type::TypeId::DATE);
     // Make the output schema
     seq_scan_out.AddOutput("l_returnflag", l_returnflag);
     seq_scan_out.AddOutput("l_linestatus", l_linestatus);
@@ -3628,4 +3628,4 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   executable->Run(common::ManagedPointer(exec_ctx), MODE); checker.CheckCorrectness();
 }
 */
-}  // namespace terrier::execution::compiler::test
+}  // namespace noisepage::execution::compiler::test

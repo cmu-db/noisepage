@@ -2,7 +2,7 @@
 
 #include "network/connection_handle_factory.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 ConnectionHandlerTask::ConnectionHandlerTask(const int task_id,
                                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory)
@@ -39,4 +39,4 @@ void ConnectionHandlerTask::HandleDispatch() {
   jobs_.clear();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

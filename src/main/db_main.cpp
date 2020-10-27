@@ -6,10 +6,10 @@
 
 #include "execution/execution_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 void DBMain::Run() {
-  TERRIER_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
+  NOISEPAGE_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
   try {
     server->RunServer();
@@ -34,4 +34,4 @@ DBMain::ExecutionLayer::ExecutionLayer() { execution::ExecutionUtil::InitTPL(); 
 
 DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
 
-}  // namespace terrier
+}  // namespace noisepage

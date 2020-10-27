@@ -17,7 +17,7 @@
 #include "ips4o/ips4o.hpp"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -447,4 +447,4 @@ void SorterIterator::AdvanceBy(uint64_t n) {
   iter_ += n;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

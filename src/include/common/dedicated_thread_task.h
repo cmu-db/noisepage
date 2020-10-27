@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * @brief Interface for a task to be run on a dedicated thread
  *
@@ -29,4 +29,4 @@ class DedicatedThreadTask {
    */
   virtual void RunTask() = 0;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

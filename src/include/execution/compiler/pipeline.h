@@ -13,15 +13,15 @@
 #include "execution/exec_defs.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::brain {
+namespace noisepage::brain {
 class OperatingUnitRecorder;
-}  // namespace terrier::brain
+}  // namespace noisepage::brain
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class CodeGen;
 class CompilationContext;
@@ -268,4 +268,4 @@ class Pipeline {
   StateDescriptor::Entry oufeatures_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

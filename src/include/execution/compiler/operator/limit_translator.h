@@ -5,11 +5,11 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class LimitPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -53,4 +53,4 @@ class LimitTranslator : public OperatorTranslator {
   StateDescriptor::Entry tuple_count_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -7,7 +7,7 @@
 #include "execution/compiler/loop.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr char OUTPUT_COL_PREFIX[] = "out";
@@ -40,8 +40,8 @@ void OutputTranslator::TearDownPipelineState(const Pipeline &pipeline, FunctionB
   function->Append(GetCodeGen()->MakeStmt(alloc_call));
 }
 
-void OutputTranslator::PerformPipelineWork(terrier::execution::compiler::WorkContext *context,
-                                           terrier::execution::compiler::FunctionBuilder *function) const {
+void OutputTranslator::PerformPipelineWork(noisepage::execution::compiler::WorkContext *context,
+                                           noisepage::execution::compiler::FunctionBuilder *function) const {
   // First generate the call @resultBufferAllocRow(execCtx)
   auto out_buffer = output_buffer_.Get(GetCodeGen());
   ast::Expr *alloc_call = GetCodeGen()->CallBuiltin(ast::Builtin::ResultBufferAllocOutRow, {out_buffer});
@@ -104,4 +104,4 @@ void OutputTranslator::DefineHelperStructs(util::RegionVector<ast::StructDecl *>
   decls->push_back(codegen->DeclareStruct(output_struct_, std::move(fields)));
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

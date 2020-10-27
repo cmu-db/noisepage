@@ -4,7 +4,7 @@
 #include "optimizer/rules/transformation_rules.h"
 #include "optimizer/rules/unnesting_rules.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 RulePromise Rule::Promise(GroupExpression *group_expr) const {
   auto root_type = match_pattern_->Type();
@@ -67,4 +67,4 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

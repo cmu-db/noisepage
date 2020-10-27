@@ -8,19 +8,19 @@
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier {
+namespace noisepage {
 class TpccPlanTest;
-}  // namespace terrier
+}  // namespace noisepage
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class OptimizerUtil;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::binder {
+namespace noisepage::binder {
 class BinderContext;
 }
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * ColumnValueExpression represents a reference to a column.
@@ -28,8 +28,8 @@ namespace terrier::parser {
 class ColumnValueExpression : public AbstractExpression {
   // PlanGenerator creates ColumnValueexpressions and will
   // need to set the bound oids
-  friend class terrier::optimizer::OptimizerUtil;
-  friend class terrier::TpccPlanTest;
+  friend class noisepage::optimizer::OptimizerUtil;
+  friend class noisepage::TpccPlanTest;
 
  public:
   /**
@@ -131,7 +131,7 @@ class ColumnValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "ColumnValueExpression should have no children");
+    NOISEPAGE_ASSERT(children.empty(), "ColumnValueExpression should have no children");
     return Copy();
   }
 
@@ -194,4 +194,4 @@ class ColumnValueExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ColumnValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

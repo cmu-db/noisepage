@@ -13,7 +13,7 @@
 // the childs output schema. But also maybe this node doesnt even need an output schema in the execution layer, so I put
 // it as null_ptr for now
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * This is the plan node when exporting data from the database into an external
@@ -190,4 +190,4 @@ class ExportExternalFilePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ExportExternalFilePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

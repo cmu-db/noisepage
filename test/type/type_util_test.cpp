@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 #include "type/type_id.h"
 
-namespace terrier::type {
+namespace noisepage::type {
 
 // NOLINTNEXTLINE
 TEST(TypeUtilTests, GetTypeSizeTest) {
@@ -39,4 +39,4 @@ TEST(TypeUtilTests, TypeIdToStringTest) {
   EXPECT_THROW(TypeUtil::TypeIdToString(TypeId(12)), ConversionException);
 }
 
-}  // namespace terrier::type
+}  // namespace noisepage::type

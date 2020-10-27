@@ -4,28 +4,28 @@
 #include "common/managed_pointer.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::settings {
+namespace noisepage::settings {
 class SettingsManager;
-}  // namespace terrier::settings
+}  // namespace noisepage::settings
 
-namespace terrier::runner {
+namespace noisepage::runner {
 class MiniRunners;
-}  // namespace terrier::runner
+}  // namespace noisepage::runner
 
-namespace terrier::execution {
+namespace noisepage::execution {
 class SqlBasedTest;
-}  // namespace terrier::execution
+}  // namespace noisepage::execution
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class IdxJoinTest_SimpleIdxJoinTest_Test;
 class IdxJoinTest_MultiPredicateJoin_Test;
 class IdxJoinTest_MultiPredicateJoinWithExtra_Test;
 class IdxJoinTest_FooOnlyScan_Test;
 class IdxJoinTest_BarOnlyScan_Test;
 class IdxJoinTest_IndexToIndexJoin_Test;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 /**
  * ExecutionSettings stores settings that are passed down from the upper layers.
  * TODO(WAN): Hook this up to the settings manager. Since everything is currently hardcoded, it can wait.
@@ -81,13 +81,13 @@ class EXPORT ExecutionSettings {
   bool is_static_partitioner_enabled_{common::Constants::IS_STATIC_PARTITIONER_ENABLED};
 
   // MiniRunners needs to set query_identifier and pipeline_operating_units_.
-  friend class terrier::runner::MiniRunners;
-  friend class terrier::execution::SqlBasedTest;
-  friend class terrier::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
-  friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoin_Test;
-  friend class terrier::optimizer::IdxJoinTest_MultiPredicateJoinWithExtra_Test;
-  friend class terrier::optimizer::IdxJoinTest_FooOnlyScan_Test;
-  friend class terrier::optimizer::IdxJoinTest_BarOnlyScan_Test;
-  friend class terrier::optimizer::IdxJoinTest_IndexToIndexJoin_Test;
+  friend class noisepage::runner::MiniRunners;
+  friend class noisepage::execution::SqlBasedTest;
+  friend class noisepage::optimizer::IdxJoinTest_SimpleIdxJoinTest_Test;
+  friend class noisepage::optimizer::IdxJoinTest_MultiPredicateJoin_Test;
+  friend class noisepage::optimizer::IdxJoinTest_MultiPredicateJoinWithExtra_Test;
+  friend class noisepage::optimizer::IdxJoinTest_FooOnlyScan_Test;
+  friend class noisepage::optimizer::IdxJoinTest_BarOnlyScan_Test;
+  friend class noisepage::optimizer::IdxJoinTest_IndexToIndexJoin_Test;
 };
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

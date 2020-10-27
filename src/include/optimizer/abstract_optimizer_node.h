@@ -9,7 +9,7 @@
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "optimizer/optimizer_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * An abstract class for expression-based and operator-based nodes for the rewriter
@@ -45,4 +45,4 @@ class AbstractOptimizerNode {
  private:
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

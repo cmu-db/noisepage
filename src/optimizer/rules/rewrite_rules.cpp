@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughJoin
@@ -420,10 +420,10 @@ bool RewritePullFilterThroughMarkJoin::Check(common::ManagedPointer<AbstractOpti
   (void)plan;
 
   auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "MarkJoin should have two children");
+  NOISEPAGE_ASSERT(children.size() == 2, "MarkJoin should have two children");
 
   UNUSED_ATTRIBUTE auto r_grandchildren = children[0]->GetChildren();
-  TERRIER_ASSERT(r_grandchildren.size() == 1, "Filter should have only 1 child");
+  NOISEPAGE_ASSERT(r_grandchildren.size() == 1, "Filter should have only 1 child");
   return true;
 }
 
@@ -432,7 +432,7 @@ void RewritePullFilterThroughMarkJoin::Transform(common::ManagedPointer<Abstract
                                                  UNUSED_ATTRIBUTE OptimizationContext *context) const {
   OPTIMIZER_LOG_TRACE("RewritePullFilterThroughMarkJoin::Transform");
   UNUSED_ATTRIBUTE auto mark_join = input->Contents()->GetContentsAs<LogicalMarkJoin>();
-  TERRIER_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have zero children");
+  NOISEPAGE_ASSERT(mark_join->GetJoinPredicates().empty(), "MarkJoin should have zero children");
 
   auto join_children = input->GetChildren();
   auto filter_children = join_children[1]->GetChildren();
@@ -471,10 +471,10 @@ bool RewritePullFilterThroughAggregation::Check(common::ManagedPointer<AbstractO
   (void)plan;
 
   auto children = plan->GetChildren();
-  TERRIER_ASSERT(children.size() == 1, "AggregateAndGroupBy should have 1 child");
+  NOISEPAGE_ASSERT(children.size() == 1, "AggregateAndGroupBy should have 1 child");
 
   UNUSED_ATTRIBUTE auto r_grandchildren = children[1]->GetChildren();
-  TERRIER_ASSERT(r_grandchildren.size() == 1, "Filter should have 1 child");
+  NOISEPAGE_ASSERT(r_grandchildren.size() == 1, "Filter should have 1 child");
   return true;
 }
 
@@ -543,4 +543,4 @@ void RewritePullFilterThroughAggregation::Transform(common::ManagedPointer<Abstr
   transformed->emplace_back(std::move(output));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

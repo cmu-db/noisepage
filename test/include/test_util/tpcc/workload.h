@@ -10,7 +10,7 @@
 #include "test_util/tpcc/tpcc_defs.h"
 #include "test_util/tpcc/util.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // Txn distribution. New Order is not provided because it's the implicit difference of the txns below from 100. Default
 // values come from TPC-C spec.
@@ -48,11 +48,11 @@ class Deck {
    * calls for deck sizes to be multiples of 23, an exact lower bound cannot always be achieved.
    */
   explicit Deck(const TransactionWeights &txn_weights) {
-    TERRIER_ASSERT(txn_weights.w_payment_ >= 43, "At least 43% payment.");
-    TERRIER_ASSERT(txn_weights.w_order_status_ >= 4, "At least 4% order status.");
-    TERRIER_ASSERT(txn_weights.w_delivery_ >= 4, "At least 4% delivery.");
-    TERRIER_ASSERT(txn_weights.w_payment_ >= 4, "At least 4% stock level.");
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(txn_weights.w_payment_ >= 43, "At least 43% payment.");
+    NOISEPAGE_ASSERT(txn_weights.w_order_status_ >= 4, "At least 4% order status.");
+    NOISEPAGE_ASSERT(txn_weights.w_delivery_ >= 4, "At least 4% delivery.");
+    NOISEPAGE_ASSERT(txn_weights.w_payment_ >= 4, "At least 4% stock level.");
+    NOISEPAGE_ASSERT(
         txn_weights.w_payment_ + txn_weights.w_order_status_ + txn_weights.w_delivery_ + txn_weights.w_stock_level_ <=
             100,
         "Weights cannot be more than 100.");
@@ -65,7 +65,7 @@ class Deck {
         static_cast<uint32_t>(std::ceil(static_cast<double>(txn_weights.w_stock_level_) / 100.0 * 23));
 
     uint32_t min_num_cards = min_payment + min_order_status + min_delivery + min_stock_level;
-    TERRIER_ASSERT(min_num_cards <= 23, "Can't have more than 23 cards!");
+    NOISEPAGE_ASSERT(min_num_cards <= 23, "Can't have more than 23 cards!");
     auto min_new_order = 23 - min_num_cards;
 
     cards_.reserve(23);
@@ -87,14 +87,14 @@ class Deck {
     auto UNUSED_ATTRIBUTE c_stock_level = std::count_if(cards_.begin(), cards_.end(), [](tpcc::TransactionType txn) {
       return txn == tpcc::TransactionType::StockLevel;
     });
-    TERRIER_ASSERT(static_cast<double>(c_payment) / 23.0 * 100 >= txn_weights.w_payment_,
-                   "Payment weight unsatisfied.");
-    TERRIER_ASSERT(static_cast<double>(c_order_status) / 23.0 * 100 >= txn_weights.w_order_status_,
-                   "Order status weight unsatisfied.");
-    TERRIER_ASSERT(static_cast<double>(c_delivery) / 23.0 * 100 >= txn_weights.w_delivery_,
-                   "Delivery weight unsatisfied.");
-    TERRIER_ASSERT(static_cast<double>(c_stock_level) / 23.0 * 100 >= txn_weights.w_stock_level_,
-                   "Stock level weight unsatisfied.");
+    NOISEPAGE_ASSERT(static_cast<double>(c_payment) / 23.0 * 100 >= txn_weights.w_payment_,
+                     "Payment weight unsatisfied.");
+    NOISEPAGE_ASSERT(static_cast<double>(c_order_status) / 23.0 * 100 >= txn_weights.w_order_status_,
+                     "Order status weight unsatisfied.");
+    NOISEPAGE_ASSERT(static_cast<double>(c_delivery) / 23.0 * 100 >= txn_weights.w_delivery_,
+                     "Delivery weight unsatisfied.");
+    NOISEPAGE_ASSERT(static_cast<double>(c_stock_level) / 23.0 * 100 >= txn_weights.w_stock_level_,
+                     "Stock level weight unsatisfied.");
 
     std::shuffle(cards_.begin(), cards_.end(), generator_);
   }
@@ -117,7 +117,7 @@ class Deck {
 // 2.4.1
 template <class Random>
 TransactionArgs BuildNewOrderArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
+  NOISEPAGE_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type_ = TransactionType::NewOrder;
   args.w_id_ = w_id;
@@ -155,7 +155,7 @@ TransactionArgs BuildNewOrderArgs(Random *const generator, const int8_t w_id, co
 // 2.5.1
 template <class Random>
 TransactionArgs BuildPaymentArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
+  NOISEPAGE_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type_ = TransactionType::Payment;
   args.w_id_ = w_id;
@@ -188,7 +188,7 @@ TransactionArgs BuildPaymentArgs(Random *const generator, const int8_t w_id, con
 // 2.6.1
 template <class Random>
 TransactionArgs BuildOrderStatusArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
+  NOISEPAGE_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type_ = TransactionType::OrderStatus;
   args.w_id_ = w_id;
@@ -206,7 +206,7 @@ TransactionArgs BuildOrderStatusArgs(Random *const generator, const int8_t w_id,
 // 2.7.1
 template <class Random>
 TransactionArgs BuildDeliveryArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
+  NOISEPAGE_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type_ = TransactionType::Delivery;
   args.w_id_ = w_id;
@@ -218,7 +218,7 @@ TransactionArgs BuildDeliveryArgs(Random *const generator, const int8_t w_id, co
 // 2.8.1
 template <class Random>
 TransactionArgs BuildStockLevelArgs(Random *const generator, const int8_t w_id, const int8_t num_warehouses) {
-  TERRIER_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
+  NOISEPAGE_ASSERT(w_id >= 1 && w_id <= num_warehouses, "Invalid w_id.");
   TransactionArgs args;
   args.type_ = TransactionType::StockLevel;
   args.w_id_ = w_id;
@@ -281,4 +281,4 @@ void Workload(int8_t worker_id, Database *tpcc_db, transaction::TransactionManag
  * @param precomputed_args args to look for non-inlined VarlenEntrys to free
  */
 void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *precomputed_args);
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

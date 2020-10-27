@@ -8,7 +8,7 @@
 #include "optimizer/property.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Implementation of the sort property
@@ -89,4 +89,4 @@ class PropertySort : public Property {
   std::vector<OrderByOrderingType> sort_ascending_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

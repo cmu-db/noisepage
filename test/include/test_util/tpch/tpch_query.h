@@ -6,7 +6,7 @@
 #include "catalog/catalog_accessor.h"
 #include "execution/compiler/executable_query.h"
 
-namespace terrier::tpch {
+namespace noisepage::tpch {
 class TPCHQuery {
  public:
   /// Static functions to generate executable queries for TPCH benchmark. Query plans are hard coded.
@@ -38,4 +38,4 @@ class TPCHQuery {
   MakeExecutableQ19(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
                     const execution::exec::ExecutionSettings &exec_settings);
 };
-}  // namespace terrier::tpch
+}  // namespace noisepage::tpch

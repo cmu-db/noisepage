@@ -13,7 +13,7 @@
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * ColumnDefinition represents the logical description of a table column.
@@ -361,7 +361,7 @@ class IndexAttr {
 
   /** @return the name of the column that we're indexed on */
   std::string GetName() const {
-    TERRIER_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
+    NOISEPAGE_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
     return name_;
   }
 
@@ -558,4 +558,4 @@ class CreateStatement : public TableRefStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

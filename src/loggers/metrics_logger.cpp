@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 #ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> metrics_logger = nullptr;  // NOLINT
 
@@ -13,4 +13,4 @@ void InitMetricsLogger() {
   }
 }
 #endif
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

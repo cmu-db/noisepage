@@ -7,7 +7,7 @@
 #include "execution/parsing/token.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 /**
  * Token scanner
@@ -163,4 +163,4 @@ class Scanner {
   TokenDesc next_;
 };
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

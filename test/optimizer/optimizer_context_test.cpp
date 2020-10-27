@@ -17,7 +17,7 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 struct OptimizerContextTest : public TerrierTest {
   void SetUp() override { TerrierTest::SetUp(); }
@@ -423,4 +423,4 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   delete pattern;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

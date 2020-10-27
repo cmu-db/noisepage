@@ -9,11 +9,11 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 
 /* Forward Declare for optimized compilation */
-namespace terrier::planner {
+namespace noisepage::planner {
 class AggregatePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 constexpr char AGG_VALUE_NAME[] = "agg_distinct";
 constexpr char GROUPBY_VALUE_NAME[] = "groupby_distinct";
@@ -147,4 +147,4 @@ class DistinctAggregationFilter {
   uint32_t num_group_by_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -2,7 +2,7 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle mini runners functions
@@ -20,7 +20,7 @@ class EXPORT MiniRunnersFunctions {
    * @param num_int_cols Number ints
    * @param num_real_cols Number reals
    */
-  static void EmitTuples(terrier::execution::exec::ExecutionContext *ctx, const Integer &num_tuples,
+  static void EmitTuples(noisepage::execution::exec::ExecutionContext *ctx, const Integer &num_tuples,
                          const Integer &num_cols, const Integer &num_int_cols, const Integer &num_real_cols) {
     if (num_tuples.val_ < 2) return;
 
@@ -51,4 +51,4 @@ class EXPORT MiniRunnersFunctions {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

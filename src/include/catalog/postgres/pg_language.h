@@ -4,7 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 constexpr table_oid_t LANGUAGE_TABLE_OID = table_oid_t(71);
 constexpr index_oid_t LANGUAGE_OID_INDEX_OID = index_oid_t(72);
@@ -13,7 +13,7 @@ constexpr index_oid_t LANGUAGE_NAME_INDEX_OID = index_oid_t(73);
 /*
  * Column names of the form "LAN[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "ATT_[name]_COL_OID" are
- * terrier-specific addtions (generally pointers to internal objects).
+ * noisepage-specific addtions (generally pointers to internal objects).
  */
 constexpr col_oid_t LANOID_COL_OID = col_oid_t(1);        // INTEGER (pkey) [lan_oid_t]
 constexpr col_oid_t LANNAME_COL_OID = col_oid_t(2);       // VARCHAR (skey)
@@ -34,4 +34,4 @@ constexpr std::array<col_oid_t, NUM_PG_LANGUAGE_COLS> PG_LANGUAGE_ALL_COL_OIDS =
 constexpr language_oid_t INTERNAL_LANGUAGE_OID = language_oid_t(74);
 constexpr language_oid_t PLPGSQL_LANGUAGE_OID = language_oid_t(75);
 
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

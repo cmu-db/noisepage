@@ -9,7 +9,7 @@
 #include "common/error/error_defs.h"
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Class to maintain error state when they occur in the system. These can be a variety of levels (@see ErrorSeverity).
@@ -62,8 +62,8 @@ class ErrorData {
    * @param message value of this field to be sent back to the client
    */
   void AddField(ErrorField field, const std::string_view message) {
-    TERRIER_ASSERT(field != ErrorField::HUMAN_READABLE_ERROR, "ErrorData already contains a required message.");
-    TERRIER_ASSERT(field != ErrorField::CODE, "ErrorData already contains a required code.");
+    NOISEPAGE_ASSERT(field != ErrorField::HUMAN_READABLE_ERROR, "ErrorData already contains a required message.");
+    NOISEPAGE_ASSERT(field != ErrorField::CODE, "ErrorData already contains a required code.");
     fields_.emplace_back(field, std::string(message));
   }
 
@@ -92,5 +92,5 @@ class ErrorData {
   std::string message_;
   ErrorCode code_;
   std::vector<std::pair<ErrorField, std::string>> fields_;
-};  // namespace terrier::common
-}  // namespace terrier::common
+};  // namespace noisepage::common
+}  // namespace noisepage::common

@@ -6,7 +6,7 @@
 #include "spdlog/fmt/fmt.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // static
 SqlTypeId GetSqlTypeFromInternalType(TypeId type) {
@@ -268,4 +268,4 @@ TypeId GetTypeId(type::TypeId frontend_type) {
   return execution_type_id;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

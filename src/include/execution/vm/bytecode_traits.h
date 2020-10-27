@@ -3,7 +3,7 @@
 #include "execution/vm/bytecode_operands.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * Properties of a generic operand type
@@ -46,4 +46,4 @@ struct BytecodeTraits {
   static constexpr const uint32_t SIZE = sizeof(std::underlying_type_t<Bytecode>) + OPERANDS_SIZE;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

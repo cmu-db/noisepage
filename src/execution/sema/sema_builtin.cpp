@@ -3,7 +3,7 @@
 #include "execution/ast/type.h"
 #include "execution/sema/sema.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 namespace {
 
@@ -3777,4 +3777,4 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   }
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

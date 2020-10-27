@@ -6,15 +6,15 @@
 #include "common/managed_pointer.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier {
+namespace noisepage {
 class DBMain;
 }
 
-namespace terrier::runner {
+namespace noisepage::runner {
 void InitializeRunnersState();
 }
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 using callback_fn = void (*)(void *, void *, DBMain *, common::ManagedPointer<common::ActionContext> action_context);
 
@@ -63,8 +63,8 @@ class ParamInfo {
         callback_(callback) {}
 
  private:
-  friend void terrier::runner::InitializeRunnersState();
-  friend class terrier::DBMain;
+  friend void noisepage::runner::InitializeRunnersState();
+  friend class noisepage::DBMain;
   friend class SettingsManager;
   std::string name_;
   parser::ConstantValueExpression value_;
@@ -76,4 +76,4 @@ class ParamInfo {
   callback_fn callback_;
 };
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

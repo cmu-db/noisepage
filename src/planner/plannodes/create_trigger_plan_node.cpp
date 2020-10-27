@@ -10,7 +10,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/parser_defs.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t CreateTriggerPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -150,4 +150,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTriggerPlanNode::
 
 DEFINE_JSON_BODY_DECLARATIONS(CreateTriggerPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

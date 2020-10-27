@@ -8,12 +8,12 @@
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 // Forward declaration
 class LogSerializerTask;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
 /**
  * Generates timestamps, and keeps track of the lifetime of transactions (whether they have entered or left the system)
@@ -21,8 +21,8 @@ class TransactionManager;
 class TimestampManager {
  public:
   ~TimestampManager() {
-    TERRIER_ASSERT(curr_running_txns_.empty(),
-                   "Destroying the TimestampManager while txns are still running. That seems wrong.");
+    NOISEPAGE_ASSERT(curr_running_txns_.empty(),
+                     "Destroying the TimestampManager while txns are still running. That seems wrong.");
   }
 
   /**
@@ -78,7 +78,7 @@ class TimestampManager {
       start_time = time_++;
 
       const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(start_time);
-      TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
+      NOISEPAGE_ASSERT(ret.second, "commit start time should be globally unique");
     }  // Release latch on current running transactions
     return start_time;
   }
@@ -108,4 +108,4 @@ class TimestampManager {
   std::unordered_set<timestamp_t> curr_running_txns_;
   mutable common::SpinLatch curr_running_txns_latch_;
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

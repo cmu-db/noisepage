@@ -20,7 +20,7 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 JoinHashTable::JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
                              uint32_t tuple_size, bool use_concise_ht)
@@ -532,7 +532,7 @@ void JoinHashTable::LookupBatchInConciseHashTable(const Vector &hashes, Vector *
 }
 
 void JoinHashTable::LookupBatch(const Vector &hashes, Vector *results) const {
-  TERRIER_ASSERT(IsBuilt(), "Cannot perform lookup before table is built!");
+  NOISEPAGE_ASSERT(IsBuilt(), "Cannot perform lookup before table is built!");
   if (UsingConciseHashTable()) {
     LookupBatchInConciseHashTable(hashes, results);
   } else {
@@ -543,7 +543,7 @@ void JoinHashTable::LookupBatch(const Vector &hashes, Vector *results) const {
 template <bool Concurrent>
 void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   // TODO(pmenon): Support merging build of concise tables
-  TERRIER_ASSERT(!source->UsingConciseHashTable(), "Merging incomplete concise tables not supported");
+  NOISEPAGE_ASSERT(!source->UsingConciseHashTable(), "Merging incomplete concise tables not supported");
 
   // First, bulk-load all entries in the source table into our hash table
   chaining_hash_table_.InsertBatch<Concurrent>(&source->entries_);
@@ -620,4 +620,4 @@ void JoinHashTable::MergeParallel(ThreadStateContainer *thread_state_container, 
   built_ = true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

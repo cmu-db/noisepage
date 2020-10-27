@@ -9,15 +9,15 @@
 #include "parser/create_statement.h"
 #include "parser/parsenodes.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 struct FuncParameter;
 struct ReturnType;
 class SQLStatement;
 class UpdateClause;
 class UpdateStatement;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * ParseResult is the parser's output to the binder. It allows you to obtain non-owning managed pointers to the
@@ -170,7 +170,7 @@ class PostgresParser {
   static void ListTransform(ParseResult *parse_result, List *root);
 
   /**
-   * Transforms a single node in the parse list into a terrier SQLStatement object.
+   * Transforms a single node in the parse list into a noisepage SQLStatement object.
    * @param[in,out] parse_result the current parse result, which will be updated
    * @param node parsed node
    * @return SQLStatement corresponding to the parsed node
@@ -304,4 +304,4 @@ class PostgresParser {
   static std::unique_ptr<UpdateStatement> UpdateTransform(ParseResult *parse_result, UpdateStmt *update_stmt);
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

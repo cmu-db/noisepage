@@ -9,7 +9,7 @@
 #include "execution/util/bit_vector.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * TupleIdList is an ordered set of tuple IDs (TID) used during query execution to efficiently
@@ -369,7 +369,7 @@ class TupleIdList {
    * @return The value of the element at the given index.
    */
   std::size_t operator[](const std::size_t i) const {
-    TERRIER_ASSERT(i < GetTupleCount(), "Out-of-bounds list access");
+    NOISEPAGE_ASSERT(i < GetTupleCount(), "Out-of-bounds list access");
     return bit_vector_.NthOne(i);
   }
 
@@ -433,7 +433,7 @@ class TupleIdListIterator {
    * @param tid_list The list to iterate over.
    */
   explicit TupleIdListIterator(const TupleIdList *tid_list) : tid_list_(tid_list), size_(0), curr_idx_(0) {
-    TERRIER_ASSERT(tid_list->GetCapacity() <= common::Constants::K_DEFAULT_VECTOR_SIZE, "TIDList too large");
+    NOISEPAGE_ASSERT(tid_list->GetCapacity() <= common::Constants::K_DEFAULT_VECTOR_SIZE, "TIDList too large");
     Reset();
   }
 
@@ -471,4 +471,4 @@ class TupleIdListIterator {
   sel_t curr_idx_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

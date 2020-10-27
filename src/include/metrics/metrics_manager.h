@@ -12,11 +12,11 @@
 #include "metrics/abstract_raw_data.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::settings {
+namespace noisepage::settings {
 class Callbacks;
 }
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Background thread that periodically collects data from thread level collectors
@@ -67,7 +67,7 @@ class MetricsManager {
    */
   void EnableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    TERRIER_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
+    NOISEPAGE_ASSERT(!ComponentEnabled(component), "Metric is already enabled.");
 
     ResetMetric(component);
     enabled_metrics_.set(static_cast<uint8_t>(component), true);
@@ -87,7 +87,7 @@ class MetricsManager {
    */
   void DisableMetric(const MetricsComponent component) {
     common::SpinLatch::ScopedSpinLatch guard(&latch_);
-    TERRIER_ASSERT(ComponentEnabled(component), "Metric is already disabled.");
+    NOISEPAGE_ASSERT(ComponentEnabled(component), "Metric is already disabled.");
     enabled_metrics_.set(static_cast<uint8_t>(component), false);
     aggregated_metrics_[static_cast<uint8_t>(component)].reset(nullptr);
   }
@@ -105,4 +105,4 @@ class MetricsManager {
   std::array<uint32_t, NUM_COMPONENTS> sample_interval_{0x0};
 };
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

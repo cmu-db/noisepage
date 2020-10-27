@@ -4,7 +4,7 @@
 
 #include "execution/util/bit_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 ConciseHashTable::ConciseHashTable(const uint32_t probe_threshold) : probe_limit_(probe_threshold) {}
 
@@ -41,4 +41,4 @@ void ConciseHashTable::Build() {
   built_ = true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

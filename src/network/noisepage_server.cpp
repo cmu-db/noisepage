@@ -1,4 +1,4 @@
-#include "network/terrier_server.h"
+#include "network/noisepage_server.h"
 
 #include <event2/thread.h>
 #include <sys/un.h>
@@ -12,7 +12,7 @@
 #include "network/connection_dispatcher_task.h"
 #include "network/connection_handle_factory.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 TerrierServer::TerrierServer(common::ManagedPointer<ProtocolInterpreterProvider> protocol_provider,
                              common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
@@ -158,7 +158,7 @@ void TerrierServer::StopServer() {
   // Stop the dispatcher task and close the socket's file descriptor.
   const bool is_task_stopped UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
-  TERRIER_ASSERT(is_task_stopped, "Failed to stop ConnectionDispatcherTask.");
+  NOISEPAGE_ASSERT(is_task_stopped, "Failed to stop ConnectionDispatcherTask.");
 
   // Close the network socket
   TerrierClose(network_socket_fd_);
@@ -179,4 +179,4 @@ void TerrierServer::StopServer() {
   running_cv_.notify_all();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

@@ -6,7 +6,7 @@
 #include "common/hash_util.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 class HashTest : public TplTest {};
 
@@ -82,4 +82,4 @@ TEST_F(HashTest, StringHash) {
 #undef CHECK_HASH_ON_INPUT
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace terrier::common {
+namespace noisepage::common {
 #ifdef NOISEPAGE_USE_LOGGING
 std::shared_ptr<spdlog::logger> common_logger = nullptr;  // NOLINT
 
@@ -13,4 +13,4 @@ void InitCommonLogger() {
   }
 }
 #endif
-}  // namespace terrier::common
+}  // namespace noisepage::common

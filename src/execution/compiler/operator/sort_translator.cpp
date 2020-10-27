@@ -10,7 +10,7 @@
 #include "execution/sql/sorter.h"
 #include "planner/plannodes/order_by_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr const char SORT_ROW_ATTR_PREFIX[] = "attr";
@@ -26,7 +26,7 @@ SortTranslator::SortTranslator(const planner::OrderByPlanNode &plan, Compilation
       compare_func_(GetCodeGen()->MakeFreshIdentifier(pipeline->CreatePipelineFunctionName("Compare"))),
       build_pipeline_(this, Pipeline::Parallelism::Parallel),
       current_row_(CurrentRow::Child) {
-  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Sorts expected to have a single child.");
+  NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Sorts expected to have a single child.");
   // Register this as the source for the pipeline. It must be serial to maintain
   // sorted output order.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
@@ -376,7 +376,7 @@ void SortTranslator::PerformPipelineWork(WorkContext *ctx, FunctionBuilder *func
   if (IsScanPipeline(ctx->GetPipeline())) {
     ScanSorter(ctx, function);
   } else {
-    TERRIER_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
+    NOISEPAGE_ASSERT(IsBuildPipeline(ctx->GetPipeline()), "Pipeline is unknown to sort translator");
     InsertIntoSorter(ctx, function);
     CounterAdd(function, num_sort_build_rows_, 1);
   }
@@ -437,7 +437,7 @@ ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE
     return GetSortRowAttribute(sort_row_var_, attr_idx);
   }
 
-  TERRIER_ASSERT(IsBuildPipeline(context->GetPipeline()), "Pipeline not known to sorter");
+  NOISEPAGE_ASSERT(IsBuildPipeline(context->GetPipeline()), "Pipeline not known to sorter");
   switch (current_row_) {
     case CurrentRow::Lhs:
       return GetSortRowAttribute(lhs_row_, attr_idx);
@@ -450,4 +450,4 @@ ast::Expr *SortTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE
   UNREACHABLE("Impossible output row option");
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -11,7 +11,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/sql/vector_projection_iterator.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * This is a helper class to execute filters over vector projections.
@@ -365,4 +365,4 @@ GEN_FILTER(SelectNotLike);
 #undef GEN_FILTER_VECTOR_VAL
 #undef GEN_FILTER_VECTOR_GENERIC_VAL
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
