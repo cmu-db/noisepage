@@ -341,7 +341,7 @@ class DBMain {
 
       std::unique_ptr<brain::Pilot> pilot_thread = DISABLED;
       if (use_pilot_) {
-        pilot_thread = std::make_unique<brain::Pilot>();
+        pilot_thread = std::make_unique<brain::Pilot>(pilot_forecast_interval_);
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
@@ -665,6 +665,7 @@ class DBMain {
     bool use_logging_ = false;
     bool use_gc_ = false;
     bool use_pilot_ = false;
+    uint64_t pilot_forecast_interval_ = 1e7;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
     uint64_t block_store_size_ = 1e5;
@@ -713,6 +714,7 @@ class DBMain {
       use_pilot_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+      pilot_forecast_interval_ = settings_manager->GetInt64(settings::Param::pilot_forecast_interval);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));

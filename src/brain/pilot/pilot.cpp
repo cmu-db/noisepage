@@ -16,10 +16,10 @@
 
 namespace noisepage::brain {
 
-Pilot::Pilot() {
+Pilot::Pilot(uint64_t forecast_interval) : forecast_interval_(forecast_interval) {
   LoadQueryTrace();
   LoadQueryText();
-  forecastor_ = std::make_unique<WorkloadForecast>(query_id_to_timestamps_, num_executions_, query_id_to_text_, 
+  forecastor_ = std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_, 
                                                    query_text_to_id_, query_id_to_params_, forecast_interval_);
 }
 
@@ -90,7 +90,7 @@ void Pilot::LoadQueryTrace() {
     if (!null_detected) {
       if ((curr_size = query_id_to_params_[query_id].size()) < num_sample_) {
         query_id_to_params_[query_id].push_back(param_vec);
-        query_id_to_timestamps_[{query_id, curr_size}] = std::stoull(val_vec[1]);
+        query_timestamp_to_id_[std::stoull(val_vec[1])] = std::make_pair(query_id, curr_size);
         num_executions_[query_id].push_back(1);
       } else {
         num_executions_[query_id][rand() % num_sample_] ++;

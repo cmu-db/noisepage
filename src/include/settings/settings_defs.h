@@ -176,6 +176,16 @@ SETTING_int(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int64(
+    pilot_forecast_interval,
+    "Interval to be used to break query traces into WorkloadForecastSegment. (default : 10000000)",
+    10000000,
+    10000000,
+    1000000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",

@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <iostream>
 #include <fstream>
@@ -28,7 +29,7 @@ class Pilot {
    * @param 
    * @param 
    */
-  Pilot();
+  Pilot(uint64_t forecast_interval);
 
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
@@ -46,7 +47,7 @@ class Pilot {
  private:
   void LoadQueryTrace();
   void LoadQueryText();
-  std::map<std::pair<execution::query_id_t, uint64_t>, uint64_t> query_id_to_timestamps_;
+  std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id_;
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>> query_id_to_params_;
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;
   std::unordered_map<std::string, execution::query_id_t> query_text_to_id_;
