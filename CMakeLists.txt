@@ -393,14 +393,6 @@ function(message)
         # Special-casing for messages to ignore.
         set(IGNORED_MESSAGES
                 ""
-                # ZeroMQ has a bunch of warnings.
-                "No WSS support, you may want to install GnuTLS and run cmake again"
-                "The package name passed to `find_package_handle_standard_args` ;(sodium) does not match the name of the calling package ;(Sodium).  This can lead to problems in calling ;code that expects `find_package` result variables (e.g., `_FOUND`) ;to follow a certain pattern."
-                "Test 'test_bind_stream_fuzzer' is not known to CTest."
-                "Test 'test_bind_ws_fuzzer' is not known to CTest."
-                "Test 'test_connect_stream_fuzzer' is not known to CTest."
-                "Test 'test_connect_ws_fuzzer' is not known to CTest."
-                "Test 'test_socket_options_fuzzer' is not known to CTest."
                 )
         if (Message IN_LIST IGNORED_MESSAGES)
             return()
@@ -523,7 +515,6 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
-add_noisepage_dep(zmq https://github.com/zeromq/libzmq v4.3.3)
 
 # Handle other dependencies.
 
@@ -550,6 +541,10 @@ llvm_map_components_to_libnames(LLVM_LIBRARIES core ipo mcjit nativecodegen nati
 # TBB.
 find_package(TBB REQUIRED)
 message(STATUS "[FOUND] TBB ${TBB_VERSION}")
+
+# ZeroMQ. Used for Messenger.
+find_package(ZeroMQ REQUIRED)
+message(STATUS "[FOUND] ZeroMQ ${ZeroMQ_VERSION}")
 
 # DISGUSTING HACK: Restore the old CMAKE_BUILD_TYPE, CMAKE_C_FLAGS, and CMAKE_CXX_FLAGS.
 set(CMAKE_BUILD_TYPE "${OLD_CMAKE_BUILD_TYPE}")     # Restore the old CMAKE_BUILD_TYPE.
@@ -632,6 +627,7 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${NOISEPAGE_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
         ${TBB_LIBRARIES_RELEASE}
+        ${ZeroMQ_STATIC_LIBRARY}
         )
 
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
