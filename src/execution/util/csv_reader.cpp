@@ -75,7 +75,7 @@ bool CSVFile::Fill() {
 
 double CSVReader::CSVCell::AsDouble() const {
   double output = 0;
-  fast_float::from_chars(this->ptr_, this->ptr_ + this->len_, output)
+  fast_float::from_chars(this->ptr_, this->ptr_ + this->len_, output);
   return output;
 }
 
