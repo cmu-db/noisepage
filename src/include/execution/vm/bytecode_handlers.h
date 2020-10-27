@@ -1558,23 +1558,23 @@ VM_OP_HOT void OpAtomicOr8(uint64_t *dest, uint64_t val) {
 }
 
 // NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
-VM_OP_HOT bool OpAtomicCompareExchange1(uint8_t *dest, uint8_t *expected, uint8_t desired) {
-  return reinterpret_cast<std::atomic<uint8_t> *>(dest)->compare_exchange_strong(*expected, desired);
+VM_OP_HOT void OpAtomicCompareExchange1(uint8_t *dest, uint8_t *expected, uint8_t desired) {
+  reinterpret_cast<std::atomic<uint8_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
 // NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
-VM_OP_HOT bool OpAtomicCompareExchange2(uint16_t *dest, uint16_t *expected, uint16_t desired) {
-  return reinterpret_cast<std::atomic<uint16_t> *>(dest)->compare_exchange_strong(*expected, desired);
+VM_OP_HOT void OpAtomicCompareExchange2(uint16_t *dest, uint16_t *expected, uint16_t desired) {
+  reinterpret_cast<std::atomic<uint16_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
 // NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
-VM_OP_HOT bool OpAtomicCompareExchange4(uint32_t *dest, uint32_t *expected, uint32_t desired) {
-  return reinterpret_cast<std::atomic<uint32_t> *>(dest)->compare_exchange_strong(*expected, desired);
+VM_OP_HOT void OpAtomicCompareExchange4(uint32_t *dest, uint32_t *expected, uint32_t desired) {
+  reinterpret_cast<std::atomic<uint32_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
 // NOLINTNEXTLINE (clang tidy incorrectly assesses dest as pointing to const)
-VM_OP_HOT bool OpAtomicCompareExchange8(uint64_t *dest, uint64_t *expected, uint64_t desired) {
-  return reinterpret_cast<std::atomic<uint64_t> *>(dest)->compare_exchange_strong(*expected, desired);
+VM_OP_HOT void OpAtomicCompareExchange8(uint64_t *dest, uint64_t *expected, uint64_t desired) {
+  reinterpret_cast<std::atomic<uint64_t> *>(dest)->compare_exchange_strong(*expected, desired);
 }
 
 // ---------------------------------------------------------
