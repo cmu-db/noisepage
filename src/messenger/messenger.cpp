@@ -1,5 +1,7 @@
 #include "messenger/messenger.h"
 
+#include <inttypes.h>
+
 #include <mutex>  // NOLINT
 #include <vector>
 #include <zmq.hpp>
