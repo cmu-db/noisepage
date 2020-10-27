@@ -393,6 +393,8 @@ function(message)
         # Special-casing for messages to ignore.
         set(IGNORED_MESSAGES
                 ""
+                # Google Benchmark.
+                "CMake's FindThreads.cmake did not fail, but CMAKE_THREAD_LIBS_INIT ended up being empty. This was fixed in https://github.com/Kitware/CMake/commit/d53317130e84898c5328c237186dbd995aaf1c12 Let's guess that -pthread is sufficient."
                 )
         if (Message IN_LIST IGNORED_MESSAGES)
             return()
@@ -615,7 +617,6 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         count
         gflags
         ips4o::ips4o
-        libzmq
         madoka::madoka
         nlohmann_json::nlohmann_json
         pg_query::pg_query
@@ -627,7 +628,7 @@ target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of t
         ${NOISEPAGE_LINK_LIBRARIES}
         ${LLVM_LIBRARIES}
         ${TBB_LIBRARIES_RELEASE}
-        ${ZeroMQ_STATIC_LIBRARY}
+        ${ZEROMQ_LINK_LIBRARIES}
         )
 
 # Create the noisepage_static and noisepage_shared libraries using the objects from noisepage_objlib.
