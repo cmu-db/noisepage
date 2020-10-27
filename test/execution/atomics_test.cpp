@@ -235,7 +235,7 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
 
   std::default_random_engine generator;
   const uint32_t num_iters = 100;
-  const uint32_t num_cycles = 16400;
+  const uint32_t num_cycles = 1000;
   const uint32_t num_threads = 8;  // Number of bits in test
   common::WorkerPool thread_pool(num_threads, {});
 
@@ -245,12 +245,15 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
       auto mask = 1 << thread_id;
       auto inv_mask = ~mask;
       ASSERT_NE(mask, 0);
+      uint64_t before = 0;
       for (uint32_t i = 0; i < num_cycles; ++i) {
         // Set it
-        atomic_or(reinterpret_cast<uint64_t *>(&target), mask);
+        before = atomic_or(reinterpret_cast<uint64_t *>(&target), mask);
+        EXPECT_EQ(before & mask, 0);
         EXPECT_EQ(target.load() & mask, mask);
         // Clear it
-        atomic_and(reinterpret_cast<uint64_t *>(&target), inv_mask);
+        before = atomic_and(reinterpret_cast<uint64_t *>(&target), inv_mask);
+        EXPECT_EQ(before & mask, mask);
         EXPECT_EQ(target.load() & mask, 0);
       }
     };
