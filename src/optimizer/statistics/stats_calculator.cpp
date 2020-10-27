@@ -178,6 +178,8 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
   }
 
   size_t num_rows = root_group->GetNumRows();
+  // Uncomment when required_cols_ is supported in system
+  /*
   for (auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
@@ -196,6 +198,7 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
     column_stats->SetNumRows(num_rows);
     root_group->AddStats(col_name, std::move(column_stats));
   }
+  */
 }
 
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) {
