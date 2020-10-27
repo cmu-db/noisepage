@@ -313,18 +313,9 @@ namespace noisepage::execution::ast {
   F(PtrCast, ptrCast)                                                   \
                                                                         \
   /* Low-level Atomics*/                                                \
-  F(AtomicAnd1, atomicAnd1)                                             \
-  F(AtomicAnd2, atomicAnd2)                                             \
-  F(AtomicAnd4, atomicAnd4)                                             \
-  F(AtomicAnd8, atomicAnd8)                                             \
-  F(AtomicOr1, atomicOr1)                                               \
-  F(AtomicOr2, atomicOr2)                                               \
-  F(AtomicOr4, atomicOr4)                                               \
-  F(AtomicOr8, atomicOr8)                                               \
-  F(AtomicCompareExchange1, atomicCompareExchange1)                     \
-  F(AtomicCompareExchange2, atomicCompareExchange2)                     \
-  F(AtomicCompareExchange4, atomicCompareExchange4)                     \
-  F(AtomicCompareExchange8, atomicCompareExchange8)                     \
+  F(AtomicAnd, atomicAnd)                                               \
+  F(AtomicOr, atomicOr)                                                 \
+  F(AtomicCompareExchange, atomicCompareExchange)                       \
                                                                         \
   /* Parameter calls */                                                 \
   F(GetParamBool, getParamBool)                                         \

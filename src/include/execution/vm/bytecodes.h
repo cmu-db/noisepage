@@ -607,18 +607,18 @@ namespace noisepage::execution::vm {
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
                                                                                                                       \
   /* Atomic functions */                                                                                              \
-  F(AtomicAnd1, OperandType::Local, OperandType::Local)                                                               \
-  F(AtomicAnd2, OperandType::Local, OperandType::Local)                                                               \
-  F(AtomicAnd4, OperandType::Local, OperandType::Local)                                                               \
-  F(AtomicAnd8, OperandType::Local, OperandType::Local)                                                               \
-  F(AtomicOr1, OperandType::Local, OperandType::Local)                                                                \
-  F(AtomicOr2, OperandType::Local, OperandType::Local)                                                                \
-  F(AtomicOr4, OperandType::Local, OperandType::Local)                                                                \
-  F(AtomicOr8, OperandType::Local, OperandType::Local)                                                                \
-  F(AtomicCompareExchange1, OperandType::Local, OperandType::Local, OperandType::Local)                               \
-  F(AtomicCompareExchange2, OperandType::Local, OperandType::Local, OperandType::Local)                               \
-  F(AtomicCompareExchange4, OperandType::Local, OperandType::Local, OperandType::Local)                               \
-  F(AtomicCompareExchange8, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(AtomicAnd1, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicAnd2, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicAnd4, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicAnd8, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicOr1, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicOr2, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicOr4, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicOr8, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicCompareExchange1, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(AtomicCompareExchange2, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(AtomicCompareExchange4, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(AtomicCompareExchange8, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
                                                                                                                       \
   /* String functions */                                                                                              \
   F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \

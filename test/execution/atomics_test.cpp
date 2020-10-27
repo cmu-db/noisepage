@@ -51,7 +51,7 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
   params_and[1] = operand;
   compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
                                    codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd1,
+  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
                                     {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
   fb_and.Finish();
   auto and_decl = fb_and.GetConstructedFunction();
@@ -65,7 +65,7 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
   compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
                                   codegen.Nil());
   fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr1, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
+      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
   fb_or.Finish();
   auto or_decl = fb_or.GetConstructedFunction();
 
@@ -78,7 +78,8 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
   auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_FALSE(module == nullptr);
+  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
+  ASSERT_FALSE(module == nullptr);
 
   // The function should exist
   std::function<void(uint8_t *, uint8_t)> atomic_and;
@@ -141,7 +142,7 @@ TEST_F(AtomicsTest, AtomicAndOr2) {
   params_and[1] = operand;
   compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
                                    codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd2,
+  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
                                     {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
   fb_and.Finish();
   auto and_decl = fb_and.GetConstructedFunction();
@@ -155,7 +156,7 @@ TEST_F(AtomicsTest, AtomicAndOr2) {
   compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
                                   codegen.Nil());
   fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr2, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
+      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
   fb_or.Finish();
   auto or_decl = fb_or.GetConstructedFunction();
 
@@ -168,7 +169,8 @@ TEST_F(AtomicsTest, AtomicAndOr2) {
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
   auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_FALSE(module == nullptr);
+  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
+  ASSERT_FALSE(module == nullptr);
 
   // The function should exist
   std::function<void(uint16_t *, uint16_t)> atomic_and;
@@ -232,7 +234,7 @@ TEST_F(AtomicsTest, AtomicAndOr4) {
   params_and[1] = operand;
   compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
                                    codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd4,
+  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
                                     {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
   fb_and.Finish();
   auto and_decl = fb_and.GetConstructedFunction();
@@ -246,7 +248,7 @@ TEST_F(AtomicsTest, AtomicAndOr4) {
   compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
                                   codegen.Nil());
   fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr4, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
+      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
   fb_or.Finish();
   auto or_decl = fb_or.GetConstructedFunction();
 
@@ -259,7 +261,8 @@ TEST_F(AtomicsTest, AtomicAndOr4) {
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
   auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_FALSE(module == nullptr);
+  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
+  ASSERT_FALSE(module == nullptr);
 
   // The function should exist
   std::function<void(uint32_t *, uint32_t)> atomic_and;
@@ -322,7 +325,7 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
   params_and[1] = operand;
   compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
                                    codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd8,
+  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
                                     {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
   fb_and.Finish();
   auto and_decl = fb_and.GetConstructedFunction();
@@ -336,7 +339,7 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
   compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
                                   codegen.Nil());
   fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr8, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
+      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
   fb_or.Finish();
   auto or_decl = fb_or.GetConstructedFunction();
 
@@ -349,7 +352,8 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
   auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_FALSE(module == nullptr);
+  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
+  ASSERT_FALSE(module == nullptr);
 
   // The function should exist
   std::function<void(uint64_t *, uint64_t)> atomic_and;
@@ -415,7 +419,7 @@ TEST_F(AtomicsTest, AtomicCompareExchange1) {
   params[2] = desired;
   compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
   fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange1,
+      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
                           {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
   fb.Finish();
   auto cmpxchg_decl = fb.GetConstructedFunction();
@@ -485,7 +489,7 @@ TEST_F(AtomicsTest, AtomicCompareExchange2) {
   params[2] = desired;
   compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
   fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange2,
+      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
                           {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
   fb.Finish();
   auto cmpxchg_decl = fb.GetConstructedFunction();
@@ -555,7 +559,7 @@ TEST_F(AtomicsTest, AtomicCompareExchange4) {
   params[2] = desired;
   compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
   fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange4,
+      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
                           {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
   fb.Finish();
   auto cmpxchg_decl = fb.GetConstructedFunction();
@@ -625,7 +629,7 @@ TEST_F(AtomicsTest, AtomicCompareExchange8) {
   params[2] = desired;
   compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
   fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange8,
+      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
                           {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
   fb.Finish();
   auto cmpxchg_decl = fb.GetConstructedFunction();

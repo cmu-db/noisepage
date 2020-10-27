@@ -110,7 +110,9 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin);
-  void VisitBuiltinAtomicCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAtomicAndCall(ast::CallExpr *call);
+  void VisitBuiltinAtomicOrCall(ast::CallExpr *call);
+  void VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *call);
 
   // Dispatched from VisitCallExpr() for handling builtins
   void VisitBuiltinCallExpr(ast::CallExpr *call);
