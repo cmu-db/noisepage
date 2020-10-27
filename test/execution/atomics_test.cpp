@@ -36,57 +36,23 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint8;
-
-  // Build the AND function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *operand =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_and(2, nullptr, &region_);
-  params_and[0] = dest;
-  params_and[1] = operand;
-  compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
-                                   codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
-                                    {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
-  fb_and.Finish();
-  auto and_decl = fb_and.GetConstructedFunction();
-
-  // Build the OR function...
-  dest = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  operand = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_or(2, nullptr, &region_);
-  params_or[0] = dest;
-  params_or[1] = operand;
-  compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
-                                  codegen.Nil());
-  fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
-  fb_or.Finish();
-  auto or_decl = fb_or.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(2, nullptr, &region_);
-  fn_decls[0] = and_decl;
-  fn_decls[1] = or_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun atomic_and(dest: *uint8, mask: uint8) -> uint8 { return @atomicAnd(dest, mask) }\n"
+      "fun atomic_or(dest: *uint8, mask: uint8) -> uint8 { return @atomicOr(dest, mask) }");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint8_t *, uint8_t)> atomic_and;
+  std::function<uint8_t(uint8_t *, uint8_t)> atomic_and;
   EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
 
   // The function should exist
-  std::function<void(uint8_t *, uint8_t)> atomic_or;
+  std::function<uint8_t(uint8_t *, uint8_t)> atomic_or;
   EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
 
   /*=========================
@@ -106,6 +72,7 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
       auto mask = static_cast<uint8_t>(1 << thread_id);
       auto inv_mask = ~mask;
       ASSERT_NE(mask, 0);
+
       for (uint32_t i = 0; i < num_cycles; ++i) {
         // Set it
         atomic_or(reinterpret_cast<uint8_t *>(&target), mask);
@@ -127,57 +94,23 @@ TEST_F(AtomicsTest, AtomicAndOr2) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint16;
-
-  // Build the AND function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *operand =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_and(2, nullptr, &region_);
-  params_and[0] = dest;
-  params_and[1] = operand;
-  compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
-                                   codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
-                                    {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
-  fb_and.Finish();
-  auto and_decl = fb_and.GetConstructedFunction();
-
-  // Build the OR function...
-  dest = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  operand = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_or(2, nullptr, &region_);
-  params_or[0] = dest;
-  params_or[1] = operand;
-  compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
-                                  codegen.Nil());
-  fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
-  fb_or.Finish();
-  auto or_decl = fb_or.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(2, nullptr, &region_);
-  fn_decls[0] = and_decl;
-  fn_decls[1] = or_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun atomic_and(dest: *uint16, mask: uint16) -> uint16 { return @atomicAnd(dest, mask) }\n"
+      "fun atomic_or(dest: *uint16, mask: uint16) -> uint16 { return @atomicOr(dest, mask) }");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint16_t *, uint16_t)> atomic_and;
+  std::function<uint16_t(uint16_t *, uint16_t)> atomic_and;
   EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
 
   // The function should exist
-  std::function<void(uint16_t *, uint16_t)> atomic_or;
+  std::function<uint16_t(uint16_t *, uint16_t)> atomic_or;
   EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
 
   /*=========================
@@ -219,57 +152,23 @@ TEST_F(AtomicsTest, AtomicAndOr4) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint32;
-
-  // Build the AND function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *operand =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_and(2, nullptr, &region_);
-  params_and[0] = dest;
-  params_and[1] = operand;
-  compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
-                                   codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
-                                    {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
-  fb_and.Finish();
-  auto and_decl = fb_and.GetConstructedFunction();
-
-  // Build the OR function...
-  dest = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  operand = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_or(2, nullptr, &region_);
-  params_or[0] = dest;
-  params_or[1] = operand;
-  compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
-                                  codegen.Nil());
-  fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
-  fb_or.Finish();
-  auto or_decl = fb_or.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(2, nullptr, &region_);
-  fn_decls[0] = and_decl;
-  fn_decls[1] = or_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun atomic_and(dest: *uint32, mask: uint32) -> uint32 { return @atomicAnd(dest, mask) }\n"
+      "fun atomic_or(dest: *uint32, mask: uint32) -> uint32 { return @atomicOr(dest, mask) }");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint32_t *, uint32_t)> atomic_and;
+  std::function<uint32_t(uint32_t *, uint32_t)> atomic_and;
   EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
 
   // The function should exist
-  std::function<void(uint32_t *, uint32_t)> atomic_or;
+  std::function<uint32_t(uint32_t *, uint32_t)> atomic_or;
   EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
 
   /*=========================
@@ -310,57 +209,23 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint64;
-
-  // Build the AND function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *operand =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_and(2, nullptr, &region_);
-  params_and[0] = dest;
-  params_and[1] = operand;
-  compiler::FunctionBuilder fb_and(&codegen, codegen.MakeFreshIdentifier("atomic_and"), std::move(params_and),
-                                   codegen.Nil());
-  fb_and.Append(codegen.CallBuiltin(ast::Builtin::AtomicAnd,
-                                    {fb_and.GetParameterByPosition(0), fb_and.GetParameterByPosition(1)}));
-  fb_and.Finish();
-  auto and_decl = fb_and.GetConstructedFunction();
-
-  // Build the OR function...
-  dest = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  operand = factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("operand"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params_or(2, nullptr, &region_);
-  params_or[0] = dest;
-  params_or[1] = operand;
-  compiler::FunctionBuilder fb_or(&codegen, codegen.MakeFreshIdentifier("atomic_or"), std::move(params_or),
-                                  codegen.Nil());
-  fb_or.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicOr, {fb_or.GetParameterByPosition(0), fb_or.GetParameterByPosition(1)}));
-  fb_or.Finish();
-  auto or_decl = fb_or.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(2, nullptr, &region_);
-  fn_decls[0] = and_decl;
-  fn_decls[1] = or_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun atomic_and(dest: *uint64, mask: uint64) -> uint64 { return @atomicAnd(dest, mask) }\n"
+      "fun atomic_or(dest: *uint64, mask: uint64) -> uint64 { return @atomicOr(dest, mask) }");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint64_t *, uint64_t)> atomic_and;
+  std::function<uint64_t(uint64_t *, uint64_t)> atomic_and;
   EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
 
   // The function should exist
-  std::function<void(uint64_t *, uint64_t)> atomic_or;
+  std::function<uint64_t(uint64_t *, uint64_t)> atomic_or;
   EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
 
   /*=========================
@@ -401,42 +266,20 @@ TEST_F(AtomicsTest, AtomicCompareExchange1) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint8;
-
-  // Build the function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *expected =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *desired =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("desired"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params(3, nullptr, &region_);
-  params[0] = dest;
-  params[1] = expected;
-  params[2] = desired;
-  compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
-  fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
-                          {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
-  fb.Finish();
-  auto cmpxchg_decl = fb.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(1, nullptr, &region_);
-  fn_decls[0] = cmpxchg_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun cmpxchg(dest: *uint8, expected: *uint8, desired: uint8) -> bool {"
+      "  return @atomicCompareExchange(dest, expected, desired)"
+      "}");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint8_t *, uint8_t *, uint8_t)> cmpxchg;
+  std::function<bool(uint8_t *, uint8_t *, uint8_t)> cmpxchg;
   EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
 
   /*=========================
@@ -471,42 +314,20 @@ TEST_F(AtomicsTest, AtomicCompareExchange2) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint16;
-
-  // Build the function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *expected =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *desired =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("desired"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params(3, nullptr, &region_);
-  params[0] = dest;
-  params[1] = expected;
-  params[2] = desired;
-  compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
-  fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
-                          {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
-  fb.Finish();
-  auto cmpxchg_decl = fb.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(1, nullptr, &region_);
-  fn_decls[0] = cmpxchg_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun cmpxchg(dest: *uint16, expected: *uint16, desired: uint16) -> bool {"
+      "  return @atomicCompareExchange(dest, expected, desired)"
+      "}");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint16_t *, uint16_t *, uint16_t)> cmpxchg;
+  std::function<bool(uint16_t *, uint16_t *, uint16_t)> cmpxchg;
   EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
 
   /*=========================
@@ -541,42 +362,20 @@ TEST_F(AtomicsTest, AtomicCompareExchange4) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint32;
-
-  // Build the function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *expected =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *desired =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("desired"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params(3, nullptr, &region_);
-  params[0] = dest;
-  params[1] = expected;
-  params[2] = desired;
-  compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
-  fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
-                          {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
-  fb.Finish();
-  auto cmpxchg_decl = fb.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(1, nullptr, &region_);
-  fn_decls[0] = cmpxchg_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun cmpxchg(dest: *uint32, expected: *uint32, desired: uint32) -> bool {"
+      "  return @atomicCompareExchange(dest, expected, desired)"
+      "}");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint32_t *, uint32_t *, uint32_t)> cmpxchg;
+  std::function<bool(uint32_t *, uint32_t *, uint32_t)> cmpxchg;
   EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
 
   /*=========================
@@ -611,42 +410,20 @@ TEST_F(AtomicsTest, AtomicCompareExchange8) {
   sema::ErrorReporter error_reporter(&region_);
   ast::AstNodeFactory factory(&region_);
   ast::Context context(&region_, &error_reporter);
-  compiler::CodeGen codegen(&context, /* CatalogAccessor */ DISABLED);
 
-  // Declare the function using the function builder...
-  auto operand_kind = ast::BuiltinType::Kind::Uint64;
-
-  // Build the function...
-  ast::FieldDecl *dest =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *expected =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("dest"), codegen.PointerType(operand_kind));
-  ast::FieldDecl *desired =
-      factory.NewFieldDecl(pos_, codegen.MakeFreshIdentifier("desired"), codegen.BuiltinType(operand_kind));
-  util::RegionVector<ast::FieldDecl *> params(3, nullptr, &region_);
-  params[0] = dest;
-  params[1] = expected;
-  params[2] = desired;
-  compiler::FunctionBuilder fb(&codegen, codegen.MakeFreshIdentifier("cmpxchg"), std::move(params), codegen.Nil());
-  fb.Append(
-      codegen.CallBuiltin(ast::Builtin::AtomicCompareExchange,
-                          {fb.GetParameterByPosition(0), fb.GetParameterByPosition(1), fb.GetParameterByPosition(2)}));
-  fb.Finish();
-  auto cmpxchg_decl = fb.GetConstructedFunction();
-
-  // Create the "file"...
-  util::RegionVector<ast::Decl *> fn_decls(1, nullptr, &region_);
-  fn_decls[0] = cmpxchg_decl;
-  auto root_node = factory.NewFile(pos_, std::move(fn_decls));
+  auto src = std::string(
+      "fun cmpxchg(dest: *uint64, expected: *uint64, desired: uint64) -> bool {"
+      "  return @atomicCompareExchange(dest, expected, desired)"
+      "}");
 
   // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, root_node);
+  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
   auto module = compiler::Compiler::RunCompilationSimple(input);
   EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
   ASSERT_FALSE(module == nullptr);
 
   // The function should exist
-  std::function<void(uint64_t *, uint64_t *, uint64_t)> cmpxchg;
+  std::function<bool(uint64_t *, uint64_t *, uint64_t)> cmpxchg;
   EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
 
   /*=========================
