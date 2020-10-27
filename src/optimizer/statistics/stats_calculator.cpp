@@ -151,7 +151,7 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
 
 void StatsCalculator::Visit(const LogicalSemiJoin *op) {
   // Check if there's join condition
-  TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
   auto left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
@@ -179,7 +179,7 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
 
   size_t num_rows = root_group->GetNumRows();
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_name = tv_expr->GetFullName();
     std::unique_ptr<ColumnStats> column_stats;
@@ -188,7 +188,7 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
     if (left_child_group->HasColumnStats(col_name)) {
       column_stats = std::make_unique<ColumnStats>(*left_child_group->GetStats(col_name));
     } else {
-      TERRIER_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
+      NOISEPAGE_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
       column_stats = std::make_unique<ColumnStats>(*right_child_group->GetStats(col_name));
     }
 
