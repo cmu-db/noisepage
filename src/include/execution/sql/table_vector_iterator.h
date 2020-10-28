@@ -7,15 +7,15 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "storage/sql_table.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class SqlTable;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 
@@ -24,6 +24,13 @@ class ThreadStateContainer;
  */
 class EXPORT TableVectorIterator {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
+  enum class HookOffsets : uint32_t {
+    EndHook = 0,
+
+    NUM_HOOKS
+  };
+
   /**
    * Minimum block range
    */
@@ -135,4 +142,4 @@ class EXPORT TableVectorIterator {
   bool initialized_{false};
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

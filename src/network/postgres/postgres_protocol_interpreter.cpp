@@ -1,19 +1,20 @@
 #include "network/postgres/postgres_protocol_interpreter.h"
 
 #include <algorithm>
-#include <memory>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
 
+#include "common/error/error_data.h"
+#include "common/error/error_defs.h"
 #include "network/network_defs.h"
 #include "network/postgres/postgres_network_commands.h"
-#include "network/terrier_server.h"
+#include "traffic_cop/traffic_cop.h"
 
 constexpr uint32_t SSL_MESSAGE_VERNO = 80877103;
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
-namespace terrier::network {
+namespace noisepage::network {
 Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
                                                 common::ManagedPointer<WriteQueue> out,
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
@@ -167,4 +168,4 @@ void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPoin
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

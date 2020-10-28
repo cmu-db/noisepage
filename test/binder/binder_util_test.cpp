@@ -7,7 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 class BinderUtilTest : public TerrierTest {};
 
 /**
@@ -58,4 +58,4 @@ TEST_F(BinderUtilTest, VarcharToBigInt) {
 TEST_F(BinderUtilTest, VarcharToDecimal) {
   TestCheckAndTryPromoteType<double>(type::TypeId::DECIMAL, "15721.15445", 15721.15445, "1.79769e+310");
 }
-}  // namespace terrier
+}  // namespace noisepage

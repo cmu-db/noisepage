@@ -7,7 +7,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 common::hash_t DropTriggerPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
@@ -70,4 +70,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropTriggerPlanNode::Fr
 
 DEFINE_JSON_BODY_DECLARATIONS(DropTriggerPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

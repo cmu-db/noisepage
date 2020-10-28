@@ -6,7 +6,7 @@
 #include "parser/expression/operator_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 NullCheckTranslator::NullCheckTranslator(const parser::OperatorExpression &expr,
                                          CompilationContext *compilation_context)
@@ -28,4 +28,4 @@ ast::Expr *NullCheckTranslator::DeriveValue(WorkContext *ctx, const ColumnValueP
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

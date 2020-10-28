@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/vm/bytecode_operands.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // Creates instances of a given opcode for all integer primitive types
 #define CREATE_FOR_INT_TYPES(F, op, ...) \
@@ -104,11 +104,20 @@ namespace terrier::execution::vm {
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
   F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
-  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
-  F(ExecutionContextGetFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,       \
+  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local,                   \
     OperandType::Local)                                                                                               \
-  F(ExecutionContextRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,    \
-    OperandType::Local)                                                                                               \
+  F(ExecutionContextInitHooks, OperandType::Local, OperandType::Local)                                                \
+  F(ExecutionContextRegisterHook, OperandType::Local, OperandType::Local, OperandType::FunctionId)                    \
+  F(ExecutionContextClearHooks, OperandType::Local)                                                                   \
+  F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
+    OperandType::Local, OperandType::Local)                                                                           \
+  F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
+  F(ExecOUFeatureVectorFilter, OperandType::Local, OperandType::Local)                                                \
+  F(ExecOUFeatureVectorReset, OperandType::Local)                                                                     \
+                                                                                                                      \
+  F(RegisterThreadWithMetricsManager, OperandType::Local)                                                             \
+  F(CheckTrackersStopped, OperandType::Local)                                                                         \
+  F(AggregateMetricsThread, OperandType::Local)                                                                       \
   F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
@@ -319,6 +328,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Hashing */                                                                                                       \
   F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(HashBool, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashDate, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
   F(HashTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
@@ -326,8 +336,9 @@ namespace terrier::execution::vm {
   F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
                                                                                                                       \
   /* Aggregation Hash Table */                                                                                        \
-  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
+  F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(AggregationHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                        \
+  F(AggregationHashTableGetInsertCount, OperandType::Local, OperandType::Local)                                       \
   F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   F(AggregationHashTableAllocTuplePartitioned, OperandType::Local, OperandType::Local, OperandType::Local)            \
   F(AggregationHashTableLinkHashTableEntry, OperandType::Local, OperandType::Local)                                   \
@@ -440,7 +451,7 @@ namespace terrier::execution::vm {
   F(AvgAggregateFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
-  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                \
+  F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
@@ -449,6 +460,11 @@ namespace terrier::execution::vm {
   F(JoinHashTableFree, OperandType::Local)                                                                            \
   F(HashTableEntryIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
   F(HashTableEntryIteratorGetRow, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorInit, OperandType::Local, OperandType::Local)                                                \
+  F(JoinHashTableIteratorHasNext, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorNext, OperandType::Local)                                                                    \
+  F(JoinHashTableIteratorGetRow, OperandType::Local, OperandType::Local)                                              \
+  F(JoinHashTableIteratorFree, OperandType::Local)                                                                    \
                                                                                                                       \
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \
@@ -468,8 +484,10 @@ namespace terrier::execution::vm {
   F(SorterIteratorFree, OperandType::Local)                                                                           \
                                                                                                                       \
   /* Output */                                                                                                        \
+  F(ResultBufferNew, OperandType::Local, OperandType::Local)                                                          \
   F(ResultBufferAllocOutputRow, OperandType::Local, OperandType::Local)                                               \
   F(ResultBufferFinalize, OperandType::Local)                                                                         \
+  F(ResultBufferFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
@@ -706,7 +724,7 @@ class Bytecodes {
    * @return The type of the Nth operand to the given bytecode.
    */
   static OperandType GetNthOperandType(Bytecode bytecode, uint32_t operand_index) {
-    TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
+    NOISEPAGE_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandTypes(bytecode)[operand_index];
   }
 
@@ -714,7 +732,7 @@ class Bytecodes {
    * @return The size of the Nth operand to the given bytecode.
    */
   static OperandSize GetNthOperandSize(Bytecode bytecode, uint32_t operand_index) {
-    TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
+    NOISEPAGE_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandSizes(bytecode)[operand_index];
   }
 
@@ -734,7 +752,7 @@ class Bytecodes {
    * @return The raw encoded value for the input bytecode instruction.
    */
   static constexpr std::underlying_type_t<Bytecode> ToByte(Bytecode bytecode) {
-    TERRIER_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
+    NOISEPAGE_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return static_cast<std::underlying_type_t<Bytecode>>(bytecode);
   }
 
@@ -745,7 +763,7 @@ class Bytecodes {
    */
   static constexpr Bytecode FromByte(std::underlying_type_t<Bytecode> val) {
     auto bytecode = static_cast<Bytecode>(val);
-    TERRIER_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
+    NOISEPAGE_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return bytecode;
   }
 
@@ -788,4 +806,4 @@ class Bytecodes {
   static const char *bytecode_handler_name[];
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

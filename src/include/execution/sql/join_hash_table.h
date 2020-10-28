@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "execution/sql/bloom_filter.h"
@@ -15,11 +16,12 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+class ExecutionContext;
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class Vector;
@@ -47,6 +49,14 @@ class Vector;
  */
 class EXPORT JoinHashTable {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
+  enum class HookOffsets : uint32_t {
+    StartHook = 0,
+    EndHook,
+
+    NUM_HOOKS
+  };
+
   /** Default precision to use for HLL estimations. */
   static constexpr uint32_t DEFAULT_HLL_PRECISION = 10;
 
@@ -57,12 +67,12 @@ class EXPORT JoinHashTable {
    * Construct a join hash table. All memory allocations are sourced from the injected @em memory,
    * and thus, are ephemeral.
    * @param exec_settings The execution settings to use.
-   * @param memory The memory pool to allocate memory from.
+   * @param exec_ctx ExecutionContext
    * @param tuple_size The size of the tuple stored in this join hash table.
    * @param use_concise_ht Whether to use a concise or fatter chaining join index.
    */
-  explicit JoinHashTable(const exec::ExecutionSettings &exec_settings, MemoryPool *memory, uint32_t tuple_size,
-                         bool use_concise_ht = false);
+  explicit JoinHashTable(const exec::ExecutionSettings &exec_settings, exec::ExecutionContext *exec_ctx,
+                         uint32_t tuple_size, bool use_concise_ht = false);
 
   /**
    * This class cannot be copied or moved.
@@ -114,7 +124,7 @@ class EXPORT JoinHashTable {
    * @param thread_state_container The container for all thread-local tables.
    * @param jht_offset The offset in the state where the hash table is.
    */
-  void MergeParallel(const ThreadStateContainer *thread_state_container, std::size_t jht_offset);
+  void MergeParallel(ThreadStateContainer *thread_state_container, std::size_t jht_offset);
 
   /**
    * @return The total number of bytes used to materialize tuples. This excludes space required for
@@ -180,6 +190,7 @@ class EXPORT JoinHashTable {
   const BloomFilter *GetBloomFilter() const { return &bloom_filter_; }
 
  private:
+  friend class JoinHashTableIterator;
   FRIEND_TEST(JoinHashTableTest, LazyInsertionTest);
   FRIEND_TEST(JoinHashTableTest, PerfTest);
 
@@ -217,6 +228,8 @@ class EXPORT JoinHashTable {
  private:
   // The execution context to run with.
   const exec::ExecutionSettings &exec_settings_;
+
+  exec::ExecutionContext *exec_ctx_;
 
   // The vector where we store the build-side input.
   util::ChunkedVector<MemoryPoolAllocator<byte>> entries_;
@@ -272,4 +285,83 @@ inline HashTableEntryIterator JoinHashTable::Lookup<true>(const hash_t hash) con
   return HashTableEntryIterator(entry, hash);
 }
 
-}  // namespace terrier::execution::sql
+//===----------------------------------------------------------------------===//
+//
+// Join Hash Table Iterator
+//
+//===----------------------------------------------------------------------===//
+/**
+ * There are two distinct iterators related to hash tables. The HashTableEntryIterator
+ * defined in hash_table_entry.h takes in a hash value and iterates over all entries in
+ * the hash table whose hash matches the given hash. The iterator defined below simply
+ * iterates over all the entries of the join hash table one tuple at a time.
+ *
+ * The join hash table must be fully built either through a serial call to JoinHashTable::Build()
+ * or merged (in parallel) from other join hash tables through JoinHashTable::MergeParallel().
+ *
+ * Users use the OOP-ish iteration API:
+ * for (JoinHashTableIterator iter(table); iter.HasNext(); iter.Next()) {
+ *   auto row = iter.GetCurrentRowAs<MyFancyAssType>();
+ *   ...
+ * }
+ *
+ * // TODO(pmenon): Vectorized version, too.
+ */
+class JoinHashTableIterator {
+ public:
+  /**
+   * Construct an iterator over the given hash table.
+   * @param table The join hash table to iterate.
+   */
+  explicit JoinHashTableIterator(const JoinHashTable &table);
+  /**
+   * @return True if there is more data in the iterator; false otherwise.
+   */
+  bool HasNext() const noexcept { return entry_iter_ != entry_end_; }
+  /**
+   * Advance to the next tuple.
+   */
+  void Next() noexcept {
+    // Advance the entry iterator by one.
+    ++entry_iter_;
+    // If we've exhausted the current entry list, find another.
+    if (entry_iter_ == entry_end_) {
+      FindNextNonEmptyList();
+    }
+  }
+  /**
+   * Access the row the iterator is currently positioned at.
+   * @pre A previous call to HasNext() must have returned true.
+   * @return A read-only opaque byte pointer to the row at the current iteration position.
+   */
+  const byte *GetCurrentRow() const noexcept {
+    NOISEPAGE_ASSERT(HasNext(), "HasNext() indicates no more data!");
+    const auto entry = reinterpret_cast<const HashTableEntry *>(*entry_iter_);
+    return entry->payload_;
+  }
+
+  /**
+   * Access the row the iterator is currently positioned at as the given template type.
+   * @pre A previous call to HasNext() must have returned true.
+   * @tparam T The type of the row.
+   * @return A typed read-only pointer to row at the current iteration position.
+   */
+  template <typename T>
+  const T *GetCurrentRowAs() const noexcept {
+    return reinterpret_cast<const T *>(GetCurrentRow());
+  }
+
+ private:
+  // Advance past any empty entry lists.
+  void FindNextNonEmptyList();
+
+ private:
+  using EntryListIterator = decltype(JoinHashTable::owned_)::const_iterator;
+  using EntryIterator = decltype(JoinHashTable::entries_)::Iterator;
+  // An iterator over the entry lists owned by the join hash table.
+  EntryListIterator entry_list_iter_, entry_list_end_;
+  // An iterator over the entries in a single entry list.
+  EntryIterator entry_iter_, entry_end_;
+};
+
+}  // namespace noisepage::execution::sql

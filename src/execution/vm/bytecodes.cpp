@@ -4,7 +4,7 @@
 
 #include "execution/vm/bytecode_traits.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // static
 const char *Bytecodes::bytecode_names[] = {
@@ -52,7 +52,7 @@ uint32_t Bytecodes::MaxBytecodeNameLength() {
 }
 
 uint32_t Bytecodes::GetNthOperandOffset(Bytecode bytecode, uint32_t operand_index) {
-  TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Invalid operand index");
+  NOISEPAGE_ASSERT(operand_index < NumOperands(bytecode), "Invalid operand index");
   uint32_t offset = sizeof(std::underlying_type_t<Bytecode>);
   for (uint32_t i = 0; i < operand_index; i++) {
     OperandSize operand_size = GetNthOperandSize(bytecode, i);
@@ -61,4 +61,4 @@ uint32_t Bytecodes::GetNthOperandOffset(Bytecode bytecode, uint32_t operand_inde
   return offset;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

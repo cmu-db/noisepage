@@ -7,7 +7,7 @@
 #include "optimizer/properties.h"
 #include "optimizer/property.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 GroupExpression *PropertyEnforcer::EnforceProperty(GroupExpression *gexpr, Property *property,
                                                    transaction::TransactionContext *txn) {
@@ -22,4 +22,4 @@ void PropertyEnforcer::Visit(const PropertySort *prop) {
   output_gexpr_ = new GroupExpression(OrderBy::Make().RegisterWithTxnContext(txn_), std::move(child_groups), txn_);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

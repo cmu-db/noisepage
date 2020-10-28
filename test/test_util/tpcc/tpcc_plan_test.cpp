@@ -22,7 +22,7 @@
 #include "test_util/tpcc/builder.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 void TpccPlanTest::CheckIndexScan(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                   std::unique_ptr<planner::AbstractPlanNode> plan) {
@@ -47,7 +47,7 @@ void TpccPlanTest::SetUp() {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map;
   settings::SettingsManager::ConstructParamMap(param_map);
 
-  db_main_ = terrier::DBMain::Builder()
+  db_main_ = noisepage::DBMain::Builder()
                  .SetUseGC(true)
                  .SetSettingsParameterMap(std::move(param_map))
                  .SetUseSettingsManager(true)
@@ -221,4 +221,4 @@ void TpccPlanTest::CheckOids(const std::vector<catalog::col_oid_t> &lhs, const s
   ASSERT_EQ(copy_lhs, copy_rhs);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

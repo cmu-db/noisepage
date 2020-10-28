@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::network {
+namespace noisepage::network {
 /**
  * States used by ConnectionHandle::StateMachine.
  * @see ConnectionHandle::StateMachine
@@ -30,4 +30,4 @@ enum class Transition {
   NEED_WRITE
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

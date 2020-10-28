@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 nlohmann::json CaseExpression::WhenClause::ToJson() const {
   nlohmann::json j;
@@ -87,4 +87,4 @@ std::vector<std::unique_ptr<AbstractExpression>> CaseExpression::FromJson(const 
 DEFINE_JSON_BODY_DECLARATIONS(CaseExpression::WhenClause);
 DEFINE_JSON_BODY_DECLARATIONS(CaseExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

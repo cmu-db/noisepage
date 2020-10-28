@@ -7,7 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ConstantTranslator::ConstantTranslator(const parser::ConstantValueExpression &expr,
                                        CompilationContext *compilation_context)
@@ -19,35 +19,7 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   const auto type_id = sql::GetTypeId(val.GetReturnValueType());
 
   if (val.IsNull()) {
-    // initSqlNull(&expr) produces a NULL of expr's type.
-    ast::Expr *dummy_expr;
-    switch (val.GetReturnValueType()) {
-      case type::TypeId::BOOLEAN:
-        dummy_expr = codegen->BoolToSql(false);
-        break;
-      case type::TypeId::TINYINT:   // fallthrough
-      case type::TypeId::SMALLINT:  // fallthrough
-      case type::TypeId::INTEGER:   // fallthrough
-      case type::TypeId::BIGINT:
-        dummy_expr = codegen->IntToSql(0);
-        break;
-      case type::TypeId::DATE:
-        dummy_expr = codegen->DateToSql(0, 0, 0);
-        break;
-      case type::TypeId::TIMESTAMP:
-        dummy_expr = codegen->TimestampToSql(0);
-        break;
-      case type::TypeId::VARCHAR:
-        dummy_expr = codegen->StringToSql("");
-        break;
-      case type::TypeId::DECIMAL:
-        dummy_expr = codegen->FloatToSql(0.0);
-        break;
-      case type::TypeId::VARBINARY:
-      default:
-        UNREACHABLE("Unsupported NULL type!");
-    }
-    return codegen->CallBuiltin(ast::Builtin::InitSqlNull, {codegen->PointerType(dummy_expr)});
+    return codegen->ConstNull(val.GetReturnValueType());
   }
 
   switch (type_id) {
@@ -72,4 +44,4 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

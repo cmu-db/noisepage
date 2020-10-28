@@ -24,7 +24,7 @@
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
     const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, const catalog::db_oid_t db_oid)
@@ -256,7 +256,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
                                          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
-      TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
+      NOISEPAGE_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
       prev_expr = std::move(join_expr);
     }
     output_expr_ = std::move(prev_expr);
@@ -500,13 +500,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatement> op) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
+  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
   auto drop_type = op->GetDropType();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
   std::unique_ptr<OperatorNode> drop_expr;
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-
       drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_).RegisterWithTxnContext(txn_context),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;
@@ -644,6 +643,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::Comparison
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
     GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 1, false);
   } else if (expr_type == parser::ExpressionType::COMPARE_EQUAL ||
+             expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
              expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
@@ -744,7 +744,8 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(
   if (expr_type == parser::ExpressionType::COMPARE_EQUAL || expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
       expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
-      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
+      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO ||
+      expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL) {
     // Supported if one child is subquery and the other is not
     if ((!expr->GetChild(0)->HasSubquery() &&
          expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) ||
@@ -886,4 +887,4 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
   return res;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

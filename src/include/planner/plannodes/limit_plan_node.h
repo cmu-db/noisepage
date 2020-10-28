@@ -9,7 +9,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for a limit operator
@@ -126,4 +126,4 @@ class LimitPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(LimitPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -4,7 +4,7 @@
 #include "execution/sql_test.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorBitwiseTest : public TplTest {};
 
@@ -35,4 +35,4 @@ TEST_F(VectorBitwiseTest, InPlaceBitwiseAND) {
 #undef GEN_CASE
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

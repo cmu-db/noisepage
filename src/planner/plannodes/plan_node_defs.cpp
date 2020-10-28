@@ -2,7 +2,7 @@
 
 #include "execution/util/execution_common.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 std::string PlanNodeTypeToString(PlanNodeType type) {
   switch (type) {
@@ -104,4 +104,4 @@ std::string JoinTypeToString(LogicalJoinType type) {
   UNREACHABLE("Impossible to reach. All join types handled.");
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -8,7 +8,7 @@
 #include "test_util/multithread_test_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * These tests are adapted from https://github.com/wangziqi2013/BwTree/tree/master/test
@@ -30,8 +30,8 @@ struct BwTreeTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ReproduceNewOrderMemoryLeak) {
-  TERRIER_ASSERT(num_threads_ % 2 == 0,
-                 "This test requires an even number of threads. This should have been handled when it was assigned.");
+  NOISEPAGE_ASSERT(num_threads_ % 2 == 0,
+                   "This test requires an even number of threads. This should have been handled when it was assigned.");
 
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024 * num_threads_;
@@ -272,8 +272,8 @@ TEST_F(BwTreeTests, ConcurrentRandomInsert) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeTests, ConcurrentMixed) {
-  TERRIER_ASSERT(num_threads_ % 2 == 0,
-                 "This test requires an even number of threads. This should have been handled when it was assigned.");
+  NOISEPAGE_ASSERT(num_threads_ % 2 == 0,
+                   "This test requires an even number of threads. This should have been handled when it was assigned.");
 
   // This defines the key space (0 ~ (1M - 1))
   const uint32_t key_num = 1024 * 1024;
@@ -511,4 +511,4 @@ TEST_F(BwTreeTests, EpochManager) {
   delete tree;
 }
 
-}  // namespace terrier
+}  // namespace noisepage

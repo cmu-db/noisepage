@@ -7,14 +7,14 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/logical_operators.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t target_group, bool enforced) {
   // If leaf, then just return
   if (gexpr->Contents()->GetOpType() == OpType::LEAF) {
     const auto leaf = gexpr->Contents()->GetContentsAs<LeafOperator>();
-    TERRIER_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
-                   "target_group does not match the LeafOperator's group");
+    NOISEPAGE_ASSERT(target_group == UNDEFINED_GROUP || target_group == leaf->GetOriginGroup(),
+                     "target_group does not match the LeafOperator's group");
     gexpr->SetGroupID(leaf->GetOriginGroup());
 
     // Let the caller delete!
@@ -25,7 +25,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, group_id_t targe
   // Lookup in hash table
   auto it = group_expressions_.find(gexpr);
   if (it != group_expressions_.end()) {
-    TERRIER_ASSERT(*gexpr == *(*it), "GroupExpression should be equal");
+    NOISEPAGE_ASSERT(*gexpr == *(*it), "GroupExpression should be equal");
     delete gexpr;
     return *it;
   }
@@ -73,4 +73,4 @@ group_id_t Memo::AddNewGroup(GroupExpression *gexpr) {
   return new_group_id;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

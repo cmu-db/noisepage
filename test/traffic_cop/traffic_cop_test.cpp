@@ -11,7 +11,7 @@
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "network/connection_handle_factory.h"
-#include "network/terrier_server.h"
+#include "network/noisepage_server.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
@@ -19,15 +19,15 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
  protected:
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+    noisepage::settings::SettingsManager::ConstructParamMap(param_map);
 
-    db_main_ = terrier::DBMain::Builder()
+    db_main_ = noisepage::DBMain::Builder()
                    .SetSettingsParameterMap(std::move(param_map))
                    .SetUseSettingsManager(true)
                    .SetUseGC(true)
@@ -189,4 +189,4 @@ TEST_F(TrafficCopTests, ArithmeticErrorTest) {
   }
 }
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

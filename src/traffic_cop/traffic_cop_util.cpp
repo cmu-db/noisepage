@@ -15,7 +15,7 @@
 #include "parser/transaction_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 std::unique_ptr<planner::AbstractPlanNode> TrafficCopUtil::Optimize(
     const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -153,4 +153,4 @@ network::QueryType TrafficCopUtil::QueryTypeForStatement(const common::ManagedPo
   }
 }
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

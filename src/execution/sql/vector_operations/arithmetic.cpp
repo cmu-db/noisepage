@@ -5,15 +5,16 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace traits {
 
 // Specialized struct to enable full-computation.
 template <template <typename> typename Op, typename T>
-struct ShouldPerformFullCompute<Op<T>, std::enable_if_t<std::is_same_v<Op<T>, terrier::execution::sql::Add<T>> ||
-                                                        std::is_same_v<Op<T>, terrier::execution::sql::Subtract<T>> ||
-                                                        std::is_same_v<Op<T>, terrier::execution::sql::Multiply<T>>>> {
+struct ShouldPerformFullCompute<Op<T>,
+                                std::enable_if_t<std::is_same_v<Op<T>, noisepage::execution::sql::Add<T>> ||
+                                                 std::is_same_v<Op<T>, noisepage::execution::sql::Subtract<T>> ||
+                                                 std::is_same_v<Op<T>, noisepage::execution::sql::Multiply<T>>>> {
   bool operator()(const exec::ExecutionSettings &exec_settings, const TupleIdList *tid_list) const {
     auto full_compute_threshold = exec_settings.GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
@@ -208,26 +209,26 @@ void BinaryArithmeticOperation(const exec::ExecutionSettings &exec_settings, con
 
 void VectorOps::Add(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                     Vector *result) {
-  BinaryArithmeticOperation<terrier::execution::sql::Add>(exec_settings, left, right, result);
+  BinaryArithmeticOperation<noisepage::execution::sql::Add>(exec_settings, left, right, result);
 }
 
 void VectorOps::Subtract(const exec::ExecutionSettings &exec_settings, const Vector &right, Vector *result,
                          const Vector &left) {
-  BinaryArithmeticOperation<terrier::execution::sql::Subtract>(exec_settings, left, right, result);
+  BinaryArithmeticOperation<noisepage::execution::sql::Subtract>(exec_settings, left, right, result);
 }
 
 void VectorOps::Multiply(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                          Vector *result) {
-  BinaryArithmeticOperation<terrier::execution::sql::Multiply>(exec_settings, left, right, result);
+  BinaryArithmeticOperation<noisepage::execution::sql::Multiply>(exec_settings, left, right, result);
 }
 
 void VectorOps::Divide(const exec::ExecutionSettings &exec_settings, const Vector &left, const Vector &right,
                        Vector *result) {
-  DivModOperation<terrier::execution::sql::Divide>(left, right, result);
+  DivModOperation<noisepage::execution::sql::Divide>(left, right, result);
 }
 
 void VectorOps::Modulo(const Vector &left, const Vector &right, Vector *result) {
-  DivModOperation<terrier::execution::sql::Modulo>(left, right, result);
+  DivModOperation<noisepage::execution::sql::Modulo>(left, right, result);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -7,7 +7,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 nlohmann::json PrimaryKeyInfo::ToJson() const {
   nlohmann::json j;
@@ -191,4 +191,4 @@ DEFINE_JSON_BODY_DECLARATIONS(UniqueInfo);
 DEFINE_JSON_BODY_DECLARATIONS(CheckInfo);
 DEFINE_JSON_BODY_DECLARATIONS(CreateTablePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

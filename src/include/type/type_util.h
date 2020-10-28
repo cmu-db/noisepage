@@ -7,7 +7,7 @@
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::type {
+namespace noisepage::type {
 
 /**
  * Static utility class for common functions in type
@@ -43,7 +43,7 @@ class TypeUtil {
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
       default:
-        throw std::runtime_error("Unknown TypeId in terrier::type::TypeUtil::GetTypeSize().");
+        throw std::runtime_error("Unknown TypeId in noisepage::type::TypeUtil::GetTypeSize().");
     }
   }
 
@@ -94,4 +94,4 @@ class TypeUtil {
   }
 };
 
-}  // namespace terrier::type
+}  // namespace noisepage::type

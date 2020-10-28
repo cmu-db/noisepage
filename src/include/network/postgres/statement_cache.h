@@ -9,7 +9,7 @@
 #include "network/postgres/statement.h"
 #include "xxHash/xxh3.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Simple statement cache. It contains a map from query string to Statement objects, allowing for reuse of bound parser
@@ -48,4 +48,4 @@ class StatementCache {
   std::unordered_map<std::string, std::unique_ptr<Statement>, FastStringHasher> cache_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

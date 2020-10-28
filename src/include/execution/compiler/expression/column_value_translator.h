@@ -2,11 +2,11 @@
 
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ColumnValueExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * A translator for column value expressions.
@@ -29,4 +29,4 @@ class ColumnValueTranslator : public ExpressionTranslator {
   ast::Expr *DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const override;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

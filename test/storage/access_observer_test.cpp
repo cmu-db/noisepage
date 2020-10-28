@@ -6,7 +6,7 @@
 #include "storage/block_compactor.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
-namespace terrier {
+namespace noisepage {
 class MockBlockCompactor : public storage::BlockCompactor {
  public:
   // NOLINTNEXTLINE
@@ -59,7 +59,7 @@ TEST(AccessObserverTest, FilledBlocksObserved) {
   for (uint32_t i = 0; i <= COLD_DATA_EPOCH_THRESHOLD; i++) tested.ObserveGCInvocation();
   delete fake_block;
 }
-}  // namespace terrier
+}  // namespace noisepage
 
 int main(int argc, char **argv) {
   // The following line must be executed to initialize Google Mock

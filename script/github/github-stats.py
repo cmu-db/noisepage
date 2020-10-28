@@ -35,7 +35,7 @@ LOG.setLevel(logging.INFO)
 ## ==============================================
 
 GITHUB_USER = 'cmu-db'
-GITHUB_REPO = 'terrier'
+GITHUB_REPO = 'noisepage'
 GITHUB_REPO_API_URL = "https://api.github.com/repos/%s/%s" % (GITHUB_USER, GITHUB_REPO)
 
 FIRST_COMMIT = '1867c455208913d6f7277e808313305ee7ee8b78'

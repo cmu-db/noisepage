@@ -7,7 +7,7 @@
 #include "parser/expression/comparison_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ComparisonTranslator::ComparisonTranslator(const parser::ComparisonExpression &expr,
                                            CompilationContext *compilation_context)
@@ -24,6 +24,7 @@ ast::Expr *ComparisonTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
 
   switch (const auto expr_type = GetExpression().GetExpressionType(); expr_type) {
     case parser::ExpressionType::COMPARE_EQUAL:
+    case parser::ExpressionType::COMPARE_IN:
       return codegen->Compare(parsing::Token::Type::EQUAL_EQUAL, left_val, right_val);
     case parser::ExpressionType::COMPARE_GREATER_THAN:
       return codegen->Compare(parsing::Token::Type::GREATER, left_val, right_val);
@@ -46,4 +47,4 @@ ast::Expr *ComparisonTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -2,7 +2,7 @@
 
 #include "execution/vm/bytecode_label.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeGenerator;
 
@@ -166,4 +166,4 @@ class IfThenElseBuilder : public ControlFlowBuilder {
   BytecodeLabel end_label_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

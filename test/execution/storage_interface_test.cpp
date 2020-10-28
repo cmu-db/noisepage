@@ -10,7 +10,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class StorageInterfaceTest : public SqlBasedTest {
   void SetUp() override {
@@ -415,4 +415,4 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     ASSERT_EQ(num_matches, (hi_match - lo_match) + 1);
   }
 }
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

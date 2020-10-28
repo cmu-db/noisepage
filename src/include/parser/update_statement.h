@@ -11,7 +11,7 @@
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 
 /**
@@ -109,4 +109,4 @@ class UpdateStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage
