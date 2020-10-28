@@ -101,15 +101,15 @@ class TPCCTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
+TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
+TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }
+TEST_F(TPCCTests, WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
+TEST_F(TPCCTests, WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
 
 }  // namespace noisepage::tpcc

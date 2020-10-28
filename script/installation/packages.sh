@@ -72,6 +72,7 @@ PYTHON_PACKAGES=(\
   "requests" \
   "psutil" \
   "distro"  \
+  "PTable"
 )
 
 
