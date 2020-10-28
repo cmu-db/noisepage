@@ -531,9 +531,10 @@ list(APPEND NOISEPAGE_LINK_LIBRARIES ${PQXX_LIBRARIES})
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${PQXX_INCLUDE_DIRECTORIES})
 message(STATUS "[FOUND] pqxx (dir:${PQXX_INCLUDE_DIRECTORIES} lib:${PQXX_LIBRARIES})")
 
-# libevent.
-pkg_search_module(EVENT REQUIRED libevent)
-pkg_search_module(EVENT_PTHREADS REQUIRED libevent_pthreads)
+# libev.
+find_package(Libev REQUIRED)
+include_directories(SYSTEM ${LIBEV_INCLUDE_DIRS})
+list(APPEND TERRIER_LINK_LIBS ${LIBEV_LIBRARIES})
 
 # LLVM 8.0.
 find_package(LLVM 8.0 REQUIRED CONFIG)
