@@ -111,7 +111,7 @@ class BinderCorrectnessTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementInvalidTableTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementInvalidTableTest) {
   // Test regular table name
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT a1 FROM c;";
@@ -121,7 +121,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidTableTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementInvalidColumnTest) {
   // Test regular table name
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT a8 FROM a;";
@@ -131,7 +131,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementInvalidColumnTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementComplexTest) {
   // Test regular table name
   BINDER_LOG_DEBUG("Parsing sql query");
   std::string select_sql =
@@ -230,7 +230,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementStarTest) {
   // Check if star expression is correctly processed
   BINDER_LOG_DEBUG("Checking STAR expression in select and sub-select");
 
@@ -293,7 +293,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   BINDER_LOG_DEBUG("Checking STAR expression in nested select from.");
 
@@ -475,7 +475,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementNestedColumnTest) {
   // Check if nested select columns are correctly processed
   BINDER_LOG_DEBUG("Checking nested select columns.");
 
@@ -523,7 +523,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementDupAliasTest) {
   // Check alias ambiguous
   BINDER_LOG_DEBUG("Checking duplicate alias and table name.");
 
@@ -533,7 +533,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
   std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(select_sql);
@@ -553,7 +553,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SelectStatementSelectListAliasTest) {
   // Test alias and select_list
   BINDER_LOG_DEBUG("Checking select_list and table alias binding");
 
@@ -574,7 +574,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_UpdateStatementSimpleTest) {
   std::string update_sql = "UPDATE A SET A1 = 999 WHERE A1 >= 1";
   auto parse_tree = parser::PostgresParser::BuildParseTree(update_sql);
   auto statement = parse_tree->GetStatements()[0];
@@ -596,7 +596,7 @@ TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_DeleteStatementWhereTest) {
   std::string delete_sql = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
   auto parse_tree = parser::PostgresParser::BuildParseTree(delete_sql);
   auto statement = parse_tree->GetStatements()[0];
@@ -619,7 +619,7 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_AggregateSimpleTest) {
   // Check if nested select columns are correctly processed
   BINDER_LOG_DEBUG("Checking simple aggregate select.");
 
@@ -643,7 +643,7 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_AggregateComplexTest) {
   // Check if nested select columns are correctly processed
   BINDER_LOG_DEBUG("Checking aggregate in subselect.");
 
@@ -670,7 +670,7 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_OperatorComplexTest) {
   // Check if nested select columns are correctly processed
   BINDER_LOG_DEBUG("Checking if operator expressions are correctly parsed.");
 
@@ -708,7 +708,7 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, BindDepthTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_BindDepthTest) {
   // Check if expressions in nested queries have the correct depth in the abstract syntax tree
   BINDER_LOG_DEBUG("Parsing sql query");
 
@@ -815,7 +815,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateDatabaseTest) {
   // Check if nested select columns are correctly processed
   BINDER_LOG_DEBUG("Checking create database.");
 
@@ -825,7 +825,7 @@ TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateTableTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateTableTest) {
   BINDER_LOG_DEBUG("Checking create table. Note that CREATE AS from select is not supported.");
 
   std::string create_sql =
@@ -844,7 +844,7 @@ TEST_F(BinderCorrectnessTest, CreateTableTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateTableSimpleForeignTest) {
   BINDER_LOG_DEBUG("Checking create table foreign key");
 
   std::string create_sql =
@@ -855,7 +855,7 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateTableSimpleForeignViolateTest) {
   BINDER_LOG_DEBUG("Checking create table foreign key type unmatch");
 
   std::string create_sql =
@@ -866,7 +866,7 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateIndexTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateIndexTest) {
   BINDER_LOG_DEBUG("Checking create index");
 
   std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (A2, A1);";
@@ -875,7 +875,7 @@ TEST_F(BinderCorrectnessTest, CreateIndexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateTriggerTest) {
   BINDER_LOG_DEBUG("Checking create trigger");
 
   std::string create_sql =
@@ -899,7 +899,7 @@ TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, CreateViewTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_CreateViewTest) {
   std::string create_sql = "CREATE VIEW a_view AS SELECT * FROM a WHERE a1 = 4;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(create_sql);
@@ -926,7 +926,7 @@ TEST_F(BinderCorrectnessTest, CreateViewTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
+TEST_F(BinderCorrectnessTest, DISABLED_SimpleFunctionCallTest) {
   std::string query = "SELECT cot(1.0) FROM a;";
 
   auto parse_tree = parser::PostgresParser::BuildParseTree(query);
@@ -945,6 +945,15 @@ TEST_F(BinderCorrectnessTest, SimpleFunctionCallTest) {
   parse_tree = parser::PostgresParser::BuildParseTree(query);
   statement = parse_tree->GetStatements()[0];
   EXPECT_THROW(binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr), BinderException);
+}
+
+TEST_F(BinderCorrectnessTest, AliasOrderByTest) {
+//  std::string alias_sql = "SELECT sum(a.a1 * (1 - a.a1)) as alias_a from a group by a.a2 order by alias_a desc;";
+  std::string alias_sql = "SELECT sum(a.a1 * (1 - a.a1) * a2_alias) as alias_a from a group by a.a2 as a2_alias order by alias_a desc;";
+
+  std::string alias_sql = "SELECT a1 as alias_a from a;";
+  auto parse_tree = parser::PostgresParser::BuildParseTree(alias_sql);
+  binder_->BindNameToNode(common::ManagedPointer(parse_tree), nullptr, nullptr);
 }
 
 }  // namespace terrier

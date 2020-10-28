@@ -470,6 +470,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     node->GetSelectGroupBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
+
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
@@ -495,6 +496,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
 
   if (node->GetSelectOrderBy() != nullptr) {
     UnifyOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
+//    bool alias_unified = UnifyAliasNameOrderByExpression(node->GetSelectOrderBy(), node->GetSelectColumns());
     node->GetSelectOrderBy()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
   }
 
@@ -802,6 +804,19 @@ void BindNodeVisitor::UnifyOrderByExpression(
                                common::ErrorCode::ERRCODE_UNDEFINED_COLUMN);
       }
       exprs[idx] = select_items[column_id - 1];
+    }
+    else if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::COLUMN_VALUE) {
+      auto column_value_expression = exprs[idx].CastManagedPointerTo<parser::ColumnValueExpression>();
+      std::string column_name = column_value_expression->GetColumnName();
+      if (!column_name.empty()) {
+        for (auto select_expression : select_items) {
+          auto abstract_select_expression = select_expression.CastManagedPointerTo<parser::AbstractExpression>();
+          if (abstract_select_expression->GetExpressionName() == column_name) {
+            exprs[idx] = select_expression;
+            break;
+          }
+        }
+      }
     }
   }
 }
