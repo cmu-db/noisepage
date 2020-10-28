@@ -1843,63 +1843,54 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
 void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
 
-  int arg_count;
   switch (builtin) {
     case ast::Builtin::AtomicAnd:
-    case ast::Builtin::AtomicOr:
-      arg_count = 2;
+    case ast::Builtin::AtomicOr: {
+      if (!CheckArgCount(call, 2)) return;
+
+      auto builtin_type = call_args[1]->GetType()->SafeAs<ast::BuiltinType>();
+      if (builtin_type == nullptr || !builtin_type->IsIntegral()) {
+        ReportIncorrectCallArg(call, 1, "cannot perform atomic arithmetic on non-integral types");
+        return;
+      }
+
+      if (builtin_type->GetSize() > 8) {
+        ReportIncorrectCallArg(call, 1, "cannot perform atomic arithmetic on integrals wider than 8-bytes");
+      }
+
+      if (call_args[0]->GetType()->GetPointeeType() != builtin_type) {
+        ReportIncorrectCallArg(call, 0, builtin_type->PointerTo());
+        return;
+      }
+
+      call->SetType(builtin_type);
       break;
-    case ast::Builtin::AtomicCompareExchange:
-      arg_count = 3;
+    }
+    case ast::Builtin::AtomicCompareExchange: {
+      if (!CheckArgCount(call, 3)) return;
+
+      auto operand_type = call_args[2]->GetType();
+      auto operand_size = operand_type->GetSize();
+      if (operand_size != 1 && operand_size != 2 && operand_size != 4 && operand_size != 8) {
+        ReportIncorrectCallArg(call, 2, "unsupported operand size for atomic compare-exchange");
+        return;
+      }
+
+      if (call_args[0]->GetType()->GetPointeeType() != operand_type) {
+        ReportIncorrectCallArg(call, 0, operand_type->PointerTo());
+        return;
+      }
+
+      if (call_args[0]->GetType() != call_args[1]->GetType()) {
+        ReportIncorrectCallArg(call, 1, call_args[0]->GetType());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
       break;
+    }
     default:
       UNREACHABLE("Impossible atomic call");
-  }
-
-  if (!CheckArgCount(call, arg_count)) return;
-
-  auto operand_type = call_args[0]->GetType()->GetPointeeType();
-  if (operand_type == nullptr) {
-    ReportIncorrectCallArg(call, 0, "expected 'dest' to be a pointer");
-    return;
-  }
-
-  switch (operand_type->GetSize()) {
-    case 1:
-    case 2:
-    case 4:
-    case 8:
-      break;
-    default:
-      ReportIncorrectCallArg(call, 0, "unsupported operand size for atomic operations");
-      return;
-  }
-
-  if (arg_count == 2) {
-    auto builtin_type = operand_type->SafeAs<ast::BuiltinType>();
-    if (builtin_type == nullptr || !builtin_type->IsIntegral()) {
-      ReportIncorrectCallArg(call, 0, "cannot perform atomic arithmetic on non-integral types");
-      return;
-    }
-
-    if (call_args[1]->GetType() != builtin_type) {
-      ReportIncorrectCallArg(call, 1, builtin_type);
-      return;
-    }
-
-    call->SetType(builtin_type);
-  } else {
-    if (call_args[0]->GetType() != call_args[1]->GetType()) {
-      ReportIncorrectCallArg(call, 0, call_args[0]->GetType());
-      return;
-    }
-
-    if (call_args[2]->GetType() != operand_type) {
-      ReportIncorrectCallArg(call, 1, operand_type);
-      return;
-    }
-
-    call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
   }
 }
 

@@ -1888,11 +1888,11 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
 }
 
 void BytecodeGenerator::VisitBuiltinAtomicAndCall(ast::CallExpr *call) {
-  auto args = call->Arguments();
+  const auto &args = call->Arguments();
   LocalVar dest = VisitExpressionForRValue(args[0]);
   LocalVar val = VisitExpressionForRValue(args[1]);
   LocalVar ret;
-  auto return_used = GetExecutionResult() != nullptr;
+  const bool return_used = GetExecutionResult() != nullptr;
   if (return_used) {
     ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
     GetExecutionResult()->SetDestination(ret);
@@ -1900,30 +1900,25 @@ void BytecodeGenerator::VisitBuiltinAtomicAndCall(ast::CallExpr *call) {
     ret = GetCurrentFunction()->NewLocal(call->GetType());
   }
 
-  switch (args[1]->GetType()->GetSize()) {
-    case 1:
-      GetEmitter()->Emit(Bytecode::AtomicAnd1, dest, val, ret);
-      break;
-    case 2:
-      GetEmitter()->Emit(Bytecode::AtomicAnd2, dest, val, ret);
-      break;
-    case 4:
-      GetEmitter()->Emit(Bytecode::AtomicAnd4, dest, val, ret);
-      break;
-    case 8:
-      GetEmitter()->Emit(Bytecode::AtomicAnd8, dest, val, ret);
-      break;
-    default:
-      UNREACHABLE("Unexpected operand size for atomicAnd!");
+  auto operand_size = args[1]->GetType()->GetSize(); // Base operand size
+  if (operand_size == 1) {
+    GetEmitter()->Emit(Bytecode::AtomicAnd1, ret, dest, val);
+  } else if (operand_size == 2) {
+    GetEmitter()->Emit(Bytecode::AtomicAnd2, ret, dest, val);
+  } else if (operand_size == 4) {
+    GetEmitter()->Emit(Bytecode::AtomicAnd4, ret, dest, val);
+  } else {
+    NOISEPAGE_ASSERT(operand_size == 8, "Unexpected integral size");
+    GetEmitter()->Emit(Bytecode::AtomicAnd8, ret, dest, val);
   }
 }
 
 void BytecodeGenerator::VisitBuiltinAtomicOrCall(ast::CallExpr *call) {
-  auto args = call->Arguments();
+  const auto &args = call->Arguments();
   LocalVar dest = VisitExpressionForRValue(args[0]);
   LocalVar val = VisitExpressionForRValue(args[1]);
   LocalVar ret;
-  auto return_used = GetExecutionResult() != nullptr;
+  const bool return_used = GetExecutionResult() != nullptr;
   if (return_used) {
     ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
     GetExecutionResult()->SetDestination(ret);
@@ -1931,31 +1926,26 @@ void BytecodeGenerator::VisitBuiltinAtomicOrCall(ast::CallExpr *call) {
     ret = GetCurrentFunction()->NewLocal(call->GetType());
   }
 
-  switch (args[1]->GetType()->GetSize()) {
-    case 1:
-      GetEmitter()->Emit(Bytecode::AtomicOr1, dest, val, ret);
-      break;
-    case 2:
-      GetEmitter()->Emit(Bytecode::AtomicOr2, dest, val, ret);
-      break;
-    case 4:
-      GetEmitter()->Emit(Bytecode::AtomicOr4, dest, val, ret);
-      break;
-    case 8:
-      GetEmitter()->Emit(Bytecode::AtomicOr8, dest, val, ret);
-      break;
-    default:
-      UNREACHABLE("Unexpected operand size for atomicOr!");
+  auto operand_size = args[1]->GetType()->GetSize(); // Base operand size
+  if (operand_size == 1) {
+    GetEmitter()->Emit(Bytecode::AtomicOr1, ret, dest, val);
+  } else if (operand_size == 2) {
+    GetEmitter()->Emit(Bytecode::AtomicOr2, ret, dest, val);
+  } else if (operand_size == 4) {
+    GetEmitter()->Emit(Bytecode::AtomicOr4, ret, dest, val);
+  } else {
+    NOISEPAGE_ASSERT(operand_size == 8, "Unexpected integral size");
+    GetEmitter()->Emit(Bytecode::AtomicOr8, ret, dest, val);
   }
 }
 
 void BytecodeGenerator::VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *call) {
-  auto args = call->Arguments();
+  const auto &args = call->Arguments();
   LocalVar dest = VisitExpressionForRValue(args[0]);
   LocalVar expected = VisitExpressionForRValue(args[1]);
   LocalVar desired = VisitExpressionForRValue(args[2]);
   LocalVar ret;
-  auto return_used = GetExecutionResult() != nullptr;
+  const bool return_used = GetExecutionResult() != nullptr;
   if (return_used) {
     ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
     GetExecutionResult()->SetDestination(ret);
@@ -1963,21 +1953,16 @@ void BytecodeGenerator::VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *cal
     ret = GetCurrentFunction()->NewLocal(call->GetType());
   }
 
-  switch (args[2]->GetType()->GetSize()) {
-    case 1:
-      GetEmitter()->Emit(Bytecode::AtomicCompareExchange1, dest, expected, desired, ret);
-      break;
-    case 2:
-      GetEmitter()->Emit(Bytecode::AtomicCompareExchange2, dest, expected, desired, ret);
-      break;
-    case 4:
-      GetEmitter()->Emit(Bytecode::AtomicCompareExchange4, dest, expected, desired, ret);
-      break;
-    case 8:
-      GetEmitter()->Emit(Bytecode::AtomicCompareExchange8, dest, expected, desired, ret);
-      break;
-    default:
-      UNREACHABLE("Unexpected operand size for atomicOr!");
+  auto operand_size = args[2]->GetType()->GetSize(); // Base operand size
+  if (operand_size == 1) {
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange1, ret, dest, expected, desired);
+  } else if (operand_size == 2) {
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange2, ret, dest, expected, desired);
+  } else if (operand_size == 4) {
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange4, ret, dest, expected, desired);
+  } else {
+    NOISEPAGE_ASSERT(operand_size == 8, "Unexpected type size");
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange8, ret, dest, expected, desired);
   }
 }
 
