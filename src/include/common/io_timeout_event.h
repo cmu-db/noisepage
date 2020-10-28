@@ -2,7 +2,7 @@
 
 #include <ev++.h>
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * @brief IoTimeout is an event that can be triggered by some I/O event or a timeout
@@ -90,4 +90,4 @@ class IoTimeoutEvent {
   ev::timer timer_event_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

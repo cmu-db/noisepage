@@ -1,6 +1,6 @@
 #include "common/io_timeout_event.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 IoTimeoutEvent::IoTimeoutEvent(ev::loop_ref loop) { Set(loop); }
 
@@ -26,4 +26,4 @@ void IoTimeoutEvent::Stop() {
   timer_event_.stop();
 }
 
-}  // namespace terrier::common
+}  // namespace noisepage::common
