@@ -307,8 +307,9 @@ TEST_F(AtomicsTest, AtomicCompareExchange1) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun cmpxchg(dest: *uint8, expected: *uint8, desired: uint8) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
+      "fun cmpxchg(dest: *uint8, expected: *uint8, desired: uint8) -> bool {\n"
+      "  var x = @atomicCompareExchange(dest, expected, desired)\n"
+      "  return x\n"
       "}");
 
   // Compile it...
@@ -359,8 +360,9 @@ TEST_F(AtomicsTest, AtomicCompareExchange2) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun cmpxchg(dest: *uint16, expected: *uint16, desired: uint16) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
+      "fun cmpxchg(dest: *uint16, expected: *uint16, desired: uint16) -> bool {\n"
+      "  var x = @atomicCompareExchange(dest, expected, desired)\n"
+      "  return x\n"
       "}");
 
   // Compile it...
@@ -411,8 +413,9 @@ TEST_F(AtomicsTest, AtomicCompareExchange4) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun cmpxchg(dest: *uint32, expected: *uint32, desired: uint32) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
+      "fun cmpxchg(dest: *uint32, expected: *uint32, desired: uint32) -> bool {\n"
+      "  var x = @atomicCompareExchange(dest, expected, desired)\n"
+      "  return x\n"
       "}");
 
   // Compile it...
@@ -463,8 +466,9 @@ TEST_F(AtomicsTest, AtomicCompareExchange8) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun cmpxchg(dest: *uint64, expected: *uint64, desired: uint64) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
+      "fun cmpxchg(dest: *uint64, expected: *uint64, desired: uint64) -> bool {\n"
+      "  var x = @atomicCompareExchange(dest, expected, desired)\n"
+      "  return x\n"
       "}");
 
   // Compile it...
