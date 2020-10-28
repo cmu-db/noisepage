@@ -3,7 +3,7 @@
 #include "common/hash_util.h"
 #include "loggers/optimizer_logger.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void PropertySet::AddProperty(Property *property) {
   OPTIMIZER_LOG_TRACE("Add property with type {0}", static_cast<int>(property->Type()));
@@ -57,4 +57,4 @@ common::hash_t PropertySet::Hash() const {
   return hash;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

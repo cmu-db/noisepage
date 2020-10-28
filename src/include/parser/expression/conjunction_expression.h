@@ -6,7 +6,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * ConjunctionExpression represents logical conjunctions like ANDs and ORs.
@@ -44,4 +44,4 @@ class ConjunctionExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ConjunctionExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

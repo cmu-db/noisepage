@@ -9,7 +9,7 @@
 #include "test_util/storage_test_util.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * This benchmark simulates a key-value store inserting a large number of tuples. This provides a good baseline and
@@ -274,4 +274,4 @@ BENCHMARK_REGISTER_F(DataTableBenchmark, Scan)
     ->UseManualTime();
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -1,7 +1,7 @@
 #pragma once
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * Stores parameter metadata, e.g. type.
@@ -55,4 +55,4 @@ class Parameter {
   const bool is_nullable_;
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

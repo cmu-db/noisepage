@@ -13,31 +13,31 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "test_util/tpcc/database.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Catalog;
 }
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
 }
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 class ExecutableQuery;
 }
 
-namespace terrier {
+namespace noisepage {
 class DBMain;
 }
 
-namespace terrier::common {
+namespace noisepage::common {
 class WorkerPool;
 }
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Class that can load the TPCC tables, compile the TPCC queries, and execute the TPCC workload
@@ -79,4 +79,4 @@ class WorkloadCached {
   execution::exec::ExecutionSettings exec_settings_{};
 };
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

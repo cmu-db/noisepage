@@ -13,7 +13,7 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 class TupleAccessStrategyTestObject {
  public:
@@ -205,4 +205,4 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
     }
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

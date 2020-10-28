@@ -7,11 +7,11 @@
 #include "network/network_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
 }
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ReadBufferView;
 
@@ -68,4 +68,4 @@ class PostgresPacketUtil {
                                                                      const std::vector<FieldFormat> &param_formats);
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

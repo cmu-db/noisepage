@@ -4,7 +4,7 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/projection_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 // The majority of work for projections are performed during expression
 // evaluation. In the context of projections, expressions are derived when
@@ -34,4 +34,4 @@ void ProjectionTranslator::PerformPipelineWork(WorkContext *context, FunctionBui
   context->Push(function);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

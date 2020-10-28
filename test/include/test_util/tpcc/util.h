@@ -13,7 +13,7 @@
 #include "storage/projected_row.h"
 #include "test_util/catalog_test_util.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 struct Util {
   Util() = delete;
@@ -32,8 +32,8 @@ struct Util {
   static void SetTupleAttribute(const catalog::Schema &schema, const uint32_t col_offset,
                                 const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
                                 T value) {
-    TERRIER_ASSERT(storage::AttrSizeBytes(schema.GetColumn(col_offset).AttrSize()) == sizeof(T),
-                   "Invalid attribute size.");
+    NOISEPAGE_ASSERT(storage::AttrSizeBytes(schema.GetColumn(col_offset).AttrSize()) == sizeof(T),
+                     "Invalid attribute size.");
     const auto col_oid = schema.GetColumn(col_offset).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -45,8 +45,8 @@ struct Util {
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
     const auto &key_cols = schema.GetColumns();
-    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT16_MAX) == sizeof(T),
-                   "Invalid attribute size.");
+    NOISEPAGE_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT16_MAX) == sizeof(T),
+                     "Invalid attribute size.");
     const auto col_oid = key_cols.at(col_offset).Oid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));
     auto *const attr = pr->AccessForceNotNull(attr_offset);
@@ -61,10 +61,10 @@ struct Util {
   // 2.1.6
   template <class Random>
   static uint32_t NURand(const uint32_t A, const uint32_t x, const uint32_t y, Random *const generator) {
-    TERRIER_ASSERT((A == 255 && x == 0 && y == 999)              // C_LAST
-                       || (A == 1023 && x == 1 && y == 3000)     // C_ID
-                       || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
-                   "Invalid inputs to NURand().");
+    NOISEPAGE_ASSERT((A == 255 && x == 0 && y == 999)              // C_LAST
+                         || (A == 1023 && x == 1 && y == 3000)     // C_ID
+                         || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
+                     "Invalid inputs to NURand().");
 
     static const auto c_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
     static const auto c_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);
@@ -90,7 +90,7 @@ struct Util {
   template <class Random>
   static storage::VarlenEntry AlphaNumericVarlenEntry(const uint32_t x, const uint32_t y, const bool numeric_only,
                                                       Random *const generator) {
-    TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
+    NOISEPAGE_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
     const auto astring = AlphaNumericString(x, y, numeric_only, generator);
     if (astring.length() <= storage::VarlenEntry::InlineThreshold()) {
       return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(astring.data()),
@@ -104,7 +104,7 @@ struct Util {
 
   // 4.3.2.3
   static storage::VarlenEntry LastNameVarlenEntry(const uint16_t numbers) {
-    TERRIER_ASSERT(numbers >= 0 && numbers <= 999, "Invalid input generating C_LAST.");
+    NOISEPAGE_ASSERT(numbers >= 0 && numbers <= 999, "Invalid input generating C_LAST.");
     static const char *const syllables[] = {"BAR", "OUGHT", "ABLE",  "PRI",   "PRES",
                                             "ESE", "ANTI",  "CALLY", "ATION", "EING"};
 
@@ -137,7 +137,7 @@ struct Util {
   static storage::VarlenEntry ZipVarlenEntry(Random *const generator) {
     auto string = AlphaNumericString(4, 4, true, generator);
     string.append("11111");
-    TERRIER_ASSERT(string.length() == 9, "Wrong ZIP code length.");
+    NOISEPAGE_ASSERT(string.length() == 9, "Wrong ZIP code length.");
     return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(string.data()),
                                               static_cast<uint32_t>(string.length()));
   }
@@ -145,9 +145,9 @@ struct Util {
   // 4.3.3.1
   template <class Random>
   static storage::VarlenEntry OriginalVarlenEntry(const uint32_t x, const uint32_t y, Random *const generator) {
-    TERRIER_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
+    NOISEPAGE_ASSERT(x <= y, "Minimum cannot be greater than the maximum length.");
     auto astring = AlphaNumericString(x, y, false, generator);
-    TERRIER_ASSERT(astring.length() >= 8, "Needs enough room for ORIGINAL.");
+    NOISEPAGE_ASSERT(astring.length() >= 8, "Needs enough room for ORIGINAL.");
 
     const uint32_t original_index = std::uniform_int_distribution(
         static_cast<uint32_t>(0), static_cast<uint32_t>(astring.length() - 8))(*generator);
@@ -178,4 +178,4 @@ struct Util {
     return astring;
   }
 };
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

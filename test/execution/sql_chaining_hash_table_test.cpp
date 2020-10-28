@@ -1,3 +1,4 @@
+#include <array>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -7,7 +8,7 @@
 #include "execution/sql/chaining_hash_table.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class ChainingHashTableTest : public TplTest {};
 
@@ -426,7 +427,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
 
   uint32_t sum1 = 0, sum2 = 0;
 
-  double taat_ms = Bench(5, [&]() {
+  UNUSED_ATTRIBUTE double taat_ms = Bench(5, [&]() {
     ChainingHashTableIterator<false> iter(table);
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
@@ -434,7 +435,7 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
     }
   });
 
-  double vaat_ms = Bench(5, [&]() {
+  UNUSED_ATTRIBUTE double vaat_ms = Bench(5, [&]() {
     MemoryPool pool(nullptr);
     ChainingHashTableVectorIterator<false> iter(table, &pool);
     for (; iter.HasNext(); iter.Next()) {
@@ -449,4 +450,4 @@ TEST_F(ChainingHashTableTest, DISABLED_PerfIteration) {
   EXECUTION_LOG_TRACE("TaaT: {:.2f} ms ({}), VaaT: {:2f} ms ({})", taat_ms, sum1, vaat_ms, sum2);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

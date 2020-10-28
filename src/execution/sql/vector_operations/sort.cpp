@@ -6,7 +6,7 @@
 #include "ips4o/ips4o.hpp"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -70,4 +70,4 @@ void VectorOps::Sort(const Vector &input, sel_t result[]) {
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

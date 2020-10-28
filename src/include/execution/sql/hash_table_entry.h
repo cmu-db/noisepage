@@ -4,7 +4,7 @@
 
 #include "execution/sql/sql.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 using ConciseHashTableSlot = uint64_t;
 
@@ -107,4 +107,4 @@ struct HashTableEntryIterator {
   hash_t hash_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -12,11 +12,11 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class AnnotatedExpression;
 
@@ -73,4 +73,4 @@ class OptimizerUtil {
                                                                                  catalog::table_oid_t tbl_oid);
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

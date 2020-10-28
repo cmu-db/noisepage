@@ -12,11 +12,11 @@
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::runner {
+namespace noisepage::runner {
 class MiniRunners;
 }
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 class PlanVisitor;
 
@@ -109,8 +109,8 @@ class AbstractPlanNode {
    * @return child at provided index
    */
   const AbstractPlanNode *GetChild(uint32_t child_index) const {
-    TERRIER_ASSERT(child_index < children_.size(),
-                   "index into children of plan node should be less than number of children");
+    NOISEPAGE_ASSERT(child_index < children_.size(),
+                     "index into children of plan node should be less than number of children");
     return children_[child_index].get();
   }
 
@@ -208,7 +208,7 @@ class AbstractPlanNode {
   virtual void Accept(common::ManagedPointer<PlanVisitor> v) const = 0;
 
  private:
-  friend class terrier::runner::MiniRunners;
+  friend class noisepage::runner::MiniRunners;
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
@@ -246,7 +246,7 @@ struct JSONDeserializeNodeIntermediate {
  */
 JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
 namespace std {
 
@@ -254,27 +254,27 @@ namespace std {
  * template for std::hash of plan nodes
  */
 template <>
-struct hash<std::unique_ptr<terrier::planner::AbstractPlanNode>> {
+struct hash<std::unique_ptr<noisepage::planner::AbstractPlanNode>> {
   /**
    * Hashes the given plan node
    * @param plan the plan to hash
    * @return hash code of the given plan node
    */
-  size_t operator()(const std::unique_ptr<terrier::planner::AbstractPlanNode> &plan) const { return plan->Hash(); }
+  size_t operator()(const std::unique_ptr<noisepage::planner::AbstractPlanNode> &plan) const { return plan->Hash(); }
 };
 
 /**
  * std template for equality predicate
  */
 template <>
-struct equal_to<std::unique_ptr<terrier::planner::AbstractPlanNode>> {
+struct equal_to<std::unique_ptr<noisepage::planner::AbstractPlanNode>> {
   /**
    * @param lhs left hand side plan node
    * @param rhs right hand side plan node
    * @return true if plan nodes are equivalent
    */
-  bool operator()(const std::unique_ptr<terrier::planner::AbstractPlanNode> &lhs,
-                  const std::unique_ptr<terrier::planner::AbstractPlanNode> &rhs) const {
+  bool operator()(const std::unique_ptr<noisepage::planner::AbstractPlanNode> &lhs,
+                  const std::unique_ptr<noisepage::planner::AbstractPlanNode> &rhs) const {
     return *lhs == *rhs;
   }
 };

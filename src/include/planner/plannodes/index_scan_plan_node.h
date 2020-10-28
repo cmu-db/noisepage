@@ -15,7 +15,7 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for an index scan
@@ -255,4 +255,4 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexScanPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

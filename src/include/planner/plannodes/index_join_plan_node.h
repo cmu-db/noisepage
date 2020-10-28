@@ -12,7 +12,7 @@
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for nested loop joins
@@ -236,4 +236,4 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(IndexJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

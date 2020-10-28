@@ -12,7 +12,7 @@
 
 using ::testing::ElementsAre;
 
-namespace terrier::parser::expression {
+namespace noisepage::parser::expression {
 
 // NOLINTNEXTLINE
 TEST(ExpressionUtilTest, GetColumnOidsTest) {
@@ -59,4 +59,4 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
               ElementsAre(catalog::col_oid_t(4), catalog::col_oid_t(5), catalog::col_oid_t(6), catalog::col_oid_t(7)));
 }
 
-}  // namespace terrier::parser::expression
+}  // namespace noisepage::parser::expression

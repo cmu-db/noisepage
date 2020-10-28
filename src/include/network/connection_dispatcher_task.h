@@ -5,12 +5,12 @@
 #include "common/managed_pointer.h"
 #include "common/notifiable_task.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 class DedicatedThreadRegistry;
 class DedicatedThreadOwner;
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionHandleFactory;
 class ConnectionHandlerTask;
@@ -88,4 +88,4 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   ev::sig *sighup_event_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

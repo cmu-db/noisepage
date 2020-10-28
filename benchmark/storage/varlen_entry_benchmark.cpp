@@ -4,7 +4,7 @@
 #include "storage/storage_defs.h"
 #include "test_util/storage_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Currently exercises 2 key areas of VarlenEntry performance: hashing and equality comparisons. The former is mostly
@@ -165,4 +165,4 @@ BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityNotInlineEqualContentEqualLen
 BENCHMARK_REGISTER_F(VarlenEntryBenchmark, EqualityNotInlineDifferentContentEqualLength);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

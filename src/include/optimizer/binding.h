@@ -14,7 +14,7 @@
 #include "optimizer/pattern.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Abstract interface for a BindingIterator defined similarly to
@@ -153,7 +153,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * @returns next AbstractOptimizerNode that matches
    */
   std::unique_ptr<AbstractOptimizerNode> Next() override {
-    TERRIER_ASSERT(current_binding_, "binding must exist");
+    NOISEPAGE_ASSERT(current_binding_, "binding must exist");
     return std::move(current_binding_);
   }
 
@@ -194,4 +194,4 @@ class GroupExprBindingIterator : public BindingIterator {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Boolean negation.
@@ -74,4 +74,4 @@ struct OrNullMask {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

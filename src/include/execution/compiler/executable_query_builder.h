@@ -11,11 +11,11 @@
 #include "execution/compiler/executable_query.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 class Module;
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * A container for code in a single TPL file.
@@ -98,4 +98,4 @@ class ExecutableQueryFragmentBuilder {
   std::vector<ast::FunctionDecl *> teardown_fn_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

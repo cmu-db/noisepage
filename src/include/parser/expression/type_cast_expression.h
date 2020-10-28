@@ -6,7 +6,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * TypeCastExpression represents cast expressions of the form CAST(expr) or expr::TYPE.
  */
@@ -40,4 +40,4 @@ class TypeCastExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(TypeCastExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

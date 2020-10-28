@@ -7,11 +7,11 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/operators/like_operators.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 void StringFunctions::Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[],
                              uint32_t num_inputs) {
-  TERRIER_ASSERT(num_inputs != 0, "Concat should have at least one argument");
+  NOISEPAGE_ASSERT(num_inputs != 0, "Concat should have at least one argument");
 
   std::size_t length = 0;
   for (std::size_t i = 0; i < num_inputs; i++) {
@@ -61,8 +61,8 @@ namespace {
 
 const char *SearchSubstring(const char *haystack, const std::size_t hay_len, const char *needle,
                             const std::size_t needle_len) {
-  TERRIER_ASSERT(needle != nullptr, "No search string provided");
-  TERRIER_ASSERT(needle_len > 0, "No search string provided");
+  NOISEPAGE_ASSERT(needle != nullptr, "No search string provided");
+  NOISEPAGE_ASSERT(needle_len > 0, "No search string provided");
   for (uint32_t i = 0; i < hay_len + needle_len; i++) {
     const auto pos = haystack + i;
     if (strncmp(pos, needle, needle_len) == 0) {
@@ -500,4 +500,4 @@ void StringFunctions::InitCap(StringVal *result, exec::ExecutionContext *ctx, co
   *result = StringVal(ptr, str.GetLength());
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

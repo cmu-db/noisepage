@@ -4,10 +4,10 @@ This folder contains the implementation for running a TPC-C workload on the back
 logging, garbage collection, concurrency control, and storage layers of the system.
 
 There were several goals for this microbenchmark:
-* Evaluate the correctness of the back-end of the system in a Google Test. There are `TERRIER_ASSERT` expressions
+* Evaluate the correctness of the back-end of the system in a Google Test. There are `NOISEPAGE_ASSERT` expressions
 throughout all stages of the TPC-C code to evaluate both the internal validity of the system and that the values
 going in and out of the system match expected behavior according to the TPC-C spec.
-* Evaluate the performance of the back-end of the system in a Google Benchmark (`TERRIER_ASSERT` is compiled out in
+* Evaluate the performance of the back-end of the system in a Google Benchmark (`NOISEPAGE_ASSERT` is compiled out in
 Release mode as opposed to relying on Google's `EXPECT` or `ASSERT` macros, which would still be present in Release
 mode.)
 * Evaluate the APIs of the back-end of the system and address any shortcomings along the way. We found and addressed

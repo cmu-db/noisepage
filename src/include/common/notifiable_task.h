@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "loggers/common_logger.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * @brief NotifiableTasks can be configured to handle events with callbacks, and
@@ -96,7 +96,7 @@ class NotifiableTask : public DedicatedThreadTask {
    */
   template <void (*function)(ev::io &event, int)>  // NOLINT
   void UpdateIoEvent(IoTimeoutEvent *event, int fd, uint16_t flags, void *arg, ev_tstamp timeout) {
-    TERRIER_ASSERT(!(io_events_.find(event) == io_events_.end()), "Didn't find event");
+    NOISEPAGE_ASSERT(!(io_events_.find(event) == io_events_.end()), "Didn't find event");
     event->Stop();
     event->Set<function>(arg);
     event->Start(fd, flags, timeout);
@@ -165,4 +165,4 @@ class NotifiableTask : public DedicatedThreadTask {
   std::unordered_set<ev::async *> async_events_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

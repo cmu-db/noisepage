@@ -2,7 +2,7 @@
 
 #include "common/error/exception.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 NotifiableTask::NotifiableTask(std::unique_ptr<ev::loop_ref> loop, int task_id) : loop_(std::move(loop)), task_id_(task_id) {
   if (*loop_ == nullptr) {
@@ -48,4 +48,4 @@ void NotifiableTask::UnregisterAsyncEvent(ev::async *event) {
   delete event;
 }
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

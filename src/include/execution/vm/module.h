@@ -13,7 +13,7 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/vm_defs.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 namespace test {
 class BytecodeTrampolineTest;
@@ -90,7 +90,7 @@ class Module {
    * @return The function address if it exists; null otherwise.
    */
   void *GetRawFunctionImpl(const FunctionId func_id) const {
-    TERRIER_ASSERT(func_id < bytecode_module_->GetFunctionCount(), "Out-of-bounds function access");
+    NOISEPAGE_ASSERT(func_id < bytecode_module_->GetFunctionCount(), "Out-of-bounds function access");
     return functions_[func_id].load(std::memory_order_relaxed);
   }
 
@@ -251,4 +251,4 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   return true;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -5,7 +5,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_traits.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 BytecodeIterator::BytecodeIterator(const std::vector<uint8_t> &bytecode, std::size_t start, std::size_t end)
     : bytecodes_(bytecode), start_offset_(start), end_offset_(end), curr_offset_(start) {}
@@ -24,7 +24,7 @@ void BytecodeIterator::Advance() { curr_offset_ += CurrentBytecodeSize(); }
 
 int64_t BytecodeIterator::GetImmediateIntegerOperand(uint32_t operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TERRIER_ASSERT(OperandTypes::IsSignedIntegerImmediate(operand_type), "Operand type is not a signed immediate");
+  NOISEPAGE_ASSERT(OperandTypes::IsSignedIntegerImmediate(operand_type), "Operand type is not a signed immediate");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -46,7 +46,7 @@ int64_t BytecodeIterator::GetImmediateIntegerOperand(uint32_t operand_index) con
 
 double BytecodeIterator::GetImmediateFloatOperand(uint32_t operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TERRIER_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a float immediate");
+  NOISEPAGE_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a float immediate");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -63,7 +63,7 @@ double BytecodeIterator::GetImmediateFloatOperand(uint32_t operand_index) const 
 
 uint64_t BytecodeIterator::GetUnsignedImmediateIntegerOperand(uint32_t operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TERRIER_ASSERT(OperandTypes::IsUnsignedIntegerImmediate(operand_type), "Operand type is not an unsigned immediate");
+  NOISEPAGE_ASSERT(OperandTypes::IsUnsignedIntegerImmediate(operand_type), "Operand type is not an unsigned immediate");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -80,8 +80,8 @@ uint64_t BytecodeIterator::GetUnsignedImmediateIntegerOperand(uint32_t operand_i
 }
 
 int32_t BytecodeIterator::GetJumpOffsetOperand(uint32_t operand_index) const {
-  TERRIER_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::JumpOffset,
-                 "Operand isn't a jump offset");
+  NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::JumpOffset,
+                   "Operand isn't a jump offset");
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
 
@@ -89,8 +89,8 @@ int32_t BytecodeIterator::GetJumpOffsetOperand(uint32_t operand_index) const {
 }
 
 LocalVar BytecodeIterator::GetLocalOperand(uint32_t operand_index) const {
-  TERRIER_ASSERT(OperandTypes::IsLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-                 "Operand type is not a local variable reference");
+  NOISEPAGE_ASSERT(OperandTypes::IsLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
+                   "Operand type is not a local variable reference");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -99,8 +99,8 @@ LocalVar BytecodeIterator::GetLocalOperand(uint32_t operand_index) const {
 }
 
 LocalVar BytecodeIterator::GetStaticLocalOperand(uint32_t operand_index) const {
-  TERRIER_ASSERT(OperandTypes::IsStaticLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-                 "Operand type is not a static local reference");
+  NOISEPAGE_ASSERT(OperandTypes::IsStaticLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
+                   "Operand type is not a static local reference");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -109,8 +109,8 @@ LocalVar BytecodeIterator::GetStaticLocalOperand(uint32_t operand_index) const {
 }
 
 uint16_t BytecodeIterator::GetLocalCountOperand(uint32_t operand_index, std::vector<LocalVar> *locals) const {
-  TERRIER_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-                 "Operand type is not a local variable count");
+  NOISEPAGE_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
+                   "Operand type is not a local variable count");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -130,8 +130,8 @@ uint16_t BytecodeIterator::GetLocalCountOperand(uint32_t operand_index, std::vec
 }
 
 uint16_t BytecodeIterator::GetFunctionIdOperand(uint32_t operand_index) const {
-  TERRIER_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::FunctionId,
-                 "Operand type is not a function");
+  NOISEPAGE_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::FunctionId,
+                   "Operand type is not a function");
 
   const uint8_t *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -152,4 +152,4 @@ uint32_t BytecodeIterator::CurrentBytecodeSize() const {
   return size;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -24,7 +24,7 @@ fun distinctKeyCheck(old: *DistinctEntry, new: *Values) -> bool {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggInit(&state.sum)
-  @aggHTInit(&state.distinct_table, execCtx, @execCtxGetMem(execCtx), @sizeOf(DistinctEntry))
+  @aggHTInit(&state.distinct_table, execCtx, @sizeOf(DistinctEntry))
   state.count = 0
 }
 
@@ -60,12 +60,14 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var out = @ptrCast(*Values, @resultBufferAllocRow(execCtx))
+  var output_buffer = @resultBufferNew(execCtx)
+  var out = @ptrCast(*Values, @resultBufferAllocRow(output_buffer))
   out.sum = @aggResult(&state.sum)
   for (var i : int64 = 0; @sqlToBool(i < out.sum); i = i + 1) {
     state.count = state.count + 1
   }
-  @resultBufferFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {

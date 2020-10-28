@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 class AstNode;
 
@@ -18,4 +18,4 @@ class AstDump {
   static std::string Dump(AstNode *node);
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

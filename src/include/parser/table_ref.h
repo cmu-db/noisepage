@@ -11,7 +11,7 @@
 #include "parser/parser_defs.h"
 #include "parser/select_statement.h"
 
-namespace terrier {
+namespace noisepage {
 namespace binder {
 class BindNodeVisitor;
 }
@@ -265,4 +265,4 @@ class TableRef {
 DEFINE_JSON_HEADER_DECLARATIONS(TableRef);
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

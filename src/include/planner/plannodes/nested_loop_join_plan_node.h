@@ -8,7 +8,7 @@
 #include "planner/plannodes/abstract_join_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for nested loop joins
@@ -77,4 +77,4 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(NestedLoopJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

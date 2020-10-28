@@ -9,7 +9,7 @@
 #include "common/macros.h"
 #include "execution/util/bitfield.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class FunctionType;
@@ -295,7 +295,7 @@ class FunctionInfo {
   // bytecode range has been discovered.
   void SetBytecodeRange(std::size_t start_offset, std::size_t end_offset) {
     // Functions must have, at least, one bytecode instruction (i.e., RETURN)
-    TERRIER_ASSERT(start_offset < end_offset, "Starting offset must be smaller than ending offset");
+    NOISEPAGE_ASSERT(start_offset < end_offset, "Starting offset must be smaller than ending offset");
     bytecode_range_ = std::make_pair(start_offset, end_offset);
   }
 
@@ -326,4 +326,4 @@ class FunctionInfo {
 };
 
 }  // namespace vm
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

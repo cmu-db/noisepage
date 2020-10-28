@@ -7,7 +7,7 @@
 #include "common/math_util.h"
 #include "execution/ast/type.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // ---------------------------------------------------------
 // Local Information
@@ -32,7 +32,7 @@ FunctionInfo::FunctionInfo(FunctionId id, std::string name, ast::FunctionType *f
       num_temps_(0) {}
 
 LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalInfo::Kind kind) {
-  TERRIER_ASSERT(!name.empty(), "Local name cannot be empty");
+  NOISEPAGE_ASSERT(!name.empty(), "Local name cannot be empty");
 
   // Bump size to account for the alignment of the new local
   if (!common::MathUtil::IsAligned(frame_size_, type->GetAlignment())) {
@@ -65,8 +65,8 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name) {
 
 LocalVar FunctionInfo::GetReturnValueLocal() const {
   // This invocation only makes sense if the function actually returns a value
-  TERRIER_ASSERT(!func_type_->GetReturnType()->IsNilType(),
-                 "Cannot lookup local slot for function that does not have return value");
+  NOISEPAGE_ASSERT(!func_type_->GetReturnType()->IsNilType(),
+                   "Cannot lookup local slot for function that does not have return value");
   return LocalVar(0u, LocalVar::AddressMode::Address);
 }
 
@@ -91,4 +91,4 @@ const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(uint32_t offset) const {
   return nullptr;
 }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

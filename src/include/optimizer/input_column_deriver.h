@@ -13,7 +13,7 @@ namespace planner {
 enum class AggregateStrategyType;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class PropertySet;
 class GroupExpression;
@@ -294,4 +294,4 @@ class InputColumnDeriver : public OperatorVisitor {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

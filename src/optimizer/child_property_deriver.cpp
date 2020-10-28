@@ -14,7 +14,7 @@
 #include "optimizer/property_set.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> ChildPropertyDeriver::GetProperties(
     catalog::CatalogAccessor *accessor, Memo *memo, PropertySet *requirements, GroupExpression *gexpr) {
@@ -257,4 +257,4 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropView *drop_view) {
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

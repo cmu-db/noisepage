@@ -10,7 +10,7 @@
 #include "execution/sql_test.h"
 #include "gmock/gmock.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class FilterManagerTest : public SqlBasedTest {};
 
@@ -189,4 +189,4 @@ TEST_F(FilterManagerTest, AdaptiveCheckTest) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

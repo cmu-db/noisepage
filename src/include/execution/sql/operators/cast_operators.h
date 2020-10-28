@@ -11,7 +11,7 @@
 #include "spdlog/fmt/fmt.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 //===----------------------------------------------------------------------===//
 //
@@ -435,4 +435,4 @@ struct EXPORT TryCast<storage::VarlenEntry, Timestamp> {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

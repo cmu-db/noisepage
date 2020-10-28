@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 enum class ExecutionOperatingUnitType : uint32_t {
   /** INVALID is associated with translators that are INVALID no matter what. */
@@ -104,7 +104,12 @@ enum class ExecutionOperatingUnitType : uint32_t {
    */
   LIMIT,
 
+  PARALLEL_MERGE_HASHJOIN,
+  PARALLEL_MERGE_AGGBUILD,
+  PARALLEL_SORT_STEP,
+  PARALLEL_SORT_MERGE_STEP,
   CREATE_INDEX,
+  CREATE_INDEX_MAIN,
 
   /**
    * Use to demarcate plan and operations.
@@ -126,4 +131,6 @@ enum class ExecutionOperatingUnitType : uint32_t {
 /** The attributes of an ExecutionOperatingUnitFeature that can be set from TPL. */
 enum class ExecutionOperatingUnitFeatureAttribute : uint8_t { NUM_ROWS, CARDINALITY, NUM_LOOPS };
 
-}  // namespace terrier::brain
+enum class ExecutionOperatingUnitFeatureUpdateMode : uint8_t { SET, ADD, MULT };
+
+}  // namespace noisepage::brain

@@ -7,7 +7,7 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr char AGG_ATTR_PREFIX[] = "agg_term_attr";
@@ -21,8 +21,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
       agg_values_type_(GetCodeGen()->MakeFreshIdentifier("AggValues")),
       merge_func_(GetCodeGen()->MakeFreshIdentifier("MergeAggregates")),
       build_pipeline_(this, Pipeline::Parallelism::Parallel) {
-  TERRIER_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
-  TERRIER_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
+  NOISEPAGE_ASSERT(plan.GetGroupByTerms().empty(), "Global aggregations shouldn't have grouping keys");
+  NOISEPAGE_ASSERT(plan.GetChildrenSize() == 1, "Global aggregations should only have one child");
   // The produce-side is serial since it only generates one output tuple.
   pipeline->RegisterSource(this, Pipeline::Parallelism::Serial);
 
@@ -61,8 +61,8 @@ StaticAggregationTranslator::StaticAggregationTranslator(const planner::Aggregat
     local_aggs_ = build_pipeline_.DeclarePipelineStateEntry("aggs", payload_type);
   }
 
-  num_agg_inputs_ = CounterDeclare("num_agg_inputs");
-  num_agg_outputs_ = CounterDeclare("num_agg_outputs");
+  num_agg_inputs_ = CounterDeclare("num_agg_inputs", &build_pipeline_);
+  num_agg_outputs_ = CounterDeclare("num_agg_outputs", pipeline);
 }
 
 ast::StructDecl *StaticAggregationTranslator::GeneratePayloadStruct() {
@@ -88,8 +88,8 @@ ast::StructDecl *StaticAggregationTranslator::GenerateValuesStruct() {
 
   uint32_t term_idx = 0;
   for (const auto &term : GetAggPlan().GetAggregateTerms()) {
-    TERRIER_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
-                   "Return value type of child expression is invalid.");
+    NOISEPAGE_ASSERT(term->GetChild(0)->GetReturnValueType() != type::TypeId::INVALID,
+                     "Return value type of child expression is invalid.");
     auto field_name = codegen->MakeIdentifier(AGG_ATTR_PREFIX + std::to_string(term_idx));
     auto type = codegen->TplType(sql::GetTypeId(term->GetChild(0)->GetReturnValueType()));
     fields.push_back(codegen->MakeField(field_name, type));
@@ -140,11 +140,9 @@ ast::Expr *StaticAggregationTranslator::GetAggregateTermPtr(ast::Expr *agg_row, 
 }
 
 void StaticAggregationTranslator::InitializeQueryState(FunctionBuilder *function) const {
-  CounterSet(function, num_agg_inputs_, 0);
-  CounterSet(function, num_agg_outputs_, 0);
   auto *codegen = GetCodeGen();
   for (auto &p : distinct_filters_) {
-    p.second.Initialize(codegen, function, GetExecutionContext(), GetMemoryPool());
+    p.second.Initialize(codegen, function, GetExecutionContext());
   }
 }
 
@@ -163,10 +161,22 @@ void StaticAggregationTranslator::InitializeAggregates(FunctionBuilder *function
   }
 }
 
-void StaticAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
-  if (IsBuildPipeline(pipeline) && build_pipeline_.IsParallel()) {
-    InitializeAggregates(function, true);
+void StaticAggregationTranslator::InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    CounterSet(function, num_agg_inputs_, 0);
+  } else {
+    CounterSet(function, num_agg_outputs_, 0);
   }
+}
+
+void StaticAggregationTranslator::InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const {
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      InitializeAggregates(function, true);
+    }
+  }
+
+  InitializeCounters(pipeline, function);
 }
 
 void StaticAggregationTranslator::BeginPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
@@ -232,17 +242,9 @@ void StaticAggregationTranslator::PerformPipelineWork(WorkContext *context, Func
   }
 }
 
-void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+void StaticAggregationTranslator::RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const {
   auto *codegen = GetCodeGen();
-
   if (IsBuildPipeline(pipeline)) {
-    if (build_pipeline_.IsParallel()) {
-      // Merge thread-local aggregates into one.
-      ast::Expr *thread_state_container = GetThreadStateContainer();
-      ast::Expr *query_state = GetQueryStatePtr();
-      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
-    }
-
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
                   brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS, pipeline, CounterVal(num_agg_inputs_));
     FeatureRecord(function, brain::ExecutionOperatingUnitType::AGGREGATE_BUILD,
@@ -257,6 +259,27 @@ void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, F
   }
 }
 
+void StaticAggregationTranslator::EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  RecordCounters(pipeline, function);
+}
+
+void StaticAggregationTranslator::FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const {
+  auto *codegen = GetCodeGen();
+
+  if (IsBuildPipeline(pipeline)) {
+    if (build_pipeline_.IsParallel()) {
+      // Merge thread-local aggregates into one.
+      ast::Expr *thread_state_container = GetThreadStateContainer();
+      ast::Expr *query_state = GetQueryStatePtr();
+      function->Append(codegen->TLSIterate(thread_state_container, query_state, merge_func_));
+    } else {
+      RecordCounters(pipeline, function);
+    }
+  } else {
+    RecordCounters(pipeline, function);
+  }
+}
+
 ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNUSED_ATTRIBUTE uint32_t child_idx,
                                                        uint32_t attr_idx) const {
   if (IsProducePipeline(context->GetPipeline())) {
@@ -268,4 +291,4 @@ ast::Expr *StaticAggregationTranslator::GetChildOutput(WorkContext *context, UNU
   return OperatorTranslator::GetChildOutput(context, child_idx, attr_idx);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler
