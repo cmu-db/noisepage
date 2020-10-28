@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
                      .SetUseExecution(true)
                      .SetUseTrafficCop(true)
                      .SetUseNetwork(true)
-                     .SetUseMessenger(true)
+                     .SetUseMessenger(false)
                      .Build();
 
   db_main_handler_ptr = db_main.get();
