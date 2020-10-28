@@ -82,6 +82,9 @@ class MessengerTests : public TerrierTest {
 
     return db_main;
   }
+
+  /** A dirty hack that sleeps for a little while so that sockets can clean up. */
+  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(5)); }
 };
 
 // NOLINTNEXTLINE
@@ -223,6 +226,8 @@ TEST_F(MessengerTests, BasicReplicationTest) {
   while (!(done[0] && done[1] && done[2])) {
   }
 
+  DirtySleep();
+
   UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 3 * sizeof(bool));
   NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
 }
@@ -322,6 +327,8 @@ TEST_F(MessengerTests, BasicListenTest) {
   // Spin until all done.
   while (!(done[0] && done[1])) {
   }
+
+  DirtySleep();
 
   UNUSED_ATTRIBUTE int munmap_retval = munmap(static_cast<void *>(const_cast<bool *>(done)), 2 * sizeof(bool));
   NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
