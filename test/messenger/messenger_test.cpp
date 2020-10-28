@@ -44,7 +44,7 @@ class MessengerTests : public TerrierTest {
           // Child process. Execute the given function and break out.
           MESSENGER_LOG_TRACE(fmt::format("Child {} running.", ::getpid()));
           func();
-          exit(0);
+          _exit(0);
         }
         default: {
           // Parent process. Continues to fork.
