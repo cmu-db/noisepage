@@ -9,6 +9,7 @@
 #include "common/action_context.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
+#include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
 #include "network/connection_handle_factory.h"
 #include "network/noisepage_server.h"
@@ -269,6 +270,30 @@ class DBMain {
     ~ExecutionLayer();
   };
 
+  /** Create a Messenger. */
+  class MessengerLayer {
+   public:
+    /**
+     * Instantiate and register a Messenger.
+     * @param thread_registry       The DedicatedThreadRegistry that the Messenger will be registered to.
+     * @param messenger_port        The port on which the Messenger will listen by default.
+     * @param messenger_identity    The name by which this Messenger instance will be known.
+     */
+    explicit MessengerLayer(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
+                            const uint16_t messenger_port, const std::string &messenger_identity)
+        : messenger_manager_(
+              std::make_unique<messenger::MessengerManager>(thread_registry, messenger_port, messenger_identity)) {}
+
+    /** Destructor. */
+    ~MessengerLayer() = default;
+
+    /** @return The Messenger. */
+    common::ManagedPointer<messenger::Messenger> GetMessenger() const { return messenger_manager_->GetMessenger(); }
+
+   private:
+    std::unique_ptr<messenger::MessengerManager> messenger_manager_;
+  };
+
   /**
    * Creates DBMain objects
    */
@@ -368,6 +393,12 @@ class DBMain {
                                            network_port_, connection_thread_count_, uds_file_directory_);
       }
 
+      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
+      if (use_messenger_) {
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
+                                                           messenger_identity_);
+      }
+
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -382,6 +413,7 @@ class DBMain {
       db_main->execution_layer_ = std::move(execution_layer);
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
+      db_main->messenger_layer_ = std::move(messenger_layer);
 
       return db_main;
     }
@@ -549,11 +581,38 @@ class DBMain {
     }
 
     /**
+     * @param value use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseMessenger(const bool value) {
+      use_messenger_ = value;
+      return *this;
+    }
+
+    /**
      * @param port Network port
      * @return self reference for chaining
      */
     Builder &SetNetworkPort(const uint16_t port) {
       network_port_ = port;
+      return *this;
+    }
+
+    /**
+     * @param port Messenger port
+     * @return self reference for chaining
+     */
+    Builder &SetMessengerPort(const uint16_t port) {
+      messenger_port_ = port;
+      return *this;
+    }
+
+    /**
+     * @param identity Messenger identity
+     * @return self reference for chaining
+     */
+    Builder &SetMessengerIdentity(const std::string &identity) {
+      messenger_identity_ = identity;
       return *this;
     }
 
@@ -673,6 +732,9 @@ class DBMain {
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
+    bool use_messenger_ = false;
+    uint16_t messenger_port_ = 9022;
+    std::string messenger_identity_ = "primary";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -706,7 +768,10 @@ class DBMain {
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
-      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      // TODO(WAN): open an issue for handling settings.
+      //  If you set it with the builder, it gets overwritten.
+      //  If you set it with the setting manager, it isn't mutable.
+      //      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
@@ -833,6 +898,9 @@ class DBMain {
    */
   common::ManagedPointer<ExecutionLayer> GetExecutionLayer() const { return common::ManagedPointer(execution_layer_); }
 
+  /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
+  common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
+
  private:
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
@@ -850,6 +918,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
+  std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 
 }  // namespace noisepage
