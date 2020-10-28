@@ -1,14 +1,22 @@
 #pragma once
 
-#include <unordered_map>
-#include <map>
-#include <vector>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <utility>
+#include <tuple>
 
+
+#include "common/action_context.h"
+#include "common/error/exception.h"
+#include "common/shared_latch.h"
+#include "gflags/gflags.h"
+#include "loggers/settings_logger.h"
+#include "settings/settings_param.h"
 #include "brain/forecast/workload_forecast.h"
 #include "execution/exec_defs.h"
 #include "parser/expression/constant_value_expression.h"
@@ -29,7 +37,7 @@ class Pilot {
    * @param 
    * @param 
    */
-  Pilot(uint64_t forecast_interval);
+  explicit Pilot(const common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval);
 
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
@@ -47,6 +55,10 @@ class Pilot {
  private:
   void LoadQueryTrace();
   void LoadQueryText();
+  void ExecuteForecastSegments();
+
+  common::ManagedPointer<DBMain> db_main_;
+
   std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id_;
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>> query_id_to_params_;
   std::unordered_map<execution::query_id_t, std::string> query_id_to_text_;

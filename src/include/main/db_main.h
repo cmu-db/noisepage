@@ -341,7 +341,7 @@ class DBMain {
 
       std::unique_ptr<brain::Pilot> pilot_thread = DISABLED;
       if (use_pilot_) {
-        pilot_thread = std::make_unique<brain::Pilot>(pilot_forecast_interval_);
+        pilot_thread = std::make_unique<brain::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;

@@ -9,14 +9,19 @@
 #include <fstream>
 
 #include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "parser/expression/constant_value_expression.h"
 #include "brain/forecast/workload_forecast.h"
 #include "execution/exec_defs.h"
+#include "main/db_main.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::brain {
 
-Pilot::Pilot(uint64_t forecast_interval) : forecast_interval_(forecast_interval) {
+Pilot::Pilot(
+    const common::ManagedPointer<DBMain> db_main,
+    uint64_t forecast_interval)
+    : db_main_(db_main), forecast_interval_(forecast_interval) {
   LoadQueryTrace();
   LoadQueryText();
   forecastor_ = std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_, 
