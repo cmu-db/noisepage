@@ -38,8 +38,14 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun atomic_and(dest: *uint8, mask: uint8) -> uint8 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint8, mask: uint8) -> uint8 { return @atomicOr(dest, mask) }");
+      "fun atomic_and(dest: *uint8, mask: uint8) -> uint8 {\n"
+      "  var x = @atomicAnd(dest, mask)\n"
+      "  return x\n"
+      "}\n"
+      "fun atomic_or(dest: *uint8, mask: uint8) -> uint8 {\n"
+      "  var x = @atomicOr(dest, mask)\n"
+      "  return x\n"
+      "}");
 
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
@@ -73,12 +79,15 @@ TEST_F(AtomicsTest, AtomicAndOr1) {
       auto inv_mask = ~mask;
       ASSERT_NE(mask, 0);
 
+      uint8_t before;
       for (uint32_t i = 0; i < num_cycles; ++i) {
         // Set it
-        atomic_or(reinterpret_cast<uint8_t *>(&target), mask);
+        before = atomic_or(reinterpret_cast<uint8_t *>(&target), mask);
+        EXPECT_EQ(before & mask, 0);
         EXPECT_EQ(target.load() & mask, mask);
         // Clear it
-        atomic_and(reinterpret_cast<uint8_t *>(&target), inv_mask);
+        before = atomic_and(reinterpret_cast<uint8_t *>(&target), inv_mask);
+        EXPECT_EQ(before & mask, mask);
         EXPECT_EQ(target.load() & mask, 0);
       }
     };
@@ -96,8 +105,14 @@ TEST_F(AtomicsTest, AtomicAndOr2) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun atomic_and(dest: *uint16, mask: uint16) -> uint16 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint16, mask: uint16) -> uint16 { return @atomicOr(dest, mask) }");
+      "fun atomic_and(dest: *uint16, mask: uint16) -> uint16 {\n"
+      "  var x = @atomicAnd(dest, mask)\n"
+      "  return x\n"
+      "}\n"
+      "fun atomic_or(dest: *uint16, mask: uint16) -> uint16 {\n"
+      "  var x = @atomicOr(dest, mask)\n"
+      "  return x\n"
+      "}");
 
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
@@ -131,12 +146,16 @@ TEST_F(AtomicsTest, AtomicAndOr2) {
       auto mask = static_cast<uint16_t>(1 << thread_id);
       auto inv_mask = ~mask;
       ASSERT_NE(mask, 0);
+
+      uint16_t before;
       for (uint32_t i = 0; i < num_cycles; ++i) {
         // Set it
-        atomic_or(reinterpret_cast<uint16_t *>(&target), mask);
+        before = atomic_or(reinterpret_cast<uint16_t *>(&target), mask);
+        EXPECT_EQ(before & mask, 0);
         EXPECT_EQ(target.load() & mask, mask);
         // Clear it
-        atomic_and(reinterpret_cast<uint16_t *>(&target), inv_mask);
+        before = atomic_and(reinterpret_cast<uint16_t *>(&target), inv_mask);
+        EXPECT_EQ(before & mask, mask);
         EXPECT_EQ(target.load() & mask, 0);
       }
     };
@@ -154,8 +173,14 @@ TEST_F(AtomicsTest, AtomicAndOr4) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun atomic_and(dest: *uint32, mask: uint32) -> uint32 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint32, mask: uint32) -> uint32 { return @atomicOr(dest, mask) }");
+      "fun atomic_and(dest: *uint32, mask: uint32) -> uint32 {\n"
+      "  var x = @atomicAnd(dest, mask)\n"
+      "  return x\n"
+      "}\n"
+      "fun atomic_or(dest: *uint32, mask: uint32) -> uint32 {\n"
+      "  var x = @atomicOr(dest, mask)\n"
+      "  return x\n"
+      "}");
 
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
@@ -188,12 +213,16 @@ TEST_F(AtomicsTest, AtomicAndOr4) {
       auto mask = static_cast<uint32_t>(1 << thread_id);
       auto inv_mask = ~mask;
       ASSERT_NE(mask, 0);
+
+      uint32_t before;
       for (uint32_t i = 0; i < num_cycles; ++i) {
         // Set it
-        atomic_or(reinterpret_cast<uint32_t *>(&target), mask);
+        before = atomic_or(reinterpret_cast<uint32_t *>(&target), mask);
+        EXPECT_EQ(before & mask, 0);
         EXPECT_EQ(target.load() & mask, mask);
         // Clear it
-        atomic_and(reinterpret_cast<uint32_t *>(&target), inv_mask);
+        before = atomic_and(reinterpret_cast<uint32_t *>(&target), inv_mask);
+        EXPECT_EQ(before & mask, mask);
         EXPECT_EQ(target.load() & mask, 0);
       }
     };
@@ -211,8 +240,14 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
   ast::Context context(&region_, &error_reporter);
 
   auto src = std::string(
-      "fun atomic_and(dest: *uint64, mask: uint64) -> uint64 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint64, mask: uint64) -> uint64 { return @atomicOr(dest, mask) }");
+      "fun atomic_and(dest: *uint64, mask: uint64) -> uint64 {\n"
+      "  var x = @atomicAnd(dest, mask)\n"
+      "  return x\n"
+      "}\n"
+      "fun atomic_or(dest: *uint64, mask: uint64) -> uint64 {\n"
+      "  var x = @atomicOr(dest, mask)\n"
+      "  return x\n"
+      "}");
 
   // Compile it...
   auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
@@ -235,22 +270,26 @@ TEST_F(AtomicsTest, AtomicAndOr8) {
 
   std::default_random_engine generator;
   const uint32_t num_iters = 100;
-  const uint32_t num_cycles = 16400;
-  const uint32_t num_threads = 8;  // Number of bits in test
+  const uint32_t num_cycles = 1000;
+  const uint32_t num_threads = 64;  // Number of bits in test
   common::WorkerPool thread_pool(num_threads, {});
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
     std::atomic<uint64_t> target = 0;
     auto workload = [&](uint32_t thread_id) {
-      auto mask = 1 << thread_id;
+      auto mask = 1ull << thread_id;
       auto inv_mask = ~mask;
       ASSERT_NE(mask, 0);
+
+      uint64_t before;
       for (uint32_t i = 0; i < num_cycles; ++i) {
         // Set it
-        atomic_or(reinterpret_cast<uint64_t *>(&target), mask);
+        before = atomic_or(reinterpret_cast<uint64_t *>(&target), mask);
+        ASSERT_EQ(before & mask, 0);
         EXPECT_EQ(target.load() & mask, mask);
         // Clear it
-        atomic_and(reinterpret_cast<uint64_t *>(&target), inv_mask);
+        before = atomic_and(reinterpret_cast<uint64_t *>(&target), inv_mask);
+        EXPECT_EQ(before & mask, mask);
         EXPECT_EQ(target.load() & mask, 0);
       }
     };
