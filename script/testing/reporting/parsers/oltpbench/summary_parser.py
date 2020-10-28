@@ -3,8 +3,9 @@
 import json
 from time import time
 
-from oltpbench.reporting.utils import get_value_by_pattern
-from oltpbench.reporting.constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
+from reporting.utils import get_value_by_pattern
+from reporting.constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
+
 
 def parse_summary_file(path):
     """
@@ -12,7 +13,7 @@ def parse_summary_file(path):
 
     Args:
         path (str): The location of the summary file.
-        
+
     Returns:
         metadata (dict): An object containing metadata information.
         timestamp (int): The timestamp when the benchmark was created in milliseconds.
@@ -29,30 +30,50 @@ def parse_summary_file(path):
         metrics = parse_metrics(summary)
         return metadata, timestamp, type, parameters, metrics
 
+
 def parse_metadata(summary):
+    """
+    Get the db_version from the summary file data 
+
+    Args:
+        summary (dict): The JSON of the summary file.
+
+    Returns:
+        metadata: metadata collected from the summary file
+
+    """
     return {
-        'noisepage':{
+        'noisepage': {
             'db_version': summary.get('DBMS Version', UNKNOWN_RESULT)
         }
     }
 
+
 def parse_timestamp(summary):
+    """ Get the timestamp in milliseconds from the summary file data """
     return int(get_value_by_pattern(summary, 'timestamp', str(time())))
 
+
 def parse_type(summary):
+    """ Get the benchmark type (i.e tpcc) from the summary file data """
     return summary.get('Benchmark Type', UNKNOWN_RESULT)
 
+
 def parse_parameters(summary):
+    """ Collect the OLTPBench test parameters from the summary file data """
     return {
         'scale_factor': summary.get('scalefactor', '-1.0'),
         'terminals': int(summary.get('terminals', -1))
     }
 
+
 def parse_metrics(summary):
+    """ Collect the OLTPBench results metrics from the summary file data """
     return {
-        'throughput' : get_value_by_pattern(summary, 'throughput', '-1.0'),
-        'latency': parse_latency_data(summary.get('Latency Distribution',{}))
+        'throughput': get_value_by_pattern(summary, 'throughput', '-1.0'),
+        'latency': parse_latency_data(summary.get('Latency Distribution', {}))
     }
+
 
 def parse_latency_data(latency_dict):
     """
