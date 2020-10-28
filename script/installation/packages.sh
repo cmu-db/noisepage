@@ -25,6 +25,7 @@ OSX_BUILD_PACKAGES=(\
   "pkg-config" \
   "ninja" \
   "tbb" \
+  "zeromq" \
 )
 OSX_TEST_PACKAGES=(\
   "ant" \
@@ -45,6 +46,7 @@ LINUX_BUILD_PACKAGES=(\
   "libpq-dev" \
   "libpqxx-dev" \
   "libtbb-dev" \
+  "libzmq3-dev" \
   "lld" \
   "llvm-8" \
   "pkg-config" \
@@ -70,6 +72,7 @@ PYTHON_PACKAGES=(\
   "requests" \
   "psutil" \
   "distro"  \
+  "PTable"
 )
 
 
