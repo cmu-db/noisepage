@@ -516,6 +516,8 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
+# TODO(Joe) fast_float doesn't have any git tags so I'm using the most recent version. It's probably worth monitoring the repo in case they create a tag for some official release so we can update this
+add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git f3b7466)
 
 # Handle other dependencies.
 
@@ -608,8 +610,15 @@ target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inh
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         ${NOISEPAGE_LINK_OPTIONS}
         )
+
+# Unfortunately, some libraries do not have clean target_link_libraries hygiene.
+# The symptoms are typically weird -Werror warnings because the NoisePage Werror flags get applied to library code.
+# The hacky solution is to manually specify their target_include_directories as SYSTEM.
+target_include_directories(noisepage_objlib SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/_deps/src/fast_float/include/)
+
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
+        fast_float
         gflags
         ips4o::ips4o
         madoka::madoka

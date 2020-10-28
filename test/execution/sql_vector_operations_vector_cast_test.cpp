@@ -179,4 +179,33 @@ TEST_F(VectorCastTest, CastStringToFloat) {
   EXPECT_EQ(GenericValue::CreateFloat(910), a->GetValue(5));
 }
 
+// NOLINTNEXTLINE
+TEST_F(VectorCastTest, CastStringToDouble) {
+  exec::ExecutionSettings exec_settings{};
+
+  // a = [NULL, "-123.45", "6.75", NULL, "0.8", "910"]
+  auto a = MakeVarcharVector({{}, "-123.45", "6.75", {}, "0.8", "910"}, {true, false, false, true, false, false});
+
+  EXPECT_NO_THROW(a->Cast(exec_settings, TypeId::Double));
+
+  EXPECT_EQ(TypeId::Double, a->GetTypeId());
+  EXPECT_TRUE(a->IsNull(0));
+  EXPECT_EQ(GenericValue::CreateDouble(-123.45), a->GetValue(1));
+  EXPECT_EQ(GenericValue::CreateDouble(6.75), a->GetValue(2));
+  EXPECT_TRUE(a->IsNull(3));
+  EXPECT_EQ(GenericValue::CreateDouble(0.8), a->GetValue(4));
+  EXPECT_EQ(GenericValue::CreateDouble(910), a->GetValue(5));
+}
+
+// NOLINTNEXTLINE
+TEST_F(VectorCastTest, CastStringToFloatParseError) {
+  exec::ExecutionSettings exec_settings{};
+
+  // a = [NULL, "-123.45", "6.75E", NULL, "0.8", "910"]
+  auto a = MakeVarcharVector({{}, "-123.45", "6.75E", {}, "0.8", "910"}, {true, false, false, true, false, false});
+
+  // Casting should fail because "6.75E" is not a valid number
+  EXPECT_THROW(a->Cast(exec_settings, TypeId::Float), ExecutionException);
+}
+
 }  // namespace noisepage::execution::sql::test
