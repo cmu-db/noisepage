@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-#include "execution/util/fast_double_parser.h"
+#include "fast_float/fast_float.h"
 #include "loggers/execution_logger.h"
 
 namespace noisepage::execution::util {
@@ -75,7 +75,7 @@ bool CSVFile::Fill() {
 
 double CSVReader::CSVCell::AsDouble() const {
   double output = 0;
-  FastDoubleParser::ParseNumber(this->ptr_, &output);
+  fast_float::from_chars(this->ptr_, this->ptr_ + this->len_, output);
   return output;
 }
 
