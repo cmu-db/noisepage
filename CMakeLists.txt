@@ -379,7 +379,7 @@ macro(VARS_AFTER)
     endforeach ()
 endmacro()
 
-# Some libraries (cough Google Benchmark cough) just won't shut up, so this redefines the message function.
+# Some libraries just won't shut up, so this redefines the message function.
 set(MESSAGE_QUIET OFF)
 function(message)
     list(GET ARGV 0 MessageType)
@@ -389,13 +389,14 @@ function(message)
             MessageType STREQUAL WARNING OR
             MessageType STREQUAL AUTHOR_WARNING)
         list(GET ARGV 1 Message)
-        if (Message MATCHES ".*but CMAKE_THREAD_LIBS_INIT ended up being empty.*")
-            # SOME LIBRARIES (cough Google Benchmark cough) ...
-            # Official CMake documentation:
-            #   CMAKE_THREAD_LIBS_INIT
-            #       The thread library to use. This may be empty if the thread functions are provided by the system
-            #       libraries and no special flags are needed to use them.
-            # Therefore we're suppressing that specific warning message.
+
+        # Special-casing for messages to ignore.
+        set(IGNORED_MESSAGES
+                ""
+                # Google Benchmark.
+                "CMake's FindThreads.cmake did not fail, but CMAKE_THREAD_LIBS_INIT ended up being empty. This was fixed in https://github.com/Kitware/CMake/commit/d53317130e84898c5328c237186dbd995aaf1c12 Let's guess that -pthread is sufficient."
+                )
+        if (Message IN_LIST IGNORED_MESSAGES)
             return()
         endif ()
 
@@ -498,6 +499,9 @@ set(GFLAGS_BUILD_gflags_nothreads_LIB OFF)          # Disable building the nothr
 set(GFLAGS_BUILD_TESTING OFF)                       # Disable building gflags tests.
 set(GFLAGS_BUILD_PACKAGING OFF)                     # Disable building gflags packaging.
 
+# ZeroMQ build settings.
+set(CPPZMQ_BUILD_TESTS OFF CACHE INTERNAL "Disable building CPPZMQ tests.")
+
 # Include the source of the dependencies as sources that NoisePage can include.
 list(APPEND NOISEPAGE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_deps/src/)
 
@@ -507,6 +511,7 @@ add_noisepage_dep_singlefile(portable_endian https://gist.githubusercontent.com/
 
 # Fetch project dependencies.
 add_noisepage_dep(count https://github.com/pmenon/libcount.git 6eef9d048d4577f144506ffc076c1913f8faf3ef)
+add_noisepage_dep(cppzmq https://github.com/zeromq/cppzmq.git v4.7.1)
 add_noisepage_dep(gflags https://github.com/gflags/gflags.git v2.2.2)
 add_noisepage_dep(googlebenchmark https://github.com/google/benchmark.git v1.5.2)
 add_noisepage_dep(googletest https://github.com/google/googletest.git release-1.10.0)
@@ -516,6 +521,8 @@ add_noisepage_dep(nlohmann_json https://github.com/ArthurSonzogni/nlohmann_json_
 add_noisepage_dep(spdlog https://github.com/gabime/spdlog.git v1.8.1)
 add_noisepage_dep(xbyak https://github.com/herumi/xbyak.git v5.77)
 add_noisepage_dep(xxHash https://github.com/Cyan4973/xxHash.git v0.8.0)
+# TODO(Joe) fast_float doesn't have any git tags so I'm using the most recent version. It's probably worth monitoring the repo in case they create a tag for some official release so we can update this
+add_noisepage_dep(fast_float https://github.com/lemire/fast_float.git f3b7466)
 
 # Handle other dependencies.
 
@@ -608,8 +615,16 @@ target_include_directories(noisepage_objlib SYSTEM PUBLIC   # SYSTEM PUBLIC: inh
 target_link_options(noisepage_objlib PUBLIC         # PUBLIC: all consumers of the library inherit the following.
         ${NOISEPAGE_LINK_OPTIONS}
         )
+
+# Unfortunately, some libraries do not have clean target_link_libraries hygiene.
+# The symptoms are typically weird -Werror warnings because the NoisePage Werror flags get applied to library code.
+# The hacky solution is to manually specify their target_include_directories as SYSTEM.
+target_include_directories(noisepage_objlib SYSTEM PUBLIC ${CMAKE_BINARY_DIR}/_deps/src/fast_float/include/)
+
 target_link_libraries(noisepage_objlib PUBLIC       # PUBLIC: all consumers of the library inherit the following.
         count
+        cppzmq
+        fast_float
         gflags
         ips4o::ips4o
         madoka::madoka
@@ -877,6 +892,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/common/*.cpp"
         "test/execution/*.cpp"
         "test/integration/*.cpp"
+        "test/messenger/*.cpp"
         "test/metrics/*.cpp"
         "test/network/*.cpp"
         "test/optimizer/*.cpp"
@@ -959,6 +975,7 @@ add_jumbotest("test/catalog" "")
 add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
 add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
+add_jumbotest("test/messenger" "messenger_test;")
 add_jumbotest("test/metrics" "metrics_test;")
 add_jumbotest("test/network" "network_test;")
 add_jumbotest("test/optimizer" "hyperloglog_test;")
@@ -977,6 +994,9 @@ set_tests_properties(
         network_test jumbotest_network_network_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
         PROPERTIES RESOURCE_GROUPS "port15721:1")
+set_tests_properties(
+        messenger_test jumbotest_messenger_messenger_test
+        PROPERTIES RESOURCE_GROUPS "port15721:1;port15722:1;port15723:1;port9022:1;port9023:1;port9024:1")
 
 #######################################################################################################################
 # HEADER Benchmarks.

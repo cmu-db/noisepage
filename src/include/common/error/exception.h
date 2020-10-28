@@ -19,6 +19,7 @@ namespace noisepage {
 #define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
 #define CONVERSION_EXCEPTION(msg) ConversionException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
+#define MESSENGER_EXCEPTION(msg) MessengerException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
@@ -36,6 +37,7 @@ enum class ExceptionType : uint8_t {
   BINDER,
   CATALOG,
   CONVERSION,
+  MESSENGER,
   NETWORK,
   PARSER,
   SETTINGS,
@@ -82,6 +84,8 @@ class Exception : public std::runtime_error {
         return "Catalog";
       case ExceptionType::PARSER:
         return "Parser";
+      case ExceptionType::MESSENGER:
+        return "Messenger";
       case ExceptionType::NETWORK:
         return "Network";
       case ExceptionType::SETTINGS:
@@ -151,6 +155,7 @@ class Exception : public std::runtime_error {
 
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
 DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
+DEFINE_EXCEPTION(MessengerException, ExceptionType::MESSENGER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
