@@ -11,7 +11,7 @@ from util.common import run_command
 from util.test_case import TestCase
 from xml.etree import ElementTree
 from oltpbench import constants
-from oltpbench.reporting.report_result import report
+from reporting.report_result import report_oltpbench_result
 
 
 class TestCaseOLTPBench(TestCase):
@@ -119,7 +119,7 @@ class TestCaseOLTPBench(TestCase):
 
         # publish results
         if self.publish_results:
-            report(self.publish_results, self.server_data, os.path.join(
+            report_oltpbench_result(self.publish_results, self.server_data, os.path.join(
                 os.getcwd(), "oltp_result",self.filename_suffix), self.publish_username, self.publish_password, self.query_mode)
 
     def create_result_dir(self):
