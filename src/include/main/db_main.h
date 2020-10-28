@@ -790,7 +790,7 @@ class DBMain {
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
 
-      use_messenger_ = settings_manager->GetBool(settings::Param::use_messenger);
+      use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
 
       return settings_manager;
     }
