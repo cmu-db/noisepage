@@ -318,7 +318,7 @@ SETTING_bool(
 )
 
 SETTING_bool(
-    use_messenger,
+    messenger_enable,
     "Whether to enable the messenger (default: false)",
     false,
     false,
