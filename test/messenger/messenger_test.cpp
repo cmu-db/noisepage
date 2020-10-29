@@ -60,12 +60,8 @@ class MessengerTests : public TerrierTest {
   /** @return Unique pointer to built DBMain that has the relevant parameters configured. */
   static std::unique_ptr<DBMain> BuildDBMain(uint16_t network_port, uint16_t messenger_port,
                                              const std::string &messenger_identity) {
-    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    noisepage::settings::SettingsManager::ConstructParamMap(param_map);
-
     auto db_main = noisepage::DBMain::Builder()
-                       .SetSettingsParameterMap(std::move(param_map))
-                       .SetUseSettingsManager(true)
+                       .SetUseSettingsManager(false)
                        .SetUseGC(true)
                        .SetUseCatalog(true)
                        .SetUseGCThread(true)
