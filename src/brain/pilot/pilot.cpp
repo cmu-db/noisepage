@@ -7,15 +7,28 @@
 #include <utility>
 #include <iostream>
 #include <fstream>
+#include <memory>
+#include <pqxx/pqxx>  // NOLINT
+#include <random>
+#include <thread>  //NOLINT
 
 #include "brain/forecast/workload_forecast.h"
+#include "common/action_context.h"
+#include "common/error/exception.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
+#include "common/shared_latch.h"
 #include "execution/exec_defs.h"
 #include "execution/exec/execution_context.h"
 #include "parser/expression/constant_value_expression.h"
 #include "main/db_main.h"
 #include "spdlog/fmt/fmt.h"
+
+#include "execution/exec_defs.h"
+#include "settings/settings_callbacks.h"
+#include "settings/settings_manager.h"
+#include "transaction/transaction_defs.h"
+#include "transaction/transaction_manager.h"
 
 namespace noisepage::brain {
 
@@ -26,14 +39,21 @@ Pilot::Pilot(
   forecastor_ = nullptr; 
 }
 
+// execution::exec::ExecutionSettings Pilot::GetExecutionSettings() {
+//     execution::exec::ExecutionSettings settings;
+//     settings.is_parallel_execution_enabled_ = false;
+//     settings.is_pipeline_metrics_enabled_ = true;
+//     return settings;
+// }
+
 void Pilot::EnablePlanning() {
   pilot_planning_ = true;
   LoadQueryTrace();
   LoadQueryText();
   forecastor_ = std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_, 
                                                    query_text_to_id_, query_id_to_params_, forecast_interval_);
-  // ExecuteForecastSegments();
   db_main_->GetMetricsThread()->PauseMetrics(); 
+  ExecuteForecast();
   std::cout << "Pilot Started Planning \n" << std::flush;
 }
 
@@ -44,45 +64,55 @@ void Pilot::DisablePlanning() {
   std::cout << "Pilot Planning Stopped \n" << std::flush;
 }
 
-/*
 void Pilot::ExecuteForecast() {
+  NOISEPAGE_ASSERT(pilot_planning_, "Need pilot planning enabled.");
   NOISEPAGE_ASSERT(forecastor_ != nullptr, "Need forecastor initialized.");
 
-  common::ManagedPointer<settings::SettingsManager> settings_manager_ = db_main_->GetSettingsManager();
-
-  // First Pause the metrics thread
-  db_main_->GetMetricsThread()->PauseMetrics(); 
-
+  std::cout << "Before Bool Set \n" << std::flush;
   // Then manually enable pipeline_metrics
-  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  const settings::setter_callback_fn setter_callback = EmptySetterCallback;
-  settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
-                             setter_callback);
-
+  for (const auto &file : metrics::PipelineMetricRawData::FILES) unlink(std::string(file).c_str());
   
-  transaction::TransactionContext *txn = nullptr;
-  std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
+  std::cout << "Before action context \n" << std::flush;
+  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
+  
+  const auto callback = +[](common::ManagedPointer<common::ActionContext> action_context) -> void {
+    action_context->SetState(common::ActionState::SUCCESS);
+  };
+  // forecastor_->ExecuteSegments(exec_ctx);
+  auto settings_manager_ = db_main_->GetSettingsManager();
+  settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
+                             callback);
+  std::cout << "After setting bool \n" << std::flush;
 
-  auto txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
-  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
-  execution::exec::ExecutionSettings exec_settings {};
+  /*
+  // db_main_->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+  // std::cout << "Bool set succesful \n" << std::flush;
 
-  // Create a new transaction and a new database
-  txn = txn_manager_->BeginTransaction();
-  catalog::db_oid_t db_oid = catalog->GetDatabaseOid(common::ManagedPointer(txn), "tpcc");
+  // auto txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+  // auto catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
 
-  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+  // // Create a new transaction and a new database
 
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
-                                                                      nullptr, common::ManagedPointer(accessor),
-                                                                      exec_settings, 
-                                                                      db_main_->GetMetricsManager());
+  // std::cout << "Before Transac\n" << std::flush;
+  // transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
+  // std::cout << "After Transac begin\n" << std::flush;
+  // catalog::db_oid_t db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), "tpcc");
+  // std::cout << "Get db_oid succ " << db_oid << "\n" << std::flush;
+  // std::unique_ptr<catalog::CatalogAccessor> accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
 
-  forecastor_->ExecuteSegments(exec_ctx);
-  metrics_manager_->Aggregate();
+  // execution::exec::ExecutionSettings exec_settings = GetExecutionSettings();
+  // auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
+  //                                                                     nullptr, common::ManagedPointer(accessor),
+  //                                                                     exec_settings, 
+  //                                                                     db_main_->GetMetricsManager());
+
+  // forecastor_->ExecuteSegments(common::ManagedPointer(exec_ctx), exec_settings);
+  // db_main_->GetMetricsManager()->Aggregate();
+  // db_main_->GetMetricsManager()->ToCSV();
+  // db_main_->GetMetricsManager()->DisableMetric(metrics::MetricsComponent::EXECUTION_PIPELINE);
+  */
   txn_manager_->Abort(txn);
 }
-*/
 
 void Pilot::LoadQueryTrace() {
   uint8_t NUM_COLS = 4;

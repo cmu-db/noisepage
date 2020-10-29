@@ -58,8 +58,9 @@ class Pilot {
  private:
   void LoadQueryTrace();
   void LoadQueryText();
-  // void ExecuteForecast();
-  // static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
+  void ExecuteForecast();
+  //static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
+  //static execution::exec::ExecutionSettings GetExecutionSettings();
 
   common::ManagedPointer<DBMain> db_main_;
 
