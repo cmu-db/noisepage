@@ -211,6 +211,14 @@ SETTING_bool(
 )
 
 SETTING_bool(
+    pilot_planning,
+    "Start planning in pilot (default: false).",
+    false,
+    true,
+    noisepage::settings::Callbacks::PilotEnablePlanning
+)
+
+SETTING_bool(
     logging_metrics_enable,
     "Metrics collection for the Logging component (default: false).",
     false,

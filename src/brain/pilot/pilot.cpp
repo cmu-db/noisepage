@@ -8,11 +8,12 @@
 #include <iostream>
 #include <fstream>
 
+#include "brain/forecast/workload_forecast.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "parser/expression/constant_value_expression.h"
-#include "brain/forecast/workload_forecast.h"
 #include "execution/exec_defs.h"
+#include "execution/exec/execution_context.h"
+#include "parser/expression/constant_value_expression.h"
 #include "main/db_main.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -22,11 +23,66 @@ Pilot::Pilot(
     const common::ManagedPointer<DBMain> db_main,
     uint64_t forecast_interval)
     : db_main_(db_main), forecast_interval_(forecast_interval) {
+  forecastor_ = nullptr; 
+}
+
+void Pilot::EnablePlanning() {
+  pilot_planning_ = true;
   LoadQueryTrace();
   LoadQueryText();
   forecastor_ = std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_, 
                                                    query_text_to_id_, query_id_to_params_, forecast_interval_);
+  // ExecuteForecastSegments();
+  db_main_->GetMetricsThread()->PauseMetrics(); 
+  std::cout << "Pilot Started Planning \n" << std::flush;
 }
+
+void Pilot::DisablePlanning() {
+  pilot_planning_ = false;
+  forecastor_ = nullptr;
+  db_main_->GetMetricsThread()->ResumeMetrics();
+  std::cout << "Pilot Planning Stopped \n" << std::flush;
+}
+
+/*
+void Pilot::ExecuteForecast() {
+  NOISEPAGE_ASSERT(forecastor_ != nullptr, "Need forecastor initialized.");
+
+  common::ManagedPointer<settings::SettingsManager> settings_manager_ = db_main_->GetSettingsManager();
+
+  // First Pause the metrics thread
+  db_main_->GetMetricsThread()->PauseMetrics(); 
+
+  // Then manually enable pipeline_metrics
+  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
+  const settings::setter_callback_fn setter_callback = EmptySetterCallback;
+  settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
+                             setter_callback);
+
+  
+  transaction::TransactionContext *txn = nullptr;
+  std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
+
+  auto txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
+  auto catalog = db_main->GetCatalogLayer()->GetCatalog();
+  execution::exec::ExecutionSettings exec_settings {};
+
+  // Create a new transaction and a new database
+  txn = txn_manager_->BeginTransaction();
+  catalog::db_oid_t db_oid = catalog->GetDatabaseOid(common::ManagedPointer(txn), "tpcc");
+
+  accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+
+  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
+                                                                      nullptr, common::ManagedPointer(accessor),
+                                                                      exec_settings, 
+                                                                      db_main_->GetMetricsManager());
+
+  forecastor_->ExecuteSegments(exec_ctx);
+  metrics_manager_->Aggregate();
+  txn_manager_->Abort(txn);
+}
+*/
 
 void Pilot::LoadQueryTrace() {
   uint8_t NUM_COLS = 4;

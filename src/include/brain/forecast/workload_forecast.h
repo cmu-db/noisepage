@@ -33,6 +33,9 @@ class WorkloadForecast {
 
   void CreateSegments(std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>>  query_timestamp_to_id,
                       std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions);
+  
+  // void WorkloadForecast::ExecuteSegments(std::unique_ptr<execution::exec::ExecutionContext> exec_txn);
+
  private:
 
   std::unordered_map<execution::query_id_t, std::string> query_id_to_string_;

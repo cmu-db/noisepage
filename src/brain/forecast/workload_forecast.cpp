@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "execution/exec_defs.h"
+#include "execution/exec/execution_context.h"
 #include "brain/forecast/workload_forecast_segment.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -29,6 +30,10 @@ WorkloadForecast::WorkloadForecast(
     (*it).Peek();
   }
 }
+
+// void WorkloadForecast::ExecuteSegments(std::unique_ptr<execution::exec::ExecutionContext> exec_txn) {
+
+// }
 
 void WorkloadForecast::CreateSegments(
     std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id,
