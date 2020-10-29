@@ -34,7 +34,7 @@ class BinderSherpa;
 /**
  * Interface to be notified of the composition of a bind node.
  */
-class BindNodeVisitor : public SqlNodeVisitor {
+class BindNodeVisitor final : public SqlNodeVisitor {
  public:
   /**
    * Initialize the bind node visitor object with a pointer to a catalog accessor, and a default database name
@@ -44,7 +44,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   BindNodeVisitor(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, catalog::db_oid_t db_oid);
 
   /** Destructor. Must be defined due to forward declaration. */
-  ~BindNodeVisitor();
+  ~BindNodeVisitor() final;
 
   /**
    * Perform binding on the passed in tree. Bind the relation names to oids
@@ -103,7 +103,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
 
-  static void InitTableRef(const common::ManagedPointer<parser::TableRef> node);
+  static void InitTableRef(common::ManagedPointer<parser::TableRef> node);
 
   /**
    * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
