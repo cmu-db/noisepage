@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ev++.h>
+#include <memory>
 #include <unordered_set>
 
 #include "common/dedicated_thread_task.h"
