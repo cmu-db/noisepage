@@ -36,7 +36,7 @@ statement ok
 UPDATE update2 SET c2 = 4 WHERE c1 = 22
 
 query II nosort
-SELECT * FROM update2
+SELECT * FROM update2 ORDER BY c2
 ----
 6 values hashing to 190677788c9e53a2716f40ca4a10e132
 
@@ -68,7 +68,7 @@ statement ok
 UPDATE update3 SET c2 = 4.0 WHERE c1 = 2
 
 query IR nosort
-SELECT * FROM update3
+SELECT * FROM update3 ORDER BY c1
 ----
 6 values hashing to c83c2a26476216903b2d54eb9f5d1b01
 
@@ -85,7 +85,7 @@ statement ok
 UPDATE update3 SET c1=2 WHERE c2=1.0
 
 query IR nosort
-SELECT * FROM update3 WHERE c1=2
+SELECT * FROM update3 WHERE c1=2 ORDER BY c1, c2
 ----
 4 values hashing to 68dbc538b31e461cd48daa116345fc9c
 
@@ -108,30 +108,30 @@ statement ok
 UPDATE update4 SET c2 = 4.0 WHERE c1 = 2
 
 query IRT nosort
-SELECT * FROM update4
+SELECT * FROM update4 ORDER BY c3
 ----
 9 values hashing to d6eb3cbabeb480aef68da6106902c619
 
 query IRT nosort
-SELECT * FROM update4 WHERE c2=2.0
+SELECT * FROM update4 WHERE c2=2.0 ORDER BY c3
 ----
 
 query IRT nosort
-SELECT * FROM update4 WHERE c2=2.0 AND c3='2'
+SELECT * FROM update4 WHERE c2=2.0 AND c3='2' ORDER BY c3
 ----
 
 query I nosort
-SELECT c1 FROM update4 WHERE c2=2.0 OR c3='1'
+SELECT c1 FROM update4 WHERE c2=2.0 OR c3='1' ORDER BY c3
 ----
 1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
 
 query IRT nosort
-SELECT * FROM update4 WHERE c2=2.0 AND c3='2' OR c1=1
+SELECT * FROM update4 WHERE c2=2.0 AND c3='2' OR c1=1 ORDER BY c3
 ----
 3 values hashing to 280262bb00bfccfa4c24774d8faccde2
 
 query R nosort
-SELECT c2 FROM update4 WHERE c1=2
+SELECT c2 FROM update4 WHERE c1=2 ORDER BY c3
 ----
 1 values hashing to 48a24b70a0b376535542b996af517398
 
@@ -139,7 +139,7 @@ statement ok
 UPDATE update4 SET c1=2 WHERE c2=1.0
 
 query IRT nosort
-SELECT * FROM update4 WHERE c1=2
+SELECT * FROM update4 WHERE c1=2 ORDER BY c3
 ----
 6 values hashing to c9ebc146b67fa6b443f8da2bbc9c9d8c
 
