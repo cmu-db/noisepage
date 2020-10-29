@@ -655,7 +655,14 @@ target_link_options(noisepage_static PUBLIC         # PUBLIC: all consumers of t
 # debug mode and release mode, namely libspdlogd.a versus libspdlog.a.
 # Due to the different names, the build system (especially make) gets confused.
 # Therefore the dependencies are manually built here.
-add_custom_command(TARGET noisepage_static DEPENDS spdlog)
+# However, make is too stupid and ninja is too smart.
+# make can't understand that TARGET DEPENDS on something.
+# ninja looks for the files in DEPENDS and complains if those can't be found.
+if (${CMAKE_GENERATOR} MATCHES "Unix Makefiles")
+    add_dependencies(noisepage_static spdlog)
+else()
+    add_custom_command(TARGET noisepage_static DEPENDS spdlog)
+endif()
 
 if (${NOISEPAGE_ENABLE_SHARED})
     add_library(noisepage_shared SHARED $<TARGET_OBJECTS:noisepage_objlib>)   # Bundle up these objects into shared lib.
