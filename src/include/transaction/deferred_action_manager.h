@@ -83,13 +83,13 @@ class DeferredActionManager {
    */
   void FullyPerformGC(const common::ManagedPointer<storage::GarbageCollector> gc,
                       const common::ManagedPointer<storage::LogManager> log_manager) {
-    int pending_actions;
+    size_t pending_actions;
     do {
       // TODO(Ling): Once unlinking and deleting transaction contexts are integrated into DAF, this inner loop can be
       // removed We need it at the moment because an action may generate a transaction (e.g., deleting a database during
       // teardown) and we need to execute twice more after that in order to ensure the non-DAF GC functions are also
       // complete.
-      for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
+      for (uint8_t i = 0; i < MIN_GC_INVOCATIONS; i++) {
         if (log_manager != DISABLED) log_manager->ForceFlush();
         gc->PerformGarbageCollection();
       }
