@@ -15,6 +15,15 @@ std::unique_ptr<HashJoinPlanNode> HashJoinPlanNode::Builder::Build() {
                                                                 std::move(right_hash_keys_)));
 }
 
+HashJoinPlanNode::HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                   std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                                   common::ManagedPointer<parser::AbstractExpression> predicate,
+                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
+                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys)
+    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
+      left_hash_keys_(std::move(left_hash_keys)),
+      right_hash_keys_(std::move(right_hash_keys)) {}
+
 common::hash_t HashJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
 
