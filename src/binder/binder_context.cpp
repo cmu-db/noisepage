@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/table_star_expression.h"

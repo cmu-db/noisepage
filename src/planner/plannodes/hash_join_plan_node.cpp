@@ -5,8 +5,15 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<HashJoinPlanNode> HashJoinPlanNode::Builder::Build() {
+  return std::unique_ptr<HashJoinPlanNode>(new HashJoinPlanNode(std::move(children_), std::move(output_schema_),
+                                                                join_type_, join_predicate_, std::move(left_hash_keys_),
+                                                                std::move(right_hash_keys_)));
+}
 
 common::hash_t HashJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();

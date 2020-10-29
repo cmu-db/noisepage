@@ -9,8 +9,33 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "parser/parser_defs.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<CreateTriggerPlanNode> CreateTriggerPlanNode::Builder::Build() {
+  return std::unique_ptr<CreateTriggerPlanNode>(
+      new CreateTriggerPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_,
+                                table_oid_, std::move(trigger_name_), std::move(trigger_funcnames_),
+                                std::move(trigger_args_), std::move(trigger_columns_), trigger_when_, trigger_type_));
+}
+
+CreateTriggerPlanNode::CreateTriggerPlanNode(
+    std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
+    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+    std::string trigger_name, std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
+    std::vector<catalog::col_oid_t> &&trigger_columns, common::ManagedPointer<parser::AbstractExpression> trigger_when,
+    int16_t trigger_type)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      database_oid_(database_oid),
+      namespace_oid_(namespace_oid),
+      table_oid_(table_oid),
+      trigger_name_(std::move(trigger_name)),
+      trigger_funcnames_(std::move(trigger_funcnames)),
+      trigger_args_(std::move(trigger_args)),
+      trigger_columns_(std::move(trigger_columns)),
+      trigger_when_(trigger_when),
+      trigger_type_(trigger_type) {}
 
 common::hash_t CreateTriggerPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -147,7 +172,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTriggerPlanNode::
   trigger_type_ = j.at("trigger_type").get<int16_t>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(CreateTriggerPlanNode);
 
 }  // namespace noisepage::planner

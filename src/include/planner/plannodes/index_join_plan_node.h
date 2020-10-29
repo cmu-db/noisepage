@@ -37,11 +37,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * Build the nested loop join plan node
      * @return plan node
      */
-    std::unique_ptr<IndexJoinPlanNode> Build() {
-      return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(
-          std::move(children_), std::move(output_schema_), join_type_, join_predicate_, index_oid_, table_oid_,
-          scan_type_, std::move(lo_index_cols_), std::move(hi_index_cols_), index_size_));
-    }
+    std::unique_ptr<IndexJoinPlanNode> Build();
 
     /**
      * Sets the scan type
@@ -121,14 +117,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid, IndexScanType scan_type,
                     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&lo_cols,
-                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols, uint64_t index_size)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
-        index_oid_(index_oid),
-        table_oid_(table_oid),
-        scan_type_(scan_type),
-        lo_index_cols_(std::move(lo_cols)),
-        hi_index_cols_(std::move(hi_cols)),
-        index_size_(index_size) {}
+                    std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> &&hi_cols, uint64_t index_size);
 
  public:
   /**
@@ -193,19 +182,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    * Collect all column oids in this expression
    * @return the vector of unique columns oids
    */
-  std::vector<catalog::col_oid_t> CollectInputOids() const {
-    std::vector<catalog::col_oid_t> result;
-    // Scan predicate
-    if (GetJoinPredicate() != nullptr) CollectOids(&result, GetJoinPredicate().Get());
-    // Output expressions
-    for (const auto &col : GetOutputSchema()->GetColumns()) {
-      CollectOids(&result, col.GetExpr().Get());
-    }
-    // Remove duplicates
-    std::unordered_set<catalog::col_oid_t> s(result.begin(), result.end());
-    result.assign(s.begin(), s.end());
-    return result;
-  }
+  std::vector<catalog::col_oid_t> CollectInputOids() const;
 
  private:
   void CollectOids(std::vector<catalog::col_oid_t> *result, const parser::AbstractExpression *expr) const {

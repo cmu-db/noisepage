@@ -6,8 +6,23 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+AbstractScanPlanNode::AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                           std::unique_ptr<OutputSchema> output_schema,
+                                           common::ManagedPointer<parser::AbstractExpression> predicate,
+                                           bool is_for_update, catalog::db_oid_t database_oid, uint32_t scan_limit,
+                                           bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      scan_predicate_(predicate),
+      is_for_update_(is_for_update),
+      database_oid_(database_oid),
+      scan_limit_(scan_limit),
+      scan_has_limit_(scan_has_limit),
+      scan_offset_(scan_offset),
+      scan_has_offset_(scan_has_offset) {}
 
 common::hash_t AbstractScanPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
