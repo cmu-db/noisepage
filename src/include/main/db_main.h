@@ -771,7 +771,7 @@ class DBMain {
       // TODO(WAN): open an issue for handling settings.
       //  If you set it with the builder, it gets overwritten.
       //  If you set it with the setting manager, it isn't mutable.
-      //      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
@@ -789,6 +789,8 @@ class DBMain {
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
+
+      use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
 
       return settings_manager;
     }
