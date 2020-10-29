@@ -4,7 +4,8 @@
 
 namespace noisepage::common {
 
-NotifiableTask::NotifiableTask(std::unique_ptr<ev::loop_ref> loop, int task_id) : loop_(std::move(loop)), task_id_(task_id) {
+NotifiableTask::NotifiableTask(std::unique_ptr<ev::loop_ref> loop, int task_id)
+    : loop_(std::move(loop)), task_id_(task_id) {
   if (*loop_ == nullptr) {
     throw NETWORK_PROCESS_EXCEPTION("Unable to create event loop");
   }

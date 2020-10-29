@@ -42,8 +42,8 @@ class IoTimeoutEvent {
    * libev checks for events. This will result in the callback function being called twice with each of the event's
    * flags.
    *
-   * It should not be possible for the I/O event to be fired right after the timer event because stop should stop the event
-   * even if it's in pending status.
+   * It should not be possible for the I/O event to be fired right after the timer event because stop should stop the
+   * event even if it's in pending status.
    *
    * @tparam function function to set as a callback
    * @param data argument for the function callback
