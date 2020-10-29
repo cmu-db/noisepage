@@ -28,20 +28,24 @@ pipeline {
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja noisepage''', label: 'Compiling'
 
-                sh script:'''
-                cd build
-                timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (HDD WAL)'
-
-                sh script:'''
-                cd build
-                timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (RamDisk WAL)'
-
-                sh script:'''
-                cd build
-                timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label: 'OLTPBench (No WAL)'
+                catchError(stageResult: 'Failure'){
+                    sh script:'''
+                    cd build
+                    timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    ''', label: 'OLTPBench (HDD WAL)'
+                }
+                catchError(stageResult: 'Failure'){
+                    sh script:'''
+                    cd build
+                    timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_ramdisk.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    ''', label: 'OLTPBench (RamDisk WAL)'
+                }
+                catchError(stageResult: 'Failure'){
+                    sh script:'''
+                    cd build
+                    timeout 3h python3 ../script/testing/oltpbench/run_oltpbench.py --config-file=../script/testing/oltpbench/configs/nightly/nightly_wal_disabled.json --build-type=release --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                    ''', label: 'OLTPBench (No WAL)'
+                }
 
                 archiveArtifacts(artifacts: 'build/oltp_result/**/*.*', excludes: 'build/oltp_result/**/*.csv', fingerprint: true)
             }
