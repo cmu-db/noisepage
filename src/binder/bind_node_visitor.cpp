@@ -592,7 +592,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
   BINDER_LOG_TRACE("Visiting ColumnValueExpression ...");
   SqlNodeVisitor::Visit(expr);
 
-  sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
+  // Before checking with the schema, cache the desired type that expr should have.
+  auto desired_type = sherpa_->GetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
@@ -630,8 +631,12 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ColumnValueExpression
       }
     }
   }
-  // The schema is authoritative on what the type of this ColumnValueExpression should be.
-  sherpa_->SetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>(), expr->GetReturnValueType());
+
+  // The schema is authoritative on what the type of this ColumnValueExpression should be, UNLESS
+  // some specific type was already requested.
+  desired_type = desired_type == type::TypeId::INVALID ? expr->GetReturnValueType() : desired_type;
+  sherpa_->SetDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>(), desired_type);
+  sherpa_->CheckDesiredType(expr.CastManagedPointerTo<parser::AbstractExpression>());
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ComparisonExpression> expr) {
