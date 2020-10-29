@@ -1,7 +1,6 @@
 #include "messenger/messenger.h"
 
-#include <inttypes.h>
-
+#include <cinttypes>
 #include <mutex>  // NOLINT
 #include <vector>
 #include <zmq.hpp>
@@ -334,7 +333,7 @@ ConnectionId::~ConnectionId() = default;
 
 ConnectionRouter::ConnectionRouter(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                                    const std::string &identity, CallbackFn callback)
-    : callback_(callback), identity_(identity) {
+    : callback_(std::move(callback)), identity_(identity) {
   // See how zmq_default_socket_ is instantiated for an explanation of these options.
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_ROUTER);
   socket_->set(zmq::sockopt::router_mandatory, true);
@@ -425,7 +424,7 @@ void Messenger::ListenForConnection(const ConnectionDestination &target, const s
                                     CallbackFn callback) {
   std::lock_guard lock(routers_add_mutex_);
   // TODO(WAN): all this copying is stupid.
-  routers_to_be_added_.emplace_back(RouterToBeAdded{target, identity, callback});
+  routers_to_be_added_.emplace_back(RouterToBeAdded{target, identity, std::move(callback)});
 }
 
 ConnectionId Messenger::MakeConnection(const ConnectionDestination &target) {
@@ -441,7 +440,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionId> connection_id, 
 
   // Register the callback that will be invoked when a response to this message is received.
   callbacks_mutex_.lock();
-  callbacks_[send_msg_id] = callback;
+  callbacks_[send_msg_id] = std::move(callback);
   callbacks_mutex_.unlock();
 
   // Build and send the message.
@@ -457,7 +456,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, 
 
   // Register the callback that will be invoked when a response to this message is received.
   callbacks_mutex_.lock();
-  callbacks_[send_msg_id] = callback;
+  callbacks_[send_msg_id] = std::move(callback);
   callbacks_mutex_.unlock();
 
   // Build and send the message. Note that ConnectionRouter is a ROUTER socket.
@@ -510,7 +509,7 @@ void Messenger::ServerLoop() {
         break;
       }
       // Otherwise, at least some socket has data. Is it the current socket?
-      bool socket_has_data = item.revents & ZMQ_POLLIN;
+      bool socket_has_data = (item.revents & ZMQ_POLLIN) != 0;
       if (socket_has_data) {
         common::ManagedPointer<zmq::socket_t> socket(reinterpret_cast<zmq::socket_t *>(&item.socket));
         ZmqMessage msg = ZmqUtil::RecvMsg(socket);
