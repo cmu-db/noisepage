@@ -486,8 +486,6 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 
   // Finally abort the unrecoverable_txn so GC can clean it up
   txn_manager_->Abort(unrecoverable_txn);
-  // Shutdown the system to ensure GC is fully performed before exiting and calling destructors
-  ShutdownAndRestartSystem();
 }
 
 // Tests we correct order transactions and execute GC when concurrent transactions make DDL changes to the catalog
