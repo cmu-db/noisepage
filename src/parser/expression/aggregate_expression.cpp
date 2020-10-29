@@ -1,7 +1,7 @@
 #include "parser/expression/aggregate_expression.h"
 
-#include "common/hash_util.h"
 #include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "spdlog/fmt/fmt.h"
 
