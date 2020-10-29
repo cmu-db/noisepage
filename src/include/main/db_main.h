@@ -204,7 +204,33 @@ class DBMain {
     }
 
     ~CatalogLayer() {
-      catalog_->TearDown();  // generates txns and deferred actions, so need to flush the system afterwards
+      // Ensure all user-driven transactions are fully flushed and GC'd
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+      // Identify and schedule deletion of remaining tables and objects (generates txns and deferred actions).
+      // Specifically, this will generate the following (Note: these transactions are read-only and there are no logical
+      // deletes of the data as that would cause replicas to replay :
+      //
+      // CatalogTearDown:
+      //   BEGIN
+      //     For each database:
+      //       DEFER {
+      //         database.TearDown()
+      //         delete database
+      //       }
+      //     DEFER deletion of pg_database objects
+      //   COMMIT
+      //
+      // DatabaseTearDown:
+      //   BEGIN
+      //     For each stored object:
+      //       DEFER deletion of object
+      //   COMMIT
+      //
+      // TODO(John): We could eagerly execute the database.TearDown() and delete calls, but this would force us into
+      // sequential execution of TearDown when we could potentially multithread the table scans of each database catalog
+      // using DAF.
+      catalog_->TearDown();
+      // Ensure these resources are properly released.
       deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
     }
 
