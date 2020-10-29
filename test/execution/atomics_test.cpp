@@ -12,6 +12,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
+#include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm_defs.h"
 #include "spdlog/fmt/fmt.h"
@@ -21,7 +22,7 @@ namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
-  AtomicsTest() : region_("atomics_test"), pos_() {}
+  AtomicsTest() : region_("atomics_test"), pos_() { vm::LLVMEngine::Initialize(); }
 
   util::Region *Region() { return &region_; }
 
@@ -31,7 +32,8 @@ class AtomicsTest : public TplTest {
   SourcePosition pos_;
 
   template <typename T>
-  void AndOrTest(const std::string &tpl_type) {
+  void AndOrTest(const std::string &tpl_type, const bool compiled) {
+    auto exec_mode = compiled ? vm::ExecutionMode::Compiled : vm::ExecutionMode::Interpret;
     // Setup the compilation environment
     sema::ErrorReporter error_reporter(&region_);
     ast::AstNodeFactory factory(&region_);
@@ -55,11 +57,11 @@ class AtomicsTest : public TplTest {
 
     // The function should exist
     std::function<T(T *, T)> atomic_and;
-    EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
+    EXPECT_TRUE(module->GetFunction("atomic_and", exec_mode, &atomic_and));
 
     // The function should exist
     std::function<T(T *, T)> atomic_or;
-    EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
+    EXPECT_TRUE(module->GetFunction("atomic_or", exec_mode, &atomic_or));
 
     /*=========================
      *= Run correctness tests =
@@ -96,7 +98,8 @@ class AtomicsTest : public TplTest {
   }
 
   template <typename T>
-  void CompareExchangeTest(const std::string &tpl_type) {
+  void CompareExchangeTest(const std::string &tpl_type, const bool compiled) {
+    auto exec_mode = compiled ? vm::ExecutionMode::Compiled : vm::ExecutionMode::Interpret;
     // Setup the compilation environment
     sema::ErrorReporter error_reporter(&region_);
     ast::AstNodeFactory factory(&region_);
@@ -116,7 +119,7 @@ class AtomicsTest : public TplTest {
 
     // The function should exist
     std::function<bool(T *, T *, T)> cmpxchg;
-    EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
+    EXPECT_TRUE(module->GetFunction("cmpxchg", exec_mode, &cmpxchg));
 
     /*=========================
      *= Run correctness tests =
@@ -148,22 +151,28 @@ class AtomicsTest : public TplTest {
       ASSERT_EQ(target.load(), num_threads);
     }
   }
-
-  /* For pointer test */
-  struct Elem {
-    Elem *next;
-    int thread;
-    int number;
-  };
 };
 
-TEST_F(AtomicsTest, AtomicAndOr1) { AndOrTest<uint8_t>("uint8"); }                        // NOLINT
-TEST_F(AtomicsTest, AtomicAndOr2) { AndOrTest<uint16_t>("uint16"); }                      // NOLINT
-TEST_F(AtomicsTest, AtomicAndOr4) { AndOrTest<uint32_t>("uint32"); }                      // NOLINT
-TEST_F(AtomicsTest, AtomicAndOr8) { AndOrTest<uint64_t>("uint64"); }                      // NOLINT
-TEST_F(AtomicsTest, AtomicCompareExchange1) { CompareExchangeTest<uint8_t>("uint8"); }    // NOLINT
-TEST_F(AtomicsTest, AtomicCompareExchange2) { CompareExchangeTest<uint16_t>("uint16"); }  // NOLINT
-TEST_F(AtomicsTest, AtomicCompareExchange4) { CompareExchangeTest<uint32_t>("uint32"); }  // NOLINT
-TEST_F(AtomicsTest, AtomicCompareExchange8) { CompareExchangeTest<uint64_t>("uint64"); }  // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr1) { AndOrTest<uint8_t>("uint8", false); }                        // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr2) { AndOrTest<uint16_t>("uint16", false); }                      // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr4) { AndOrTest<uint32_t>("uint32", false); }                      // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr8) { AndOrTest<uint64_t>("uint64", false); }                      // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", false); }    // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", false); }  // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", false); }  // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", false); }  // NOLINT
+
+/* TODO(John): These tests are disabled because our testing environment does not
+ *  currently make `bytecode_handlers_ir.bc` available to the test programs.
+ *  Without this file, compiled tests fail.
+ */
+// TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
+// TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
+// TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT
+// TEST_F(AtomicsTest, CompiledAndOr8) { AndOrTest<uint64_t>("uint64", true); }                      // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", true); }    // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", true); }  // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", true); }  // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", true); }  // NOLINT
 
 }  // namespace noisepage::execution::test
