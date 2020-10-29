@@ -1843,23 +1843,38 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
 void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
 
+  // Permissive arg check to protect the following argument dereference
+  if (!CheckArgCountAtLeast(call, 1)) return;
+
+  auto operand_type = call_args[0]->GetType()->GetPointeeType();
+  if (operand_type == nullptr) {
+    ReportIncorrectCallArg(call, 0, "'dest' must be pointer to an integral type");
+    return;
+  }
+
+  /* TODO(John): Ideally we want to support CMPXCHG on pointers as well, but the
+   * primary use case would be inserting UNDO records into tables which requires
+   * recursive data structures for it to be type safe.  Once TPL supports that
+   * we should update this function to be more permisive for CMPXCHG
+   */
+  auto builtin_type = operand_type->SafeAs<ast::BuiltinType>();
+  if (builtin_type == nullptr || !builtin_type->IsIntegral()) {
+    ReportIncorrectCallArg(call, 0, "cannot perform atomic operations on non-integral types");
+    return;
+  }
+
+  if (builtin_type->GetSize() > 8) {
+    ReportIncorrectCallArg(call, 0, "cannot perform atomic operations on integrals wider than 8-bytes");
+    return;
+  }
+
   switch (builtin) {
     case ast::Builtin::AtomicAnd:
     case ast::Builtin::AtomicOr: {
       if (!CheckArgCount(call, 2)) return;
 
-      auto builtin_type = call_args[1]->GetType()->SafeAs<ast::BuiltinType>();
-      if (builtin_type == nullptr || !builtin_type->IsIntegral()) {
-        ReportIncorrectCallArg(call, 1, "cannot perform atomic arithmetic on non-integral types");
-        return;
-      }
-
-      if (builtin_type->GetSize() > 8) {
-        ReportIncorrectCallArg(call, 1, "cannot perform atomic arithmetic on integrals wider than 8-bytes");
-      }
-
-      if (call_args[0]->GetType()->GetPointeeType() != builtin_type) {
-        ReportIncorrectCallArg(call, 0, builtin_type->PointerTo());
+      if (call_args[1]->GetType() != builtin_type) {
+        ReportIncorrectCallArg(call, 1, builtin_type);
         return;
       }
 
@@ -1869,20 +1884,13 @@ void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
     case ast::Builtin::AtomicCompareExchange: {
       if (!CheckArgCount(call, 3)) return;
 
-      auto operand_type = call_args[2]->GetType();
-      auto operand_size = operand_type->GetSize();
-      if (operand_size != 1 && operand_size != 2 && operand_size != 4 && operand_size != 8) {
-        ReportIncorrectCallArg(call, 2, "unsupported operand size for atomic compare-exchange");
+      if (call_args[1]->GetType()->GetPointeeType() != builtin_type) {
+        ReportIncorrectCallArg(call, 1, builtin_type->PointerTo());
         return;
       }
 
-      if (call_args[0]->GetType()->GetPointeeType() != operand_type) {
-        ReportIncorrectCallArg(call, 0, operand_type->PointerTo());
-        return;
-      }
-
-      if (call_args[0]->GetType() != call_args[1]->GetType()) {
-        ReportIncorrectCallArg(call, 1, call_args[0]->GetType());
+      if (call_args[2]->GetType() != builtin_type) {
+        ReportIncorrectCallArg(call, 2, builtin_type);
         return;
       }
 

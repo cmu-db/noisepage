@@ -14,6 +14,7 @@
 #include "execution/util/region_containers.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm_defs.h"
+#include "spdlog/fmt/fmt.h"
 #include "test_util/multithread_test_util.h"
 
 namespace noisepage::execution::test {
@@ -30,11 +31,22 @@ class AtomicsTest : public TplTest {
   SourcePosition pos_;
 
   template <typename T>
-  void AndOrTest(const std::string &src) {
+  void AndOrTest(const std::string &tpl_type) {
     // Setup the compilation environment
     sema::ErrorReporter error_reporter(&region_);
     ast::AstNodeFactory factory(&region_);
     ast::Context context(&region_, &error_reporter);
+
+    const std::string &src = fmt::format(R"(
+    fun atomic_and(dest: *{0}, mask: {0}) -> {0} {{
+      var x = @atomicAnd(dest, mask)
+      return x
+    }}
+    fun atomic_or(dest: *{0}, mask: {0}) -> {0} {{
+      var x = @atomicOr(dest, mask)
+      return x
+    }})",
+                                         tpl_type);
 
     // Compile it...
     auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
@@ -53,8 +65,6 @@ class AtomicsTest : public TplTest {
      *= Run correctness tests =
      *=========================
      */
-
-    std::default_random_engine generator;
     const uint32_t num_iters = 100;
     const uint32_t num_cycles = 1000;
     const uint32_t num_threads = sizeof(T) * 8;  // Number of bits in test
@@ -86,11 +96,18 @@ class AtomicsTest : public TplTest {
   }
 
   template <typename T>
-  void CompareExchangeTest(const std::string &src) {
+  void CompareExchangeTest(const std::string &tpl_type) {
     // Setup the compilation environment
     sema::ErrorReporter error_reporter(&region_);
     ast::AstNodeFactory factory(&region_);
     ast::Context context(&region_, &error_reporter);
+
+    const std::string &src = fmt::format(R"(
+    fun cmpxchg(dest: *{0}, expected: *{0}, desired: {0}) -> bool {{
+      var x = @atomicCompareExchange(dest, expected, desired)
+      return x
+    }})",
+                                         tpl_type);
 
     // Compile it...
     auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
@@ -105,8 +122,6 @@ class AtomicsTest : public TplTest {
      *= Run correctness tests =
      *=========================
      */
-
-    std::default_random_engine generator;
     const uint32_t num_iters = 1000;
     const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
     common::WorkerPool thread_pool(num_threads, {});
@@ -133,93 +148,22 @@ class AtomicsTest : public TplTest {
       ASSERT_EQ(target.load(), num_threads);
     }
   }
+
+  /* For pointer test */
+  struct Elem {
+    Elem *next;
+    int thread;
+    int number;
+  };
 };
 
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr1) {
-  AndOrTest<uint8_t>(R"(
-    fun atomic_and(dest: *uint8, mask: uint8) -> uint8 {
-      var x = @atomicAnd(dest, mask)
-      return x
-    }
-    fun atomic_or(dest: *uint8, mask: uint8) -> uint8 {
-      var x = @atomicOr(dest, mask)
-      return x
-    })");
-}
+TEST_F(AtomicsTest, AtomicAndOr1) { AndOrTest<uint8_t>("uint8"); }                        // NOLINT
+TEST_F(AtomicsTest, AtomicAndOr2) { AndOrTest<uint16_t>("uint16"); }                      // NOLINT
+TEST_F(AtomicsTest, AtomicAndOr4) { AndOrTest<uint32_t>("uint32"); }                      // NOLINT
+TEST_F(AtomicsTest, AtomicAndOr8) { AndOrTest<uint64_t>("uint64"); }                      // NOLINT
+TEST_F(AtomicsTest, AtomicCompareExchange1) { CompareExchangeTest<uint8_t>("uint8"); }    // NOLINT
+TEST_F(AtomicsTest, AtomicCompareExchange2) { CompareExchangeTest<uint16_t>("uint16"); }  // NOLINT
+TEST_F(AtomicsTest, AtomicCompareExchange4) { CompareExchangeTest<uint32_t>("uint32"); }  // NOLINT
+TEST_F(AtomicsTest, AtomicCompareExchange8) { CompareExchangeTest<uint64_t>("uint64"); }  // NOLINT
 
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr2) {
-  AndOrTest<uint16_t>(R"(
-    fun atomic_and(dest: *uint16, mask: uint16) -> uint16 {
-      var x = @atomicAnd(dest, mask)
-      return x
-    }
-    fun atomic_or(dest: *uint16, mask: uint16) -> uint16 {
-      var x = @atomicOr(dest, mask)
-      return x
-    })");
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr4) {
-  AndOrTest<uint32_t>(R"(
-    fun atomic_and(dest: *uint32, mask: uint32) -> uint32 {
-      var x = @atomicAnd(dest, mask)
-      return x
-    }
-    fun atomic_or(dest: *uint32, mask: uint32) -> uint32 {
-      var x = @atomicOr(dest, mask)
-      return x
-    })");
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr8) {
-  AndOrTest<uint64_t>(R"(
-    fun atomic_and(dest: *uint64, mask: uint64) -> uint64 {
-      var x = @atomicAnd(dest, mask)
-      return x
-    }
-    fun atomic_or(dest: *uint64, mask: uint64) -> uint64 {
-      var x = @atomicOr(dest, mask)
-      return x
-    })");
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange1) {
-  CompareExchangeTest<uint8_t>(R"(
-    fun cmpxchg(dest: *uint8, expected: *uint8, desired: uint8) -> bool {
-      var x = @atomicCompareExchange(dest, expected, desired)
-      return x
-    })");
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange2) {
-  CompareExchangeTest<uint16_t>(R"(
-    fun cmpxchg(dest: *uint16, expected: *uint16, desired: uint16) -> bool {
-      var x = @atomicCompareExchange(dest, expected, desired)
-      return x
-    })");
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange4) {
-  CompareExchangeTest<uint32_t>(R"(
-    fun cmpxchg(dest: *uint32, expected: *uint32, desired: uint32) -> bool {
-      var x = @atomicCompareExchange(dest, expected, desired)
-      return x
-    })");
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange8) {
-  CompareExchangeTest<uint64_t>(R"(
-    fun cmpxchg(dest: *uint64, expected: *uint64, desired: uint64) -> bool {
-      var x = @atomicCompareExchange(dest, expected, desired)
-      return x
-    })");
-}
 }  // namespace noisepage::execution::test
