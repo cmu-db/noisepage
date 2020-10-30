@@ -412,7 +412,6 @@ class EXPORT Timestamp {
 template <typename T>
 class EXPORT Decimal {
  public:
-
   void RoundUpAndSet(std::string input, unsigned precision);
 
   void MultiplyAndSet(const Decimal<T> &value, unsigned precision);
@@ -493,20 +492,18 @@ class EXPORT Decimal {
     return *this;
   }
 
-  T GetValue() const {
-    return value_;
-  }
+  T GetValue() const { return value_; }
 
-  void SignedDivideWithDecimal(Decimal<T> input,
-                               unsigned denominator_precision);
+  void SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_precision);
+
  private:
   // The encoded decimal value
   T value_;
   void UnsignedDivideConstant128Bit(uint128_t constant);
   void UnsignedDivideConstant128BitPowerOfTen(unsigned power);
   void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
-  void SignedMultiplyWithConstant(long long int input);
-  void SignedDivideWithConstant(long long int input);
+  void SignedMultiplyWithConstant(int64_t input);
+  void SignedDivideWithConstant(int64_t input);
 };
 
 using Decimal32 = Decimal<int32_t>;

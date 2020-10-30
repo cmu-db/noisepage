@@ -11,16 +11,15 @@ class DecimalBenchmark : public benchmark::Fixture {
  public:
   void SetUp(const benchmark::State &state) final {
     // generate a random column of decimals and floats
-    for(unsigned i=0; i < 1000000; i++) {
+    for (unsigned i = 0; i < 1000000; i++) {
       execution::sql::Decimal128 d(i);
       decimals_.push_back(d);
-      float f = ((float)i) / ((float)1000);
+      float f = (static_cast<float>(i)) / (static_cast<float>(1000));
       floats_.push_back(f);
     }
   }
 
-  void TearDown(const benchmark::State &state) final {
-  }
+  void TearDown(const benchmark::State &state) final {}
 
   // Read buffers pointers for concurrent reads
   std::vector<execution::sql::Decimal128> decimals_;
@@ -35,24 +34,25 @@ BENCHMARK_DEFINE_F(DecimalBenchmark, AddDecimal)(benchmark::State &state) {
   {
     execution::sql::Decimal128 result(0);
     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-    for(unsigned  j = 0; j < 1000; j++)
-    for(unsigned i = 0; i < decimals_.size(); i++) {
-      result += decimals_[i];
-    }
+    for (unsigned j = 0; j < 1000; j++)
+      for (unsigned i = 0; i < decimals_.size(); i++) {
+        result += decimals_[i];
+      }
   }
   state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 }
 
+// NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DecimalBenchmark, AddFloat)(benchmark::State &state) {
   // NOLINTNEXTLINE
   uint64_t elapsed_ms;
   {
     float result = 0;
     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-    for(unsigned  j = 0; j < 1000; j++)
-    for(unsigned i = 0; i < floats_.size(); i++) {
-      result += floats_[i];
-    }
+    for (unsigned j = 0; j < 1000; j++)
+      for (unsigned i = 0; i < floats_.size(); i++) {
+        result += floats_[i];
+      }
   }
   state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 }

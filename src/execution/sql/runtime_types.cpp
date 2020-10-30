@@ -4,8 +4,8 @@
 #include <unordered_map>
 
 #include "common/error/exception.h"
-#include "spdlog/fmt/fmt.h"
 #include "execution/sql/decimal_magic_numbers.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace terrier::execution::sql {
 
@@ -664,50 +664,49 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision)  {
+void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision) {
   this->value_ = 0;
 
-  if(input.size() == 0) return;
+  if (input.size() == 0) return;
 
   unsigned pos = 0;
 
   bool is_negative = false;
-  if(input[pos] == '-') {
+  if (input[pos] == '-') {
     pos++;
     is_negative = true;
   }
 
-  while(pos < input.size() && input[pos] != '.') {
+  while (pos < input.size() && input[pos] != '.') {
     this->value_ += input[pos] - '0';
     this->value_ *= 10;
     pos++;
   }
 
-  if(precision == 0) {
+  if (precision == 0) {
     this->value_ /= 10;
-    if(pos != input.size()) {
-      if(pos + 1 < input.size()) {
+    if (pos != input.size()) {
+      if (pos + 1 < input.size()) {
         pos++;
-        if(input[pos] - '0' > 5) {
+        if (input[pos] - '0' > 5) {
           this->value_ += 1;
-        } else if(input[pos] - '0' == 5 &&
-                   this->value_ % 2 == 1) {
+        } else if (input[pos] - '0' == 5 && this->value_ % 2 == 1) {
           this->value_ += 1;
         }
       }
     }
-    if(is_negative) {
+    if (is_negative) {
       this->value_ = -this->value_;
     }
     return;
   }
 
   // No decimal point case
-  if(pos == input.size()) {
-    for(unsigned i = 0; i < precision - 1; i++) {
+  if (pos == input.size()) {
+    for (unsigned i = 0; i < precision - 1; i++) {
       this->value_ *= 10;
     }
-    if(is_negative) {
+    if (is_negative) {
       this->value_ = -this->value_;
     }
     return;
@@ -715,51 +714,51 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision)  {
   // Skip decimal point
   pos++;
   // Nothing after decimal point case
-  if(pos == input.size()) {
-    for(unsigned i = 0; i < precision - 1; i++) {
+  if (pos == input.size()) {
+    for (unsigned i = 0; i < precision - 1; i++) {
       this->value_ *= 10;
     }
-    if(is_negative) {
+    if (is_negative) {
       this->value_ = -this->value_;
     }
     return;
   }
 
-  for(unsigned i = 1; i < precision; i++) {
-    if(pos < input.size()) {
+  for (unsigned i = 1; i < precision; i++) {
+    if (pos < input.size()) {
       this->value_ += input[pos] - '0';
       this->value_ *= 10;
       pos++;
     } else {
-      for(unsigned j = i; j < precision; j++) {
+      for (unsigned j = i; j < precision; j++) {
         this->value_ *= 10;
       }
-      if(is_negative) {
+      if (is_negative) {
         this->value_ = -this->value_;
       }
       return;
     }
   }
 
-  if(pos == input.size()) {
-    if(is_negative) {
+  if (pos == input.size()) {
+    if (is_negative) {
       this->value_ = -this->value_;
     }
     return;
   }
 
-  if(pos == input.size() - 1) {
+  if (pos == input.size() - 1) {
     // No Rounding required
     this->value_ += input[pos] - '0';
   } else {
-    if(input[pos + 1] - '0' > 5) {
+    if (input[pos + 1] - '0' > 5) {
       // Round Up
       this->value_ += input[pos] - '0' + 1;
-    } else if(input[pos + 1] - '0' < 5) {
+    } else if (input[pos + 1] - '0' < 5) {
       // No Rounding will happen
       this->value_ += input[pos] - '0';
     } else {
-      if((input[pos] - '0') % 2 == 0) {
+      if ((input[pos] - '0') % 2 == 0) {
         // Round up if ODD
         this->value_ += input[pos] - '0';
       } else {
@@ -769,63 +768,77 @@ void Decimal<T>::RoundUpAndSet(std::string input, unsigned int precision)  {
     }
   }
 
-  if(is_negative) {
+  if (is_negative) {
     this->value_ = -this->value_;
   }
 }
 
-void CalculateMultiWordProduct128(uint128_t  *half_words_a,
-                                  uint128_t  *half_words_b,
-                                  uint128_t  *half_words_result,
-                                  unsigned m,
-                                  unsigned n) {
-    uint128_t k, t;
-    unsigned i, j;
-    constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-    for (i = 0; i < m; i++) half_words_result[i] = 0;
-    for (j = 0; j < n; j++) {
-      k = 0;
-      for (i = 0; i < m; i++) {
-        t = half_words_a[i]*half_words_b[j] + half_words_result[i + j] + k;
-        half_words_result[i + j] = t & bottom_mask;
-        k = t >> 64;
-      }
-      half_words_result[j + m] = k;
+void CalculateMultiWordProduct128(uint128_t *half_words_a, uint128_t *half_words_b, uint128_t *half_words_result,
+                                  unsigned m, unsigned n) {
+  uint128_t k, t;
+  unsigned i, j;
+  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
+  for (i = 0; i < m; i++) half_words_result[i] = 0;
+  for (j = 0; j < n; j++) {
+    k = 0;
+    for (i = 0; i < m; i++) {
+      t = half_words_a[i] * half_words_b[j] + half_words_result[i + j] + k;
+      half_words_result[i + j] = t & bottom_mask;
+      k = t >> 64;
     }
+    half_words_result[j + m] = k;
+  }
 }
 
 int nlz128(uint128_t x) {
+  // TODO(ROHAN): Think if can be calculated using double - Problem not machine independent
+  // Figure 5-19 - Hacker's Delight
+  constexpr uint128_t A = ((uint128_t)0x0000000000000000 << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t B = ((uint128_t)0x00000000FFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t C = ((uint128_t)0x0000FFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t D = ((uint128_t)0x00FFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t E = ((uint128_t)0x0FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t F = ((uint128_t)0x3FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
+  constexpr uint128_t G = ((uint128_t)0x7FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
 
-    // TODO(ROHAN): Think if can be calculated using double - Problem not machine independent
-    // Figure 5-19 - Hacker's Delight
-    constexpr uint128_t A = ((uint128_t)0x0000000000000000 << 64) | 0xFFFFFFFFFFFFFFFF;
-    constexpr uint128_t B = ((uint128_t)0x00000000FFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-    constexpr uint128_t C = ((uint128_t)0x0000FFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-    constexpr uint128_t D = ((uint128_t)0x00FFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-    constexpr uint128_t E = ((uint128_t)0x0FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-    constexpr uint128_t F = ((uint128_t)0x3FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-    constexpr uint128_t G = ((uint128_t)0x7FFFFFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
-
-    if (x == 0) return(128);
-    int n = 0;
-    if (x <= A) {n = n + 64; x = x << 64;}
-    if (x <= B) {n = n + 32; x = x << 32;}
-    if (x <= C) {n = n + 16; x = x << 16;}
-    if (x <= D) {n = n +  8; x = x <<  8;}
-    if (x <= E) {n = n +  4; x = x <<  4;}
-    if (x <= F) {n = n +  2; x = x <<  2;}
-    if (x <= G) {n = n +  1;}
-    return n;
+  if (x == 0) return (128);
+  int n = 0;
+  if (x <= A) {
+    n = n + 64;
+    x = x << 64;
+  }
+  if (x <= B) {
+    n = n + 32;
+    x = x << 32;
+  }
+  if (x <= C) {
+    n = n + 16;
+    x = x << 16;
+  }
+  if (x <= D) {
+    n = n + 8;
+    x = x << 8;
+  }
+  if (x <= E) {
+    n = n + 4;
+    x = x << 4;
+  }
+  if (x <= F) {
+    n = n + 2;
+    x = x << 2;
+  }
+  if (x <= G) {
+    n = n + 1;
+  }
+  return n;
 }
 
-uint128_t CalculateUnsignedLongDivision128(uint128_t  u1,
-                                  uint128_t  u0,
-                                  uint128_t  v) {
+uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
   // Base 2^64
   uint128_t b = 1;
   b = b << 64;
 
-  uint128_t un1, un0,vn1, vn0,q1, q0,un32, un21, un10,rhat;
+  uint128_t un1, un0, vn1, vn0, q1, q0, un32, un21, un10, rhat;
   int128_t s = nlz128(v);
 
   // Normalize everything
@@ -838,124 +851,121 @@ uint128_t CalculateUnsignedLongDivision128(uint128_t  u1,
   un1 = un10 >> 64;
   un0 = un10 & 0xFFFFFFFFFFFFFFFF;
 
-  q1 = un32/vn1;
-  rhat = un32 - q1*vn1;
+  q1 = un32 / vn1;
+  rhat = un32 - q1 * vn1;
 
   do {
-    if (q1 >= b || q1*vn0 > b*rhat + un1) {
+    if ((q1 >= b) || (q1 * vn0 > b * rhat + un1)) {
       q1 = q1 - 1;
       rhat = rhat + vn1;
     } else {
       break;
     }
-  } while (rhat >= b);
+  } while (rhat < b);
 
-  un21 = un32*b + un1 - q1*v;
+  un21 = un32 * b + un1 - q1 * v;
 
-  q0 = un21/vn1;
-  rhat = un21 - q0*vn1;
+  q0 = un21 / vn1;
+  rhat = un21 - q0 * vn1;
 
   do {
-    if (q0 >= b || q0*vn0 > b*rhat + un0) {
+    if ((q0 >= b) || (q0 * vn0 > b * rhat + un0)) {
       q0 = q0 - 1;
       rhat = rhat + vn1;
     } else {
       break;
     }
-  } while (rhat >= b);
+  } while (rhat < b);
 
-  return q1*b + q0;
+  return q1 * b + q0;
 }
 
 template <typename T>
-void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)  {
+void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision) {
+  constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
+  constexpr const uint128_t top_mask = ~bottom_mask;
 
-    constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
-    constexpr const uint128_t top_mask = ~bottom_mask;
+  // First input
+  uint128_t a = this->value_;
+  // Second input
+  uint128_t b = input.GetValue();
+  // Split into half words
+  uint128_t half_words_a[2];
+  uint128_t half_words_b[2];
 
-    // First input
-    uint128_t a = this->value_;
-    // Second input
-    uint128_t b = input.GetValue();
-    // Split into half words
-    uint128_t half_words_a[2];
-    uint128_t half_words_b[2];
+  half_words_a[0] = a & bottom_mask;
+  half_words_a[1] = (a & top_mask) >> 64;
 
-    half_words_a[0] = a & bottom_mask;
-    half_words_a[1] = (a & top_mask) >> 64;
+  half_words_b[0] = b & bottom_mask;
+  half_words_b[1] = (b & top_mask) >> 64;
 
-    half_words_b[0] = b & bottom_mask;
-    half_words_b[1] = (b & top_mask) >> 64;
+  // Calculate 256 bit result
+  uint128_t half_words_result[4];
+  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-    // Calculate 256 bit result
-    uint128_t half_words_result[4];
-    CalculateMultiWordProduct128(half_words_a, half_words_b,
-                                 half_words_result, 2, 2);
+  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
+    // TODO(Rohan): Optimize by sending in an array of half words
+    this->value_ = half_words_result[0] | (half_words_result[1] << 64);
+    this->UnsignedDivideConstant128BitPowerOfTen(precision);
+    return;
+  }
 
-    if(half_words_result[2] == 0 && half_words_result[3] == 0) {
-      // TODO(Rohan): Optimize by sending in an array of half words
-      this->value_ = half_words_result[0] | (half_words_result[1] << 64);
-      this->UnsignedDivideConstant128BitPowerOfTen(precision);
-      return;
-    }
+  // Magic number halfwords
+  uint128_t magic[4];
+  magic[0] = MAGIC_ARRAY[precision][3];
+  magic[1] = MAGIC_ARRAY[precision][2];
+  magic[2] = MAGIC_ARRAY[precision][1];
+  magic[3] = MAGIC_ARRAY[precision][0];
 
-    // Magic number halfwords
-    uint128_t magic[4];
-    magic[0] = MAGIC_ARRAY[precision][3];
-    magic[1] = MAGIC_ARRAY[precision][2];;
-    magic[2] = MAGIC_ARRAY[precision][1];;
-    magic[3] = MAGIC_ARRAY[precision][0];;
+  unsigned magic_p = MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
 
-    unsigned magic_p = MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
+  // TODO(ROHAN): Throw overflow exception
+  if (MAGIC_P_AND_ALGO_ARRAY[precision][1] == 0) {
+    // Overflow Algorithm 1 - Magic number is < 2^256
 
-    // TODO(ROHAN): Throw overflow exception
-    if(MAGIC_P_AND_ALGO_ARRAY[precision][1] == 0) {
-      // Overflow Algorithm 1 - Magic number is < 2^256
+    // Magic Result
+    uint128_t half_words_magic_result[8];
+    // TODO(Rohan): Make optimization to calculate only upper half of the word
+    CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
+    // Get the higher order result
+    uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+    uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
 
-      // Magic Result
-      uint128_t half_words_magic_result[8];
-      // TODO(Rohan): Make optimization to calculate only upper half of the word
-      CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
-      // Get the higher order result
-      uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
-      uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+    result_lower = result_lower >> magic_p;
+    result_upper = result_upper << (128 - magic_p);
+    this->value_ = result_lower | result_upper;
+    return;
+  } else {
+    // Overflow Algorithm 2 - Magic number is > 2^256
 
-      result_lower = result_lower >> magic_p;
-      result_upper = result_upper << (128 - magic_p);
-      this->value_ = result_lower | result_upper;
-      return;
-    } else {
-      // Overflow Algorithm 2 - Magic number is > 2^256
+    // Magic Result
+    uint128_t half_words_magic_result[8];
+    // TODO(Rohan): Make optimization to calculate only upper half of the word
+    CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
+    // Get the higher order result
+    uint128_t result_lower = half_words_result[0] | (half_words_result[1] << 64);
+    uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
 
-      // Magic Result
-      uint128_t half_words_magic_result[8];
-      // TODO(Rohan): Make optimization to calculate only upper half of the word
-      CalculateMultiWordProduct128(half_words_result, magic, half_words_magic_result, 4, 4);
-      // Get the higher order result
-      uint128_t result_lower = half_words_result[0] | (half_words_result[1] << 64);
-      uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
+    uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+    uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
 
-      uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
-      uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+    /*Perform addition*/
+    result_lower += add_lower;
+    result_upper += add_upper;
+    // carry bit using conditional instructions
+    result_upper += (result_lower < add_lower);
 
-      /*Perform addition*/
-      result_lower += add_lower;
-      result_upper += add_upper;
-      // carry bit using conditional instructions
-      result_upper += (result_lower < add_lower);
-
-      /*We know that we only retain the lower 128 bits so there is no need of shri
-       * We can safely drop the additional carry bit*/
-      result_lower = result_lower >> magic_p;
-      result_upper = result_upper << (128 - magic_p);
-      this->value_ = result_lower | result_upper;
-      return;
-    }
+    /*We know that we only retain the lower 128 bits so there is no need of shri
+     * We can safely drop the additional carry bit*/
+    result_lower = result_lower >> magic_p;
+    result_upper = result_upper << (128 - magic_p);
+    this->value_ = result_lower | result_upper;
+    return;
+  }
 }
 
 template <typename T>
-void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power)  {
-
+void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power) {
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
@@ -975,14 +985,13 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power)  {
   // Calculate 256 bit result
   uint128_t half_words_result[4];
   // TODO(Rohan): Calculate only upper half
-  CalculateMultiWordProduct128(half_words_a, half_words_b,
-                               half_words_result, 2, 2);
+  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
   unsigned magic_p = MAGIC_MAP_128_BIT_POWER_TEN[power].p - 128;
 
   // TODO(ROHAN): Throw overflow exception
 
-  if(MAGIC_MAP_128_BIT_POWER_TEN[power].algo == 0) {
+  if (MAGIC_MAP_128_BIT_POWER_TEN[power].algo == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
 
     uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
@@ -999,7 +1008,7 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power)  {
     uint128_t carry = (uint128_t)(result_upper < add_upper);
     carry = carry << 127;
     // shrxi 1
-    result_upper = result_upper>>1;
+    result_upper = result_upper >> 1;
     result_upper |= carry;
 
     this->value_ = result_upper >> (magic_p - 1);
@@ -1007,9 +1016,8 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power)  {
 }
 
 template <typename T>
-void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant)  {
-
-  if(constant == 1) {
+void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant) {
+  if (constant == 1) {
     return;
   }
 
@@ -1017,15 +1025,19 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant)  {
   constexpr const uint128_t top_mask = ~bottom_mask;
 
   // Power of 2
-  if((constant & (constant - 1)) == 0) {
+  if ((constant & (constant - 1)) == 0) {
     unsigned power_of_two = PowerTwo[constant];
-    this->value_ = this->value_ >> power_of_two;
+    uint128_t numerator = this->value_;
+    numerator = numerator >> power_of_two;
+    this->value_ = numerator;
     return;
   }
 
   // Cannot optimize if we do not have the magic number with us
-  if(MagicMap128BitConstantDivision.count(constant) == 0) {
-    this->value_ /= constant;
+  if (MagicMap128BitConstantDivision.count(constant) == 0) {
+    uint128_t numerator = this->value_;
+    numerator = numerator / constant;
+    this->value_ = numerator;
     return;
   }
 
@@ -1045,12 +1057,11 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant)  {
   // Calculate 256 bit result
   uint128_t half_words_result[4];
   // TODO(Rohan): Calculate only upper half
-  CalculateMultiWordProduct128(half_words_a, half_words_b,
-                               half_words_result, 2, 2);
+  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
   unsigned magic_p = MagicMap128BitConstantDivision[constant].p - 128;
 
-  if(MagicMap128BitConstantDivision[constant].algo == 0) {
+  if (MagicMap128BitConstantDivision[constant].algo == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
 
     uint128_t result_upper = half_words_result[2] | (half_words_result[3] << 64);
@@ -1067,7 +1078,7 @@ void Decimal<T>::UnsignedDivideConstant128Bit(uint128_t constant)  {
     uint128_t carry = (uint128_t)(result_upper < add_upper);
     carry = carry << 127;
     // shrxi 1
-    result_upper = result_upper>>1;
+    result_upper = result_upper >> 1;
     result_upper |= carry;
 
     this->value_ = result_upper >> (magic_p - 1);
@@ -1078,22 +1089,22 @@ template <typename T>
 void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision) {
   bool negative_result = (this->value_ < 0) != (input.GetValue() < 0);
 
-  if(this->value_ < 0) {
+  if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
 
   this->MultiplyAndSet(input, lower_precision);
 
-  if(negative_result) {
+  if (negative_result) {
     this->value_ = 0 - this->value_;
   }
 }
 
 template <typename T>
-void Decimal<T>::SignedMultiplyWithConstant(long long int input) {
+void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
   bool negative_result = (this->value_ < 0) != (input < 0);
 
-  if(this->value_ < 0) {
+  if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
 
@@ -1105,7 +1116,7 @@ void Decimal<T>::SignedMultiplyWithConstant(long long int input) {
 
   // Second input
   uint128_t b;
-  if(input < 0) {
+  if (input < 0) {
     b = input;
   } else {
     b = -input;
@@ -1123,31 +1134,29 @@ void Decimal<T>::SignedMultiplyWithConstant(long long int input) {
 
   // Calculate 256 bit result
   uint128_t half_words_result[4];
-  CalculateMultiWordProduct128(half_words_a, half_words_b,
-                               half_words_result, 2, 2);
+  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  if(half_words_result[2] == 0 && half_words_result[3] == 0) {
+  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
   } else {
     // TODO(Rohan): Throw overflow exception
   }
 
-  if(negative_result) {
+  if (negative_result) {
     this->value_ = 0 - this->value_;
   }
 }
 
 template <typename T>
-void Decimal<T>::SignedDivideWithConstant(long long int input) {
-
+void Decimal<T>::SignedDivideWithConstant(int64_t input) {
   bool negative_result = (this->value_ < 0) != (input < 0);
 
-  if(this->value_ < 0) {
+  if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
 
   uint128_t constant;
-  if(input < 0) {
+  if (input < 0) {
     constant = -input;
   } else {
     constant = input;
@@ -1155,25 +1164,24 @@ void Decimal<T>::SignedDivideWithConstant(long long int input) {
 
   this->UnsignedDivideConstant128Bit(constant);
 
-  if(negative_result) {
+  if (negative_result) {
     this->value_ = 0 - this->value_;
   }
 }
 
 template <typename T>
 void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_precision) {
-
   constexpr const uint128_t bottom_mask = (uint128_t{1} << 64) - 1;
   constexpr const uint128_t top_mask = ~bottom_mask;
 
   bool negative_result = (this->value_ < 0) != (input.GetValue() < 0);
 
-  if(this->value_ < 0) {
+  if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
 
   uint128_t constant;
-  if(input < 0) {
+  if (input < 0) {
     constant = -input.GetValue();
   } else {
     constant = input.GetValue();
@@ -1192,26 +1200,21 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
   half_words_b[1] = PowerOfTen[denominator_precision][0];
 
   uint128_t half_words_result[4];
-  CalculateMultiWordProduct128(half_words_a, half_words_b,
-                               half_words_result, 2, 2);
+  CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
-  if(half_words_result[2] == 0 && half_words_result[3] == 0) {
+  if (half_words_result[2] == 0 && half_words_result[3] == 0) {
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
     this->UnsignedDivideConstant128Bit(constant);
   } else {
     // TODO(ROHAN) : Routine for magic numbers 256 bit division
-    this->value_ = CalculateUnsignedLongDivision128(
-        half_words_result[2] | (half_words_result[3] << 64),
-        half_words_result[0] | (half_words_result[1] << 64),
-         constant);
+    this->value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
+                                                    half_words_result[0] | (half_words_result[1] << 64), constant);
   }
 
-  if(negative_result) {
+  if (negative_result) {
     this->value_ = 0 - this->value_;
   }
 }
-
-
 
 template class Decimal<int128_t>;
 template class Decimal<int64_t>;
