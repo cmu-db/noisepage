@@ -11,7 +11,7 @@
 #include "test_util/catalog_test_util.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableBenchmarkObject *test_object)
     : test_object_(test_object),
       txn_(test_object->txn_manager_.BeginTransaction()),
@@ -73,15 +73,16 @@ LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<u
                                                              storage::RecordBufferSegmentPool *buffer_pool,
                                                              std::default_random_engine *generator, bool gc_on,
                                                              storage::LogManager *log_manager)
-    : txn_length_(txn_length),
-      operation_ratio_(std::move(operation_ratio)),
-      generator_(generator),
-      layout_({attr_sizes}),
+    : layout_({attr_sizes}),
       table_(common::ManagedPointer(block_store), layout_, storage::layout_version_t(0)),
+      generator_(generator),
+      abort_count_(0),
+      operation_ratio_(std::move(operation_ratio)),
       deferred_action_manager_(gc_on ? common::ManagedPointer(&timestamp_manager_) : DISABLED),
       txn_manager_(common::ManagedPointer(&timestamp_manager_),
                    gc_on ? common::ManagedPointer(&deferred_action_manager_) : DISABLED,
                    common::ManagedPointer(buffer_pool), gc_on, common::ManagedPointer(log_manager)),
+      txn_length_(txn_length),
       gc_on_(gc_on),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
@@ -154,7 +155,8 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
   return {abort_count_, elapsed_ms};
 }
 
-void LargeDataTableBenchmarkObject::SimulateOneTransaction(terrier::RandomDataTableTransaction *txn, uint32_t txn_id) {
+void LargeDataTableBenchmarkObject::SimulateOneTransaction(noisepage::RandomDataTableTransaction *txn,
+                                                           uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto insert = [&] { txn->RandomInsert(&thread_generator); };
@@ -178,4 +180,4 @@ void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Ra
   }
   txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
-}  // namespace terrier
+}  // namespace noisepage

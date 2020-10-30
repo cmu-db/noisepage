@@ -12,22 +12,22 @@
 #include "common/managed_pointer.h"
 #include "type/type_id.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class SqlTable;
 namespace index {
 class Index;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::execution::functions {
+namespace noisepage::execution::functions {
 class FunctionContext;
 }
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Catalog;
 class DatabaseCatalog;
 class CatalogCache;
@@ -415,4 +415,4 @@ class EXPORT CatalogAccessor {
   }
 };
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

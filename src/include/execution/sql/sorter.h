@@ -9,7 +9,11 @@
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::exec {
+class ExecutionContext;
+}
+
+namespace noisepage::execution::sql {
 
 class ThreadStateContainer;
 class VectorProjection;
@@ -66,6 +70,17 @@ class VectorProjectionIterator;
  */
 class EXPORT Sorter {
  public:
+  /** Used to denote the offsets into ExecutionContext::hooks_ of particular functions */
+  enum class HookOffsets : uint32_t {
+    StartTLSortHook = 0,
+    StartTLMergeHook,
+    EndTLSortHook,
+    EndTLMergeHook,
+    EndSingleSorterHook,
+
+    NUM_HOOKS
+  };
+
   /**
    * Minimum number of tuples to have before using a parallel sort. We use a smaller value in DEBUG
    * mode to reduce runtime of tests by not requiring large Sorters when testing parallel sorts.
@@ -84,11 +99,11 @@ class EXPORT Sorter {
   /**
    * Construct a sorter using @em memory as the memory allocator, storing tuples @em tuple_size
    * size in bytes, and using the comparison function @em cmp_fn.
-   * @param memory The memory pool to allocate memory from
+   * @param exec_ctx The ExecutionContext used for executing the query
    * @param cmp_fn The sorting comparison function
    * @param tuple_size The sizes of the input tuples in bytes
    */
-  Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size);
+  Sorter(exec::ExecutionContext *exec_ctx, ComparisonFunction cmp_fn, uint32_t tuple_size);
 
   /**
    * Destructor.
@@ -137,7 +152,7 @@ class EXPORT Sorter {
    * @param thread_state_container The container holding all thread-local sorter instances.
    * @param sorter_offset The offset into the container where the sorter instance is.
    */
-  void SortParallel(const ThreadStateContainer *thread_state_container, std::size_t sorter_offset);
+  void SortParallel(ThreadStateContainer *thread_state_container, std::size_t sorter_offset);
 
   /**
    * Perform a parallel Top-K of all sorter instances stored in the thread state container object.
@@ -148,7 +163,7 @@ class EXPORT Sorter {
    * @param sorter_offset The offset into the container where the sorter instance is.
    * @param top_k The number entries at the top the caller cares for.
    */
-  void SortTopKParallel(const ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
+  void SortTopKParallel(ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
 
   /**
    * @return The number of tuples currently in this sorter.
@@ -177,6 +192,7 @@ class EXPORT Sorter {
   friend class SorterIterator;
   friend class SorterVectorIterator;
 
+  exec::ExecutionContext *exec_ctx_;
   // Memory pool
   MemoryPool *memory_;
 
@@ -235,7 +251,7 @@ class SorterIterator {
    * @return A pointer to the current row. It assumed the called has checked the iterator is valid.
    */
   const byte *GetRow() const {
-    TERRIER_ASSERT(iter_ != end_, "Invalid iterator");
+    NOISEPAGE_ASSERT(iter_ != end_, "Invalid iterator");
     return *iter_;
   }
 
@@ -332,4 +348,4 @@ class SorterVectorIterator {
   std::unique_ptr<VectorProjectionIterator> vector_projection_iterator_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

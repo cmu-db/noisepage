@@ -6,7 +6,7 @@
 #include "execution/sql/generic_value.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class GenericValueTests : public TplTest {};
 
@@ -94,4 +94,4 @@ TEST_F(GenericValueTests, Equality) {
   EXPECT_NE(string_val, GenericValue::CreateNull(TypeId::Varchar));
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

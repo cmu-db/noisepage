@@ -6,7 +6,7 @@
 #include "main/db_main.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * These tests mostly exist to make sure we can compile and use the API of perf counters. It's difficult to make any
@@ -21,7 +21,7 @@ static void CreateAndDestroyCatalog(perf_counters *const counters) {
   common::PerfMonitor<inherit> monitor;
   monitor.Start();
 
-  auto db_main = terrier::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
+  auto db_main = noisepage::DBMain::Builder().SetUseGC(true).SetUseCatalog(true).Build();
   db_main.reset();
 
   monitor.Stop();
@@ -74,4 +74,4 @@ TEST_F(PerfMonitorTests, InheritTest) {
   UnbalancedChildrenThreads<inherit, common::PerfMonitor<inherit>::PerfCounters>();
 }
 
-}  // namespace terrier
+}  // namespace noisepage

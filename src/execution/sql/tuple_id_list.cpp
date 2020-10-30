@@ -5,7 +5,7 @@
 
 #include "execution/util/vector_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 void TupleIdList::BuildFromSelectionVector(const sel_t *sel_vector, uint32_t size) {
   for (uint32_t i = 0; i < size; i++) {
@@ -31,4 +31,4 @@ std::string TupleIdList::ToString() const {
 
 void TupleIdList::Dump(std::ostream &stream) const { stream << ToString() << std::endl; }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

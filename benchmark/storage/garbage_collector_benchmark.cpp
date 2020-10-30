@@ -7,7 +7,7 @@
 #include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
@@ -166,4 +166,4 @@ BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, HighContention)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->MinTime(2);
-}  // namespace terrier
+}  // namespace noisepage

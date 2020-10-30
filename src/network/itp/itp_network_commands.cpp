@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "network/itp/itp_protocol_interpreter.h"
-#include "network/terrier_server.h"
+#include "network/noisepage_server.h"
 #include "traffic_cop/traffic_cop.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 Transition ReplicationCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                                     common::ManagedPointer<ITPPacketWriter> out,
@@ -30,4 +30,4 @@ Transition StopReplicationCommand::Exec(common::ManagedPointer<ProtocolInterpret
   return Transition::PROCEED;
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

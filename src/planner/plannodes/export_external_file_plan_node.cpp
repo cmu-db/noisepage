@@ -6,7 +6,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t ExportExternalFilePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -74,4 +74,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ExportExternalFilePlanN
 
 DEFINE_JSON_BODY_DECLARATIONS(ExportExternalFilePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

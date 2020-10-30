@@ -7,7 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ConstantTranslator::ConstantTranslator(const parser::ConstantValueExpression &expr,
                                        CompilationContext *compilation_context)
@@ -44,4 +44,4 @@ ast::Expr *ConstantTranslator::DeriveValue(WorkContext *ctx, const ColumnValuePr
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

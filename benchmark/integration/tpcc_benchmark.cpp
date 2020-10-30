@@ -21,7 +21,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 /**
  * The behavior in these benchmarks mimics that of /test/integration/tpcc_test.cpp. If something changes here, it should
  * probably change there as well.
@@ -72,16 +72,16 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
   // one TPCC worker = one TPCC terminal = one thread
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   std::vector<Worker> workers;
-  workers.reserve(terrier::BenchmarkConfig::num_threads);
+  workers.reserve(noisepage::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
+  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, noisepage::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -100,7 +100,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+    for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -117,7 +117,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+      for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, &shut_down] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
         });
@@ -134,7 +134,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     thread_pool.Shutdown();
     delete gc_;
     delete tpcc_db;
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
   }
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);
@@ -150,7 +150,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
     state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
-                            terrier::BenchmarkConfig::num_threads);
+                            noisepage::BenchmarkConfig::num_threads);
   }
 }
 
@@ -159,20 +159,20 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   // one TPCC worker = one TPCC terminal = one thread
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   std::vector<Worker> workers;
-  workers.reserve(terrier::BenchmarkConfig::num_threads);
+  workers.reserve(noisepage::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
+  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, noisepage::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     // we need transactions, TPCC database, and GC
     log_manager_ =
-        new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                 log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                 common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
@@ -193,7 +193,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+    for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -209,7 +209,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+      for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, &shut_down] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
         });
@@ -245,7 +245,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
     state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
-                            terrier::BenchmarkConfig::num_threads);
+                            noisepage::BenchmarkConfig::num_threads);
   }
 }
 
@@ -254,24 +254,25 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
   // one TPCC worker = one TPCC terminal = one thread
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   std::vector<Worker> workers;
-  workers.reserve(terrier::BenchmarkConfig::num_threads);
+  workers.reserve(noisepage::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
+  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, noisepage::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ = new common::DedicatedThreadRegistry{common::ManagedPointer(metrics_manager)};
     // we need transactions, TPCC database, and GC
     log_manager_ =
-        new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                 log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                 common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
@@ -292,7 +293,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+    for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -310,7 +311,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+      for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, &shut_down] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
         });
@@ -348,7 +349,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
     state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
-                            terrier::BenchmarkConfig::num_threads);
+                            noisepage::BenchmarkConfig::num_threads);
   }
 }
 
@@ -357,20 +358,21 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
   // one TPCC worker = one TPCC terminal = one thread
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   std::vector<Worker> workers;
-  workers.reserve(terrier::BenchmarkConfig::num_threads);
+  workers.reserve(noisepage::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
+  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, noisepage::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
     auto *const metrics_thread = new metrics::MetricsThread(common::ManagedPointer(metrics_manager), metrics_period_);
-    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION, 0);
+    metrics_manager->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 0);
+    metrics_manager->EnableMetric(metrics::MetricsComponent::TRANSACTION);
     // we need transactions, TPCC database, and GC
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{common::ManagedPointer(&timestamp_manager)};
@@ -389,7 +391,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+    for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -404,7 +406,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+      for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, metrics_manager, &shut_down] {
           metrics_manager->RegisterThread();
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
@@ -439,7 +441,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     state.SetItemsProcessed(state.iterations() * num_new_orders);
   } else {
     state.SetItemsProcessed(state.iterations() * num_precomputed_txns_per_worker_ *
-                            terrier::BenchmarkConfig::num_threads);
+                            noisepage::BenchmarkConfig::num_threads);
   }
 }
 
@@ -448,10 +450,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   // one TPCC worker = one TPCC terminal = one thread
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   std::vector<Worker> workers;
-  workers.reserve(terrier::BenchmarkConfig::num_threads);
+  workers.reserve(noisepage::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
+  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, noisepage::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
 
   // record actual number of txns processed
@@ -460,7 +462,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
@@ -483,7 +485,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+    for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -503,7 +505,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithGCMetrics)(benchmark::State &s
     bool shut_down = false;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+      for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, metrics_manager, &shut_down,
                                 &num_actual_processed] {
           metrics_manager->RegisterThread();
@@ -550,10 +552,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
   // one TPCC worker = one TPCC terminal = one thread
   common::WorkerPool thread_pool(BenchmarkConfig::num_threads, {});
   std::vector<Worker> workers;
-  workers.reserve(terrier::BenchmarkConfig::num_threads);
+  workers.reserve(noisepage::BenchmarkConfig::num_threads);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
-  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, terrier::BenchmarkConfig::num_threads,
+  const auto precomputed_args = PrecomputeArgs(&generator_, txn_weights_, noisepage::BenchmarkConfig::num_threads,
                                                num_precomputed_txns_per_worker_);
 
   // record actual number of txns processed
@@ -562,7 +564,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
   // NOLINTNEXTLINE
   for (auto _ : state) {
     thread_pool.Startup();
-    unlink(terrier::BenchmarkConfig::logfile_path.data());
+    unlink(noisepage::BenchmarkConfig::logfile_path.data());
     for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     for (const auto &file : metrics::GarbageCollectionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_manager = new metrics::MetricsManager;
@@ -571,7 +573,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     thread_registry_ = new common::DedicatedThreadRegistry{common::ManagedPointer(metrics_manager)};
     // we need transactions, TPCC database, and GC
     log_manager_ =
-        new storage::LogManager(terrier::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
+        new storage::LogManager(noisepage::BenchmarkConfig::logfile_path.data(), num_log_buffers_,
                                 log_serialization_interval_, log_persist_interval_, log_persist_threshold_,
                                 common::ManagedPointer(&buffer_pool_), common::ManagedPointer(thread_registry_));
     log_manager_->Start();
@@ -592,7 +594,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
 
     // prepare the workers
     workers.clear();
-    for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+    for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
       workers.emplace_back(tpcc_db);
     }
 
@@ -613,7 +615,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndGCMetrics)(benchmark
     bool shut_down = false;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      for (uint32_t i = 0; i < terrier::BenchmarkConfig::num_threads; i++) {
+      for (uint32_t i = 0; i < noisepage::BenchmarkConfig::num_threads; i++) {
         thread_pool.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers, metrics_manager, &shut_down] {
           metrics_manager->RegisterThread();
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers, shut_down);
@@ -690,4 +692,4 @@ BENCHMARK_REGISTER_F(TPCCBenchmark, ScaleFactor4WithMetrics)
 //     ->MinTime(20);
 // clang-format on
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

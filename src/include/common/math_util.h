@@ -8,7 +8,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Utility class containing various math/arithmetic functions
@@ -67,7 +67,7 @@ class MathUtil {
    * @return Whether the value has the desired alignment
    */
   static constexpr bool IsAligned(uint64_t value, uint64_t alignment) {
-    TERRIER_ASSERT(alignment != 0u && IsPowerOf2(alignment), "Align must be a non-zero power of two.");
+    NOISEPAGE_ASSERT(alignment != 0u && IsPowerOf2(alignment), "Align must be a non-zero power of two.");
     return (value & (alignment - 1)) == 0;
   }
 
@@ -87,7 +87,7 @@ class MathUtil {
    * @return
    */
   static constexpr bool IsAlignedGeneric(uint64_t value, uint64_t alignment) {
-    TERRIER_ASSERT(alignment != 0u, "Align must be non-zero.");
+    NOISEPAGE_ASSERT(alignment != 0u, "Align must be non-zero.");
     return (value % alignment) == 0;
   }
 
@@ -116,7 +116,7 @@ class MathUtil {
    * @return The input address aligned to the desired alignment
    */
   static constexpr uintptr_t AlignAddress(uintptr_t addr, std::size_t alignment) {
-    TERRIER_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
+    NOISEPAGE_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
     return (addr + alignment - 1) & ~(alignment - 1);
   }
 
@@ -162,4 +162,4 @@ class MathUtil {
   static bool ApproxEqual(double left, double right);
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

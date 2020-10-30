@@ -8,7 +8,7 @@
 #include "storage/storage_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * A generic base catch-all SQL value. Used to represent a NULL-able SQL value.
@@ -170,15 +170,15 @@ struct StringVal : public Val {
         val_(len <= storage::VarlenEntry::InlineThreshold()
                  ? storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str), len)
                  : storage::VarlenEntry::Create(reinterpret_cast<const byte *>(str), len, false)) {
-    TERRIER_ASSERT(str != nullptr, "String input cannot be NULL");
+    NOISEPAGE_ASSERT(str != nullptr, "String input cannot be NULL");
   }
 
   /**
    * @return std::string_view of StringVal's contents
    */
   std::string_view StringView() const {
-    TERRIER_ASSERT(!is_null_,
-                   "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
+    NOISEPAGE_ASSERT(
+        !is_null_, "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
     return val_.StringView();
   }
 
@@ -196,20 +196,20 @@ struct StringVal : public Val {
   static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
     if (str.is_null_) {
       // TODO(WAN): matt points out that this is rather strange, but it currently exists in upstream/master. Fix later.
-      return terrier::storage::VarlenEntry::CreateInline(static_cast<const terrier::byte *>(nullptr), 0);
+      return noisepage::storage::VarlenEntry::CreateInline(static_cast<const noisepage::byte *>(nullptr), 0);
     }
     if (str.GetLength() > storage::VarlenEntry::InlineThreshold()) {
       if (own) {
         // TODO(WAN): smarter allocation?
         byte *contents = common::AllocationUtil::AllocateAligned(str.GetLength());
         std::memcpy(contents, str.GetContent(), str.GetLength());
-        return terrier::storage::VarlenEntry::Create(contents, str.GetLength(), true);
+        return noisepage::storage::VarlenEntry::Create(contents, str.GetLength(), true);
       }
-      return terrier::storage::VarlenEntry::Create(reinterpret_cast<const terrier::byte *>(str.GetContent()),
-                                                   str.GetLength(), false);
+      return noisepage::storage::VarlenEntry::Create(reinterpret_cast<const noisepage::byte *>(str.GetContent()),
+                                                     str.GetLength(), false);
     }
-    return terrier::storage::VarlenEntry::CreateInline(reinterpret_cast<const terrier::byte *>(str.GetContent()),
-                                                       str.GetLength());
+    return noisepage::storage::VarlenEntry::CreateInline(reinterpret_cast<const noisepage::byte *>(str.GetContent()),
+                                                         str.GetLength());
   }
 
   /**
@@ -325,7 +325,7 @@ struct TimestampVal : public Val {
  */
 struct ValUtil {
   /**
-   * @param type a terrier type
+   * @param type a noisepage type
    * @return the size of the corresponding sql type
    */
   static uint32_t GetSqlSize(type::TypeId type) {
@@ -354,7 +354,7 @@ struct ValUtil {
   }
 
   /**
-   * @param type A terrier type.
+   * @param type A noisepage type.
    * @return The alignment for this type in the execution engine.
    */
   static uint32_t GetSqlAlignment(type::TypeId type) {
@@ -383,4 +383,4 @@ struct ValUtil {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

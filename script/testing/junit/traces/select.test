@@ -580,6 +580,60 @@ SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NU
 statement ok
 DROP TABLE like_tbl;
 
+# index-join
+statement ok
+CREATE TABLE xxx (idx INT PRIMARY KEY, valx INT);
+
+statement ok
+CREATE TABLE yyy (idy INT PRIMARY KEY, valy INT);
+
+statement ok
+INSERT INTO xxx VALUES (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (3, 3), (4,4);
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > yyy.idy;
+----
+12 values hashing to 2211707029586b57f3cd914baf324b2c
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < yyy.idy;
+----
+4 values hashing to 0d3bb445591b380a6dda3e14858bb6d8
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 5 > yyy.idy;
+----
+24 values hashing to c1b907cf71f6191015b4faf1a98ea419
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 2 < yyy.idy;
+----
+24 values hashing to c1b907cf71f6191015b4faf1a98ea419
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < 6;
+----
+24 values hashing to 59da6214b398ce9dbf3a59784fe2a5a9
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
+----
+16 values hashing to 6d9c94d9a90929418f3338158f3506a0
+
+query I nosort
+SELECT * FROM yyy INNER JOIN xxx ON yyy.idy > xxx.idx;
+----
+4 values hashing to 78ebd17527f557a57704ea0c0ee12ff6
+
+statement ok
+DROP TABLE xxx
+
+statement ok
+DROP TABLE yyy
+
 # LEFT OUTER JOIN
 
 statement ok
@@ -750,3 +804,374 @@ DROP TABLE tab3;
 
 statement ok
 DROP TABLE tab4;
+
+# #1020 SELECT * TODO(WAN): no good way of testing exceptions being thrown right now
+
+# #1191 SELECT NULL
+query T
+SELECT NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+# Fix #780
+statement ok
+CREATE TABLE t (a INT, aa INT);
+
+statement ok
+CREATE TABLE tt (b INT, bb INT);
+
+statement ok
+INSERT INTO t VALUES (1,1), (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO tt VALUES (10,10), (20,20), (30,30), (40,40), (50,50);
+
+query II nosort
+SELECT * FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query II nosort
+SELECT * FROM tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query IIII nosort
+SELECT *, * FROM t;
+----
+1
+1
+1
+1
+2
+2
+2
+2
+3
+3
+3
+3
+4
+4
+4
+4
+5
+5
+5
+5
+
+query IIII nosort
+SELECT *, * FROM tt;
+----
+10
+10
+10
+10
+20
+20
+20
+20
+30
+30
+30
+30
+40
+40
+40
+40
+50
+50
+50
+50
+
+query IIII nosort
+SELECT * FROM t, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIIIIIII nosort
+SELECT *, * FROM t, tt;
+----
+200 values hashing to f63c5b706ef9235039ca4a62161936e9
+
+query II nosort
+SELECT t.* FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query II nosort
+SELECT tt.* FROM tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query IIII nosort
+SELECT t.*, tt.* FROM t, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT ta.*, tt.* FROM t ta, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT t.*, tb.* FROM t, tt tb;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT ta.*, tb.* FROM t ta, tt tb;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query II nosort
+SELECT t.* FROM t, tt;
+----
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+4
+4
+4
+4
+4
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+5
+5
+5
+5
+
+query II nosort
+SELECT tt.* FROM t, tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query II nosort
+SELECT ta.* FROM t ta, tt;
+----
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+4
+4
+4
+4
+4
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+5
+5
+5
+5
+
+query II nosort
+SELECT tb.* FROM t, tt tb;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50

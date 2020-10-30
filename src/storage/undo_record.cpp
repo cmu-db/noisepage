@@ -2,7 +2,7 @@
 
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void UndoRecord::ReclaimSlotIfDeleted() const {
   if (type_ == DeltaRecordType::DELETE) table_->accessor_.Deallocate(slot_);
@@ -44,4 +44,4 @@ void UndoRecord::ReclaimBufferIfVarlen(transaction::TransactionContext *const tx
   }
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

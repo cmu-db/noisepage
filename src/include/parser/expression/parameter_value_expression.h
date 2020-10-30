@@ -5,7 +5,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * ParameterValueExpression represents a parameter's offset in an expression.
  * TODO(WAN): give an example. I believe this is 0-indexed, look at ParamRefTransform code path. Good beginner task?
@@ -46,7 +46,7 @@ class ParameterValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
     return Copy();
   }
 
@@ -81,4 +81,4 @@ class ParameterValueExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ParameterValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

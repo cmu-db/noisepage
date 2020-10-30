@@ -8,11 +8,11 @@
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class SqlTable;
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /*
  * Contains all of the tables, indexes, and associated schemas for the TPC-C benchmark. This is effectively a
@@ -190,4 +190,4 @@ class Database {
         stock_primary_index_oid_(stock_primary_index_oid) {}
 };
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

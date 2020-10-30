@@ -6,7 +6,7 @@
 
 #include "common/json.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (!AbstractPlanNode::operator==(rhs)) return false;
@@ -64,4 +64,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractJoinPlanNode::F
   return exprs;
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

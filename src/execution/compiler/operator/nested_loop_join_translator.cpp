@@ -6,12 +6,12 @@
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 NestedLoopJoinTranslator::NestedLoopJoinTranslator(const planner::NestedLoopJoinPlanNode &plan,
                                                    CompilationContext *compilation_context, Pipeline *pipeline)
     : OperatorTranslator(plan, compilation_context, pipeline, brain::ExecutionOperatingUnitType::DUMMY) {
-  TERRIER_ASSERT(plan.GetChildrenSize() == 2, "NLJ expected to have only two children.");
+  NOISEPAGE_ASSERT(plan.GetChildrenSize() == 2, "NLJ expected to have only two children.");
 
   // In a nested loop, only the outer most loop determines the parallelism level.
   // So disable the parallelism check until the last child.
@@ -42,4 +42,4 @@ void NestedLoopJoinTranslator::PerformPipelineWork(WorkContext *context, Functio
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

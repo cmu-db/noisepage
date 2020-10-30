@@ -7,7 +7,7 @@
 #include "common/hash_util.h"
 #include "optimizer/property.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * PropertySet represents a set of properties
@@ -135,7 +135,7 @@ struct PropSetPtrEq {
   bool operator()(PropertySet *const &t1, PropertySet *const &t2) const { return *t1 == *t2; }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
 namespace std {
 
@@ -143,11 +143,11 @@ namespace std {
  * Implementation of std::hash for PropertySet
  */
 template <>
-struct hash<terrier::optimizer::PropertySet> {
+struct hash<noisepage::optimizer::PropertySet> {
   /**
    * Defines argument_type to be PropertySet
    */
-  using argument_type = terrier::optimizer::PropertySet;
+  using argument_type = noisepage::optimizer::PropertySet;
 
   /**
    * Defines result_type to be size_t

@@ -6,7 +6,7 @@
 #include "catalog/index_schema.h"
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Rule transforms Logical Scan -> Sequential Scan
@@ -352,6 +352,35 @@ class LogicalInnerJoinToPhysicalInnerIndexJoin : public Rule {
    * Constructor
    */
   LogicalInnerJoinToPhysicalInnerIndexJoin();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorNode to check
+   * @param context Current OptimizationContext executing under
+   * @returns Whether the input OperatorNode passes the check
+   */
+  bool Check(common::ManagedPointer<AbstractOptimizerNode> plan, OptimizationContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorNode to transform
+   * @param transformed Vector of transformed OperatorNodes
+   * @param context Current OptimizationContext executing under
+   */
+  void Transform(common::ManagedPointer<AbstractOptimizerNode> input,
+                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
+                 OptimizationContext *context) const override;
+};
+
+/**
+ * Rule transforms Logical Semi Join to SemiLeftHashJoin
+ */
+class LogicalSemiJoinToPhysicalSemiLeftHashJoin : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalSemiJoinToPhysicalSemiLeftHashJoin();
 
   /**
    * Checks whether the given rule can be applied
@@ -923,4 +952,4 @@ class LogicalAnalyzeToPhysicalAnalyze : public Rule {
                  OptimizationContext *context) const override;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

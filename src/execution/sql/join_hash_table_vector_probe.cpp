@@ -11,7 +11,7 @@
 #include "execution/util/cpu_info.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 JoinHashTableVectorProbe::JoinHashTableVectorProbe(const JoinHashTable &table, planner::LogicalJoinType join_type,
                                                    std::vector<uint32_t> join_key_indexes)
@@ -206,4 +206,4 @@ void JoinHashTableVectorProbe::Reset() {
   first_ = true;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

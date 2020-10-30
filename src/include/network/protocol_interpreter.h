@@ -9,7 +9,7 @@
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
 //
-namespace terrier::network {
+namespace noisepage::network {
 
 class ConnectionHandle;
 
@@ -18,20 +18,6 @@ class ConnectionHandle;
  */
 class ProtocolInterpreter {
  public:
-  /**
-   * A Provider interface is a strategy object for construction.
-   *
-   * It encapsulates creation logic that can be passed around as polymorphic objects. Inject the
-   * approriate subclass of this object to the connection dispatcher in order to bind them to
-   * the correct protocol type.
-   */
-  struct Provider {
-    virtual ~Provider() = default;
-    /**
-     * @return a constructed instance of protocol interpreter
-     */
-    virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
-  };
   /**
    * Processes client's input that has been fed into the given ReadBufer
    * @param in The ReadBuffer to read input from
@@ -107,8 +93,8 @@ class ProtocolInterpreter {
       throw NETWORK_PROCESS_EXCEPTION("Packet too large");
     }
 
-    TERRIER_ASSERT(!curr_input_packet_.extended_,
-                   "InputPacket shouldn't already be extended before beginning parsing of the body.");
+    NOISEPAGE_ASSERT(!curr_input_packet_.extended_,
+                     "InputPacket shouldn't already be extended before beginning parsing of the body.");
 
     // Extend the buffer as needed
     if (curr_input_packet_.len_ > in->Capacity()) {
@@ -142,14 +128,31 @@ class ProtocolInterpreter {
     // copy bytes only if the packet is longer than the read buffer,
     // otherwise we can use the read buffer to save space
     if (curr_input_packet_.extended_) {
-      TERRIER_ASSERT(curr_input_packet_.len_ == curr_input_packet_.buf_->Capacity(),
-                     "The buffer should have been extended to support the packet length. Otherwise, there's a mismatch "
-                     "between the extended_ flag.");
+      NOISEPAGE_ASSERT(
+          curr_input_packet_.len_ == curr_input_packet_.buf_->Capacity(),
+          "The buffer should have been extended to support the packet length. Otherwise, there's a mismatch "
+          "between the extended_ flag.");
       curr_input_packet_.buf_->FillBufferFrom(in, can_read);
     }
 
     return remaining_bytes <= 0;
   }
 };
-//
-}  // namespace terrier::network
+
+/**
+ * A Provider interface is a strategy object for construction.
+ *
+ * It encapsulates creation logic that can be passed around as polymorphic objects. Inject the
+ * approriate subclass of this object to the connection dispatcher in order to bind them to
+ * the correct protocol type.
+ */
+class ProtocolInterpreterProvider {
+ public:
+  virtual ~ProtocolInterpreterProvider() = default;
+  /**
+   * @return a constructed instance of protocol interpreter
+   */
+  virtual std::unique_ptr<ProtocolInterpreter> Get() = 0;
+};
+
+}  // namespace noisepage::network

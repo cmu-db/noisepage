@@ -9,12 +9,12 @@
 #include "common/managed_pointer.h"
 #include "execution/sql/tuple_id_list.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 class VectorProjection;
 class VectorProjectionIterator;
@@ -224,4 +224,4 @@ class FilterManager {
   TupleIdList tmp_list_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

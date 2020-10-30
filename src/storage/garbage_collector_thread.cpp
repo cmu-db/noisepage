@@ -2,7 +2,7 @@
 
 #include "metrics/metrics_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 GarbageCollectorThread::GarbageCollectorThread(common::ManagedPointer<GarbageCollector> gc,
                                                std::chrono::microseconds gc_period,
                                                common::ManagedPointer<metrics::MetricsManager> metrics_manager,
@@ -21,4 +21,4 @@ GarbageCollectorThread::GarbageCollectorThread(common::ManagedPointer<GarbageCol
   }
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

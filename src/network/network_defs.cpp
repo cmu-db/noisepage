@@ -2,8 +2,8 @@
 
 #include "common/strong_typedef_body.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 STRONG_TYPEDEF_BODY(connection_id_t, uint16_t);
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

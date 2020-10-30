@@ -5,7 +5,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -28,8 +28,8 @@ void TemplatedLikeOperationVectorConstant(const Vector &a, const Vector &b, Tupl
 
 template <typename Op>
 void TemplatedLikeOperationVectorVector(const Vector &a, const Vector &b, TupleIdList *tid_list) {
-  TERRIER_ASSERT(a.GetSize() == tid_list->GetCapacity() && b.GetSize() == tid_list->GetCapacity(),
-                 "Input/output TID list not large enough to store all TIDS from inputs to LIKE()");
+  NOISEPAGE_ASSERT(a.GetSize() == tid_list->GetCapacity() && b.GetSize() == tid_list->GetCapacity(),
+                   "Input/output TID list not large enough to store all TIDS from inputs to LIKE()");
 
   const auto *RESTRICT a_data = reinterpret_cast<const storage::VarlenEntry *>(a.GetData());
   const auto *RESTRICT b_data = reinterpret_cast<const storage::VarlenEntry *>(b.GetData());
@@ -68,4 +68,4 @@ void VectorOps::SelectNotLike(const exec::ExecutionSettings &exec_settings, cons
   TemplatedLikeOperation<sql::NotLike>(a, b, tid_list);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

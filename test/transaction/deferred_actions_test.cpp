@@ -13,14 +13,14 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 class DeferredActionsTest : public TerrierTest {
  protected:
   void SetUp() override {
     // reset the number of transaction processed to 0 for each test case
     common::thread_context.num_txns_completed_ = 0;
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).Build();
     txn_mgr_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     deferred_action_manager_ = db_main_->GetTransactionLayer()->GetDeferredActionManager();
     gc_ = db_main_->GetStorageLayer()->GetGarbageCollector();
@@ -249,4 +249,4 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_TRUE(defer1);
   EXPECT_TRUE(defer2);
 }
-}  // namespace terrier
+}  // namespace noisepage

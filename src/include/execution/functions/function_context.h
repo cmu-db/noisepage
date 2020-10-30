@@ -8,7 +8,7 @@
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
 #include "type/type_id.h"
-namespace terrier::execution::functions {
+namespace noisepage::execution::functions {
 
 /**
  * @brief Stores execution and type information about a stored procedure
@@ -68,7 +68,7 @@ class FunctionContext {
    * @return returns what builtin function this represents
    */
   ast::Builtin GetBuiltin() const {
-    TERRIER_ASSERT(IsBuiltin(), "Getting a builtin from a non-builtin function");
+    NOISEPAGE_ASSERT(IsBuiltin(), "Getting a builtin from a non-builtin function");
     return builtin_;
   }
 
@@ -76,7 +76,7 @@ class FunctionContext {
    * @return returns if this function requires an execution context
    */
   bool IsExecCtxRequired() const {
-    TERRIER_ASSERT(IsBuiltin(), "IsExecCtxRequired is only valid or a builtin function");
+    NOISEPAGE_ASSERT(IsBuiltin(), "IsExecCtxRequired is only valid or a builtin function");
     return is_exec_ctx_required_;
   }
 
@@ -89,4 +89,4 @@ class FunctionContext {
   bool is_exec_ctx_required_;
 };
 
-}  // namespace terrier::execution::functions
+}  // namespace noisepage::execution::functions

@@ -27,10 +27,11 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/statements.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 /*
  * TODO(WAN): Note that some functions invoke SqlNodeVisitor::Visit() twice.
@@ -52,9 +53,9 @@ void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
     const common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters,
     const common::ManagedPointer<std::vector<type::TypeId>> desired_parameter_types) {
-  TERRIER_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
+  NOISEPAGE_ASSERT(parse_result != nullptr, "We shouldn't be tring to bind something without a ParseResult.");
   sherpa_ = std::make_unique<BinderSherpa>(parse_result, parameters, desired_parameter_types);
-  TERRIER_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
+  NOISEPAGE_ASSERT(sherpa_->GetParseResult()->GetStatements().size() == 1, "Binder can only bind one at a time.");
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 }
@@ -71,7 +72,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
   BINDER_LOG_TRACE("Visiting CopyStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "COPY should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "COPY should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -79,8 +80,10 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
     node->GetCopyTable()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
     // If the table is given, we're either writing or reading all columns
+    parser::TableStarExpression table_star = parser::TableStarExpression();
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
+    context_->GenerateAllColumnExpressions(common::ManagedPointer<parser::TableStarExpression>(&table_star),
+                                           sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
     auto col = node->GetSelectStatement()->GetSelectColumns();
     col.insert(std::end(col), std::begin(new_select_list), std::end(new_select_list));
   } else {
@@ -99,7 +102,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
   BINDER_LOG_TRACE("Visiting CreateStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "CREATE should be a root (INSERT into CREATE?).");
+  NOISEPAGE_ASSERT(context_ == nullptr, "CREATE should be a root (INSERT into CREATE?).");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -209,7 +212,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CreateStatement> node
       break;
     case parser::CreateStatement::CreateType::kView:
       ValidateDatabaseName(node->GetDatabaseName());
-      TERRIER_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
+      NOISEPAGE_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
       node->GetViewQuery()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
       break;
   }
@@ -221,7 +224,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DeleteStatement> node
   BINDER_LOG_TRACE("Visiting DeleteStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "DELETE should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "DELETE should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -243,7 +246,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::DropStatement> node) 
   BINDER_LOG_TRACE("Visiting DropStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "DROP should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "DROP should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -292,7 +295,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::InsertStatement> node
   BINDER_LOG_TRACE("Visiting InsertStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "INSERT should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "INSERT should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -472,8 +475,22 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
   BINDER_LOG_TRACE("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
-    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
+    // If NULL was provided as a select column, in postgres the default type is "text". See #1020.
+    if (select_element->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
+      auto cve = select_element.CastManagedPointerTo<parser::ConstantValueExpression>();
+      if (cve->IsNull() && sherpa_->GetDesiredType(select_element) == type::TypeId::INVALID) {
+        sherpa_->SetDesiredType(select_element, type::TypeId::VARCHAR);
+      }
+    }
+
+    if (select_element->GetExpressionType() == parser::ExpressionType::TABLE_STAR) {
+      // If there is a STAR expression but there is no corresponding table specified, Postgres throws a syntax error.
+      if (node->GetSelectTable() == nullptr) {
+        throw BINDER_EXCEPTION("SELECT * with no tables specified is not valid",
+                               common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+      }
+      context_->GenerateAllColumnExpressions(select_element.CastManagedPointerTo<parser::TableStarExpression>(),
+                                             sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
       continue;
     }
 
@@ -510,7 +527,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::UpdateStatement> node
   BINDER_LOG_TRACE("Visiting UpdateStatement ...");
   SqlNodeVisitor::Visit(node);
 
-  TERRIER_ASSERT(context_ == nullptr, "UPDATE should be a root.");
+  NOISEPAGE_ASSERT(context_ == nullptr, "UPDATE should be a root.");
   BinderContext context(nullptr);
   context_ = common::ManagedPointer(&context);
 
@@ -700,6 +717,14 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::Star
   }
 }
 
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE common::ManagedPointer<parser::TableStarExpression> expr) {
+  BINDER_LOG_TRACE("Visiting TableStarExpression ...");
+  SqlNodeVisitor::Visit(expr);
+  if (context_ == nullptr || !context_->HasTables()) {
+    throw BINDER_EXCEPTION("Invalid [Expression :: TABLE_STAR].", common::ErrorCode::ERRCODE_SYNTAX_ERROR);
+  }
+}
+
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::SubqueryExpression> expr) {
   BINDER_LOG_TRACE("Visiting SubqueryExpression ...");
   SqlNodeVisitor::Visit(expr);
@@ -780,7 +805,7 @@ void BindNodeVisitor::UnifyOrderByExpression(
   auto &exprs = order_by_description->GetOrderByExpressions();
   auto size = order_by_description->GetOrderByExpressionsSize();
   for (size_t idx = 0; idx < size; idx++) {
-    if (exprs[idx].Get()->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT) {
+    if (exprs[idx].Get()->GetExpressionType() == noisepage::parser::ExpressionType::VALUE_CONSTANT) {
       auto constant_value_expression = exprs[idx].CastManagedPointerTo<parser::ConstantValueExpression>();
       type::TypeId type = constant_value_expression->GetReturnValueType();
       int64_t column_id = 0;
@@ -805,4 +830,4 @@ void BindNodeVisitor::UnifyOrderByExpression(
     }
   }
 }
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

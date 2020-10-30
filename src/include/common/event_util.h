@@ -7,7 +7,7 @@
 
 #include "common/error/exception.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Static utility class with wrappers for libevent functions.
@@ -35,6 +35,14 @@ class EventUtil {
   }
 
  public:
+  /**
+   * EVENT_ACTIVATE_OR_TIMEOUT_ONLY can be supplied to event_new() to indicate that the event can only be activated
+   * by an explicit event_active or by a timeout firing.
+   */
+  static constexpr const int EVENT_ACTIVATE_OR_TIMEOUT_ONLY = -1;
+  /** WAIT_FOREVER can be supplied as a timeout value to indicate that the event should not timeout. */
+  static constexpr const struct timeval *WAIT_FOREVER = nullptr;
+
   EventUtil() = delete;
 
   /**
@@ -92,4 +100,4 @@ class EventUtil {
     return Wrap(event_base_dispatch(base), NonNegative, "Error in event base dispatch");
   }
 };
-}  // namespace terrier
+}  // namespace noisepage

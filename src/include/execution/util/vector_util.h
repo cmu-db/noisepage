@@ -5,7 +5,7 @@
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Utility class containing vectorized operations.
@@ -160,4 +160,4 @@ class VectorUtil {
                                                            sel_t *out_sel_vector, uint8_t *scratch);
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

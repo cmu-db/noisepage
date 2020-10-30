@@ -1,7 +1,7 @@
 #include "benchmark/benchmark.h"
 #include "common/perf_monitor.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * These benchmarks exist to verify the performance difference between grouped and ungrouped perf counters. We do not
@@ -42,4 +42,4 @@ BENCHMARK_DEFINE_F(PerfMonitorBenchmark, Inherit)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(PerfMonitorBenchmark, Basic);
 
 BENCHMARK_REGISTER_F(PerfMonitorBenchmark, Inherit);
-}  // namespace terrier
+}  // namespace noisepage

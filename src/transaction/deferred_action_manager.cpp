@@ -3,7 +3,7 @@
 #include "common/macros.h"
 #include "storage/index/index.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 
 timestamp_t DeferredActionManager::RegisterDeferredAction(DeferredAction &&a, transaction::DafId daf_id) {
   timestamp_t result = timestamp_manager_->CurrentTime();
@@ -46,16 +46,16 @@ uint32_t DeferredActionManager::Process(bool with_limit) {
 }
 
 void DeferredActionManager::RegisterIndexForGC(const common::ManagedPointer<storage::index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  NOISEPAGE_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
+  NOISEPAGE_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
   indexes_.insert(index);
 }
 
 void DeferredActionManager::UnregisterIndexForGC(const common::ManagedPointer<storage::index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  NOISEPAGE_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
+  NOISEPAGE_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
   indexes_.erase(index);
 }
 
@@ -126,4 +126,4 @@ void DeferredActionManager::ProcessNewActionHelper(timestamp_t oldest_txn, bool 
   }
 }
 
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

@@ -7,7 +7,7 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
 
 // Minimum number of deferred action framework run to fully clean up the deferred action queue
@@ -65,4 +65,4 @@ enum DafId : uint8_t {
   INVALID
 };
 
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

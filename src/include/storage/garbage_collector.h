@@ -10,14 +10,14 @@
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TimestampManager;
 class TransactionManager;
 class DeferredActionManager;
 class TransactionContext;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 class AccessObserver;
 class DataTable;
@@ -46,7 +46,7 @@ class GarbageCollector {
   GarbageCollector(const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
                    const common::ManagedPointer<transaction::TransactionManager> txn_manager)
       : deferred_action_manager_(deferred_action_manager), txn_manager_(txn_manager) {
-    TERRIER_ASSERT(txn_manager_->GCEnabled(),
+    NOISEPAGE_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
@@ -84,4 +84,4 @@ class GarbageCollector {
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -14,7 +14,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(bool with_limit) {
   if (deferred_action_manager_ != DISABLED) deferred_action_manager_->Process(with_limit);
@@ -33,4 +33,4 @@ void GarbageCollector::UnregisterIndexForGC(common::ManagedPointer<index::Index>
   deferred_action_manager_->UnregisterIndexForGC(index);
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -12,7 +12,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 std::vector<FieldFormat> PostgresPacketUtil::ReadFormatCodes(const common::ManagedPointer<ReadBufferView> read_buffer) {
   const auto num_formats = read_buffer->ReadValue<int16_t>();
@@ -53,7 +53,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       // Matt: as best as I can tell, we only expect 'TRUE' of 'FALSE' coming in here, rather than the 't' or 'f' that
       // results use. We can simplify this logic a bit if that assumption can be verified
       if (string == "TRUE") return {type, execution::sql::BoolVal(true)};
-      TERRIER_ASSERT(string == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
+      NOISEPAGE_ASSERT(string == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
       return {type, execution::sql::BoolVal(false)};
     }
     case type::TypeId::TINYINT:
@@ -111,23 +111,23 @@ parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
 
   switch (type) {
     case type::TypeId::TINYINT: {
-      TERRIER_ASSERT(size == 1, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 1, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int8_t>())};
     }
     case type::TypeId::SMALLINT: {
-      TERRIER_ASSERT(size == 2, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 2, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int16_t>())};
     }
     case type::TypeId::INTEGER: {
-      TERRIER_ASSERT(size == 4, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 4, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int32_t>())};
     }
     case type::TypeId::BIGINT: {
-      TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int64_t>())};
     }
     case type::TypeId::DECIMAL: {
-      TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Real(read_buffer->ReadValue<double>())};
     }
     case type::TypeId::DATE: {
@@ -144,9 +144,9 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
     const common::ManagedPointer<ReadBufferView> read_buffer, const std::vector<type::TypeId> &param_types,
     const std::vector<FieldFormat> &param_formats) {
   const auto num_params = static_cast<size_t>(read_buffer->ReadValue<int16_t>());
-  TERRIER_ASSERT(num_params == param_types.size(),
-                 "We don't support type inference on parameters yet, so the size of param_types should equal the "
-                 "number of parameters.");
+  NOISEPAGE_ASSERT(num_params == param_types.size(),
+                   "We don't support type inference on parameters yet, so the size of param_types should equal the "
+                   "number of parameters.");
   std::vector<parser::ConstantValueExpression> params;
   params.reserve(num_params);
   for (uint16_t i = 0; i < num_params; i++) {
@@ -161,4 +161,4 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
   return params;
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

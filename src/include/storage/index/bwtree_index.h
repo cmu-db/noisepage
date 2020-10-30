@@ -10,7 +10,7 @@
 #include "storage/index/index_defs.h"
 #include "transaction/deferred_action_manager.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
@@ -20,7 +20,7 @@ template <typename KeyType, typename ValueType, typename KeyComparator, typename
 class BwTree;
 }
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 template <uint8_t KeySize>
 class CompactIntsKey;
 template <uint16_t KeySize>
@@ -158,4 +158,4 @@ extern template class BwTreeIndex<GenericKey<128>>;
 extern template class BwTreeIndex<GenericKey<256>>;
 extern template class BwTreeIndex<GenericKey<512>>;
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

@@ -11,7 +11,7 @@
                     common::ManagedPointer<ConnectionContext> connection) override;                                    \
   }
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Interface for the execution of the standard ITPNetworkCommands for the ITP protocol
@@ -49,4 +49,4 @@ class ITPNetworkCommand : public NetworkCommand {
 DEFINE_ITP_COMMAND(ReplicationCommand, true);
 DEFINE_ITP_COMMAND(StopReplicationCommand, true);
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

@@ -17,7 +17,7 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Container for common memory operations.
@@ -41,9 +41,9 @@ class Memory {
    * pointer. It is the caller's responsibility to decide how to handle the error.
    */
   [[nodiscard]] static void *MallocAligned(const std::size_t size, const std::size_t alignment) {
-    TERRIER_ASSERT(common::MathUtil::IsPowerOf2(alignment), "Alignment must be a power of two");
-    TERRIER_ASSERT(common::MathUtil::IsAligned(alignment, sizeof(void *)),
-                   "Alignment must be a multiple of sizeof(void*)");
+    NOISEPAGE_ASSERT(common::MathUtil::IsPowerOf2(alignment), "Alignment must be a power of two");
+    NOISEPAGE_ASSERT(common::MathUtil::IsAligned(alignment, sizeof(void *)),
+                     "Alignment must be a multiple of sizeof(void*)");
 
     void *ptr = nullptr;
 #if defined(__APPLE__)
@@ -95,7 +95,7 @@ class Memory {
     do {
       ret = madvise(ptr, size, MADV_HUGEPAGE);
     } while (ret == -1 && errno == EAGAIN);
-    TERRIER_ASSERT(ret == 0, "madvise() returned error!");
+    NOISEPAGE_ASSERT(ret == 0, "madvise() returned error!");
 #endif
 
     return ptr;
@@ -125,8 +125,8 @@ class Memory {
    * @param size The size of the chunk of memory in bytes.
    */
   static void FreeHuge(void *ptr, const std::size_t size) {
-    TERRIER_ASSERT(ptr != nullptr, "Cannot free NULL pointer");
-    TERRIER_ASSERT(size != 0, "Cannot free zero-sized memory");
+    NOISEPAGE_ASSERT(ptr != nullptr, "Cannot free NULL pointer");
+    NOISEPAGE_ASSERT(size != 0, "Cannot free zero-sized memory");
     munmap(ptr, size);
   }
 
@@ -141,8 +141,8 @@ class Memory {
   template <typename T>
   static void TrackFreeHugeArray(common::ManagedPointer<sql::MemoryTracker> tracker, T arr[],
                                  const std::size_t num_elems) {
-    TERRIER_ASSERT(arr != nullptr, "Cannot free NULL pointer");
-    TERRIER_ASSERT(num_elems != 0, "Cannot free zero-sized memory");
+    NOISEPAGE_ASSERT(arr != nullptr, "Cannot free NULL pointer");
+    NOISEPAGE_ASSERT(num_elems != 0, "Cannot free zero-sized memory");
     std::size_t size = sizeof(T) * num_elems;
 
     if (tracker != nullptr) tracker->Decrement(size);
@@ -173,4 +173,4 @@ class Memory {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

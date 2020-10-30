@@ -6,7 +6,7 @@
 #include "execution/ast/type.h"
 #include "execution/ast/type_visitor.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 namespace {
 
@@ -57,7 +57,7 @@ void TypePrinter::VisitPointerType(const PointerType *type) {
 void TypePrinter::VisitStructType(const StructType *type) {
   Os() << "struct{";
   bool first = true;
-  for (const auto &field : type->GetFields()) {
+  for (const auto &field : type->GetAllFields()) {
     if (!first) {
       Os() << ",";
     }
@@ -98,4 +98,4 @@ std::string Type::ToString(const Type *type) {
   return buffer.str();
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

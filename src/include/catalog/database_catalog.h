@@ -17,24 +17,24 @@
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::execution::functions {
+namespace noisepage::execution::functions {
 class FunctionContext;
-}  // namespace terrier::execution::functions
+}  // namespace noisepage::execution::functions
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class GarbageCollector;
 class RecoveryManager;
 class SqlTable;
 namespace index {
 class Index;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 class IndexSchema;
 
@@ -743,4 +743,4 @@ class DatabaseCatalog {
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 };
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

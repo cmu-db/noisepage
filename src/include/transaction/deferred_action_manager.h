@@ -11,10 +11,10 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class GarbageCollectorThread;
 }
-namespace terrier::transaction {
+namespace noisepage::transaction {
 
 constexpr uint8_t BATCH_SIZE = 6;
 
@@ -32,7 +32,8 @@ class DeferredActionManager {
       : timestamp_manager_(timestamp_manager) {}
 
   ~DeferredActionManager() {
-    TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
+    common::SpinLatch::ScopedSpinLatch guard(&queue_latch_);
+    NOISEPAGE_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
   }
 
   /**
@@ -100,10 +101,7 @@ class DeferredActionManager {
   const common::ManagedPointer<TimestampManager> timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   std::queue<std::pair<timestamp_t, std::pair<DeferredAction, DafId>>> new_deferred_actions_;
-  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
-  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
-  // wasteful traversals of the version chain.
-  std::unordered_set<storage::TupleSlot> visited_slots_;
+
   std::atomic<uint32_t> queue_size_ = 0;
 
   std::unordered_set<common::ManagedPointer<storage::index::Index>> indexes_;
@@ -120,4 +118,4 @@ class DeferredActionManager {
   uint32_t ProcessNewActions(timestamp_t oldest_txn, bool metrics_enabled, bool with_limit);
   void ProcessNewActionHelper(timestamp_t oldest_txn, bool metrics_enabled, uint32_t *processed, bool *break_loop);
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

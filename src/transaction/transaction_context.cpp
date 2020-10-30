@@ -1,7 +1,7 @@
 #include "transaction/transaction_context.h"
 #include "common/thread_context.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 void TransactionContext::Unlink(timestamp_t oldest_txn) {
   for (auto &undo_record : undo_buffer_) {
     // It is possible for the table field to be null, for aborted transaction's last conflicting record
@@ -16,4 +16,4 @@ void TransactionContext::Unlink(timestamp_t oldest_txn) {
     }
   }
 }
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
