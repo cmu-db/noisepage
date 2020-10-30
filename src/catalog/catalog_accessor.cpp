@@ -79,6 +79,9 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
+  if (UNLIKELY(IS_TEMP_OID(table))) {
+    return temp_tables_.find(table)->second;
+  }
   if (cache_ != DISABLED) {
     auto table_ptr = cache_->GetTable(table);
     if (table_ptr == nullptr) {
@@ -215,6 +218,10 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   // pg_tablespace table, or we may eliminate the concept entirely. This works for now to allow CREATE nodes to bind a
   // BlockStore
   return catalog_->GetBlockStore();
+}
+
+void CatalogAccessor::RegisterTempTable(table_oid_t table_oid, const common::ManagedPointer<storage::SqlTable> table) {
+  temp_tables_[table_oid] = table;
 }
 
 }  // namespace noisepage::catalog

@@ -61,6 +61,8 @@ enum class PlanNodeType {
   ORDERBY,
   PROJECTION,
   LIMIT,
+  CTESCAN,
+  CTESCANLEADER,
   DISTINCT,
   HASH,
   SETOP,

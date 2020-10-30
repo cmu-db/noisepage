@@ -28,7 +28,27 @@ class SubqueryExpression : public AbstractExpression {
    * Copies this SubqueryExpression
    * @returns copy of this
    */
-  std::unique_ptr<AbstractExpression> Copy() const override;
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    std::vector<common::ManagedPointer<AbstractExpression>> select_columns;
+    for (const auto &col : subselect_->GetSelectColumns()) {
+      select_columns.emplace_back(common::ManagedPointer(col));
+    }
+
+    auto group_by = subselect_->GetSelectGroupBy() == nullptr ? nullptr : subselect_->GetSelectGroupBy()->Copy();
+    auto order_by = subselect_->GetSelectOrderBy() == nullptr ? nullptr : subselect_->GetSelectOrderBy()->Copy();
+    auto limit = subselect_->GetSelectLimit() == nullptr ? nullptr : subselect_->GetSelectLimit()->Copy();
+    std::vector<std::unique_ptr<TableRef>> with;
+    for (auto &ref : subselect_->GetSelectWith()) {
+      with.push_back(ref->Copy());
+    }
+
+    auto parser_select = std::make_unique<SelectStatement>(
+        std::move(select_columns), subselect_->IsSelectDistinct(), subselect_->GetSelectTable()->Copy(),
+        subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit), std::move(with));
+    auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.

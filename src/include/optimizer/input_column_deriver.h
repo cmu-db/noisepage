@@ -96,6 +96,18 @@ class InputColumnDeriver : public OperatorVisitor {
   void Visit(const Limit *op) override;
 
   /**
+   * Visit function to derive input/output columns for CteScan
+   * @param op CteScan operator to visit
+   */
+  void Visit(const CteScan *op) override;
+
+  /**
+   * Visit function to derive input/output columns for LogicalUnion
+   * @param op LogicalUnion operator to visit
+   */
+  void Visit(const LogicalUnion *op) override;
+
+  /**
    * Visit function to derive input/output columns for InnerIndexJoin
    * @param op InnerIndexJoin operator to visit
    */

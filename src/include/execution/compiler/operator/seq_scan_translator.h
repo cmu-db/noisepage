@@ -8,6 +8,7 @@
 #include "execution/compiler/pipeline_driver.h"
 
 namespace noisepage::catalog {
+class CatalogAccessor;
 class Schema;
 }  // namespace noisepage::catalog
 
@@ -92,6 +93,12 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   /** @return The expression representing the current VPI. */
   ast::Expr *GetVPI() const;
 
+  /** @return An expression that initializes the table iterator */
+  ast::Expr *TableIterInitExpr() const;
+
+  /** @return Returns the schema for the underlying plan node */
+  catalog::Schema GetPlanSchema() const;
+
  private:
   // Does the scan have a predicate?
   bool HasPredicate() const;
@@ -123,17 +130,13 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   // This is because the storage layer needs to read at least one column.
   // TODO(Amadou): Create a special code path for COUNT(*).
   // This requires a new table iterator that doesn't materialize tuples as well as a few builtins.
-  static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::Schema &schema,
+  static std::vector<catalog::col_oid_t> MakeInputOids(catalog::CatalogAccessor *accessor, catalog::table_oid_t table,
                                                        const planner::SeqScanPlanNode &op);
 
   /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
   uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;
 
-  // The name of the declared TVI and VPI.
-  ast::Identifier tvi_var_;
   ast::Identifier vpi_var_;
-  // The name of the col_oids that the plan wants to scan over.
-  ast::Identifier col_oids_var_;
 
   ast::Identifier slot_var_;
 
@@ -147,7 +150,20 @@ class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
   // The version of col_oids that we use for translation. See MakeInputOids for justification.
   std::vector<catalog::col_oid_t> col_oids_;
 
-  // The number of rows that are scanned.
+ protected:
+  /**
+   * The name of the declared TVI and VPI.
+   */
+  ast::Identifier tvi_var_;
+
+  /**
+   * The name of the col_oids that the plan wants to scan over.
+   */
+  ast::Identifier col_oids_var_;
+
+  /**
+   * The number of rows that are scanned.
+   */
   StateDescriptor::Entry num_scans_;
 };
 

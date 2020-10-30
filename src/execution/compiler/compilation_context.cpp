@@ -24,9 +24,12 @@
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/csv_scan_translator.h"
+#include "execution/compiler/operator/cte_scan_leader_translator.h"
+#include "execution/compiler/operator/cte_scan_translator.h"
 #include "execution/compiler/operator/delete_translator.h"
 #include "execution/compiler/operator/hash_aggregation_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
+#include "execution/compiler/operator/ind_cte_scan_leader_translator.h"
 #include "execution/compiler/operator/index_create_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/operator/index_scan_translator.h"
@@ -220,6 +223,8 @@ void CompilationContext::PrepareOut(const planner::AbstractPlanNode &plan, Pipel
 void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline *pipeline) {
   std::unique_ptr<OperatorTranslator> translator;
 
+  TERRIER_ASSERT(ops_.find(&plan) == ops_.end(), "plan already prepared");
+
   switch (plan.GetPlanNodeType()) {
     case planner::PlanNodeType::AGGREGATE: {
       const auto &aggregation = dynamic_cast<const planner::AggregatePlanNode &>(plan);
@@ -291,6 +296,20 @@ void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline
     case planner::PlanNodeType::INDEXNLJOIN: {
       const auto &index_join = dynamic_cast<const planner::IndexJoinPlanNode &>(plan);
       translator = std::make_unique<IndexJoinTranslator>(index_join, this, pipeline);
+      break;
+    }
+    case planner::PlanNodeType::CTESCANLEADER: {
+      const auto &cte_scan_leader = dynamic_cast<const planner::CteScanPlanNode &>(plan);
+      if (cte_scan_leader.GetIsInductive()) {
+        translator = std::make_unique<IndCteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      } else {
+        translator = std::make_unique<CteScanLeaderTranslator>(cte_scan_leader, this, pipeline);
+      }
+      break;
+    }
+    case planner::PlanNodeType::CTESCAN: {
+      const auto &cte_scan = dynamic_cast<const planner::CteScanPlanNode &>(plan);
+      translator = std::make_unique<CteScanTranslator>(cte_scan, this, pipeline);
       break;
     }
     case planner::PlanNodeType::CREATE_INDEX: {

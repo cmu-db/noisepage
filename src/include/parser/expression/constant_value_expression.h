@@ -101,8 +101,8 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   void DeriveExpressionName() override {
-    if (!this->GetAlias().empty()) {
-      this->SetExpressionName(this->GetAlias());
+    if (!this->GetAliasName().empty()) {
+      this->SetExpressionName(this->GetAliasName());
     }
   }
 

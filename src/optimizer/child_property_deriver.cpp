@@ -102,6 +102,17 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   output_.emplace_back(provided_prop, std::move(child_input_properties));
 }
 
+void ChildPropertyDeriver::Visit(const CteScan *op) {
+  // No properties for operator
+  std::vector<PropertySet *> child_input_properties{new PropertySet()};
+  auto provided_prop = new PropertySet();
+  if (op->GetIsIterative() || op->GetChildExpressions().size() == 2) {
+    child_input_properties.push_back(new PropertySet());
+  }
+
+  output_.emplace_back(provided_prop, std::move(child_input_properties));
+}
+
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerIndexJoin *op) {

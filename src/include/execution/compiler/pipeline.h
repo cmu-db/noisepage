@@ -116,6 +116,12 @@ class Pipeline {
   void LinkSourcePipeline(Pipeline *dependency);
 
   /**
+   * Registers a nested pipeline. These pipelines are invoked from other pipelines and are not added to the main steps
+   * @param pipeline The pipeline to nest
+   */
+  void LinkNestedPipeline(Pipeline *pipeline);
+
+  /**
    * Store in the provided output vector the set of all dependencies for this pipeline. In other
    * words, store in the output vector all pipelines that must execute (in order) before this
    * pipeline can begin.
@@ -176,6 +182,16 @@ class Pipeline {
   std::string CreatePipelineFunctionName(const std::string &func_name) const;
 
   /**
+   * @return A vector of expressions that initialize, run and teardown a nested pipeline
+   */
+  std::vector<ast::Expr *> CallSingleRunPipelineFunction() const;
+
+  /**
+   * @return A vector of expressions that do the work of running a pipeline function and its dependencies
+   */
+  std::vector<ast::Expr *> CallRunPipelineFunction() const;
+
+  /**
    * @return Pipeline state variable
    */
   ast::Identifier GetPipelineStateVar() { return state_var_; }
@@ -233,6 +249,8 @@ class Pipeline {
   // Generate pipeline tear-down logic.
   ast::FunctionDecl *GenerateTearDownPipelineFunction() const;
 
+  void MarkNested() { nested_ = true; }
+
  private:
   // Internals which are exposed for minirunners.
   friend class compiler::CompilationContext;
@@ -240,6 +258,16 @@ class Pipeline {
 
   /** @return The vector of pipeline operators that make up the pipeline. */
   const std::vector<OperatorTranslator *> &GetTranslators() const { return steps_; }
+
+  void InjectStartPipelineTracker(FunctionBuilder *builder) const;
+
+  void InjectEndResourceTracker(FunctionBuilder *builder, query_id_t query_id) const;
+
+  ast::Identifier GetRunPipelineFunctionName() const;
+
+  void CollectDependencies(std::vector<const Pipeline *> *deps) const;
+  ast::Identifier GetTeardownPipelineFunctionName() const;
+  ast::Identifier GetInitPipelineFunctionName() const;
 
  private:
   // A unique pipeline ID.
@@ -258,14 +286,19 @@ class Pipeline {
   Parallelism parallelism_;
   // Whether to check for parallelism in new pipeline elements.
   bool check_parallelism_;
-  // All pipelines this one depends on completion of.
+  // All unnested pipelines this one depends on completion of.
   std::vector<Pipeline *> dependencies_;
+
+  std::vector<Pipeline *> nested_pipelines_;
   // Cache of common identifiers.
   ast::Identifier state_var_;
   // The pipeline state.
   StateDescriptor state_;
+
   // The pipeline operating unit feature vector state.
   StateDescriptor::Entry oufeatures_;
+
+  bool nested_{false};
 };
 
 }  // namespace noisepage::execution::compiler

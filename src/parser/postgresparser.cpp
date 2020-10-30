@@ -236,7 +236,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(ParseResult *p
     }
   }
   if (alias != nullptr) {
-    expr->SetAlias(alias);
+    expr->SetAlias(parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(expr.get()))));
   }
   return expr;
 }
@@ -547,7 +547,8 @@ std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResu
       if (all_columns)
         result = std::make_unique<TableStarExpression>(table_name);
       else if (alias != nullptr)
-        result = std::make_unique<ColumnValueExpression>(table_name, col_name, std::string(alias));
+        result = std::make_unique<ColumnValueExpression>(
+            table_name, col_name, parser::AliasType(alias, reinterpret_cast<size_t>(reinterpret_cast<void *>(alias))));
       else
         result = std::make_unique<ColumnValueExpression>(table_name, col_name);
       break;
@@ -761,6 +762,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
       auto groupby = GroupByTransform(parse_result, root->group_clause_, root->having_clause_);
       auto orderby = OrderByTransform(parse_result, root->sort_clause_);
       auto where = WhereTransform(parse_result, root->where_clause_);
+      auto with = WithTransform(parse_result, root->with_clause_);
 
       int64_t limit = LimitDescription::NO_LIMIT;
       int64_t offset = LimitDescription::NO_OFFSET;
@@ -773,7 +775,8 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
       auto limit_desc = std::make_unique<LimitDescription>(limit, offset);
 
       result = std::make_unique<SelectStatement>(std::move(target), select_distinct, std::move(from), where,
-                                                 std::move(groupby), std::move(orderby), std::move(limit_desc));
+                                                 std::move(groupby), std::move(orderby), std::move(limit_desc),
+                                                 std::move(with));
       break;
     }
     case SETOP_UNION: {
@@ -2036,6 +2039,69 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(Parse
   bool is_set_default = root->kind_ == VariableSetKind::VAR_SET_DEFAULT;
   auto result = std::make_unique<VariableSetStatement>(name, std::move(values), is_set_default);
   return result;
+}
+
+// Postgres.SelectStmt.withClause -> terrier.TableRef
+std::vector<std::unique_ptr<TableRef>> PostgresParser::WithTransform(ParseResult *parse_result, WithClause *root) {
+  // Postgres parses 'SELECT;' to nullptr
+  std::vector<std::unique_ptr<TableRef>> ctes;
+  if (root == nullptr) {
+    return ctes;
+  }
+
+  // TODO(Rohan, Preetansh, Gautam): - HANDLE CASE WHEN LENGTH OF ROOT > 1
+  std::unique_ptr<TableRef> result = nullptr;
+  ListCell *current = root->ctes_->head;
+  while (current != nullptr) {
+    auto node = reinterpret_cast<Node *>(current->data.ptr_value);
+    auto common_table_expr = reinterpret_cast<CommonTableExpr *>(node);
+    auto cte_query = reinterpret_cast<Node *>(common_table_expr->ctequery_);
+    switch (cte_query->type) {
+      case T_SelectStmt: {
+        auto cte_select_query = reinterpret_cast<SelectStmt *>(cte_query);
+        if (root->iterative_ || root->recursive_) {
+          // Make left argument the recursive case and right argument the base case,
+          // so it is possible to visit the base case without visiting the recursive case
+          // (which would otherwise be visited recursively by the visitor in the binder)
+          auto tmp = cte_select_query->larg_;
+          cte_select_query->larg_ = cte_select_query->rarg_;
+          cte_select_query->rarg_ = tmp;
+        }
+        auto select = SelectTransform(parse_result, cte_select_query);
+        if (select == nullptr) {
+          current = current->next;
+          continue;
+        }
+        auto alias = common_table_expr->ctename_;
+
+        std::vector<parser::AliasType> colnames;
+        auto col_names_root = common_table_expr->aliascolnames_;
+        if (col_names_root != nullptr) {
+          size_t i = 0;
+          for (auto cell = col_names_root->head; cell != nullptr; cell = cell->next) {
+            auto target = reinterpret_cast<Value *>(cell->data.ptr_value);
+            auto column = target->val_.str_;
+            colnames.emplace_back(parser::AliasType(column, i));
+            i++;
+          }
+        }
+        CTEType cte_type = CTEType::SIMPLE;
+        if (root->recursive_) {
+          cte_type = CTEType::RECURSIVE;
+        } else if (root->iterative_) {
+          cte_type = CTEType::ITERATIVE;
+        }
+        result = TableRef::CreateCTETableRefBySelect(alias, std::move(select), std::move(colnames), cte_type);
+        ctes.push_back(std::move(result));
+        current = current->next;
+        continue;
+      }
+      default: {
+        PARSER_LOG_AND_THROW("WithTransform", "WithType", node->type);
+      }
+    }
+  }
+  return ctes;
 }
 
 }  // namespace noisepage::parser

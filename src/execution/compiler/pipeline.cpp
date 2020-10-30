@@ -154,8 +154,29 @@ void Pipeline::LinkSourcePipeline(Pipeline *dependency) {
   dependencies_.push_back(dependency);
 }
 
+void Pipeline::LinkNestedPipeline(Pipeline *pipeline) {
+  TERRIER_ASSERT(pipeline != nullptr, "Nested pipeline cannot be null");
+  nested_pipelines_.push_back(pipeline);
+  pipeline->MarkNested();
+}
+
 void Pipeline::CollectDependencies(std::vector<Pipeline *> *deps) {
   for (auto *pipeline : dependencies_) {
+    pipeline->CollectDependencies(deps);
+  }
+
+  for (auto *pipeline : nested_pipelines_) {
+    pipeline->CollectDependencies(deps);
+  }
+  deps->push_back(this);
+}
+
+void Pipeline::CollectDependencies(std::vector<const Pipeline *> *deps) const {
+  for (auto *pipeline : dependencies_) {
+    pipeline->CollectDependencies(deps);
+  }
+
+  for (auto *pipeline : nested_pipelines_) {
     pipeline->CollectDependencies(deps);
   }
   deps->push_back(this);
@@ -286,6 +307,40 @@ ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
   return builder.Finish();
 }
 
+std::vector<ast::Expr *> Pipeline::CallSingleRunPipelineFunction() const {
+  return {
+      codegen_->Call(GetInitPipelineFunctionName(), {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
+      codegen_->Call(GetRunPipelineFunctionName(), {compilation_context_->GetQueryState()->GetStatePointer(codegen_)}),
+      codegen_->Call(GetTeardownPipelineFunctionName(),
+                     {compilation_context_->GetQueryState()->GetStatePointer(codegen_)})};
+}
+
+std::vector<ast::Expr *> Pipeline::CallRunPipelineFunction() const {
+  std::vector<ast::Expr *> calls;
+  std::vector<const Pipeline *> pipelines;
+  CollectDependencies(&pipelines);
+  for (auto pipeline : pipelines) {
+    if (!pipeline->nested_ || (pipeline == this)) {
+      for (auto call : CallSingleRunPipelineFunction()) {
+        calls.push_back(call);
+      }
+    }
+  }
+  return calls;
+}
+
+ast::Identifier Pipeline::GetInitPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("Init"));
+}
+
+ast::Identifier Pipeline::GetTeardownPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("TearDown"));
+}
+
+ast::Identifier Pipeline::GetRunPipelineFunctionName() const {
+  return codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
+}
+
 ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
   bool started_tracker = false;
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Run"));
@@ -360,13 +415,18 @@ void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
 
   // Generate main pipeline logic.
   builder->DeclareFunction(GeneratePipelineWorkFunction());
+  builder->DeclareFunction(GenerateRunPipelineFunction(query_id));
+  builder->DeclareFunction(GenerateInitPipelineFunction());
+  auto teardown = GenerateTearDownPipelineFunction();
+  builder->DeclareFunction(teardown);
 
   // Register the main init, run, tear-down functions as steps, in that order.
-  builder->RegisterStep(GenerateInitPipelineFunction());
-  builder->RegisterStep(GenerateRunPipelineFunction());
-  auto teardown = GenerateTearDownPipelineFunction();
-  builder->RegisterStep(teardown);
-  builder->AddTeardownFn(teardown);
+  if (!nested_) {
+    builder->RegisterStep(GenerateInitPipelineFunction());
+
+    builder->RegisterStep(GenerateRunPipelineFunction(query_id));
+    builder->RegisterStep(teardown);
+  }
 }
 
 }  // namespace noisepage::execution::compiler

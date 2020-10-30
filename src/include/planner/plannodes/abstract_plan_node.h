@@ -99,6 +99,11 @@ class AbstractPlanNode {
   }
 
   /**
+   * Move children nodes to provided vector
+   */
+  void MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list);
+
+  /**
    * @return number of children
    */
   size_t GetChildrenSize() const { return children_.size(); }
@@ -128,6 +133,15 @@ class AbstractPlanNode {
    * node operator
    */
   common::ManagedPointer<OutputSchema> GetOutputSchema() const { return common::ManagedPointer(output_schema_); }
+
+  //===--------------------------------------------------------------------===//
+  // Add child
+  //===--------------------------------------------------------------------===//
+
+  /**
+   * @param child child to be added
+   */
+  void AddChild(std::unique_ptr<AbstractPlanNode> child) { children_.emplace_back(std::move(child)); }
 
   //===--------------------------------------------------------------------===//
   // JSON Serialization/Deserialization

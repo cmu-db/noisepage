@@ -27,6 +27,7 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/cte_scan_plan_node.h"
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"

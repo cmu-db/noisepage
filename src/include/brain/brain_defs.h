@@ -103,6 +103,7 @@ enum class ExecutionOperatingUnitType : uint32_t {
    * This gets dropped right now... :(
    */
   LIMIT,
+  CTE_SCAN,
 
   PARALLEL_MERGE_HASHJOIN,
   PARALLEL_MERGE_AGGBUILD,

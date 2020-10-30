@@ -7,6 +7,8 @@
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
+#include "execution/sql/cte_scan_iterator.h"
+#include "execution/sql/ind_cte_scan_iterator.h"
 #include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
@@ -77,6 +79,10 @@ class Context;
   NON_PRIM(VectorProjection, noisepage::execution::sql::VectorProjection)                         \
   NON_PRIM(VectorProjectionIterator, noisepage::execution::sql::VectorProjectionIterator)         \
   NON_PRIM(IndexIterator, noisepage::execution::sql::IndexIterator)                               \
+  NON_PRIM(CteScanIterator, noisepage::execution::sql::CteScanIterator)                           \
+  NON_PRIM(IndCteScanIterator, noisepage::execution::sql::IndCteScanIterator)                     \
+  NON_PRIM(SqlTable, noisepage::storage::SqlTable)                                                \
+  NON_PRIM(TableOid, noisepage::catalog::table_oid_t)                                             \
                                                                                                   \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */                          \
   NON_PRIM(CountAggregate, noisepage::execution::sql::CountAggregate)                             \
@@ -110,7 +116,7 @@ class Context;
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
 
-// Only consider the primitive builtin types
+// Only consider the primitive builtin typesTableIterAdvance
 #define PRIMITIVE_BUILTIN_TYPE_LIST(F) BUILTIN_TYPE_LIST(F, IGNORE_BUILTIN_TYPE, IGNORE_BUILTIN_TYPE)
 
 // Only consider the non-primitive builtin types

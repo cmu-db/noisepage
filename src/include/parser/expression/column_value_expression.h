@@ -39,7 +39,7 @@ class ColumnValueExpression : public AbstractExpression {
    * @param col_name column name
    * @param alias alias of the expression
    */
-  ColumnValueExpression(std::string table_name, std::string col_name, std::string alias)
+  ColumnValueExpression(std::string table_name, std::string col_name, AliasType alias)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type::TypeId::INVALID, std::move(alias), {}),
         table_name_(std::move(table_name)),
         column_name_(std::move(col_name)) {}
@@ -71,6 +71,22 @@ class ColumnValueExpression : public AbstractExpression {
    */
   ColumnValueExpression(catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, type::TypeId type)
       : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}), table_oid_(table_oid), column_oid_(column_oid) {}
+
+  /**
+   * This constructor is used to construct abstract value expressions used by CTEs
+   * for logical derived get below it to reference aliases.
+   * @param table_name Name of the table
+   * @param col_name name of the column.
+   * @param type Type of the column.
+   * @param alias Alias of the column this is referencing
+   * @param column_oid Oid of the column (it should be a temp oid in this case)
+   */
+  ColumnValueExpression(std::string table_name, std::string col_name, type::TypeId type, AliasType alias,
+                        catalog::col_oid_t column_oid)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, std::move(alias), {}),
+        table_name_(std::move(table_name)),
+        column_name_(std::move(col_name)),
+        column_oid_(column_oid) {}
 
   /**
    * @param table_name table name

@@ -76,4 +76,6 @@ enum class PLType {
 
 enum class AsType { INVALID = INVALID_TYPE_ID, EXECUTABLE = 1, QUERY_STRING = 2 };
 
+enum class CTEType { INVALID, SIMPLE, ITERATIVE, RECURSIVE };
+
 }  // namespace noisepage::parser

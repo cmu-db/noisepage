@@ -51,6 +51,7 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   for (auto expr : required_cols_) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
+  TERRIER_ASSERT(output_cols_map.size() == required_cols_.size(), "???");
 
   auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
   std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols(output_cols.size());
@@ -60,7 +61,10 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     output_cols[entry.second] = entry.first;
 
     // Get the actual expression
-    auto input_col = alias_expr_map[tv_expr->GetColumnName()];
+    auto alias =
+        tv_expr->GetAlias().IsSerialNoValid() ? tv_expr->GetAlias() : parser::AliasType(tv_expr->GetColumnName());
+    TERRIER_ASSERT(alias_expr_map.count(alias) > 0, "Couldn't find alias in alias_to_expr map");
+    auto input_col = alias_expr_map[alias];
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;
@@ -93,6 +97,60 @@ void InputColumnDeriver::Visit(const Limit *op) {
   }
 
   PT2 child_cols = PT2{cols};
+  output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
+}
+
+void InputColumnDeriver::Visit(const CteScan *op) {
+  // All aggregate expressions and TVEs in the required columns and internal
+  // sort columns are needed by the child node
+  ExprSet input_cols_set;
+  for (auto expr : required_cols_) {
+    if (parser::ExpressionUtil::IsAggregateExpression(expr)) {
+      input_cols_set.insert(expr);
+    } else {
+      parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, expr);
+    }
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
+  for (const auto &expr : input_cols_set) {
+    cols.push_back(expr);
+  }
+
+  PT2 child_cols;
+
+  child_cols.reserve(op->GetChildExpressions().size());
+  for (auto child_exprs : op->GetChildExpressions()) {
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
+    new_child_exprs.reserve(child_exprs.size());
+    for (auto &elem : child_exprs) {
+      new_child_exprs.push_back(elem);
+    }
+    child_exprs.clear();
+    child_exprs = new_child_exprs;
+    child_cols.push_back(std::move(child_exprs));
+  }
+
+  output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
+}
+
+void InputColumnDeriver::Visit(const LogicalUnion *op) {
+  // All aggregate expressions and TVEs in the required columns and internal
+  ExprSet input_cols_set;
+  for (auto expr : required_cols_) {
+    if (parser::ExpressionUtil::IsAggregateExpression(expr)) {
+      input_cols_set.insert(expr);
+    } else {
+      parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, expr);
+    }
+  }
+
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
+  for (const auto &expr : input_cols_set) {
+    cols.push_back(expr);
+  }
+
+  PT2 child_cols = PT2{cols, cols};
   output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
 }
 

@@ -116,6 +116,13 @@ bool AbstractPlanNode::operator==(const AbstractPlanNode &rhs) const {
   return true;
 }
 
+void AbstractPlanNode::MoveChildren(std::vector<std::unique_ptr<AbstractPlanNode>> *adoption_list) {
+  for (auto &i : children_) {
+    adoption_list->emplace_back(std::move(i));
+  }
+  children_.clear();
+}
+
 JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) {
   std::unique_ptr<AbstractPlanNode> plan_node;
 

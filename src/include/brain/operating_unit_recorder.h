@@ -95,6 +95,7 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::HashJoinPlanNode *plan) override;
   void Visit(const planner::NestedLoopJoinPlanNode *plan) override;
   void Visit(const planner::LimitPlanNode *plan) override;
+  void Visit(const planner::CteScanPlanNode *plan) override;
   void Visit(const planner::OrderByPlanNode *plan) override;
   void Visit(const planner::ProjectionPlanNode *plan) override;
   void Visit(const planner::AggregatePlanNode *plan) override;

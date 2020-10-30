@@ -319,12 +319,18 @@ TEST(OperatorTests, QueryDerivedScanTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  auto alias_to_expr_map_1 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_1_1 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_2 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_3 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_4 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
-  auto alias_to_expr_map_5 = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
+  auto alias_to_expr_map_1 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                parser::AliasType::HashKey>();
+  auto alias_to_expr_map_1_1 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                  parser::AliasType::HashKey>();
+  auto alias_to_expr_map_2 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                parser::AliasType::HashKey>();
+  auto alias_to_expr_map_3 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                parser::AliasType::HashKey>();
+  auto alias_to_expr_map_4 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                parser::AliasType::HashKey>();
+  auto alias_to_expr_map_5 = std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                parser::AliasType::HashKey>();
 
   parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1));
@@ -333,13 +339,13 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   auto expr1 = common::ManagedPointer(expr_b_1);
   auto expr2 = common::ManagedPointer(expr_b_2);
 
-  alias_to_expr_map_1["constant expr"] = expr1;
-  alias_to_expr_map_1_1["constant expr"] = expr1;
-  alias_to_expr_map_2["constant expr"] = expr1;
-  alias_to_expr_map_3["constant expr"] = expr2;
-  alias_to_expr_map_4["constant expr2"] = expr1;
-  alias_to_expr_map_5["constant expr"] = expr1;
-  alias_to_expr_map_5["constant expr2"] = expr2;
+  alias_to_expr_map_1[parser::AliasType("constant expr")] = expr1;
+  alias_to_expr_map_1_1[parser::AliasType("constant expr")] = expr1;
+  alias_to_expr_map_2[parser::AliasType("constant expr")] = expr1;
+  alias_to_expr_map_3[parser::AliasType("constant expr")] = expr2;
+  alias_to_expr_map_4[parser::AliasType("constant expr2")] = expr1;
+  alias_to_expr_map_5[parser::AliasType("constant expr")] = expr1;
+  alias_to_expr_map_5[parser::AliasType("constant expr2")] = expr2;
 
   Operator query_derived_scan_1 =
       QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_1)).RegisterWithTxnContext(txn_context);
@@ -347,7 +353,8 @@ TEST(OperatorTests, QueryDerivedScanTest) {
       QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_2)).RegisterWithTxnContext(txn_context);
   Operator query_derived_scan_3 =
       QueryDerivedScan::Make("alias",
-                             std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>())
+                             std::unordered_map<parser::AliasType, common::ManagedPointer<parser::AbstractExpression>,
+                                                parser::AliasType::HashKey>())
           .RegisterWithTxnContext(txn_context);
   Operator query_derived_scan_4 =
       QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_3)).RegisterWithTxnContext(txn_context);
@@ -2067,7 +2074,7 @@ TEST(OperatorTests, CreateViewTest) {
   EXPECT_NE(op1.Hash(), op5.Hash());
 
   auto stmt = new parser::SelectStatement(std::vector<common::ManagedPointer<parser::AbstractExpression>>{}, true,
-                                          nullptr, nullptr, nullptr, nullptr, nullptr);
+                                          nullptr, nullptr, nullptr, nullptr, nullptr, {});
   Operator op6 = CreateView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "test_view",
                                   common::ManagedPointer<parser::SelectStatement>(stmt))
                      .RegisterWithTxnContext(txn_context);

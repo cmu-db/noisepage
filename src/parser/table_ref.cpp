@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -193,4 +194,20 @@ std::unique_ptr<TableRef> TableRef::Copy() {
   }
   return table_ref;
 }
+
+void TableRef::GetConstituentTableAliases(std::vector<std::string> *aliases) {
+  if (!alias_.empty()) {
+    aliases->push_back(GetAlias());
+  }
+
+  if (join_ != nullptr) {
+    join_->GetLeftTable()->GetConstituentTableAliases(aliases);
+    join_->GetRightTable()->GetConstituentTableAliases(aliases);
+  }
+
+  for (auto &table : list_) {
+    table->GetConstituentTableAliases(aliases);
+  }
+}
+
 }  // namespace noisepage::parser

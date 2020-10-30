@@ -306,6 +306,12 @@ class PlanGenerator : public OperatorVisitor {
    */
   void Visit(const Analyze *analyze) override;
 
+  /**
+   * Visit a CteScan operator
+   * @param cte_scan operator
+   */
+  void Visit(const CteScan *cte_scan) override;
+
  private:
   /**
    * Register a pointer to be deleted on transaction commit/abort

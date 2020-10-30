@@ -232,6 +232,17 @@ class SqlTable {
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
 
   /**
+   * Clears the contents of this table and reinitializes it
+   */
+  void Reset();
+
+  /**
+   * Copies all data from src to this table
+   * @param txn The current transaction context
+   * @param src The source table to copy from
+   */
+  void CopyTable(common::ManagedPointer<transaction::TransactionContext> txn, common::ManagedPointer<SqlTable> src);
+  /**
    * @return a coarse estimation on the number of tuples in this table
    */
   uint64_t GetNumTuple() const { return table_.data_table_->GetNumTuple(); }

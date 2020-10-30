@@ -39,6 +39,10 @@ constexpr trigger_oid_t INVALID_TRIGGER_OID = trigger_oid_t(NULL_OID);
 constexpr type_oid_t INVALID_TYPE_OID = type_oid_t(NULL_OID);
 constexpr view_oid_t INVALID_VIEW_OID = view_oid_t(NULL_OID);
 
+constexpr uint32_t TEMP_OID_MASK = 1 << 31;
+#define TEMP_OID(strongtype, x) (strongtype(x | catalog::TEMP_OID_MASK))
+#define IS_TEMP_OID(x) ((((x).UnderlyingValue()) & catalog::TEMP_OID_MASK) > 0)
+
 constexpr char DEFAULT_DATABASE[] = "noisepage";
 
 }  // namespace noisepage::catalog
