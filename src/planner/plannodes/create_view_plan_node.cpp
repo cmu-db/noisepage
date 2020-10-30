@@ -6,8 +6,25 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<CreateViewPlanNode> CreateViewPlanNode::Builder::Build() {
+  return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
+                                                                    database_oid_, namespace_oid_,
+                                                                    std::move(view_name_), std::move(view_query_)));
+}
+
+CreateViewPlanNode::CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                                       catalog::namespace_oid_t namespace_oid, std::string view_name,
+                                       std::unique_ptr<parser::SelectStatement> view_query)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      database_oid_(database_oid),
+      namespace_oid_(namespace_oid),
+      view_name_(std::move(view_name)),
+      view_query_(std::move(view_query)) {}
 
 common::hash_t CreateViewPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -73,7 +90,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateViewPlanNode::Fro
   }
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(CreateViewPlanNode);
 
 }  // namespace noisepage::planner

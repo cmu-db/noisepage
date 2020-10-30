@@ -12,6 +12,7 @@
 #include "binder/binder_util.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "execution/functions/function_context.h"
@@ -29,6 +30,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/expression/table_star_expression.h"
 #include "parser/expression/type_cast_expression.h"
+#include "parser/parse_result.h"
 #include "parser/statements.h"
 
 namespace noisepage::binder {
@@ -47,7 +49,7 @@ namespace noisepage::binder {
 
 BindNodeVisitor::BindNodeVisitor(const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor,
                                  const catalog::db_oid_t db_oid)
-    : catalog_accessor_(catalog_accessor), db_oid_(db_oid) {}
+    : sherpa_(nullptr), catalog_accessor_(catalog_accessor), db_oid_(db_oid) {}
 
 void BindNodeVisitor::BindNameToNode(
     common::ManagedPointer<parser::ParseResult> parse_result,
@@ -59,6 +61,8 @@ void BindNodeVisitor::BindNameToNode(
   sherpa_->GetParseResult()->GetStatement(0)->Accept(
       common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 }
+
+BindNodeVisitor::~BindNodeVisitor() = default;
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::AnalyzeStatement> node) {
   BINDER_LOG_TRACE("Visiting AnalyzeStatement ...");
@@ -835,4 +839,21 @@ void BindNodeVisitor::UnifyOrderByExpression(
     }
   }
 }
+
+void BindNodeVisitor::InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
+  if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
+}
+
+void BindNodeVisitor::ValidateDatabaseName(const std::string &db_name) {
+  if (!(db_name.empty())) {
+    const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
+    if (db_oid == catalog::INVALID_DATABASE_OID)
+      throw BINDER_EXCEPTION(fmt::format("Database \"{}\" does not exist", db_name),
+                             common::ErrorCode::ERRCODE_UNDEFINED_DATABASE);
+    if (db_oid != db_oid_)
+      throw BINDER_EXCEPTION("cross-database references are not implemented: ",
+                             common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED);
+  }
+}
+
 }  // namespace noisepage::binder

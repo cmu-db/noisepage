@@ -1,5 +1,7 @@
 #include "parser/expression/parameter_value_expression.h"
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace noisepage::parser {
@@ -22,6 +24,16 @@ std::vector<std::unique_ptr<AbstractExpression>> ParameterValueExpression::FromJ
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   value_idx_ = j.at("value_idx").get<uint32_t>();
   return exprs;
+}
+
+void ParameterValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
+common::hash_t ParameterValueExpression::Hash() const {
+  common::hash_t hash = AbstractExpression::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
+  return hash;
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(ParameterValueExpression);
