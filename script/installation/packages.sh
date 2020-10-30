@@ -72,6 +72,8 @@ PYTHON_PACKAGES=(\
   "requests" \
   "psutil" \
   "distro"  \
+  "pyzmq" \
+  "skylearn" \
   "PTable"
 )
 

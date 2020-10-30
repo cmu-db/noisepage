@@ -900,6 +900,7 @@ file(GLOB_RECURSE NOISEPAGE_TEST_SOURCES
         "test/execution/*.cpp"
         "test/integration/*.cpp"
         "test/messenger/*.cpp"
+        "test/model_server/*.cpp"
         "test/metrics/*.cpp"
         "test/network/*.cpp"
         "test/optimizer/*.cpp"

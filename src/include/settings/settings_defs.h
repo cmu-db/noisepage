@@ -324,4 +324,20 @@ SETTING_bool(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    pilot_enable,
+    "Whether to enable the pilot (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
+
+SETTING_string(
+    model_server_path,
+    "The python model server script to invoke (default: INVALID_PATH)",
+    "INVALID_PATH",
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
     // clang-format on
