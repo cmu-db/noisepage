@@ -4,9 +4,25 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<OrderByPlanNode> OrderByPlanNode::Builder::Build() {
+  return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+                                                              std::move(sort_keys_), has_limit_, limit_, offset_));
+}
+
+OrderByPlanNode::OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                 std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys,
+                                 bool has_limit, size_t limit, size_t offset)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      sort_keys_(std::move(sort_keys)),
+      has_limit_(has_limit),
+      limit_(limit),
+      offset_(offset) {}
 
 common::hash_t OrderByPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -94,7 +110,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
   offset_ = j.at("offset").get<size_t>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(OrderByPlanNode);
 
 }  // namespace noisepage::planner

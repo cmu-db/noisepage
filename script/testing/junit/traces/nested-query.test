@@ -288,12 +288,12 @@ statement ok
 -- Test TypeJA
 
 query IIT nosort
-SELECT * FROM part WHERE amount > (SELECT MAX(qty) FROM shipment WHERE shipment.pno = part.pno) order by pno;
+SELECT * FROM part WHERE amount > (SELECT MAX(qty) FROM shipment WHERE shipment.pno = part.pno) order by part_name;
 ----
 21 values hashing to b6d55f2c7042fac31f69133143921bde
 
 query IIT nosort
-SELECT * FROM part WHERE amount < (SELECT MAX(qty) FROM shipment WHERE shipment.pno = part.pno) order by pno;
+SELECT * FROM part WHERE amount < (SELECT MAX(qty) FROM shipment WHERE shipment.pno = part.pno) order by part_name;
 ----
 15 values hashing to d3434eea5eea795c4f57399ca9e18e69
 

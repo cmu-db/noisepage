@@ -12,15 +12,17 @@
 #include "execution/tpl_test.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
+#include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm_defs.h"
+#include "spdlog/fmt/fmt.h"
 #include "test_util/multithread_test_util.h"
 
 namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
-  AtomicsTest() : region_("atomics_test"), pos_() {}
+  AtomicsTest() : region_("atomics_test"), pos_() { vm::LLVMEngine::Initialize(); }
 
   util::Region *Region() { return &region_; }
 
@@ -28,446 +30,149 @@ class AtomicsTest : public TplTest {
 
   util::Region region_;
   SourcePosition pos_;
+
+  template <typename T>
+  void AndOrTest(const std::string &tpl_type, const bool compiled) {
+    auto exec_mode = compiled ? vm::ExecutionMode::Compiled : vm::ExecutionMode::Interpret;
+    // Setup the compilation environment
+    sema::ErrorReporter error_reporter(&region_);
+    ast::AstNodeFactory factory(&region_);
+    ast::Context context(&region_, &error_reporter);
+
+    const std::string &src = fmt::format(R"(
+    fun atomic_and(dest: *{0}, mask: {0}) -> {0} {{
+      var x = @atomicAnd(dest, mask)
+      return x
+    }}
+    fun atomic_or(dest: *{0}, mask: {0}) -> {0} {{
+      var x = @atomicOr(dest, mask)
+      return x
+    }})",
+                                         tpl_type);
+
+    // Compile it...
+    auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
+    auto module = compiler::Compiler::RunCompilationSimple(input);
+    ASSERT_FALSE(module == nullptr);
+
+    // The function should exist
+    std::function<T(T *, T)> atomic_and;
+    EXPECT_TRUE(module->GetFunction("atomic_and", exec_mode, &atomic_and));
+
+    // The function should exist
+    std::function<T(T *, T)> atomic_or;
+    EXPECT_TRUE(module->GetFunction("atomic_or", exec_mode, &atomic_or));
+
+    /*=========================
+     *= Run correctness tests =
+     *=========================
+     */
+    const uint32_t num_iters = 100;
+    const uint32_t num_cycles = 1000;
+    const uint32_t num_threads = sizeof(T) * 8;  // Number of bits in test
+    common::WorkerPool thread_pool(num_threads, {});
+
+    for (uint32_t iter = 0; iter < num_iters; ++iter) {
+      std::atomic<T> target = 0;
+      auto workload = [&](uint32_t thread_id) {
+        auto mask = static_cast<T>(1) << thread_id;
+        auto inv_mask = ~mask;
+        ASSERT_NE(mask, 0);
+
+        T before;
+        for (uint32_t i = 0; i < num_cycles; ++i) {
+          // Set it
+          before = atomic_or(reinterpret_cast<T *>(&target), mask);
+          EXPECT_EQ(before & mask, 0);
+          EXPECT_EQ(target.load() & mask, mask);
+          // Clear it
+          before = atomic_and(reinterpret_cast<T *>(&target), inv_mask);
+          EXPECT_EQ(before & mask, mask);
+          EXPECT_EQ(target.load() & mask, 0);
+        }
+      };
+
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+      EXPECT_EQ(target.load(), 0);
+    }
+  }
+
+  template <typename T>
+  void CompareExchangeTest(const std::string &tpl_type, const bool compiled) {
+    auto exec_mode = compiled ? vm::ExecutionMode::Compiled : vm::ExecutionMode::Interpret;
+    // Setup the compilation environment
+    sema::ErrorReporter error_reporter(&region_);
+    ast::AstNodeFactory factory(&region_);
+    ast::Context context(&region_, &error_reporter);
+
+    const std::string &src = fmt::format(R"(
+    fun cmpxchg(dest: *{0}, expected: *{0}, desired: {0}) -> bool {{
+      var x = @atomicCompareExchange(dest, expected, desired)
+      return x
+    }})",
+                                         tpl_type);
+
+    // Compile it...
+    auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
+    auto module = compiler::Compiler::RunCompilationSimple(input);
+    ASSERT_FALSE(module == nullptr);
+
+    // The function should exist
+    std::function<bool(T *, T *, T)> cmpxchg;
+    EXPECT_TRUE(module->GetFunction("cmpxchg", exec_mode, &cmpxchg));
+
+    /*=========================
+     *= Run correctness tests =
+     *=========================
+     */
+    const uint32_t num_iters = 1000;
+    const uint32_t num_threads = MultiThreadTestUtil::HardwareConcurrency();
+    common::WorkerPool thread_pool(num_threads, {});
+
+    for (uint32_t iter = 0; iter < num_iters; ++iter) {
+      std::atomic<T> target = 0;
+      auto workload = [&](T thread_id) {
+        T expected;
+        bool success = false;
+        T previous = 0;
+        do {
+          expected = thread_id;
+          EXPECT_FALSE(success);
+          success = cmpxchg(reinterpret_cast<T *>(&target), &expected, thread_id + 1);
+          EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
+          ASSERT_LE(previous, expected);   // Monotonic
+          EXPECT_TRUE(!success || expected == thread_id);
+          previous = expected;
+        } while (expected != thread_id);
+        EXPECT_TRUE(success);
+      };
+
+      MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
+      ASSERT_EQ(target.load(), num_threads);
+    }
+  }
 };
 
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr1) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
+TEST_F(AtomicsTest, InterpretedAndOr1) { AndOrTest<uint8_t>("uint8", false); }                        // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr2) { AndOrTest<uint16_t>("uint16", false); }                      // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr4) { AndOrTest<uint32_t>("uint32", false); }                      // NOLINT
+TEST_F(AtomicsTest, InterpretedAndOr8) { AndOrTest<uint64_t>("uint64", false); }                      // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", false); }    // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", false); }  // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", false); }  // NOLINT
+TEST_F(AtomicsTest, InterpretedCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", false); }  // NOLINT
+
+/* TODO(John): These tests are disabled because our testing environment does not
+ *  currently make `bytecode_handlers_ir.bc` available to the test programs.
+ *  Without this file, compiled tests fail.
+ */
+// TEST_F(AtomicsTest, CompiledAndOr1) { AndOrTest<uint8_t>("uint8", true); }                        // NOLINT
+// TEST_F(AtomicsTest, CompiledAndOr2) { AndOrTest<uint16_t>("uint16", true); }                      // NOLINT
+// TEST_F(AtomicsTest, CompiledAndOr4) { AndOrTest<uint32_t>("uint32", true); }                      // NOLINT
+// TEST_F(AtomicsTest, CompiledAndOr8) { AndOrTest<uint64_t>("uint64", true); }                      // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange1) { CompareExchangeTest<uint8_t>("uint8", true); }    // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange2) { CompareExchangeTest<uint16_t>("uint16", true); }  // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange4) { CompareExchangeTest<uint32_t>("uint32", true); }  // NOLINT
+// TEST_F(AtomicsTest, CompiledCompareExchange8) { CompareExchangeTest<uint64_t>("uint64", true); }  // NOLINT
 
-  auto src = std::string(
-      "fun atomic_and(dest: *uint8, mask: uint8) -> uint8 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint8, mask: uint8) -> uint8 { return @atomicOr(dest, mask) }");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<uint8_t(uint8_t *, uint8_t)> atomic_and;
-  EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
-
-  // The function should exist
-  std::function<uint8_t(uint8_t *, uint8_t)> atomic_or;
-  EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_cycles = 1000;
-  const uint32_t num_threads = 8;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint8_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      auto mask = static_cast<uint8_t>(1 << thread_id);
-      auto inv_mask = ~mask;
-      ASSERT_NE(mask, 0);
-
-      for (uint32_t i = 0; i < num_cycles; ++i) {
-        // Set it
-        atomic_or(reinterpret_cast<uint8_t *>(&target), mask);
-        EXPECT_EQ(target.load() & mask, mask);
-        // Clear it
-        atomic_and(reinterpret_cast<uint8_t *>(&target), inv_mask);
-        EXPECT_EQ(target.load() & mask, 0);
-      }
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), 0);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr2) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun atomic_and(dest: *uint16, mask: uint16) -> uint16 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint16, mask: uint16) -> uint16 { return @atomicOr(dest, mask) }");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<uint16_t(uint16_t *, uint16_t)> atomic_and;
-  EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
-
-  // The function should exist
-  std::function<uint16_t(uint16_t *, uint16_t)> atomic_or;
-  EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_cycles = 1000;
-  const uint32_t num_threads = 16;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint16_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      ASSERT_LT(thread_id, num_threads);
-      auto mask = static_cast<uint16_t>(1 << thread_id);
-      auto inv_mask = ~mask;
-      ASSERT_NE(mask, 0);
-      for (uint32_t i = 0; i < num_cycles; ++i) {
-        // Set it
-        atomic_or(reinterpret_cast<uint16_t *>(&target), mask);
-        EXPECT_EQ(target.load() & mask, mask);
-        // Clear it
-        atomic_and(reinterpret_cast<uint16_t *>(&target), inv_mask);
-        EXPECT_EQ(target.load() & mask, 0);
-      }
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), 0);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr4) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun atomic_and(dest: *uint32, mask: uint32) -> uint32 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint32, mask: uint32) -> uint32 { return @atomicOr(dest, mask) }");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<uint32_t(uint32_t *, uint32_t)> atomic_and;
-  EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
-
-  // The function should exist
-  std::function<uint32_t(uint32_t *, uint32_t)> atomic_or;
-  EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_cycles = 1000;
-  const uint32_t num_threads = 32;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint32_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      auto mask = static_cast<uint32_t>(1 << thread_id);
-      auto inv_mask = ~mask;
-      ASSERT_NE(mask, 0);
-      for (uint32_t i = 0; i < num_cycles; ++i) {
-        // Set it
-        atomic_or(reinterpret_cast<uint32_t *>(&target), mask);
-        EXPECT_EQ(target.load() & mask, mask);
-        // Clear it
-        atomic_and(reinterpret_cast<uint32_t *>(&target), inv_mask);
-        EXPECT_EQ(target.load() & mask, 0);
-      }
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), 0);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicAndOr8) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun atomic_and(dest: *uint64, mask: uint64) -> uint64 { return @atomicAnd(dest, mask) }\n"
-      "fun atomic_or(dest: *uint64, mask: uint64) -> uint64 { return @atomicOr(dest, mask) }");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<uint64_t(uint64_t *, uint64_t)> atomic_and;
-  EXPECT_TRUE(module->GetFunction("atomic_and", vm::ExecutionMode::Interpret, &atomic_and));
-
-  // The function should exist
-  std::function<uint64_t(uint64_t *, uint64_t)> atomic_or;
-  EXPECT_TRUE(module->GetFunction("atomic_or", vm::ExecutionMode::Interpret, &atomic_or));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_cycles = 1000;
-  const uint32_t num_threads = 8;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint64_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      auto mask = 1 << thread_id;
-      auto inv_mask = ~mask;
-      ASSERT_NE(mask, 0);
-      uint64_t before = 0;
-      for (uint32_t i = 0; i < num_cycles; ++i) {
-        // Set it
-        before = atomic_or(reinterpret_cast<uint64_t *>(&target), mask);
-        EXPECT_EQ(before & mask, 0);
-        EXPECT_EQ(target.load() & mask, mask);
-        // Clear it
-        before = atomic_and(reinterpret_cast<uint64_t *>(&target), inv_mask);
-        EXPECT_EQ(before & mask, mask);
-        EXPECT_EQ(target.load() & mask, 0);
-      }
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), 0);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange1) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun cmpxchg(dest: *uint8, expected: *uint8, desired: uint8) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
-      "}");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<bool(uint8_t *, uint8_t *, uint8_t)> cmpxchg;
-  EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_threads = 8;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint8_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      uint8_t expected;
-      bool success = false;
-      do {
-        expected = thread_id;
-        EXPECT_FALSE(success);
-        success = cmpxchg(reinterpret_cast<uint8_t *>(&target), &expected, static_cast<uint8_t>(thread_id + 1));
-        EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
-        EXPECT_TRUE(!success || expected == thread_id);
-      } while (expected != thread_id);
-      EXPECT_TRUE(success);
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), num_threads);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange2) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun cmpxchg(dest: *uint16, expected: *uint16, desired: uint16) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
-      "}");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<bool(uint16_t *, uint16_t *, uint16_t)> cmpxchg;
-  EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_threads = 16;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint16_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      uint16_t expected;
-      bool success = false;
-      do {
-        expected = thread_id;
-        EXPECT_FALSE(success);
-        success = cmpxchg(reinterpret_cast<uint16_t *>(&target), &expected, static_cast<uint16_t>(thread_id + 1));
-        EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
-        EXPECT_TRUE(!success || expected == thread_id);
-      } while (expected != thread_id);
-      EXPECT_TRUE(success);
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), num_threads);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange4) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun cmpxchg(dest: *uint32, expected: *uint32, desired: uint32) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
-      "}");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<bool(uint32_t *, uint32_t *, uint32_t)> cmpxchg;
-  EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_threads = 32;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint32_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      uint32_t expected;
-      bool success = false;
-      do {
-        expected = thread_id;
-        EXPECT_FALSE(success);
-        success = cmpxchg(reinterpret_cast<uint32_t *>(&target), &expected, static_cast<uint32_t>(thread_id + 1));
-        EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
-        EXPECT_TRUE(!success || expected == thread_id);
-      } while (expected != thread_id);
-      EXPECT_TRUE(success);
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), num_threads);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(AtomicsTest, AtomicCompareExchange8) {
-  // Setup the compilation environment
-  sema::ErrorReporter error_reporter(&region_);
-  ast::AstNodeFactory factory(&region_);
-  ast::Context context(&region_, &error_reporter);
-
-  auto src = std::string(
-      "fun cmpxchg(dest: *uint64, expected: *uint64, desired: uint64) -> bool {"
-      "  return @atomicCompareExchange(dest, expected, desired)"
-      "}");
-
-  // Compile it...
-  auto input = compiler::Compiler::Input("Atomic Definitions", &context, &src);
-  auto module = compiler::Compiler::RunCompilationSimple(input);
-  EXPECT_STREQ(error_reporter.SerializeErrors().c_str(), "");
-  ASSERT_FALSE(module == nullptr);
-
-  // The function should exist
-  std::function<bool(uint64_t *, uint64_t *, uint64_t)> cmpxchg;
-  EXPECT_TRUE(module->GetFunction("cmpxchg", vm::ExecutionMode::Interpret, &cmpxchg));
-
-  /*=========================
-   *= Run correctness tests =
-   *=========================
-   */
-
-  std::default_random_engine generator;
-  const uint32_t num_iters = 100;
-  const uint32_t num_threads = 64;  // Number of bits in test
-  common::WorkerPool thread_pool(num_threads, {});
-
-  for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    std::atomic<uint64_t> target = 0;
-    auto workload = [&](uint32_t thread_id) {
-      uint64_t expected;
-      bool success = false;
-      do {
-        expected = thread_id;
-        EXPECT_FALSE(success);
-        success = cmpxchg(reinterpret_cast<uint64_t *>(&target), &expected, thread_id + 1);
-        EXPECT_LE(expected, thread_id);  // Out-of-order exchange occurred
-        EXPECT_TRUE(!success || expected == thread_id);
-      } while (expected != thread_id);
-      EXPECT_TRUE(success);
-    };
-
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads, workload);
-    EXPECT_EQ(target.load(), num_threads);
-  }
-}
 }  // namespace noisepage::execution::test

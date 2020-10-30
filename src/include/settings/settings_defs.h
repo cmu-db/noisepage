@@ -316,4 +316,12 @@ SETTING_bool(
     true,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    messenger_enable,
+    "Whether to enable the messenger (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
     // clang-format on

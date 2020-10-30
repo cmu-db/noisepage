@@ -145,3 +145,22 @@ SELECT * FROM update4 WHERE c1=2
 
 statement ok
 DROP TABLE update4
+
+statement ok
+CREATE TABLE update5 (a int)
+
+statement ok
+INSERT INTO update5 (a) VALUES (1),(2),(3);
+
+statement ok
+UPDATE update5 SET a=a;
+
+query I nosort
+SELECT a FROM update5;
+----
+1
+2
+3
+
+statement ok
+DROP TABLE update5

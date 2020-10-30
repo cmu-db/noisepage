@@ -21,7 +21,6 @@ def parse_command_line_args():
     
     public_report_server_list = constants.PERFORMANCE_STORAGE_SERVICE_API.keys()
     aparser.add_argument("--publish-results",
-                         default="none",
                          choices=public_report_server_list,
                          help="Stores performance results in TimeScaleDB")
     aparser.add_argument("--publish-username", 

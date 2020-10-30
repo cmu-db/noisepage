@@ -1,5 +1,7 @@
 #include "parser/expression/aggregate_expression.h"
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "spdlog/fmt/fmt.h"
 
@@ -54,6 +56,16 @@ std::vector<std::unique_ptr<AbstractExpression>> AggregateExpression::FromJson(c
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   distinct_ = j.at("distinct").get<bool>();
   return exprs;
+}
+
+void AggregateExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
+common::hash_t AggregateExpression::Hash() const {
+  common::hash_t hash = AbstractExpression::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
+  return hash;
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(AggregateExpression);
