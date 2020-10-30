@@ -33,7 +33,7 @@ class ModelServerTest : public TerrierTest {
         .SetUseExecution(true)
         .SetUseStatsStorage(true)
         .SetUseTrafficCop(true)
-        .SetModelServerPath("/Users/chenxu/github/noisepage/script/model/model_server.py")
+        .SetModelServerPath("../../script/model/model_server.py")
         .Build();
 
 
