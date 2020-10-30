@@ -51,6 +51,7 @@ pipeline {
                         sh 'cd build && timeout 20m ninja check-format'
                         sh 'cd build && timeout 20m ninja check-lint'
                         sh 'cd build && timeout 20m ninja check-censored'
+                        sh 'cd build && ninja check-clang-tidy'
                     }
                     post {
                         cleanup {
@@ -74,6 +75,7 @@ pipeline {
                         sh 'cd build && timeout 20m ninja check-format'
                         sh 'cd build && timeout 20m ninja check-lint'
                         sh 'cd build && timeout 20m ninja check-censored'
+                        sh 'cd build && ninja check-clang-tidy'
                     }
                     post {
                         cleanup {
@@ -101,6 +103,7 @@ pipeline {
                         sh 'cd build && timeout 20m ninja check-format'
                         sh 'cd build && timeout 20m ninja check-lint'
                         sh 'cd build && timeout 20m ninja check-censored'
+                        sh 'cd build && ninja check-clang-tidy'
                     }
                     post {
                         cleanup {
@@ -132,8 +135,9 @@ pipeline {
                         cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=1 -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=OFF ..
                         ninja''', label: 'Compiling'
 
-                        sh 'cd build && ninja check-clang-tidy'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && gtimeout 1h ninja unittest'
                         sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh script: 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
@@ -167,8 +171,9 @@ pipeline {
                         cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON .. 
                         ninja''', label: 'Compiling'
                         
-                        sh 'cd build && ninja check-clang-tidy'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
@@ -206,6 +211,8 @@ pipeline {
                         ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && timeout 1h ninja unittest'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
@@ -255,8 +262,9 @@ pipeline {
                         cmake -GNinja -DNOISEPAGE_UNITY_BUILD=ON -DNOISEPAGE_TEST_PARALLELISM=$(nproc) -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Debug -DNOISEPAGE_USE_ASAN=ON -DNOISEPAGE_BUILD_BENCHMARKS=OFF -DNOISEPAGE_USE_JUMBOTESTS=ON ..
                         ninja''', label: 'Compiling'
 
-                        sh 'cd build && ninja check-clang-tidy'
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=debug --query-mode=simple', label: 'UnitTest (Simple)'
@@ -293,6 +301,8 @@ pipeline {
                         ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && gtimeout 1h ninja unittest'
                         sh 'cd build && gtimeout 1h ninja check-tpl'
                         sh script: 'cd build && gtimeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
@@ -327,6 +337,8 @@ pipeline {
                         ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'
@@ -365,6 +377,8 @@ pipeline {
                         ninja''', label: 'Compiling'
 
                         sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15721', label: 'Kill PID(15721)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15722', label: 'Kill PID(15722)'
+                        sh script: 'cd build && timeout 10s sudo python3 -B ../script/testing/kill_server.py 15723', label: 'Kill PID(15723)'
                         sh 'cd build && timeout 1h ninja jumbotests'
                         sh 'cd build && timeout 1h ninja check-tpl'
                         sh script: 'cd build && timeout 20m python3 ../script/testing/junit/run_junit.py --build-type=release --query-mode=simple', label: 'UnitTest (Simple)'

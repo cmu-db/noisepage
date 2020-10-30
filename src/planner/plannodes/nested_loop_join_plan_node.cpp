@@ -5,8 +5,19 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<NestedLoopJoinPlanNode> NestedLoopJoinPlanNode::Builder::Build() {
+  return std::unique_ptr<NestedLoopJoinPlanNode>(
+      new NestedLoopJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_));
+}
+
+NestedLoopJoinPlanNode::NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                               std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                                               common::ManagedPointer<parser::AbstractExpression> predicate)
+    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate) {}
 
 common::hash_t NestedLoopJoinPlanNode::Hash() const { return AbstractJoinPlanNode::Hash(); }
 

@@ -43,11 +43,7 @@ class AggregateExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
-    return hash;
-  }
+  common::hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
@@ -63,7 +59,7 @@ class AggregateExpression : public AbstractExpression {
    */
   void DeriveReturnValueType() override;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override;

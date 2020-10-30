@@ -5,8 +5,35 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<CreateFunctionPlanNode> CreateFunctionPlanNode::Builder::Build() {
+  return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
+      std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
+      std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
+      std::move(function_name_), return_type_, param_count_));
+}
+
+CreateFunctionPlanNode::CreateFunctionPlanNode(
+    std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
+    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, parser::PLType language,
+    std::vector<std::string> &&function_param_names,
+    std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+    std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
+    parser::BaseFunctionParameter::DataType return_type, int param_count)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      database_oid_(database_oid),
+      namespace_oid_(namespace_oid),
+      language_(language),
+      function_param_names_(std::move(function_param_names)),
+      function_param_types_(std::move(function_param_types)),
+      function_body_(std::move(function_body)),
+      is_replace_(is_replace),
+      function_name_(std::move(function_name)),
+      return_type_(return_type),
+      param_count_(param_count) {}
 
 common::hash_t CreateFunctionPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
