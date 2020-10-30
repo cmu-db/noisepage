@@ -264,6 +264,10 @@ def main():
     # NoisePage hack: don't check third party dependencies.
     files = [filepath for filepath in files if '/_deps/' not in filepath]
 
+    # Remove any duplicates from the files list. In theory that shouldn't happen, but we've seen it when there are
+    # quirks in the build targets
+    files = list(set(files))
+
     max_task = args.j
     if max_task == 0:
         max_task = multiprocessing.cpu_count()
