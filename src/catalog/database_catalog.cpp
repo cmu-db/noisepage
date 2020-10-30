@@ -17,6 +17,7 @@
 #include "catalog/postgres/pg_proc.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "common/error/error_code.h"
 #include "execution/functions/function_context.h"
 #include "nlohmann/json.hpp"
 #include "storage/index/index.h"

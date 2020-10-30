@@ -7,9 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "common/hash_util.h"
+#include "common/hash_defs.h"
 #include "common/json_header.h"
-#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_node_defs.h"
 
 namespace noisepage::runner {
@@ -18,6 +17,7 @@ class MiniRunners;
 
 namespace noisepage::planner {
 
+class OutputSchema;
 class PlanVisitor;
 
 /**
@@ -70,8 +70,7 @@ class AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    */
   AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                   std::unique_ptr<OutputSchema> output_schema)
-      : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
+                   std::unique_ptr<OutputSchema> output_schema);
 
  public:
   /**
@@ -81,7 +80,7 @@ class AbstractPlanNode {
 
   DISALLOW_COPY_AND_MOVE(AbstractPlanNode)
 
-  virtual ~AbstractPlanNode() = default;
+  virtual ~AbstractPlanNode();
 
   //===--------------------------------------------------------------------===//
   // Children Helpers
@@ -154,46 +153,14 @@ class AbstractPlanNode {
    * Derived plan nodes should call this method from their override of Hash() to hash data belonging to the base class
    * @return hash of the plan node
    */
-  virtual common::hash_t Hash() const {
-    // PlanNodeType
-    common::hash_t hash = common::HashUtil::Hash(GetPlanNodeType());
-
-    // OutputSchema
-    if (output_schema_ != nullptr) {
-      hash = common::HashUtil::CombineHashes(hash, output_schema_->Hash());
-    }
-
-    // Children
-    for (const auto &child : GetChildren()) {
-      hash = common::HashUtil::CombineHashes(hash, child->Hash());
-    }
-    return hash;
-  }
+  virtual common::hash_t Hash() const;
 
   /**
    * Perform a deep comparison of a plan node
    * @param rhs other node to compare against
    * @return true if plan node and its children are equal
    */
-  virtual bool operator==(const AbstractPlanNode &rhs) const {
-    if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
-
-    // OutputSchema
-    auto other_output_schema = rhs.GetOutputSchema();
-    if ((output_schema_ == nullptr && other_output_schema != nullptr) ||
-        (output_schema_ != nullptr && other_output_schema == nullptr)) {
-      return false;
-    }
-    if (output_schema_ != nullptr && *output_schema_ != *other_output_schema) return false;
-
-    // Children
-    auto num = GetChildren().size();
-    if (num != rhs.GetChildren().size()) return false;
-    for (unsigned int i = 0; i < num; i++) {
-      if (*GetChild(i) != *const_cast<AbstractPlanNode *>(rhs.GetChild(i))) return false;
-    }
-    return true;
-  }
+  virtual bool operator==(const AbstractPlanNode &rhs) const;
 
   /**
    * @param rhs other node to compare against

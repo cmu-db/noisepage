@@ -5,10 +5,23 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
 
 // TODO(Gus,Wen) Add SetParameters
+
+std::unique_ptr<DeletePlanNode> DeletePlanNode::Builder::Build() {
+  return std::unique_ptr<DeletePlanNode>(
+      new DeletePlanNode(std::move(children_), std::make_unique<OutputSchema>(), database_oid_, table_oid_));
+}
+
+DeletePlanNode::DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                               std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                               catalog::table_oid_t table_oid)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      database_oid_(database_oid),
+      table_oid_(table_oid) {}
 
 common::hash_t DeletePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
