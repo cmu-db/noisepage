@@ -1,3 +1,4 @@
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/vector_operations/vector_operations.h"

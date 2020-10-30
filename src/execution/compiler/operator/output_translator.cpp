@@ -6,6 +6,7 @@
 #include "execution/compiler/if.h"
 #include "execution/compiler/loop.h"
 #include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::execution::compiler {
 

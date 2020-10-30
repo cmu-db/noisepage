@@ -1,5 +1,7 @@
 #include "parser/expression/case_expression.h"
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace noisepage::parser {
@@ -22,6 +24,13 @@ std::vector<std::unique_ptr<AbstractExpression>> CaseExpression::WhenClause::Fro
   exprs.insert(exprs.end(), std::make_move_iterator(deserialized_then.non_owned_exprs_.begin()),
                std::make_move_iterator(deserialized_then.non_owned_exprs_.end()));
   return exprs;
+}
+
+common::hash_t CaseExpression::WhenClause::Hash() const {
+  common::hash_t hash = condition_->Hash();
+  hash = common::HashUtil::CombineHashes(hash, condition_->Hash());
+  hash = common::HashUtil::CombineHashes(hash, then_->Hash());
+  return hash;
 }
 
 common::hash_t CaseExpression::Hash() const {
@@ -82,6 +91,10 @@ std::vector<std::unique_ptr<AbstractExpression>> CaseExpression::FromJson(const 
   exprs.insert(exprs.end(), std::make_move_iterator(e2.non_owned_exprs_.begin()),
                std::make_move_iterator(e2.non_owned_exprs_.end()));
   return exprs;
+}
+
+void CaseExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(CaseExpression::WhenClause);

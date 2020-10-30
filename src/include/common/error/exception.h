@@ -6,7 +6,9 @@
 #include <memory>
 #include <string>
 
-#include "common/error/error_code.h"
+namespace noisepage::common {
+enum class ErrorCode : uint16_t;
+}  // namespace noisepage::common
 
 namespace noisepage {
 
