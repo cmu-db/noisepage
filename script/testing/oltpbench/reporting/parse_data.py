@@ -62,3 +62,17 @@ def parse_files(results_dir):
         os.path.join(results_dir, 'oltpbench.res'))
     parameters = {**summary_parameters, **config_parameters}
     return metadata, timestamp, benchmark_type, parameters, metrics
+
+
+def add_mem_info_to_incremental(metrics, mem_info_dict):
+    """
+    Add the memory info to the incremental metrics by time
+    """
+    incremental_metrics = metrics.get('incremental_metrics')
+    for time, mem_info in mem_info_dict.items():
+        if time not in incremental_metrics:
+            incremental_metrics[time] = {'time': time}
+        incremental_metrics[time]['memory_info'] = {
+            'rss': mem_info.rss,
+            'vms': mem_info.vms
+        }

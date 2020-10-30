@@ -34,14 +34,3 @@ def send_results(api_url, username, password, results):
                            json=results,
                            auth=(username, password))
     result.raise_for_status()
-
-
-def add_mem_info_to_incremental(metrics, mem_info_dict):
-    incremental_metrics = metrics.get('incremental_metrics')
-    for time, mem_info in mem_info_dict.items():
-        if time not in incremental_metrics:
-            incremental_metrics[time] = {'time': time}
-        incremental_metrics[time]['memory_info'] = {
-            'rss': mem_info.rss,
-            'vms': mem_info.vms
-        }
