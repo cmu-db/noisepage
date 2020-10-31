@@ -412,9 +412,15 @@ class EXPORT Timestamp {
 template <typename T>
 class EXPORT Decimal {
  public:
+  /** This function converts an input decimal string to the
+   * underlying decimaml representation. The second argument
+   * specifies the number of digits after the decimal point
+   * that we want to retain. The total no of digits has to be
+   * <= 38. If the number of digits after the decimal point
+   * > precision then we round up
+   * @param input input string
+   * @param precision Number of digits after decimal point.*/
   void RoundUpAndSet(std::string input, unsigned precision);
-
-  void MultiplyAndSet(const Decimal<T> &value, unsigned precision);
 
   /** Underlying native data type. */
   using NativeType = T;
@@ -492,18 +498,78 @@ class EXPORT Decimal {
     return *this;
   }
 
+  /**
+   * Get the underlying value of the decimal
+   * @return This decimal value.
+   */
   T GetValue() const { return value_; }
 
+  /** This function divides with a given decimal
+   * Note we multiply with the 10^precision of the denominator and then
+   * divide by the denominator
+   * If we do not overflow, we use a 128 number division
+   * If we already know the magic number of the 128 bit number then we use
+   * magic number division
+   * If we overflow, we need to use a multiword 256 bit division
+   * If we already know the magic number of the 256 bit number then we use
+   * magic number division
+   * We retain the result in numerator precision, this is due to the simple
+   * fact that if we were to retain it in denominator precision we need to
+   * multiply with 10 ^ (2* denominator - numerator) which will require a
+   * 256 x 256 bit multiplication with an overflow check in 512 bits
+   * @param input the decimal to be divide with
+   * @param denominator_precision Number of digits after decimal point.*/
   void SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_precision);
+
+  /** This function divides with a given unsigned 128 bit number with
+   * another 128 bit input. The given number here is stored inside the
+   * decimal class and assumes that it is non negative.
+   * If constant is a power of 2, we right shift
+   * If we have the magic number, we would use it to do the division
+   * Otherwise we do a normal division
+   * @param constant divisor*/
+  void UnsignedDivideConstant128Bit(uint128_t constant);
+
+  /** Signed version of UnsignedDivideConstant128Bit
+   * @param input divisor*/
+  void SignedDivideWithConstant(int64_t input);
+
+  /** This function multiplies with a given decimal
+   * This function works only with decimals in the unsigned format
+   * Note we multiply with the overflow check and divide by
+   * 10 ^ precision using a 256 bit magic number division
+   * If we do not overflow, we use a 128 bit magic number division
+   * To make this function multi purpose, the precision is not specified
+   * If you want result in the precision of the decimal with higher precision
+   * Pass in the the precision of the decimal with lower precision
+   * If you want result in the precision of the decimal with lower precision
+   * Pass in the the precision of the decimal with higher precision
+   * @param value the decimal to be multiplied with
+   * @param precision Number of digits after decimal point.*/
+  void MultiplyAndSet(const Decimal<T> &value, unsigned precision);
+
+  /** Signed version of MultiplyAndSet
+   * @param input the decimal to be multiplied with
+   * @param lower_precision Number of digits after decimal point
+   * of the decimal with lower precision. Note the result will be stored in
+   * the higher precision value.*/
+  void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
+
+  /** Signed version of MultiplyAndSet with a constant
+   * @param input the constant to be multiplied with. */
+  void SignedMultiplyWithConstant(int64_t input);
 
  private:
   // The encoded decimal value
   T value_;
-  void UnsignedDivideConstant128Bit(uint128_t constant);
+
+  /* This function performs the magic number division by a power of
+   * 10 for 128 bit unsigned integers. It assumes that the underlying
+   * decimal number is positive. This routine is used after multiplication
+   * of decimals to get the correct result.
+   * @param power - i in 10^i.
+   * */
   void UnsignedDivideConstant128BitPowerOfTen(unsigned power);
-  void SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision);
-  void SignedMultiplyWithConstant(int64_t input);
-  void SignedDivideWithConstant(int64_t input);
 };
 
 using Decimal32 = Decimal<int32_t>;

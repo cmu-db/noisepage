@@ -6,7 +6,10 @@
 
 namespace terrier::execution::sql {
 
-/*Magic Number for 256 bit division with 10 ^ i*/
+/* Magic array for 256 bit division with powers of 10
+ * This map is used after multiplication of decimals to get
+ * the correct result. This represents the 256 bit magic
+ * number in 4 128 bit unsigned integers with each having 64 bits*/
 constexpr uint128_t MAGIC_ARRAY[39][4] = {
     {0x0, 0x0, 0x0, 0x0},
     {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd},
@@ -48,23 +51,35 @@ constexpr uint128_t MAGIC_ARRAY[39][4] = {
     {0x1039d428a8b8eaea, 0xfca1ac82efb45ca9, 0x77fcdc09b62c8824, 0x8149483089341779},
     {0xb38fb9daa78e44ab, 0x2dcf7a6b19209442, 0x59949342bd140d07, 0x35420d1a7520258f}};
 
+/* Defines the 256 bit magic number division for powers of 10 with algo used and
+ * the constant p used during the division*/
 constexpr unsigned MAGIC_P_AND_ALGO_ARRAY[39][2] = {
     {0, 0},   {259, 0}, {263, 1}, {266, 1}, {267, 0}, {272, 0}, {275, 0}, {279, 0}, {282, 0}, {285, 0},
     {289, 0}, {291, 0}, {296, 1}, {299, 0}, {301, 0}, {305, 0}, {309, 0}, {313, 1}, {316, 1}, {320, 1},
     {321, 0}, {325, 0}, {329, 0}, {333, 1}, {336, 1}, {339, 0}, {342, 0}, {346, 1}, {349, 0}, {350, 0},
     {351, 0}, {359, 1}, {362, 0}, {363, 0}, {367, 0}, {372, 0}, {373, 0}, {379, 1}, {383, 1}};
 
+/** Magic Number for 128 bit division
+ * This struct is used to store Magic Numbers for 128 bit division
+ * It stores two 128 bit unsigned integers representing the upper and
+ * lower 64 bits of the magic number
+ * p Represents the adjust constant p during the magic number algorithm
+ * Algo is contant which is either 0 or 1 representing the type of algo
+ * we need for the constant*/
 struct Magic_Number_128 {
+  /// Upper half of 128 bit magic number
   uint128_t upper;
+  /// Lower half of 128 bit magic number
   uint128_t lower;
+  /// value - p in magic division
   unsigned p;
+  /// Algo type
   unsigned algo;
 };
 
-/*Magic map for 128 bit division*/
-std::unordered_map<uint128_t, struct Magic_Number_128> MAGIC_MAP_128_BIT = {{5, {0, 0, 0, 0}}, {10, {0, 0, 0, 0}}};
-
-/*Magic map for 128 bit division with powers of 10*/
+/* Magic Array for 128 bit division with powers of 10
+ * This map is used after multiplication of decimals to get
+ * the correct result*/
 struct Magic_Number_128 MAGIC_MAP_128_BIT_POWER_TEN[39] = {{0, 0, 0, 0},
                                                            {0xcccccccccccccccc, 0xcccccccccccccccd, 131, 0},
                                                            {0x28f5c28f5c28f5c2, 0x8f5c28f5c28f5c29, 132, 0},
@@ -105,7 +120,9 @@ struct Magic_Number_128 MAGIC_MAP_128_BIT_POWER_TEN[39] = {{0, 0, 0, 0},
                                                            {0x881cea14545c7575, 0x7e50d64177da2e55, 250, 0},
                                                            {0x6ce3ee76a9e3912a, 0xcb73de9ac6482511, 253, 0}};
 
-/*Power map of powers of 10 for multiplying*/
+/*Power map of powers of 10 for multiplying
+ * This map is used when we need to multiply with denominator
+ * precision in the divide routine*/
 uint128_t PowerOfTen[39][2] = {{0, 0},
                                {0x0, 0xa},
                                {0x0, 0x64},
@@ -146,12 +163,14 @@ uint128_t PowerOfTen[39][2] = {{0, 0},
                                {0x785ee10d5da46d9, 0x00f436a000000000},
                                {0x4b3b4ca85a86c47a, 0x098a224000000000}};
 
-/*Magic map for 128 bit division with powers of 10*/
+/* Magic map for 128 bit division with constants*/
 std::unordered_map<uint128_t, struct Magic_Number_128> MagicMap128BitConstantDivision = {
     {0, {0, 0, 0, 0}},
 };
 
-/*Map of powers of 2*/
+/* Map of powers of 2
+ * This map stores powers of two to be used during
+ * constant division of a decimal with a power of 2*/
 std::unordered_map<uint128_t, unsigned> PowerTwo = {
     {0x2, 1},
     {0x4, 2},
