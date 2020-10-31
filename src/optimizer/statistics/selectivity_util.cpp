@@ -3,4 +3,4 @@
 #include "loggers/optimizer_logger.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::optimizer {}  // namespace terrier::optimizer
+namespace noisepage::optimizer {}  // namespace terrier::optimizer

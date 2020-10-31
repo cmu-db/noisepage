@@ -10,7 +10,7 @@
 #include "optimizer/statistics/histogram.h"
 #include "optimizer/statistics/top_k_elements.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Represents the statistics of a given column. Stores relevant oids,
@@ -144,4 +144,4 @@ class NewColumnStats {
    */
   bool is_base_table_;
 };
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -6,7 +6,7 @@
 #include "gtest/gtest.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class SelectivityUtilTests : public TerrierTest {
  protected:
   NewColumnStats<execution::sql::Real> column_stats_obj_1_;
@@ -393,4 +393,4 @@ TEST_F(SelectivityUtilTests, TestIntegerNotEqual) {
 
   ASSERT_DOUBLE_EQ(0.7, res);
 }
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -7,7 +7,7 @@
 #include "optimizer/statistics/value_condition.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 static constexpr double DEFAULT_SELECTIVITY = 0.5;
 
@@ -186,7 +186,7 @@ double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<
   if (value > histogram->GetMaxValue()) return 1;
   double res =
       static_cast<double>(histogram->EstimateItemCount(value)) / static_cast<double>(column_stats->GetNumRows());
-  TERRIER_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
+  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
   return res;
 }
 
@@ -209,7 +209,7 @@ double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_s
 
   double res = value_frequency_estimate / static_cast<double>(numrows);
 
-  TERRIER_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
+  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
   return res;
 }
 
@@ -260,4 +260,4 @@ double SelectivityUtil::Like(common::ManagedPointer<NewColumnStats<T>> column_st
 
   return DEFAULT_SELECTIVITY;
 }
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
