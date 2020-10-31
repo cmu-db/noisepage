@@ -13,6 +13,7 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_statistic.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
@@ -80,6 +81,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   dbc->constraints_ = new storage::SqlTable(block_store, Builder::GetConstraintTableSchema());
   dbc->languages_ = new storage::SqlTable(block_store, Builder::GetLanguageTableSchema());
   dbc->procs_ = new storage::SqlTable(block_store, Builder::GetProcTableSchema());
+  dbc->statistics_ = new storage::SqlTable(block_store, Builder::GetStatisticTableSchema());
 
   // Indexes on pg_namespace
   dbc->namespaces_oid_index_ =
@@ -130,6 +132,10 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
   // Indexes on pg_proc
   dbc->procs_oid_index_ = Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
   dbc->procs_name_index_ = Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
+
+  // Indexes on pg_statistic
+  dbc->statistics_oid_index_ =
+      Builder::BuildUniqueIndex(Builder::GetStatisticOidIndexSchema(oid), STATISTIC_OID_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -647,6 +653,31 @@ IndexSchema Builder::GetLanguageNameIndexSchema(db_oid_t db) {
   return schema;
 }
 
+Schema Builder::GetStatisticTableSchema() {
+  std::vector<Schema::Column> columns;
+
+  columns.emplace_back("starelid", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(STARELID_COL_OID);
+
+  columns.emplace_back("staattnum", type::TypeId::INTEGER, false,
+                       parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(STAATTNUM_COL_OID);
+
+  columns.emplace_back("stanullfrac", type::TypeId::DECIMAL, false,
+                       parser::ConstantValueExpression(type::TypeId::DECIMAL));
+  columns.back().SetOid(STANULLFRAC_COL_OID);
+
+  columns.emplace_back("stadistinct", type::TypeId::DECIMAL, false,
+                       parser::ConstantValueExpression(type::TypeId::DECIMAL));
+  columns.back().SetOid(STADISTINCT_COL_OID);
+
+  columns.emplace_back("numrows", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TypeId::INTEGER));
+  columns.back().SetOid(STA_NUMROWS_COL_OID);
+
+  return Schema(columns);
+}
+
 Schema Builder::GetProcTableSchema() {
   std::vector<Schema::Column> columns;
 
@@ -767,6 +798,23 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
 
   // Non-Unique, not primary
   IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, false);
+
+  return schema;
+}
+
+IndexSchema Builder::GetStatisticOidIndexSchema(db_oid_t db) {
+  std::vector<IndexSchema::Column> columns;
+
+  columns.emplace_back("starelid", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, STATISTIC_TABLE_OID, STARELID_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(1));
+
+  columns.emplace_back("staattnum", type::TypeId::INTEGER, false,
+                       parser::ColumnValueExpression(db, STATISTIC_TABLE_OID, STAATTNUM_COL_OID));
+  columns.back().SetOid(indexkeycol_oid_t(2));
+
+  // Primary
+  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
 
   return schema;
 }

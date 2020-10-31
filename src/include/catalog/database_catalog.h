@@ -14,6 +14,7 @@
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "execution/ast/builtins.h"
+#include "optimizer/statistics/table_stats.h"
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
@@ -527,6 +528,13 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer pg_proc_all_cols_pri_;
   storage::ProjectionMap pg_proc_all_cols_prm_;
   storage::ProjectedRowInitializer pg_proc_ptr_pri_;
+
+  storage::SqlTable *statistics_;
+  storage::index::Index *statistics_oid_index_;  // indexed on class OID and column OID
+  storage::ProjectedRowInitializer pg_statistic_all_cols_pri_;
+  storage::ProjectionMap pg_statistic_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_statistics_pri_;
+  storage::ProjectionMap delete_statistics_prm_;
 
   std::atomic<uint32_t> next_oid_;
   std::atomic<transaction::timestamp_t> write_lock_;

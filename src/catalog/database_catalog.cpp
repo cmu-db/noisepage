@@ -15,6 +15,7 @@
 #include "catalog/postgres/pg_language.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_proc.h"
+#include "catalog/postgres/pg_statistic.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
 #include "common/error/error_code.h"
@@ -259,6 +260,9 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
   retval = SetIndexPointer(txn, postgres::PRO_NAME_INDEX_OID, procs_name_index_);
 
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+
+  retval = CreateTableEntry(txn, postgres::STATISTIC_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
+                            "pg_statistic", postgres::Builder::GetStatisticTableSchema());
 
   BootstrapProcs(txn);
 }
