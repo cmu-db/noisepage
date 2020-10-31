@@ -6,11 +6,11 @@ import sys
 import time
 import traceback
 import shlex
-import threading
 from typing import List
 from util import constants
 from util.test_case import TestCase
 from util.constants import LOG, ErrorCode
+from util.periodic_task import PeriodicTask
 from util.common import (run_command, print_file, run_check_pids,
                          run_kill_server, print_pipe, update_mem_info)
 
@@ -162,16 +162,12 @@ class TestServer:
         # start a thread to collect the memory info if needed
         if self.collect_mem_info:
             # spawn a thread to collect memory info
-            self.collect_mem_thread = threading.Timer(
-                self.collect_mem_freq, update_mem_info, [
-                    self.db_process.pid, self.collect_mem_freq,
-                    test_case.mem_info_dict
-                ])
+            self.collect_mem_thread = PeriodicTask(
+                self.collect_mem_freq, update_mem_info, self.db_process.pid,
+                self.collect_mem_freq, test_case.mem_metrics.mem_info_dict)
             # collect the initial memory info
             update_mem_info(self.db_process.pid, self.collect_mem_freq,
-                            test_case.mem_info_dict)
-            # collect the subsequent memory info
-            self.collect_mem_thread.start()
+                            test_case.mem_metrics.mem_info_dict)
 
         # run the actual test
         with open(test_case.test_output_file, "w+") as test_output_fd:
@@ -183,8 +179,7 @@ class TestServer:
 
         # stop the thread to collect the memory info if started
         if self.collect_mem_info:
-            self.collect_mem_thread.cancel()
-            self.collect_mem_thread.join()
+            self.collect_mem_thread.stop()
 
         # run the post test tasks
         test_case.run_post_test()

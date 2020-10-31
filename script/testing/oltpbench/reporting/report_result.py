@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import requests
-from oltpbench.reporting.parse_data import parse_data
+from oltpbench.reporting.parse_data import parse_data, add_mem_metrics
 from oltpbench.constants import PERFORMANCE_STORAGE_SERVICE_API
 
 
@@ -10,11 +10,11 @@ def report(api_url,
            results_dir,
            username,
            password,
-           mem_info_dict,
+           mem_metrics,
            query_mode='simple'):
     metadata, timestamp, benchmark_type, parameters, metrics = parse_data(
         results_dir)
-    add_mem_info_to_incremental(metrics, mem_info_dict)
+    add_mem_metrics(metrics, mem_metrics)
     parameters['query_mode'] = query_mode
     parameters['max_connection_threads'] = server_data[
         'max_connection_threads']

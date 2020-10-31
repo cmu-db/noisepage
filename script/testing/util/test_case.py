@@ -1,5 +1,8 @@
+#!/usr/bin/python3
+
 from util import constants
 from util.common import *
+from util.mem_metrics import MemoryMetrics
 
 
 class TestCase:
@@ -25,8 +28,8 @@ class TestCase:
         # whether the DB should restart before the test begin
         self.db_restart = True
 
-        # memory info dict
-        self.mem_info_dict = {}
+        # memory metrics
+        self.mem_metrics = MemoryMetrics()
 
     def run_pre_test(self):
         pass

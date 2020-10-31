@@ -35,9 +35,6 @@ def parse_command_line_args():
     aparser.add_argument("--disable-mem-info",
                          action='store_true',
                          help="Disable collecting the memory info")
-    aparser.add_argument("--collect-mem-freq",
-                         type=int,
-                         help="The interval of memory collecting in seconds")
 
     args = vars(aparser.parse_args())
 

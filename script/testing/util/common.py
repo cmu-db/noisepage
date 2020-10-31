@@ -8,14 +8,10 @@ import signal
 import errno
 import psutil
 import datetime
-from util.constants import LOG
 from util import constants
-
-
-class MemoryInfo:
-    def __init__(self, rss=None, vms=None):
-        self.rss = rss
-        self.vms = vms
+from util.constants import LOG
+from util.mem_metrics import MemoryInfo
+from collections import namedtuple
 
 
 def run_command(command,
@@ -151,6 +147,10 @@ def collect_mem_info(pid):
 
 
 def update_mem_info(pid, interval, mem_info_dict):
+    """
+    Update the mem_info dict by appending the memory info of the given pid at
+    the current time in seconds.
+    """
     curr = len(mem_info_dict) * interval
     mem_info_dict[curr] = run_collect_mem_info(pid)
 

@@ -97,11 +97,8 @@ class TestCaseOLTPBench(TestCase):
             constants.OLTPBENCH_GIT_LOCAL_PATH, self.test_histograms_json_file)
 
         # oltpbench initiate database and load data
-        self.oltp_flag = "--histograms --create={CREATE} --load={LOAD} --execute={EXECUTE} -s {BUCKETS}".format(
-            CREATE=self.db_create,
-            LOAD=self.db_load,
-            EXECUTE=self.db_execute,
-            BUCKETS=self.buckets)
+        self.oltp_flag = "--histograms --execute={EXECUTE} -s {BUCKETS}".format(
+            EXECUTE=self.db_execute, BUCKETS=self.buckets)
 
         # oltpbench test command
         self.test_command = "{BIN} -b {BENCHMARK} -c {XML} -d {RESULTS} {FLAGS} -json-histograms {HISTOGRAMS}".format(
@@ -117,6 +114,7 @@ class TestCaseOLTPBench(TestCase):
     def run_pre_test(self):
         self.config_xml_file()
         self.create_result_dir()
+        self.create_and_load_db()
 
     def run_post_test(self):
         # validate the OLTP result
@@ -128,11 +126,32 @@ class TestCaseOLTPBench(TestCase):
                 self.publish_results, self.server_data,
                 os.path.join(os.getcwd(), "oltp_result",
                              self.filename_suffix), self.publish_username,
-                self.publish_password, self.mem_info_dict, self.query_mode)
+                self.publish_password, self.mem_metrics, self.query_mode)
 
     def create_result_dir(self):
+        """
+        Create the directory for the result output files if not exists.
+        """
         if not os.path.exists(self.test_result_dir):
             os.makedirs(self.test_result_dir)
+
+    def create_and_load_db(self):
+        """
+        Create the database and load the data before the actual test execution.
+        """
+        cmd = "{BIN} -c {XML} -b {BENCHMARK} --create={CREATE} --load={LOAD}".format(
+            BIN=constants.OLTPBENCH_DEFAULT_BIN,
+            XML=self.xml_config,
+            BENCHMARK=self.benchmark,
+            CREATE=self.db_create,
+            LOAD=self.db_load)
+        error_msg = "Error: unable to create and load the database"
+        rc, stdout, stderr = run_command(cmd,
+                                         error_msg=error_msg,
+                                         cwd=self.test_command_cwd)
+        if rc != ErrorCode.SUCCESS:
+            LOG.error(stderr)
+            raise RuntimeError(error_msg)
 
     def get_db_url(self):
         """ format the DB URL for the JDBC connection """
