@@ -55,7 +55,6 @@ OS_FAMILY_DARWIN = "darwin"
 # Memory info collection
 COLLECT_MEM_FREQ = 5  # collect mem info every 5 seconds by default
 MEM_INFO_SPLITTER = ","
-MEM_INFO_INVALID_TIME = -1
 
 
 # error code

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 from collections import namedtuple
-from util.constants import MEM_INFO_INVALID_TIME
 
 MemoryInfo = namedtuple("MemoryInfo", ["rss", "vms"])
 
@@ -9,7 +8,6 @@ MemoryInfo = namedtuple("MemoryInfo", ["rss", "vms"])
 class MemoryMetrics:
     def __init__(self):
         self.mem_info_dict = {}
-        self.INVALID_TIME = MEM_INFO_INVALID_TIME
 
     def get_avg(self):
         """

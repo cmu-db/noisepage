@@ -91,8 +91,7 @@ def add_incremental_mem_metrics(metrics, mem_metrics):
     """
     incremental_metrics = metrics.get('incremental_metrics', [])
     for metrics in incremental_metrics:
-        mem_info = mem_metrics.mem_info_dict.get(
-            metrics.get('time', mem_metrics.INVALID_TIME))
+        mem_info = mem_metrics.mem_info_dict.get(metrics.get('time'))
         if mem_info:
             metrics['memory_info'] = {
                 'rss': mem_info.rss,
