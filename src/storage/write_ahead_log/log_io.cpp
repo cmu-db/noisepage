@@ -1,7 +1,7 @@
 #include "storage/write_ahead_log/log_io.h"
 
 #include <algorithm>
-namespace terrier::storage {
+namespace noisepage::storage {
 void PosixIoWrappers::Close(int fd) {
   while (true) {
     int ret = close(fd);
@@ -58,7 +58,7 @@ bool BufferedLogReader::Read(void *dest, uint32_t size) {
 }
 
 void BufferedLogReader::RefillBuffer() {
-  TERRIER_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
+  NOISEPAGE_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
   if (in_ == -1) throw std::runtime_error("No more bytes left in the log file");
   read_head_ = 0;
   filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_, common::Constants::LOG_BUFFER_SIZE);
@@ -69,4 +69,4 @@ void BufferedLogReader::RefillBuffer() {
   }
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

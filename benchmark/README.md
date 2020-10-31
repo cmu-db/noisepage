@@ -12,8 +12,8 @@ All of the multi-threaded benchmarks use one thread by default:
 $ ./data_table_benchmark
 ```
 
-You can set the number of threads to use with the `TERRIER_BENCHMARK_THREADS` environment variable:
+You can set the number of threads to use with the `NOISEPAGE_BENCHMARK_THREADS` environment variable:
 
 ```
-$ TERRIER_BENCHMARK_THREADS="9" ./data_table_benchmark
+$ NOISEPAGE_BENCHMARK_THREADS="9" ./data_table_benchmark
 ```

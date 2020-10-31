@@ -6,11 +6,11 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 //===--------------------------------------------------------------------===//
 // JSON (de)serialization declarations
@@ -141,4 +141,4 @@ enum class IndexScanType : uint8_t {
   DescendingLimit
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -11,7 +11,7 @@ from util.common import run_command
 from util.test_case import TestCase
 from xml.etree import ElementTree
 from oltpbench import constants
-from oltpbench.reporting.report_result import report
+from reporting.report_result import report_oltpbench_result
 
 
 class TestCaseOLTPBench(TestCase):
@@ -122,11 +122,16 @@ class TestCaseOLTPBench(TestCase):
 
         # publish results
         if self.publish_results:
+<<<<<<< HEAD
             report(
                 self.publish_results, self.server_data,
                 os.path.join(os.getcwd(), "oltp_result",
                              self.filename_suffix), self.publish_username,
                 self.publish_password, self.mem_metrics, self.query_mode)
+=======
+            report_oltpbench_result(self.publish_results, self.server_data, os.path.join(
+                os.getcwd(), "oltp_result",self.filename_suffix), self.publish_username, self.publish_password, self.query_mode)
+>>>>>>> master
 
     def create_result_dir(self):
         """
@@ -156,7 +161,7 @@ class TestCaseOLTPBench(TestCase):
     def get_db_url(self):
         """ format the DB URL for the JDBC connection """
         # format the url base
-        db_url_base = "jdbc:postgresql://{}:{}/terrier".format(
+        db_url_base = "jdbc:postgresql://{}:{}/noisepage".format(
             self.db_host, self.db_port)
         # format the url params
         db_url_params = ""

@@ -10,7 +10,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
@@ -394,4 +394,4 @@ TEST_F(ArithmeticFunctionsTests, OutOfRangeTest) {
   OUT_OF_RANGE(Acos)
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

@@ -7,7 +7,7 @@
 #include "common/json.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 common::hash_t UpdatePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -96,4 +96,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> UpdatePlanNode::FromJso
 
 DEFINE_JSON_BODY_DECLARATIONS(UpdatePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

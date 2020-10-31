@@ -1,9 +1,10 @@
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/sql/operators/hash_operators.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -26,11 +27,11 @@ void TemplatedHashOperation(const Vector &input, Vector *result) {
 
   if (input.GetNullMask().Any()) {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = terrier::execution::sql::Hash<InputType>{}(input_data[i], input.GetNullMask()[i]);
+      result_data[i] = noisepage::execution::sql::Hash<InputType>{}(input_data[i], input.GetNullMask()[i]);
     });
   } else {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = terrier::execution::sql::Hash<InputType>{}(input_data[i], false);
+      result_data[i] = noisepage::execution::sql::Hash<InputType>{}(input_data[i], false);
     });
   }
 }
@@ -47,11 +48,11 @@ void TemplatedHashCombineOperation(const Vector &input, Vector *result) {
   if (input.GetNullMask().Any()) {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
       result_data[i] =
-          terrier::execution::sql::HashCombine<InputType>{}(input_data[i], input.GetNullMask()[i], result_data[i]);
+          noisepage::execution::sql::HashCombine<InputType>{}(input_data[i], input.GetNullMask()[i], result_data[i]);
     });
   } else {
     VectorOps::Exec(input, [&](uint64_t i, uint64_t k) {
-      result_data[i] = terrier::execution::sql::HashCombine<InputType>{}(input_data[i], false, result_data[i]);
+      result_data[i] = noisepage::execution::sql::HashCombine<InputType>{}(input_data[i], false, result_data[i]);
     });
   }
 }
@@ -142,4 +143,4 @@ void VectorOps::HashCombine(const Vector &input, Vector *result) {
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

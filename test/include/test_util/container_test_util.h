@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace terrier {
+namespace noisepage {
 /**
  * Static utility class for container tests
  */
@@ -17,4 +17,4 @@ struct ContainerTestUtil {
   }
 };
 
-}  // namespace terrier
+}  // namespace noisepage

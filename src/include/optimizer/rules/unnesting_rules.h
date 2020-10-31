@@ -5,7 +5,7 @@
 
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 // TODO(boweic): MarkJoin and SingleJoin should not be transformed into inner
 // join. Sometimes MarkJoin could be transformed into semi-join, but for now we
@@ -120,4 +120,4 @@ class DependentSingleJoinToInnerJoin : public Rule {
                  OptimizationContext *context) const override;
 };
 
-};  // namespace terrier::optimizer
+};  // namespace noisepage::optimizer

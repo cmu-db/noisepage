@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A ManagedPointer points to an object whose life cycle is managed by some external entity. (e.g.
@@ -133,7 +133,7 @@ class ManagedPointer {
  private:
   Underlying *underlying_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
 namespace std {
 /**
@@ -141,12 +141,12 @@ namespace std {
  * @tparam Underlying the type of the object ManagedPointer points to.
  */
 template <class Underlying>
-struct hash<terrier::common::ManagedPointer<Underlying>> {
+struct hash<noisepage::common::ManagedPointer<Underlying>> {
   /**
    * @param ptr the ManagedPointer to be hashed.
    * @return the hash of the ManagedPointer.
    */
-  size_t operator()(const terrier::common::ManagedPointer<Underlying> &ptr) const {
+  size_t operator()(const noisepage::common::ManagedPointer<Underlying> &ptr) const {
     return hash<Underlying *>()(ptr.operator->());
   }
 };

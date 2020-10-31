@@ -1,6 +1,6 @@
 #include "execution/ast/builtins.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // static
 const char *Builtins::builtin_function_names[] = {
@@ -9,4 +9,4 @@ const char *Builtins::builtin_function_names[] = {
 #undef ENTRY
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

@@ -10,7 +10,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::parsing::test {
+namespace noisepage::execution::parsing::test {
 
 class ErrorReporterTest : public TplTest {
  public:
@@ -75,4 +75,4 @@ TEST_F(ErrorReporterTest, SerializeErrorsTest) {
   EXPECT_EQ(lines.size(), 2);
 }
 
-}  // namespace terrier::execution::parsing::test
+}  // namespace noisepage::execution::parsing::test

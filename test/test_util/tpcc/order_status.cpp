@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 // 2.6.2
 bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
                           const TransactionArgs &args) const {
-  TERRIER_ASSERT(args.type_ == TransactionType::OrderStatus, "Wrong transaction type.");
+  NOISEPAGE_ASSERT(args.type_ == TransactionType::OrderStatus, "Wrong transaction type.");
 
   auto *const txn = txn_manager->BeginTransaction();
 
@@ -26,7 +26,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
 
     index_scan_results.clear();
     db->customer_primary_index_->ScanKey(*txn, *customer_key, &index_scan_results);
-    TERRIER_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
+    NOISEPAGE_ASSERT(index_scan_results.size() == 1, "Customer index lookup failed.");
     customer_slot = index_scan_results[0];
   } else {
     // Look up C_LAST, D_ID, W_ID in index
@@ -40,7 +40,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
 
     index_scan_results.clear();
     db->customer_secondary_index_->ScanKey(*txn, *customer_name_key, &index_scan_results);
-    TERRIER_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
+    NOISEPAGE_ASSERT(!index_scan_results.empty(), "Customer Name index lookup failed.");
 
     if (index_scan_results.size() > 1) {
       std::map<std::string, storage::TupleSlot> sorted_index_scan_results;
@@ -48,7 +48,7 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
         auto *const c_first_select_tuple = c_first_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
         bool UNUSED_ATTRIBUTE select_result =
             db->customer_table_->Select(common::ManagedPointer(txn), tuple_slot, c_first_select_tuple);
-        TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
+        NOISEPAGE_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
         const auto c_first = *reinterpret_cast<storage::VarlenEntry *>(c_first_select_tuple->AccessWithNullCheck(0));
         sorted_index_scan_results.emplace(
             std::string(reinterpret_cast<const char *const>(c_first.Content()), c_first.Size()), tuple_slot);
@@ -66,13 +66,13 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   auto *const customer_select_tuple = customer_select_pr_initializer_.InitializeRow(worker->customer_tuple_buffer_);
   bool UNUSED_ATTRIBUTE select_result =
       db->customer_table_->Select(common::ManagedPointer(txn), customer_slot, customer_select_tuple);
-  TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
+  NOISEPAGE_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
   const auto *const c_id_ptr =
       reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset_));
-  TERRIER_ASSERT(c_id_ptr != nullptr, "This is a non-NULLable field.");
+  NOISEPAGE_ASSERT(c_id_ptr != nullptr, "This is a non-NULLable field.");
   const auto UNUSED_ATTRIBUTE c_id = !args.use_c_last_ ? args.c_id_ : *c_id_ptr;
-  TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
+  NOISEPAGE_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
 
   // look up in secondary Order index
   const auto order_secondary_key_pr_initializer = db->order_secondary_index_->GetProjectedRowInitializer();
@@ -98,14 +98,14 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   index_scan_results.clear();
   db->order_secondary_index_->ScanLimitDescending(*txn, *order_secondary_low_key, *order_secondary_high_key,
                                                   &index_scan_results, 1);
-  TERRIER_ASSERT(index_scan_results.size() == 1,
-                 "Order index lookup failed. There should always be at least one order for each customer.");
+  NOISEPAGE_ASSERT(index_scan_results.size() == 1,
+                   "Order index lookup failed. There should always be at least one order for each customer.");
 
   // Select O_ID, O_ENTRY_D, O_CARRIER_ID from table for largest key (back of vector)
   auto *const order_select_tuple = order_select_pr_initializer_.InitializeRow(worker->order_tuple_buffer_);
   select_result = db->order_table_->Select(common::ManagedPointer(txn), index_scan_results[0], order_select_tuple);
-  TERRIER_ASSERT(select_result,
-                 "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
+  NOISEPAGE_ASSERT(select_result,
+                   "Order select failed. This assertion assumes 1:1 mapping between warehouse and workers.");
 
   const auto o_id = *reinterpret_cast<int32_t *>(order_select_tuple->AccessWithNullCheck(o_id_select_pr_offset_));
 
@@ -129,16 +129,16 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   db->order_line_primary_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 4, order_line_low_key,
                                                order_line_high_key, 0, &index_scan_results);
 
-  TERRIER_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
-                 "There should be at least 1 Order Line item, but no more than 15.");
+  NOISEPAGE_ASSERT(!index_scan_results.empty() && index_scan_results.size() <= 15,
+                   "There should be at least 1 Order Line item, but no more than 15.");
 
   // Select OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DELIVERY_D for every result of the index scan
   auto *const order_line_select_tuple =
       order_line_select_pr_initializer_.InitializeRow(worker->order_line_tuple_buffer_);
   for (const auto &tuple_slot : index_scan_results) {
     select_result = db->order_line_table_->Select(common::ManagedPointer(txn), tuple_slot, order_line_select_tuple);
-    TERRIER_ASSERT(select_result,
-                   "We already confirmed that this is a committed order above, so none of these should fail.");
+    NOISEPAGE_ASSERT(select_result,
+                     "We already confirmed that this is a committed order above, so none of these should fail.");
   }
 
   txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -146,4 +146,4 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   return true;
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

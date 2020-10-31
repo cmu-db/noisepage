@@ -9,7 +9,7 @@
 #include "execution/sql/vector_projection_iterator.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 ///
 /// The tests in this file work from one VectorProjection with five columns:
@@ -350,4 +350,4 @@ TEST_F(VectorProjectionIteratorTest, ManagedFilterTest) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

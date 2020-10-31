@@ -23,7 +23,7 @@ fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
     state.execCtx = execCtx
 
     // JoinHashTable initialization
-    @joinHTInit(&state.jht, execCtx, @execCtxGetMem(execCtx), @sizeOf(BuildRow))
+    @joinHTInit(&state.jht, execCtx, @sizeOf(BuildRow))
 
     // Simple bits
     state.num_matches = 0
@@ -43,7 +43,7 @@ fun pipeline1_worker_initThreadState(execCtx: *ExecutionContext, state: *ThreadS
     @filterManagerInsertFilter(&state.filter_manager, pipeline1_filter_clause0term0)
 
     // Join hash table
-    @joinHTInit(&state.jht, execCtx, @execCtxGetMem(execCtx), @sizeOf(BuildRow))
+    @joinHTInit(&state.jht, execCtx, @sizeOf(BuildRow))
 }
 
 fun pipeline1_worker_tearDownThreadState(execCtx: *ExecutionContext, state: *ThreadState_1) -> nil {

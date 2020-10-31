@@ -8,26 +8,26 @@
 
 #include "storage/block_layout.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 uint32_t ProjectedColumns::AttrSizeForColumn(const uint16_t projection_col_index) {
-  TERRIER_ASSERT(projection_col_index < num_cols_, "Cannot get size for out-of-bounds column");
+  NOISEPAGE_ASSERT(projection_col_index < num_cols_, "Cannot get size for out-of-bounds column");
   uint8_t shift;
   for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {
     if (projection_col_index < attr_ends_[shift]) break;
   }
-  TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
-  TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
+  NOISEPAGE_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
+  NOISEPAGE_ASSERT(shift >= 0, "Out-of-bounds attribute size");
   return 16U >> shift;
 }
 
 ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids,
                                                          const uint32_t max_tuples)
     : max_tuples_(max_tuples), col_ids_(std::move(col_ids)), offsets_(col_ids_.size()) {
-  TERRIER_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedColumns");
-  TERRIER_ASSERT(col_ids_.size() < layout.NumColumns(),
-                 "ProjectedColumns should have fewer columns than the table (can't read version vector)");
-  TERRIER_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
-                 "There should not be any duplicated in the col_ids!");
+  NOISEPAGE_ASSERT(!col_ids_.empty(), "cannot initialize an empty ProjectedColumns");
+  NOISEPAGE_ASSERT(col_ids_.size() < layout.NumColumns(),
+                   "ProjectedColumns should have fewer columns than the table (can't read version vector)");
+  NOISEPAGE_ASSERT((std::set<col_id_t>(col_ids_.cbegin(), col_ids_.cend())).size() == col_ids_.size(),
+                   "There should not be any duplicated in the col_ids!");
 
   // Sort the projection list for optimal space utilization and delta application performance
   // If the col ids are valid ones laid out by BlockLayout, ascending order of id guarantees
@@ -47,21 +47,21 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
   for (auto &attr_end : attr_ends_) attr_end = 0;
 
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
-    TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");
+    NOISEPAGE_ASSERT(i < (1 << 15), "Out-of-bounds index");
     offsets_[i] = size_;
 
     // Build out the array that stores the boundaries for attribute sizes
     int attr_size = layout.AttrSize(col_ids_[i]);
-    TERRIER_ASSERT(attr_size <= (16 >> attr_size_index), "Out-of-order columns");
-    TERRIER_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
+    NOISEPAGE_ASSERT(attr_size <= (16 >> attr_size_index), "Out-of-order columns");
+    NOISEPAGE_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
     while (attr_size < (16 >> attr_size_index)) {
       if (attr_size_index < (NUM_ATTR_BOUNDARIES - 1)) attr_ends_[attr_size_index + 1] = attr_ends_[attr_size_index];
       attr_size_index++;
     }
-    TERRIER_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
+    NOISEPAGE_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
     if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_ends_[attr_size_index]++;
-    TERRIER_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_ends_[attr_size_index] == i + 1,
-                   "Inconsistent state on attribute bounds");
+    NOISEPAGE_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_ends_[attr_size_index] == i + 1,
+                     "Inconsistent state on attribute bounds");
 
     // space needed to store the bitmap, padded up to 8 bytes
     size_ = StorageUtil::PadUpToSize(sizeof(uint64_t),
@@ -72,9 +72,9 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
 }
 
 ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *const head) const {
-  TERRIER_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
-                 "start of ProjectedRow needs to be aligned to 8 bytes to"
-                 "ensure correctness of alignment of its members");
+  NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(head) % sizeof(uint64_t) == 0,
+                   "start of ProjectedRow needs to be aligned to 8 bytes to"
+                   "ensure correctness of alignment of its members");
   auto *result = reinterpret_cast<ProjectedColumns *>(head);
   result->size_ = size_;
   result->max_tuples_ = max_tuples_;
@@ -86,4 +86,4 @@ ProjectedColumns *ProjectedColumnsInitializer::Initialize(void *const head) cons
   // No need to initialize the rest since we made it clear 0 tuples currently are in the buffer
   return result;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

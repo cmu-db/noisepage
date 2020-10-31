@@ -1,12 +1,14 @@
 #include "network/network_io_wrapper.h"
 
+#include <fcntl.h>
 #include <netinet/tcp.h>
+#include <unistd.h>
 
 #include "common/utility.h"
 #include "loggers/network_logger.h"
 #include "network/network_io_utils.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 static_assert(EAGAIN == EWOULDBLOCK, "If this trips, you'll have to #if guard all existing EAGAIN usages.");
 
@@ -95,7 +97,7 @@ void NetworkIoWrapper::RestartState() {
   // This causes all socket operations to return immediately with errno EWOULDBLOCK instead of blocking.
   {
     auto flags = fcntl(sock_fd_, F_GETFL);
-    TERRIER_ASSERT(flags != -1, "If this syscall returned an error, you have bigger problems.");
+    NOISEPAGE_ASSERT(flags != -1, "If this syscall returned an error, you have bigger problems.");
     flags |= O_NONBLOCK;
     err = fcntl(sock_fd_, F_SETFL, flags);
     if (err < 0) {
@@ -116,4 +118,4 @@ void NetworkIoWrapper::RestartState() {
   out_->Reset();
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

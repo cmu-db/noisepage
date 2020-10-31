@@ -22,7 +22,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerContext *context) {
   gexpr_ = gexpr;
@@ -43,7 +43,7 @@ void StatsCalculator::Visit(const LogicalGet *op) {
     // no table stats
     // Fill with defaults to prevent an infinite loop from above
     for (auto &col : required_cols_) {
-      TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
+      NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
       auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
       root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
     }
@@ -92,7 +92,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   root_group->SetNumRows(0);
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
   }
@@ -100,7 +100,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
 
 void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   // Check if there's join condition
-  TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 2, "Join must have two children");
   auto left_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto right_child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(1));
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
@@ -128,7 +128,7 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
 
   size_t num_rows = root_group->GetNumRows();
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_name = tv_expr->GetFullName();
     std::unique_ptr<ColumnStats> column_stats;
@@ -137,7 +137,7 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
     if (left_child_group->HasColumnStats(col_name)) {
       column_stats = std::make_unique<ColumnStats>(*left_child_group->GetStats(col_name));
     } else {
-      TERRIER_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
+      NOISEPAGE_ASSERT(right_child_group->HasColumnStats(col_name), "Name must be in right group");
       column_stats = std::make_unique<ColumnStats>(*right_child_group->GetStats(col_name));
     }
 
@@ -151,16 +151,16 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
 
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) {
   // TODO(boweic): For now we just pass the stats needed without any computation, need implement aggregate stats
-  TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Aggregate must have 1 child");
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Aggregate must have 1 child");
 
   // First, set num rows
   auto child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   context_->GetMemo().GetGroupByID(gexpr_->GetGroupID())->SetNumRows(child_group->GetNumRows());
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
-    TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
+    NOISEPAGE_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
     context_->GetMemo()
         .GetGroupByID(gexpr_->GetGroupID())
         ->AddStats(col_name, std::make_unique<ColumnStats>(*child_group->GetStats(col_name)));
@@ -168,15 +168,15 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *o
 }
 
 void StatsCalculator::Visit(const LogicalLimit *op) {
-  TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Limit must have 1 child");
+  NOISEPAGE_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Limit must have 1 child");
   auto child_group = context_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
   auto group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   group->SetNumRows(std::min(static_cast<int>(op->GetLimit()), child_group->GetNumRows()));
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
-    TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
+    NOISEPAGE_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
     auto stats = std::make_unique<ColumnStats>(*child_group->GetStats(col_name));
     stats->SetNumRows(group->GetNumRows());
     group->AddStats(col_name, std::move(stats));
@@ -186,7 +186,7 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
 void StatsCalculator::AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
                                         common::ManagedPointer<TableStats> table_stats,
                                         std::unordered_map<std::string, std::unique_ptr<ColumnStats>> *stats) {
-  TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
+  NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
   auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   if (table_stats->GetColumnCount() == 0 || !table_stats->HasColumnStats(tv_expr->GetColumnOid())) {
     // We do not have stats for the table yet, use default value
@@ -241,7 +241,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
     // right_index is the child index to the value
     int right_index = expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE ? 1 : 0;
     auto left_expr = expr->GetChild(1 - right_index);
-    TERRIER_ASSERT(left_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(left_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto col_name = left_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     auto expr_type = expr->GetExpressionType();
@@ -276,4 +276,4 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
   return selectivity;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

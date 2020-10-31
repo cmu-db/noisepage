@@ -5,7 +5,7 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 /**
  * Encapsulates information common to all log records in memory (i.e. a header). Note that the disk representation of
  * log records can be different. Depending on the type of this LogRecord the underlying body can be
@@ -36,7 +36,7 @@ class LogRecord {
    */
   template <class UnderlyingType>
   UnderlyingType *GetUnderlyingRecordBodyAs() {
-    TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
+    NOISEPAGE_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<UnderlyingType *>(varlen_contents_);
   }
 
@@ -48,7 +48,7 @@ class LogRecord {
    */
   template <class UnderlyingType>
   const UnderlyingType *GetUnderlyingRecordBodyAs() const {
-    TERRIER_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
+    NOISEPAGE_ASSERT(UnderlyingType::RecordType() == type_, "Attempting to access incompatible log record types");
     return reinterpret_cast<const UnderlyingType *>(varlen_contents_);
   }
 
@@ -409,4 +409,4 @@ class AbortRecord {
   transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionContext *txn_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

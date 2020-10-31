@@ -2,7 +2,7 @@
 #include "execution/sql/vector_operations/vector_operations.h"
 #include "execution/sql_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorFillTest : public TplTest {};
 
@@ -66,4 +66,4 @@ TEST_F(VectorFillTest, ExplicitNull) {
 #undef CHECK_SIMPLE_FILL
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

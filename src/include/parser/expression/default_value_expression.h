@@ -5,7 +5,7 @@
 
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * DefaultValueExpression represents a default value, e.g. in an INSERT.
  * Note that the return value type is unspecified and that the expression should be replaced by the binder.
@@ -29,13 +29,13 @@ class DefaultValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "DefaultValueExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "DefaultValueExpression should have 0 children");
     return Copy();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(DefaultValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

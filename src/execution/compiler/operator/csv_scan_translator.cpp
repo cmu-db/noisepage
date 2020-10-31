@@ -1,5 +1,6 @@
 #include "execution/compiler/operator/csv_scan_translator.h"
 
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"
@@ -8,9 +9,10 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/csv_scan_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 namespace {
 constexpr const char FIELD_PREFIX[] = "field";
@@ -115,4 +117,4 @@ ast::Expr *CSVScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

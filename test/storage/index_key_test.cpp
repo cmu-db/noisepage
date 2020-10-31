@@ -26,7 +26,7 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 class IndexKeyTests : public TerrierTest {
  public:
@@ -713,7 +713,7 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
         break;
       }
     }
-    TERRIER_ASSERT(1 <= key_type && key_type <= 4, "CompactIntsKey only has 4 possible KeySizes.");
+    NOISEPAGE_ASSERT(1 <= key_type && key_type <= 4, "CompactIntsKey only has 4 possible KeySizes.");
 
     // create our projected row buffers
     auto *pr_buffer_a = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -1276,4 +1276,4 @@ TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   delete index;
 }
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

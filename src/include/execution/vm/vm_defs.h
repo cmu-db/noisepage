@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
  * An enumeration capturing different execution methods and optimization levels.
@@ -16,4 +16,4 @@ enum class ExecutionMode : uint8_t {
   Compiled
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

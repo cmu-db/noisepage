@@ -4,14 +4,15 @@
 
 #include "common/container/concurrent_bitmap.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
     : layout_(std::move(layout)), column_offsets_(layout_.NumColumns()) {
   // Calculate the start position of each column
   // we use 64-bit vectorized scans on bitmaps.
   uint32_t acc_offset = layout_.HeaderSize();
-  TERRIER_ASSERT(acc_offset % sizeof(uint64_t) == 0, "size of a header should already be padded to aligned to 8 bytes");
+  NOISEPAGE_ASSERT(acc_offset % sizeof(uint64_t) == 0,
+                   "size of a header should already be padded to aligned to 8 bytes");
   for (uint16_t i = 0; i < layout_.NumColumns(); i++) {
     column_offsets_[i] = acc_offset;
     uint32_t column_size =
@@ -19,7 +20,7 @@ TupleAccessStrategy::TupleAccessStrategy(BlockLayout layout)
         + StorageUtil::PadUpToSize(sizeof(uint64_t),
                                    common::RawBitmap::SizeInBytes(layout_.NumSlots()));  // padded-bitmap size
     acc_offset += StorageUtil::PadUpToSize(sizeof(uint64_t), column_size);
-    TERRIER_ASSERT(acc_offset <= common::Constants::BLOCK_SIZE, "Offsets cannot be out of block bounds");
+    NOISEPAGE_ASSERT(acc_offset <= common::Constants::BLOCK_SIZE, "Offsets cannot be out of block bounds");
   }
 }
 
@@ -55,9 +56,9 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   // Assumption: Different threads cannot insert into the same block at the same time
   // If the block is not full, the function should always succeed (Flip should always return true)
   bool UNUSED_ATTRIBUTE flip_res = bitmap->Flip(pos, false);
-  TERRIER_ASSERT(flip_res, "Flip should always succeed");
+  NOISEPAGE_ASSERT(flip_res, "Flip should always succeed");
   *slot = TupleSlot(block, pos);
   block->insert_head_++;
   return true;
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

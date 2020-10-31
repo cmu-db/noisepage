@@ -12,7 +12,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class Type;
@@ -136,4 +136,4 @@ class ErrorReporter {
 };
 
 }  // namespace sema
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

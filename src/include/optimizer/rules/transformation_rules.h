@@ -5,7 +5,7 @@
 
 #include "optimizer/rule.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Rule transforms (A JOIN B) -> (B JOIN A)
@@ -66,4 +66,4 @@ class LogicalInnerJoinAssociativity : public Rule {
                  OptimizationContext *context) const override;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

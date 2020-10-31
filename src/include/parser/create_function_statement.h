@@ -10,7 +10,7 @@
 #include "parser/sql_statement.h"
 
 // TODO(WAN): this file is messy
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /** Base function parameter. */
 struct BaseFunctionParameter {
@@ -151,4 +151,4 @@ class CreateFunctionStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

@@ -48,13 +48,12 @@ def generate_test_suite(args):
     args["continue_on_error"] = test_suite_json.get(
         "continue_on_error", constants.OLTPBENCH_DEFAULT_CONTINUE_ON_ERROR)
 
-    publish_server, publish_username, publish_password = get_test_result_publish_data(
+    publish_env, publish_username, publish_password = get_test_result_publish_data(
         args)
-
     for oltp_testcase in test_suite_json.get("testcases", []):
         oltp_testcase_base = oltp_testcase.get("base")
         oltp_testcase_base["server_data"] = server_metadata
-        oltp_testcase_base["publish_results"] = publish_server
+        oltp_testcase_base["publish_results"] = publish_env
         oltp_testcase_base["publish_username"] = publish_username
         oltp_testcase_base["publish_password"] = publish_password
         oltp_testcase_loop = oltp_testcase.get("loop")
@@ -129,15 +128,13 @@ def get_server_metadata(test_suite_json, max_connection_threads, wal_enable):
 
 def get_test_result_publish_data(args):
     """ Get the data needed to publish the results, from the args. """
-    publish_server = constants.PERFORMANCE_STORAGE_SERVICE_API[args.get(
-        "publish_results")]
+    publish_env = args.get("publish_results")
     publish_username = args.get("publish_username")
     publish_password = args.get("publish_password")
-    return publish_server, publish_username, publish_password
+    return publish_env, publish_username, publish_password
 
 
 if __name__ == "__main__":
-
     args = parse_command_line_args()
     try:
         oltpbench, test_suite = generate_test_suite(args)

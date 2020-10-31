@@ -53,15 +53,15 @@ class TestServer:
     def set_db_path(self):
         """ location of db server, relative to this script """
 
-        # builds on Jenkins are in build/<build_type>
-        # but CLion creates cmake-build-<build_type>/<build_type>
+        # builds on Jenkins are in build/bin
+        # but CLion creates cmake-build-<build_type>/bin
         # determine what we have and set the server path accordingly
         bin_name = constants.DEFAULT_DB_BIN
         build_type = self.args.get("build_type", "")
         path_list = [
-            os.path.join(constants.DIR_REPO, "build", build_type),
+            os.path.join(constants.DIR_REPO, "build", "bin"),
             os.path.join(constants.DIR_REPO,
-                         "cmake-build-{}".format(build_type), build_type)
+                         "cmake-build-{}".format(build_type), "bin")
         ]
         for dir_name in path_list:
             db_bin_path = os.path.join(dir_name, bin_name)
@@ -90,7 +90,7 @@ class TestServer:
 
         # Allow ourselves to try to restart the DBMS multiple times
         for attempt in range(constants.DB_START_ATTEMPTS):
-            # Kill any other terrier processes that our listening on our target port
+            # Kill any other noisepage processes that our listening on our target port
 
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)

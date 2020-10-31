@@ -5,8 +5,24 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<HashJoinPlanNode> HashJoinPlanNode::Builder::Build() {
+  return std::unique_ptr<HashJoinPlanNode>(new HashJoinPlanNode(std::move(children_), std::move(output_schema_),
+                                                                join_type_, join_predicate_, std::move(left_hash_keys_),
+                                                                std::move(right_hash_keys_)));
+}
+
+HashJoinPlanNode::HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                   std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                                   common::ManagedPointer<parser::AbstractExpression> predicate,
+                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
+                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys)
+    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
+      left_hash_keys_(std::move(left_hash_keys)),
+      right_hash_keys_(std::move(right_hash_keys)) {}
 
 common::hash_t HashJoinPlanNode::Hash() const {
   common::hash_t hash = AbstractJoinPlanNode::Hash();
@@ -85,4 +101,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> HashJoinPlanNode::FromJ
 
 DEFINE_JSON_BODY_DECLARATIONS(HashJoinPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

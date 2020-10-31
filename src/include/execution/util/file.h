@@ -5,7 +5,7 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Handle to a file.
@@ -230,4 +230,4 @@ class File {
   Error error_{Error::FAILED};
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

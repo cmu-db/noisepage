@@ -18,7 +18,7 @@ static_assert(BYTE_SIZE == 8U, "BYTE_SIZE should be set to 8!");
 // n must be [0, 7], all 1 except for 0 on the nth bit in LSB order
 #define LSB_ONE_COLD_MASK(n) (0xFF - LSB_ONE_HOT_MASK(n))
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A RawBitmap is a bitmap that does not have the compile-time information about sizes, because we expect it to be
@@ -121,4 +121,4 @@ class RawBitmap {
 // exact layout. Changes include marking a function as virtual, as that adds a
 // Vtable to the class layout,
 static_assert(sizeof(RawBitmap) == 0, "Unexpected RawBitmap layout!");
-}  // namespace terrier::common
+}  // namespace noisepage::common

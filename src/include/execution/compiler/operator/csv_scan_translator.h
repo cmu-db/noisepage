@@ -3,11 +3,11 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class CSVScanPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -71,4 +71,4 @@ class CSVScanTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry base_row_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

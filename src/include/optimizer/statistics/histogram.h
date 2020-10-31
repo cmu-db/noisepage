@@ -15,7 +15,7 @@
 #include "loggers/optimizer_logger.h"
 #include "type/type_id.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Online histogram implementation based on this paper (referred to below as JMLR10):
@@ -194,7 +194,7 @@ class Histogram {
    * equal to sum of all points / max_bins.
    */
   std::vector<double> Uniform() {
-    TERRIER_ASSERT(max_bins_ > 0, "# of max bins is less than one");
+    NOISEPAGE_ASSERT(max_bins_ > 0, "# of max bins is less than one");
 
     std::vector<double> res{};
     if (bins_.empty() || total_ <= 0) return res;
@@ -205,7 +205,7 @@ class Histogram {
       while (i < bins_.size() - 1 && EstimateItemCount(bins_[i + 1].GetPoint()) < s) {
         i += 1;
       }
-      TERRIER_ASSERT(i < bins_.size() - 1, "Invalid bin offset");
+      NOISEPAGE_ASSERT(i < bins_.size() - 1, "Invalid bin offset");
       double point_i, point_i1, count_i, count_i1;
       std::tie(point_i, point_i1, count_i, count_i1) = GetInterval(bins_, i);
 
@@ -325,7 +325,7 @@ class Histogram {
         min_gap_idx = i;
       }
     }
-    // TERRIER_ASSERT(min_gap_idx >= 0 && min_gap_idx < bins_.size());
+    // NOISEPAGE_ASSERT(min_gap_idx >= 0 && min_gap_idx < bins_.size());
     Bin &prev_bin = bins_[min_gap_idx];
     Bin &next_bin = bins_[min_gap_idx + 1];
     prev_bin.MergeWith(next_bin);
@@ -368,9 +368,9 @@ class Histogram {
    * @return
    */
   std::tuple<double, double, double, double> GetInterval(std::vector<Bin> bins, uint32_t i) {
-    TERRIER_ASSERT(i < bins.size() - 1, "Requested interval is greater than max # of bins");
+    NOISEPAGE_ASSERT(i < bins.size() - 1, "Requested interval is greater than max # of bins");
     return std::make_tuple(bins[i].GetPoint(), bins[i + 1].GetPoint(), bins[i].GetCount(), bins[i + 1].GetCount());
   }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

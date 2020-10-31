@@ -50,7 +50,7 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 PlanGenerator::PlanGenerator() = default;
 
@@ -137,13 +137,13 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const TableFreeScan *op) {
 std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan(const parser::AbstractExpression *predicate) {
   std::unordered_set<catalog::col_oid_t> unique_oids;
   for (auto &output_expr : output_cols_) {
-    TERRIER_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                   "Scan columns should all be base table columns");
+    NOISEPAGE_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
+                     "Scan columns should all be base table columns");
 
     auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_id = tve->GetColumnOid();
 
-    TERRIER_ASSERT(col_id != catalog::INVALID_COLUMN_OID, "TVE should be base");
+    NOISEPAGE_ASSERT(col_id != catalog::INVALID_COLUMN_OID, "TVE should be base");
     unique_oids.emplace(col_id);
   }
   // Add the oids contained in the scan.
@@ -171,8 +171,8 @@ std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(c
   // Underlying tuple provided by the table's schema.
   std::vector<planner::OutputSchema::Column> columns;
   for (auto &output_expr : output_cols_) {
-    TERRIER_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                   "Scan columns should all be base table columns");
+    NOISEPAGE_ASSERT(output_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
+                     "Scan columns should all be base table columns");
 
     auto tve = output_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
 
@@ -281,7 +281,7 @@ void PlanGenerator::Visit(const ExternalFileScan *op) {
       break;
     }
     case parser::ExternalFileFormat::BINARY: {
-      TERRIER_ASSERT(0, "Missing BinaryScanPlanNode");
+      NOISEPAGE_ASSERT(0, "Missing BinaryScanPlanNode");
     }
   }
 }
@@ -289,7 +289,7 @@ void PlanGenerator::Visit(const ExternalFileScan *op) {
 void PlanGenerator::Visit(const QueryDerivedScan *op) {
   // QueryDerivedScan is a renaming layer...
   // This can be satisfied using a projection to correct the OutputSchema
-  TERRIER_ASSERT(children_plans_.size() == 1, "QueryDerivedScan must have 1 children plan");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "QueryDerivedScan must have 1 children plan");
   auto &child_expr_map = children_expr_map_[0];
   auto alias_expr_map = op->GetAliasToExprMap();
 
@@ -320,16 +320,16 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
 void PlanGenerator::Visit(const Limit *op) {
   // Generate order by + limit plan when there's internal sort order
   // Limit and sort have the same output schema as the child plan!
-  TERRIER_ASSERT(children_plans_.size() == 1, "Limit needs 1 child plan");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "Limit needs 1 child plan");
   output_plan_ = std::move(children_plans_[0]);
 
   if (!op->GetSortExpressions().empty()) {
     // Build order by clause
-    TERRIER_ASSERT(children_expr_map_.size() == 1, "Limit needs 1 child expr map");
+    NOISEPAGE_ASSERT(children_expr_map_.size() == 1, "Limit needs 1 child expr map");
     auto &child_cols_map = children_expr_map_[0];
 
-    TERRIER_ASSERT(op->GetSortExpressions().size() == op->GetSortAscending().size(),
-                   "Limit sort expressions and sort ascending size should match");
+    NOISEPAGE_ASSERT(op->GetSortExpressions().size() == op->GetSortAscending().size(),
+                     "Limit sort expressions and sort ascending size should match");
 
     // OrderBy OutputSchema does not add/drop columns. All output columns of OrderBy
     // are the same as the output columns of the child plan. As such, the OutputSchema
@@ -390,12 +390,12 @@ void PlanGenerator::Visit(const Limit *op) {
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   // OrderBy reorders tuples - should keep the same output schema as the original child plan
-  TERRIER_ASSERT(children_plans_.size() == 1, "OrderBy needs 1 child plan");
-  TERRIER_ASSERT(children_expr_map_.size() == 1, "OrderBy needs 1 child expr map");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "OrderBy needs 1 child plan");
+  NOISEPAGE_ASSERT(children_expr_map_.size() == 1, "OrderBy needs 1 child expr map");
   auto &child_cols_map = children_expr_map_[0];
 
   auto sort_prop = required_props_->GetPropertyOfType(PropertyType::SORT)->As<PropertySort>();
-  TERRIER_ASSERT(sort_prop != nullptr, "OrderBy requires a sort property");
+  NOISEPAGE_ASSERT(sort_prop != nullptr, "OrderBy requires a sort property");
 
   auto sort_columns_size = sort_prop->GetSortColumnSize();
 
@@ -435,7 +435,7 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void PlanGenerator::Visit(const ExportExternalFile *op) {
-  TERRIER_ASSERT(children_plans_.size() == 1, "ExportExternalFile needs 1 child");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "ExportExternalFile needs 1 child");
 
   output_plan_ = planner::ExportExternalFilePlanNode::Builder()
                      .AddChild(std::move(children_plans_[0]))
@@ -452,8 +452,8 @@ void PlanGenerator::Visit(const ExportExternalFile *op) {
 ///////////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateProjectionForJoin() {
-  TERRIER_ASSERT(children_expr_map_.size() == 2, "Join needs 2 children");
-  TERRIER_ASSERT(children_plans_.size() == 2, "Join needs 2 children");
+  NOISEPAGE_ASSERT(children_expr_map_.size() == 2, "Join needs 2 children");
+  NOISEPAGE_ASSERT(children_plans_.size() == 2, "Join needs 2 children");
   auto &l_child_expr_map = children_expr_map_[0];
   auto &r_child_expr_map = children_expr_map_[1];
 
@@ -480,8 +480,8 @@ std::unique_ptr<planner::OutputSchema> PlanGenerator::GenerateProjectionForJoin(
 ///////////////////////////////////////////////////////////////////////////////
 
 void PlanGenerator::Visit(const InnerIndexJoin *op) {
-  TERRIER_ASSERT(children_expr_map_.size() == 1, "InnerIndexJoin has 1 child");
-  TERRIER_ASSERT(children_plans_.size() == 1, "InnerIndexJoin has 1 child");
+  NOISEPAGE_ASSERT(children_expr_map_.size() == 1, "InnerIndexJoin has 1 child");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "InnerIndexJoin has 1 child");
 
   std::vector<planner::OutputSchema::Column> columns;
   for (auto &expr : output_cols_) {
@@ -542,7 +542,7 @@ void PlanGenerator::Visit(const InnerIndexJoin *op) {
       builder.AddHiIndexColumn(bound.first, common::ManagedPointer(key));
     } else if (type == planner::IndexScanType::AscendingOpenBoth) {
       // No bounds need to be set
-      TERRIER_ASSERT(0, "Unreachable");
+      NOISEPAGE_ASSERT(0, "Unreachable");
     }
   }
 
@@ -571,11 +571,15 @@ void PlanGenerator::Visit(const InnerNLJoin *op) {
                      .Build();
 }
 
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not implemented"); }
+void PlanGenerator::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { NOISEPAGE_ASSERT(0, "LeftNLJoin not implemented"); }
 
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) { TERRIER_ASSERT(0, "RightNLJoin not implemented"); }
+void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {
+  NOISEPAGE_ASSERT(0, "RightNLJoin not implemented");
+}
 
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) { TERRIER_ASSERT(0, "OuterNLJoin not implemented"); }
+void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
+  NOISEPAGE_ASSERT(0, "OuterNLJoin not implemented");
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // A hashjoin B (what you should do for large relations.....)
@@ -646,11 +650,11 @@ void PlanGenerator::Visit(const LeftHashJoin *op) {
 }
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {
-  TERRIER_ASSERT(0, "RightHashJoin not implemented");
+  NOISEPAGE_ASSERT(0, "RightHashJoin not implemented");
 }
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {
-  TERRIER_ASSERT(0, "OuterHashJoin not implemented");
+  NOISEPAGE_ASSERT(0, "OuterHashJoin not implemented");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -697,7 +701,7 @@ void PlanGenerator::BuildAggregatePlan(
     planner::AggregateStrategyType aggr_type,
     const std::vector<common::ManagedPointer<parser::AbstractExpression>> *groupby_cols,
     common::ManagedPointer<parser::AbstractExpression> having_predicate) {
-  TERRIER_ASSERT(children_expr_map_.size() == 1, "Aggregate needs 1 child plan");
+  NOISEPAGE_ASSERT(children_expr_map_.size() == 1, "Aggregate needs 1 child plan");
   auto &child_expr_map = children_expr_map_[0];
   auto builder = planner::AggregatePlanNode::Builder();
 
@@ -728,8 +732,8 @@ void PlanGenerator::BuildAggregatePlan(
     if (parser::ExpressionUtil::IsAggregateExpression(expr->GetExpressionType())) {
       // We need to evaluate the expression first, convert ColumnValue => DerivedValue
       auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr).release();
-      TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(eval->GetExpressionType()),
-                     "Evaluated AggregateExpression should still be an aggregate expression");
+      NOISEPAGE_ASSERT(parser::ExpressionUtil::IsAggregateExpression(eval->GetExpressionType()),
+                       "Evaluated AggregateExpression should still be an aggregate expression");
 
       auto agg_expr = reinterpret_cast<parser::AggregateExpression *>(eval);
       RegisterPointerCleanup<parser::AggregateExpression>(agg_expr, true, true);
@@ -797,7 +801,7 @@ void PlanGenerator::Visit(const Insert *op) {
   }
 
   // This is based on what Peloton does/did with query_to_operator_transformer.cpp
-  TERRIER_ASSERT(!op->GetColumns().empty(), "Transformer should added columns");
+  NOISEPAGE_ASSERT(!op->GetColumns().empty(), "Transformer should added columns");
   for (auto &col : op->GetColumns()) {
     builder.AddParameterInfo(col);
   }
@@ -809,7 +813,7 @@ void PlanGenerator::Visit(const Insert *op) {
 
 void PlanGenerator::Visit(const InsertSelect *op) {
   // Schema of Insert is empty
-  TERRIER_ASSERT(children_plans_.size() == 1, "InsertSelect needs 1 child plan");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "InsertSelect needs 1 child plan");
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
   output_plan_ = planner::InsertPlanNode::Builder()
@@ -822,7 +826,7 @@ void PlanGenerator::Visit(const InsertSelect *op) {
 
 void PlanGenerator::Visit(const Delete *op) {
   // OutputSchema of DELETE is empty vector
-  TERRIER_ASSERT(children_plans_.size() == 1, "Delete should have 1 child plan");
+  NOISEPAGE_ASSERT(children_plans_.size() == 1, "Delete should have 1 child plan");
   auto output_schema = std::make_unique<planner::OutputSchema>();
 
   output_plan_ = planner::DeletePlanNode::Builder()
@@ -1059,4 +1063,4 @@ void PlanGenerator::Visit(const Analyze *analyze) {
                      .Build();
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -2,7 +2,7 @@
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util::simd {
+namespace noisepage::execution::util::simd {
 
 /**
  * Stores the width of a lane
@@ -33,7 +33,7 @@ struct Lane {
   static constexpr const uint32_t COUNT = Bitwidth::VALUE / (sizeof(T) * 8);
 };
 
-}  // namespace terrier::execution::util::simd
+}  // namespace noisepage::execution::util::simd
 
 #define SIMD_TOP_LEVEL
 

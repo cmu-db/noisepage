@@ -4,8 +4,17 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+std::unique_ptr<ProjectionPlanNode> ProjectionPlanNode::Builder::Build() {
+  return std::unique_ptr<ProjectionPlanNode>(new ProjectionPlanNode(std::move(children_), std::move(output_schema_)));
+}
+
+ProjectionPlanNode::ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                       std::unique_ptr<OutputSchema> output_schema)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
 
 common::hash_t ProjectionPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -36,4 +45,4 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> ProjectionPlanNode::Fro
 
 DEFINE_JSON_BODY_DECLARATIONS(ProjectionPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -6,7 +6,7 @@
 #include "execution/util/execution_common.h"
 #include "storage/projected_row.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class ProjectedRow;
 class SqlTable;
 class RedoRecord;
@@ -15,9 +15,9 @@ namespace index {
 class Index;
 }  // namespace index
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace exec {
 class ExecutionContext;
@@ -49,7 +49,7 @@ class EXPORT StorageInterface {
   /**
    * @return The table's projected row.
    */
-  terrier::storage::ProjectedRow *GetTablePR();
+  noisepage::storage::ProjectedRow *GetTablePR();
 
   /**
    * Delete slot from the table.
@@ -119,7 +119,7 @@ class EXPORT StorageInterface {
   /**
    * Table being accessed.
    */
-  common::ManagedPointer<terrier::storage::SqlTable> table_;
+  common::ManagedPointer<noisepage::storage::SqlTable> table_;
   /**
    * The current execution context.
    */
@@ -164,4 +164,4 @@ class EXPORT StorageInterface {
   common::ManagedPointer<storage::index::Index> curr_index_{nullptr};
 };
 }  // namespace sql
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

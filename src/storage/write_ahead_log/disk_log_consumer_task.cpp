@@ -1,11 +1,12 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
 
-#include "common/resource_tracker.h"
+#include <thread>  // NOLINT
+
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void DiskLogConsumerTask::RunTask() {
   run_task_ = true;
@@ -15,7 +16,7 @@ void DiskLogConsumerTask::RunTask() {
 void DiskLogConsumerTask::Terminate() {
   // If the task hasn't run yet, yield the thread until it's started
   while (!run_task_) std::this_thread::yield();
-  TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+  NOISEPAGE_ASSERT(run_task_, "Cant terminate a task that isnt running");
   // Signal to terminate and force a flush so task persists before LogManager closes buffers
   run_task_ = false;
   disk_log_writer_thread_cv_.notify_one();
@@ -131,4 +132,4 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   WriteBuffersToLogFile();
   PersistLogFile();
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
