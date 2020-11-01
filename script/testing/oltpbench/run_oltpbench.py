@@ -24,7 +24,7 @@ def generate_test_suite(args):
     test_suite_json = load_test_suite(configfile_path)
 
     # All OLTPBench test collect memory info by default.
-    disable_mem_info = args.get("disable_mem_info", False)
+    disable_mem_info = args.get("disable_mem_info")
     args["collect_mem_info"] = not disable_mem_info
     args["collect_mem_freq"] = constants.OLTPBENCH_DEFAULT_BUCKETS
 
