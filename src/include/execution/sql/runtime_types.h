@@ -504,6 +504,12 @@ class EXPORT Decimal {
    */
   T GetValue() const { return value_; }
 
+  /**
+   * Set the underlying value of the decimal
+   * @param value The value to be set.
+   */
+  void SetValue(T value) { this->value_ = value; }
+
   /** This function divides with a given decimal
    * Note we multiply with the 10^precision of the denominator and then
    * divide by the denominator

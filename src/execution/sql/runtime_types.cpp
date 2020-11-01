@@ -791,8 +791,7 @@ void CalculateMultiWordProduct128(uint128_t *half_words_a, uint128_t *half_words
 }
 
 int nlz128(uint128_t x) {
-  // TODO(ROHAN): Think if can be calculated using double - Problem not machine independent
-  // Figure 5-19 - Hacker's Delight
+  // Not used Figure 5-19 - Hacker's Delight double method as we need for 128 bits
   constexpr uint128_t A = ((uint128_t)0x0000000000000000 << 64) | 0xFFFFFFFFFFFFFFFF;
   constexpr uint128_t B = ((uint128_t)0x00000000FFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
   constexpr uint128_t C = ((uint128_t)0x0000FFFFFFFFFFFF << 64) | 0xFFFFFFFFFFFFFFFF;
@@ -1089,8 +1088,14 @@ template <typename T>
 void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_precision) {
   bool negative_result = (this->value_ < 0) != (input.GetValue() < 0);
 
+  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
   if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
+  }
+
+  if(input.GetValue() < 0) {
+    input.SetValue(-input.GetValue());
   }
 
   this->MultiplyAndSet(input, lower_precision);
@@ -1104,6 +1109,8 @@ template <typename T>
 void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
   bool negative_result = (this->value_ < 0) != (input < 0);
 
+  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
   if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
@@ -1151,6 +1158,8 @@ template <typename T>
 void Decimal<T>::SignedDivideWithConstant(int64_t input) {
   bool negative_result = (this->value_ < 0) != (input < 0);
 
+  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
   if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
@@ -1176,6 +1185,8 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
 
   bool negative_result = (this->value_ < 0) != (input.GetValue() < 0);
 
+  // Not used Hacker Delight 2-14 because shift needs to be agnostic of underlying T
+  // Will be needed to change in the future when storage optimizations happen
   if (this->value_ < 0) {
     this->value_ = 0 - this->value_;
   }
