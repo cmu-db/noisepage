@@ -7,7 +7,6 @@ from reporting.utils import get_value_by_pattern
 from reporting.constants import UNKNOWN_RESULT, LATENCY_ATTRIBUTE_MAPPING
 
 
-
 def parse_summary_file(path):
     """
     Read data from file OLTPBench summary file.
@@ -30,7 +29,6 @@ def parse_summary_file(path):
         parameters = parse_parameters(summary)
         metrics = parse_metrics(summary)
         return metadata, timestamp, benchmark_type, parameters, metrics
-
 
 
 def parse_metadata(summary):
@@ -56,12 +54,8 @@ def parse_timestamp(summary):
     return int(get_value_by_pattern(summary, 'timestamp', str(time())))
 
 
-<<<<<<< HEAD:script/testing/oltpbench/reporting/parsers/summary_parser.py
 def parse_benchmark_type(summary):
-=======
-def parse_type(summary):
     """ Get the benchmark type (i.e tpcc) from the summary file data """
->>>>>>> master:script/testing/reporting/parsers/oltpbench/summary_parser.py
     return summary.get('Benchmark Type', UNKNOWN_RESULT)
 
 
