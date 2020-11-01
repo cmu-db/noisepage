@@ -122,16 +122,11 @@ class TestCaseOLTPBench(TestCase):
 
         # publish results
         if self.publish_results:
-<<<<<<< HEAD
-            report(
+            report_oltpbench_result(
                 self.publish_results, self.server_data,
                 os.path.join(os.getcwd(), "oltp_result",
                              self.filename_suffix), self.publish_username,
                 self.publish_password, self.mem_metrics, self.query_mode)
-=======
-            report_oltpbench_result(self.publish_results, self.server_data, os.path.join(
-                os.getcwd(), "oltp_result",self.filename_suffix), self.publish_username, self.publish_password, self.query_mode)
->>>>>>> master
 
     def create_result_dir(self):
         """
