@@ -833,6 +833,13 @@ int nlz128(uint128_t x) {
 }
 
 uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
+
+  if(u1 >= v) {
+    // Result will overflow from 128 bits
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
+                           common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+  }
+
   // Base 2^64
   uint128_t b = 1;
   b = b << 64;
@@ -918,7 +925,6 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
 
   unsigned magic_p = MAGIC_P_AND_ALGO_ARRAY[precision][0] - 256;
 
-  // TODO(ROHAN): Throw overflow exception
   if (MAGIC_P_AND_ALGO_ARRAY[precision][1] == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
 
@@ -929,6 +935,13 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     // Get the higher order result
     uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
     uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+    uint128_t  overflow_checker = result_upper >> magic_p;
+    if(overflow_checker > 0) {
+      // Result will overflow from 128 bits
+      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
+                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+    }
 
     result_lower = result_lower >> magic_p;
     result_upper = result_upper << (128 - magic_p);
@@ -953,6 +966,13 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     result_upper += add_upper;
     // carry bit using conditional instructions
     result_upper += (result_lower < add_lower);
+
+    uint128_t  overflow_checker = result_upper >> magic_p;
+    if((overflow_checker > 0) || (result_upper < add_upper)) {
+      // Result will overflow from 128 bits
+      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
+                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+    }
 
     /*We know that we only retain the lower 128 bits so there is no need of shri
      * We can safely drop the additional carry bit*/
@@ -987,8 +1007,6 @@ void Decimal<T>::UnsignedDivideConstant128BitPowerOfTen(unsigned power) {
   CalculateMultiWordProduct128(half_words_a, half_words_b, half_words_result, 2, 2);
 
   unsigned magic_p = MAGIC_MAP_128_BIT_POWER_TEN[power].p - 128;
-
-  // TODO(ROHAN): Throw overflow exception
 
   if (MAGIC_MAP_128_BIT_POWER_TEN[power].algo == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^128
@@ -1146,7 +1164,8 @@ void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
   if (half_words_result[2] == 0 && half_words_result[3] == 0) {
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
   } else {
-    // TODO(Rohan): Throw overflow exception
+    throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
+                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
   }
 
   if (negative_result) {
@@ -1217,7 +1236,6 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
     this->UnsignedDivideConstant128Bit(constant);
   } else {
-    // TODO(ROHAN) : Routine for magic numbers 256 bit division
     if(MagicMap256BitConstantDivision.count(constant) > 0) {
       this->value_ = UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
     } else {
@@ -1243,7 +1261,6 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
 
   unsigned magic_p = MagicMap256BitConstantDivision[constant].p - 256;
 
-  // TODO(ROHAN): Throw overflow exception
   if (MagicMap256BitConstantDivision[constant].algo == 0) {
     // Overflow Algorithm 1 - Magic number is < 2^256
 
@@ -1254,6 +1271,13 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     // Get the higher order result
     uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
     uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+    uint128_t  overflow_checker = result_upper >> magic_p;
+    if(overflow_checker > 0) {
+      // Result will overflow from 128 bits
+      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
+                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+    }
 
     result_lower = result_lower >> magic_p;
     result_upper = result_upper << (128 - magic_p);
@@ -1277,6 +1301,13 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     result_upper += add_upper;
     // carry bit using conditional instructions
     result_upper += (result_lower < add_lower);
+
+    uint128_t  overflow_checker = result_upper >> magic_p;
+    if((overflow_checker > 0) || (result_upper < add_upper)) {
+      // Result will overflow from 128 bits
+      throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
+                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+    }
 
     /*We know that we only retain the lower 128 bits so there is no need of shri
      * We can safely drop the additional carry bit*/
