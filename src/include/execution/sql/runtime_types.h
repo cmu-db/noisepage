@@ -530,6 +530,17 @@ class EXPORT Decimal {
    * @param constant divisor*/
   void UnsignedDivideConstant128Bit(uint128_t constant);
 
+  /** This function divides a 256 bit unsigned number with
+   * another 128 bit input. We use the magic number division to perform this.
+   * This function assumes we have the magic number already present
+   * @param dividend the dividend in an array of 128 bit numbers each
+   * having 64 bits
+   * @param constant divisor
+   * @return result of division*/
+  uint128_t UnsignedMagicDivideConstantNumerator256Bit(
+      uint128_t dividend[4],
+      uint128_t constant);
+
   /** Signed version of UnsignedDivideConstant128Bit
    * @param input divisor*/
   void SignedDivideWithConstant(int64_t input);

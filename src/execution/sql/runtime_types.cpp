@@ -1207,12 +1207,71 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
     this->UnsignedDivideConstant128Bit(constant);
   } else {
     // TODO(ROHAN) : Routine for magic numbers 256 bit division
-    this->value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
-                                                    half_words_result[0] | (half_words_result[1] << 64), constant);
+    if(MagicMap256BitConstantDivision.count(constant) > 0) {
+      this->value_ = UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
+    } else {
+      this->value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
+                                                      half_words_result[0] | (half_words_result[1] << 64), constant);
+    }
   }
 
   if (negative_result) {
     this->value_ = 0 - this->value_;
+  }
+}
+
+template <typename T>
+uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *dividend, uint128_t constant) {
+  // Magic number halfwords
+  uint128_t magic[4];
+
+  magic[0] = MagicMap256BitConstantDivision[constant].D;
+  magic[1] = MagicMap256BitConstantDivision[constant].C;
+  magic[2] = MagicMap256BitConstantDivision[constant].B;
+  magic[3] = MagicMap256BitConstantDivision[constant].A;
+
+  unsigned magic_p = MagicMap256BitConstantDivision[constant].p - 256;
+
+  // TODO(ROHAN): Throw overflow exception
+  if (MagicMap256BitConstantDivision[constant].algo == 0) {
+    // Overflow Algorithm 1 - Magic number is < 2^256
+
+    // Magic Result
+    uint128_t half_words_magic_result[8];
+    // TODO(Rohan): Make optimization to calculate only upper half of the word
+    CalculateMultiWordProduct128(dividend, magic, half_words_magic_result, 4, 4);
+    // Get the higher order result
+    uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+    uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+    result_lower = result_lower >> magic_p;
+    result_upper = result_upper << (128 - magic_p);
+    return result_lower | result_upper;
+  } else {
+    // Overflow Algorithm 2 - Magic number is > 2^256
+
+    // Magic Result
+    uint128_t half_words_magic_result[8];
+    // TODO(Rohan): Make optimization to calculate only upper half of the word
+    CalculateMultiWordProduct128(dividend, magic, half_words_magic_result, 4, 4);
+    // Get the higher order result
+    uint128_t result_lower = dividend[0] | (dividend[1] << 64);
+    uint128_t result_upper = dividend[2] | (dividend[3] << 64);
+
+    uint128_t add_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
+    uint128_t add_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
+
+    /*Perform addition*/
+    result_lower += add_lower;
+    result_upper += add_upper;
+    // carry bit using conditional instructions
+    result_upper += (result_lower < add_lower);
+
+    /*We know that we only retain the lower 128 bits so there is no need of shri
+     * We can safely drop the additional carry bit*/
+    result_lower = result_lower >> magic_p;
+    result_upper = result_upper << (128 - magic_p);
+    return result_lower | result_upper;
   }
 }
 

@@ -345,6 +345,39 @@ TEST_F(RuntimeTypesTest, DecimalDivisionTest) {
   d.RoundUpAndSet("0.420182685934388658452505141125596251", 36);
   d_1.SignedDivideWithDecimal(d_2, 3);
   EXPECT_EQ(1, d == d_1);
+
+  // Magic division tests
+  d_1.RoundUpAndSet(std::string("0.174742476062"), 12);
+  d_2.RoundUpAndSet(std::string("0.0005"), 4);
+  d.RoundUpAndSet("349.484952124000", 12);
+  d_1.SignedDivideWithDecimal(d_2, 4);
+  EXPECT_EQ(1, d == d_1);
+
+  d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
+  d_2.RoundUpAndSet(std::string("0.00000005"), 8);
+  d.RoundUpAndSet("3494849.521245551247640000000", 21);
+  d_1.SignedDivideWithDecimal(d_2, 8);
+  EXPECT_EQ(1, d == d_1);
+
+  d_1.RoundUpAndSet(std::string("0.174742476062"), 12);
+  d_2.RoundUpAndSet(std::string("0.0007"), 4);
+  d.RoundUpAndSet("249.632108660000", 12);
+  d_1.SignedDivideWithDecimal(d_2, 4);
+  EXPECT_EQ(1, d == d_1);
+
+  // 256 bit algo 0
+  d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
+  d_2.RoundUpAndSet(std::string("0.0000000000000000777"), 19);
+  d.RoundUpAndSet("2248937915859428.087284427284427284427", 21);
+  d_1.SignedDivideWithDecimal(d_2, 19);
+  EXPECT_EQ(1, d == d_1);
+
+  // 256 bit algo 1
+  d_1.RoundUpAndSet(std::string("0.174742476062277562382"), 21);
+  d_2.RoundUpAndSet(std::string("0.0000000000000000999"), 19);
+  d.RoundUpAndSet("1749173934557332.956776776776776776776", 21);
+  d_1.SignedDivideWithDecimal(d_2, 19);
+  EXPECT_EQ(1, d == d_1);
 }
 
 TEST_F(RuntimeTypesTest, DecimalDivisionRegressionTest) {

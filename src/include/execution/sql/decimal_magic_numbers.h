@@ -64,13 +64,35 @@ constexpr unsigned MAGIC_P_AND_ALGO_ARRAY[39][2] = {
  * It stores two 128 bit unsigned integers representing the upper and
  * lower 64 bits of the magic number
  * p Represents the adjust constant p during the magic number algorithm
- * Algo is contant which is either 0 or 1 representing the type of algo
- * we need for the constant*/
+ * Algo is constant which is either 0 or 1 representing the type of algo
+ * we need for the division*/
 struct Magic_Number_128 {
   /// Upper half of 128 bit magic number
   uint128_t upper;
   /// Lower half of 128 bit magic number
   uint128_t lower;
+  /// value - p in magic division
+  unsigned p;
+  /// Algo type
+  unsigned algo;
+};
+
+/** Magic Number for 256 bit division
+ * This struct is used to store Magic Numbers for 256 bit division
+ * It stores 4 128 bit unsigned integers representing the magic number
+ * in 64 bits each.
+ * p Represents the adjust constant p during the magic number algorithm
+ * Algo is constant which is either 0 or 1 representing the type of algo
+ * we need for the division*/
+struct Magic_Number_256 {
+  /// Highest 64 bits
+  uint128_t A;
+  /// High Middle 64 bits
+  uint128_t B;
+  /// Low Middle 64 bits
+  uint128_t C;
+  /// Lowest 64 bits
+  uint128_t D;
   /// value - p in magic division
   unsigned p;
   /// Algo type
@@ -165,7 +187,20 @@ uint128_t PowerOfTen[39][2] = {{0, 0},
 
 /* Magic map for 128 bit division with constants*/
 std::unordered_map<uint128_t, struct Magic_Number_128> MagicMap128BitConstantDivision = {
-    {0, {0, 0, 0, 0}},
+    {5, {0xcccccccccccccccc , 0xcccccccccccccccd, 130, 0}},
+    {7, {0x2492492492492492 , 0x4924924924924925, 131, 1}}
+};
+
+/* Magic map for 256 bit division with constants*/
+std::unordered_map<uint128_t, struct Magic_Number_256> MagicMap256BitConstantDivision = {
+    {5, {0xcccccccccccccccc, 0xcccccccccccccccc ,
+         0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
+    {7, {0x2492492492492492, 0x4924924924924924 ,
+         0x9249249249249249 ,0x2492492492492493, 259, 1}},
+    {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09,
+           0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
+    {999, {0x6680a40106680a4 , 0x0106680a40106680
+           , 0xa40106680a401066, 0x80a40106680a4011, 266, 1}},
 };
 
 /* Map of powers of 2
