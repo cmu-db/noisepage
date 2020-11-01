@@ -187,20 +187,14 @@ uint128_t PowerOfTen[39][2] = {{0, 0},
 
 /* Magic map for 128 bit division with constants*/
 std::unordered_map<uint128_t, struct Magic_Number_128> MagicMap128BitConstantDivision = {
-    {5, {0xcccccccccccccccc , 0xcccccccccccccccd, 130, 0}},
-    {7, {0x2492492492492492 , 0x4924924924924925, 131, 1}}
-};
+    {5, {0xcccccccccccccccc, 0xcccccccccccccccd, 130, 0}}, {7, {0x2492492492492492, 0x4924924924924925, 131, 1}}};
 
 /* Magic map for 256 bit division with constants*/
 std::unordered_map<uint128_t, struct Magic_Number_256> MagicMap256BitConstantDivision = {
-    {5, {0xcccccccccccccccc, 0xcccccccccccccccc ,
-         0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
-    {7, {0x2492492492492492, 0x4924924924924924 ,
-         0x9249249249249249 ,0x2492492492492493, 259, 1}},
-    {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09,
-           0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
-    {999, {0x6680a40106680a4 , 0x0106680a40106680
-           , 0xa40106680a401066, 0x80a40106680a4011, 266, 1}},
+    {5, {0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccc, 0xcccccccccccccccd, 258, 0}},
+    {7, {0x2492492492492492, 0x4924924924924924, 0x9249249249249249, 0x2492492492492493, 259, 1}},
+    {777, {0xa8b098e00a8b098e, 0x00a8b098e00a8b09, 0x8e00a8b098e00a8b, 0x098e00a8b098e00b, 265, 0}},
+    {999, {0x6680a40106680a4, 0x0106680a40106680, 0xa40106680a401066, 0x80a40106680a4011, 266, 1}},
 };
 
 /* Map of powers of 2

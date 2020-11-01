@@ -833,11 +833,10 @@ int nlz128(uint128_t x) {
 }
 
 uint128_t CalculateUnsignedLongDivision128(uint128_t u1, uint128_t u0, uint128_t v) {
-
-  if(u1 >= v) {
+  if (u1 >= v) {
     // Result will overflow from 128 bits
     throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                           common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                              common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
   }
 
   // Base 2^64
@@ -936,8 +935,8 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
     uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
 
-    uint128_t  overflow_checker = result_upper >> magic_p;
-    if(overflow_checker > 0) {
+    uint128_t overflow_checker = result_upper >> magic_p;
+    if (overflow_checker > 0) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
                                 common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
@@ -967,8 +966,8 @@ void Decimal<T>::MultiplyAndSet(const Decimal<T> &input, unsigned int precision)
     // carry bit using conditional instructions
     result_upper += (result_lower < add_lower);
 
-    uint128_t  overflow_checker = result_upper >> magic_p;
-    if((overflow_checker > 0) || (result_upper < add_upper)) {
+    uint128_t overflow_checker = result_upper >> magic_p;
+    if ((overflow_checker > 0) || (result_upper < add_upper)) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
                                 common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
@@ -1112,7 +1111,7 @@ void Decimal<T>::SignedMultiplyWithDecimal(Decimal<T> input, unsigned lower_prec
     this->value_ = 0 - this->value_;
   }
 
-  if(input.GetValue() < 0) {
+  if (input.GetValue() < 0) {
     input.SetValue(-input.GetValue());
   }
 
@@ -1165,7 +1164,7 @@ void Decimal<T>::SignedMultiplyWithConstant(int64_t input) {
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
   } else {
     throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
-                                common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
+                              common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
   }
 
   if (negative_result) {
@@ -1236,7 +1235,7 @@ void Decimal<T>::SignedDivideWithDecimal(Decimal<T> input, unsigned denominator_
     this->value_ = half_words_result[0] | (half_words_result[1] << 64);
     this->UnsignedDivideConstant128Bit(constant);
   } else {
-    if(MagicMap256BitConstantDivision.count(constant) > 0) {
+    if (MagicMap256BitConstantDivision.count(constant) > 0) {
       this->value_ = UnsignedMagicDivideConstantNumerator256Bit(half_words_result, constant);
     } else {
       this->value_ = CalculateUnsignedLongDivision128(half_words_result[2] | (half_words_result[3] << 64),
@@ -1272,8 +1271,8 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     uint128_t result_lower = half_words_magic_result[4] | (half_words_magic_result[5] << 64);
     uint128_t result_upper = half_words_magic_result[6] | (half_words_magic_result[7] << 64);
 
-    uint128_t  overflow_checker = result_upper >> magic_p;
-    if(overflow_checker > 0) {
+    uint128_t overflow_checker = result_upper >> magic_p;
+    if (overflow_checker > 0) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
                                 common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);
@@ -1302,8 +1301,8 @@ uint128_t Decimal<T>::UnsignedMagicDivideConstantNumerator256Bit(uint128_t *divi
     // carry bit using conditional instructions
     result_upper += (result_lower < add_lower);
 
-    uint128_t  overflow_checker = result_upper >> magic_p;
-    if((overflow_checker > 0) || (result_upper < add_upper)) {
+    uint128_t overflow_checker = result_upper >> magic_p;
+    if ((overflow_checker > 0) || (result_upper < add_upper)) {
       // Result will overflow from 128 bits
       throw EXECUTION_EXCEPTION(fmt::format("Result overflow > 128 bits"),
                                 common::ErrorCode::ERRCODE_DECIMAL_RESULT_OVERFLOW);

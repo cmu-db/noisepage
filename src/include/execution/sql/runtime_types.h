@@ -543,9 +543,7 @@ class EXPORT Decimal {
    * having 64 bits
    * @param constant divisor
    * @return result of division*/
-  uint128_t UnsignedMagicDivideConstantNumerator256Bit(
-      uint128_t dividend[4],
-      uint128_t constant);
+  uint128_t UnsignedMagicDivideConstantNumerator256Bit(uint128_t dividend[4], uint128_t constant);
 
   /** Signed version of UnsignedDivideConstant128Bit
    * @param input divisor*/
