@@ -466,7 +466,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
     cte_table_name_.push_back(ref->GetAlias());
 
     // Inductive CTEs are iterative/recursive CTEs that have a base case and inductively build up the table.
-    booSEPAGEl inductive =
+    bool inductive =
         (ref->GetCteType() == parser::CTEType::ITERATIVE) || (ref->GetCteType() == parser::CTEType::RECURSIVE);
     if (ref->GetSelect() != nullptr) {
       // get schema
