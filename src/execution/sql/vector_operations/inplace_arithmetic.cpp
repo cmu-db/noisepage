@@ -3,12 +3,12 @@
 #include "execution/sql/vector_operations/inplace_operation_executor.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace traits {
 
 template <typename T>
-struct ShouldPerformFullCompute<terrier::execution::sql::AddInPlace<T>> {
+struct ShouldPerformFullCompute<noisepage::execution::sql::AddInPlace<T>> {
   bool operator()(const exec::ExecutionSettings &exec_settings, const TupleIdList *tid_list) const {
     auto full_compute_threshold = exec_settings.GetArithmeticFullComputeOptThreshold();
     return tid_list == nullptr || full_compute_threshold <= tid_list->ComputeSelectivity();
@@ -33,25 +33,25 @@ void VectorOps::AddInPlace(const exec::ExecutionSettings &exec_settings, Vector 
   // Lift-off
   switch (left->GetTypeId()) {
     case TypeId::TinyInt:
-      InPlaceOperation<int8_t, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<int8_t, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     case TypeId::SmallInt:
-      InPlaceOperation<int16_t, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<int16_t, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     case TypeId::Integer:
-      InPlaceOperation<int32_t, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<int32_t, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     case TypeId::BigInt:
-      InPlaceOperation<int64_t, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<int64_t, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     case TypeId::Float:
-      InPlaceOperation<float, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<float, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     case TypeId::Double:
-      InPlaceOperation<double, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<double, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     case TypeId::Pointer:
-      InPlaceOperation<uintptr_t, terrier::execution::sql::AddInPlace>(exec_settings, left, right);
+      InPlaceOperation<uintptr_t, noisepage::execution::sql::AddInPlace>(exec_settings, left, right);
       break;
     default:
       throw EXECUTION_EXCEPTION(
@@ -60,4 +60,4 @@ void VectorOps::AddInPlace(const exec::ExecutionSettings &exec_settings, Vector 
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

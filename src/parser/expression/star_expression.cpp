@@ -1,8 +1,9 @@
 #include "parser/expression/star_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> StarExpression::Copy() const {
   auto expr = std::make_unique<StarExpression>();
@@ -10,6 +11,10 @@ std::unique_ptr<AbstractExpression> StarExpression::Copy() const {
   return expr;
 }
 
+void StarExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(StarExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

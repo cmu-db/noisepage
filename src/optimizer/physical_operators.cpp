@@ -14,7 +14,7 @@
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 //===--------------------------------------------------------------------===//
 // TableFreeScan
@@ -493,6 +493,51 @@ bool InnerHashJoin::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LeftSemiHashJoin
+//===--------------------------------------------------------------------===//
+BaseOperatorNodeContents *LeftSemiHashJoin::Copy() const { return new LeftSemiHashJoin(*this); }
+
+Operator LeftSemiHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
+                                std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                                std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
+  auto *join = new LeftSemiHashJoin();
+  join->join_predicates_ = std::move(join_predicates);
+  join->left_keys_ = std::move(left_keys);
+  join->right_keys_ = std::move(right_keys);
+  return Operator(common::ManagedPointer<BaseOperatorNodeContents>(join));
+}
+
+common::hash_t LeftSemiHashJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNodeContents::Hash();
+  for (auto &expr : left_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &expr : right_keys_) hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr)
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    else
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNodeContents::Hash());
+  }
+  return hash;
+}
+
+bool LeftSemiHashJoin::operator==(const BaseOperatorNodeContents &r) {
+  if (r.GetOpType() != OpType::LEFTSEMIHASHJOIN) return false;
+  const LeftSemiHashJoin &node = *dynamic_cast<const LeftSemiHashJoin *>(&r);
+  if (left_keys_.size() != node.left_keys_.size() || right_keys_.size() != node.right_keys_.size() ||
+      join_predicates_.size() != node.join_predicates_.size())
+    return false;
+  if (join_predicates_ != node.join_predicates_) return false;
+  for (size_t i = 0; i < left_keys_.size(); i++) {
+    if (*(left_keys_[i]) != *(node.left_keys_[i])) return false;
+  }
+  for (size_t i = 0; i < right_keys_.size(); i++) {
+    if (*(right_keys_[i]) != *(node.right_keys_[i])) return false;
+  }
+  return true;
+}
+
+//===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
 BaseOperatorNodeContents *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
@@ -596,7 +641,7 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::table_oid_t table
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
   for (const auto &insert_vals : values) {
-    TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
+    NOISEPAGE_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
 #endif
 
@@ -1088,8 +1133,8 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
                               std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
                               std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                               parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace) {
-  TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
-                 "Mismatched number of items in vector and number of function parameters");
+  NOISEPAGE_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
+                   "Mismatched number of items in vector and number of function parameters");
   auto *op = new CreateFunction();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -1317,12 +1362,6 @@ bool Analyze::operator==(const BaseOperatorNodeContents &r) {
 }
 
 //===--------------------------------------------------------------------===//
-template <typename T>
-void OperatorNodeContents<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
-  v->Visit(reinterpret_cast<const T *>(this));
-}
-
-//===--------------------------------------------------------------------===//
 template <>
 const char *OperatorNodeContents<TableFreeScan>::name = "TableFreeScan";
 template <>
@@ -1349,6 +1388,8 @@ template <>
 const char *OperatorNodeContents<OuterNLJoin>::name = "OuterNLJoin";
 template <>
 const char *OperatorNodeContents<InnerHashJoin>::name = "InnerHashJoin";
+template <>
+const char *OperatorNodeContents<LeftSemiHashJoin>::name = "LeftSemiHashJoin";
 template <>
 const char *OperatorNodeContents<LeftHashJoin>::name = "LeftHashJoin";
 template <>
@@ -1428,6 +1469,8 @@ OpType OperatorNodeContents<OuterNLJoin>::type = OpType::OUTERNLJOIN;
 template <>
 OpType OperatorNodeContents<InnerHashJoin>::type = OpType::INNERHASHJOIN;
 template <>
+OpType OperatorNodeContents<LeftSemiHashJoin>::type = OpType::LEFTSEMIHASHJOIN;
+template <>
 OpType OperatorNodeContents<LeftHashJoin>::type = OpType::LEFTHASHJOIN;
 template <>
 OpType OperatorNodeContents<RightHashJoin>::type = OpType::RIGHTHASHJOIN;
@@ -1478,14 +1521,4 @@ OpType OperatorNodeContents<DropView>::type = OpType::DROPVIEW;
 template <>
 OpType OperatorNodeContents<Analyze>::type = OpType::ANALYZE;
 
-template <typename T>
-bool OperatorNodeContents<T>::IsLogical() const {
-  return type < OpType::LOGICALPHYSICALDELIMITER;
-}
-
-template <typename T>
-bool OperatorNodeContents<T>::IsPhysical() const {
-  return type > OpType::LOGICALPHYSICALDELIMITER;
-}
-
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

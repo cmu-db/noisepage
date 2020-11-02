@@ -7,7 +7,7 @@
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // Forward-declare all comparisons since they're used before defined.
 // clang-format off
@@ -103,4 +103,4 @@ struct NotEqual {
   constexpr bool operator()(T left, T right) const { return left != right; }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

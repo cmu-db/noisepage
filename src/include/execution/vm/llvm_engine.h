@@ -9,11 +9,11 @@
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 class Type;
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeModule;
 class FunctionInfo;
@@ -192,4 +192,4 @@ class LLVMEngine {
   };
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

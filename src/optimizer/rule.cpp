@@ -4,7 +4,7 @@
 #include "optimizer/rules/transformation_rules.h"
 #include "optimizer/rules/unnesting_rules.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 RulePromise Rule::Promise(GroupExpression *group_expr) const {
   auto root_type = match_pattern_->Type();
@@ -33,6 +33,7 @@ RuleSet::RuleSet() {
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalQueryDerivedGetToPhysicalQueryDerivedScan());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInnerJoinToPhysicalInnerIndexJoin());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInnerJoinToPhysicalInnerNLJoin());
+  AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalSemiJoinToPhysicalSemiLeftHashJoin());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalInnerJoinToPhysicalInnerHashJoin());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalLeftJoinToPhysicalLeftHashJoin());
   AddRule(RuleSetName::PHYSICAL_IMPLEMENTATION, new LogicalLimitToPhysicalLimit());
@@ -61,7 +62,9 @@ RuleSet::RuleSet() {
 
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughMarkJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestMarkJoinToInnerJoin());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new UnnestSingleJoinToInnerJoin());
+  AddRule(RuleSetName::UNNEST_SUBQUERY, new DependentSingleJoinToInnerJoin());
   AddRule(RuleSetName::UNNEST_SUBQUERY, new RewritePullFilterThroughAggregation());
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

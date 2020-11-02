@@ -30,7 +30,7 @@
 // #include "execution/util/csv_reader.h" Fix later.
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // ---------------------------------------------------------
 // Key type used in the cache for struct types in the context
@@ -52,7 +52,7 @@ struct StructTypeKeyInfo {
 
     explicit KeyTy(const util::RegionVector<Field> &es) : elements_(es) {}
 
-    explicit KeyTy(const StructType *struct_type) : elements_(struct_type->GetFields()) {}
+    explicit KeyTy(const StructType *struct_type) : elements_(struct_type->GetFieldsWithoutPadding()) {}
 
     bool operator==(const KeyTy &that) const { return elements_ == that.elements_; }
 
@@ -277,6 +277,16 @@ MapType *MapType::Get(Type *key_type, Type *value_type) {
   return map_type;
 }
 
+namespace {
+
+Field CreatePaddingElement(uint32_t id, uint32_t size, Context *ctx) {
+  Identifier name = ctx->GetIdentifier("__pad$" + std::to_string(id) + "$");
+  auto *pad_type = BuiltinType::Get(ctx, BuiltinType::Int8);
+  return Field(name, ArrayType::Get(size, pad_type));
+}
+
+};  // namespace
+
 // static
 StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
   // Empty structs get an artificial element
@@ -300,18 +310,27 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     // struct element.
     uint32_t size = 0;
     uint32_t alignment = 0;
+    util::RegionVector<Field> all_fields(ctx->GetRegion());
     util::RegionVector<uint32_t> field_offsets(ctx->GetRegion());
+    all_fields.reserve(fields.size());
+    field_offsets.reserve(fields.size());
     for (const auto &field : fields) {
+      auto *field_type = field.type_;
+
       // Check if the type needs to be padded
-      uint32_t field_align = field.type_->GetAlignment();
+      const uint32_t field_align = field_type->GetAlignment();
       if (!common::MathUtil::IsAligned(size, field_align)) {
-        size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
+        auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
+        all_fields.emplace_back(CreatePaddingElement(size, new_size - size, ctx));
+        field_offsets.push_back(size);
+        size = new_size;
       }
 
       // Update size and calculate alignment
       field_offsets.push_back(size);
-      size += field.type_->GetSize();
-      alignment = std::max(alignment, field.type_->GetAlignment());
+      all_fields.emplace_back(field);
+      size += field_type->GetSize();
+      alignment = std::max(alignment, field_align);
     }
 
     // Empty structs have an alignment of 1 byte
@@ -322,11 +341,15 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     // Add padding at end so that these structs can be placed compactly in an
     // array and still respect alignment
     if (!common::MathUtil::IsAligned(size, alignment)) {
-      size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, alignment));
+      auto new_size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, alignment));
+      all_fields.emplace_back(CreatePaddingElement(size, new_size - size, ctx));
+      field_offsets.push_back(size);
+      size = new_size;
     }
 
     // Create type
-    struct_type = new (ctx->GetRegion()) StructType(ctx, size, alignment, std::move(fields), std::move(field_offsets));
+    struct_type = new (ctx->GetRegion())
+        StructType(ctx, size, alignment, std::move(all_fields), std::move(fields), std::move(field_offsets));
     // Set in cache
     *iter = struct_type;
   } else {
@@ -338,7 +361,7 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
 
 // static
 StructType *StructType::Get(util::RegionVector<Field> &&fields) {
-  TERRIER_ASSERT(!fields.empty(), "Cannot use StructType::Get(fields) with an empty list of fields");
+  NOISEPAGE_ASSERT(!fields.empty(), "Cannot use StructType::Get(fields) with an empty list of fields");
   return StructType::Get(fields[0].type_->GetContext(), std::move(fields));
 }
 
@@ -366,4 +389,4 @@ FunctionType *FunctionType::Get(util::RegionVector<Field> &&params, Type *ret) {
   return func_type;
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

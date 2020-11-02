@@ -9,7 +9,7 @@
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * @class DeleteStatement
  * @brief
@@ -50,4 +50,4 @@ class DeleteStatement : public SQLStatement {
   const common::ManagedPointer<AbstractExpression> expr_;
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

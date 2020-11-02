@@ -11,19 +11,19 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 }
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Struct defining information about the query.
@@ -110,4 +110,4 @@ class AbstractOptimizer {
   virtual void Reset() {}
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

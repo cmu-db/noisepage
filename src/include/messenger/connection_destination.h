@@ -3,7 +3,11 @@
 #include <string>
 #include <utility>
 
+<<<<<<< HEAD
 namespace terrier::messenger {
+=======
+namespace noisepage::messenger {
+>>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
 /**
  * ConnectionDestination abstracts over the different types of connections that the messenger system can make.
@@ -61,10 +65,19 @@ class ConnectionDestination {
 
  private:
   /** Construct a new ConnectionDestination with the specified address. */
+<<<<<<< HEAD
   explicit ConnectionDestination(const std::string target_name, const std::string zmq_address)
       : target_name_(target_name), zmq_address_(std::move(zmq_address)) {}
+=======
+  explicit ConnectionDestination(std::string target_name, std::string zmq_address)
+      : target_name_(std::move(target_name)), zmq_address_(std::move(zmq_address)) {}
+>>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
   const std::string target_name_;
   const std::string zmq_address_;
 };
 
+<<<<<<< HEAD
 }  // namespace terrier::messenger
+=======
+}  // namespace noisepage::messenger
+>>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973

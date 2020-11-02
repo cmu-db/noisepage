@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(ips4o
+        VERSION 0.1.0.0
+        DESCRIPTION "NoisePage trying to use ips4o."
+        LANGUAGES CXX
+        )
+
+add_library(ips4o INTERFACE)                        # Create the ips4o library as an interface.
+add_library(${PROJECT_NAME}::ips4o ALIAS ips4o)     # Create a namespaced alias.
+
+target_include_directories(
+        ips4o
+        INTERFACE
+        # These includes make up the xbyak interface.
+        ${PROJECT_SOURCE_DIR}/ips4o/
+        ${PROJECT_SOURCE_DIR}/
+)

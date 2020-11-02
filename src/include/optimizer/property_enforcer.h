@@ -5,7 +5,7 @@
 #include "optimizer/property_visitor.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class PropertySet;
 
@@ -47,4 +47,4 @@ class PropertyEnforcer : public PropertyVisitor {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

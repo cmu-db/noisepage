@@ -19,7 +19,7 @@
 #include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 ///////////////////////////////////////////////////////////////////////////////
 /// LogicalInnerJoinCommutativity
@@ -48,7 +48,7 @@ void LogicalInnerJoinCommutativity::Transform(common::ManagedPointer<AbstractOpt
   auto join_predicates = std::vector<AnnotatedExpression>(join_op->GetJoinPredicates());
 
   const auto &children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "There should be two children");
+  NOISEPAGE_ASSERT(children.size() == 2, "There should be two children");
   OPTIMIZER_LOG_TRACE("Reorder left child with op {0} and right child with op {1} for inner join",
                       children[0]->Contents()->GetName().c_str(), children[1]->Contents()->GetName().c_str());
 
@@ -95,9 +95,9 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   // right) Variables are named accordingly to above transformation
   auto parent_join = input->Contents()->GetContentsAs<LogicalInnerJoin>();
   const auto &children = input->GetChildren();
-  TERRIER_ASSERT(children.size() == 2, "There should be 2 children");
-  TERRIER_ASSERT(children[0]->Contents()->GetOpType() == OpType::LOGICALINNERJOIN, "Left should be join");
-  TERRIER_ASSERT(children[0]->GetChildren().size() == 2, "Left join should have 2 children");
+  NOISEPAGE_ASSERT(children.size() == 2, "There should be 2 children");
+  NOISEPAGE_ASSERT(children[0]->Contents()->GetOpType() == OpType::LOGICALINNERJOIN, "Left should be join");
+  NOISEPAGE_ASSERT(children[0]->GetChildren().size() == 2, "Left join should have 2 children");
 
   auto child_join = children[0]->Contents()->GetContentsAs<LogicalInnerJoin>();
   auto left = children[0]->GetChildren()[0];
@@ -158,4 +158,4 @@ void LogicalInnerJoinAssociativity::Transform(common::ManagedPointer<AbstractOpt
   transformed->emplace_back(std::move(new_parent_join));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -7,7 +7,7 @@
 #include "parser/expression/conjunction_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ConjunctionTranslator::ConjunctionTranslator(const parser::ConjunctionExpression &expr,
                                              CompilationContext *compilation_context)
@@ -35,4 +35,4 @@ ast::Expr *ConjunctionTranslator::DeriveValue(WorkContext *ctx, const ColumnValu
   }
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

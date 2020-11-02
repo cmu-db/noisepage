@@ -4,7 +4,7 @@
 
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class LocalVar;
 
@@ -168,4 +168,4 @@ class BytecodeIterator {
   std::size_t curr_offset_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

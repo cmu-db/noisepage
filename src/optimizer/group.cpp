@@ -2,7 +2,7 @@
 
 #include "loggers/optimizer_logger.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 Group::~Group() {
   for (auto expr : logical_expressions_) {
@@ -20,8 +20,8 @@ Group::~Group() {
 }
 
 void Group::EraseLogicalExpression() {
-  TERRIER_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
-  TERRIER_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
+  NOISEPAGE_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
+  NOISEPAGE_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
   delete logical_expressions_[0];
   logical_expressions_.clear();
 }
@@ -40,7 +40,7 @@ void Group::AddExpression(GroupExpression *expr, bool enforced) {
 
 bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet *properties) {
   OPTIMIZER_LOG_TRACE("Adding expression cost on group " + std::to_string(expr->GetGroupID().UnderlyingValue()) +
-                      " with op {1}" + expr->Contents()->GetName())
+                      " with op {1}" + expr->Contents()->GetName());
 
   auto it = lowest_cost_expressions_.find(properties);
   if (it == lowest_cost_expressions_.end()) {
@@ -74,4 +74,4 @@ bool Group::HasExpressions(PropertySet *properties) const {
   return (it != lowest_cost_expressions_.end());
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

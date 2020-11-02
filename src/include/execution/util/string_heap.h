@@ -4,7 +4,7 @@
 
 #include "execution/util/region.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Container for small-ish strings whose lifetimes are all the same.
@@ -94,4 +94,4 @@ inline char *StringHeap::AddString(std::string_view str) {
 
 inline void StringHeap::Destroy() { region_.FreeAll(); }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

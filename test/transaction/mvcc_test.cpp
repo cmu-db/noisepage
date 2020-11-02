@@ -13,7 +13,7 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 // Not thread-safe
 class MVCCDataTableTestObject {
  public:
@@ -83,7 +83,7 @@ class MVCCDataTableTestObject {
   bool select_result_;
 };
 
-class MVCCTests : public ::terrier::TerrierTest {
+class MVCCTests : public ::noisepage::TerrierTest {
  public:
   storage::BlockStore block_store_{100, 100};
   storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
@@ -1369,4 +1369,4 @@ TEST_F(MVCCTests, SimpleDelete2) {
     txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

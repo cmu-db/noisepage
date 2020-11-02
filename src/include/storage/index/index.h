@@ -10,11 +10,11 @@
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
@@ -128,7 +128,7 @@ class Index {
   virtual void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
                              ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
                              std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -140,7 +140,7 @@ class Index {
    */
   virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                               const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -153,7 +153,7 @@ class Index {
    */
   virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                                    const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -174,4 +174,4 @@ class Index {
   IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
 };
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

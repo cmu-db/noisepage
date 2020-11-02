@@ -9,7 +9,7 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 // This is a simple test for the behavior of varlen entry with various creation parameters, particularly
 // that the various flags are stored correctly and that inlining and prefixes are handled correctly.
 // NOLINTNEXTLINE
@@ -167,4 +167,4 @@ TEST(VarlenEntryTests, OwnershipEquality) {
             storage::VarlenEntry::Create(reinterpret_cast<const byte *const>(matthew_was_here.data()),
                                          matthew_was_here.length(), true));
 }
-}  // namespace terrier
+}  // namespace noisepage

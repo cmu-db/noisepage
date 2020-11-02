@@ -6,7 +6,7 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/simd/types.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 uint32_t VectorUtil::IntersectSelected(const sel_t *sel_vector_1, const uint32_t sel_vector_1_len,
                                        const sel_t *sel_vector_2, const uint32_t sel_vector_2_len,
@@ -72,7 +72,7 @@ uint32_t VectorUtil::DiffSelectedScalar(uint32_t n, const sel_t *sel_vector, uin
 
 uint32_t VectorUtil::DiffSelectedWithScratchPad(uint32_t n, const sel_t *sel_vector, uint32_t sel_vector_len,
                                                 sel_t *out_sel_vector, uint8_t *scratch) {
-  TERRIER_ASSERT(n <= common::Constants::K_DEFAULT_VECTOR_SIZE, "Selection vector too large");
+  NOISEPAGE_ASSERT(n <= common::Constants::K_DEFAULT_VECTOR_SIZE, "Selection vector too large");
   std::memset(scratch, 0, n);
   VectorUtil::SelectionVectorToByteVector(sel_vector, sel_vector_len, scratch);
   for (uint32_t i = 0; i < n; i++) {
@@ -108,7 +108,7 @@ uint32_t VectorUtil::ByteVectorToSelectionVector(const uint8_t *byte_vector, con
   for (; i + 8 <= num_bytes; i += 8) {
     const auto word = *reinterpret_cast<const uint64_t *>(byte_vector + i);
     const auto mask = _pext_u64(word, 0x202020202020202);
-    TERRIER_ASSERT(mask < 256, "Out-of-bounds mask");
+    NOISEPAGE_ASSERT(mask < 256, "Out-of-bounds mask");
     const auto match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&simd::K8_BIT_MATCH_LUT[mask]));
     const auto match_pos = _mm_cvtepi8_epi16(match_pos_scaled);
     const auto pos_vec = _mm_add_epi16(idx, match_pos);
@@ -303,4 +303,4 @@ uint32_t VectorUtil::BitVectorToSelectionVector(const uint64_t *bit_vector, cons
                          : BitVectorToSelectionVectorDense(bit_vector, num_bits, sel_vector);
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

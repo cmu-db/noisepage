@@ -10,9 +10,10 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
@@ -73,7 +74,7 @@ class RandomDataTableTestObject {
   bool RandomlyUpdateTuple(const transaction::timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            storage::RecordBufferSegmentPool *buffer_pool) {
     // tuple must already exist
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    NOISEPAGE_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
     // generate a random redo ProjectedRow to Update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -114,7 +115,7 @@ class RandomDataTableTestObject {
   // or nullptr of no version of this tuple is visible to the timestamp
   const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot,
                                                           const transaction::timestamp_t timestamp) {
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    NOISEPAGE_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)
@@ -376,4 +377,40 @@ TEST_F(DataTableTests, InsertNoWrap) {
     delete txn;
   }
 }
-}  // namespace terrier
+
+// tests to make sure that the correct number of tuple slots are iterated through by slot iterator
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 10;
+  const uint64_t max_tuples_inserted = 10000;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    transaction::timestamp_t timestamp(0);
+    //    transaction::TimestampManager timestamp_manager;
+    //    transaction::TransactionManager txn_manager(timestamp_manager);
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
+    uint64_t size;
+    // number of tuples in the table
+    for (uint64_t i = 0; i < max_tuples_inserted; i++) {
+      // check that iterator sees correct number of tuples
+      size = 0;
+      for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
+      EXPECT_EQ(size, i);
+
+      // add new tuple and make sure that expected element is in table
+      auto slot = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_);
+      auto it = tested.GetTable().begin();
+      for (uint64_t num_slots = 0; it != tested.GetTable().end() && num_slots < size; num_slots++) it++;
+      EXPECT_EQ(slot, *it);
+    }
+
+    size = 0;
+    for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
+    EXPECT_EQ(size, max_tuples_inserted);
+
+    delete txn;
+  }
+}
+}  // namespace noisepage

@@ -5,7 +5,7 @@
 #include "execution/util/cpu_info.h"
 #include "execution/vm/llvm_engine.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 /**
  * Static helper methods for interacting with the LLVM execution engine.
@@ -25,7 +25,7 @@ class ExecutionUtil {
   /**
    * Shutdown all TPL subsystems
    */
-  static void ShutdownTPL() { terrier::execution::vm::LLVMEngine::Shutdown(); }
+  static void ShutdownTPL() { noisepage::execution::vm::LLVMEngine::Shutdown(); }
 };
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

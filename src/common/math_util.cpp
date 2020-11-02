@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace terrier::common {
+namespace noisepage::common {
 
 bool MathUtil::ApproxEqual(float left, float right) {
   const double epsilon = std::fabs(right) * 0.01;
@@ -14,4 +14,4 @@ bool MathUtil::ApproxEqual(double left, double right) {
   return std::fabs(left - right) <= epsilon;
 }
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

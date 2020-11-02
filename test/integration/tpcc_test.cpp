@@ -14,9 +14,9 @@
 #include "test_util/tpcc/worker.h"
 #include "test_util/tpcc/workload.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
-#define LOG_FILE_NAME "./tpcc.log"
+#define LOG_TEST_LOG_FILE_NAME "./test_tpcc_test.log"
 
 /**
  * The behavior in these tests mimics that of /benchmark/integration/tpcc_benchmark.cpp. If something changes here, it
@@ -25,11 +25,11 @@ namespace terrier::tpcc {
 class TPCCTests : public TerrierTest {
  public:
   void SetUp() final {
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
     for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   }
 
-  void TearDown() final { unlink(LOG_FILE_NAME); }
+  void TearDown() final { unlink(LOG_TEST_LOG_FILE_NAME); }
 
   std::default_random_engine generator_;
 
@@ -46,7 +46,7 @@ class TPCCTests : public TerrierTest {
     std::vector<Worker> workers;
     workers.reserve(num_threads_);
 
-    auto db_main = terrier::DBMain::Builder()
+    auto db_main = noisepage::DBMain::Builder()
                        .SetUseMetrics(metrics_enabled)
                        .SetUseMetricsThread(metrics_enabled)
                        .SetUseLogging(logging_enabled)
@@ -57,8 +57,10 @@ class TPCCTests : public TerrierTest {
                        .Build();
 
     if (metrics_enabled) {
-      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING, 0);
-      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION, 100);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::LOGGING);
+      db_main->GetMetricsManager()->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+      db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::LOGGING, 0);
+      db_main->GetMetricsManager()->SetMetricSampleInterval(metrics::MetricsComponent::TRANSACTION, 100);
     }
 
     auto block_store = db_main->GetStorageLayer()->GetBlockStore();
@@ -99,15 +101,15 @@ class TPCCTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
+TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
+TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }
+TEST_F(TPCCTests, WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, DISABLED_WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
+TEST_F(TPCCTests, WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

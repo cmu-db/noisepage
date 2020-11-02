@@ -4,7 +4,7 @@
 
 #include "catalog/catalog_defs.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 constexpr table_oid_t CONSTRAINT_TABLE_OID = table_oid_t(61);
 constexpr index_oid_t CONSTRAINT_OID_INDEX_OID = index_oid_t(62);
@@ -17,7 +17,7 @@ constexpr index_oid_t CONSTRAINT_FOREIGNTABLE_INDEX_OID = index_oid_t(67);
 /*
  * Column names of the form "CON[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "CON_[name]_COL_OID" are
- * terrier-specific addtions (generally pointers to internal objects).
+ * noisepage-specific addtions (generally pointers to internal objects).
  */
 constexpr col_oid_t CONOID_COL_OID = col_oid_t(1);         // INTEGER (pkey)
 constexpr col_oid_t CONNAME_COL_OID = col_oid_t(2);        // VARCHAR
@@ -48,4 +48,4 @@ enum class ConstraintType : char {
   EXCLUSION = 'x',
 };
 
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

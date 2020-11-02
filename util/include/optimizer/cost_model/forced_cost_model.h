@@ -5,7 +5,7 @@
 #include "optimizer/physical_operators.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 namespace optimizer {
 
 class Memo;
@@ -189,4 +189,4 @@ class ForcedCostModel : public AbstractCostModel {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

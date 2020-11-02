@@ -13,23 +13,23 @@
 #include "execution/exec/execution_settings.h"
 #include "execution/vm/module.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Catalog;
 }
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionManager;
 }
 
-namespace terrier {
+namespace noisepage {
 class DBMain;
 }
 
-namespace terrier::tpch {
+namespace noisepage::tpch {
 
 /**
  * Class that can load the TPCH tables, compile the TPCH queries, and execute the TPCH workload
@@ -69,4 +69,4 @@ class Workload {
       query_and_plan_;
 };
 
-}  // namespace terrier::tpch
+}  // namespace noisepage::tpch

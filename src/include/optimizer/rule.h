@@ -8,7 +8,7 @@
 #include "optimizer/optimization_context.h"
 #include "optimizer/pattern.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Enum defining the types of rules
@@ -35,6 +35,7 @@ enum class RuleType : uint32_t {
   AGGREGATE_TO_PLAIN_AGGREGATE,
   INNER_JOIN_TO_INDEX_JOIN,
   INNER_JOIN_TO_NL_JOIN,
+  SEMI_JOIN_TO_HASH_JOIN,
   INNER_JOIN_TO_HASH_JOIN,
   LEFT_JOIN_TO_HASH_JOIN,
   IMPLEMENT_DISTINCT,
@@ -66,6 +67,8 @@ enum class RuleType : uint32_t {
   COMBINE_CONSECUTIVE_FILTER,
   EMBED_FILTER_INTO_GET,
   MARK_JOIN_GET_TO_INNER_JOIN,
+  SINGLE_JOIN_GET_TO_INNER_JOIN,
+  DEPENDENT_JOIN_GET_TO_INNER_JOIN,
   MARK_JOIN_INNER_JOIN_TO_INNER_JOIN,
   MARK_JOIN_FILTER_TO_INNER_JOIN,
   PULL_FILTER_THROUGH_MARK_JOIN,
@@ -302,4 +305,4 @@ class RuleSet {
   std::unordered_map<uint32_t, std::vector<Rule *>> rules_map_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

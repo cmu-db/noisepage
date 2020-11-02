@@ -5,7 +5,7 @@
 #include "common/error/exception.h"
 #include "gtest/gtest.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 // NOLINTNEXTLINE
 TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
@@ -101,6 +101,8 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::ROW_SUBQUERY, false), "ROW_SUBQUERY");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::STAR, true), "STAR");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::STAR, false), "STAR");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::TABLE_STAR, true), "TABLE_STAR");
+  EXPECT_EQ(ExpressionTypeToString(ExpressionType::TABLE_STAR, false), "TABLE_STAR");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::PLACEHOLDER, true), "PLACEHOLDER");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::PLACEHOLDER, false), "PLACEHOLDER");
   EXPECT_EQ(ExpressionTypeToString(ExpressionType::COLUMN_REF, true), "COLUMN_REF");
@@ -110,4 +112,4 @@ TEST(ExpressionDefsTests, ExpressionTypeToStringTest) {
   EXPECT_THROW(ExpressionTypeToString(ExpressionType(100), true), ConversionException);
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

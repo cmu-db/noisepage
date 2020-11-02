@@ -9,7 +9,7 @@
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for set operation:
@@ -106,4 +106,4 @@ class SetOpPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(SetOpPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

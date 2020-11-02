@@ -11,7 +11,7 @@
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 
 /**
@@ -56,4 +56,4 @@ class PrepareStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

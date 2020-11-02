@@ -1,14 +1,16 @@
 #include "execution/compiler/operator/operator_translator.h"
 
 #include "brain/operating_unit_util.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 std::atomic<execution::translator_id_t> OperatorTranslator::translator_id_counter{20000};  // arbitrary number
 
@@ -19,7 +21,7 @@ OperatorTranslator::OperatorTranslator(const planner::AbstractPlanNode &plan, Co
       compilation_context_(compilation_context),
       pipeline_(pipeline),
       feature_type_(feature_type) {
-  TERRIER_ASSERT(plan.GetOutputSchema() != nullptr, "Output schema shouldn't be null");
+  NOISEPAGE_ASSERT(plan.GetOutputSchema() != nullptr, "Output schema shouldn't be null");
   // Register this operator.
   pipeline->RegisterStep(this);
   // Prepare all output expressions.
@@ -52,7 +54,7 @@ ast::Expr *OperatorTranslator::GetChildOutput(WorkContext *context, uint32_t chi
 
   // Check valid output column from child.
   auto child_translator = compilation_context_->LookupTranslator(*plan_.GetChild(child_idx));
-  TERRIER_ASSERT(child_translator != nullptr, "Missing translator for child!");
+  NOISEPAGE_ASSERT(child_translator != nullptr, "Missing translator for child!");
   return child_translator->GetOutput(context, attr_idx);
 }
 
@@ -93,13 +95,15 @@ void OperatorTranslator::GetAllChildOutputFields(const uint32_t child_index, con
 
 bool OperatorTranslator::IsCountersEnabled() const { return compilation_context_->IsCountersEnabled(); }
 
-StateDescriptor::Entry OperatorTranslator::CounterDeclare(const std::string &counter_name) const {
+bool OperatorTranslator::IsPipelineMetricsEnabled() const { return compilation_context_->IsPipelineMetricsEnabled(); }
+
+StateDescriptor::Entry OperatorTranslator::CounterDeclare(const std::string &counter_name, Pipeline *pipeline) const {
   auto *codegen = GetCodeGen();
 
   if (IsCountersEnabled()) {
-    // Declare a new counter in the query state.
+    // Declare a new counter in the pipeline state
     ast::Expr *counter_type = codegen->BuiltinType(ast::BuiltinType::Uint32);
-    return compilation_context_->GetQueryState()->DeclareStateEntry(codegen, counter_name, counter_type);
+    return pipeline->DeclarePipelineStateEntry(counter_name, counter_type);
   }
 
   return StateDescriptor::Entry();
@@ -163,13 +167,18 @@ void OperatorTranslator::FeatureRecord(FunctionBuilder *function, brain::Executi
                                        ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
-  if (IsCountersEnabled()) {
+  if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
+    auto non_parallel_type = brain::OperatingUnitUtil::GetNonParallelType(feature_type);
+    bool is_parallel = non_parallel_type != brain::ExecutionOperatingUnitType::INVALID;
+    feature_type = (is_parallel) ? non_parallel_type : feature_type;
+
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
     const auto &feature = brain::OperatingUnitUtil::GetFeature(GetTranslatorId(), features, feature_type);
     ast::Expr *record =
-        codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, val);
+        codegen->ExecOUFeatureVectorRecordFeature(pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(),
+                                                  attrib, brain::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
     function->Append(record);
   }
 }
@@ -178,7 +187,7 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
                                                     execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
-  if (IsCountersEnabled()) {
+  if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
@@ -188,8 +197,9 @@ void OperatorTranslator::FeatureArithmeticRecordSet(FunctionBuilder *function, c
       if (is_same_translator && is_arith) {
         for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
-          ast::Expr *record =
-              codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, val);
+          ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
+              pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
+              brain::ExecutionOperatingUnitFeatureUpdateMode::SET, val);
           function->Append(record);
         }
       }
@@ -201,7 +211,7 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
                                                     execution::translator_id_t translator_id, ast::Expr *val) const {
   auto *codegen = GetCodeGen();
 
-  if (IsCountersEnabled()) {
+  if (IsCountersEnabled() && IsPipelineMetricsEnabled()) {
     // @execCtxRecordFeature(execCtx, pipeline_id, feature_id, feature_attribute, val * old_feature_val)
     const pipeline_id_t pipeline_id = pipeline.GetPipelineId();
     const auto &features = codegen->GetPipelineOperatingUnits()->GetPipelineFeatures(pipeline_id);
@@ -211,14 +221,9 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
       if (is_same_translator && is_arith) {
         for (const auto &attrib : {brain::ExecutionOperatingUnitFeatureAttribute::NUM_ROWS,
                                    brain::ExecutionOperatingUnitFeatureAttribute::CARDINALITY}) {
-          ast::Expr *mul = codegen->BinaryOp(
-              parsing::Token::Type::STAR, val,
-              codegen->CallBuiltin(ast::Builtin::ExecutionContextGetFeature,
-                                   {GetExecutionContext(), codegen->Const32(pipeline.GetPipelineId().UnderlyingValue()),
-                                    codegen->Const32(feature.GetFeatureId().UnderlyingValue()),
-                                    codegen->Const32(static_cast<uint8_t>(attrib))}));
-          ast::Expr *record =
-              codegen->ExecCtxRecordFeature(GetExecutionContext(), pipeline_id, feature.GetFeatureId(), attrib, mul);
+          ast::Expr *record = codegen->ExecOUFeatureVectorRecordFeature(
+              pipeline.OUFeatureVecPtr(), pipeline_id, feature.GetFeatureId(), attrib,
+              brain::ExecutionOperatingUnitFeatureUpdateMode::MULT, val);
           function->Append(record);
         }
       }
@@ -226,4 +231,20 @@ void OperatorTranslator::FeatureArithmeticRecordMul(FunctionBuilder *function, c
   }
 }
 
-}  // namespace terrier::execution::compiler
+util::RegionVector<ast::FieldDecl *> OperatorTranslator::GetHookParams(const Pipeline &pipeline, ast::Identifier *arg,
+                                                                       ast::Expr *arg_type) const {
+  auto *codegen = GetCodeGen();
+
+  auto params = pipeline.PipelineParams();
+  if (arg != nullptr) {
+    params.push_back(codegen->MakeField(*arg, arg_type));
+  } else {
+    ast::Identifier dummy = codegen->MakeIdentifier("dummyArg");
+    auto *type = codegen->PointerType(codegen->BuiltinType(ast::BuiltinType::Nil));
+    params.push_back(codegen->MakeField(dummy, type));
+  }
+
+  return params;
+}
+
+}  // namespace noisepage::execution::compiler

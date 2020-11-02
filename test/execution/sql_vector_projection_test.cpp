@@ -6,7 +6,7 @@
 #include "execution/sql/vector_projection.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorProjectionTest : public TplTest {};
 
@@ -312,4 +312,4 @@ TEST_F(VectorProjectionTest, ProjectColumns) {
   col_0_2_projection.CheckIntegrity();
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

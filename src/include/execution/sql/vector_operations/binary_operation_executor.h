@@ -7,7 +7,7 @@
 #include "execution/sql/vector_operations/traits.h"
 #include "execution/sql/vector_operations/vector_operations.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /** Static class for operating binary operations. */
 class BinaryOperationExecutor {
@@ -26,7 +26,7 @@ class BinaryOperationExecutor {
    *      3. The template types of both inputs and the output match the underlying vector types.
    * @post The output vector has the same shape (size and filter status) as both inputs.
    *
-   * @note This function leverages the terrier::execution::sql::traits::ShouldPerformFullCompute trait to determine
+   * @note This function leverages the noisepage::execution::sql::traits::ShouldPerformFullCompute trait to determine
    *       whether the operation should be performed on ALL vector elements or just the active
    *       elements. Callers can control this feature by optionally specialization the trait for
    *       their operation type. If you want to use this optimization, you cannot pass in a
@@ -58,7 +58,7 @@ class BinaryOperationExecutor {
    *      output match the underlying vector types.
    * @post The output vector has the same shape (size and filter status) as both inputs.
    *
-   * @note This function leverages the terrier::execution::sql::traits::ShouldPerformFullCompute trait to determine
+   * @note This function leverages the noisepage::execution::sql::traits::ShouldPerformFullCompute trait to determine
    *       whether the operation should be performed on ALL vector elements or just the active
    *       elements. Callers can control this feature by optionally specialization the trait for
    *       their operation type. If you want to use this optimization, you cannot pass in a
@@ -85,7 +85,7 @@ class BinaryOperationExecutor {
                   "Binary operation has invalid interface for given template arguments.");
 
     // Ensure at least one of the inputs are vectors.
-    TERRIER_ASSERT(!left.IsConstant() || !right.IsConstant(), "Both inputs to binary cannot be constants");
+    NOISEPAGE_ASSERT(!left.IsConstant() || !right.IsConstant(), "Both inputs to binary cannot be constants");
 
     if (left.IsConstant()) {
       ExecuteImplConstantVector<LeftType, RightType, ResultType, Op, IgnoreNull>(exec_settings, left, right, result,
@@ -170,9 +170,9 @@ class BinaryOperationExecutor {
   template <typename LeftType, typename RightType, typename ResultType, typename Op, bool IgnoreNull>
   static void ExecuteImplVectorVector(const exec::ExecutionSettings &exec_settings, const Vector &left,
                                       const Vector &right, Vector *result, Op &&op) {
-    TERRIER_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
-                   "Mismatched selection vectors for comparison");
-    TERRIER_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
+    NOISEPAGE_ASSERT(left.GetFilteredTupleIdList() == right.GetFilteredTupleIdList(),
+                     "Mismatched selection vectors for comparison");
+    NOISEPAGE_ASSERT(left.GetCount() == right.GetCount(), "Mismatched vector counts for comparison");
 
     auto *RESTRICT left_data = reinterpret_cast<LeftType *>(left.GetData());
     auto *RESTRICT right_data = reinterpret_cast<RightType *>(right.GetData());
@@ -199,4 +199,4 @@ class BinaryOperationExecutor {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

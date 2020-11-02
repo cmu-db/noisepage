@@ -7,11 +7,11 @@
 #include "execution/util/cpu_info.h"
 #include "metrics/metrics_util.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Track the time and hardware resources spent for a particular event (operating unit). This is tracking resources at a
@@ -52,7 +52,7 @@ class ResourceTracker {
 
     /** Column headers to emit when writing to CSV */
     static constexpr std::string_view COLUMNS = {
-        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, "
+        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles, "
         "block_read, block_write, memory_b, elapsed_us"};
   };
 
@@ -111,4 +111,4 @@ class ResourceTracker {
   bool running_ = false;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -18,7 +18,7 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "storage/replication/replication_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 class LogSerializerTask;
 class DiskLogConsumerTask;
@@ -58,8 +58,12 @@ class LogManager : public common::DedicatedThreadOwner {
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
+<<<<<<< HEAD
              common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
              common::ManagedPointer<ReplicationManager> replication_manager)
+=======
+             common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry)
+>>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
@@ -177,4 +181,4 @@ class LogManager : public common::DedicatedThreadOwner {
   }
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

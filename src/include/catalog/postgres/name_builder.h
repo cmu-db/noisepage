@@ -5,7 +5,7 @@
 #include "common/error/exception.h"
 #include "network/postgres/postgres_defs.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 /**
  * NameBuilder generates names for database objects such as constraints and indexes
  *
@@ -81,4 +81,4 @@ class NameBuilder {
     }
   }
 };
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

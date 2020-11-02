@@ -2,7 +2,7 @@
 
 #include "common/strong_typedef_body.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 
 STRONG_TYPEDEF_BODY(col_oid_t, uint32_t);
 STRONG_TYPEDEF_BODY(constraint_oid_t, uint32_t);
@@ -19,4 +19,4 @@ STRONG_TYPEDEF_BODY(trigger_oid_t, uint32_t);
 STRONG_TYPEDEF_BODY(type_oid_t, uint32_t);
 STRONG_TYPEDEF_BODY(view_oid_t, uint32_t);
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

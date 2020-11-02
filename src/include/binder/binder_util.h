@@ -7,11 +7,11 @@
 #include "common/managed_pointer.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
 }
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 /**
  * Static utility functions for the binder
@@ -94,4 +94,4 @@ extern template bool BinderUtil::IsRepresentable<int64_t>(const double int_val);
 extern template bool BinderUtil::IsRepresentable<double>(const double int_val);
 /// @endcond
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

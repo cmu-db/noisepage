@@ -2,7 +2,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> SubqueryExpression::Copy() const {
   std::vector<common::ManagedPointer<AbstractExpression>> select_columns;
@@ -69,4 +69,4 @@ std::vector<std::unique_ptr<AbstractExpression>> SubqueryExpression::FromJson(co
 
 DEFINE_JSON_BODY_DECLARATIONS(SubqueryExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

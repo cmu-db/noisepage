@@ -3,7 +3,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct TpccPlanOrderStatusTests : public TpccPlanTest {};
 
@@ -44,4 +44,4 @@ TEST_F(TpccPlanOrderStatusTests, CustomerByName) {
   OptimizeQuery(query, tbl_customer_, TpccPlanTest::CheckIndexScan);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

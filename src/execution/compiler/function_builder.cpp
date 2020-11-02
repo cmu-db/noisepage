@@ -3,7 +3,7 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/compiler/codegen.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier name, util::RegionVector<ast::FieldDecl *> &&params,
                                  ast::Expr *ret_type)
@@ -40,10 +40,10 @@ ast::FunctionDecl *FunctionBuilder::Finish(ast::Expr *ret) {
     return decl_;
   }
 
-  TERRIER_ASSERT(ret == nullptr || statements_->IsEmpty() || !statements_->GetLast()->IsReturnStmt(),
-                 "Double-return at end of function. You should either call FunctionBuilder::Finish() "
-                 "with an explicit return expression, or use the factory to manually append a return "
-                 "statement and call FunctionBuilder::Finish() with a null return.");
+  NOISEPAGE_ASSERT(ret == nullptr || statements_->IsEmpty() || !statements_->GetLast()->IsReturnStmt(),
+                   "Double-return at end of function. You should either call FunctionBuilder::Finish() "
+                   "with an explicit return expression, or use the factory to manually append a return "
+                   "statement and call FunctionBuilder::Finish() with a null return.");
 
   // Add the return.
   if (!statements_->IsEmpty() && !statements_->GetLast()->IsReturnStmt()) {
@@ -64,4 +64,4 @@ ast::FunctionDecl *FunctionBuilder::Finish(ast::Expr *ret) {
   return decl_;
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

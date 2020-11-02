@@ -21,7 +21,7 @@
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 
@@ -772,17 +772,17 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
 }
 
 storage::index::Index *Builder::BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
-  TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
+  NOISEPAGE_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(key_schema);
   return index_builder.Build();
 }
 
 storage::index::Index *Builder::BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
-  TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
+  NOISEPAGE_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
   storage::index::IndexBuilder index_builder;
   index_builder.SetKeySchema(key_schema);
   return index_builder.Build();
 }
 
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

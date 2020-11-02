@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
  * Base class for TPL type hierarchy visitors. Uses the Curiously Recurring Template Pattern (CRTP)
@@ -57,4 +57,4 @@ class TypeVisitor {
   Subclass *Impl() { return static_cast<Subclass *>(this); }
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
