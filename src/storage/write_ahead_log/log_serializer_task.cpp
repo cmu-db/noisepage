@@ -136,6 +136,11 @@ BufferedLogWriter *LogSerializerTask::GetCurrentWriteBuffer() {
  * Hand over the current buffer and commit callbacks for commit records in that buffer to the log consumer task
  */
 void LogSerializerTask::HandFilledBufferToWriter() {
+  // TODO(WAN): Gus would make a copy of the filled buffer here and then hand that copy over to the RM
+  //  Is it possible to avoid the copy, and yet not have the RM trying to send shit be in the way here?
+  //  You basically want a refcount on filled_buffer_? Except filled buffer is used pervasively through this.
+
+
   // Hand over the filled buffer
   filled_buffer_queue_->Enqueue(std::make_pair(filled_buffer_, commits_in_buffer_));
   // Signal disk log consumer task thread that a buffer has been handed over
