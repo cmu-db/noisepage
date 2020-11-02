@@ -1,5 +1,5 @@
 -- Generate tracefile with:
---     ant generate-trace -Dpath=sql/update.sql -Ddb-url=jdbc:postgresql://localhost/postgres -Ddb-user=postgres -Ddb-password="postgres" -Doutput-name=update.test && sed -i 's/nosort/rowsort/' traces/update.test
+--     ant generate-trace -Dpath=sql/update.sql -Ddb-url=jdbc:postgresql://localhost/postgres -Ddb-user=postgres -Ddb-password="postgres" -Doutput-name=update.test
 CREATE TABLE update1 (c1 int, c2 timestamp);
 INSERT INTO update1 (c1, c2) VALUES (1, '2020-01-02 12:23:34.567893');
 INSERT INTO update1 (c1, c2) VALUES (2, '2020-01-02 11:22:33.721052');
