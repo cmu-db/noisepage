@@ -41,8 +41,6 @@ LINUX_BUILD_PACKAGES=(\
   "cmake" \
   "doxygen" \
   "git" \
-  "g++-7" \
-  "libzmq3-dev" \
   "libevent-dev" \
   "libjemalloc-dev" \
   "libpq-dev" \
