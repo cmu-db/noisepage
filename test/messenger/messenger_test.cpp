@@ -7,19 +7,12 @@
 
 #include "gtest/gtest.h"
 #include "loggers/messenger_logger.h"
-<<<<<<< HEAD
 #include "storage/recovery/recovery_manager.h"
-=======
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 #include "main/db_main.h"
 #include "messenger/connection_destination.h"
 #include "test_util/test_harness.h"
 
-<<<<<<< HEAD
-namespace terrier::messenger {
-=======
 namespace noisepage::messenger {
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
 class MessengerTests : public TerrierTest {
  protected:

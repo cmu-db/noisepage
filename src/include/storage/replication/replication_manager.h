@@ -11,7 +11,7 @@
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 class ReplicationManager {
 public:
