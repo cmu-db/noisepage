@@ -7,7 +7,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * CteScan Translator
@@ -28,4 +28,4 @@ class CteScanTranslator : public SeqScanTranslator {
   DISALLOW_COPY_AND_MOVE(CteScanTranslator);
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

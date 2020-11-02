@@ -7,7 +7,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 IndCteScanIterator::IndCteScanIterator(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                                        uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
@@ -77,4 +77,4 @@ bool IndCteScanIterator::Accumulate() {
   return old_written;
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

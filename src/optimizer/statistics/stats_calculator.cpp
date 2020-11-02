@@ -103,7 +103,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalCteScan *op) {
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   root_group->SetNumRows(0);
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
   }
@@ -114,7 +114,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalUnion *op) {
   auto root_group = context_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   root_group->SetNumRows(0);
   for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
+    NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
     auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
   }

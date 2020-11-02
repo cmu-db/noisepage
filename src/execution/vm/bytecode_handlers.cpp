@@ -48,80 +48,80 @@ void OpVPIFree(noisepage::execution::sql::VectorProjectionIterator *vpi) { vpi->
 // CTE Scan
 // ---------------------------------------------------------
 
-void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter, terrier::execution::exec::ExecutionContext *exec_ctx,
+void OpCteScanInit(noisepage::execution::sql::CteScanIterator *iter, noisepage::execution::exec::ExecutionContext *exec_ctx,
                    uint32_t table_oid, uint32_t *schema_cols_ids, uint32_t *schema_cols_type,
                    uint32_t num_schema_cols) {
-  new (iter) terrier::execution::sql::CteScanIterator(exec_ctx, terrier::catalog::table_oid_t(table_oid),
+  new (iter) noisepage::execution::sql::CteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid),
                                                       schema_cols_ids, schema_cols_type, num_schema_cols);
 }
 
-void OpCteScanGetTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetTable(noisepage::storage::SqlTable **sql_table, noisepage::execution::sql::CteScanIterator *iter) {
   *sql_table = iter->GetTable();
 }
 
-void OpCteScanGetTableOid(terrier::catalog::table_oid_t *table_oid, terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetTableOid(noisepage::catalog::table_oid_t *table_oid, noisepage::execution::sql::CteScanIterator *iter) {
   *table_oid = iter->GetTableOid();
 }
 
-void OpCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                   terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetInsertTempTablePR(noisepage::storage::ProjectedRow **projected_row,
+                                   noisepage::execution::sql::CteScanIterator *iter) {
   *projected_row = iter->GetInsertTempTablePR();
 }
 
-void OpCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::CteScanIterator *iter) {
+void OpCteScanTableInsert(noisepage::storage::TupleSlot *tuple_slot, noisepage::execution::sql::CteScanIterator *iter) {
   *tuple_slot = iter->TableInsert();
 }
 
-void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter) { iter->~CteScanIterator(); }
+void OpCteScanFree(noisepage::execution::sql::CteScanIterator *iter) { iter->~CteScanIterator(); }
 
 // ---------------------------------------------------------
 // Iterative CTE Scan
 // ---------------------------------------------------------
 
-void OpIndCteScanInit(terrier::execution::sql::IndCteScanIterator *iter,
-                      terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+void OpIndCteScanInit(noisepage::execution::sql::IndCteScanIterator *iter,
+                      noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                       uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
                       bool is_recursive) {
   new (iter)
-      terrier::execution::sql::IndCteScanIterator(exec_ctx, terrier::catalog::table_oid_t(table_oid), schema_cols_ids,
+      noisepage::execution::sql::IndCteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid), schema_cols_ids,
                                                   schema_cols_type, num_schema_cols, is_recursive);
 }
 
-void OpIndCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
-                            terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanGetReadCte(noisepage::execution::sql::CteScanIterator **sql_table,
+                            noisepage::execution::sql::IndCteScanIterator *iter) {
   *sql_table = iter->GetReadCte();
 }
 
-void OpIndCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
-                             terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanGetWriteCte(noisepage::execution::sql::CteScanIterator **sql_table,
+                             noisepage::execution::sql::IndCteScanIterator *iter) {
   *sql_table = iter->GetWriteCte();
 }
 
-void OpIndCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,
-                                 terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanGetReadTableOid(noisepage::catalog::table_oid_t *table_oid,
+                                 noisepage::execution::sql::IndCteScanIterator *iter) {
   *table_oid = iter->GetReadTableOid();
 }
 
-void OpIndCteScanAccumulate(bool *accumulate_bool, terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanAccumulate(bool *accumulate_bool, noisepage::execution::sql::IndCteScanIterator *iter) {
   *accumulate_bool = iter->Accumulate();
 }
 
-void OpIndCteScanGetResult(terrier::execution::sql::CteScanIterator **result,
-                           terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanGetResult(noisepage::execution::sql::CteScanIterator **result,
+                           noisepage::execution::sql::IndCteScanIterator *iter) {
   *result = iter->GetResultCTE();
 }
 
-void OpIndCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                      terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanGetInsertTempTablePR(noisepage::storage::ProjectedRow **projected_row,
+                                      noisepage::execution::sql::IndCteScanIterator *iter) {
   *projected_row = iter->GetInsertTempTablePR();
 }
 
-void OpIndCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                             terrier::execution::sql::IndCteScanIterator *iter) {
+void OpIndCteScanTableInsert(noisepage::storage::TupleSlot *tuple_slot,
+                             noisepage::execution::sql::IndCteScanIterator *iter) {
   *tuple_slot = iter->TableInsert();
 }
 
-void OpIndCteScanFree(terrier::execution::sql::IndCteScanIterator *iter) { iter->~IndCteScanIterator(); }
+void OpIndCteScanFree(noisepage::execution::sql::IndCteScanIterator *iter) { iter->~IndCteScanIterator(); }
 
 // ---------------------------------------------------------
 // Filter Manager

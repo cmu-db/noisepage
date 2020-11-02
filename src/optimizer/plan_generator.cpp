@@ -1071,7 +1071,7 @@ void PlanGenerator::Visit(const Analyze *analyze) {
 
 void PlanGenerator::Visit(const CteScan *cte_scan) {
   // CteScan has the same output schema as the child plan!
-  TERRIER_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
+  NOISEPAGE_ASSERT(children_plans_.size() <= 2, "CteScan needs at most 2 child plans");
   auto predicate = parser::ExpressionUtil::JoinAnnotatedExprs(cte_scan->GetScanPredicate()).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
   if (!children_plans_.empty()) {

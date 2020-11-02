@@ -331,51 +331,51 @@ VM_OP_HOT void OpParallelScanTable(uint32_t table_oid, uint32_t *col_oids, uint3
 // CTE Scan
 // ---------------------------------------------------------
 
-VM_OP void OpCteScanInit(terrier::execution::sql::CteScanIterator *iter,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+VM_OP void OpCteScanInit(noisepage::execution::sql::CteScanIterator *iter,
+                         noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                          uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols);
 
-VM_OP void OpCteScanGetTable(terrier::storage::SqlTable **sql_table, terrier::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanGetTable(noisepage::storage::SqlTable **sql_table, noisepage::execution::sql::CteScanIterator *iter);
 
-VM_OP void OpCteScanGetTableOid(terrier::catalog::table_oid_t *table_oid,
-                                terrier::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanGetTableOid(noisepage::catalog::table_oid_t *table_oid,
+                                noisepage::execution::sql::CteScanIterator *iter);
 
-VM_OP void OpCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                         terrier::execution::sql::CteScanIterator *iter);
-VM_OP void OpCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                                terrier::execution::sql::CteScanIterator *iter);
-VM_OP void OpCteScanFree(terrier::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanGetInsertTempTablePR(noisepage::storage::ProjectedRow **projected_row,
+                                         noisepage::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanTableInsert(noisepage::storage::TupleSlot *tuple_slot,
+                                noisepage::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanFree(noisepage::execution::sql::CteScanIterator *iter);
 
 // ---------------------------------------------------------
 // Iterative CTE Scan
 // ---------------------------------------------------------
 
-VM_OP void OpIndCteScanInit(terrier::execution::sql::IndCteScanIterator *iter,
-                            terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+VM_OP void OpIndCteScanInit(noisepage::execution::sql::IndCteScanIterator *iter,
+                            noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                             uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
                             bool is_recursive);
 
-VM_OP void OpIndCteScanGetReadCte(terrier::execution::sql::CteScanIterator **sql_table,
-                                  terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanGetReadCte(noisepage::execution::sql::CteScanIterator **sql_table,
+                                  noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanGetWriteCte(terrier::execution::sql::CteScanIterator **sql_table,
-                                   terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanGetWriteCte(noisepage::execution::sql::CteScanIterator **sql_table,
+                                   noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanGetReadTableOid(terrier::catalog::table_oid_t *table_oid,
-                                       terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanGetReadTableOid(noisepage::catalog::table_oid_t *table_oid,
+                                       noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanAccumulate(bool *accumulate_bool, terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanAccumulate(bool *accumulate_bool, noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanGetInsertTempTablePR(terrier::storage::ProjectedRow **projected_row,
-                                            terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanGetInsertTempTablePR(noisepage::storage::ProjectedRow **projected_row,
+                                            noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanGetResult(terrier::execution::sql::CteScanIterator **result,
-                                 terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanGetResult(noisepage::execution::sql::CteScanIterator **result,
+                                 noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                                   terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanTableInsert(noisepage::storage::TupleSlot *tuple_slot,
+                                   noisepage::execution::sql::IndCteScanIterator *iter);
 
-VM_OP void OpIndCteScanFree(terrier::execution::sql::IndCteScanIterator *iter);
+VM_OP void OpIndCteScanFree(noisepage::execution::sql::IndCteScanIterator *iter);
 
 // ---------------------------------------------------------
 // Vector Projection Iterator

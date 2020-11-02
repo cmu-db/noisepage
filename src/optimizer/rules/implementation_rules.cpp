@@ -1232,7 +1232,7 @@ void LogicalCteScanToPhysicalCteScanIterative::Transform(
     common::ManagedPointer<AbstractOptimizerNode> input,
     std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed, OptimizationContext *context) const {
   (void)context;
-  TERRIER_ASSERT(input->GetChildren().size() == 2, "LogicalCteScan should have 2 children");
+  NOISEPAGE_ASSERT(input->GetChildren().size() == 2, "LogicalCteScan should have 2 children");
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child1 = input->GetChildren()[0]->Copy();
@@ -1242,9 +1242,9 @@ void LogicalCteScanToPhysicalCteScanIterative::Transform(
 
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();
 
-  TERRIER_ASSERT(logical_op->GetIsInductive(), "LogicalCteScan should be iterative");
+  NOISEPAGE_ASSERT(logical_op->GetIsInductive(), "LogicalCteScan should be iterative");
 
-  auto result_plan = std::make_unique<OperatorNode>(
+  auto result_plan = std::make_unique<OperatorNode> (
       CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()), logical_op->GetTableOid(),
                     logical_op->GetCTEType(), logical_op->GetScanPredicate(),
                     catalog::Schema(logical_op->GetTableSchema()))
@@ -1274,7 +1274,7 @@ void LogicalCteScanToPhysicalCteScan::Transform(common::ManagedPointer<AbstractO
                                                 std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                 OptimizationContext *context) const {
   (void)context;
-  TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalCteScan should have 1 child");
+  NOISEPAGE_ASSERT(input->GetChildren().size() == 1, "LogicalCteScan should have 1 child");
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto child = input->GetChildren()[0]->Copy();
@@ -1311,7 +1311,7 @@ void LogicalCteScanToPhysicalEmptyCteScan::Transform(common::ManagedPointer<Abst
                                                      std::vector<std::unique_ptr<AbstractOptimizerNode>> *transformed,
                                                      OptimizationContext *context) const {
   (void)context;
-  TERRIER_ASSERT(input->GetChildren().empty(), "EmptyLogicalCteScan should have 0 child");
+  NOISEPAGE_ASSERT(input->GetChildren().empty(), "EmptyLogicalCteScan should have 0 child");
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto logical_op = input->Contents()->GetContentsAs<LogicalCteScan>();

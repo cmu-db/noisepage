@@ -17,6 +17,7 @@
 #include "optimizer/rule.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::optimizer {
 
@@ -86,7 +87,7 @@ void Optimizer::ElectCTELeader(common::ManagedPointer<planner::AbstractPlanNode>
       if (*leader != nullptr) {
         std::vector<std::unique_ptr<planner::AbstractPlanNode>> adopted_children;
         plan->MoveChildren(&adopted_children);
-        TERRIER_ASSERT(adopted_children.size() == 1, "CTE leader should have 1 child");
+        NOISEPAGE_ASSERT(adopted_children.size() == 1, "CTE leader should have 1 child");
         (*leader)->AddChild(std::move(adopted_children[0]));
         auto cte_scan = dynamic_cast<planner::CteScanPlanNode *>(plan.Get());
         cte_scan->SetLeader(leader->CastManagedPointerTo<const planner::CteScanPlanNode>());
@@ -184,7 +185,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group " + std::to_string(id.UnderlyingValue()));
 
   if (op->Contents()->GetOpType() == OpType::CTESCAN && !child_groups.empty()) {
-    TERRIER_ASSERT(child_groups.size() <= 2, "CTE should not have more than 2 children.");
+    NOISEPAGE_ASSERT(child_groups.size() <= 2, "CTE should not have more than 2 children.");
     if (plan->GetPlanNodeType() == planner::PlanNodeType::CTESCAN) {
       auto cte_scan_plan_node = reinterpret_cast<planner::CteScanPlanNode *>(plan.get());
       context_->SetCTESchema(cte_scan_plan_node->GetTableOid(), *cte_scan_plan_node->GetTableSchema());

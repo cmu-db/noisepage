@@ -16,6 +16,7 @@ namespace parser {
 struct ColumnDefinition;
 class ColumnValueExpression;
 class CreateStatement;
+class SelectStatement;
 class TableRef;
 class TableStarExpression;
 }  // namespace parser
@@ -209,8 +210,7 @@ class BinderContext {
   void GenerateAllColumnExpressions(
       common::ManagedPointer<parser::TableStarExpression> table_star,
       common::ManagedPointer<parser::ParseResult> parse_result,
-      common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs,
-      common::ManagedPointer<parser::SelectStatement> stmt, const std::string &table_name);
+      common::ManagedPointer<std::vector<common::ManagedPointer<parser::AbstractExpression>>> exprs);
 
   /**
    * Return the binder context's metadata for the provided @p table_name.

@@ -9,10 +9,11 @@
 #include <vector>
 
 #include "catalog/schema.h"
+#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for a ctescan operator
@@ -242,4 +243,4 @@ class CteScanPlanNode : public SeqScanPlanNode {
   common::ManagedPointer<const CteScanPlanNode> leader_{nullptr};
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -4,7 +4,7 @@
 #include <vector>
 #include "execution/sql/cte_scan_iterator.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * An iterator over a CTE Temp table's data
@@ -80,4 +80,4 @@ class EXPORT IndCteScanIterator {
   bool is_recursive_;
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

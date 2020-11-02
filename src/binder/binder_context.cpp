@@ -130,7 +130,7 @@ void BinderContext::AddCTETable(const std::string &table_name,
   }
   std::unordered_map<parser::AliasType, type::TypeId, parser::AliasType::HashKey> nested_column_mappings;
   for (size_t i = 0; i < col_aliases.size(); i++) {
-    TERRIER_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
+    NOISEPAGE_ASSERT(select_list[i]->GetReturnValueType() != type::TypeId::INVALID, "CTE column type not resolved");
     nested_column_mappings[col_aliases[i]] = select_list[i]->GetReturnValueType();
   }
 
@@ -333,9 +333,10 @@ void BinderContext::GenerateAllColumnExpressions(
       auto &table_alias = entry.first;
       auto &cols = entry.second;
       for (auto &col_entry : cols) {
-        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
+        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
         tv_expr->SetReturnValueType(col_entry.second);
         tv_expr->DeriveExpressionName();
+        tv_expr->SetColumnOID(TEMP_OID(catalog::col_oid_t, col_entry.first.GetSerialNo()));
         tv_expr->SetDepth(depth_);
 
         auto unique_tv_expr =

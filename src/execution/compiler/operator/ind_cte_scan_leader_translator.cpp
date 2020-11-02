@@ -8,7 +8,7 @@
 #include "execution/compiler/work_context.h"
 #include "parser/expression/constant_value_expression.h"
 //
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 IndCteScanLeaderTranslator::IndCteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                        CompilationContext *compilation_context, Pipeline *pipeline)
@@ -128,14 +128,14 @@ ast::Expr *IndCteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const {
   return cte_scan_ptr_entry_.Get(codegen);
 }
 
-void IndCteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::DeclareInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr : *ProjectedRow
   auto codegen = GetCodeGen();
   auto pr_type = codegen->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
   builder->Append(codegen->DeclareVar(insert_pr_, codegen->PointerType(pr_type), nullptr));
 }
 
-void IndCteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void IndCteScanLeaderTranslator::GetInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto codegen = GetCodeGen();
   auto get_pr_call =
@@ -204,4 +204,4 @@ void IndCteScanLeaderTranslator::PopulateReadCteScanIterator(FunctionBuilder *bu
   builder->Append(assign);
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

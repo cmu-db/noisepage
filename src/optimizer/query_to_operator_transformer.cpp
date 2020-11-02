@@ -99,7 +99,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
 
       auto index = 0;
       for (auto &elem : with->GetCteColumnAliases()) {
-        TERRIER_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
+        NOISEPAGE_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
         auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
         parser::AbstractExpression *cve = new parser::ColumnValueExpression(
             with->GetTableName(), elem.GetName(), ret_type, elem, TEMP_OID(catalog::col_oid_t, elem.GetSerialNo()));

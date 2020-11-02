@@ -86,8 +86,8 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::CopyStatement> node) 
     // If the table is given, we're either writing or reading all columns
     parser::TableStarExpression table_star = parser::TableStarExpression();
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list),
-                                           node->GetSelectStatement(), "");
+    context_->GenerateAllColumnExpressions(common::ManagedPointer<parser::TableStarExpression>(&table_star),
+                                           sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list));
     auto col = node->GetSelectStatement()->GetSelectColumns();
     col.insert(std::end(col), std::begin(new_select_list), std::end(new_select_list));
   } else {
@@ -575,18 +575,7 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::SelectStatement> node
       continue;
     }
 
-    if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      auto star_expression = select_element.CastManagedPointerTo<terrier::parser::StarExpression>();
-      context_->GenerateAllColumnExpressions(sherpa_->GetParseResult(), common::ManagedPointer(&new_select_list), node,
-                                             star_expression->GetTableName());
-      continue;
-    }
-
     select_element->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
-    if (select_element->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto cve = select_element.CastManagedPointerTo<terrier::parser::ColumnValueExpression>();
-      context_->SetTableName(cve, node);
-    }
 
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();

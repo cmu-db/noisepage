@@ -3,7 +3,7 @@
 #include "execution/compiler/ast_fwd.h"
 #include "execution/compiler/codegen.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * An interface for classes that expose a readable cte scan iterator
@@ -16,4 +16,4 @@ class CteScanProvider {
    */
   virtual ast::Expr *GetCteScanPtr(CodeGen *codegen) const = 0;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

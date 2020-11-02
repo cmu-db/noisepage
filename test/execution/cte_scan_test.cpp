@@ -11,7 +11,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class CTEScanTest : public SqlBasedTest {
   void SetUp() override {
@@ -36,7 +36,7 @@ TEST_F(CTEScanTest, CTEInitTest) {
                                    exec_ctx_->GetAccessor()->GetNewTempOid(),
                                    exec_ctx_->GetAccessor()->GetNewTempOid()};
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+  auto cte_scan = new noisepage::execution::sql::CteScanIterator(
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_ids,
       cte_table_col_type, 4);
 
@@ -89,7 +89,7 @@ TEST_F(CTEScanTest, CTEInsertTest) {
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+  auto cte_scan = new noisepage::execution::sql::CteScanIterator(
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_ids,
       cte_table_col_type, 1);
 
@@ -157,7 +157,7 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   uint32_t cte_table_col_ids[1] = {exec_ctx_->GetAccessor()->GetNewTempOid()};
   uint32_t cte_table_col_type[1] = {4};  // {INTEGER}
 
-  auto cte_scan = new terrier::execution::sql::CteScanIterator(
+  auto cte_scan = new noisepage::execution::sql::CteScanIterator(
       exec_ctx_.get(), TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()), cte_table_col_ids,
       cte_table_col_type, 1);
 
@@ -203,4 +203,4 @@ TEST_F(CTEScanTest, CTEInsertScanTest) {
   delete cte_scan;
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

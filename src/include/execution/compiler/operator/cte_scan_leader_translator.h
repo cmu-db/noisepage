@@ -9,7 +9,7 @@
 #include "execution/compiler/pipeline.h"
 #include "planner/plannodes/cte_scan_plan_node.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * CteScanLeader Translator
@@ -94,4 +94,4 @@ class CteScanLeaderTranslator : public OperatorTranslator, CteScanProvider {
   void SetColumnOids(FunctionBuilder *builder) const;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

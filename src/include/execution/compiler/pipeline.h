@@ -290,6 +290,8 @@ class Pipeline {
   std::vector<Pipeline *> dependencies_;
 
   std::vector<Pipeline *> nested_pipelines_;
+
+  Pipeline *parent_;
   // Cache of common identifiers.
   ast::Identifier state_var_;
   // The pipeline state.

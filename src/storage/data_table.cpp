@@ -223,14 +223,14 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 }
 
 void DataTable::Reset() {
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+  common::SharedLatch::ScopedExclusiveLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
     StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
       accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
     accessor_.InitializeRawBlock(this, block, block->layout_version_);
   }
-  insertion_head_ = 0;
+  insert_index_.store(0);
 }
 
 template <class RowType>

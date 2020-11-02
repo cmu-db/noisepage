@@ -5,7 +5,7 @@
 #include "execution/compiler/work_context.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 CteScanLeaderTranslator::CteScanLeaderTranslator(const planner::CteScanPlanNode &plan,
                                                  CompilationContext *compilation_context, Pipeline *pipeline)
@@ -111,14 +111,14 @@ void CteScanLeaderTranslator::InitializeQueryState(FunctionBuilder *function) co
 
 ast::Expr *CteScanLeaderTranslator::GetCteScanPtr(CodeGen *codegen) const { return cte_scan_ptr_entry_.Get(codegen); }
 
-void CteScanLeaderTranslator::DeclareInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void CteScanLeaderTranslator::DeclareInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr : *ProjectedRow
   auto codegen = GetCodeGen();
   auto pr_type = codegen->BuiltinType(ast::BuiltinType::Kind::ProjectedRow);
   builder->Append(codegen->DeclareVar(insert_pr_, codegen->PointerType(pr_type), nullptr));
 }
 
-void CteScanLeaderTranslator::GetInsertPR(terrier::execution::compiler::FunctionBuilder *builder) const {
+void CteScanLeaderTranslator::GetInsertPR(noisepage::execution::compiler::FunctionBuilder *builder) const {
   // var insert_pr = cteScanGetInsertTempTablePR(...)
   auto codegen = GetCodeGen();
   auto get_pr_call = codegen->CallBuiltin(ast::Builtin::CteScanGetInsertTempTablePR, {GetCteScanPtr(codegen)});
@@ -156,4 +156,4 @@ void CteScanLeaderTranslator::FillPRFromChild(WorkContext *context, FunctionBuil
     builder->Append(codegen->MakeStmt(pr_set_call));
   }
 }
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

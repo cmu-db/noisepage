@@ -6,9 +6,9 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
-CteScanIterator::CteScanIterator(terrier::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
+CteScanIterator::CteScanIterator(noisepage::execution::exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
                                  uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols)
     : exec_ctx_(exec_ctx), cte_table_oid_(table_oid), table_redo_(nullptr) {
   // Create column metadata for every column.
@@ -68,4 +68,4 @@ storage::TupleSlot CteScanIterator::TableInsert() {
 storage::SqlTable *CteScanIterator::GetTable() { return cte_table_; }
 
 catalog::table_oid_t CteScanIterator::GetTableOid() { return cte_table_oid_; }
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

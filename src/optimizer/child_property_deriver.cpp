@@ -104,10 +104,10 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
 
 void ChildPropertyDeriver::Visit(const CteScan *op) {
   // No properties for operator
-  std::vector<PropertySet *> child_input_properties{new PropertySet()};
-  auto provided_prop = new PropertySet();
-  if (op->GetIsIterative() || op->GetChildExpressions().size() == 2) {
-    child_input_properties.push_back(new PropertySet());
+  std::vector<PropertySet *> child_input_properties{};
+  auto provided_prop = requirements_->Copy();
+  for(size_t i = 0;i < gexpr_->GetChildrenGroupsSize();i++){
+    child_input_properties.push_back(requirements_->Copy());
   }
 
   output_.emplace_back(provided_prop, std::move(child_input_properties));

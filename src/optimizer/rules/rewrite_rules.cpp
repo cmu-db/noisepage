@@ -423,12 +423,9 @@ void RewriteEmbedFilterIntoChildlessCteScan::Transform(common::ManagedPointer<Ab
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  for (auto child : input->GetChildren()[0]->GetChildren()) {
-    c.push_back(child->Copy());
-  }
   auto output = std::make_unique<OperatorNode>(
       LogicalCteScan::Make(get->GetTableAlias(), get->GetTableName(), get->GetTableOid(), get->GetTableSchema(),
-                           get->GetExpressions(), get->GetCTEType(), std::move(predicates))
+                           {}, get->GetCTEType(), std::move(predicates))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));
@@ -546,7 +543,7 @@ RulePromise RewriteUnionWithRecursiveCTE::Promise(GroupExpression *group_expr) c
 bool RewriteUnionWithRecursiveCTE::Check(common::ManagedPointer<AbstractOptimizerNode> plan,
                                          OptimizationContext *context) const {
   auto cte_scan = plan->Contents()->GetContentsAs<LogicalCteScan>();
-  TERRIER_ASSERT(cte_scan->GetIsInductive(), "should be inductive");
+  NOISEPAGE_ASSERT(cte_scan->GetIsInductive(), "should be inductive");
   return cte_scan->GetIsInductive();
 }
 

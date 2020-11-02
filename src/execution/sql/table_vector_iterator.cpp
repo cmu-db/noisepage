@@ -41,7 +41,7 @@ bool TableVectorIterator::Init(common::ManagedPointer<storage::SqlTable> table, 
 
   // Set up the table and the iterator.
   table_ = table;
-  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
+  NOISEPAGE_ASSERT(table_ != nullptr, "Table must exist!!");
   if (block_start == 0 && block_end == storage::DataTable::GetMaxBlocks()) {
     iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
   } else {

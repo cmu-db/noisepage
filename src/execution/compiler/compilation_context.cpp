@@ -223,7 +223,7 @@ void CompilationContext::PrepareOut(const planner::AbstractPlanNode &plan, Pipel
 void CompilationContext::Prepare(const planner::AbstractPlanNode &plan, Pipeline *pipeline) {
   std::unique_ptr<OperatorTranslator> translator;
 
-  TERRIER_ASSERT(ops_.find(&plan) == ops_.end(), "plan already prepared");
+  NOISEPAGE_ASSERT(ops_.find(&plan) == ops_.end(), "plan already prepared");
 
   switch (plan.GetPlanNodeType()) {
     case planner::PlanNodeType::AGGREGATE: {
