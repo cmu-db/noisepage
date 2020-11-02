@@ -14,6 +14,7 @@ namespace noisepage {
 
 namespace parser {
 struct ColumnDefinition;
+class ColumnValueExpression;
 class CreateStatement;
 class TableRef;
 class TableStarExpression;

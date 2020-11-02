@@ -7,8 +7,22 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<AnalyzePlanNode> AnalyzePlanNode::Builder::Build() {
+  return std::unique_ptr<AnalyzePlanNode>(new AnalyzePlanNode(std::move(children_), std::move(output_schema_),
+                                                              database_oid_, table_oid_, std::move(column_oids_)));
+}
+
+AnalyzePlanNode::AnalyzePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                 std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                                 catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&column_oids)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      database_oid_(database_oid),
+      table_oid_(table_oid),
+      column_oids_(std::move(column_oids)) {}
 
 common::hash_t AnalyzePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();

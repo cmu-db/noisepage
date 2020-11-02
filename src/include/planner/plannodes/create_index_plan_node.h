@@ -70,11 +70,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * Build the create index plan node
      * @return plan node
      */
-    std::unique_ptr<CreateIndexPlanNode> Build() {
-      return std::unique_ptr<CreateIndexPlanNode>(
-          new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
-                                  std::move(index_name_), std::move(schema_)));
-    }
+    std::unique_ptr<CreateIndexPlanNode> Build();
 
    protected:
     /**
@@ -113,12 +109,7 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                       std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::string index_name,
-                      std::unique_ptr<catalog::IndexSchema> schema)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        namespace_oid_(namespace_oid),
-        table_oid_(table_oid),
-        index_name_(std::move(index_name)),
-        schema_(std::move(schema)) {}
+                      std::unique_ptr<catalog::IndexSchema> schema);
 
  public:
   /**

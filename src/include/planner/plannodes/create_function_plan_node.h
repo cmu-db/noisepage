@@ -123,12 +123,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * Build the create function plan node
      * @return plan node
      */
-    std::unique_ptr<CreateFunctionPlanNode> Build() {
-      return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
-          std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
-          std::move(function_name_), return_type_, param_count_));
-    }
+    std::unique_ptr<CreateFunctionPlanNode> Build();
 
    protected:
     /**
@@ -203,18 +198,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
                          std::vector<std::string> &&function_param_names,
                          std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                          std::vector<std::string> &&function_body, bool is_replace, std::string function_name,
-                         parser::BaseFunctionParameter::DataType return_type, int param_count)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
-        language_(language),
-        function_param_names_(std::move(function_param_names)),
-        function_param_types_(std::move(function_param_types)),
-        function_body_(std::move(function_body)),
-        is_replace_(is_replace),
-        function_name_(std::move(function_name)),
-        return_type_(return_type),
-        param_count_(param_count) {}
+                         parser::BaseFunctionParameter::DataType return_type, int param_count);
 
  public:
   /**

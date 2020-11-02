@@ -5,6 +5,7 @@
 #include <limits>
 #include <string>
 
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/sql/runtime_types.h"
 #include "execution/sql/sql.h"

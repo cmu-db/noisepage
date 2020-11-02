@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "spdlog/fmt/fmt.h"
 #include "type/type_id.h"

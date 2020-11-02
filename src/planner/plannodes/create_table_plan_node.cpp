@@ -6,8 +6,34 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<CreateTablePlanNode> CreateTablePlanNode::Builder::Build() {
+  return std::unique_ptr<CreateTablePlanNode>(
+      new CreateTablePlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_),
+                              std::move(table_schema_), block_store_, has_primary_key_, std::move(primary_key_),
+                              std::move(foreign_keys_), std::move(con_uniques_), std::move(con_checks_)));
+}
+
+CreateTablePlanNode::CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                         std::unique_ptr<OutputSchema> output_schema,
+                                         catalog::namespace_oid_t namespace_oid, std::string table_name,
+                                         std::unique_ptr<catalog::Schema> table_schema,
+                                         common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
+                                         PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
+                                         std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      namespace_oid_(namespace_oid),
+      table_name_(std::move(table_name)),
+      table_schema_(std::move(table_schema)),
+      block_store_(block_store),
+      has_primary_key_(has_primary_key),
+      primary_key_(std::move(primary_key)),
+      foreign_keys_(std::move(foreign_keys)),
+      con_uniques_(std::move(con_uniques)),
+      con_checks_(std::move(con_checks)) {}
 
 nlohmann::json PrimaryKeyInfo::ToJson() const {
   nlohmann::json j;

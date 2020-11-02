@@ -4,9 +4,32 @@
 #include <string>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<CSVScanPlanNode> CSVScanPlanNode::Builder::Build() {
+  return std::unique_ptr<CSVScanPlanNode>(
+      new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
+                          database_oid_, file_name_, delimiter_, quote_, escape_, value_types_, scan_limit_,
+                          scan_has_limit_, scan_offset_, scan_has_offset_));
+}
+
+CSVScanPlanNode::CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                 std::unique_ptr<OutputSchema> output_schema,
+                                 common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
+                                 catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote,
+                                 char escape, std::vector<type::TypeId> value_types, uint32_t scan_limit,
+                                 bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
+    : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
+                           scan_limit, scan_has_limit, scan_offset, scan_has_offset),
+      file_name_(std::move(file_name)),
+      delimiter_(delimiter),
+      quote_(quote),
+      escape_(escape),
+      value_types_(std::move(value_types)) {}
 
 common::hash_t CSVScanPlanNode::Hash() const {
   common::hash_t hash = AbstractScanPlanNode::Hash();
