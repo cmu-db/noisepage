@@ -4,6 +4,24 @@
 
 namespace noisepage::parser {
 
+std::unique_ptr<AbstractExpression> SubqueryExpression::Copy() const {
+  std::vector<common::ManagedPointer<AbstractExpression>> select_columns;
+  for (const auto &col : subselect_->GetSelectColumns()) {
+    select_columns.emplace_back(common::ManagedPointer(col));
+  }
+
+  auto group_by = subselect_->GetSelectGroupBy() == nullptr ? nullptr : subselect_->GetSelectGroupBy()->Copy();
+  auto order_by = subselect_->GetSelectOrderBy() == nullptr ? nullptr : subselect_->GetSelectOrderBy()->Copy();
+  auto limit = subselect_->GetSelectLimit() == nullptr ? nullptr : subselect_->GetSelectLimit()->Copy();
+
+  auto parser_select = std::make_unique<SelectStatement>(
+      std::move(select_columns), subselect_->IsSelectDistinct(), subselect_->GetSelectTable()->Copy(),
+      subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit));
+  auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
+  expr->SetMutableStateForCopy(*this);
+  return expr;
+}
+
 int SubqueryExpression::DeriveDepth() {
   int current_depth = this->GetDepth();
   for (auto &select_elem : subselect_->GetSelectColumns()) {
