@@ -70,7 +70,7 @@ void Pipeline::RegisterExpression(ExpressionTranslator *expression) {
 }
 
 StateDescriptor::Entry Pipeline::DeclarePipelineStateEntry(const std::string &name, ast::Expr *type_repr) {
-  auto &state = nested_ ? parent_->state_ : state_;
+  auto &state = GetPipelineStateDescriptor();
   return state.DeclareStateEntry(codegen_, name, type_repr);
 }
 
@@ -274,7 +274,7 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
     builder.Append(codegen_->DeclareVarWithInit(tls, codegen_->ExecCtxGetTLS(exec_ctx)));
     // @tlsReset(tls, @sizeOf(ThreadState), init, tearDown, queryState)
     ast::Expr *state_ptr = query_state->GetStatePointer(codegen_);
-    auto &state = nested_ ? parent_->state_ : state_;
+    auto &state = GetPipelineStateDescriptor();
     if (!nested_) {
       builder.Append(codegen_->TLSReset(codegen_->MakeExpr(tls), state.GetTypeName(),
                                         GetSetupPipelineStateFunctionName(), GetTearDownPipelineStateFunctionName(),
@@ -374,7 +374,7 @@ ast::FunctionDecl *Pipeline::GenerateRunPipelineFunction() const {
     // var pipelineState = @tlsGetCurrentThreadState(...)
     auto exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
     auto tls = codegen_->ExecCtxGetTLS(exec_ctx);
-    auto state_type = nested_ ? parent_->state_.GetTypeName() : state_.GetTypeName();
+    auto state_type = GetPipelineStateDescriptor().GetTypeName();
     auto state = codegen_->TLSAccessCurrentThreadState(tls, state_type);
     builder.Append(codegen_->DeclareVarWithInit(state_var_, state));
 
@@ -424,7 +424,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
       builder.Append(codegen_->DeclareVarWithInit(tls, codegen_->ExecCtxGetTLS(exec_ctx)));
       auto query_state = compilation_context_->GetQueryState();
       auto state_ptr = query_state->GetStatePointer(codegen_);
-      auto &state = nested_ ? parent_->state_ : state_;
+      auto &state = GetPipelineStateDescriptor();
       auto pipeline_state = codegen_->TLSAccessCurrentThreadState(codegen_->MakeExpr(tls), state.GetTypeName());
       auto call = codegen_->Call(GetTearDownPipelineStateFunctionName(), {state_ptr, pipeline_state});
       builder.Append(codegen_->MakeStmt(call));

@@ -269,6 +269,10 @@ class Pipeline {
   ast::Identifier GetTeardownPipelineFunctionName() const;
   ast::Identifier GetInitPipelineFunctionName() const;
 
+  const StateDescriptor &GetPipelineStateDescriptor() const { return nested_ ? parent_->state_ : state_; };
+
+  StateDescriptor &GetPipelineStateDescriptor() { return nested_ ? parent_->state_ : state_; };
+
  private:
   // A unique pipeline ID.
   uint32_t id_;
@@ -280,6 +284,8 @@ class Pipeline {
   std::vector<OperatorTranslator *> steps_;
   // The driver.
   PipelineDriver *driver_;
+  // pointer to parent pipeline (only applicable if this is a nested pipeline)
+  Pipeline *parent_;
   // Expressions participating in the pipeline.
   std::vector<ExpressionTranslator *> expressions_;
   // Configured parallelism.
@@ -289,9 +295,9 @@ class Pipeline {
   // All unnested pipelines this one depends on completion of.
   std::vector<Pipeline *> dependencies_;
 
+  // Vector of pipelines that are nested under this pipeline
   std::vector<Pipeline *> nested_pipelines_;
 
-  Pipeline *parent_;
   // Cache of common identifiers.
   ast::Identifier state_var_;
   // The pipeline state.
