@@ -6,7 +6,7 @@ import json
 import traceback
 import shutil
 import time
-from util.constants import ErrorCode, INCREMENTAL_METRIC_FREQ
+from util.constants import ErrorCode, INCREMENTAL_METRIC_FREQ, LOG
 from util.common import run_command
 from util.test_case import TestCase
 from xml.etree import ElementTree
