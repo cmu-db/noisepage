@@ -1244,7 +1244,7 @@ void LogicalCteScanToPhysicalCteScanIterative::Transform(
 
   NOISEPAGE_ASSERT(logical_op->GetIsInductive(), "LogicalCteScan should be iterative");
 
-  auto result_plan = std::make_unique<OperatorNode> (
+  auto result_plan = std::make_unique<OperatorNode>(
       CteScan::Make(logical_op->GetExpressions(), std::string(logical_op->GetTableAlias()), logical_op->GetTableOid(),
                     logical_op->GetCTEType(), logical_op->GetScanPredicate(),
                     catalog::Schema(logical_op->GetTableSchema()))

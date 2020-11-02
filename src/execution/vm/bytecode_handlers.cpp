@@ -48,18 +48,19 @@ void OpVPIFree(noisepage::execution::sql::VectorProjectionIterator *vpi) { vpi->
 // CTE Scan
 // ---------------------------------------------------------
 
-void OpCteScanInit(noisepage::execution::sql::CteScanIterator *iter, noisepage::execution::exec::ExecutionContext *exec_ctx,
-                   uint32_t table_oid, uint32_t *schema_cols_ids, uint32_t *schema_cols_type,
-                   uint32_t num_schema_cols) {
+void OpCteScanInit(noisepage::execution::sql::CteScanIterator *iter,
+                   noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                   uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols) {
   new (iter) noisepage::execution::sql::CteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid),
-                                                      schema_cols_ids, schema_cols_type, num_schema_cols);
+                                                        schema_cols_ids, schema_cols_type, num_schema_cols);
 }
 
 void OpCteScanGetTable(noisepage::storage::SqlTable **sql_table, noisepage::execution::sql::CteScanIterator *iter) {
   *sql_table = iter->GetTable();
 }
 
-void OpCteScanGetTableOid(noisepage::catalog::table_oid_t *table_oid, noisepage::execution::sql::CteScanIterator *iter) {
+void OpCteScanGetTableOid(noisepage::catalog::table_oid_t *table_oid,
+                          noisepage::execution::sql::CteScanIterator *iter) {
   *table_oid = iter->GetTableOid();
 }
 
@@ -83,8 +84,8 @@ void OpIndCteScanInit(noisepage::execution::sql::IndCteScanIterator *iter,
                       uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols,
                       bool is_recursive) {
   new (iter)
-      noisepage::execution::sql::IndCteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid), schema_cols_ids,
-                                                  schema_cols_type, num_schema_cols, is_recursive);
+      noisepage::execution::sql::IndCteScanIterator(exec_ctx, noisepage::catalog::table_oid_t(table_oid),
+                                                    schema_cols_ids, schema_cols_type, num_schema_cols, is_recursive);
 }
 
 void OpIndCteScanGetReadCte(noisepage::execution::sql::CteScanIterator **sql_table,

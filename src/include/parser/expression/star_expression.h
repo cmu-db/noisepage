@@ -54,8 +54,8 @@ class StarExpression : public AbstractExpression {
 
   void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
-  private:
-    std::string table_name_;
+ private:
+  std::string table_name_;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(StarExpression);

@@ -51,7 +51,8 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   for (auto expr : required_cols_) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
-  NOISEPAGE_ASSERT(output_cols_map.size() == required_cols_.size(), "Output columns of the QueryDerivedScan and required_cols_ from above mismatch");
+  NOISEPAGE_ASSERT(output_cols_map.size() == required_cols_.size(),
+                   "Output columns of the QueryDerivedScan and required_cols_ from above mismatch");
 
   auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
   std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols(output_cols.size());
@@ -120,7 +121,7 @@ void InputColumnDeriver::Visit(const CteScan *op) {
   PT2 child_cols;
 
   child_cols.reserve(gexpr_->GetChildrenGroupsSize());
-  for (size_t i = 0; i < gexpr_->GetChildrenGroupsSize();i++) {
+  for (size_t i = 0; i < gexpr_->GetChildrenGroupsSize(); i++) {
     auto child_exprs = op->GetChildExpressions()[i];
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_child_exprs;
     new_child_exprs.reserve(child_exprs.size());

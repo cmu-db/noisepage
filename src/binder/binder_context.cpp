@@ -334,7 +334,8 @@ void BinderContext::GenerateAllColumnExpressions(
       auto &table_alias = entry.first;
       auto &cols = entry.second;
       for (auto &col_entry : cols) {
-        auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
+        auto tv_expr =
+            new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
         tv_expr->SetReturnValueType(col_entry.second);
         tv_expr->DeriveExpressionName();
         tv_expr->SetColumnOID(TEMP_OID(catalog::col_oid_t, col_entry.first.GetSerialNo()));

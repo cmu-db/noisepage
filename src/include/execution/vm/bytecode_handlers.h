@@ -335,7 +335,8 @@ VM_OP void OpCteScanInit(noisepage::execution::sql::CteScanIterator *iter,
                          noisepage::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                          uint32_t *schema_cols_ids, uint32_t *schema_cols_type, uint32_t num_schema_cols);
 
-VM_OP void OpCteScanGetTable(noisepage::storage::SqlTable **sql_table, noisepage::execution::sql::CteScanIterator *iter);
+VM_OP void OpCteScanGetTable(noisepage::storage::SqlTable **sql_table,
+                             noisepage::execution::sql::CteScanIterator *iter);
 
 VM_OP void OpCteScanGetTableOid(noisepage::catalog::table_oid_t *table_oid,
                                 noisepage::execution::sql::CteScanIterator *iter);

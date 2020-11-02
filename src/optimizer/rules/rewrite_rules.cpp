@@ -424,8 +424,8 @@ void RewriteEmbedFilterIntoChildlessCteScan::Transform(common::ManagedPointer<Ab
   std::vector<AnnotatedExpression> predicates = input->Contents()->GetContentsAs<LogicalFilter>()->GetPredicates();
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto output = std::make_unique<OperatorNode>(
-      LogicalCteScan::Make(get->GetTableAlias(), get->GetTableName(), get->GetTableOid(), get->GetTableSchema(),
-                           {}, get->GetCTEType(), std::move(predicates))
+      LogicalCteScan::Make(get->GetTableAlias(), get->GetTableName(), get->GetTableOid(), get->GetTableSchema(), {},
+                           get->GetCTEType(), std::move(predicates))
           .RegisterWithTxnContext(context->GetOptimizerContext()->GetTxn()),
       std::move(c), context->GetOptimizerContext()->GetTxn());
   transformed->emplace_back(std::move(output));

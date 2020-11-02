@@ -158,10 +158,10 @@ void Pipeline::LinkSourcePipeline(Pipeline *dependency) {
 
 void Pipeline::LinkNestedPipeline(Pipeline *pipeline) {
   NOISEPAGE_ASSERT(pipeline != nullptr, "Nested pipeline cannot be null");
-  if(nested_){
+  if (nested_) {
     parent_->nested_pipelines_.push_back(pipeline);
     pipeline->parent_ = parent_;
-  }else{
+  } else {
     nested_pipelines_.push_back(pipeline);
     pipeline->parent_ = this;
   }
@@ -267,25 +267,25 @@ ast::FunctionDecl *Pipeline::GenerateInitPipelineFunction() const {
   auto name = codegen_->MakeIdentifier(CreatePipelineFunctionName("Init"));
   FunctionBuilder builder(codegen_, name, compilation_context_->QueryParams(), codegen_->Nil());
   {
-      CodeGen::CodeScope code_scope(codegen_);
-      // var tls = @execCtxGetTLS(exec_ctx)
-      ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
-      ast::Identifier tls = codegen_->MakeFreshIdentifier("threadStateContainer");
-      builder.Append(codegen_->DeclareVarWithInit(tls, codegen_->ExecCtxGetTLS(exec_ctx)));
-      // @tlsReset(tls, @sizeOf(ThreadState), init, tearDown, queryState)
-      ast::Expr *state_ptr = query_state->GetStatePointer(codegen_);
-      auto &state = nested_ ? parent_->state_ : state_;
-      if(!nested_) {
-        builder.Append(codegen_->TLSReset(codegen_->MakeExpr(tls), state.GetTypeName(),
-                                          GetSetupPipelineStateFunctionName(), GetTearDownPipelineStateFunctionName(),
-                                          state_ptr));
-      }else {
-        auto pipeline_state = codegen_->TLSAccessCurrentThreadState(codegen_->MakeExpr(tls), state.GetTypeName());
-        builder.Append(codegen_->Call(GetSetupPipelineStateFunctionName(), {state_ptr, pipeline_state}));
-      }
+    CodeGen::CodeScope code_scope(codegen_);
+    // var tls = @execCtxGetTLS(exec_ctx)
+    ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
+    ast::Identifier tls = codegen_->MakeFreshIdentifier("threadStateContainer");
+    builder.Append(codegen_->DeclareVarWithInit(tls, codegen_->ExecCtxGetTLS(exec_ctx)));
+    // @tlsReset(tls, @sizeOf(ThreadState), init, tearDown, queryState)
+    ast::Expr *state_ptr = query_state->GetStatePointer(codegen_);
+    auto &state = nested_ ? parent_->state_ : state_;
+    if (!nested_) {
+      builder.Append(codegen_->TLSReset(codegen_->MakeExpr(tls), state.GetTypeName(),
+                                        GetSetupPipelineStateFunctionName(), GetTearDownPipelineStateFunctionName(),
+                                        state_ptr));
+    } else {
+      auto pipeline_state = codegen_->TLSAccessCurrentThreadState(codegen_->MakeExpr(tls), state.GetTypeName());
+      builder.Append(codegen_->Call(GetSetupPipelineStateFunctionName(), {state_ptr, pipeline_state}));
     }
-    return builder.Finish();
   }
+  return builder.Finish();
+}
 
 ast::FunctionDecl *Pipeline::GeneratePipelineWorkFunction() const {
   auto params = PipelineParams();
@@ -411,7 +411,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
   {
     // Begin a new code scope for fresh variables.
     CodeGen::CodeScope code_scope(codegen_);
-    if(!nested_) {
+    if (!nested_) {
       // Tear down thread local state if parallel pipeline.
       ast::Expr *exec_ctx = compilation_context_->GetExecutionContextPtrFromQueryState();
       builder.Append(codegen_->TLSClear(codegen_->ExecCtxGetTLS(exec_ctx)));
@@ -435,7 +435,7 @@ ast::FunctionDecl *Pipeline::GenerateTearDownPipelineFunction() const {
 
 void Pipeline::GeneratePipeline(ExecutableQueryFragmentBuilder *builder) const {
   // Declare the pipeline state.
-  if(!nested_) {
+  if (!nested_) {
     builder->DeclareStruct(state_.GetType());
   }
 
