@@ -269,9 +269,9 @@ class Pipeline {
   ast::Identifier GetTeardownPipelineFunctionName() const;
   ast::Identifier GetInitPipelineFunctionName() const;
 
-  const StateDescriptor &GetPipelineStateDescriptor() const { return nested_ ? parent_->state_ : state_; };
+  const StateDescriptor &GetPipelineStateDescriptor() const { return nested_ ? parent_->state_ : state_; }
 
-  StateDescriptor &GetPipelineStateDescriptor() { return nested_ ? parent_->state_ : state_; };
+  StateDescriptor &GetPipelineStateDescriptor() { return nested_ ? parent_->state_ : state_; }
 
  private:
   // A unique pipeline ID.
