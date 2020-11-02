@@ -22,15 +22,15 @@ class WorkloadForecastSegment {
   WorkloadForecastSegment(std::vector<execution::query_id_t> query_ids, std::vector<uint64_t> num_executions_);
   
   void Peek();
+ 
+  std::vector<execution::query_id_t> query_ids_;
+  std::vector<uint64_t> num_executions_;
 
  private:
  
   /**
    * 
    */
-  
-  std::vector<execution::query_id_t> query_ids_;
-  std::vector<uint64_t> num_executions_;
 };
 
 }  // namespace terrier::brain::forecast

@@ -74,7 +74,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"query_id, query_text, timestamp",
-                                                                      "query_id, timestamp, parameters"};
+                                                                      "query_id, timestamp, parameters, types"};
 
  private:
   friend class QueryTraceMetric;

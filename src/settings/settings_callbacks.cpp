@@ -161,9 +161,9 @@ void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value
   action_context->SetState(common::ActionState::IN_PROGRESS);
   bool new_status = *static_cast<bool *>(new_value);
   if (new_status)
-    db_main->GetPilotThread()->EnablePlanning();
+    db_main->GetPilotThread()->EnablePL();
   else
-    db_main->GetPilotThread()->DisablePlanning();
+    db_main->GetPilotThread()->DisablePL();
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

@@ -52,8 +52,9 @@ class Pilot {
   // void PerformPilotLogic();
 
   std::unique_ptr<brain::WorkloadForecast> forecastor_;
-  void EnablePlanning();
-  void DisablePlanning();
+  // void EnablePlanning();
+  // void DisablePlanning();
+  void PerformPlanning(); 
 
  private:
   void LoadQueryTrace();
@@ -63,8 +64,6 @@ class Pilot {
   //static execution::exec::ExecutionSettings GetExecutionSettings();
 
   common::ManagedPointer<DBMain> db_main_;
-
-  bool pilot_planning_ = false;
 
   std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id_;
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>> query_id_to_params_;

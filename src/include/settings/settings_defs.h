@@ -186,6 +186,16 @@ SETTING_int64(
     noisepage::settings::Callbacks::NoOp
 )
 
+SETTING_int64(
+    pilot_interval,
+    "Interval of Pilot Planning Invocation when planning enabled. (default : 1000000)",
+    1000000,
+    1000000,
+    10000000000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
+
 SETTING_bool(
     metrics,
     "Metrics sub-system for various components (default: true).",

@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "brain/pilot/pilot.h"
+#include "brain/pilot/pilot_thread.h"
 #include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/dedicated_thread_registry.h"
@@ -364,9 +365,12 @@ class DBMain {
                                                                       common::ManagedPointer(metrics_manager));
       }
 
-      std::unique_ptr<brain::Pilot> pilot_thread = DISABLED;
-      if (use_pilot_) {
-        pilot_thread = std::make_unique<brain::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
+      std::unique_ptr<brain::PilotThread> pilot_thread = DISABLED;
+      std::unique_ptr<brain::Pilot> pilot = DISABLED;
+      if (use_pilot_thread_) {
+        pilot = std::make_unique<brain::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
+        pilot_thread = std::make_unique<brain::PilotThread>(common::ManagedPointer(pilot), 
+                                                            std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
@@ -420,6 +424,7 @@ class DBMain {
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
       db_main->pilot_thread_ = std::move(pilot_thread);
+      db_main->pilot_ = std::move(pilot);
       db_main->messenger_layer_ = std::move(messenger_layer);
 
       return db_main;
@@ -723,7 +728,9 @@ class DBMain {
     uint64_t wal_persist_threshold_ = static_cast<uint64_t>(1 << 20);
     bool use_logging_ = false;
     bool use_gc_ = false;
-    bool use_pilot_ = false;
+    bool use_pilot_thread_ = false;
+    bool pilot_planning_ = false;
+    uint64_t pilot_interval_ = 1e7;
     uint64_t pilot_forecast_interval_ = 1e7;
     bool use_catalog_ = false;
     bool create_default_database_ = true;
@@ -773,9 +780,11 @@ class DBMain {
 
       use_metrics_ = settings_manager->GetBool(settings::Param::metrics);
       use_metrics_thread_ = settings_manager->GetBool(settings::Param::use_metrics_thread);
-      use_pilot_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
+      use_pilot_thread_ = settings_manager->GetBool(settings::Param::use_pilot_thread);
+      pilot_planning_ = settings_manager->GetBool(settings::Param::pilot_planning);
 
       gc_interval_ = settings_manager->GetInt(settings::Param::gc_interval);
+      pilot_interval_ = settings_manager->GetInt64(settings::Param::pilot_interval);
       pilot_forecast_interval_ = settings_manager->GetInt64(settings::Param::pilot_forecast_interval);
 
       uds_file_directory_ = settings_manager->GetString(settings::Param::uds_file_directory);
@@ -890,7 +899,13 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<brain::Pilot> GetPilotThread() const {
+  common::ManagedPointer<brain::Pilot> GetPilot() const {
+    return common::ManagedPointer(pilot_);
+  }
+  /**
+   * @return ManagedPointer to the component, can be nullptr if disabled
+   */
+  common::ManagedPointer<brain::PilotThread> GetPilotThread() const {
     return common::ManagedPointer(pilot_thread_);
   }
 
@@ -936,7 +951,8 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
-  std::unique_ptr<brain::Pilot> pilot_thread_;
+  std::unique_ptr<brain::PilotThread> pilot_thread_;
+  std::unique_ptr<brain::Pilot> pilot_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 

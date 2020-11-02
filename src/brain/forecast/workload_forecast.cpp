@@ -6,8 +6,12 @@
 #include <string>
 #include <utility>
 
+#include "brain/operating_unit.h"
 #include "execution/exec_defs.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
+#include "execution/compiler/executable_query.h"
+#include "execution/vm/vm_defs.h"
 #include "brain/forecast/workload_forecast_segment.h"
 #include "parser/expression/constant_value_expression.h"
 
@@ -31,9 +35,21 @@ WorkloadForecast::WorkloadForecast(
   }
 }
 
-// void WorkloadForecast::ExecuteSegments(std::unique_ptr<execution::exec::ExecutionContext> exec_txn) {
-
-// }
+void WorkloadForecast::ExecuteSegments(
+      const common::ManagedPointer<execution::exec::ExecutionContext> exec_ctx,
+      const execution::exec::ExecutionSettings &exec_settings) {
+  auto qid = forecast_segments_[0].query_ids_[0];
+  auto num_exec = forecast_segments_[0].num_executions_[0];
+  std::cout << qid << "; num_exec: " << num_exec << std::endl;
+  // auto exec_query =
+  //     execution::compiler::ExecutableQuery(query_id_to_string_[qid], common::ManagedPointer(exec_ctx),
+  //                                          false, 16, exec_settings);
+  // std::cout << "configured exec_query \n" << std::flush;
+  // exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&query_id_to_param_[qid][0]));
+  // std::cout << "SetParams succ \n" << std::flush;
+  // exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  // std::cout << "Run query succ \n" << std::flush;
+}
 
 void WorkloadForecast::CreateSegments(
     std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id,
