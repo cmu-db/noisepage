@@ -38,8 +38,10 @@ logging_util.init_logging('info')
 end_point = sys.argv[1]
 context = zmq.Context()
 socket = context.socket(zmq.DEALER)
-socket.connect(f"ipc://{end_point}")
+socket.set_string(zmq.IDENTITY, 'model')
 logging.info(f"Python model trying to connect to manager at {end_point}")
+socket.connect(f"ipc://{end_point}")
+logging.info(f"Python model connected at {end_point}")
 
 
 def cleanup_zmq():
@@ -208,7 +210,7 @@ def send_msg(socket, send_id, recv_id, data) :
     """
     # socket.send(b"", flags=zmq.SNDMORE)
     msg = f"{send_id}-{recv_id}-{data}"
-    socket.send(msg.encode())
+    socket.send_multipart([''.encode('utf-8'), msg.encode('utf-8')])
 
 
 # Loop until quit
@@ -218,8 +220,11 @@ def run_loop():
     :return:
     """
     while(1):
+        identity = socket.recv()
         delim = socket.recv()
         payload = socket.recv()
+        logging.info(f"Python recv: {str(identity)}, {str(payload)}")
+
         payload = payload.decode("ascii")
         send_id, recv_id, msg = parse_msg(payload)
         if msg is None:

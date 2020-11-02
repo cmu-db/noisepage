@@ -73,6 +73,8 @@ PYTHON_PACKAGES=(\
   "psutil" \
   "distro"  \
   "pyzmq" \
+  "tqdm" \
+  "lightgbm" \
   "skylearn" \
   "PTable"
 )

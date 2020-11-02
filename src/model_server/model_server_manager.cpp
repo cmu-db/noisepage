@@ -82,9 +82,8 @@ void ModelServerManager::StartModelServer(std::string model_path) {
     }
   } else {
     // Run the script in in a child
-    std::string python3_bin("/usr/local/bin/python3");
     std::string ipc_path = IPCPath();
-    char *args[] = {python3_bin.data(), model_path.data(), ipc_path.data(), nullptr};
+    char *args[] = {model_path.data(), ipc_path.data(), nullptr};
     NETWORK_LOG_INFO("Inovking binary at :{}", model_path);
     if (execvp(args[0], args) < 0) {
       NETWORK_LOG_ERROR("Failed to execute model binary: {}", strerror(errno));

@@ -42,7 +42,7 @@ class ModelServerTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(ModelServerTest, TerminalTest) {
+TEST_F(ModelServerTest, DISABLED_TerminalTest) {
   messenger::messenger_logger->set_level(spdlog::level::trace);
 
   uint16_t port_primary = 15721;
@@ -79,7 +79,6 @@ TEST_F(ModelServerTest, TerminalTest) {
           case 'i':
               std::cin >> model_map_path;
               std::cin >> data_file;
-
               ms_manager->DoInference(data_file, model_map_path);
               break;
           default:
