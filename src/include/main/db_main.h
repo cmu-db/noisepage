@@ -942,14 +942,10 @@ class DBMain {
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
 
-<<<<<<< HEAD
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
   common::ManagedPointer<storage::ReplicationManager> GetReplicationManager() const { return common::ManagedPointer(replication_manager_); }
 
-private:
-=======
  private:
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
   // Order matters here for destruction order
   std::unique_ptr<settings::SettingsManager> settings_manager_;
   std::unique_ptr<metrics::MetricsManager> metrics_manager_;
