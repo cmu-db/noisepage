@@ -27,13 +27,73 @@ namespace noisepage::messenger {
 class ConnectionDestination;
 class Messenger;
 class MessengerPolledSockets;
-class ZmqMessage;
+class ZmqUtil;
+
+/** An abstraction around ZeroMQ messages which explicitly have the sender specified. */
+class ZmqMessage {
+ public:
+  /** @return The ID of this message (sender side). */
+  uint64_t GetMessageIdSender() const { return send_msg_id_; }
+
+  /** @return The ID of this message (receiver side). */
+  uint64_t GetCallbackIdReceiver() const { return recv_cb_id_; }
+
+  /** @return The routing ID of this message. */
+  std::string_view GetRoutingId() const { return std::string_view(routing_id_); }
+
+  /** @return The message itself. */
+  std::string_view GetMessage() const { return message_; }
+
+  /** @return The raw payload of the message. */
+  std::string_view GetRawPayload() const { return std::string_view(payload_); }
+
+ private:
+  friend Messenger;
+  friend ZmqUtil;
+
+  /**
+   * Build a new ZmqMessage from the supplied information.
+   * @param send_msg_id     The ID of the message on the sender side.
+   * @param recv_cb_id      The ID of the message on the receiver side.
+   * @param sender_id       The identity of the sender.
+   * @param message         The contents of the message.
+   * @return A ZmqMessage encapsulating the given message.
+   */
+  static ZmqMessage Build(uint64_t send_msg_id, uint64_t recv_cb_id, const std::string &sender_id,
+                          std::string_view message);
+
+  /**
+   * Parse the given payload into a ZmqMessage.
+   * @param routing_id      The message's routing ID.
+   * @param message         The message received.
+   * @return A ZmqMessage encapsulating the given message.
+   */
+  static ZmqMessage Parse(const std::string &routing_id, const std::string &message);
+
+  /** Construct a new ZmqMessage with the given routing ID and payload. Payload of form ID-MESSAGE. */
+  ZmqMessage(std::string routing_id, std::string payload);
+
+  /** The routing ID of the message. */
+  std::string routing_id_;
+  /** The payload in the message, of form ID-MESSAGE.  */
+  std::string payload_;
+
+  /** The cached id of the message (sender side). */
+  uint64_t send_msg_id_;
+  /** The cached id of the message (receiver side). */
+  uint64_t recv_cb_id_;
+  /** The cached actual message. */
+  std::string_view message_;
+};
 
 /** ConnectionId is an abstraction around establishing connections. */
 class ConnectionId {
  public:
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~ConnectionId();
+
+  /** Move constructor. */
+  ConnectionId(ConnectionId &&other);
 
  private:
   friend Messenger;
@@ -148,7 +208,7 @@ class Messenger : public common::DedicatedThreadTask {
   /**
    * Connect to the specified target destination.
    *
-   * @param target      The destination to be connected to.
+   * @param target      The destination to be connected to. Note that target_name is meaningless here.
    * @return            A new ConnectionId. See warning!
    *
    * @warning           DO NOT USE THIS ConnectionId FROM A DIFFERENT THREAD THAN THE CALLER OF THIS FUNCTION!

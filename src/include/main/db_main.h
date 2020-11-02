@@ -16,6 +16,7 @@
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "replication/replication_manager.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -355,6 +356,14 @@ class DBMain {
       auto buffer_segment_pool =
           std::make_unique<storage::RecordBufferSegmentPool>(record_buffer_segment_size_, record_buffer_segment_reuse_);
 
+      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
+      std::unique_ptr<replication::ReplicationManager> replication_manager = DISABLED;
+      if (use_messenger_) {
+        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
+                                                           messenger_identity_);
+        replication_manager = std::make_unique<replication::ReplicationManager>(messenger_layer->GetMessenger(), "primary");
+      }
+
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
         log_manager = std::make_unique<storage::LogManager>(
@@ -419,12 +428,6 @@ class DBMain {
                                            network_port_, connection_thread_count_, uds_file_directory_);
       }
 
-      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
-      if (use_messenger_) {
-        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
-                                                           messenger_identity_);
-      }
-
       db_main->settings_manager_ = std::move(settings_manager);
       db_main->metrics_manager_ = std::move(metrics_manager);
       db_main->metrics_thread_ = std::move(metrics_thread);
@@ -440,6 +443,7 @@ class DBMain {
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
       db_main->messenger_layer_ = std::move(messenger_layer);
+      db_main->replication_manager_ = std::move(replication_manager);
 
       return db_main;
     }
@@ -947,6 +951,7 @@ class DBMain {
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
+  std::unique_ptr<replication::ReplicationManager> replication_manager_;
 };
 
 }  // namespace noisepage
