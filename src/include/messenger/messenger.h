@@ -1,11 +1,5 @@
 #pragma once
 
-<<<<<<< HEAD
-#include <functional>
-#include <memory>
-#include <string>
-#include <unordered_map>
-=======
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -13,16 +7,12 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_task.h"
 #include "common/managed_pointer.h"
-<<<<<<< HEAD
-=======
 #include "messenger/connection_destination.h"
 #include "messenger/messenger_defs.h"
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
 // All zmq objects are forward-declared and allocated on the heap.
 // This is to avoid leaking zmq headers into the rest of the system.
@@ -32,11 +22,7 @@ class context_t;
 class socket_t;
 }  // namespace zmq
 
-<<<<<<< HEAD
-namespace terrier::messenger {
-=======
 namespace noisepage::messenger {
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
 class ConnectionDestination;
 class Messenger;
@@ -68,8 +54,6 @@ class ConnectionId {
   std::string target_name_;
 };
 
-<<<<<<< HEAD
-=======
 /** ConnectionRouter represents a new endpoint opened up on the Messenger to listen for connections. */
 class ConnectionRouter {
  public:
@@ -100,7 +84,6 @@ class ConnectionRouter {
   std::string identity_;
 };
 
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 /**
  * Messenger handles all the network aspects of sending and receiving messages.
  * Logic based on the messages is is deferred to MessengerLogic.
@@ -108,8 +91,6 @@ class ConnectionRouter {
  * @see messenger.cpp for a crash course on ZeroMQ, the current backing implementation.
  */
 class Messenger : public common::DedicatedThreadTask {
-<<<<<<< HEAD
-=======
  private:
   /**
    * A ConnectionRouter that should be added. Unfortunately, ZeroMQ is not thread safe and this must be done from
@@ -121,21 +102,10 @@ class Messenger : public common::DedicatedThreadTask {
     CallbackFn callback_;
   };
 
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
  public:
   /** Builtin callbacks useful for testing. */
   enum class BuiltinCallback : uint8_t { NOOP = 0, ECHO, NUM_BUILTIN_CALLBACKS };
 
-<<<<<<< HEAD
-  /**
-   * All messages can take in a callback function to be invoked when a reply is received.
-   * Arg 1  :   std::string_view, sender identity.
-   * Arg 2  :   std::string_view, the message itself.
-   */
-  using CallbackFn = std::function<void(std::string_view, std::string_view)>;
-
-=======
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
   /** @return The default TCP endpoint for a Messenger on the given port. */
   static ConnectionDestination GetEndpointTCP(std::string target_name, uint16_t port);
   /** @return The default IPC endpoint for a Messenger on the given port. */
@@ -170,15 +140,10 @@ class Messenger : public common::DedicatedThreadTask {
    *                     fix this at some point. I am reluctant to add a set of destinations just for this though..
    *
    * @param target      The destination to listen on for new connections.
-<<<<<<< HEAD
-   */
-  void ListenForConnection(const ConnectionDestination &target);
-=======
    * @param identity    The identity to listen as.
    * @param callback    The server loop for all messages received.
    */
   void ListenForConnection(const ConnectionDestination &target, const std::string &identity, CallbackFn callback);
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
   /**
    * Connect to the specified target destination.
@@ -199,20 +164,6 @@ class Messenger : public common::DedicatedThreadTask {
    * @param connection_id   The connection to send the message over.
    * @param message         The message to be sent.
    * @param callback        The callback function to be invoked on the response.
-<<<<<<< HEAD
-   * @param recv_msg_id     The receiver's message ID, e.g., sent in response or to invoke preregistered functions.
-   *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
-   */
-  void SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message, CallbackFn callback,
-                   uint64_t recv_msg_id);
-
-  void SetCallback(uint64_t msg_id, CallbackFn callback) {
-    callbacks_[msg_id] = callback;
-  }
-
- private:
-  friend ConnectionId;
-=======
    * @param recv_cb_id      The receiver's callback ID, e.g., sent in response or to invoke preregistered functions.
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
    */
@@ -242,18 +193,14 @@ class Messenger : public common::DedicatedThreadTask {
   friend ConnectionId;
   friend ConnectionRouter;
 
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
   static constexpr const char *MESSENGER_DEFAULT_TCP = "*";
   static constexpr const char *MESSENGER_DEFAULT_IPC = "/tmp/noisepage-ipc-{}";
   static constexpr const char *MESSENGER_DEFAULT_INPROC = "noisepage-inproc-{}";
   static constexpr const std::chrono::milliseconds MESSENGER_POLL_TIMER = std::chrono::seconds(2);
 
-<<<<<<< HEAD
-=======
   /** @return The next ID to be used when sending messages. */
   uint64_t GetNextSendMessageId();
 
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
   /** The main server loop. */
   void ServerLoop();
 
@@ -269,12 +216,6 @@ class Messenger : public common::DedicatedThreadTask {
   std::unique_ptr<zmq::socket_t> zmq_default_socket_;
   std::unique_ptr<MessengerPolledSockets> polled_sockets_;
   std::unordered_map<uint64_t, CallbackFn> callbacks_;
-<<<<<<< HEAD
-  bool is_messenger_running_ = false;
-  uint32_t connection_id_count_ = 0;
-  /** The message ID that gets automatically prefixed to messages. */
-  uint64_t message_id_ = static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
-=======
 
   std::vector<RouterToBeAdded> routers_to_be_added_;
   std::mutex routers_add_mutex_;
@@ -284,7 +225,6 @@ class Messenger : public common::DedicatedThreadTask {
   bool is_messenger_running_ = false;
   /** The message ID that gets automatically prefixed to messages. */
   std::atomic<uint64_t> message_id_{static_cast<uint8_t>(BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1};
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 };
 
 /**
@@ -310,8 +250,4 @@ class MessengerManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<Messenger> messenger_;
 };
 
-<<<<<<< HEAD
-}  // namespace terrier::messenger
-=======
 }  // namespace noisepage::messenger
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
