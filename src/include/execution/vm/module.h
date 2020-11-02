@@ -102,6 +102,7 @@ class Module {
  private:
   friend class VM;                            // For the VM to access raw bytecode.
   friend class test::BytecodeTrampolineTest;  // For the tests to check private methods.
+  friend class CompilationManager; // For handling the JIT compilation of the module.
 
   // This class encapsulates the ability to asynchronously JIT compile a module.
   class AsyncCompileTask;
@@ -149,6 +150,9 @@ class Module {
   // Compile this module into machine code. This is a non-blocking call that
   // triggers a compilation in the background.
   void CompileToMachineCodeAsync();
+
+  // Gets the flag that indicates if the JIT compilation has occurred.
+  std::once_flag GetCompiledFlag();
 
  private:
   // The module containing all TBC (i.e., bytecode) for the TPL program.
@@ -208,6 +212,9 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
+      //TODO @wuwen: copy module here
+      //TODO @kunal: make sure to instantiate compilation manager in the upper parts of the system. maybe just making the task queue static works?
+
       CompileToMachineCodeAsync();
       FALLTHROUGH;
     }
