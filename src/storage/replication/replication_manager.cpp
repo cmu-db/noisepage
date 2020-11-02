@@ -36,7 +36,7 @@ namespace terrier::storage {
 
     // Send the message.
     bool message_sent = false;
-    messenger->SendMessage(common::ManagedPointer(&target), j.dump(),
+    messenger_->SendMessage(common::ManagedPointer(&target), j.dump(),
                            [&message_sent](std::string_view sender_id, std::string_view message) {
                              STORAGE_LOG_ERROR("invoked");
                              message_sent = true;

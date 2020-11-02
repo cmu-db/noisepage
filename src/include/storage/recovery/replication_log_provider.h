@@ -41,7 +41,7 @@ namespace noisepage::storage {
     // True if replication is active
     bool replication_active_;
 
-    std::chrono::seconds replication_timeout_;
+    std::chrono::seconds replication_timeout_ = 10;
 
     // Current buffer to read logs from
     std::unique_ptr<network::ReadBuffer> curr_buffer_ = nullptr;

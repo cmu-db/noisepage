@@ -363,7 +363,8 @@ class DBMain {
 
       std::unique_ptr<storage::ReplicationManager> replication_manager = DISABLED;
       if (use_messenger_) {
-        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger());
+        storage::ReplicationLogProvider log_provider = new storage::ReplicationLogProvider();
+        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(), log_provider);
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -429,12 +430,6 @@ class DBMain {
         network_layer =
             std::make_unique<NetworkLayer>(common::ManagedPointer(thread_registry), common::ManagedPointer(traffic_cop),
                                            network_port_, connection_thread_count_, uds_file_directory_);
-      }
-
-      std::unique_ptr<MessengerLayer> messenger_layer = DISABLED;
-      if (use_messenger_) {
-        messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
-                                                           messenger_identity_);
       }
 
       db_main->settings_manager_ = std::move(settings_manager);

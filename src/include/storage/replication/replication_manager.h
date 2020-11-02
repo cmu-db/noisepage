@@ -16,18 +16,14 @@ namespace noisepage::storage {
 class ReplicationManager {
 public:
 
-  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger) : messenger_(messenger) {
-  }
-
-  void SetReplicationLogProvider(common::ManagedPointer<storage::ReplicationLogProvider> provider) {
-    provider_ = provider;
+  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, common::ManagedPointer<storage::ReplicationLogProvider> provider) : messenger_(messenger), provider_(provider) {
   }
 
   // Adds a record buffer to the current queue.
   void AddRecordBuffer(BufferedLogWriter *network_buffer);
 
   // Serialize log record buffer to json and send the message across the network.
-  bool SendMessage(common::ManagedPointer<messenger::Messenger> messenger, messenger::ConnectionId &target);
+  bool SendMessage(messenger::ConnectionId &target);
 
   // Parse the log record buffer and redirect to replication log provider for recovery.
   void Recover(const std::string& string_view);
