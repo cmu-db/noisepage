@@ -51,7 +51,7 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
   for (auto expr : required_cols_) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
-  NOISEPAGE_ASSERT(output_cols_map.size() == required_cols_.size(), "???");
+  NOISEPAGE_ASSERT(output_cols_map.size() == required_cols_.size(), "Output columns of the QueryDerivedScan and required_cols_ from above mismatch");
 
   auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
   std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols(output_cols.size());

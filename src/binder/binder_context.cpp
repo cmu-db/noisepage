@@ -232,6 +232,7 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
       auto matches = std::count_if(entry.second.begin(), entry.second.end(),
                                    [=](auto it) { return entry.second.key_eq()(it.first, alias_name); });
       if (get_match) {
+        // if there is more than one match, then the requested alias name is ambiguous
         if (!find_matched && (matches == 1)) {
           // First match
           find_matched = true;
