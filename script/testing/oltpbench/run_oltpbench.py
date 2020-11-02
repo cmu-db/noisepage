@@ -26,7 +26,6 @@ def generate_test_suite(args):
     # All OLTPBench test collect memory info by default.
     disable_mem_info = args.get("disable_mem_info")
     args["collect_mem_info"] = not disable_mem_info
-    args["collect_mem_freq"] = constants.OLTPBENCH_DEFAULT_BUCKETS
 
     max_connection_threads = int(
         test_suite_json.get('server_args', {}).get(

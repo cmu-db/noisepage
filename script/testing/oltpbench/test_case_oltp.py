@@ -6,7 +6,7 @@ import json
 import traceback
 import shutil
 import time
-from util.constants import ErrorCode
+from util.constants import ErrorCode, INCREMENTAL_METRIC_FREQ
 from util.common import run_command
 from util.test_case import TestCase
 from xml.etree import ElementTree
@@ -47,7 +47,7 @@ class TestCaseOLTPBench(TestCase):
                                 constants.OLTPBENCH_DEFAULT_DATABASE_LOAD)
         self.db_execute = args.get(
             "db_execute", constants.OLTPBENCH_DEFAULT_DATABASE_EXECUTE)
-        self.buckets = args.get("buckets", constants.OLTPBENCH_DEFAULT_BUCKETS)
+        self.buckets = args.get("buckets", INCREMENTAL_METRIC_FREQ)
 
         self.server_data = args.get("server_data")
 

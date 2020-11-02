@@ -63,8 +63,10 @@ LSOF_PATH_MACOS = "/usr/sbin/lsof"
 OS_FAMILY_DARWIN = "darwin"
 
 # Memory info collection
-COLLECT_MEM_FREQ = 5  # collect mem info every 5 seconds by default
 MEM_INFO_SPLITTER = ","
+
+# Incremental metrics
+INCREMENTAL_METRIC_FREQ = 5  # collect incremental metrics every 5 seconds by default
 
 
 # error code

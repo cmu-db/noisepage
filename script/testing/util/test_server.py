@@ -40,8 +40,11 @@ class TestServer:
 
         # memory info collection
         self.collect_mem_info = self.args.get("collect_mem_info", False)
-        self.collect_mem_freq = self.args.get("collect_mem_freq",
-                                              constants.COLLECT_MEM_FREQ)
+
+        # incremental metrics
+        self.incremental_metric_freq = self.args.get(
+            "incremental_metric_freq", constants.INCREMENTAL_METRIC_FREQ)
+
         return
 
     def run_pre_suite(self):
@@ -163,10 +166,11 @@ class TestServer:
         if self.collect_mem_info:
             # spawn a thread to collect memory info
             self.collect_mem_thread = PeriodicTask(
-                self.collect_mem_freq, update_mem_info, self.db_process.pid,
-                self.collect_mem_freq, test_case.mem_metrics.mem_info_dict)
+                self.incremental_metric_freq, update_mem_info,
+                self.db_process.pid, self.incremental_metric_freq,
+                test_case.mem_metrics.mem_info_dict)
             # collect the initial memory info
-            update_mem_info(self.db_process.pid, self.collect_mem_freq,
+            update_mem_info(self.db_process.pid, self.incremental_metric_freq,
                             test_case.mem_metrics.mem_info_dict)
 
         # run the actual test
