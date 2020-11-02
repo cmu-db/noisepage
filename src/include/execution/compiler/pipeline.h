@@ -274,12 +274,16 @@ class Pipeline {
   StateDescriptor &GetPipelineStateDescriptor() { return nested_ ? parent_->state_ : state_; }
 
  private:
-  // A unique pipeline ID.
-  uint32_t id_;
+  // The pipeline state.
+  StateDescriptor state_;
   // The compilation context this pipeline is part of.
   CompilationContext *compilation_context_;
   // The code generation instance.
   CodeGen *codegen_;
+  // Cache of common identifiers.
+  ast::Identifier state_var_;
+  // The pipeline operating unit feature vector state.
+  StateDescriptor::Entry oufeatures_;
   // Operators making up the pipeline.
   std::vector<OperatorTranslator *> steps_;
   // The driver.
@@ -288,24 +292,17 @@ class Pipeline {
   Pipeline *parent_;
   // Expressions participating in the pipeline.
   std::vector<ExpressionTranslator *> expressions_;
+  // All unnested pipelines this one depends on completion of.
+  std::vector<Pipeline *> dependencies_;
+  // Vector of pipelines that are nested under this pipeline
+  std::vector<Pipeline *> nested_pipelines_;
+  // A unique pipeline ID.
+  uint32_t id_;
   // Configured parallelism.
   Parallelism parallelism_;
   // Whether to check for parallelism in new pipeline elements.
   bool check_parallelism_;
-  // All unnested pipelines this one depends on completion of.
-  std::vector<Pipeline *> dependencies_;
-
-  // Vector of pipelines that are nested under this pipeline
-  std::vector<Pipeline *> nested_pipelines_;
-
-  // Cache of common identifiers.
-  ast::Identifier state_var_;
-  // The pipeline state.
-  StateDescriptor state_;
-
-  // The pipeline operating unit feature vector state.
-  StateDescriptor::Entry oufeatures_;
-
+  // Whether or not this is a nested pipeline
   bool nested_{false};
 };
 
