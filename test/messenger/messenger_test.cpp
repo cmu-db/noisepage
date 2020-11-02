@@ -230,7 +230,7 @@ TEST_F(MessengerTests, BasicReplicationTest) {
 }
 
 // NOLINTNEXTLINE
-  TEST_F(MessengerTests, ReplicationTest) {
+  TEST_F(MessengerTests, ReplicationManagerTest) {
     // TODO(WAN): remove this after demo at meeting.
     messenger_logger->set_level(spdlog::level::trace);
 
@@ -270,7 +270,6 @@ TEST_F(MessengerTests, BasicReplicationTest) {
           common::ManagedPointer<storage::AbstractLogProvider>(log_provider_), common::ManagedPointer(primary->GetCatalogLayer()->GetCatalog()),
           common::ManagedPointer(primary->GetTransactionLayer()->GetTransactionManager()), common::ManagedPointer(primary->GetTransactionLayer()->GetDeferredActionManager()),
           common::ManagedPointer(primary->GetThreadRegistry()), common::ManagedPointer(&block_store_));
-
 
       bool received = false;
       messenger->SetCallback(3, [&received, &replication_manager, &txn_manager, &catalog, &recovery_manager_](std::string_view sender_id, std::string_view message) {
