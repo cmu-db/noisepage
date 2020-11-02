@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <chrono>
+#include <memory>
 #include "network/network_io_utils.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/write_ahead_log/log_io.h"
@@ -11,7 +13,6 @@ namespace noisepage::storage {
  * @brief Log provider for logs being received over network
  * Provides logs to the recovery manager from logs being sent by master node over the network
  */
-<<<<<<< HEAD
   class ReplicationLogProvider final : public AbstractLogProvider {
   public:
     ReplicationLogProvider(std::chrono::seconds replication_timeout)
@@ -40,7 +41,6 @@ namespace noisepage::storage {
     // True if replication is active
     bool replication_active_;
 
-    // TODO(Gus): Put in settings manager
     std::chrono::seconds replication_timeout_;
 
     // Current buffer to read logs from
@@ -105,14 +105,3 @@ namespace noisepage::storage {
   };
 
 }  // namespace terrier::storage
-=======
-class ReplicationLogProvider {
- public:
-  /**
-   * Passes the content of the buffer to traffic cop
-   * @param buffer content to pass to traffic cop
-   */
-  virtual void HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer);
-};
-}  // namespace noisepage::storage
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973

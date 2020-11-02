@@ -452,10 +452,7 @@ class DBMain {
       db_main->traffic_cop_ = std::move(traffic_cop);
       db_main->network_layer_ = std::move(network_layer);
       db_main->messenger_layer_ = std::move(messenger_layer);
-<<<<<<< HEAD
       db_main->replication_manager_ = std::move(replication_manager);
-=======
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 
       return db_main;
     }
@@ -813,11 +810,7 @@ class DBMain {
       // TODO(WAN): open an issue for handling settings.
       //  If you set it with the builder, it gets overwritten.
       //  If you set it with the setting manager, it isn't mutable.
-<<<<<<< HEAD
       //      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
-=======
-      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
@@ -974,10 +967,7 @@ private:
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
-<<<<<<< HEAD
   std::unique_ptr<storage::ReplicationManager> replication_manager_;
-=======
->>>>>>> 193244ce13033c9e65563c6e7d0ccdedd0eaf973
 };
 
 }  // namespace noisepage
