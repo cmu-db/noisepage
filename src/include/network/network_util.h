@@ -2,7 +2,7 @@
 
 #include "network/network_defs.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Utility class for static network or query-related functions
@@ -62,4 +62,4 @@ class NetworkUtil {
   static bool UnsupportedQueryType(const QueryType type) { return type > QueryType::QUERY_SET; }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

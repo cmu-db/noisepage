@@ -8,7 +8,7 @@
 
 #include "execution/sema/error_reporter.h"
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 static std::unordered_set<Token::Type> k_top_level_decls = {Token::Type::STRUCT, Token::Type::FUN};
 
@@ -234,12 +234,12 @@ class Parser::ForHeader {
   bool IsStandard() const { return !IsForIn(); }
 
   std::tuple<ast::Stmt *, ast::Expr *, ast::Stmt *> GetForElements() const {
-    TERRIER_ASSERT(IsStandard(), "Loop isn't a standard for-loop");
+    NOISEPAGE_ASSERT(IsStandard(), "Loop isn't a standard for-loop");
     return {init_, cond_, next_};
   }
 
   std::tuple<ast::Expr *, ast::Expr *> GetForInElements() const {
-    TERRIER_ASSERT(IsForIn(), "Loop isn't a for-in");
+    NOISEPAGE_ASSERT(IsForIn(), "Loop isn't a for-in");
     return {target_, iter_};
   }
 
@@ -280,7 +280,7 @@ Parser::ForHeader Parser::ParseForHeader() {
 
   // If we see an 'in', it's a for-in loop
   if (Matches(Token::Type::IN)) {
-    TERRIER_ASSERT(cond != nullptr, "Must have parsed can't be null");
+    NOISEPAGE_ASSERT(cond != nullptr, "Must have parsed can't be null");
     ast::Expr *target = MakeExpr(cond);
     ast::Expr *iter = MakeExpr(ParseStmt());
     Expect(Token::Type::RIGHT_PAREN);
@@ -371,7 +371,7 @@ ast::Stmt *Parser::ParseReturnStmt() {
 ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
 ast::Expr *Parser::ParseBinaryOpExpr(uint32_t min_prec) {
-  TERRIER_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
+  NOISEPAGE_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
 
   ast::Expr *left = ParseUnaryOpExpr();
 
@@ -728,4 +728,4 @@ ast::Expr *Parser::ParseMapType() {
   return node_factory_->NewMapType(position, key_type, value_type);
 }
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

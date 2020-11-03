@@ -10,7 +10,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  *  The plan node for dropping tables
  */
@@ -41,10 +41,7 @@ class DropTablePlanNode : public AbstractPlanNode {
      * Build the drop table plan node
      * @return plan node
      */
-    std::unique_ptr<DropTablePlanNode> Build() {
-      return std::unique_ptr<DropTablePlanNode>(
-          new DropTablePlanNode(std::move(children_), std::move(output_schema_), table_oid_));
-    }
+    std::unique_ptr<DropTablePlanNode> Build();
 
    protected:
     /**
@@ -62,8 +59,7 @@ class DropTablePlanNode : public AbstractPlanNode {
    * @param table_oid OID of the table to drop
    */
   DropTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), table_oid_(table_oid) {}
+                    std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid);
 
  public:
   /**
@@ -101,4 +97,4 @@ class DropTablePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(DropTablePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

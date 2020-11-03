@@ -7,7 +7,7 @@
 #include "common/managed_pointer.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 Operator::Operator() noexcept = default;
 
@@ -75,4 +75,4 @@ Operator Operator::RegisterWithTxnContext(transaction::TransactionContext *txn) 
   return *this;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

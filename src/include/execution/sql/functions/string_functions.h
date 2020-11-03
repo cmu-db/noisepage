@@ -5,11 +5,11 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle SQL string manipulations.
@@ -114,4 +114,4 @@ class StringFunctions {
   /** Compute INITCAP(str). */
   static void InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -6,7 +6,7 @@
 #include "execution/sql_test.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class VectorLikeTest : public TplTest {};
 
@@ -91,4 +91,4 @@ TEST_F(VectorLikeTest, LikeVectorOfPatterns) {
   EXPECT_EQ(3u, tid_list[1]);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

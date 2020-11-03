@@ -11,7 +11,7 @@ from util import io_util
 from info import data_info, hardware_info
 from data_class import global_model_data, grouped_op_unit_data
 import global_model_config
-from type import Target, OpUnit, ConcurrentCountingMode
+from type import OpUnit, ConcurrentCountingMode, Target, ExecutionFeature
 
 
 def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc_hack,
@@ -30,9 +30,10 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
     :return: (GlobalResourceData list, GlobalImpactData list)
     """
     cache_file = input_path + '/global_model_data.pickle'
+    headers_file = input_path + '/global_model_headers.pickle'
     if os.path.exists(cache_file):
         with open(cache_file, 'rb') as pickle_file:
-            resource_data_list, impact_data_list = pickle.load(pickle_file)
+            resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX = pickle.load(pickle_file)
     else:
         data_list = _get_grouped_opunit_data_with_prediction(input_path, mini_model_map, model_results_path,
                                                              warmup_period, tpcc_hack,
@@ -40,7 +41,7 @@ def get_data(input_path, mini_model_map, model_results_path, warmup_period, tpcc
         resource_data_list, impact_data_list = _construct_interval_based_global_model_data(data_list,
                                                                                            model_results_path)
         with open(cache_file, 'wb') as file:
-            pickle.dump((resource_data_list, impact_data_list), file)
+            pickle.dump((resource_data_list, impact_data_list, data_info.RAW_FEATURES_CSV_INDEX, data_info.RAW_TARGET_CSV_INDEX, data_info.INPUT_CSV_INDEX, data_info.TARGET_CSV_INDEX), file)
 
     return resource_data_list, impact_data_list
 
@@ -256,9 +257,9 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
 
             if opunit in data_info.MEM_ADJUST_OPUNITS:
                 # Compute the number of "slots" (based on row feature or cardinality feature
-                num_tuple = opunit_feature[1][data_info.TUPLE_NUM_INDEX]
+                num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]]
                 if opunit == OpUnit.AGG_BUILD:
-                    num_tuple = opunit_feature[1][data_info.CARDINALITY_INDEX]
+                    num_tuple = opunit_feature[1][data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]]
 
                 # SORT/AGG/HASHJOIN_BUILD all allocate a "pointer" buffer
                 # that contains the first pow2 larger than num_tuple entries
@@ -274,9 +275,10 @@ def _predict_grouped_opunit_data(data_list, mini_model_map, model_results_path):
                     logging.warning("{} feature {} {} with prediction {} exceeds buffer {}"
                                     .format(data.name, opunit_feature, opunit_feature[1], y_pred[0], buffer_size))
 
-                # Poorly encapsulated, but memory scaling factor is located as the 2nd last of feature
-                # slightly inaccurate since ignores load factors for hash tables
-                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][-3] + buffer_size
+                # For hashjoin_build, there is still some inaccuracy due to the
+                # fact that we do not know about the hash table's load factor.
+                scale = data_info.INPUT_CSV_INDEX[ExecutionFeature.MEM_FACTOR]
+                adj_mem = (pred_mem - buffer_size) * opunit_feature[1][scale] + buffer_size
 
                 # Don't modify prediction cache
                 y_pred = copy.deepcopy(y_pred)

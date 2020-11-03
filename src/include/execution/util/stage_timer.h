@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /** Timer that supports multiple stages. */
 template <typename ResolutionRatio = std::milli>
@@ -69,8 +69,8 @@ class StageTimer {
    * Exit the current stage.
    */
   void ExitStage() {
-    TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
-    TERRIER_ASSERT(stages_.back().Time() == 0, "Duplicate call to ExitStage()");
+    NOISEPAGE_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
+    NOISEPAGE_ASSERT(stages_.back().Time() == 0, "Duplicate call to ExitStage()");
     timer_.Stop();
     stages_.back().SetTime(timer_.GetElapsed());
   }
@@ -93,4 +93,4 @@ class StageTimer {
   std::vector<Stage> stages_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

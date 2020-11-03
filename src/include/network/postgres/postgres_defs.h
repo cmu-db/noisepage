@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "common/version.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * The string values to use for reading 'true' boolean values
@@ -86,4 +86,4 @@ enum class PostgresValueType : int32_t {
 
 const uint32_t MAX_NAME_LENGTH = 63;  // Max length for internal name
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

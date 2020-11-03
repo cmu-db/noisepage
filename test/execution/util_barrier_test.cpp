@@ -5,7 +5,7 @@
 #include "execution/tpl_test.h"
 #include "execution/util/barrier.h"
 
-namespace terrier::execution::util::test {
+namespace noisepage::execution::util::test {
 
 using namespace std::chrono_literals;  // NOLINT
 
@@ -74,4 +74,4 @@ TEST(BarrierTest, WaitCycle) {
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

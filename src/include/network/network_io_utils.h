@@ -1,4 +1,5 @@
 #pragma once
+
 #include <arpa/inet.h>
 #include <unistd.h>
 
@@ -13,7 +14,8 @@
 #include "network/network_defs.h"
 #include "util/portable_endian.h"
 
-namespace terrier::network {
+namespace noisepage::network {
+
 /**
  * A plain old buffer with a movable cursor, the meaning of which is dependent
  * on the use case.
@@ -526,4 +528,4 @@ struct InputPacket {
   }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

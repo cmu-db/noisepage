@@ -4,7 +4,7 @@
 
 #include "type/type_id.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 /**
  * This enum indicates the backing implementation that should be used for the index.  It is a character enum in order
  * to better match PostgreSQL's look and feel when persisted through the catalog.
@@ -29,4 +29,4 @@ enum class ScanType : uint8_t {
   OpenBoth  /* [begin(), end()] range scan */
 };
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

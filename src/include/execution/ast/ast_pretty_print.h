@@ -2,7 +2,7 @@
 
 #include <iosfwd>
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 class AstNode;
 
@@ -17,4 +17,4 @@ class AstPrettyPrint {
   static void Dump(std::ostream &os, AstNode *node);
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

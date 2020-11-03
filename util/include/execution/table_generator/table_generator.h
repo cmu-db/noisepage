@@ -10,9 +10,11 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
+#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_settings.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // Keep small so that nested loop join won't take too long.
 /**
@@ -98,14 +100,24 @@ class TableGenerator {
 
   /**
    * Generate test tables.
-   * @param is_mini_runner is this generation used for the mini runner
    */
-  void GenerateTestTables(bool is_mini_runner);
+  void GenerateTestTables();
+
+  /**
+   * Generate the tables for the mini runner
+   * @param settings Mini-runners settings
+   * @param config Data Configuration for mini-runners
+   */
+  void GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
+                               const runner::MiniRunnersDataConfig &config);
 
   /**
    * Generate mini runners indexes
+   * @param settings Mini-runners settings
+   * @param config Data Configuration for mini-runners
    */
-  void GenerateMiniRunnerIndexTables();
+  void GenerateMiniRunnerIndexTables(const runner::MiniRunnersSettings &settings,
+                                     const runner::MiniRunnersDataConfig &config);
 
   /**
    * Adds a mini-runner index
@@ -274,11 +286,6 @@ class TableGenerator {
         : index_name_(index_name), table_name_(table_name), cols_(std::move(cols)) {}
   };
 
-  /**
-   * Generate the tables for the mini runner
-   */
-  std::vector<TableInsertMeta> GenerateMiniRunnerTableMetas();
-
   void InitTestIndexes();
 
   /**
@@ -352,9 +359,9 @@ class TableGenerator {
                  const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,
                  const catalog::Schema &table_schema);
 
-  terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+  noisepage::parser::ConstantValueExpression DummyCVE() {
+    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

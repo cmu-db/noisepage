@@ -1,7 +1,7 @@
 #include "execution/sql/data_types.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class DataTypesTests : public TplTest {};
 
@@ -180,4 +180,4 @@ TEST_F(DataTypesTests, VarcharType) {
   EXPECT_TRUE(type1.Equals(VarcharType::InstanceNullable(100)));
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

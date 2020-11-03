@@ -12,11 +12,16 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class StringFunctionsTests : public SqlBasedTest {
  public:
-  StringFunctionsTests() : exec_ctx_(MakeExecCtx()) {}
+  StringFunctionsTests() : exec_ctx_(nullptr) {}
+
+  void SetUp() override {
+    SqlBasedTest::SetUp();
+    exec_ctx_ = MakeExecCtx();
+  }
 
   exec::ExecutionContext *Ctx() { return exec_ctx_.get(); }
 
@@ -808,4 +813,4 @@ TEST_F(StringFunctionsTests, InitCap) {
   EXPECT_TRUE(StringVal("-A 3imple   7est  Simple T  Test") == result);
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

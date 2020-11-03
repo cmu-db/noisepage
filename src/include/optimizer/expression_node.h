@@ -9,7 +9,7 @@
 #include "optimizer/abstract_optimizer_node.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Wrapper for ExpressionNodeContents for the query rewriter.
@@ -96,4 +96,4 @@ class ExpressionNode : public AbstractOptimizerNode {
   common::ManagedPointer<transaction::TransactionContext> txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

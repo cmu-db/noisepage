@@ -8,11 +8,11 @@
 #include "execution/compiler/expression/expression_translator.h"
 #include "execution/compiler/pipeline.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class CompilationContext;
 class FunctionBuilder;
@@ -61,12 +61,18 @@ class WorkContext {
   OperatorTranslator *CurrentOp() const { return *pipeline_iter_; }
 
   /**
+   * Sets the context's position in the pipeline to the given operator
+   * @param op The operator to which the context's position will be set
+   */
+  void SetSource(OperatorTranslator *op);
+
+  /**
    * @return The pipeline the consumption occurs in.
    */
   const Pipeline &GetPipeline() const { return pipeline_; }
 
   /**
-   * @return True if the pipeline this work is flowing on is paralle; false otherwise.
+   * @return True if the pipeline this work is flowing on is parallel; false otherwise.
    */
   bool IsParallel() const;
 
@@ -98,4 +104,4 @@ class WorkContext {
   bool cache_enabled_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

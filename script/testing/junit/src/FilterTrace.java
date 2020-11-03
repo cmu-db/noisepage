@@ -3,11 +3,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import moglib.*;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 
 /**
  * class that filter out desired trace
@@ -33,70 +31,64 @@ public class FilterTrace {
         Connection conn = db.getDbTest().newConn();
         List<String> tab = getAllExistingTableName(mog,conn);
         removeExistingTable(tab,conn);
+
         while (mog.next()) {
             String cur_sql = mog.sql.trim();
-            // the code below remove the queries that contain any skip keyword
-            for(String skip_word:skip_list) {
-                if (cur_sql.contains(skip_word)) {
-                    mog.comments.clear();
+            for(int i=0; i<mog.comments.size();i++){
+                if(mog.comments.get(i).contains(Constants.SKIPIF)||mog.comments.get(i).contains(Constants.ONLYIF)){
                     skip_flag = true;
                     break;
                 }
-            }
-            if(skip_flag){
-                skip_flag = false;
-                continue;
             }
             // filter out nested SELECT statements
             if(getFrequency(cur_sql, "SELECT")>1){
                 mog.comments.clear();
                 continue;
             }
+            // the code below remove the queries that contain any skip keyword
+            for(String skip_word:skip_list) {
+                if (cur_sql.contains(skip_word)) {
+                    skip_flag = true;
+                    break;
+                }
+            }
+            if(skip_flag){
+                skip_flag = false;
+                mog.comments.clear();
+                continue;
+            }
             writeToFile(writer, mog.queryFirstLine);
             writeToFile(writer, cur_sql);
-            if(skip_flag){
-                if(mog.queryFirstLine.contains(Constants.QUERY)){
-                    writeToFile(writer, Constants.SEPARATION);
-                    if(mog.queryResults.size()>0){
-                        if(mog.queryResults.get(0).contains(Constants.VALUES)){
-                            writeToFile(writer, mog.queryResults.get(0));
-                        }else{
+            if(mog.queryFirstLine.contains(Constants.QUERY)){
+                writeToFile(writer, Constants.SEPARATION);
+                try{
+                    Statement statement = conn.createStatement();
+                    statement.execute(cur_sql);
+                    ResultSet rs = statement.getResultSet();
+                    List<String> res = mog.processResults(rs);
+                    if(res.size()>0){
+                        if(res.size()<Constants.DISPLAY_RESULT_SIZE) {
                             for(String i:mog.queryResults){
                                 writeToFile(writer, i);
                             }
-                        }
-
-                    }
-                }
-            }else{
-                if(mog.queryFirstLine.contains(Constants.QUERY)){
-                    writeToFile(writer, Constants.SEPARATION);
-                    try{
-                        Statement statement = conn.createStatement();
-                        statement.execute(cur_sql);
-                        ResultSet rs = statement.getResultSet();
-                        List<String> res = mog.processResults(rs);
-                        if(res.size()==0){
-                            writer.write('\n');
-                        }else{
+                        }else {
                             String hash = TestUtility.getHashFromDb(res);
                             String queryResult = res.size() + " values hashing to " + hash;
                             writeToFile(writer, queryResult);
                         }
-                    }catch(Throwable e){
-                        throw new Throwable(e.getMessage() + ": " + cur_sql);
                     }
-                }else{
-                    try{
-                        Statement statement = conn.createStatement();
-                        statement.execute(cur_sql);
-                    }catch(Throwable e){
-                        throw new Throwable(e.getMessage() + ": " + cur_sql);
-                    }
+                }catch(Throwable e){
+                    throw new Throwable(e.getMessage() + ": " + cur_sql);
+                }
+            }else{
+                try{
+                    Statement statement = conn.createStatement();
+                    statement.execute(cur_sql);
+                }catch(Throwable e){
+                    throw new Throwable(e.getMessage() + ": " + cur_sql);
                 }
             }
             writer.write('\n');
-            skip_flag = false;
             mog.comments.clear();
             mog.queryResults.clear();
         }

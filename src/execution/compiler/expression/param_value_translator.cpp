@@ -7,7 +7,7 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 ParamValueTranslator::ParamValueTranslator(const parser::ParameterValueExpression &expr,
                                            CompilationContext *compilation_context)
@@ -15,7 +15,7 @@ ParamValueTranslator::ParamValueTranslator(const parser::ParameterValueExpressio
 
 ast::Expr *ParamValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
   auto *codegen = GetCodeGen();
-  auto param_val = GetExpressionAs<terrier::parser::ParameterValueExpression>();
+  auto param_val = GetExpressionAs<noisepage::parser::ParameterValueExpression>();
   auto param_idx = param_val.GetValueIdx();
   ast::Builtin builtin;
   switch (param_val.GetReturnValueType()) {
@@ -53,4 +53,4 @@ ast::Expr *ParamValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValue
   return codegen->CallBuiltin(builtin, {GetExecutionContextPtr(), codegen->Const32(param_idx)});
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

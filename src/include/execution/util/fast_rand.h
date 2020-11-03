@@ -2,7 +2,7 @@
 
 #include <random>
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Fast-random number generator based on Lehmer's technique.
@@ -48,4 +48,4 @@ class FastRand {
   uint128_t state_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

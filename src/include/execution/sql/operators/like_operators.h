@@ -4,7 +4,7 @@
 
 #include "execution/sql/runtime_types.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 static constexpr const char DEFAULT_ESCAPE = '\\';
 
@@ -35,4 +35,4 @@ struct NotLike {
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -1,16 +1,18 @@
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
+#include "execution/compiler/operator/distinct_aggregation_util.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline.h"
 #include "execution/compiler/pipeline_driver.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AggregatePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -41,15 +43,22 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
    */
   void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
-  /** Declare the counters. */
-  void InitializeQueryState(FunctionBuilder *function) const override;
-
   /**
    * If the provided pipeline is the build-side, initialize the declare partial aggregate.
    * @param pipeline The pipeline whose state is being initialized.
    * @param function The function being built.
    */
   void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * Initialize the global aggregation hash table.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
+
+  /**
+   * Destroy the global aggregation hash table.
+   */
+  void TearDownQueryState(FunctionBuilder *function) const override;
 
   /**
    * Before the pipeline begins, initial the partial aggregates.
@@ -89,6 +98,10 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
     UNREACHABLE("Static aggregations do not produce columns from base tables.");
   }
+
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
  private:
   // Access the plan.
@@ -131,6 +144,8 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   // For minirunners
   ast::StructDecl *struct_decl_;
 
+  // For distinct aggregations
+  std::unordered_map<size_t, DistinctAggregationFilter> distinct_filters_;
   // The number of input rows to the aggregation.
   StateDescriptor::Entry num_agg_inputs_;
 
@@ -138,4 +153,4 @@ class StaticAggregationTranslator : public OperatorTranslator, public PipelineDr
   StateDescriptor::Entry num_agg_outputs_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

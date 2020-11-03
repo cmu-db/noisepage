@@ -7,15 +7,15 @@
 #include "benchmark/benchmark.h"
 #include "parser/postgresparser.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Magic macro for our parser microbencmarks
  */
-#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                     \
-  for (const auto &sql : QUERIES) {                                                                                 \
-    auto result = parser::PostgresParser::BuildParseTree(sql);                                                      \
-    TERRIER_ASSERT(result->GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
+#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                       \
+  for (const auto &sql : QUERIES) {                                                                                   \
+    auto result = parser::PostgresParser::BuildParseTree(sql);                                                        \
+    NOISEPAGE_ASSERT(result->GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
   }
 
 class ParserBenchmark : public benchmark::Fixture {
@@ -32,7 +32,7 @@ class ParserBenchmark : public benchmark::Fixture {
     selects_simple_ = {
         "SELECT * FROM foo WHERE id = 123;",
         "SELECT a, b, c, d FROM foo WHERE e = 123;",
-        "SELECT col + 1 AS xxx FROM foo WHERE terrier = 'dangerous';",
+        "SELECT col + 1 AS xxx FROM foo WHERE noisepage = 'dangerous';",
         "SELECT COUNT(DISTINCT id) FROM foo WHERE wu_tang_clan = 'nuthin to fuck wit';"
     };
     // clang-format on
@@ -103,7 +103,7 @@ class ParserBenchmark : public benchmark::Fixture {
     deletes_simple_ = {
         "DELETE FROM xxx WHERE id = 123;",
         "DELETE FROM xxx WHERE id IS NULL;",
-        "DELETE FROM xxx WHERE id = 123 AND terrier = 'dangerous';",
+        "DELETE FROM xxx WHERE id = 123 AND noisepage = 'dangerous';",
         "DELETE FROM xxx WHERE col0 != col1;"
     };
     // clang-format on
@@ -207,7 +207,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, NOOPs)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto result = parser::PostgresParser::BuildParseTree(";");
-    TERRIER_ASSERT(result->GetStatements().empty(), "Unexpected return result for NOOP");
+    NOISEPAGE_ASSERT(result->GetStatements().empty(), "Unexpected return result for NOOP");
   }
   state.SetItemsProcessed(state.iterations());
 }
@@ -227,4 +227,4 @@ BENCHMARK_REGISTER_F(ParserBenchmark, DeletesComplex)->Unit(benchmark::kNanoseco
 BENCHMARK_REGISTER_F(ParserBenchmark, NOOPs)->Unit(benchmark::kNanosecond);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

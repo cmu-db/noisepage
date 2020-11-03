@@ -2,7 +2,7 @@
 
 #include "execution/ast/ast.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
  * Base class for AST node visitors. Implemented using the Curiously Recurring
@@ -98,4 +98,4 @@ class AstVisitor {
   Subclass *Impl() { return static_cast<Subclass *>(this); }
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

@@ -6,7 +6,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class ContextTest : public TplTest {};
 
@@ -34,4 +34,4 @@ TEST_F(ContextTest, CreateNewStringsTest) {
   }
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

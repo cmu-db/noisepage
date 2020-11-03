@@ -2,7 +2,7 @@
 
 #include <tbb/concurrent_vector.h>
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * A concurrent implementation of a vector.
  * @tparam T type of element in the vector.
@@ -128,4 +128,4 @@ class ConcurrentVector {
  private:
   tbb::concurrent_vector<T, Alloc> vector_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

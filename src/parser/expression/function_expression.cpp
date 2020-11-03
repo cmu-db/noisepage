@@ -1,8 +1,10 @@
 #include "parser/expression/function_expression.h"
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> FunctionExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -35,6 +37,16 @@ std::vector<std::unique_ptr<AbstractExpression>> FunctionExpression::FromJson(co
   return exprs;
 }
 
+void FunctionExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
+common::hash_t FunctionExpression::Hash() const {
+  common::hash_t hash = AbstractExpression::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
+  return hash;
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(FunctionExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

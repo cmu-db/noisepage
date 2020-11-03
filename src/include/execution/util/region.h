@@ -11,7 +11,7 @@
 #include "common/math_util.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * A region-based allocator supports fast O(1) time allocations of small chunks of memory.
@@ -213,4 +213,4 @@ class RegionObject {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

@@ -51,7 +51,7 @@
 #include "storage/block_layout.h"
 #include "type/type_id.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 double OperatingUnitRecorder::ComputeMemoryScaleFactor(execution::ast::StructDecl *decl, size_t total_offset,
                                                        size_t key_size, size_t ref_offset) {
@@ -97,7 +97,9 @@ size_t OperatingUnitRecorder::ComputeKeySize(
     AdjustKeyWithType(expr->GetReturnValueType(), &key_size, num_key);
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  // The set of expressions represented by exprs should have some key size
+  // that is non-zero.
+  NOISEPAGE_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
@@ -117,7 +119,9 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, size_
     AdjustKeyWithType(col.Type(), &key_size, num_key);
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  // We should select some columns from the table specified by tbl_oid.
+  // Thus we assert that key_size > 0.
+  NOISEPAGE_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
@@ -130,7 +134,9 @@ size_t OperatingUnitRecorder::ComputeKeySize(catalog::table_oid_t tbl_oid, const
     AdjustKeyWithType(col.Type(), &key_size, num_key);
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
+  // We should select some columns from the table specified by tbl_oid.
+  // Thus we assert that key_size > 0.
+  NOISEPAGE_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
@@ -147,16 +153,13 @@ size_t OperatingUnitRecorder::ComputeKeySize(common::ManagedPointer<const catalo
     }
   }
 
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
   return key_size;
 }
 
 size_t OperatingUnitRecorder::ComputeKeySize(catalog::index_oid_t idx_oid,
                                              const std::vector<catalog::indexkeycol_oid_t> &cols, size_t *num_key) {
   auto &schema = accessor_->GetIndexSchema(idx_oid);
-  auto key_size = ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
-  TERRIER_ASSERT(key_size > 0, "KeySize must be greater than 0");
-  return key_size;
+  return ComputeKeySize(common::ManagedPointer(&schema), true, cols, num_key);
 }
 
 void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType type, size_t key_size, size_t num_keys,
@@ -166,6 +169,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   size_t num_rows = 1;
   size_t cardinality = 1;
   size_t num_loops = 0;
+  size_t num_concurrent = 0;  // the number of concurrently executing threads (issue #1241)
   if (type == ExecutionOperatingUnitType::OUTPUT) {
     // Uses the network result consumer
     cardinality = 1;
@@ -177,9 +181,9 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
           auto f_expr = output.CastManagedPointerTo<const parser::FunctionExpression>();
           if (f_expr->GetFuncName() == "nprunnersemitint" || f_expr->GetFuncName() == "nprunnersemitreal") {
             auto child = f_expr->GetChild(0);
-            TERRIER_ASSERT(child, "NpRunnersEmit should have children");
-            TERRIER_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
-                           "Child should be constants");
+            NOISEPAGE_ASSERT(child, "NpRunnersEmit should have children");
+            NOISEPAGE_ASSERT(child->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT,
+                             "Child should be constants");
 
             auto cve = child.CastManagedPointerTo<const parser::ConstantValueExpression>();
             num_rows = cve->GetInteger().val_;
@@ -191,7 +195,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     // If feature is OUTPUT or computation, then cardinality = num_rows
     cardinality = num_rows;
   } else if (type == ExecutionOperatingUnitType::HASHJOIN_PROBE) {
-    TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
+    NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::HASHJOIN, "HashJoin plan expected");
     UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(1);
     num_rows = 1;     // extract from c_plan num_rows (# row to probe)
     cardinality = 1;  // extract from plan num_rows (# matched rows)
@@ -202,7 +206,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
     if (plan->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
       num_rows = reinterpret_cast<const planner::IndexScanPlanNode *>(plan)->GetIndexSize();
     } else {
-      TERRIER_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
+      NOISEPAGE_ASSERT(plan->GetPlanNodeType() == planner::PlanNodeType::INDEXNLJOIN, "Expected IdxJoin");
       num_rows = reinterpret_cast<const planner::IndexJoinPlanNode *>(plan)->GetIndexSize();
 
       UNUSED_ATTRIBUTE auto *c_plan = plan->GetChild(0);
@@ -238,7 +242,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
 
   auto itr_pair = pipeline_features_.equal_range(type);
   for (auto itr = itr_pair.first; itr != itr_pair.second; itr++) {
-    TERRIER_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
+    NOISEPAGE_ASSERT(itr->second.GetExecutionOperatingUnitType() == type, "multimap consistency failure");
     bool same_translator = std::find(translator_ids.cbegin(), translator_ids.cend(), itr->second.GetTranslatorId()) !=
                            translator_ids.cend();
     if (itr->second.GetKeySize() == key_size && itr->second.GetNumKeys() == num_keys &&
@@ -251,7 +255,7 @@ void OperatingUnitRecorder::AggregateFeatures(brain::ExecutionOperatingUnitType 
   }
 
   auto feature = ExecutionOperatingUnitFeature(translator->GetTranslatorId(), type, num_rows, key_size, num_keys,
-                                               cardinality, mem_factor, num_loops);
+                                               cardinality, mem_factor, num_loops, num_concurrent);
   pipeline_features_.emplace(type, std::move(feature));
 }
 
@@ -320,7 +324,7 @@ void OperatingUnitRecorder::FixTPCCFeature(brain::ExecutionOperatingUnitType typ
 
 void OperatingUnitRecorder::RecordArithmeticFeatures(const planner::AbstractPlanNode *plan, size_t scaling) {
   for (auto &feature : arithmetic_feature_types_) {
-    TERRIER_ASSERT(feature.second > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER, "Expected computation operator");
+    NOISEPAGE_ASSERT(feature.second > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER, "Expected computation operator");
     if (feature.second != ExecutionOperatingUnitType::INVALID) {
       // Recording of simple operators
       // - num_keys is always 1
@@ -549,7 +553,7 @@ void OperatingUnitRecorder::Visit(const planner::InsertPlanNode *plan) {
   } else {
     // INSERT with a SELECT
     auto *c_plan = plan->GetChild(0);
-    TERRIER_ASSERT(c_plan->GetOutputSchema() != nullptr, "Child must have OutputSchema");
+    NOISEPAGE_ASSERT(c_plan->GetOutputSchema() != nullptr, "Child must have OutputSchema");
 
     auto num_key = c_plan->GetOutputSchema()->GetColumns().size();
     auto size = ComputeKeySizeOutputSchema(c_plan, &num_key);
@@ -739,7 +743,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
 
     if (plan_feature_type_ != ExecutionOperatingUnitType::INVALID) {
       if (plan_feature_type_ == ExecutionOperatingUnitType::OUTPUT) {
-        TERRIER_ASSERT(translator->GetChildTranslator(), "OUTPUT should have child translator");
+        NOISEPAGE_ASSERT(translator->GetChildTranslator(), "OUTPUT should have child translator");
         auto child_type = translator->GetChildTranslator()->GetFeatureType();
         if (child_type == ExecutionOperatingUnitType::INSERT || child_type == ExecutionOperatingUnitType::UPDATE ||
             child_type == ExecutionOperatingUnitType::DELETE) {
@@ -754,7 +758,7 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
         AggregateFeatures(plan_feature_type_, key_size, num_keys, op, 1, 1);
       } else {
         translator->Op()->Accept(common::ManagedPointer<planner::PlanVisitor>(this));
-        TERRIER_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
+        NOISEPAGE_ASSERT(arithmetic_feature_types_.empty(), "aggregate_feature_types_ should be empty");
       }
     }
   }
@@ -770,4 +774,4 @@ ExecutionOperatingUnitFeatureVector OperatingUnitRecorder::RecordTranslators(
   return results;
 }
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

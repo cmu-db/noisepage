@@ -16,6 +16,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -23,7 +24,7 @@ import static org.junit.Assert.assertEquals;
 
 public class TestUtility {
     public static Connection makeDefaultConnection() throws SQLException {
-        return makeConnection("localhost", 15721, "terrier");
+        return makeConnection("localhost", 15721, "noisepage");
     }
 
     public static Connection makeConnection(String host, int port, String username) throws SQLException {
@@ -32,16 +33,16 @@ public class TestUtility {
         props.setProperty("prepareThreshold", "0"); // suppress switchover to binary protocol
 
         // Set prepferQueryMode
-        String preferQueryMode = System.getenv("TERRIER_QUERY_MODE");
+        String preferQueryMode = System.getenv("NOISEPAGE_QUERY_MODE");
         if (preferQueryMode == null || preferQueryMode.isEmpty()) {
-            // Default as "simple" if TERRIER_QUERY_MODE is not specified
+            // Default as "simple" if NOISEPAGE_QUERY_MODE is not specified
             preferQueryMode = "simple";
         }
         props.setProperty("preferQueryMode", preferQueryMode);
 
         // Set prepareThreshold if the prepferQueryMode is 'extended'
         if (preferQueryMode.equals("extended")) {
-            String prepareThreshold = System.getenv("TERRIER_PREPARE_THRESHOLD");
+            String prepareThreshold = System.getenv("NOISEPAGE_PREPARE_THRESHOLD");
             if (prepareThreshold != null && !prepareThreshold.isEmpty()) {
                 props.setProperty("prepareThreshold", prepareThreshold);
             }
@@ -50,6 +51,18 @@ public class TestUtility {
         String url = String.format("jdbc:postgresql://%s:%d/", host, port);
         Connection conn = DriverManager.getConnection(url, props);
         return conn;
+    }
+
+    /**
+    * Check the number of columns against expected value
+    *
+    * @param rs              resultset
+    * @param column_number   expected number of columns
+    */
+    public static void checkNumOfColumns(ResultSet rs, int column_number) throws SQLException {
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnsNumber = rsmd.getColumnCount();
+        assertEquals(columnsNumber, column_number);
     }
 
     /**
