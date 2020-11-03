@@ -261,8 +261,18 @@ void DatabaseCatalog::Bootstrap(const common::ManagedPointer<transaction::Transa
 
   NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
+  // pg_statistic and associated indexes.
   retval = CreateTableEntry(txn, postgres::STATISTIC_TABLE_OID, postgres::NAMESPACE_CATALOG_NAMESPACE_OID,
                             "pg_statistic", postgres::Builder::GetStatisticTableSchema());
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetTablePointer(txn, postgres::STATISTIC_TABLE_OID, statistics_);
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = CreateIndexEntry(txn, postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::STATISTIC_TABLE_OID,
+                            postgres::STATISTIC_OID_INDEX_OID, "pg_statistic_index",
+                            postgres::Builder::GetStatisticOidIndexSchema(db_oid_));
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
+  retval = SetIndexPointer(txn, postgres::STATISTIC_OID_INDEX_OID, statistics_oid_index_);
+  NOISEPAGE_ASSERT(retval, "Bootstrap operations should not fail");
 
   BootstrapProcs(txn);
 }
@@ -359,6 +369,17 @@ void DatabaseCatalog::BootstrapPRIs() {
 
   const std::vector<col_oid_t> set_pg_proc_ptr_oids{postgres::PRO_CTX_PTR_COL_OID};
   pg_proc_ptr_pri_ = procs_->InitializerForProjectedRow(set_pg_proc_ptr_oids);
+
+  // pg_statistic
+  const std::vector<col_oid_t> pg_statistic_all_oids{postgres::PG_STATISTIC_ALL_COL_OIDS.cbegin(),
+                                                     postgres::PG_STATISTIC_ALL_COL_OIDS.end()};
+  pg_statistic_all_cols_pri_ = statistics_->InitializerForProjectedRow(pg_statistic_all_oids);
+  pg_statistic_all_cols_prm_ = statistics_->ProjectionMapForOids(pg_statistic_all_oids);
+
+  // Used to select rows to delete in DeleteColumnStatistics
+  const std::vector<col_oid_t> delete_statistics_oids{postgres::STAATTNUM_COL_OID};
+  delete_statistics_pri_ = statistics_->InitializerForProjectedRow(delete_statistics_oids);
+  delete_statistics_prm_ = statistics_->ProjectionMapForOids(delete_statistics_oids);
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(const common::ManagedPointer<transaction::TransactionContext> txn,
@@ -2312,8 +2333,10 @@ bool DatabaseCatalog::CreateTableEntry(const common::ManagedPointer<transaction:
   // Write the col oids into a new Schema object
   col_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
-    auto success = CreateColumn(txn, table_oid, curr_col_oid++, col);
+    col_oid_t col_oid(curr_col_oid++);
+    auto success = CreateColumn(txn, table_oid, col_oid, col);
     if (!success) return false;
+    CreateColumnStatistic(txn, table_oid, col_oid, col);
   }
 
   std::vector<Schema::Column> cols = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table_oid);
@@ -2897,6 +2920,119 @@ proc_oid_t DatabaseCatalog::GetProcOid(common::ManagedPointer<transaction::Trans
   }
 
   return ret;
+}
+
+template <typename Column, typename ClassOid, typename ColOid>
+void DatabaseCatalog::CreateColumnStatistic(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                            const ClassOid class_oid, const ColOid col_oid, const Column &col) {
+  // Step 1: Insert into the table
+  auto *const redo = txn->StageWrite(db_oid_, postgres::STATISTIC_TABLE_OID, pg_statistic_all_cols_pri_);
+
+  // Write the attributes in the Redo Record
+  auto relid_entry = reinterpret_cast<ClassOid *>(
+      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[postgres::STARELID_COL_OID]));
+  auto attnum_entry = reinterpret_cast<ColOid *>(
+      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[postgres::STAATTNUM_COL_OID]));
+  auto nullfrac_entry = reinterpret_cast<double *>(
+      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[postgres::STANULLFRAC_COL_OID]));
+  auto distinct_entry = reinterpret_cast<double *>(
+      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[postgres::STADISTINCT_COL_OID]));
+  auto numrows_entry = reinterpret_cast<uint32_t *>(
+      redo->Delta()->AccessForceNotNull(pg_statistic_all_cols_prm_[postgres::STA_NUMROWS_COL_OID]));
+
+  *relid_entry = class_oid;
+  *attnum_entry = col_oid;
+  *nullfrac_entry = 0.0;
+  *distinct_entry = 0.0;
+  *numrows_entry = 0;
+
+  // Finally, insert into the table to get the tuple slot
+  const auto tupleslot = statistics_->Insert(txn, redo);
+
+  // Step 2: Insert into oid index
+  const auto oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
+  auto oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
+  // Create a buffer large enough for all columns
+  auto const buffer = std::unique_ptr<byte[]>(common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize()));
+  auto *pr = oid_pri.InitializeRow(buffer.get());
+  // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
+  // Builder::GetStatisticOidIndexSchema()
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(1)]))) = class_oid;
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_prm[indexkeycol_oid_t(2)]))) = col_oid;
+
+  bool UNUSED_ATTRIBUTE result = statistics_oid_index_->InsertUnique(txn, *pr, tupleslot);
+  NOISEPAGE_ASSERT(result, "Assigned OIDs failed to be unique.");
+}
+
+template <typename Column, typename ClassOid>
+bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transaction::TransactionContext> txn,
+                                             const ClassOid class_oid) {
+  const auto &oid_pri = statistics_oid_index_->GetProjectedRowInitializer();
+  const auto &oid_prm = statistics_oid_index_->GetKeyOidToOffsetMap();
+
+  // Step 1: Read Index
+  std::vector<storage::TupleSlot> index_results;
+  {
+    // Buffer is large enough to hold all prs
+    const std::unique_ptr<byte[]> buffer_lo(common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize()));
+    const std::unique_ptr<byte[]> buffer_hi(common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize()));
+
+    // Scan the class index
+    auto *pr_lo = oid_pri.InitializeRow(buffer_lo.get());
+    auto *pr_hi = oid_pri.InitializeRow(buffer_hi.get());
+
+    // Write the attributes in the ProjectedRow
+    // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+    *(reinterpret_cast<ClassOid *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = class_oid;
+    *(reinterpret_cast<uint32_t *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
+
+    auto next_oid = ClassOid(!class_oid + 1);
+    // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+    *(reinterpret_cast<ClassOid *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = next_oid;
+    *(reinterpret_cast<uint32_t *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
+
+    statistics_oid_index_->ScanAscending(*txn, storage::index::ScanType::Closed, 2, pr_lo, pr_hi, 0, &index_results);
+  }
+
+  NOISEPAGE_ASSERT(!index_results.empty(),
+                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
+
+  // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
+  // another catalog table maybe?
+
+  // Step 2: Scan the table to get the columns
+  const std::unique_ptr<byte[]> buffer(
+      common::AllocationUtil::AllocateAligned(delete_statistics_pri_.ProjectedRowSize()));
+  const std::unique_ptr<byte[]> key_buffer(common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize()));
+
+  auto *pr = delete_statistics_pri_.InitializeRow(buffer.get());
+  for (const auto &slot : index_results) {
+    // 1. Extract attributes from the tuple for the index deletions
+    auto UNUSED_ATTRIBUTE result = statistics_->Select(txn, slot, pr);
+    NOISEPAGE_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+    const auto *const col_oid = reinterpret_cast<const uint32_t *const>(
+        pr->AccessWithNullCheck(delete_statistics_prm_.at(postgres::STAATTNUM_COL_OID)));
+    NOISEPAGE_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
+
+    // 2. Delete from the table
+    txn->StageDelete(db_oid_, postgres::STATISTIC_TABLE_OID, slot);
+    result = statistics_->Delete(txn, slot);
+    if (!result) {
+      // Failed to delete one of the columns, return false to indicate failure
+      return false;
+    }
+
+    // 3. Delete from oid index
+    auto *key_pr = oid_pri.InitializeRow(key_buffer.get());
+    // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
+    // Builder::GetStatisticOidIndexSchema()
+    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = class_oid;
+    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = *col_oid;
+    statistics_oid_index_->Delete(txn, *key_pr, slot);
+  }
+
+  return true;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(

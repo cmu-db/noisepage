@@ -750,5 +750,31 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ColOid>
   static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+
+  /**
+ * Add entry to pg_statistic
+ *
+ * Currently, this is called inside CreateTableEntry so that each row in pg_attribute (corresponding to a column
+ * of a table) has a corresponding row in pg_statistic.
+ *
+ * @tparam Column type of column (IndexSchema::Column or Schema::Column)
+ * @param txn txn to use
+ * @param class_oid oid of table or index
+ * @param col column to insert
+ * @param default_val default value
+ * @return whether insertion is successful
+   */
+  template <typename Column, typename ClassOid, typename ColOid>
+  void CreateColumnStatistic(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid,
+                             ColOid col_oid, const Column &col);
+
+  /**
+   * Delete entries from pg_statistic
+   * @param txn txn to use
+   * @param class_oid oid of table or index
+   * @return whether deletion was successful
+   */
+  template <typename Column, typename ClassOid>
+  bool DeleteColumnStatistics(common::ManagedPointer<transaction::TransactionContext> txn, ClassOid class_oid);
 };
 }  // namespace noisepage::catalog
