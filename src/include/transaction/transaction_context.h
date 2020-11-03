@@ -165,7 +165,7 @@ class TransactionContext {
    * to enable further deferral of actions
    */
   void RegisterAbortAction(const TransactionEndAction &a) {
-    abort_actions_.push_front(std::unique_ptr<TransactionEndActionBaseFunctor>{new TransactionEndActionFunction(a)});
+    abort_actions_.emplace_back(std::make_unique<TransactionEndActionFunction>(a));
   }
 
   /**
@@ -182,12 +182,12 @@ class TransactionContext {
    */
   template <typename T>
   void RegisterAbortCleanupAction(T *resource) {
-    abort_actions_.push_front(std::unique_ptr<TransactionEndActionBaseFunctor>{new TransactionEndCleanupFunctor(
+    abort_actions_.emplace_back(std::make_unique<TransactionEndCleanupFunctor>(
         [](void *ptr) {
           auto specialized = static_cast<T *>(ptr);
           delete specialized;
         },
-        resource)});
+        resource));
   }
 
   /**
@@ -196,9 +196,7 @@ class TransactionContext {
    * @param a the action to be executed. A handle to the system's deferred action manager is supplied
    * to enable further deferral of actions
    */
-  void RegisterCommitAction(const TransactionEndAction &a) {
-    commit_actions_.push_front(TransactionEndActionFunction(a));
-  }
+  void RegisterCommitAction(const TransactionEndAction &a) { commit_actions_.emplace_back(a); }
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
@@ -240,8 +238,8 @@ class TransactionContext {
   std::vector<const byte *> loose_ptrs_;
 
   // These actions will be triggered (not deferred) at abort/commit.
-  std::forward_list<std::unique_ptr<TransactionEndActionBaseFunctor>> abort_actions_;
-  std::forward_list<TransactionEndActionFunction> commit_actions_;
+  std::vector<std::unique_ptr<TransactionEndActionBaseFunctor>> abort_actions_;
+  std::vector<TransactionEndActionFunction> commit_actions_;
 
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.

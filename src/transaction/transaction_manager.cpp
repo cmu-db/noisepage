@@ -92,11 +92,12 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
   txn->finish_time_.store(result);
 
-  while (!txn->commit_actions_.empty()) {
+  // Iterate through the commit_actions_ in reverse order and eventially clear the vector
+  for (auto rit = txn->commit_actions_.rbegin(); rit != txn->commit_actions_.rend(); ++rit) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    txn->commit_actions_.front()(deferred_action_manager_.Get());
-    txn->commit_actions_.pop_front();
+    (*rit)(deferred_action_manager_.Get());
   }
+  txn->commit_actions_.clear();
 
   // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
   // committed. This will allow us to correctly order and execute transactions during recovery.
@@ -153,13 +154,13 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 }
 
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
-  // Immediately clear the abort actions stack
-  while (!txn->abort_actions_.empty()) {
+  // Iterate through the abort_actions_ in reverse order and eventially clear the vector
+  for (auto rit = txn->abort_actions_.rbegin(); rit != txn->abort_actions_.rend(); ++rit) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    auto abort_action = std::move(txn->abort_actions_.front());
+    auto abort_action = std::move(*rit);
     (*abort_action)(deferred_action_manager_.Get());
-    txn->abort_actions_.pop_front();
   }
+  txn->abort_actions_.clear();
 
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
   std::unordered_set<storage::TupleSlot> slots_rolled_back;
