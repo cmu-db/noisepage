@@ -29,6 +29,10 @@ namespace noisepage::metrics {
 class MetricsManager;
 }  // namespace noisepage::metrics
 
+namespace noisepage::parser {
+class ConstantValueExpression;
+}  // namespace noisepage::parser
+
 namespace noisepage::execution::exec {
 class ExecutionSettings;
 /**

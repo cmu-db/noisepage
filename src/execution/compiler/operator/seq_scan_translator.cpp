@@ -1,6 +1,7 @@
 #include "execution/compiler/operator/seq_scan_translator.h"
 
 #include "catalog/catalog_accessor.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compilation_context.h"

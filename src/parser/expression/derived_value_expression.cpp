@@ -1,5 +1,7 @@
 #include "parser/expression/derived_value_expression.h"
 
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
 namespace noisepage::parser {
@@ -22,6 +24,10 @@ bool DerivedValueExpression::operator==(const AbstractExpression &rhs) const {
   auto const &other = dynamic_cast<const DerivedValueExpression &>(rhs);
   if (GetTupleIdx() != other.GetTupleIdx()) return false;
   return GetValueIdx() == other.GetValueIdx();
+}
+
+void DerivedValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 nlohmann::json DerivedValueExpression::ToJson() const {
