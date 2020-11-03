@@ -17,6 +17,7 @@ std::unique_ptr<AbstractExpression> SubqueryExpression::Copy() const {
 
   // make a copy of with tables
   std::vector<std::unique_ptr<TableRef>> with_copy;
+  with_copy.reserve(with.size());
   for (auto w : with) {
     with_copy.push_back(w->Copy());
   }
