@@ -437,7 +437,7 @@ TrafficCopResult TrafficCop::RunExecutableQuery(const common::ManagedPointer<net
 
   if (query_trace_metrics_enabled) {
     common::thread_context.metrics_store_->RecordQueryTrace(exec_query->GetQueryId(), metrics::MetricsUtil::Now(),
-                                                            portal->Parameters());
+                                                            portal->Parameters(), connection_ctx->GetDatabaseOid());
   }
 
   if (connection_ctx->TransactionState() == network::NetworkTransactionStateType::BLOCK) {

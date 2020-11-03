@@ -58,7 +58,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
     }
     for (const auto &data : query_trace_) {
       query_trace_outfile << data.query_id_ << ", " << data.timestamp_ << ", " << data.param_string_ 
-          << ", " << data.type_string_ << ", ";
+          << ", " << data.type_string_ << ", " << data.oid_ << ", ";
       query_trace_outfile << std::endl;
     }
     query_text_.clear();
@@ -73,8 +73,9 @@ class QueryTraceMetricRawData : public AbstractRawData {
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"query_id, query_text, timestamp",
-                                                                      "query_id, timestamp, parameters, types"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS =
+      {"query_id, query_text, timestamp",
+       "query_id, timestamp, parameters, types, db_oid"};
 
  private:
   friend class QueryTraceMetric;
@@ -85,8 +86,8 @@ class QueryTraceMetricRawData : public AbstractRawData {
   }
 
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp, 
-                        std::string param_string, std::string type_string) {
-    query_trace_.emplace_back(query_id, timestamp, param_string, type_string);
+                        std::string param_string, std::string type_string, const catalog::db_oid_t oid) {
+    query_trace_.emplace_back(query_id, timestamp, param_string, type_string, oid);
   }
 
   struct QueryText {
@@ -99,12 +100,14 @@ class QueryTraceMetricRawData : public AbstractRawData {
 
   struct QueryTrace {
     QueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
-               std::string param_string, std::string type_string)
-        : query_id_(query_id), timestamp_(timestamp), param_string_(param_string), type_string_(type_string) {}
+               std::string param_string, std::string type_string, const catalog::db_oid_t oid)
+        : query_id_(query_id), timestamp_(timestamp), param_string_(param_string), type_string_(type_string),
+          oid_(oid){}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
     std::string param_string_;
     std::string type_string_;
+    const catalog::db_oid_t oid_;
   };
 
   std::list<QueryText> query_text_;
@@ -123,7 +126,8 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
     GetRawData()->RecordQueryText(query_id, query_text, timestamp);
   }
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
-                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
+                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
+                        catalog::db_oid_t oid) {
     std::ostringstream param_stream;
     std::ostringstream type_stream;
     for (uint32_t n = 0; n < (*param).size(); n++) {
@@ -136,7 +140,7 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
       param_stream << ";";
       type_stream << ";";
     }
-    GetRawData()->RecordQueryTrace(query_id, timestamp, param_stream.str(), type_stream.str());
+    GetRawData()->RecordQueryTrace(query_id, timestamp, param_stream.str(), type_stream.str(), oid);
   }
 };
 }  // namespace noisepage::metrics

@@ -23,7 +23,6 @@
 #include "parser/expression/constant_value_expression.h"
 #include "main/db_main.h"
 #include "spdlog/fmt/fmt.h"
-
 #include "execution/exec_defs.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
@@ -72,24 +71,7 @@ void Pilot::ExecuteForecast() {
                                callback);
   }
   std::cout << "After ppl metrics enabled \n" << std::flush;
- 
-  auto txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
-  std::cout << "Before Transac\n" << std::flush;
-  transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
-
-  execution::exec::ExecutionSettings exec_settings{};
-  exec_settings.UpdateFromSettingsManager(settings_manager_);
-
-  auto catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
-
-  catalog::db_oid_t db_oid = catalog_->GetDatabaseOid(common::ManagedPointer(txn), "tpcc");
-  std::unique_ptr<catalog::CatalogAccessor> accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), nullptr,
-                                                                      nullptr, common::ManagedPointer(accessor),
-                                                                      exec_settings, 
-                                                                      db_main_->GetMetricsManager());
-  forecastor_->ExecuteSegments(common::ManagedPointer(exec_ctx), exec_settings);
-  txn_manager_->Abort(txn);
+  forecastor_->ExecuteSegments(db_main_);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
   if (!oldval) {
