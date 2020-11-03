@@ -422,12 +422,12 @@ TEST_F(ParserTestBase, SelectWithTest) {
   auto select_stmt = result->GetStatement(0).CastManagedPointerTo<SelectStatement>();
   EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "employee");
   // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
-  EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
+  EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::TABLE_STAR);
 
   auto with_select_stmt = select_stmt->GetSelectWith()[0]->GetSelect();
   EXPECT_EQ(with_select_stmt->GetSelectTable()->GetTableName(), "company");
   EXPECT_EQ(select_stmt->GetSelectWith()[0]->GetAlias(), "employee");
-  EXPECT_EQ(with_select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
+  EXPECT_EQ(with_select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::TABLE_STAR);
 }
 
 // NOLINTNEXTLINE
