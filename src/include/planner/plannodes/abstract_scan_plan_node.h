@@ -120,15 +120,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
                        std::unique_ptr<OutputSchema> output_schema,
                        common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
                        catalog::db_oid_t database_oid, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
-                       bool scan_has_offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        scan_predicate_(predicate),
-        is_for_update_(is_for_update),
-        database_oid_(database_oid),
-        scan_limit_(scan_limit),
-        scan_has_limit_(scan_has_limit),
-        scan_offset_(scan_offset),
-        scan_has_offset_(scan_has_offset) {}
+                       bool scan_has_offset);
 
  public:
   /**

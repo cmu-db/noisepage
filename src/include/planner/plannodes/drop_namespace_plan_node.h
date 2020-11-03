@@ -41,10 +41,7 @@ class DropNamespacePlanNode : public AbstractPlanNode {
      * Build the drop namespace plan node
      * @return plan node
      */
-    std::unique_ptr<DropNamespacePlanNode> Build() {
-      return std::unique_ptr<DropNamespacePlanNode>(
-          new DropNamespacePlanNode(std::move(children_), std::move(output_schema_), namespace_oid_));
-    }
+    std::unique_ptr<DropNamespacePlanNode> Build();
 
    protected:
     /**
@@ -61,8 +58,7 @@ class DropNamespacePlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace to drop
    */
   DropNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                        std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_oid_(namespace_oid) {}
+                        std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid);
 
  public:
   /**

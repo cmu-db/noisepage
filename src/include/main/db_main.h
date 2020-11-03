@@ -204,7 +204,33 @@ class DBMain {
     }
 
     ~CatalogLayer() {
-      catalog_->TearDown();  // generates txns and deferred actions, so need to flush the system afterwards
+      // Ensure all user-driven transactions are fully flushed and GC'd
+      deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
+      // Identify and schedule deletion of remaining tables and objects (generates txns and deferred actions).
+      // Specifically, this will generate the following (Note: these transactions are read-only and there are no logical
+      // deletes of the data as that would cause replicas to replay :
+      //
+      // CatalogTearDown:
+      //   BEGIN
+      //     For each database:
+      //       DEFER {
+      //         database.TearDown()
+      //         delete database
+      //       }
+      //     DEFER deletion of pg_database objects
+      //   COMMIT
+      //
+      // DatabaseTearDown:
+      //   BEGIN
+      //     For each stored object:
+      //       DEFER deletion of object
+      //   COMMIT
+      //
+      // TODO(John): We could eagerly execute the database.TearDown() and delete calls, but this would force us into
+      // sequential execution of TearDown when we could potentially multithread the table scans of each database catalog
+      // using DAF.
+      catalog_->TearDown();
+      // Ensure these resources are properly released.
       deferred_action_manager_->FullyPerformGC(common::ManagedPointer(garbage_collector_), log_manager_);
     }
 
@@ -771,7 +797,7 @@ class DBMain {
       // TODO(WAN): open an issue for handling settings.
       //  If you set it with the builder, it gets overwritten.
       //  If you set it with the setting manager, it isn't mutable.
-      //      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
@@ -789,6 +815,8 @@ class DBMain {
       gc_metrics_ = settings_manager->GetBool(settings::Param::gc_metrics_enable);
       bind_command_metrics_ = settings_manager->GetBool(settings::Param::bind_command_metrics_enable);
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
+
+      use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
 
       return settings_manager;
     }

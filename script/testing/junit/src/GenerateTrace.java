@@ -66,7 +66,17 @@ public class GenerateTrace {
                         System.out.println(colTypeName + " column invalid");
                     }
                 }
-                String query_sort = Constants.QUERY + " " + typeString + " nosort";
+
+                String sortOption;
+                if (line.contains("ORDER BY")) {
+                    // These rows are already sorted by the SQL and need to match exactly
+                    sortOption = "nosort";
+                } else {
+                    // Need to create a canonical ordering...
+                    sortOption = "rowsort";
+                    mog.sortMode = "rowsort";
+                }
+                String query_sort = Constants.QUERY + " " + typeString + " " + sortOption;
                 writeToFile(writer, query_sort);
                 writeToFile(writer, line);
                 writeToFile(writer, Constants.SEPARATION);

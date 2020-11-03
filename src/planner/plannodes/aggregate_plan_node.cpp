@@ -5,8 +5,27 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<AggregatePlanNode> AggregatePlanNode::Builder::Build() {
+  return std::unique_ptr<AggregatePlanNode>(new AggregatePlanNode(std::move(children_), std::move(output_schema_),
+                                                                  std::move(groupby_terms_), having_clause_predicate_,
+                                                                  std::move(aggregate_terms_), aggregate_strategy_));
+}
+
+AggregatePlanNode::AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                     std::unique_ptr<OutputSchema> output_schema,
+                                     std::vector<GroupByTerm> groupby_terms,
+                                     common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
+                                     std::vector<AggregateTerm> aggregate_terms,
+                                     AggregateStrategyType aggregate_strategy)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      groupby_terms_(std::move(groupby_terms)),
+      having_clause_predicate_(having_clause_predicate),
+      aggregate_terms_(std::move(aggregate_terms)),
+      aggregate_strategy_(aggregate_strategy) {}
 
 common::hash_t AggregatePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();

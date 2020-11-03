@@ -3,8 +3,10 @@
 #include <unordered_map>
 
 #include "binder/binder_util.h"
+#include "common/error/error_code.h"
 #include "parser/expression/abstract_expression.h"
 #include "spdlog/fmt/fmt.h"
+
 namespace noisepage::binder {
 
 void BinderSherpa::SetDesiredTypePair(const common::ManagedPointer<parser::AbstractExpression> left,
