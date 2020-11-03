@@ -1,17 +1,12 @@
 #include <random>
 #include <string>
 
-#include "common/macros.h"
 #include "common/worker_pool.h"
-#include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
-#include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler.h"
-#include "execution/compiler/function_builder.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/tpl_test.h"
 #include "execution/util/region.h"
-#include "execution/util/region_containers.h"
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 #include "execution/vm/vm_defs.h"
@@ -22,21 +17,15 @@ namespace noisepage::execution::test {
 
 class AtomicsTest : public TplTest {
  public:
-  AtomicsTest() : region_("atomics_test"), pos_() { vm::LLVMEngine::Initialize(); }
-
-  util::Region *Region() { return &region_; }
-
-  const SourcePosition &EmptyPos() const { return pos_; }
+  AtomicsTest() : region_("atomics_test") { vm::LLVMEngine::Initialize(); }
 
   util::Region region_;
-  SourcePosition pos_;
 
   template <typename T>
   void AndOrTest(const std::string &tpl_type, const bool compiled) {
     auto exec_mode = compiled ? vm::ExecutionMode::Compiled : vm::ExecutionMode::Interpret;
     // Setup the compilation environment
     sema::ErrorReporter error_reporter(&region_);
-    ast::AstNodeFactory factory(&region_);
     ast::Context context(&region_, &error_reporter);
 
     const std::string &src = fmt::format(R"(
@@ -102,7 +91,6 @@ class AtomicsTest : public TplTest {
     auto exec_mode = compiled ? vm::ExecutionMode::Compiled : vm::ExecutionMode::Interpret;
     // Setup the compilation environment
     sema::ErrorReporter error_reporter(&region_);
-    ast::AstNodeFactory factory(&region_);
     ast::Context context(&region_, &error_reporter);
 
     const std::string &src = fmt::format(R"(

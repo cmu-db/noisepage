@@ -1852,11 +1852,6 @@ void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
-  /* TODO(John): Ideally we want to support CMPXCHG on pointers as well, but the
-   * primary use case would be inserting UNDO records into tables which requires
-   * recursive data structures for it to be type safe.  Once TPL supports that
-   * we should update this function to be more permisive for CMPXCHG
-   */
   auto builtin_type = operand_type->SafeAs<ast::BuiltinType>();
   if (builtin_type == nullptr || !builtin_type->IsIntegral()) {
     ReportIncorrectCallArg(call, 0, "cannot perform atomic operations on non-integral types");

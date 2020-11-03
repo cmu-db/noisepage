@@ -1895,7 +1895,7 @@ void BytecodeGenerator::VisitBuiltinAtomicArithmeticCall(ast::CallExpr *call, as
 
   if (GetExecutionResult() != nullptr) {
     ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-    GetExecutionResult()->SetDestination(ret);
+    GetExecutionResult()->SetDestination(ret.ValueOf());
   } else {
     ret = GetCurrentFunction()->NewLocal(call->GetType());
   }
@@ -1924,7 +1924,7 @@ void BytecodeGenerator::VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *cal
 
   if (GetExecutionResult() != nullptr) {
     ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
-    GetExecutionResult()->SetDestination(ret);
+    GetExecutionResult()->SetDestination(ret.ValueOf());
   } else {
     ret = GetCurrentFunction()->NewLocal(call->GetType());
   }
