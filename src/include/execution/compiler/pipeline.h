@@ -274,8 +274,6 @@ class Pipeline {
   StateDescriptor &GetPipelineStateDescriptor() { return nested_ ? parent_->state_ : state_; }
 
  private:
-  // The pipeline state.
-  StateDescriptor state_;
   // The compilation context this pipeline is part of.
   CompilationContext *compilation_context_;
   // The code generation instance.
@@ -284,6 +282,8 @@ class Pipeline {
   ast::Identifier state_var_;
   // The pipeline operating unit feature vector state.
   StateDescriptor::Entry oufeatures_;
+  // The pipeline state.
+  StateDescriptor state_;
   // Operators making up the pipeline.
   std::vector<OperatorTranslator *> steps_;
   // The driver.
@@ -303,7 +303,7 @@ class Pipeline {
   // Whether to check for parallelism in new pipeline elements.
   bool check_parallelism_;
   // Whether or not this is a nested pipeline
-  bool nested_{false};
+  bool nested_;
 };
 
 }  // namespace noisepage::execution::compiler

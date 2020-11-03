@@ -22,15 +22,16 @@ namespace noisepage::execution::compiler {
 query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
 
 Pipeline::Pipeline(CompilationContext *ctx)
-    : id_(ctx->RegisterPipeline(this)),
-      compilation_context_(ctx),
+    : compilation_context_(ctx),
       codegen_(compilation_context_->GetCodeGen()),
-      driver_(nullptr),
-      parallelism_(Parallelism::Parallel),
-      check_parallelism_(true),
       state_var_(codegen_->MakeIdentifier("pipelineState")),
       state_(codegen_->MakeIdentifier(fmt::format("P{}_State", id_)),
-             [this](CodeGen *codegen) { return codegen_->MakeExpr(state_var_); }) {}
+             [this](CodeGen *codegen) { return codegen_->MakeExpr(state_var_); }),
+      driver_(nullptr),
+      id_(ctx->RegisterPipeline(this)),
+      parallelism_(Parallelism::Parallel),
+      check_parallelism_(true),
+      nested_(false) {}
 
 Pipeline::Pipeline(OperatorTranslator *op, Pipeline::Parallelism parallelism) : Pipeline(op->GetCompilationContext()) {
   UpdateParallelism(parallelism);
