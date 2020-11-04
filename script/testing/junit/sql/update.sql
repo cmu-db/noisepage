@@ -1,213 +1,53 @@
-statement ok
 -- Generate tracefile with:
-
-statement ok
---     ant generate-trace -Dpath=sql/update.sql -Ddb-url=jdbc:postgresql://localhost/postgres -Ddb-user=postgres -Ddb-password="postgres" -Doutput-name=update.test && sed -i 's/nosort/rowsort/' traces/update.test
-
-statement ok
+--     ant generate-trace -Dpath=sql/update.sql -Ddb-url=jdbc:postgresql://localhost/postgres -Ddb-user=postgres -Ddb-password="postgres" -Doutput-name=update.test
 CREATE TABLE update1 (c1 int, c2 timestamp);
-
-statement ok
 INSERT INTO update1 (c1, c2) VALUES (1, '2020-01-02 12:23:34.567893');
-
-statement ok
 INSERT INTO update1 (c1, c2) VALUES (2, '2020-01-02 11:22:33.721052');
-
-statement ok
 UPDATE update1 SET c2 = '2020-01-03 11:22:33.721058' WHERE c1 = 2;
-
-query I rowsort
 SELECT * from update1;
-----
-1
-2020-01-02 12:23:34.567893
-2
-2020-01-03 11:22:33.721058
-
-statement ok
 DROP TABLE update1;
 
-statement ok
 
-
-statement ok
-
-
-statement ok
 CREATE TABLE update2 (c1 int, c2 INTEGER);
-
-statement ok
 INSERT INTO update2 (c1, c2) VALUES (1, 1);
-
-statement ok
 INSERT INTO update2 (c1, c2) VALUES (22, 22);
-
-statement ok
 INSERT INTO update2 (c1, c2) VALUES (23, 33);
-
-statement ok
 UPDATE update2 SET c2 = 4 WHERE c1 = 22;
-
-query II rowsort
 SELECT * FROM update2;
-----
-1
-1
-22
-4
-23
-33
-
-query II rowsort
 SELECT * FROM update2 WHERE c2=22;
-----
-
-query I rowsort
 SELECT c2 FROM update2 WHERE c1=23;
-----
-33
-
-statement ok
 DROP TABLE update2;
 
-statement ok
 
-
-statement ok
-
-
-statement ok
 CREATE TABLE update3 (c1 int, c2 float);
-
-statement ok
 INSERT INTO update3 (c1, c2) VALUES (1, 1.0);
-
-statement ok
 INSERT INTO update3 (c1, c2) VALUES (2, 2.0);
-
-statement ok
 INSERT INTO update3 (c1, c2) VALUES (3, 3.0);
-
-statement ok
 UPDATE update3 SET c2 = 4.0 WHERE c1 = 2;
-
-query IR rowsort
 SELECT * FROM update3;
-----
-1
-1
-2
-4
-3
-3
-
-query IR rowsort
 SELECT * FROM update3 WHERE c2=2.0;
-----
-
-query R rowsort
 SELECT c2 FROM update3 WHERE c1=2;
-----
-4
-
-statement ok
 UPDATE update3 SET c1=2 WHERE c2=1.0;
-
-query IR rowsort
 SELECT * FROM update3 WHERE c1=2;
-----
-2
-1
-2
-4
-
-statement ok
 DROP TABLE update3;
 
-statement ok
 
-
-statement ok
-
-
-statement ok
 CREATE TABLE update4 (c1 int, c2 float, c3 varchar);
-
-statement ok
 INSERT INTO update4 (c1, c2, c3) VALUES (1, 1.0, '1');
-
-statement ok
 INSERT INTO update4 (c1, c2, c3) VALUES (3, 3.0, '3');
-
-statement ok
 UPDATE update4 SET c2 = 4.0 WHERE c1 = 2;
-
-query IRT rowsort
 SELECT * FROM update4;
-----
-1
-1
-1
-3
-3
-3
-
-query IRT rowsort
 SELECT * FROM update4 WHERE c2=2.0;
-----
-
-query IRT rowsort
 SELECT * FROM update4 WHERE c2=2.0 AND c3='2';
-----
-
-query I rowsort
 SELECT c1 FROM update4 WHERE c2=2.0 OR c3='1';
-----
-1
-
-query IRT rowsort
 SELECT * FROM update4 WHERE c2=2.0 AND c3='2' OR c1=1;
-----
-1
-1
-1
-
-query R rowsort
 SELECT c2 FROM update4 WHERE c1=2;
-----
-
-statement ok
 UPDATE update4 SET c1=2 WHERE c2=1.0;
-
-query IRT rowsort
 SELECT * FROM update4 WHERE c1=2;
-----
-2
-1
-1
-
-statement ok
 DROP TABLE update4;
 
-statement ok
-
-
-statement ok
 CREATE TABLE update5 (a int)
-
-statement ok
 INSERT INTO update5 (a) VALUES (1),(2),(3);
-
-statement ok
 UPDATE update5 SET a=a;
-
-query I rowsort
 SELECT a FROM update5;
-----
-1
-2
-3
-
-statement ok
 DROP TABLE update5
-
