@@ -361,7 +361,12 @@ class DBMain {
       if (use_messenger_) {
         messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
                                                            messenger_identity_);
-        replication_manager = std::make_unique<replication::ReplicationManager>(messenger_layer->GetMessenger(), "primary");
+      }
+
+      if (use_replication_) {
+        NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
+        replication_manager =
+            std::make_unique<replication::ReplicationManager>(messenger_layer->GetMessenger(), "primary");
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -763,6 +768,7 @@ class DBMain {
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
     bool use_messenger_ = false;
+    bool use_replication_ = false;
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
 
