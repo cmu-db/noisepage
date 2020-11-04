@@ -200,7 +200,7 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
   }
 
   // if this pipeline is nested, it doesn't own its pipeline state
-  if(!nested_) {
+  if (!nested_) {
     state_.ConstructFinalType(codegen_);
   }
 
