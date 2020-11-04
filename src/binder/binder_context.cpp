@@ -333,7 +333,17 @@ void BinderContext::GenerateAllColumnExpressions(
     for (auto &entry : nested_table_alias_map_) {
       auto &table_alias = entry.first;
       auto &cols = entry.second;
-      for (auto &col_entry : cols) {
+
+      // TODO(tanujnay112) make the nested_table_alias_map hold ordered maps
+      // this is to order the generated columns in the same order that they appear in the nested table
+      // the serial number of their aliases signifies this ordering
+      std::vector<std::pair<parser::AliasType, type::TypeId>> cols_vector(cols.begin(), cols.end());
+      std::sort(
+          cols_vector.begin(), cols_vector.end(),
+          [](const std::pair<parser::AliasType, type::TypeId> &A, const std::pair<parser::AliasType, type::TypeId> &B) {
+            return A.first.GetSerialNo() < B.first.GetSerialNo();
+          });
+      for (auto &col_entry : cols_vector) {
         auto tv_expr =
             new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
         tv_expr->SetReturnValueType(col_entry.second);
