@@ -259,7 +259,7 @@ TEST_F(MessengerTests, BasicListenTest) {
                               msg.GetMessage().compare("KILLME") == 0);
           if (msg.GetMessage().compare("KILLME") == 0) {
             messenger->SendMessage(messenger->GetConnectionRouter("listen"), std::string(msg.GetRoutingId()), "QUIT",
-                                   CallbackFns::Noop, msg.GetMessageIdSender());
+                                   CallbackFns::Noop, msg.GetSourceCallbackId());
           }
         });
 

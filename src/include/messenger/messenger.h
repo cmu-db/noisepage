@@ -32,11 +32,11 @@ class ZmqUtil;
 /** An abstraction around ZeroMQ messages which explicitly have the sender specified. */
 class ZmqMessage {
  public:
-  /** @return The ID of this message (sender side). */
-  uint64_t GetMessageIdSender() const { return send_msg_id_; }
+  /** @return The callback to invoke on the source. */
+  uint64_t GetSourceCallbackId() const { return source_cb_id_; }
 
-  /** @return The ID of this message (receiver side). */
-  uint64_t GetCallbackIdReceiver() const { return recv_cb_id_; }
+  /** @return The callback to invoke on the destination. */
+  uint64_t GetDestinationCallbackId() const { return dest_cb_id_; }
 
   /** @return The routing ID of this message. */
   std::string_view GetRoutingId() const { return std::string_view(routing_id_); }
@@ -53,19 +53,19 @@ class ZmqMessage {
 
   /**
    * Build a new ZmqMessage from the supplied information.
-   * @param send_msg_id     The ID of the message on the sender side.
-   * @param recv_cb_id      The ID of the message on the receiver side.
-   * @param sender_id       The identity of the sender.
+   * @param source_cb_id    The callback ID of the message on the source.
+   * @param dest_cb_id      The callback ID of the message on the destination.
+   * @param routing_id      The routing ID of the message sender. Roughly speaking, "who sent this message".
    * @param message         The contents of the message.
    * @return A ZmqMessage encapsulating the given message.
    */
-  static ZmqMessage Build(uint64_t send_msg_id, uint64_t recv_cb_id, const std::string &sender_id,
+  static ZmqMessage Build(uint64_t source_cb_id, uint64_t dest_cb_id, const std::string &routing_id,
                           std::string_view message);
 
   /**
    * Parse the given payload into a ZmqMessage.
    * @param routing_id      The message's routing ID.
-   * @param message         The message received.
+   * @param message         The message for the destination.
    * @return A ZmqMessage encapsulating the given message.
    */
   static ZmqMessage Parse(const std::string &routing_id, const std::string &message);
@@ -78,10 +78,10 @@ class ZmqMessage {
   /** The payload in the message, of form ID-MESSAGE.  */
   std::string payload_;
 
-  /** The cached id of the message (sender side). */
-  uint64_t send_msg_id_;
-  /** The cached id of the message (receiver side). */
-  uint64_t recv_cb_id_;
+  /** The cached id of the message (source). */
+  uint64_t source_cb_id_;
+  /** The cached id of the message (destination). */
+  uint64_t dest_cb_id_;
   /** The cached actual message. */
   std::string_view message_;
 };
@@ -101,7 +101,7 @@ class ConnectionId {
    * Create a new ConnectionId that is connected to the specified target.
    * @param messenger   The messenger that owns this connection ID.
    * @param target      The target to be connected to.
-   * @param identity    The name that the connection should have.
+   * @param identity    The routing ID (name) that the connection should have.
    */
   explicit ConnectionId(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
                         const std::string &identity);
@@ -121,7 +121,7 @@ class ConnectionRouter {
    * Create a new ConnectionRouter that listens for incoming connnections.
    * @param messenger   The messenger that owns this connection router.
    * @param target      The target to listen on.
-   * @param identity    The name that the router should have.
+   * @param identity    The routing ID (name) that the router should have.
    * @param callback    The server loop for this connection router.
    */
   explicit ConnectionRouter(common::ManagedPointer<Messenger> messenger, const ConnectionDestination &target,
@@ -130,7 +130,7 @@ class ConnectionRouter {
   /** An explicit destructor is necessary because of the unique_ptr around a forward-declared type. */
   ~ConnectionRouter();
 
-  /** @return The identity of this connection router. */
+  /** @return The routing ID (name) of this connection router. */
   const std::string &GetIdentity() const { return identity_; }
 
  private:
@@ -138,7 +138,7 @@ class ConnectionRouter {
 
   /** The ZMQ socket. */
   std::unique_ptr<zmq::socket_t> socket_;
-  /** The callback to be invoked on all received messages. */
+  /** The callback to be invoked on all messages received. */
   CallbackFn callback_;
   /** The identity of this router. */
   std::string identity_;
@@ -223,28 +223,29 @@ class Messenger : public common::DedicatedThreadTask {
    *
    * @param connection_id   The connection to send the message over.
    * @param message         The message to be sent.
-   * @param callback        The callback function to be invoked on the response.
-   * @param recv_cb_id      The receiver's callback ID, e.g., sent in response or to invoke preregistered functions.
+   * @param callback        The callback function to be invoked locally on the response.
+   * @param remote_cb_id    The callback function to be invoked remotely on the destination to handle this message.
+   *                        For example, used for invoking preregistered functions or messages sent in response.
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
    */
   void SendMessage(common::ManagedPointer<ConnectionId> connection_id, const std::string &message, CallbackFn callback,
-                   uint64_t recv_cb_id);
+                   uint64_t remote_cb_id);
 
   /**
    * Send a message through the specified connection router.
    *
-   * @warning   A ConnectionRouter only knows about receivers that are directly connected to it.
-   *            After obtaining a ConnectionRouter from ListenForConnection,
+   * @warning   A ConnectionRouter only knows about destinations that are directly connected to it.
    *
    * @param router_id       The connection router to send the message over.
-   * @param recv_id         The ID of the receiver.
+   * @param recv_id         The routing ID of the destination.
    * @param message         The message to be sent.
    * @param callback        The callback function to be invoked on the response.
-   * @param recv_cb_id      The receiver's callback ID, e.g., sent in response or to invoke preregistered functions.
+   * @param remote_cb_id    The callback function to be invoked remotely on the destination to handle this message.
+   *                        For example, used for invoking preregistered functions or messages sent in response.
    *                        To invoke preregistered functions, use static_cast<uint8_t>(Messenger::BuiltinCallback).
    */
   void SendMessage(common::ManagedPointer<ConnectionRouter> router_id, const std::string &recv_id,
-                   const std::string &message, CallbackFn callback, uint64_t recv_cb_id);
+                   const std::string &message, CallbackFn callback, uint64_t remote_cb_id);
 
   /** @return The ConnectionRouter with the specified router_id. Created by ListenForConnection. */
   common::ManagedPointer<ConnectionRouter> GetConnectionRouter(const std::string &router_id);

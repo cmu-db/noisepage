@@ -44,7 +44,7 @@ void noisepage::replication::ReplicationManager::ReplicaSend(
 void noisepage::replication::ReplicationManager::EventLoop(
     noisepage::common::ManagedPointer<noisepage::messenger::Messenger> messenger,
     const noisepage::messenger::ZmqMessage &msg) {
-  switch (static_cast<MessageType>(msg.GetCallbackIdReceiver())) {
+  switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
     case MessageType::HEARTBEAT:
       REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
       break;
