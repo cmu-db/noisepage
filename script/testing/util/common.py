@@ -135,11 +135,13 @@ def check_pid_exists(pid):
 
 
 def collect_mem_info(pid):
-    """ Collect the memory info of the process if the pid exists """
+    """
+    Collect the memory info of the process if the pid exists.
 
-    if os.getuid() != 0:
-        raise Exception("Cannot call this function unless running as root!")
-
+    Precondition:
+    Looks like collecting the mem info for the process belongs to the same user
+    does not require escalated privilege.
+    """
     if not psutil.pid_exists(pid):
         return None
     p = psutil.Process(pid)
