@@ -513,7 +513,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
     }
 
     if (col_expr->GetDatabaseOid() == catalog::INVALID_DATABASE_OID &&
-        col_expr->GetTableOid() == catalog::INVALID_TABLE_OID && IS_TEMP_OID(col_expr->GetColumnOid())) {
+        col_expr->GetTableOid() == catalog::INVALID_TABLE_OID && catalog::IsTempOid(col_expr->GetColumnOid())) {
       EXPECT_EQ(col_expr->GetTableName(), "c");
 
       if (col_expr->GetColumnName() == "a1") {
@@ -553,7 +553,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   EXPECT_EQ(col_expr->GetTableName(), "c");
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::INVALID_DATABASE_OID);
   EXPECT_EQ(col_expr->GetTableOid(), catalog::INVALID_TABLE_OID);
-  EXPECT_TRUE(IS_TEMP_OID(col_expr->GetColumnOid()));
+  EXPECT_TRUE(catalog::IsTempOid(col_expr->GetColumnOid()));
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 

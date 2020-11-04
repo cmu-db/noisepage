@@ -339,7 +339,7 @@ void SeqScanTranslator::LaunchWork(FunctionBuilder *function, ast::Identifier wo
 ast::Expr *SeqScanTranslator::GetTableColumn(catalog::col_oid_t col_oid) const {
   type::TypeId type;
   bool nullable;
-  if (IS_TEMP_OID(GetTableOid())) {
+  if (catalog::IsTempOid(GetTableOid())) {
     const auto &schema = *GetPlanAs<planner::CteScanPlanNode>().GetTableSchema();
     type = schema.GetColumn(col_oid).Type();
     nullable = schema.GetColumn(col_oid).Nullable();
@@ -390,7 +390,7 @@ std::vector<catalog::col_oid_t> SeqScanTranslator::MakeInputOids(catalog::Catalo
                                                                  const planner::SeqScanPlanNode &op) {
   if (op.GetColumnOids().empty()) {
     catalog::Schema schema;
-    if (IS_TEMP_OID(table)) {
+    if (catalog::IsTempOid(table)) {
       schema = *reinterpret_cast<const planner::CteScanPlanNode *>(&op)->GetTableSchema();
     } else {
       schema = accessor->GetSchema(table);

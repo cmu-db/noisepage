@@ -239,7 +239,7 @@ bool BinderContext::SetColumnPosTuple(common::ManagedPointer<parser::ColumnValue
           expr->SetTableName(entry.first);
           expr->SetReturnValueType(entry.second[alias_name]);
           expr->SetColumnName(col_name);
-          expr->SetColumnOID(TEMP_OID(catalog::col_oid_t, iter->first.GetSerialNo()));
+          expr->SetColumnOID(catalog::MakeTempOid<catalog::col_oid_t>(iter->first.GetSerialNo()));
         } else {
           throw BINDER_EXCEPTION(fmt::format("Ambiguous column name \"{}\"", col_name),
                                  common::ErrorCode::ERRCODE_AMBIGUOUS_COLUMN);
@@ -286,7 +286,7 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
       expr->SetDepth(current_context->depth_);
       expr->SetColumnName(col_name);
       expr->SetTableName(alias);
-      expr->SetColumnOID(TEMP_OID(catalog::col_oid_t, col_iter->first.GetSerialNo()));
+      expr->SetColumnOID(catalog::MakeTempOid<catalog::col_oid_t>(col_iter->first.GetSerialNo()));
       return true;
     }
     current_context = current_context->GetUpperContext();
@@ -338,7 +338,7 @@ void BinderContext::GenerateAllColumnExpressions(
             new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first.GetName()));
         tv_expr->SetReturnValueType(col_entry.second);
         tv_expr->DeriveExpressionName();
-        tv_expr->SetColumnOID(TEMP_OID(catalog::col_oid_t, col_entry.first.GetSerialNo()));
+        tv_expr->SetColumnOID(catalog::MakeTempOid<catalog::col_oid_t>(col_entry.first.GetSerialNo()));
         tv_expr->SetDepth(depth_);
 
         auto unique_tv_expr =

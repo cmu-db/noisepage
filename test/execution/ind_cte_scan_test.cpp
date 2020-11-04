@@ -37,7 +37,7 @@ TEST_F(IndCteScanTest, IndCTEEmptyAccumulateTest) {
   // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
-      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
       col_oids,
       cte_table_col_type,
       1,
@@ -85,7 +85,7 @@ TEST_F(IndCteScanTest, IndCTESingleInsertTest) {
   // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
-      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
       col_oids.data(),
       cte_table_col_type,
       1,
@@ -159,7 +159,7 @@ TEST_F(IndCteScanTest, IndCTEWriteTableTest) {
   // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
-      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
       cte_table_col_ids,
       cte_table_col_type,
       1,
@@ -231,7 +231,7 @@ TEST_F(IndCteScanTest, IndCTEDoubleAccumulateTest) {
   // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
-      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
       col_oids.data(),
       cte_table_col_type,
       1,
@@ -310,7 +310,7 @@ TEST_F(IndCteScanTest, IndCTEMultipleInsertTest) {
   // auto cte_scan = new noisepage::execution::sql::IndCteScanIterator(exec_ctx_.get(), cte_table_col_type, 1);
   noisepage::execution::sql::IndCteScanIterator cte_scan{
       exec_ctx_.get(),
-      TEMP_OID(catalog::table_oid_t, exec_ctx_->GetAccessor()->GetNewTempOid()),
+      catalog::MakeTempOid<catalog::table_oid_t>(exec_ctx_->GetAccessor()->GetNewTempOid()),
       col_oids.data(),
       cte_table_col_type,
       1,

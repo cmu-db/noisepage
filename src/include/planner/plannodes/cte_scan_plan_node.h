@@ -119,8 +119,8 @@ class CteScanPlanNode : public SeqScanPlanNode {
                   catalog::Schema table_schema, parser::CTEType cte_type, std::vector<catalog::col_oid_t> &&column_oids,
                   common::ManagedPointer<parser::AbstractExpression> scan_predicate)
       : SeqScanPlanNode(std::move(children), std::move(output_schema), scan_predicate, std::move(column_oids), false,
-                        TEMP_OID(catalog::db_oid_t, (catalog::INVALID_DATABASE_OID).UnderlyingValue()), table_oid, 0,
-                        false, 0, false),
+                        catalog::MakeTempOid<catalog::db_oid_t>(catalog::INVALID_DATABASE_OID.UnderlyingValue()),
+                        table_oid, 0, false, 0, false),
         cte_table_name_(std::move(cte_table_name)),
         is_leader_(is_leader),
         cte_type_(cte_type),

@@ -78,7 +78,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       cte_table_name_.push_back(with->GetAlias());
       cte_type_.push_back(with->GetCteType());
 
-      auto oid = TEMP_OID(catalog::table_oid_t, accessor_->GetNewTempOid());
+      auto oid = catalog::MakeTempOid<catalog::table_oid_t>(accessor_->GetNewTempOid());
       cte_oids_.push_back(oid);
 
       std::vector<type::TypeId> col_types;
@@ -89,7 +89,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       size_t i = 0;
       for (auto &alias : with->GetCteColumnAliases()) {
         columns1.emplace_back(alias.GetName(), col_types[i], false, parser::ConstantValueExpression(col_types[i]),
-                              TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
+                              catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
         i++;
       }
 
@@ -101,8 +101,9 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       for (auto &elem : with->GetCteColumnAliases()) {
         NOISEPAGE_ASSERT(elem.IsSerialNoValid(), "CTE Alias does not have a valid serial no.");
         auto ret_type = with->GetSelect()->GetSelectColumns()[index]->GetReturnValueType();
-        parser::AbstractExpression *cve = new parser::ColumnValueExpression(
-            with->GetTableName(), elem.GetName(), ret_type, elem, TEMP_OID(catalog::col_oid_t, elem.GetSerialNo()));
+        parser::AbstractExpression *cve =
+            new parser::ColumnValueExpression(with->GetTableName(), elem.GetName(), ret_type, elem,
+                                              catalog::MakeTempOid<catalog::col_oid_t>(elem.GetSerialNo()));
         txn_context->RegisterAbortAction([=] { delete cve; });
         txn_context->RegisterCommitAction([=] { delete cve; });
         expressions.emplace_back(common::ManagedPointer(cve));
@@ -117,7 +118,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::SelectStat
       size_t ind = 0;
       for (auto &alias : with->GetCteColumnAliases()) {
         columns.emplace_back(alias.GetName(), col_types[ind], false, parser::ConstantValueExpression(col_types[ind]),
-                             TEMP_OID(catalog::col_oid_t, alias.GetSerialNo()));
+                             catalog::MakeTempOid<catalog::col_oid_t>(alias.GetSerialNo()));
         ind++;
       }
 

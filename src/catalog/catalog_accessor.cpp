@@ -79,7 +79,7 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
-  if (UNLIKELY(IS_TEMP_OID(table))) {
+  if (UNLIKELY(catalog::IsTempOid(table))) {
     return temp_tables_.find(table)->second;
   }
   if (cache_ != DISABLED) {
