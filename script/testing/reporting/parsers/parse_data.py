@@ -3,11 +3,12 @@
 import os
 import distro
 import re
+from decimal import Decimal
 
 from reporting.parsers.oltpbench.config_parser import parse_config_file
 from reporting.parsers.oltpbench.summary_parser import parse_summary_file
 from reporting.parsers.oltpbench.res_parser import parse_res_file
-from util.constants import DIR_UTIL
+from util.constants import DIR_UTIL, LOG
 from reporting.constants import UNKNOWN_RESULT
 
 
@@ -112,7 +113,12 @@ def parse_microbenchmark_comparison(artifact_processor_comparison):
                       'status', 'iterations', 'ref_throughput', 'num_results']
     test_suite, test_name = artifact_processor_comparison.get(
         'suite'), artifact_processor_comparison.get('test')
-    return test_suite, test_name, {key: value for key, value in artifact_processor_comparison.items() if key in metrics_fields}
+
+    metrics = {}
+    for key, value in artifact_processor_comparison.items():
+        if key in metrics_fields:
+            metrics[key] = round(value, 15) if isinstance(value, (float, Decimal)) else value
+    return test_suite, test_name, metrics
 
 
 def parse_db_metadata():
