@@ -71,7 +71,7 @@ pipeline {
 
                 script { // TODO: This script block is temporary to get some initial data into microbenchmarks
                     def iterations = 4
-                    for(int i = 0;i < iterations; i++)
+                    for(int i = 0;i < iterations; i++){
                         // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
                         //  # of Threads: 4
                         //  WAL Path: Ramdisk
