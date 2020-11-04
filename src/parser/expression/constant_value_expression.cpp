@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "execution/sql/runtime_types.h"
@@ -340,6 +341,10 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
   Validate();
 
   return exprs;
+}
+
+void ConstantValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
 }
 
 DEFINE_JSON_BODY_DECLARATIONS(ConstantValueExpression);

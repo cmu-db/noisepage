@@ -15,6 +15,7 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "test_util/test_harness.h"
 

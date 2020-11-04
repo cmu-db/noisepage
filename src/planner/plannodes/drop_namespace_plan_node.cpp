@@ -6,8 +6,19 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<DropNamespacePlanNode> DropNamespacePlanNode::Builder::Build() {
+  return std::unique_ptr<DropNamespacePlanNode>(
+      new DropNamespacePlanNode(std::move(children_), std::move(output_schema_), namespace_oid_));
+}
+
+DropNamespacePlanNode::DropNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                             std::unique_ptr<OutputSchema> output_schema,
+                                             catalog::namespace_oid_t namespace_oid)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_oid_(namespace_oid) {}
 
 common::hash_t DropNamespacePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
