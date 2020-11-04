@@ -22,13 +22,13 @@ namespace noisepage::execution::compiler {
 query_id_t Pipeline::GetQueryId() const { return compilation_context_->GetQueryId(); }
 
 Pipeline::Pipeline(CompilationContext *ctx)
-    : compilation_context_(ctx),
+    : id_(ctx->RegisterPipeline(this)),
+      compilation_context_(ctx),
       codegen_(compilation_context_->GetCodeGen()),
       state_var_(codegen_->MakeIdentifier("pipelineState")),
       state_(codegen_->MakeIdentifier(fmt::format("P{}_State", id_)),
              [this](CodeGen *codegen) { return codegen_->MakeExpr(state_var_); }),
       driver_(nullptr),
-      id_(ctx->RegisterPipeline(this)),
       parallelism_(Parallelism::Parallel),
       check_parallelism_(true),
       nested_(false) {}
@@ -146,7 +146,7 @@ util::RegionVector<ast::FieldDecl *> Pipeline::PipelineParams() const {
   // The main query parameters.
   util::RegionVector<ast::FieldDecl *> query_params = compilation_context_->QueryParams();
   // Tag on the pipeline state.
-  auto &state = nested_ ? parent_->state_ : state_;
+  auto &state = GetPipelineStateDescriptor();
   ast::Expr *pipeline_state = codegen_->PointerType(codegen_->MakeExpr(state.GetTypeName()));
   query_params.push_back(codegen_->MakeField(state_var_, pipeline_state));
   return query_params;
@@ -198,7 +198,11 @@ void Pipeline::Prepare(const exec::ExecutionSettings &exec_settings) {
     ast::Expr *type = codegen_->BuiltinType(ast::BuiltinType::ExecOUFeatureVector);
     oufeatures_ = DeclarePipelineStateEntry("execFeatures", type);
   }
-  state_.ConstructFinalType(codegen_);
+
+  // if this pipeline is nested, it doesn't own its pipeline state
+  if(!nested_) {
+    state_.ConstructFinalType(codegen_);
+  }
 
   // Finalize the execution mode. We choose serial execution if ANY of the below
   // conditions are satisfied:
