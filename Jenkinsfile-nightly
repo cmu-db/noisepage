@@ -17,6 +17,7 @@ pipeline {
 
     stages {
         stage('Performance') {
+            when {false}
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
