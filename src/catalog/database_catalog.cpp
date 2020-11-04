@@ -792,6 +792,9 @@ bool DatabaseCatalog::DeleteTable(const common::ManagedPointer<transaction::Tran
   // We should respect foreign key relations and attempt to delete the table's columns first
   auto result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
   if (!result) return false;
+  // Delete associated entries in pg_statistic
+  result = DeleteColumnStatistics<Schema::Column>(txn, table);
+  if (!result) return false;
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
@@ -2986,7 +2989,7 @@ bool DatabaseCatalog::DeleteColumnStatistics(const common::ManagedPointer<transa
     *(reinterpret_cast<ClassOid *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = class_oid;
     *(reinterpret_cast<uint32_t *>(pr_lo->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
 
-    auto next_oid = ClassOid(!class_oid + 1);
+    auto next_oid = ClassOid(class_oid + 1);
     // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
     *(reinterpret_cast<ClassOid *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(1))))) = next_oid;
     *(reinterpret_cast<uint32_t *>(pr_hi->AccessForceNotNull(oid_prm.at(indexkeycol_oid_t(2))))) = 0;
