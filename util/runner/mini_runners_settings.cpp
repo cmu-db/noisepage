@@ -25,9 +25,19 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   Arg create_index_small_data{"--create_index_small_limit=", false};
   Arg create_index_car_data{"--create_index_large_car_num=", false};
   Arg run_limit{"--mini_runner_rows_limit=", false};
-  Arg *args[] = {
-      &port_info,       &filter_info,   &skip_large_rows_runs_info, &warm_num_info,         &rerun_info, &updel_info,
-      &warm_limit_info, &gen_test_data, &create_index_small_data,   &create_index_car_data, &run_limit};
+  Arg insdel_batch_size{"--index_insert_delete_batch=", false};
+  Arg *args[] = {&port_info,
+                 &filter_info,
+                 &skip_large_rows_runs_info,
+                 &warm_num_info,
+                 &rerun_info,
+                 &updel_info,
+                 &warm_limit_info,
+                 &gen_test_data,
+                 &create_index_small_data,
+                 &create_index_car_data,
+                 &run_limit,
+                 &insdel_batch_size};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {
@@ -50,12 +60,14 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   if (create_index_small_data.found_) create_index_small_limit_ = create_index_small_data.int_value_;
   if (create_index_car_data.found_) create_index_large_cardinality_num_ = create_index_car_data.int_value_;
   if (run_limit.found_) data_rows_limit_ = run_limit.int_value_;
+  if (insdel_batch_size.found_) index_insdel_batch_size_ = insdel_batch_size.int_value_;
 
   noisepage::LoggersUtil::Initialize();
   SETTINGS_LOG_INFO("Starting mini-runners with this parameter set:");
   SETTINGS_LOG_INFO("Port ({}): {}", port_info.match_, port_);
   SETTINGS_LOG_INFO("Skip Large Rows ({}): {}", skip_large_rows_runs_info.match_, skip_large_rows_runs_);
   SETTINGS_LOG_INFO("Warmup Iterations ({}): {}", warm_num_info.match_, warmup_iterations_num_);
+  SETTINGS_LOG_INFO("Index Insert/Delete Batch ({}): {}", insdel_batch_size.match_, index_insdel_batch_size_);
   SETTINGS_LOG_INFO("Rerun Iterations ({}): {}", rerun_info.match_, rerun_iterations_);
   SETTINGS_LOG_INFO("Update/Delete Index Limit ({}): {}", updel_info.match_, updel_limit_);
   SETTINGS_LOG_INFO("Create Index Small Build Limit ({}): {}", create_index_small_data.match_,

@@ -411,6 +411,48 @@ void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, c
   }
 }
 
+void MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                                                 const MiniRunnersDataConfig &config) {
+  auto &num_indexes = config.sweep_index_insdel_nums_;
+  const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
+  auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
+  std::vector<uint32_t> num_cols;
+  {
+    std::unordered_set<uint32_t> col_set;
+    col_set.insert(config.sweep_col_nums_.begin(), config.sweep_col_nums_.end());
+    col_set.insert(config.sweep_index_col_nums_.begin(), config.sweep_index_col_nums_.end());
+
+    num_cols.reserve(col_set.size());
+    for (auto &col : col_set) {
+      num_cols.push_back(col);
+    }
+  }
+
+  for (auto num_index : num_indexes) {
+    for (auto type : types) {
+      for (auto col : num_cols) {
+        for (auto row : row_nums) {
+          int64_t car = 1;
+          if (row > settings.create_index_small_limit_) {
+            // For these, we get a memory explosion if the cardinality is too low.
+            while (car < row) {
+              car *= 2;
+            }
+            car = car / (pow(2, settings.create_index_large_cardinality_num_));
+          }
+
+          while (car < row) {
+            b->push_back({col, 15, row, car, static_cast<int64_t>(type), num_index});
+            car *= 2;
+          }
+
+          b->push_back({col, 15, row, row, static_cast<int64_t>(type), num_index});
+        }
+      }
+    }
+  }
+}
+
 void MiniRunnersArgumentGenerator::GenerateMixedArguments(std::vector<std::vector<int64_t>> *args,
                                                           const MiniRunnersSettings &settings,
                                                           const MiniRunnersDataConfig &config,

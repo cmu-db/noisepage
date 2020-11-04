@@ -302,6 +302,24 @@ class MiniRunnersArgumentGenerator {
   static void GenCreateIndexMixedArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                            const MiniRunnersDataConfig &config);
 
+  /**
+   * Generates arguments for modeling index insert/delete into indexes
+   *
+   * Benchmark arguments are as follows:
+   * Arg 0: Number of keys in the index key
+   * Arg 1: Number of columns in the underlying table
+   * Arg 2: Number of rows in the underlying table
+   * Arg 3: Cardinality of the underlying table
+   * Arg 4: Type of the key
+   * Arg 5: Number of indexes to create
+   *
+   * @param b Vector to store output argument vectors
+   * @param settings Settings of the mini-runners
+   * @param config MiniRunners data parameters
+   */
+  static void GenIndexInsertDeleteArguments(OutputArgs *b, const MiniRunnersSettings &settings,
+                                            const MiniRunnersDataConfig &config);
+
  private:
   /**
    * Generates arguments for mixed table distributions

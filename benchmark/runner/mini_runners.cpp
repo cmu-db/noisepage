@@ -18,6 +18,7 @@
 #include "execution/sql/ddl_executors.h"
 #include "execution/table_generator/table_generator.h"
 #include "execution/util/cpu_info.h"
+#include "execution/vm/bytecode_handlers.h"
 #include "execution/vm/module.h"
 #include "gflags/gflags.h"
 #include "loggers/loggers_util.h"
@@ -374,10 +375,10 @@ class MiniRunners : public benchmark::Fixture {
     metrics_manager_ = db_main->GetMetricsManager();
   }
 
-  static execution::exec::ExecutionSettings GetExecutionSettings() {
+  static execution::exec::ExecutionSettings GetExecutionSettings(bool pipeline_metrics_enabled = true) {
     execution::exec::ExecutionSettings settings;
     settings.is_parallel_execution_enabled_ = false;
-    settings.is_pipeline_metrics_enabled_ = true;
+    settings.is_pipeline_metrics_enabled_ = pipeline_metrics_enabled;
     return settings;
   }
 
@@ -500,7 +501,7 @@ class MiniRunners : public benchmark::Fixture {
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
                           planner::OutputSchema *out_schema, bool commit,
                           std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
-                          execution::exec::ExecutionSettings *settings = nullptr) {
+                          execution::exec::ExecutionSettings *settings = nullptr, bool disable_metrics = false) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
@@ -509,7 +510,7 @@ class MiniRunners : public benchmark::Fixture {
     execution::exec::OutputCallback callback = consumer;
     for (auto i = 0; i < num_iters; i++) {
       common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
-      if (i == num_iters - 1) {
+      if (i == num_iters - 1 && !disable_metrics) {
         metrics_manager_->RegisterThread();
         metrics_manager = metrics_manager_;
       }
@@ -538,7 +539,7 @@ class MiniRunners : public benchmark::Fixture {
       else
         txn_manager_->Abort(txn);
 
-      if (i == num_iters - 1) {
+      if (i == num_iters - 1 && !disable_metrics) {
         metrics_manager_->Aggregate();
         metrics_manager_->UnregisterThread();
       }
@@ -914,6 +915,118 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   BenchmarkExecQuery(settings.warmup_iterations_num_ + 1, &exec_query, schema.get(), true);
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &state) {
+  if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) return;
+
+  auto key_num = state.range(0);
+  auto tbl_cols = state.range(1);
+  auto num_rows = state.range(2);
+  auto car = state.range(3);
+  auto type = static_cast<type::TypeId>(state.range(4));
+  auto num_index = state.range(5);
+
+  auto cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
+  auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, car);
+
+  // Create the indexes
+  for (auto i = 0; i < num_index; i++) {
+    auto settings = GetExecutionSettings(false);
+    auto units = std::make_unique<brain::PipelineOperatingUnits>();
+
+    std::stringstream query;
+    query << "CREATE INDEX idx" << i << " ON " << tbl_name << " (" << cols << ")";
+    auto equery = OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units),
+                                       PassthroughPlanChecker, nullptr, nullptr, &settings);
+    BenchmarkExecQuery(1, equery.first.get(), equery.second.get(), true, &empty_params, &settings);
+  }
+
+  // Simulate an index insert
+  {
+    metrics_manager_->RegisterThread();
+    auto txn = txn_manager_->BeginTransaction();
+    auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
+    auto tbl_oid = accessor->GetTableOid(tbl_name);
+    auto idx_oids = accessor->GetIndexOids(tbl_oid);
+
+    auto exec_settings = GetExecutionSettings();
+    execution::exec::NoOpResultConsumer consumer;
+    execution::exec::OutputCallback callback = consumer;
+    auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid, common::ManagedPointer(txn), callback,
+                                                                        nullptr, common::ManagedPointer(accessor),
+                                                                        exec_settings, metrics_manager_);
+
+    auto type_size = type::TypeUtil::GetTypeSize(type);
+    auto key_size = type_size * key_num;
+
+    auto qid = MiniRunners::query_id++;
+    brain::PipelineOperatingUnits units;
+    brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+    exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
+    pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::INDEX_INSERT, num_rows,
+                           key_size, key_num, num_index, 1, 0, 0);
+    units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
+
+    brain::ExecOUFeatureVector ouvec;
+    exec_ctx->InitializeOUFeatureVector(&ouvec, execution::pipeline_id_t(1));
+
+    {
+      uint32_t col_oids[tbl_cols];
+      for (int i = 0; i < tbl_cols; i++) col_oids[i] = i + 1;
+      execution::sql::StorageInterface si(exec_ctx.get(), tbl_oid, col_oids, tbl_cols, true);
+
+      // Insert a dummy tuple
+      storage::ProjectedRow *insert_pr;
+      OpStorageInterfaceGetTablePR(&insert_pr, &si);
+      for (int i = 0; i < tbl_cols; i++) {
+        execution::sql::Integer integer(num_rows);
+        OpPRSetInt(insert_pr, i, &integer);
+      }
+
+      noisepage::storage::TupleSlot tuple_slot;
+      OpStorageInterfaceTableInsert(&tuple_slot, &si);
+
+      exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
+      for (auto i = 0; i < settings.index_insdel_batch_size_; i++) {
+        for (auto idx : idx_oids) {
+          // This key biases against the right-side of the index
+          storage::ProjectedRow *pr;
+          OpStorageInterfaceGetIndexPR(&pr, &si, static_cast<uint32_t>(idx));
+          for (auto col = 0; col < key_num; col++) {
+            execution::sql::Integer integer(0);
+            OpPRGetInt(&integer, insert_pr, col);
+            OpPRSetInt(pr, col, &integer);
+          }
+
+          bool result;
+          OpStorageInterfaceIndexInsertWithSlot(&result, &si, &tuple_slot, false);
+          // OpStorageInterfaceIndexInsert(&result, &si);
+          NOISEPAGE_ASSERT(result, "IndexInsert should have succeeded");
+        }
+      }
+      // OpStorageInterfaceFree(&si);
+      exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
+    }
+    ouvec.Reset();
+    txn_manager_->Abort(txn);
+
+    metrics_manager_->Aggregate();
+    metrics_manager_->UnregisterThread();
+  }
+
+  // Drop the indexes
+  for (auto i = 0; i < num_index; i++) {
+    auto units = std::make_unique<brain::PipelineOperatingUnits>();
+
+    std::stringstream query;
+    query << "DROP INDEX idx" << i;
+    OptimizeSqlStatement(query.str(), std::make_unique<optimizer::TrivialCostModel>(), std::move(units));
+  }
+
+  InvokeGC();
+  InvokeGC();
 }
 
 void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
@@ -1856,6 +1969,11 @@ void RegisterRunners() {
       ->Unit(benchmark::kMillisecond)
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ10_0_IndexInsertRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
+      ->Iterations(1);
 }
 
 }  // namespace noisepage::runner
