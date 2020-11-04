@@ -41,7 +41,7 @@ namespace noisepage::storage {
     // True if replication is active
     bool replication_active_;
 
-    std::chrono::seconds replication_timeout_ = 10;
+    std::chrono::seconds replication_timeout_{10};
 
     // Current buffer to read logs from
     std::unique_ptr<network::ReadBuffer> curr_buffer_ = nullptr;
@@ -88,7 +88,7 @@ namespace noisepage::storage {
         // If we timeout or replication is shut down, return false
         if (!predicate || !replication_active_) return false;
 
-        TERRIER_ASSERT(!arrived_buffer_queue_.empty(),
+        NOISEPAGE_ASSERT(!arrived_buffer_queue_.empty(),
                        "If we did not shut down or timeout, CV should only wake up when a new buffer arrives");
         curr_buffer_ = std::move(arrived_buffer_queue_.front());
         arrived_buffer_queue_.pop();
@@ -104,4 +104,4 @@ namespace noisepage::storage {
     }
   };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

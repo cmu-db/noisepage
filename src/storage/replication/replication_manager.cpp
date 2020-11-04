@@ -2,13 +2,13 @@
 
 #include "storage/replication/replication_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
   void ReplicationManager::AddRecordBuffer(BufferedLogWriter *network_buffer) {
     replication_consumer_queue_.Enqueue(std::make_pair(network_buffer, std::vector<CommitCallback>()));
   }
 
-  bool ReplicationManager::SendMessage(common::ManagedPointer<messenger::Messenger> messenger, messenger::ConnectionId &target) {
+  bool ReplicationManager::SendMessage(messenger::ConnectionId &target) {
     // Grab buffers in queue.
     std::deque<BufferedLogWriter*> temp_buffer_queue;
     uint64_t data_size = 0;
@@ -22,7 +22,7 @@ namespace terrier::storage {
     // Build JSON object.
     nlohmann::json j;
     j["type"] = "itp";
-    \
+
     std::string content;
     uint64_t size = 0;
     for (auto *buffer : temp_buffer_queue) {
@@ -60,4 +60,4 @@ namespace terrier::storage {
     provider_->HandBufferToReplication(std::move(buffer));
   }
 
-}  // namespace terrier::storage;
+}  // namespace noisepage::storage;

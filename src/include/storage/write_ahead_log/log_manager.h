@@ -58,7 +58,7 @@ class LogManager : public common::DedicatedThreadOwner {
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
-             common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
+             common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry,
              common::ManagedPointer<ReplicationManager> replication_manager)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),

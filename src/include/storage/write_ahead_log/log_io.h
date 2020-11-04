@@ -162,7 +162,7 @@ class BufferedLogWriter {
  * @param other buffer to copy from
  */
   void CopyFromBuffer(BufferedLogWriter *other) {
-    TERRIER_ASSERT(CanBuffer(other->buffer_size_), "Not enough space to copy into");
+    NOISEPAGE_ASSERT(CanBuffer(other->buffer_size_), "Not enough space to copy into");
     BufferWrite(other->buffer_, other->buffer_size_);
   }
 

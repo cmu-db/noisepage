@@ -19,6 +19,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/replication/replication_manager.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
@@ -363,8 +364,8 @@ class DBMain {
 
       std::unique_ptr<storage::ReplicationManager> replication_manager = DISABLED;
       if (use_messenger_) {
-        storage::ReplicationLogProvider log_provider = new storage::ReplicationLogProvider();
-        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(), log_provider);
+        storage::ReplicationLogProvider log_provider = std::make_unique<storage::ReplicationLogProvider>();
+        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(), common::ManagedPointer(log_provider));
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;

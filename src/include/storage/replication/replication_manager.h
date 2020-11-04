@@ -29,9 +29,13 @@ public:
   void Recover(const std::string& string_view);
 
 private:
-  common::ConcurrentQueue<SerializedLogs> replication_consumer_queue_;
+  std::string master_address_;
+  std::string replica_address_;
   common::ManagedPointer<messenger::Messenger> messenger_;
   common::ManagedPointer<storage::ReplicationLogProvider> provider_;
+
+  // Keeps track of stored record buffers.
+  common::ConcurrentQueue<SerializedLogs> replication_consumer_queue_;
 };
 
-}  // namespace terrier::storage;
+}  // namespace noisepage::storage;
