@@ -70,8 +70,7 @@ pipeline {
                 ninja''', label: 'Compiling'
 
                 script { // TODO: This script block is temporary to get some initial data into microbenchmarks
-                    def iterations = (1..4)
-                    for(i in iterations){
+                    (1..4).each{
                         // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
                         //  # of Threads: 4
                         //  WAL Path: Ramdisk
