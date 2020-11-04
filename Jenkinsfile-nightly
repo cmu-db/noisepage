@@ -17,7 +17,7 @@ pipeline {
 
     stages {
         stage('Performance') {
-            when {false}
+            when  {equals expected: true, actual: false}
             agent { label 'benchmark' }
             steps {
                 sh 'echo $NODE_NAME'
