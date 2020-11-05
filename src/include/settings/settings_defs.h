@@ -324,4 +324,12 @@ SETTING_bool(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_bool(
+    replication_enable,
+    "Whether to enable replication (default: false)",
+    false,
+    false,
+    noisepage::settings::Callbacks::NoOp
+)
     // clang-format on

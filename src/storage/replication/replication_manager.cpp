@@ -52,12 +52,12 @@ void ReplicationManager::RecoverMessage(const std::string &string_view) {
   // Get the original replication info.
   size_t message_size = message["size"];
 
-  std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(size));
+  std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(message_size));
   std::vector<uint8_t> message_content_raw = message["content"];
-  std::string message_content = nlohmann::json::from_cbor(content_raw);
+  std::string message_content = nlohmann::json::from_cbor(message_content_raw);
 
   // Fill in a ReadBuffer for converting to log record.
-  std::vector<unsigned char> message_content_buffer(content.begin(), content.end());
+  std::vector<unsigned char> message_content_buffer(message_content.begin(), message_content.end());
   network::ReadBufferView view(message_size, message_content_buffer.begin());
   buffer->FillBufferFrom(view, message_size);
 

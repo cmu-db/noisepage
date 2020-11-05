@@ -858,6 +858,7 @@ class DBMain {
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
 
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
+      use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
 
       return settings_manager;
     }
