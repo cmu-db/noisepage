@@ -2,6 +2,7 @@
 
 #include <tbb/parallel_for_each.h>
 
+#include <iostream>
 #include <memory>
 #include <thread>  //NOLINT
 #include <unordered_map>
@@ -97,6 +98,7 @@ void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *contain
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   container->reserve(impl_->states_.size());
   for (auto &[tid, tls_handle] : impl_->states_) {
+    std::cout << tid << std::endl;
     container->push_back(tls_handle->State());
   }
 }
@@ -107,6 +109,7 @@ void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   container->reserve(impl_->states_.size());
   for (auto &[tid, tls_handle] : impl_->states_) {
+    std::cout << tid << std::endl;
     container->push_back(tls_handle->State() + element_offset);
   }
 }
@@ -114,6 +117,7 @@ void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *
 void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
   common::SpinLatch::ScopedSpinLatch guard(&impl_->states_latch_);
   for (auto &[tid, tls_handle] : impl_->states_) {
+    std::cout << tid << std::endl;
     iterate_fn(ctx, tls_handle->State());
   }
 }

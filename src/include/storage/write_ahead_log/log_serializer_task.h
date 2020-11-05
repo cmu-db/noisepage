@@ -1,5 +1,6 @@
 #pragma once
 
+#include <storage/replication/replication_manager.h>
 #include <condition_variable>  // NOLINT
 #include <queue>
 #include <thread>  // NOLINT
@@ -7,7 +8,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <storage/replication/replication_manager.h>
 
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"

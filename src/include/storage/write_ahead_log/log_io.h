@@ -149,18 +149,14 @@ class BufferedLogWriter {
    */
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
-  uint32_t GetBufferSize() const {
-    return buffer_size_;
-  }
+  uint32_t GetBufferSize() const { return buffer_size_; }
 
-  std::string GetBuffer() const {
-    return std::string(buffer_, buffer_size_);
-  }
+  std::string GetBuffer() const { return std::string(buffer_, buffer_size_); }
 
   /**
- * Copies the contents of another buffer into this buffer
- * @param other buffer to copy from
- */
+   * Copies the contents of another buffer into this buffer
+   * @param other buffer to copy from
+   */
   void CopyFromBuffer(BufferedLogWriter *other) {
     NOISEPAGE_ASSERT(CanBuffer(other->buffer_size_), "Not enough space to copy into");
     BufferWrite(other->buffer_, other->buffer_size_);

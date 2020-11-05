@@ -363,9 +363,11 @@ class DBMain {
       }
 
       std::unique_ptr<storage::ReplicationManager> replication_manager = DISABLED;
-      if (use_messenger_) {
-        storage::ReplicationLogProvider log_provider = std::make_unique<storage::ReplicationLogProvider>();
-        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(), common::ManagedPointer(log_provider));
+      if (use_messenger_ && use_replication_) {
+        auto log_provider =
+            std::make_unique<storage::ReplicationLogProvider>(replication_timeout_, use_synchronous_replication_);
+        replication_manager = std::make_unique<storage::ReplicationManager>(messenger_layer->GetMessenger(),
+                                                                            common::ManagedPointer(log_provider));
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -652,6 +654,33 @@ class DBMain {
     }
 
     /**
+     * @param identity use component
+     * @return self reference for chaining
+     */
+    Builder &SetUseReplication(const bool value) {
+      use_replication_ = value;
+      return *this;
+    }
+
+    /**
+     * @param identity Replication timeout
+     * @return self reference for chaining
+     */
+    Builder &SetReplicationTimeout(const uint16_t timeout_seconds) {
+      replication_timeout_ = std::chrono::seconds(timeout_seconds);
+      return *this;
+    }
+
+    /**
+     * @param identity Synchronous replication
+     * @return self reference for chaining
+     */
+    Builder &SetSynchronousReplication(const bool value) {
+      use_synchronous_replication_ = value;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -770,6 +799,9 @@ class DBMain {
     bool use_messenger_ = false;
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
+    bool use_replication_ = false;
+    std::chrono::seconds replication_timeout_{10};
+    bool use_synchronous_replication_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -939,7 +971,9 @@ class DBMain {
   common::ManagedPointer<MessengerLayer> GetMessengerLayer() const { return common::ManagedPointer(messenger_layer_); }
 
   /** @return ManagedPointer to the MessengerLayer, can be nullptr if disabled. */
-  common::ManagedPointer<storage::ReplicationManager> GetReplicationManager() const { return common::ManagedPointer(replication_manager_); }
+  common::ManagedPointer<storage::ReplicationManager> GetReplicationManager() const {
+    return common::ManagedPointer(replication_manager_);
+  }
 
  private:
   // Order matters here for destruction order

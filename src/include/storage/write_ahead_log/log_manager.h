@@ -14,9 +14,9 @@
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "storage/record_buffer.h"
+#include "storage/replication/replication_manager.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
-#include "storage/replication/replication_manager.h"
 
 namespace noisepage::storage {
 
