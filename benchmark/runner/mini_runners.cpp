@@ -929,6 +929,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
   auto type = static_cast<type::TypeId>(state.range(4));
   auto num_index = state.range(5);
 
+  if (rerun_start) {
+    return;
+  }
+
+  if (settings.skip_large_rows_runs_ && num_rows >= settings.warmup_rows_limit_) {
+    return;
+  }
+
   auto cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
   auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, car);
 
@@ -1219,6 +1227,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   auto outer = state.range(1);
   auto inner = state.range(2);
   auto is_build = state.range(3);
+
+  if (rerun_start) {
+    return;
+  }
+
+  // Don't run large if skipping
+  if (settings.skip_large_rows_runs_ && outer >= settings.warmup_rows_limit_) {
+    return;
+  }
 
   if (outer == 0) {
     if (is_build < 0) {
@@ -1605,6 +1622,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
     return;
   }
 
+  if (settings.skip_large_rows_runs_ && row >= settings.warmup_rows_limit_) {
+    return;
+  }
+
   // Size of the scan tuple
   // Size of hash key size, probe key size
   // Size of output since only output 1 side
@@ -1653,6 +1674,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   auto matched_car = state.range(8);
 
   if (rerun_start) {
+    return;
+  }
+
+  if (settings.skip_large_rows_runs_ && probe_row >= settings.warmup_rows_limit_) {
     return;
   }
 
