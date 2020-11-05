@@ -188,6 +188,13 @@ class Messenger : public common::DedicatedThreadTask {
 
   /** @return The ConnectionRouter with the specified router_id. Created by ListenForConnection. */
   common::ManagedPointer<ConnectionRouter> GetConnectionRouter(const std::string &router_id);
+  
+  /**
+   * Sets callback of a specific message id
+   * @param msg_id          The message id to set the callback.
+   * @param callback        Callback for the specific message id.
+   */
+  void SetCallback(uint64_t msg_id, CallbackFn callback);
 
  private:
   friend ConnectionId;

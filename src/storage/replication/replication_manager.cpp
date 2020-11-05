@@ -45,7 +45,7 @@ bool ReplicationManager::SendSerializedLogRecords(messenger::ConnectionId &targe
   return message_sent;
 }
 
-void ReplicationManager::RecoverFromSerliazedLogsRecords(const std::string &string_view) {
+void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &string_view) {
   // Parse the message.
   nlohmann::json message = nlohmann::json::parse(string_view);
 

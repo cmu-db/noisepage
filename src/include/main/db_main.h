@@ -859,6 +859,7 @@ class DBMain {
 
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
+      replication_timeout_ = std::chrono::seconds{settings_manager->GetInt(settings::Param::replication_timeout)};
 
       return settings_manager;
     }

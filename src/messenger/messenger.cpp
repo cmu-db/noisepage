@@ -562,6 +562,10 @@ void Messenger::ProcessMessage(const ZmqMessage &msg) {
   }
 }
 
+void Messenger::SetCallback(uint64_t msg_id, CallbackFn callback) {
+  callbacks_[msg_id] = callback;
+}
+
 MessengerManager::MessengerManager(const common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry,
                                    const uint16_t port, const std::string &identity)
     : DedicatedThreadOwner(thread_registry),

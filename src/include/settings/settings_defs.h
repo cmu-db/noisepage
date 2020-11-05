@@ -332,4 +332,14 @@ SETTING_bool(
     false,
     noisepage::settings::Callbacks::NoOp
 )
+
+SETTING_int(
+    replication_timeout,
+    "Maximum allowed timeout for replication in seconds (default: 10)",
+    10,
+    0,
+    10000,
+    true,
+    noisepage::settings::Callbacks::NoOp
+)
     // clang-format on
