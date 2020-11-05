@@ -461,7 +461,6 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, 
 
   // Build and send the message. Note that ConnectionRouter is a ROUTER socket.
   zmq::message_t router_data(recv_id.data(), recv_id.size());
-  MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger ({}) router_data: {} ", ::getpid(), router_id->identity_, router_data));
   try {
     if (router_id->socket_->send(router_data, zmq::send_flags::sndmore).has_value()) {
       ZmqMessage reply = ZmqMessage::Build(send_msg_id, recv_cb_id, router_id->identity_, message);
@@ -472,6 +471,7 @@ void Messenger::SendMessage(common::ManagedPointer<ConnectionRouter> router_id, 
     }
   } catch (std::exception &e) {
     MESSENGER_LOG_INFO(fmt::format("[PID={}] Messenger ({}) failed: {} ", ::getpid(), router_id->identity_, e.what()));
+    throw e;
   }
 }
 

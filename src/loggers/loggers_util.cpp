@@ -10,6 +10,7 @@
 #include "loggers/index_logger.h"
 #include "loggers/messenger_logger.h"
 #include "loggers/metrics_logger.h"
+#include "loggers/model_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
@@ -37,6 +38,7 @@ void LoggersUtil::Initialize() {
     messenger::InitMessengerLogger();
     metrics::InitMetricsLogger();
     network::InitNetworkLogger();
+    model::InitModelServerLogger();
     optimizer::InitOptimizerLogger();
     parser::InitParserLogger();
     settings::InitSettingsLogger();

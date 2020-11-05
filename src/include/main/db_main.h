@@ -11,12 +11,12 @@
 #include "common/managed_pointer.h"
 #include "messenger/messenger.h"
 #include "metrics/metrics_thread.h"
+#include "model_server/model_server_manager.h"
 #include "network/connection_handle_factory.h"
 #include "network/noisepage_server.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "optimizer/statistics/stats_storage.h"
-#include "model_server/model_server_manager.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
@@ -344,7 +344,7 @@ class DBMain {
       std::unique_ptr<metrics::MetricsThread> metrics_thread = DISABLED;
       if (use_metrics_thread_) {
         NOISEPAGE_ASSERT(use_metrics_ && metrics_manager != DISABLED,
-                       "Can't have a MetricsThread without a MetricsManager.");
+                         "Can't have a MetricsThread without a MetricsManager.");
         metrics_thread = std::make_unique<metrics::MetricsThread>(common::ManagedPointer(metrics_manager),
                                                                   std::chrono::microseconds{metrics_interval_});
       }
@@ -374,7 +374,8 @@ class DBMain {
 
       std::unique_ptr<CatalogLayer> catalog_layer = DISABLED;
       if (use_catalog_) {
-        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED, "Catalog needs GarbageCollector.");
+        NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
+                         "Catalog needs GarbageCollector.");
         catalog_layer =
             std::make_unique<CatalogLayer>(common::ManagedPointer(txn_layer), common::ManagedPointer(storage_layer),
                                            common::ManagedPointer(log_manager), create_default_database_);
@@ -383,7 +384,7 @@ class DBMain {
       std::unique_ptr<storage::GarbageCollectorThread> gc_thread = DISABLED;
       if (use_gc_thread_) {
         NOISEPAGE_ASSERT(use_gc_ && storage_layer->GetGarbageCollector() != DISABLED,
-                       "GarbageCollectorThread needs GarbageCollector.");
+                         "GarbageCollectorThread needs GarbageCollector.");
         gc_thread = std::make_unique<storage::GarbageCollectorThread>(storage_layer->GetGarbageCollector(),
                                                                       std::chrono::microseconds{gc_interval_},
                                                                       common::ManagedPointer(metrics_manager));
@@ -402,7 +403,7 @@ class DBMain {
       std::unique_ptr<trafficcop::TrafficCop> traffic_cop = DISABLED;
       if (use_traffic_cop_) {
         NOISEPAGE_ASSERT(use_catalog_ && catalog_layer->GetCatalog() != DISABLED,
-                       "TrafficCopLayer needs the CatalogLayer.");
+                         "TrafficCopLayer needs the CatalogLayer.");
         NOISEPAGE_ASSERT(use_stats_storage_ && stats_storage != DISABLED, "TrafficCopLayer needs StatsStorage.");
         NOISEPAGE_ASSERT(use_execution_ && execution_layer != DISABLED, "TrafficCopLayer needs ExecutionLayer.");
         traffic_cop = std::make_unique<trafficcop::TrafficCop>(
@@ -427,7 +428,8 @@ class DBMain {
       std::unique_ptr<model::ModelServerManager> model_server_manager = DISABLED;
       if (pilot_enable_) {
         NOISEPAGE_ASSERT(use_messenger_, "Pilot requires messenger layer.");
-        model_server_manager = std::make_unique<model::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
+        model_server_manager =
+            std::make_unique<model::ModelServerManager>(model_server_path_, messenger_layer->GetMessenger());
       }
 
       db_main->settings_manager_ = std::move(settings_manager);
@@ -720,7 +722,6 @@ class DBMain {
       return *this;
     }
 
-
     /**
      *
      * @param value with pilot
@@ -735,7 +736,7 @@ class DBMain {
      * @param value model_server_path
      * @return  self reference for chaining
      */
-    Builder &SetModelServerPath(const std::string value) {
+    Builder &SetModelServerPath(const std::string &value) {
       model_server_path_ = value;
       return *this;
     }
@@ -789,7 +790,6 @@ class DBMain {
     std::string messenger_identity_ = "primary";
     bool pilot_enable_ = false;
     std::string model_server_path_ = "model_server.py";
-
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -961,7 +961,9 @@ class DBMain {
   /**
    * @return ManagedPointer to the ModelServerManager, can be nullptr if disabled.
    */
-  common::ManagedPointer<model::ModelServerManager> GetModelServerManager() const {return common::ManagedPointer(model_server_manager_);}
+  common::ManagedPointer<model::ModelServerManager> GetModelServerManager() const {
+    return common::ManagedPointer(model_server_manager_);
+  }
 
  private:
   // Order matters here for destruction order
@@ -980,7 +982,7 @@ class DBMain {
   std::unique_ptr<ExecutionLayer> execution_layer_;
   std::unique_ptr<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<NetworkLayer> network_layer_;
-  std::unique_ptr<model::ModelServerManager> model_server_manager_; 
+  std::unique_ptr<model::ModelServerManager> model_server_manager_;
   std::unique_ptr<MessengerLayer> messenger_layer_;
 };
 
