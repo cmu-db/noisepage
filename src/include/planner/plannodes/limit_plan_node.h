@@ -50,10 +50,7 @@ class LimitPlanNode : public AbstractPlanNode {
      * Build the limit plan node
      * @return plan node
      */
-    std::unique_ptr<LimitPlanNode> Build() {
-      return std::unique_ptr<LimitPlanNode>(
-          new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_));
-    }
+    std::unique_ptr<LimitPlanNode> Build();
 
    protected:
     /**
@@ -74,8 +71,7 @@ class LimitPlanNode : public AbstractPlanNode {
    * @param offset offset at which to limit from
    */
   LimitPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                size_t limit, size_t offset)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), limit_(limit), offset_(offset) {}
+                size_t limit, size_t offset);
 
  public:
   /**

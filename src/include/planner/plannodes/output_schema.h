@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "common/hash_util.h"
+#include "common/hash_defs.h"
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"

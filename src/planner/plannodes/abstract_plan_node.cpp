@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
@@ -29,6 +30,7 @@
 #include "planner/plannodes/limit_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/plan_visitor.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/result_plan_node.h"
@@ -37,6 +39,12 @@
 #include "planner/plannodes/update_plan_node.h"
 
 namespace noisepage::planner {
+
+AbstractPlanNode::AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                   std::unique_ptr<OutputSchema> output_schema)
+    : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
+
+AbstractPlanNode::~AbstractPlanNode() = default;
 
 nlohmann::json AbstractPlanNode::ToJson() const {
   nlohmann::json j;
@@ -70,6 +78,42 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJ
   }
 
   return exprs;
+}
+
+common::hash_t AbstractPlanNode::Hash() const {
+  // PlanNodeType
+  common::hash_t hash = common::HashUtil::Hash(GetPlanNodeType());
+
+  // OutputSchema
+  if (output_schema_ != nullptr) {
+    hash = common::HashUtil::CombineHashes(hash, output_schema_->Hash());
+  }
+
+  // Children
+  for (const auto &child : GetChildren()) {
+    hash = common::HashUtil::CombineHashes(hash, child->Hash());
+  }
+  return hash;
+}
+
+bool AbstractPlanNode::operator==(const AbstractPlanNode &rhs) const {
+  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+
+  // OutputSchema
+  auto other_output_schema = rhs.GetOutputSchema();
+  if ((output_schema_ == nullptr && other_output_schema != nullptr) ||
+      (output_schema_ != nullptr && other_output_schema == nullptr)) {
+    return false;
+  }
+  if (output_schema_ != nullptr && *output_schema_ != *other_output_schema) return false;
+
+  // Children
+  auto num = GetChildren().size();
+  if (num != rhs.GetChildren().size()) return false;
+  for (unsigned int i = 0; i < num; i++) {
+    if (*GetChild(i) != *const_cast<AbstractPlanNode *>(rhs.GetChild(i))) return false;
+  }
+  return true;
 }
 
 JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) {

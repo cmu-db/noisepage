@@ -1,11 +1,13 @@
 #include "execution/compiler/operator/operator_translator.h"
 
 #include "brain/operating_unit_util.h"
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "common/json.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/work_context.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 #include "spdlog/fmt/fmt.h"
 
 namespace noisepage::execution::compiler {

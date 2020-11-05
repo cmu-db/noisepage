@@ -1,3 +1,4 @@
+#include "common/error/error_code.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "execution/sql/operators/like_operators.h"

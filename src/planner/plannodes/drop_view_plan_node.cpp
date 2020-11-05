@@ -6,8 +6,23 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<DropViewPlanNode> DropViewPlanNode::Builder::Build() {
+  return std::unique_ptr<DropViewPlanNode>(
+      new DropViewPlanNode(std::move(children_), std::move(output_schema_), database_oid_, view_oid_, if_exists_));
+}
+
+DropViewPlanNode::DropViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                   std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                                   catalog::view_oid_t view_oid, bool if_exists)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      database_oid_(database_oid),
+      view_oid_(view_oid),
+      if_exists_(if_exists) {}
+
 common::hash_t DropViewPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
@@ -59,7 +74,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropViewPlanNode::FromJ
   if_exists_ = j.at("if_exists").get<bool>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(DropViewPlanNode);
 
 }  // namespace noisepage::planner
