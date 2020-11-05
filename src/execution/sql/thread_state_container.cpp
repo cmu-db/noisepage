@@ -2,7 +2,6 @@
 
 #include <tbb/parallel_for_each.h>
 
-#include <iostream>
 #include <memory>
 #include <thread>  //NOLINT
 #include <unordered_map>

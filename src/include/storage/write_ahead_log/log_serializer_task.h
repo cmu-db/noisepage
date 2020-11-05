@@ -1,6 +1,5 @@
 #pragma once
 
-#include <storage/replication/replication_manager.h>
 #include <condition_variable>  // NOLINT
 #include <queue>
 #include <thread>  // NOLINT
@@ -13,6 +12,7 @@
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
 #include "storage/record_buffer.h"
+#include "storage/replication/replication_manager.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
