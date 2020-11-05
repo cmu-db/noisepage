@@ -360,13 +360,13 @@ class DBMain {
       std::unique_ptr<replication::ReplicationManager> replication_manager = DISABLED;
       if (use_messenger_) {
         messenger_layer = std::make_unique<MessengerLayer>(common::ManagedPointer(thread_registry), messenger_port_,
-                                                           messenger_identity_);
+                                                           network_identity_);
       }
 
       if (use_replication_) {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
-        replication_manager =
-            std::make_unique<replication::ReplicationManager>(messenger_layer->GetMessenger(), "primary", replication_hosts_path_);
+        replication_manager = std::make_unique<replication::ReplicationManager>(
+            messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_);
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -643,15 +643,6 @@ class DBMain {
     }
 
     /**
-     * @param identity Messenger identity
-     * @return self reference for chaining
-     */
-    Builder &SetMessengerIdentity(const std::string &identity) {
-      messenger_identity_ = identity;
-      return *this;
-    }
-
-    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -764,13 +755,14 @@ class DBMain {
     bool use_query_cache_ = true;
     execution::vm::ExecutionMode execution_mode_ = execution::vm::ExecutionMode::Interpret;
     uint16_t network_port_ = 15721;
+    std::string network_identity_ = "primary";
     std::string uds_file_directory_ = "/tmp/";
     uint16_t connection_thread_count_ = 4;
     bool use_network_ = false;
     bool use_messenger_ = false;
     bool use_replication_ = false;
     uint16_t messenger_port_ = 9022;
-    std::string messenger_identity_ = "primary";
+    uint16_t replication_port_ = 15445;
     std::string replication_hosts_path_ = "replication.conf";
 
     /**
@@ -809,6 +801,7 @@ class DBMain {
       //  If you set it with the builder, it gets overwritten.
       //  If you set it with the setting manager, it isn't mutable.
       network_port_ = static_cast<uint16_t>(settings_manager->GetInt(settings::Param::port));
+      network_identity_ = settings_manager->GetString(settings::Param::network_identity);
       connection_thread_count_ =
           static_cast<uint16_t>(settings_manager->GetInt(settings::Param::connection_thread_count));
       optimizer_timeout_ = static_cast<uint64_t>(settings_manager->GetInt(settings::Param::task_execution_timeout));
@@ -828,7 +821,9 @@ class DBMain {
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
 
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
+      messenger_port_ = settings_manager->GetInt(settings::Param::messenger_port);
       use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
+      replication_port_ = settings_manager->GetInt(settings::Param::replication_port);
       replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
 
       return settings_manager;

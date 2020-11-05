@@ -19,7 +19,7 @@ class Replica {
   // todo(wan): justify existence? what other methods are specific to communicating with a replica?
  public:
   Replica(common::ManagedPointer<messenger::Messenger> messenger, const std::string &replica_name,
-          const std::string &hostname, int port);
+          const std::string &hostname, uint16_t port);
 
   common::ManagedPointer<messenger::ConnectionId> GetConnectionId() { return common::ManagedPointer(&connection_); }
 
@@ -54,19 +54,30 @@ class Replica {
 class ReplicationManager {
  public:
   enum class MessageType : uint8_t { RESERVED = 0, HEARTBEAT };
-  static constexpr int REPLICATION_DEFAULT_PORT = 15445;
   /** Milliseconds between replication heartbeats before a replica is declared dead. */
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
   ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity,
-                     const std::string &replication_hosts_path);
+                     uint16_t port, const std::string &replication_hosts_path);
 
-  void ReplicaConnect(const std::string &replica_name, const std::string &hostname, int port);
+  void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
 
   // sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
   // just capture a bool in the callback and flip it on response, have the cvar wait on that
   // I don't think this should actually send the message, though - it should buffer the message to be sent instead
   void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
+
+  /** @return The port that replication is running on. */
+  uint16_t GetPort() const { return port_; }
+
+  std::vector<std::string> GetCurrentReplicaList() const {
+    std::vector<std::string> replicas;
+    replicas.reserve(replicas_.size());
+    for (const auto &replica : replicas_) {
+      replicas.emplace_back(replica.first);
+    }
+    return replicas;
+  }
 
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
@@ -80,7 +91,9 @@ class ReplicationManager {
   common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
   common::ManagedPointer<messenger::Messenger> messenger_;
-  std::unordered_map<std::string, Replica> replicas_;  //< Replica Name -> Connection ID
+  std::string identity_;                               //< The identity of this replica.
+  uint16_t port_;                                      //< The port that replication runs on.
+  std::unordered_map<std::string, Replica> replicas_;  //< Replica Name -> Connection ID.
   std::mutex mutex_;
   std::condition_variable cvar_;
 };

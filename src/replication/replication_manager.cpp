@@ -10,15 +10,16 @@
 namespace noisepage::replication {
 
 Replica::Replica(common::ManagedPointer<noisepage::messenger::Messenger> messenger, const std::string &replica_name,
-                 const std::string &hostname, int port)
+                 const std::string &hostname, uint16_t port)
     : replica_info_(messenger::ConnectionDestination::MakeTCP(replica_name, hostname, port)),
       connection_(messenger->MakeConnection(replica_info_)),
       last_heartbeat_(0) {}
 
 ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messenger::Messenger> messenger,
-                                       const std::string &network_identity, const std::string &replication_hosts_path)
-    : messenger_(messenger) {
-  auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", REPLICATION_DEFAULT_PORT);
+                                       const std::string &network_identity, uint16_t port,
+                                       const std::string &replication_hosts_path)
+    : messenger_(messenger), identity_(network_identity), port_(port) {
+  auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
   messenger_->ListenForConnection(listen_destination, network_identity,
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
                                          const messenger::ZmqMessage &msg) { EventLoop(messenger, msg); });
@@ -39,7 +40,6 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
   //   REPLICA HOSTNAME
   //   REPLICA PORT
   // Repeated and separated by newlines.
-  // The first entry in the file is the primary by convention.
   std::ifstream hosts_file(replication_hosts_path);
   if (!hosts_file.is_open()) {
     throw REPLICATION_EXCEPTION(fmt::format("Unable to open file: {}", replication_hosts_path));
@@ -47,7 +47,7 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
   std::string line;
   std::string replica_name;
   std::string replica_hostname;
-  int replica_port;
+  uint16_t replica_port;
   for (int ctr = 0; std::getline(hosts_file, line); ctr = (ctr + 1) % 4) {
     switch (ctr) {
       case 0:
@@ -61,8 +61,14 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
         break;
       case 3:
         replica_port = std::stoi(line);
-        // All information parsed, connect to the replica.
-        ReplicaConnect(replica_name, replica_hostname, replica_port);
+        // All information parsed.
+        if (identity_ == replica_name) {
+          // For our specific identity, check that the port is right.
+          NOISEPAGE_ASSERT(replica_port == port_, "Mismatch of identity/port combo in replica config.");
+        } else {
+          // Connect to the replica.
+          ReplicaConnect(replica_name, replica_hostname, replica_port);
+        }
         break;
       default:
         NOISEPAGE_ASSERT(false, "Impossible.");
@@ -72,7 +78,7 @@ void ReplicationManager::BuildReplicaList(const std::string &replication_hosts_p
   hosts_file.close();
 }
 
-void ReplicationManager::ReplicaConnect(const std::string &replica_name, const std::string &hostname, int port) {
+void ReplicationManager::ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port) {
   replicas_.try_emplace(replica_name, messenger_, replica_name, hostname, port);
 }
 
@@ -99,7 +105,7 @@ void ReplicationManager::EventLoop(common::ManagedPointer<noisepage::messenger::
                                    const noisepage::messenger::ZmqMessage &msg) {
   switch (static_cast<MessageType>(msg.GetDestinationCallbackId())) {
     case MessageType::HEARTBEAT:
-      REPLICATION_LOG_TRACE(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
+      REPLICATION_LOG_INFO(fmt::format("Heartbeat from: {}", msg.GetRoutingId()));
       break;
     default:
       break;
@@ -118,6 +124,7 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
     }
   }
 
+  REPLICATION_LOG_INFO(fmt::format("Replica {}: heartbeat start.", replica_name));
   try {
     messenger_->SendMessage(
         GetReplicaConnection(replica_name), "",
@@ -140,6 +147,7 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
                                        replica.last_heartbeat_, epoch_now_ms.count()));
     }
   }
+  REPLICATION_LOG_INFO(fmt::format("Replica {}: heartbeat end.", replica_name));
 }
 
 common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
