@@ -1220,6 +1220,15 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ2_1_IndexJoinRunners)(benchmark::State &state
   auto inner = state.range(2);
   auto is_build = state.range(3);
 
+  if (rerun_start) {
+    return;
+  }
+
+  // Don't run large if skipping
+  if (settings.skip_large_rows_runs_ && outer >= settings.warmup_rows_limit_) {
+    return;
+  }
+
   if (outer == 0) {
     if (is_build < 0) {
       throw "Invalid is_build argument for IndexJoin";
@@ -1605,6 +1614,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
     return;
   }
 
+  if (settings.skip_large_rows_runs_ && row >= settings.warmup_rows_limit_) {
+    return;
+  }
+
   // Size of the scan tuple
   // Size of hash key size, probe key size
   // Size of output since only output 1 side
@@ -1653,6 +1666,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
   auto matched_car = state.range(8);
 
   if (rerun_start) {
+    return;
+  }
+
+  if (settings.skip_large_rows_runs_ && probe_row >= settings.warmup_rows_limit_) {
     return;
   }
 
