@@ -11,7 +11,7 @@
 #include "messenger/connection_destination.h"
 #include "test_util/test_harness.h"
 
-namespace noisepage::storage {
+namespace noisepage::messenger {
 
 class ReplicationTests : public TerrierTest {
  protected:
@@ -80,9 +80,6 @@ class ReplicationTests : public TerrierTest {
     return db_main;
   }
 
-  /** A dirty hack that sleeps for a little while so that sockets can clean up. */
-  static void DirtySleep() { std::this_thread::sleep_for(std::chrono::seconds(5)); }
-
   catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn,
                                    common::ManagedPointer<catalog::Catalog> catalog, const std::string &database_name) {
     auto db_oid = catalog->CreateDatabase(common::ManagedPointer(txn), database_name, true /* bootstrap */);
@@ -100,6 +97,8 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
 
   uint16_t port_messenger_replica = 9022;
   uint16_t port_messenger_primary = port_messenger_replica + 1;
+
+  uint8_t msg_id = static_cast<uint8_t>(messenger::Messenger::BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1;
 
   // done[2] is shared memory (mmap) so that the forked processes can coordinate on when they are done.
   // This is done instead of waitpid() because I can't find a way to stop googletest from freaking out on waitpid().
@@ -120,26 +119,27 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
     auto replica = BuildDBMain(port_replica, port_messenger_replica, "replica");
     replica->GetNetworkLayer()->GetServer()->RunServer();
     common::ManagedPointer<messenger::Messenger> messenger = replica->GetMessengerLayer()->GetMessenger();
-    common::ManagedPointer<ReplicationManager> replication_manager = replica->GetReplicationManager();
+    common::ManagedPointer<storage::ReplicationManager> replication_manager = replica->GetReplicationManager();
     common::ManagedPointer<catalog::Catalog> catalog = replica->GetCatalogLayer()->GetCatalog();
     common::ManagedPointer<transaction::TransactionManager> txn_manager =
         replica->GetTransactionLayer()->GetTransactionManager();
-    common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager = replica->GetTransactionLayer()->GetDeferredActionManager();
+    common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager =
+        replica->GetTransactionLayer()->GetDeferredActionManager();
 
     std::chrono::seconds replication_timeout{10};
     storage::BlockStore block_store{100, 100};
-    std::unique_ptr<storage::ReplicationLogProvider> log_provider = std::make_unique<storage::ReplicationLogProvider>(replication_timeout, false);
-    
-    std::unique_ptr<storage::RecoveryManager> recovery_manager = std::make_unique<storage::RecoveryManager>(
-        common::ManagedPointer<storage::AbstractLogProvider>(static_cast<storage::AbstractLogProvider*>(log_provider.get())),
-        catalog,
-        txn_manager,
-        deferred_action_manager,
-        common::ManagedPointer(replica->GetThreadRegistry()), common::ManagedPointer(&block_store));
+    std::unique_ptr<storage::ReplicationLogProvider> log_provider =
+        std::make_unique<storage::ReplicationLogProvider>(replication_timeout, false);
+
+    std::unique_ptr<storage::RecoveryManager> recovery_manager =
+        std::make_unique<storage::RecoveryManager>(common::ManagedPointer<storage::AbstractLogProvider>(
+                                                       static_cast<storage::AbstractLogProvider *>(log_provider.get())),
+                                                   catalog, txn_manager, deferred_action_manager,
+                                                   replica->GetThreadRegistry(), common::ManagedPointer(&block_store));
 
     bool received = false;
-    messenger->SetCallback(3, [&received, &replication_manager, &txn_manager, &catalog, &recovery_manager](
-                                  std::string_view sender_id, std::string_view message) {
+    messenger->SetCallback(msg_id, [&received, &replication_manager, &txn_manager, &catalog, &recovery_manager](
+                                       std::string_view sender_id, std::string_view message) {
       std::string msg{message};
       replication_manager->RecoverFromSerializedLogRecords(msg);
       received = true;
@@ -170,15 +170,16 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
     auto *txn = primary->GetTransactionLayer()->GetTransactionManager()->BeginTransaction();
     auto oid = CreateDatabase(txn, primary->GetCatalogLayer()->GetCatalog(), database_name);
     primary->GetTransactionLayer()->GetTransactionManager()->Commit(txn, transaction::TransactionUtil::EmptyCallback,
-                                                                     nullptr);
+                                                                    nullptr);
 
     // Set up a connection to the replica.
     auto messenger = primary->GetMessengerLayer()->GetMessenger();
-    messenger::ConnectionDestination dest_replica = messenger::Messenger::GetEndpointIPC("replica", port_messenger_replica);
+    messenger::ConnectionDestination dest_replica =
+        messenger::Messenger::GetEndpointIPC("replica", port_messenger_replica);
     auto con_replica = messenger->MakeConnection(dest_replica);
 
     // Send using replication manager.
-    primary->GetReplicationManager()->SendSerializedLogRecords(con_replica);
+    primary->GetReplicationManager()->SendSerializedLogRecords(con_replica, msg_id);
 
     MESSENGER_LOG_TRACE("Primary done.");
     done[1] = true;
@@ -195,4 +196,4 @@ TEST_F(ReplicationTests, CreateDatabaseTest) {
   NOISEPAGE_ASSERT(-1 != munmap_retval, "munmap() failed.");
 }
 
-}  // namespace noisepage::storage
+}  // namespace noisepage::messenger

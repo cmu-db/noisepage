@@ -6,7 +6,7 @@ void ReplicationManager::AddLogRecordBuffer(BufferedLogWriter *network_buffer) {
   replication_consumer_queue_.Enqueue(std::make_pair(network_buffer, std::vector<CommitCallback>()));
 }
 
-bool ReplicationManager::SendSerializedLogRecords(messenger::ConnectionId &target) {
+bool ReplicationManager::SendSerializedLogRecords(messenger::ConnectionId &target, uint8_t msg_id) {
   // Grab buffers in queue.
   std::deque<BufferedLogWriter *> temp_buffer_queue;
   uint64_t data_size = 0;
@@ -36,12 +36,12 @@ bool ReplicationManager::SendSerializedLogRecords(messenger::ConnectionId &targe
   bool message_sent = false;
   messenger_->SendMessage(
       common::ManagedPointer(&target), j.dump(),
-      [&message_sent](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
-                      std::string_view message, uint64_t recv_cb_id) {
+      [&message_sent, &msg_id](common::ManagedPointer<messenger::Messenger> messenger, std::string_view sender_id,
+                               std::string_view message, uint64_t recv_cb_id) {
         STORAGE_LOG_INFO("Receiving replication message from ", sender_id);
         message_sent = true;
       },
-      static_cast<uint8_t>(messenger::Messenger::BuiltinCallback::NUM_BUILTIN_CALLBACKS) + 1);
+      msg_id);
   return message_sent;
 }
 
