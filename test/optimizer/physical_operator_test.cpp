@@ -1108,28 +1108,23 @@ TEST(OperatorTests, InsertSelectTest) {
 
   catalog::db_oid_t database_oid(123);
   catalog::table_oid_t table_oid(789);
-  std::vector<catalog::index_oid_t> index_oids{721};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = InsertSelect::Make(database_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op1 = InsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::INSERTSELECT);
   EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.GetContentsAs<InsertSelect>()->GetIndexes(), index_oids);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = InsertSelect::Make(database_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op2 = InsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = InsertSelect::Make(other_database_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids))
-                     .RegisterWithTxnContext(txn_context);
+  Operator op3 = InsertSelect::Make(other_database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 

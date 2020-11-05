@@ -35,7 +35,9 @@ InsertTranslator::InsertTranslator(const planner::InsertPlanNode &plan, Compilat
       compilation_context->Prepare(*node_val);
     }
   }
-  for (auto &index_oid : GetCodeGen()->GetCatalogAccessor()->GetIndexOids(plan.GetTableOid())) {
+
+  auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
+  for (auto &index_oid : index_oids) {
     const auto &index_schema = GetCodeGen()->GetCatalogAccessor()->GetIndexSchema(index_oid);
     for (const auto &index_col : index_schema.GetColumns()) {
       compilation_context->Prepare(*index_col.StoredExpression());
@@ -66,8 +68,7 @@ void InsertTranslator::PerformPipelineWork(WorkContext *context, FunctionBuilder
     // var insert_slot = @tableInsert(&inserter)
     GenTableInsert(function);
     function->Append(GetCodeGen()->ExecCtxAddRowsAffected(GetExecutionContext(), 1));
-    const auto &table_oid = GetPlanAs<planner::InsertPlanNode>().GetTableOid();
-    const auto &index_oids = GetCodeGen()->GetCatalogAccessor()->GetIndexOids(table_oid);
+    const auto &index_oids = GetPlanAs<planner::InsertPlanNode>().GetIndexOids();
     for (const auto &index_oid : index_oids) {
       GenIndexInsert(context, function, index_oid);
     }

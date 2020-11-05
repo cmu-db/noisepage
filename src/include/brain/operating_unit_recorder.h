@@ -100,6 +100,15 @@ class OperatingUnitRecorder : planner::PlanVisitor {
   void Visit(const planner::AggregatePlanNode *plan) override;
   void Visit(const planner::CreateIndexPlanNode *plan) override;
 
+  /**
+   * Records the index operations performed by a plan node
+   * that requires modifying any system index.
+   *
+   * @param index_oids Index OIDs to record operations for.
+   */
+  template <typename IndexPlanNode>
+  void RecordIndexOperations(const std::vector<catalog::index_oid_t> &index_oids);
+
   template <typename Translator>
   void RecordAggregateTranslator(common::ManagedPointer<Translator> translator, const planner::AggregatePlanNode *plan);
 
