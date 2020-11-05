@@ -7,23 +7,21 @@
 #include <string>
 #include <utility>
 
+#include "binder/bind_node_visitor.h"
+#include "brain/forecast/workload_forecast_segment.h"
 #include "brain/operating_unit.h"
 #include "execution/exec_defs.h"
-
-#include "brain/forecast/workload_forecast_segment.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/execution_settings.h"
 #include "execution/compiler/compilation_context.h"
 #include "execution/compiler/executable_query.h"
+#include "metrics/metrics_store.h"
 #include "brain/forecast/workload_forecast_segment.h"
 #include "parser/expression/constant_value_expression.h"
 #include "common/action_context.h"
 #include "common/error/exception.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "common/shared_latch.h"
-#include "execution/exec_defs.h"
-#include "execution/exec/execution_context.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/optimizer.h"
@@ -50,53 +48,86 @@ WorkloadForecast::WorkloadForecast(
   }
 }
 
+std::vector<parser::ConstantValueExpression> WorkloadForecast::SampleParam(execution::query_id_t qid) {
+  return query_id_to_param_[qid][rand() % query_id_to_param_[qid].size()];
+}
+
 void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_main) {
-  auto qid = forecast_segments_[0].query_ids_[0];
-  auto num_exec = forecast_segments_[0].num_executions_[0];
-  std::cout << qid << "; num_exec: " << num_exec << std::endl;
-  // std::cout << query_id_to_string_[qid] << std::endl << std::flush;
-  auto stmt_list = parser::PostgresParser::BuildParseTree("UPDATE WAREHOUSE   SET W_YTD = W_YTD + 4290.490234375  WHERE W_ID = 1 ");
+
+  auto it_begin = forecast_segments_[0].id_to_num_exec_.begin();
+  it_begin ++;
+  it_begin ++;
+  execution::query_id_t qid = it_begin->first;
+  std::vector<type::TypeId> param_types;
+  std::vector<parser::ConstantValueExpression> params = SampleParam(it_begin->first);
+
+  for (auto it = params.begin(); it != params.end(); it++) {
+    param_types.push_back(it->GetReturnValueType());
+  }
+  std::string tmp_query = "INSERT INTO ITEM VALUES ($1, $2, $3, $4, $5)";
+  std::cout << "Executing query id:" << qid << "; text: " << tmp_query << std::endl << std::flush;
+  // auto stmt_list = parser::PostgresParser::BuildParseTree("UPDATE WAREHOUSE   SET W_YTD = W_YTD + 4290.490234375  WHERE W_ID = 1 ");
+  auto stmt_list = parser::PostgresParser::BuildParseTree(tmp_query);
 
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
   transaction::TransactionContext *txn = txn_manager->BeginTransaction();
   std::cout << "1. Transaction began \n" << std::flush;
 
-  // Creating exec_ctx
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(1);
-  std::cout << "1.3. Got DB oid \n" << std::flush;
-  std::unique_ptr<catalog::CatalogAccessor> accessor = catalog->GetAccessor(common::ManagedPointer(txn), 
+  std::cout << "1.1. Got DB oid \n" << std::flush;
+  std::unique_ptr<catalog::CatalogAccessor> accessor = catalog->GetAccessor(common::ManagedPointer(txn),
                                                                             db_oid, DISABLED);
+  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
+  auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
+  binder.BindNameToNode(common::ManagedPointer(stmt_list), common::ManagedPointer(&params),
+                        common::ManagedPointer(&param_types));
+
+  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
+
+  // Creating exec_ctx
   std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
-  std::cout << "1.5. Got cost model \n" << std::flush;
+  std::cout << "1.2. Got cost model \n" << std::flush;
+
+  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
         common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
         db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
   std::cout << "2. Compiled out_plan \n" << std::flush;
 
+  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
+
   execution::exec::ExecutionSettings exec_settings{};
-  exec_settings.UpdateFromSettingsManager(db_main->GetSettingsManager());
+  // exec_settings.UpdateFromSettingsManager(db_main->GetSettingsManager());
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
         db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor), exec_settings, db_main->GetMetricsManager());
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
   std::cout << "3. Compiled exec context\n" << std::flush;
+  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
   auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                       execution::compiler::CompilationMode::OneShot);
   std::cout << "4. Compiled exec_query\n" << std::flush;
+  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
-  auto units = std::make_unique<brain::PipelineOperatingUnits>();
-
-  exec_query->SetPipelineOperatingUnits(std::move(units));
-  std::cout << "5. Units Set Successfully \n" << std::flush;
-  
   // exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&query_id_to_param_[qid][0]));
   // std::cout << "SetParams succ \n" << std::flush;
-  // exec_query.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-  // std::cout << "Run query succ \n" << std::flush;
+  exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  std::cout << "5. Run query succ \n" << std::flush;
+
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+
+  // retrieve the features
+  auto metrics_manager = db_main->GetMetricsManager();
+  metrics_manager->Aggregate();
+  const auto aggregated_data = reinterpret_cast<metrics::PipelineMetricRawData *>(
+      metrics_manager->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE)).get());
+  std::cout << "size: " << aggregated_data->pipeline_data_.size() << std::endl << std::flush;
+  metrics_manager->ToCSV();
   txn_manager->Abort(txn);
   std::cout << "6. Transaction Aborted \n" << std::flush;
 
@@ -107,23 +138,22 @@ void WorkloadForecast::CreateSegments(
     std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions) {
   
   std::vector<WorkloadForecastSegment> segments;
-  std::vector<execution::query_id_t> seg_qids;
-  std::vector<uint64_t> seg_executions;
+
+  std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
+
   uint64_t curr_time = query_timestamp_to_id.begin()->first;
 
   for (auto it = query_timestamp_to_id.begin(); it != query_timestamp_to_id.end(); it++) {
     if (it->first > curr_time + forecast_interval_){
-      segments.push_back(WorkloadForecastSegment(seg_qids, seg_executions));
+      segments.push_back(WorkloadForecastSegment(curr_segment));
       curr_time = it->first;
-      seg_qids.clear();
-      seg_executions.clear();
+      curr_segment.clear();
     }
-    seg_qids.push_back(it->second.first);
-    seg_executions.push_back(num_executions[it->second.first][it->second.second]);
+    curr_segment[it->second.first] += num_executions[it->second.first][it->second.second];
   }
 
-  if (seg_qids.size() > 0) {
-    segments.push_back(WorkloadForecastSegment(seg_qids, seg_executions));
+  if (curr_segment.size() > 0) {
+    segments.push_back(WorkloadForecastSegment(curr_segment));
   }
   forecast_segments_ = segments;
   num_forecast_segment_ = segments.size();

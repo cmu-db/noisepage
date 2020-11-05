@@ -57,28 +57,52 @@ void Pilot::ExecuteForecast() {
   for (const auto &file : metrics::PipelineMetricRawData::FILES) unlink(std::string(file).c_str());
   
   std::cout << "Before action context \n" << std::flush;
-  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  
-  const auto callback = +[](common::ManagedPointer<common::ActionContext> action_context) -> void {
-    action_context->SetState(common::ActionState::SUCCESS);
-  };
+
   // forecastor_->ExecuteSegments(exec_ctx);
   auto settings_manager_ = db_main_->GetSettingsManager();
   bool oldval = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
-  
+  bool oldcounter = settings_manager_->GetBool(settings::Param::counters_enable);
+  uint64_t oldintv = settings_manager_->GetInt64(settings::Param::pipeline_metrics_interval);
+
+  auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
   if (!oldval) {
-    settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
-                               callback);
+    settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true,
+                               common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
   }
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  if (!oldcounter) {
+    settings_manager_->SetBool(settings::Param::counters_enable, true,
+                               common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
+  }
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
+  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 0,
+                             common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
+
+  //  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
+  //  settings_manager_->SetBool(settings::Param::wal_enable, false,
+  //                            common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
+
   std::cout << "After ppl metrics enabled \n" << std::flush;
   forecastor_->ExecuteSegments(db_main_);
 
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
   if (!oldval) {
-    settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false, common::ManagedPointer(action_context),
-                               callback);
+    settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false,
+                               common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
   }
-  
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
+  if (!oldcounter) {
+    settings_manager_->SetBool(settings::Param::counters_enable, false,
+                               common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
+  }
+
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(7));
+  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, oldintv,
+                            common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
+
 }
 
 void Pilot::LoadQueryTrace() {

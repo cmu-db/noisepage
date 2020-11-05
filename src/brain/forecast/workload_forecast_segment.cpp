@@ -14,16 +14,14 @@
 namespace noisepage::brain {
 
 WorkloadForecastSegment::WorkloadForecastSegment(
-    std::vector<execution::query_id_t> query_ids,
-    std::vector<uint64_t> num_executions)
-    : query_ids_(query_ids),
-      num_executions_(num_executions) {
+    std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec)
+    : id_to_num_exec_(id_to_num_exec) {
 }
 
 void WorkloadForecastSegment::Peek() {
-  std::cout << "size: " << query_ids_.size() << std::endl;
-  for (auto i = 0; i < query_ids_.size(); i++){
-    std::cout << "qid: " << query_ids_[i] << "; num_exec: " << num_executions_[i] << std::endl;
+  std::cout << "size: " << id_to_num_exec_.size() << std::endl;
+  for (auto it = id_to_num_exec_.begin(); it != id_to_num_exec_.end(); it++){
+    std::cout << "qid: " << it->first << "; num_exec: " << it->second << std::endl;
   }
   std::cout << std::endl;
 }

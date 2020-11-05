@@ -53,7 +53,10 @@ class WorkloadForecast {
   
   void ExecuteSegments(const common::ManagedPointer<DBMain> db_main);
 
+  static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
+
  private:
+  std::vector<parser::ConstantValueExpression> SampleParam(execution::query_id_t qid);
 
   std::unordered_map<execution::query_id_t, std::string> query_id_to_string_;
   std::unordered_map<std::string, execution::query_id_t> query_string_to_id_;

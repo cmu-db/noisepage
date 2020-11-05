@@ -17,6 +17,9 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
+namespace noisepage::brain {
+class WorkloadForecast;
+}
 namespace noisepage::metrics {
 
 /**
@@ -83,6 +86,7 @@ class PipelineMetricRawData : public AbstractRawData {
 
  private:
   friend class PipelineMetric;
+  friend class brain::WorkloadForecast;
   FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 

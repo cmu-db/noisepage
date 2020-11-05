@@ -19,12 +19,11 @@ class WorkloadForecastSegment {
    * @param query_ids
    * @param num_executions_ the 
    */
-  WorkloadForecastSegment(std::vector<execution::query_id_t> query_ids, std::vector<uint64_t> num_executions_);
+  WorkloadForecastSegment(std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec);
   
   void Peek();
- 
-  std::vector<execution::query_id_t> query_ids_;
-  std::vector<uint64_t> num_executions_;
+
+  std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec_;
 
  private:
  
