@@ -11,6 +11,23 @@ namespace noisepage::optimizer {
 
 static constexpr double DEFAULT_SELECTIVITY = 0.5;
 
+/**
+ * A utility class for computing the selectivity of columns based on
+ * column statistics.
+ * Supported operators for selectivity calculations are:
+ * - EQUAL
+ * - NOT EQUAL
+ * - LESS THAN
+ * - LESS THAN OR EQUAL TO
+ * - GREATER THAN
+ * - GREATER THAN OR EQUAL TO
+ *
+ * TODO(arvindsk) IN, LIKE, NOT LIKE, IS DISTINCT FROM.
+ *
+ * The functions for computing selectivity require a column statistics object.
+ * This object provides necessary information like TopK and Histogram which are
+ * used by this class to compute selectivity.
+ */
 class SelectivityUtil {
  public:
   /**
