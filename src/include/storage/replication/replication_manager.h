@@ -27,14 +27,14 @@ class ReplicationManager {
       : messenger_(messenger), provider_(provider) {}
 
   /** Adds a record buffer to the current queue. */
-  void AddRecordBuffer(BufferedLogWriter *network_buffer);
+  void AddLogRecordBuffer(BufferedLogWriter *network_buffer);
 
   /** Serialize log record buffer to json and send the message across the network. This operation empties the record
    * buffer queue. */
-  bool SendMessage(messenger::ConnectionId &target);
+  bool SendSerializedLogRecords(messenger::ConnectionId &target);
 
   /** Parse the log record buffer and redirect to replication log provider for recovery. */
-  void RecoverMessage(const std::string &string_view);
+  void RecoverFromSerializedLogRecords(const std::string &string_view);
 
  private:
   common::ManagedPointer<messenger::Messenger> messenger_;

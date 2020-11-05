@@ -125,6 +125,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
 
+  // Replication manager to provide logs for
   common::ManagedPointer<storage::ReplicationManager> replication_manager_;
 
   /**

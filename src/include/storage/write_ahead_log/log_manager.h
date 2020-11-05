@@ -54,6 +54,7 @@ class LogManager : public common::DedicatedThreadOwner {
    * @param buffer_pool the object pool to draw log buffers from. This must be the same pool transactions draw their
    *                    buffers from
    * @param thread_registry DedicatedThreadRegistry dependency injection
+   * @param replication_manager the replication manager to provide logs to
    */
   LogManager(std::string log_file_path, uint64_t num_buffers, std::chrono::microseconds serialization_interval,
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,

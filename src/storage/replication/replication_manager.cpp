@@ -2,11 +2,11 @@
 
 namespace noisepage::storage {
 
-void ReplicationManager::AddRecordBuffer(BufferedLogWriter *network_buffer) {
+void ReplicationManager::AddLogRecordBuffer(BufferedLogWriter *network_buffer) {
   replication_consumer_queue_.Enqueue(std::make_pair(network_buffer, std::vector<CommitCallback>()));
 }
 
-bool ReplicationManager::SendMessage(messenger::ConnectionId &target) {
+bool ReplicationManager::SendSerializedLogRecords(messenger::ConnectionId &target) {
   // Grab buffers in queue.
   std::deque<BufferedLogWriter *> temp_buffer_queue;
   uint64_t data_size = 0;
@@ -45,7 +45,7 @@ bool ReplicationManager::SendMessage(messenger::ConnectionId &target) {
   return message_sent;
 }
 
-void ReplicationManager::RecoverMessage(const std::string &string_view) {
+void ReplicationManager::RecoverFromSerliazedLogsRecords(const std::string &string_view) {
   // Parse the message.
   nlohmann::json message = nlohmann::json::parse(string_view);
 
