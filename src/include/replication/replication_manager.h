@@ -28,6 +28,7 @@ class Replica {
 
   messenger::ConnectionDestination replica_info_;
   messenger::ConnectionId connection_;
+  uint64_t last_heartbeat_;  //< Time (unix epoch) that the replica heartbeat was last successful.
 };
 
 /**
@@ -54,26 +55,32 @@ class ReplicationManager {
  public:
   enum class MessageType : uint8_t { RESERVED = 0, HEARTBEAT };
   static constexpr int REPLICATION_DEFAULT_PORT = 15445;
+  /** Milliseconds between replication heartbeats before a replica is declared dead. */
+  static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
-  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity);
+  ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity,
+                     const std::string &replication_hosts_path);
 
   void ReplicaConnect(const std::string &replica_name, const std::string &hostname, int port);
 
   // sync/async seems relatively easy to do in this framework, though I need to fix up the multithreaded block case
   // just capture a bool in the callback and flip it on response, have the cvar wait on that
   // I don't think this should actually send the message, though - it should buffer the message to be sent instead
-  void ReplicaSend(const std::string &replica_name, const MessageType type, const std::string &msg, bool block);
+  void ReplicaSend(const std::string &replica_name, MessageType type, const std::string &msg, bool block);
 
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
   void ReplicaHeartbeat(const std::string &replica_name);
+
+  void BuildReplicaList(const std::string &replication_hosts_path);
+
   // todo(wan): division of functionality?'
   // todo(wan): RM would become a dependency to most components
 
-  common::ManagedPointer<messenger::ConnectionId> GetReplica(const std::string &replica_name);
+  common::ManagedPointer<messenger::ConnectionId> GetReplicaConnection(const std::string &replica_name);
 
   common::ManagedPointer<messenger::Messenger> messenger_;
-  std::unordered_map<std::string, Replica> replicas_;           //< Replica Name -> Connection ID
+  std::unordered_map<std::string, Replica> replicas_;  //< Replica Name -> Connection ID
   std::mutex mutex_;
   std::condition_variable cvar_;
 };

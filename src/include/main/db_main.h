@@ -366,7 +366,7 @@ class DBMain {
       if (use_replication_) {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
         replication_manager =
-            std::make_unique<replication::ReplicationManager>(messenger_layer->GetMessenger(), "primary");
+            std::make_unique<replication::ReplicationManager>(messenger_layer->GetMessenger(), "primary", replication_hosts_path_);
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
@@ -771,6 +771,7 @@ class DBMain {
     bool use_replication_ = false;
     uint16_t messenger_port_ = 9022;
     std::string messenger_identity_ = "primary";
+    std::string replication_hosts_path_ = "replication.conf";
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.
@@ -827,6 +828,8 @@ class DBMain {
       execute_command_metrics_ = settings_manager->GetBool(settings::Param::execute_command_metrics_enable);
 
       use_messenger_ = settings_manager->GetBool(settings::Param::messenger_enable);
+      use_replication_ = settings_manager->GetBool(settings::Param::replication_enable);
+      replication_hosts_path_ = settings_manager->GetString(settings::Param::replication_hosts_path);
 
       return settings_manager;
     }

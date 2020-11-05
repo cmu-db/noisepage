@@ -109,7 +109,8 @@ ZmqMessage::ZmqMessage(std::string routing_id, std::string payload)
     dest_cb_id_ = 0;
   } else {
     // TODO(WAN): atoi, stoull, from_chars, etc? Error checking in general.
-    UNUSED_ATTRIBUTE int check = std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &source_cb_id_, &dest_cb_id_);
+    UNUSED_ATTRIBUTE int check =
+        std::sscanf(payload_.c_str(), "%" SCNu64 "-%" SCNu64 "-", &source_cb_id_, &dest_cb_id_);
     NOISEPAGE_ASSERT(2 == check, "Couldn't parse the message header.");
     message_.remove_prefix(message_.find_last_of('-') + 1);
   }
@@ -236,7 +237,7 @@ class ZmqUtil {
    */
   static void SendMsgIdentity(common::ManagedPointer<zmq::socket_t> socket, const std::string &identity) {
     zmq::message_t identity_msg(identity.data(), identity.size());
-    bool ok = socket->send(identity_msg, zmq::send_flags::sndmore).has_value();
+    bool ok = socket->send(identity_msg, zmq::send_flags::sndmore | zmq::send_flags::dontwait).has_value();
 
     if (!ok) {
       throw MESSENGER_EXCEPTION(fmt::format("Unable to send on socket: {}", ZmqUtil::GetRoutingId(socket)));
@@ -252,8 +253,8 @@ class ZmqUtil {
     zmq::message_t payload_msg(msg.GetRawPayload().data(), msg.GetRawPayload().size());
     bool ok = true;
 
-    ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore).has_value();
-    ok = ok && socket->send(payload_msg, zmq::send_flags::none).has_value();
+    ok = ok && socket->send(delimiter_msg, zmq::send_flags::sndmore | zmq::send_flags::dontwait).has_value();
+    ok = ok && socket->send(payload_msg, zmq::send_flags::none | zmq::send_flags::dontwait).has_value();
 
     if (!ok) {
       throw MESSENGER_EXCEPTION(fmt::format("Unable to send on socket: {}", ZmqUtil::GetRoutingId(socket)));
@@ -270,11 +271,13 @@ ConnectionId::ConnectionId(common::ManagedPointer<Messenger> messenger, const Co
     : target_name_(target.GetTargetName()) {
   // Create a new DEALER socket and connect to the server.
   socket_ = std::make_unique<zmq::socket_t>(*messenger->zmq_ctx_, ZMQ_DEALER);
-  socket_->set(zmq::sockopt::routing_id, identity);
+  socket_->set(zmq::sockopt::routing_id, identity);  // Socket identity.
+  socket_->set(zmq::sockopt::immediate, true);       // Only queue messages to completed connections.
+  socket_->set(zmq::sockopt::linger, 0);             // Discard all pending messages immediately on socket close.
   socket_->connect(target.GetDestination());
   routing_id_ = ZmqUtil::GetRoutingId(common::ManagedPointer(socket_));
-  MESSENGER_LOG_TRACE(fmt::format("[PID={}] Connected to {} ({}) as {}.", ::getpid(), target_name_,
-                                  target.GetDestination(), routing_id_.c_str()));
+  MESSENGER_LOG_INFO(fmt::format("[PID={}] Registered (but haven't opened!) a new connection to {} ({}) as {}.",
+                                 ::getpid(), target_name_, target.GetDestination(), routing_id_.c_str()));
   // Add the new socket to the list of sockets that will be polled by the server loop.
   messenger->polled_sockets_->AddPollItem(socket_.get(), nullptr);
 }

@@ -24,6 +24,7 @@ namespace noisepage {
 #define MESSENGER_EXCEPTION(msg) MessengerException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
+#define REPLICATION_EXCEPTION(msg) ReplicationException(msg, __FILE__, __LINE__)
 #define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
 #define ABORT_EXCEPTION(msg) AbortException(msg, __FILE__, __LINE__)
 #define EXECUTION_EXCEPTION(msg, code) ExecutionException(msg, __FILE__, __LINE__, (code))
@@ -42,6 +43,7 @@ enum class ExceptionType : uint8_t {
   MESSENGER,
   NETWORK,
   PARSER,
+  REPLICATION,
   SETTINGS,
   OPTIMIZER,
   SYNTAX,
@@ -90,6 +92,8 @@ class Exception : public std::runtime_error {
         return "Messenger";
       case ExceptionType::NETWORK:
         return "Network";
+      case ExceptionType::REPLICATION:
+        return "Replication";
       case ExceptionType::SETTINGS:
         return "Settings";
       case ExceptionType::BINDER:
@@ -158,6 +162,7 @@ class Exception : public std::runtime_error {
 DEFINE_EXCEPTION(NotImplementedException, ExceptionType::NOT_IMPLEMENTED);
 DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(MessengerException, ExceptionType::MESSENGER);
+DEFINE_EXCEPTION(ReplicationException, ExceptionType::REPLICATION);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);

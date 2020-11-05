@@ -213,6 +213,14 @@ class Messenger : public common::DedicatedThreadTask {
    *
    * @warning           DO NOT USE THIS ConnectionId FROM A DIFFERENT THREAD THAN THE CALLER OF THIS FUNCTION!
    *                    Make a new connection instead, connections are cheap.
+   *
+   * @warning           The default behavior of ZMQ sockets is to allow connections to any target and to queue messages.
+   *                    Obtaining a ConnectionId does NOT guarantee that a successful connection has been made.
+   *                    If this is necessary, test the connection explicitly by sending a message through.
+   *                    Currently, ConnectionId is setup so that messages are only queued for successful connections.
+   *                    But note that it should not be necessary as your code should handle the case of the target
+   *                    going away permanently anyway, in particular consider this ordering of events:
+   *                      MakeConnection(target) success -> target dies -> SendMessage(target, ...)
    */
   ConnectionId MakeConnection(const ConnectionDestination &target);
 
