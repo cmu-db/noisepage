@@ -929,6 +929,14 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
   auto type = static_cast<type::TypeId>(state.range(4));
   auto num_index = state.range(5);
 
+  if (rerun_start) {
+    return;
+  }
+
+  if (settings.skip_large_rows_runs_ && num_rows >= settings.warmup_rows_limit_) {
+    return;
+  }
+
   auto cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
   auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, car);
 
