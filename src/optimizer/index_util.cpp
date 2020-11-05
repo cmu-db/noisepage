@@ -181,6 +181,13 @@ bool IndexUtil::CheckPredicates(
     // Generally on multi-column indexes, exact would result in comparing against unspecified attribute.
     // Only try to do an exact key lookup if potentially all attributes are specified.
     scan_type = planner::IndexScanType::Exact;
+  } else if (schema.Type() == storage::index::IndexType::HASHMAP) {
+    // This is a range-based scan, but this is a hashmap so it cannot satisfy the predicate.
+    //
+    // TODO(John): Ideally this check should be based off of lookups in the catalog.  However, we do not
+    // support dynamically defined index types nor do we have `pg_op*` catalog tables to store the necessary
+    // data.  For now, this check is sufficient for what the optimizer is doing.
+    return false;
   }
 
   for (auto &col : schema.GetColumns()) {
