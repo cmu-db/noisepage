@@ -534,6 +534,7 @@ class MiniRunners : public benchmark::Fixture {
 
       exec_query->Run(common::ManagedPointer(exec_ctx), mode);
 
+      NOISEPAGE_ASSERT(!txn->MustAbort(), "Transaction should not be force-aborted");
       if (commit)
         txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       else
@@ -945,11 +946,108 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
 
   // Simulate an index insert
   {
-    metrics_manager_->RegisterThread();
     auto txn = txn_manager_->BeginTransaction();
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto tbl_oid = accessor->GetTableOid(tbl_name);
     auto idx_oids = accessor->GetIndexOids(tbl_oid);
+    auto ins_batch = settings.index_insdel_batch_size_;
+
+    std::string tpl_program;
+    {
+      std::stringstream output;
+      output << "struct QueryState {\nexecCtx: *ExecutionContext\n}\n";
+      output << "struct P1_State {\nexecFeatures: ExecOUFeatureVector\n}\n";
+      output << "fun Query0_Init(queryState: *QueryState) -> nil {\nreturn}\n";
+      output << "fun Query0_Pipeline1_InitPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+      output << "\treturn\n";
+      output << "}\n";
+      output
+          << "fun Query0_Pipeline1_TearDownPipelineState(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+      output << "\t@execOUFeatureVectorReset(&pipelineState.execFeatures)\n";
+      output << "}\n";
+
+      output << "fun Query0_Pipeline1_SerialWork(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
+
+      // Define col_oids for StorageInserters
+      output << "\tvar col_oids : [" << tbl_cols << "]uint32\n";
+      for (int i = 0; i < tbl_cols; i++) {
+        output << "\tcol_oids[" << i << "] = " << (i + 1) << "\n";
+      }
+
+      // Define all per-tuple variables now
+      output << "\tvar inserter: StorageInterface\n";
+      output << "\tvar insert_pr: *ProjectedRow\n";
+      output << "\t@storageInterfaceInit(&inserter, queryState.execCtx, " << static_cast<uint32_t>(tbl_oid)
+             << ", col_oids, true)\n";
+      output << "\tinsert_pr = @getTablePR(&inserter)\n";
+
+      // Init all projected rows for insert
+      for (int i = 0; i < tbl_cols; i++) {
+        output << "\t@prSetInt(insert_pr, " << i << ", @intToSql(" << num_rows << "))\n";
+      }
+
+      // Table Insert
+      output << "\tvar insert_slot = @tableInsert(&inserter)\n";
+
+      // It is possible that we should iterate against a single index.
+      output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
+      for (auto idx : idx_oids) {
+        auto oid = static_cast<uint32_t>(idx);
+        for (int i = 0; i < ins_batch; i++) {
+          std::string idx_pr;
+          {
+            std::stringstream idx_pr_creator;
+            idx_pr_creator << "insert_index_pr_" << oid << "_" << i;
+            idx_pr = idx_pr_creator.str();
+          }
+          output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
+          for (int col = 0; col < key_num; col++) {
+            output << "\t@prSetInt(" << idx_pr << ", " << col << ", @intToSql(" << (num_rows + i) << "))\n";
+          }
+          output << "\tif (!@indexInsert(&inserter)) {\n";
+          output << "\t\t@abortTxn(queryState.execCtx)\n";
+          output << "\t}\n";
+          output << "\n";
+        }
+      }
+      output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
+
+      // Free storage interfaces
+      output << "\n";
+      output << "\t@storageInterfaceFree(&inserter)\n";
+      output << "\treturn\n";
+      output << "}\n";
+
+      output << "fun Query0_Pipeline1_Init(queryState: *QueryState) -> nil {\n";
+      output << "\tvar threadStateContainer = @execCtxGetTLS(queryState.execCtx)\n";
+      output << "\t@tlsReset(threadStateContainer, @sizeOf(P1_State), Query0_Pipeline1_InitPipelineState, "
+                "Query0_Pipeline1_TearDownPipelineState, queryState)\n";
+      output << "\treturn\n";
+      output << "}\n";
+
+      output << "fun Query0_Pipeline1_Run(queryState: *QueryState) -> nil {\n";
+      output << "\tvar pipelineState = @ptrCast(*P1_State, "
+                "@tlsGetCurrentThreadState(@execCtxGetTLS(queryState.execCtx)))\n";
+      output << "\t@execOUFeatureVectorInit(queryState.execCtx, &pipelineState.execFeatures, 1, false)\n";
+      output << "\tQuery0_Pipeline1_SerialWork(queryState, pipelineState)\n";
+      output << "\treturn\n";
+      output << "}\n";
+
+      output << "fun Query0_Pipeline1_TearDown(queryState: *QueryState) -> nil {\n";
+      output << "\t@tlsClear(@execCtxGetTLS(queryState.execCtx))\n";
+      output << "\treturn\n";
+      output << "}\n";
+
+      output << "fun Query0_TearDown(queryState: *QueryState) -> nil {\nreturn\n}\n";
+
+      output << "fun main(queryState: *QueryState) -> nil {\n";
+      output << "\tQuery0_Pipeline1_Init(queryState)\n";
+      output << "\tQuery0_Pipeline1_Run(queryState)\n";
+      output << "\tQuery0_Pipeline1_TearDown(queryState)\n";
+      output << "\treturn\n";
+      output << "}\n";
+      tpl_program = output.str();
+    }
 
     auto exec_settings = GetExecutionSettings();
     execution::exec::NoOpResultConsumer consumer;
@@ -958,62 +1056,19 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
                                                                         nullptr, common::ManagedPointer(accessor),
                                                                         exec_settings, metrics_manager_);
 
+    auto exec_query =
+        execution::compiler::ExecutableQuery(tpl_program, common::ManagedPointer(exec_ctx), false, 16, exec_settings);
+
     auto type_size = type::TypeUtil::GetTypeSize(type);
     auto key_size = type_size * key_num;
-
-    auto qid = MiniRunners::query_id++;
-    brain::PipelineOperatingUnits units;
+    auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
-    exec_ctx->SetPipelineOperatingUnits(common::ManagedPointer(&units));
     pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::INDEX_INSERT, num_rows,
                            key_size, key_num, num_index, 1, 0, 0);
-    units.RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
-
-    brain::ExecOUFeatureVector ouvec;
-    exec_ctx->InitializeOUFeatureVector(&ouvec, execution::pipeline_id_t(1));
-
-    {
-      uint32_t col_oids[tbl_cols];
-      for (int i = 0; i < tbl_cols; i++) col_oids[i] = i + 1;
-      execution::sql::StorageInterface si(exec_ctx.get(), tbl_oid, col_oids, tbl_cols, true);
-
-      // Insert a dummy tuple
-      storage::ProjectedRow *insert_pr;
-      OpStorageInterfaceGetTablePR(&insert_pr, &si);
-      for (int i = 0; i < tbl_cols; i++) {
-        execution::sql::Integer integer(num_rows);
-        OpPRSetInt(insert_pr, i, &integer);
-      }
-
-      noisepage::storage::TupleSlot tuple_slot;
-      OpStorageInterfaceTableInsert(&tuple_slot, &si);
-
-      exec_ctx->StartPipelineTracker(execution::pipeline_id_t(1));
-      for (auto i = 0; i < settings.index_insdel_batch_size_; i++) {
-        for (auto idx : idx_oids) {
-          // This key biases against the right-side of the index
-          storage::ProjectedRow *pr;
-          OpStorageInterfaceGetIndexPR(&pr, &si, static_cast<uint32_t>(idx));
-          for (auto col = 0; col < key_num; col++) {
-            execution::sql::Integer integer(0);
-            OpPRGetInt(&integer, insert_pr, col);
-            OpPRSetInt(pr, col, &integer);
-          }
-
-          bool result;
-          OpStorageInterfaceIndexInsertWithSlot(&result, &si, &tuple_slot, false);
-          // OpStorageInterfaceIndexInsert(&result, &si);
-          NOISEPAGE_ASSERT(result, "IndexInsert should have succeeded");
-        }
-      }
-      // OpStorageInterfaceFree(&si);
-      exec_ctx->EndPipelineTracker(qid, execution::pipeline_id_t(1), &ouvec);
-    }
-    ouvec.Reset();
-    txn_manager_->Abort(txn);
-
-    metrics_manager_->Aggregate();
-    metrics_manager_->UnregisterThread();
+    units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
+    exec_query.SetPipelineOperatingUnits(std::move(units));
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    BenchmarkExecQuery(1, &exec_query, nullptr, false, &empty_params, &exec_settings);
   }
 
   // Drop the indexes
@@ -2065,9 +2120,9 @@ void RunBenchmarkSequence(int rerun_counter) {
   // from the composite to get an approximation for the target feature.
   std::vector<std::vector<std::string>> filters = {{"SEQ0"},   {"SEQ1_0", "SEQ1_1"}, {"SEQ2_0", "SEQ2_1"}, {"SEQ3"},
                                                    {"SEQ4"},   {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"}, {"SEQ7_2"},
-                                                   {"SEQ8_2"}, {"SEQ9_0", "SEQ9_1"}};
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
+                                                   {"SEQ8_2"}, {"SEQ9_0", "SEQ9_1"}, {"SEQ10_0"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",   "AGGS",
+                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX"};
 
   char buffer[64];
   const char *argv[2];
@@ -2118,9 +2173,9 @@ void RunMiniRunners() {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",  "HJ",
-                                     "AGGS",   "INSERT", "UPDATE",    "DELETE", "CREATE_INDEX"};
-  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6"};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",   "AGGS",
+                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX"};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6", "7"};
   for (size_t t = 0; t < titles.size(); t++) {
     auto &title = titles[t];
     char target[64];

@@ -345,6 +345,7 @@ void MiniRunnersArgumentGenerator::GenCreateIndexArguments(OutputArgs *b, const 
       num_cols.push_back(col);
     }
   }
+  std::sort(num_cols.begin(), num_cols.end(), std::less<uint32_t>());
 
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   for (auto thread : num_threads) {
@@ -416,17 +417,7 @@ void MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b, 
   auto &num_indexes = config.sweep_index_insdel_nums_;
   const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
-  std::vector<uint32_t> num_cols;
-  {
-    std::unordered_set<uint32_t> col_set;
-    col_set.insert(config.sweep_col_nums_.begin(), config.sweep_col_nums_.end());
-    col_set.insert(config.sweep_index_col_nums_.begin(), config.sweep_index_col_nums_.end());
-
-    num_cols.reserve(col_set.size());
-    for (auto &col : col_set) {
-      num_cols.push_back(col);
-    }
-  }
+  auto num_cols = config.sweep_index_col_nums_;
 
   for (auto num_index : num_indexes) {
     for (auto type : types) {
