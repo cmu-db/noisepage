@@ -104,7 +104,7 @@ class MiniRunnersDataConfig {
   /**
    * Parameter controls number of indexes to insert/delete into
    */
-  std::vector<uint32_t> sweep_index_insdel_nums_ = {1, 3, 5, 7};
+  std::vector<uint32_t> sweep_index_insdel_nums_ = {3, 5, 7, 9, 11};
 
   /**
    * Gets valid table row numbers less than or equal to a certain limit

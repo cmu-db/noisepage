@@ -958,7 +958,6 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
     auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
     auto tbl_oid = accessor->GetTableOid(tbl_name);
     auto idx_oids = accessor->GetIndexOids(tbl_oid);
-    auto ins_batch = settings.index_insdel_batch_size_;
 
     std::string tpl_program;
     {
@@ -1001,22 +1000,20 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
       output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
       for (auto idx : idx_oids) {
         auto oid = static_cast<uint32_t>(idx);
-        for (int i = 0; i < ins_batch; i++) {
-          std::string idx_pr;
-          {
-            std::stringstream idx_pr_creator;
-            idx_pr_creator << "insert_index_pr_" << oid << "_" << i;
-            idx_pr = idx_pr_creator.str();
-          }
-          output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
-          for (int col = 0; col < key_num; col++) {
-            output << "\t@prSetInt(" << idx_pr << ", " << col << ", @intToSql(" << (num_rows + i) << "))\n";
-          }
-          output << "\tif (!@indexInsert(&inserter)) {\n";
-          output << "\t\t@abortTxn(queryState.execCtx)\n";
-          output << "\t}\n";
-          output << "\n";
+        std::string idx_pr;
+        {
+          std::stringstream idx_pr_creator;
+          idx_pr_creator << "insert_index_pr_" << oid;
+          idx_pr = idx_pr_creator.str();
         }
+        output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
+        for (int col = 0; col < key_num; col++) {
+          output << "\t@prSetInt(" << idx_pr << ", " << col << ", @prGetInt(insert_pr, " << col << "))\n";
+        }
+        output << "\tif (!@indexInsert(&inserter)) {\n";
+        output << "\t\t@abortTxn(queryState.execCtx)\n";
+        output << "\t}\n";
+        output << "\n";
       }
       output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
 
@@ -1071,6 +1068,12 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
     auto key_size = type_size * key_num;
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
     brain::ExecutionOperatingUnitFeatureVector pipe0_vec;
+
+    // A brief discussion of the features:
+    // NUM_ROWS: size of the index
+    // KEY_SIZE: size of the keys
+    // KEY_NUM: number of keys
+    // Cardinality field: number of indexes being inserted into (i.e batch size)
     pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::INDEX_INSERT, num_rows,
                            key_size, key_num, num_index, 1, 0, 0);
     units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));

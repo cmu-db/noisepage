@@ -20,11 +20,6 @@ class MiniRunnersSettings {
   int64_t warmup_iterations_num_ = 5;
 
   /**
-   * Number to batch insert/delete for modeling multi-index inserts/deletes
-   */
-  int64_t index_insdel_batch_size_ = 10;
-
-  /**
    * Number of rerun iterations
    */
   int64_t rerun_iterations_ = 10;
