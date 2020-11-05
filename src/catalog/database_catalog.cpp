@@ -915,10 +915,30 @@ bool DatabaseCatalog::SetTablePointer(const common::ManagedPointer<transaction::
       write_lock_.load() == txn->FinishTime(),
       "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
       "should already have the lock.");
-  // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
-  // before we can safely delete this.
+  // We need to double-defer the deletion because there may be subsequent undo records into this table that need to be
+  // GCed before we can safely delete this.  Specifically, the following ordering results in a use-after-free when the
+  // unlink step dereferences a deleted SqlTable if the delete is only a single deferral:
+  //
+  //            Txn           |          Log Manager           |    GC
+  // ---------------------------------------------------------------------------
+  // CreateDatabase           |                                |
+  // ABORT                    |                                |
+  // Execute abort actions    |                                |
+  //                          |                                | ENTER
+  // Checkout ABORT timestamp |                                |
+  //                          | Remove ABORT from running txns |
+  //                          |                                | Read oldest running timestamp
+  //                          |                                | Unlink (not unlinked because abort is "visible")
+  //                          |                                | Process defers (deletes table)
+  //                          |                                | EXIT
+  //                          |                                | ENTER
+  //                          |                                | Unlink (ASAN crashes process for use-after-free)
+  //
+  // TODO(John,Ling): This needs to become a triple deferral when DAF gets merged in order to maintain
+  // assurances about object lifetimes in a multi-threaded GC situation.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; });
+    deferred_action_manager->RegisterDeferredAction(
+        [=]() { deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; }); });
   });
   return SetClassPointer(txn, table, table_ptr, postgres::REL_PTR_COL_OID);
 }
