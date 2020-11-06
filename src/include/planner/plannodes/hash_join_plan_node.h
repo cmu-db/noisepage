@@ -52,11 +52,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * Build the hash join plan node
      * @return plan node
      */
-    std::unique_ptr<HashJoinPlanNode> Build() {
-      return std::unique_ptr<HashJoinPlanNode>(
-          new HashJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_,
-                               std::move(left_hash_keys_), std::move(right_hash_keys_)));
-    }
+    std::unique_ptr<HashJoinPlanNode> Build();
 
    protected:
     /**
@@ -82,10 +78,7 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
                    std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                    common::ManagedPointer<parser::AbstractExpression> predicate,
                    std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
-                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
-        left_hash_keys_(std::move(left_hash_keys)),
-        right_hash_keys_(std::move(right_hash_keys)) {}
+                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys);
 
  public:
   /**

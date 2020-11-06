@@ -7,8 +7,19 @@
 
 #include "common/json.h"
 #include "parser/parser_defs.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<CreateNamespacePlanNode> CreateNamespacePlanNode::Builder::Build() {
+  return std::unique_ptr<CreateNamespacePlanNode>(
+      new CreateNamespacePlanNode(std::move(children_), std::move(output_schema_), std::move(namespace_name_)));
+}
+
+CreateNamespacePlanNode::CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                                 std::unique_ptr<OutputSchema> output_schema,
+                                                 std::string namespace_name)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
 common::hash_t CreateNamespacePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -41,7 +52,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateNamespacePlanNode
   namespace_name_ = j.at("namespace_name").get<std::string>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(CreateNamespacePlanNode);
 
 }  // namespace noisepage::planner

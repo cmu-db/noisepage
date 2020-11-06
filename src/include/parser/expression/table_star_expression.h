@@ -51,7 +51,7 @@ class TableStarExpression : public AbstractExpression {
   /** @return target table specified by TableStarExpression */
   const std::string &GetTargetTable() { return target_table_; }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
  private:
   bool target_table_specified_ = false;

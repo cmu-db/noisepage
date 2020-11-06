@@ -1,4 +1,5 @@
 #pragma once
+
 #include <memory>
 #include <vector>
 
@@ -53,11 +54,7 @@ class ParameterValueExpression : public AbstractExpression {
   /** @return offset in the expression */
   uint32_t GetValueIdx() const { return value_idx_; }
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
-    return hash;
-  }
+  common::hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
@@ -65,7 +62,7 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override;
