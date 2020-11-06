@@ -1175,3 +1175,16 @@ SELECT tb.* FROM t, tt tb;
 40
 50
 50
+
+statement ok
+DROP TABLE IF EXISTS t;
+
+statement ok
+CREATE TABLE t (a INT PRIMARY KEY);
+
+statement ok
+INSERT INTO t VALUES (1);
+
+statement error
+INSERT INTO t VALUES (1);
+
