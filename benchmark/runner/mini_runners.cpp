@@ -223,6 +223,7 @@ class MiniRunners : public benchmark::Fixture {
   void ExecuteUpdate(benchmark::State *state);
   void ExecuteDelete(benchmark::State *state);
   void ExecuteCreateIndex(benchmark::State *state);
+  void ExecuteIndexOperation(benchmark::State *state, bool is_insert);
 
   std::string ConstructIndexScanPredicate(int64_t key_num, int64_t num_rows, int64_t lookup_size,
                                           bool parameter = false) {
@@ -918,29 +919,77 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ0_OutputRunners)(benchmark::State &state) {
   BenchmarkExecQuery(settings.warmup_iterations_num_ + 1, &exec_query, schema.get(), true);
 }
 
-// NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &state) {
-  if (MiniRunners::mode != execution::vm::ExecutionMode::Interpret) return;
-
-  auto key_num = state.range(0);
-  auto tbl_cols = state.range(1);
-  auto num_rows = state.range(2);
-  auto car = state.range(3);
-  auto type = static_cast<type::TypeId>(state.range(4));
-  auto num_index = state.range(5);
-
-  if (rerun_start) {
-    return;
+/**
+ * Writes code to insert a tuple into a table.
+ * Code is emitted to the attached std::stringstream.
+ *
+ * Defines:
+ * inserter: StorageInterface
+ * insert_pr: Table PR
+ * insert_slot: TupleSlot of insert
+ */
+void PrintInsertTupleIntoTable(std::stringstream &output, size_t tbl_cols, size_t value, uint32_t tbl_oid) {
+  // Define col_oids for StorageInserters
+  output << "\tvar col_oids : [" << tbl_cols << "]uint32\n";
+  for (size_t i = 0; i < tbl_cols; i++) {
+    output << "\tcol_oids[" << i << "] = " << (i + 1) << "\n";
   }
 
+  // Define all per-tuple variables now
+  output << "\tvar inserter: StorageInterface\n";
+  output << "\tvar insert_pr: *ProjectedRow\n";
+  output << "\t@storageInterfaceInit(&inserter, queryState.execCtx, " << tbl_oid << ", col_oids, true)\n";
+  output << "\tinsert_pr = @getTablePR(&inserter)\n";
+
+  // Init all projected rows for insert
+  for (size_t i = 0; i < tbl_cols; i++) {
+    output << "\t@prSetInt(insert_pr, " << i << ", @intToSql(" << value << "))\n";
+  }
+
+  // Table Insert
+  output << "\tvar insert_slot = @tableInsert(&inserter)\n";
+}
+
+/**
+ * Writes code to output that inserts a tuple into multiple indexes.
+ * Requires "insert_pr" to be defined prior in the program.
+ * Requires "inserter" to be defined prior in the program.
+ */
+void PrintInsertTupleIntoIndexes(std::stringstream &output, std::vector<catalog::index_oid_t> idx_oids,
+                                 size_t key_num) {
+  for (auto idx : idx_oids) {
+    auto oid = static_cast<uint32_t>(idx);
+    std::string idx_pr;
+    {
+      std::stringstream idx_pr_creator;
+      idx_pr_creator << "insert_index_pr_" << oid;
+      idx_pr = idx_pr_creator.str();
+    }
+    output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
+    for (size_t col = 0; col < key_num; col++) {
+      output << "\t@prSetInt(" << idx_pr << ", " << col << ", @prGetInt(insert_pr, " << col << "))\n";
+    }
+    output << "\tif (!@indexInsert(&inserter)) {\n";
+    output << "\t\t@abortTxn(queryState.execCtx)\n";
+    output << "\t}\n";
+    output << "\n";
+  }
+}
+
+void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert) {
+  auto key_num = state->range(0);
+  auto tbl_cols = state->range(1);
+  auto num_rows = state->range(2);
+  auto car = state->range(3);
+  auto type = static_cast<type::TypeId>(state->range(4));
+  auto num_index = state->range(5);
   if (settings.skip_large_rows_runs_ && num_rows >= settings.warmup_rows_limit_) {
     return;
   }
 
+  // Create the indexes
   auto cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
   auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, car);
-
-  // Create the indexes
   for (auto i = 0; i < num_index; i++) {
     auto settings = GetExecutionSettings(false);
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -975,47 +1024,43 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
 
       output << "fun Query0_Pipeline1_SerialWork(queryState: *QueryState, pipelineState: *P1_State) -> nil {\n";
 
-      // Define col_oids for StorageInserters
-      output << "\tvar col_oids : [" << tbl_cols << "]uint32\n";
-      for (int i = 0; i < tbl_cols; i++) {
-        output << "\tcol_oids[" << i << "] = " << (i + 1) << "\n";
-      }
+      if (is_insert) {
+        // Insert Tuple
+        PrintInsertTupleIntoTable(output, tbl_cols, num_rows, tbl_oid.UnderlyingValue());
 
-      // Define all per-tuple variables now
-      output << "\tvar inserter: StorageInterface\n";
-      output << "\tvar insert_pr: *ProjectedRow\n";
-      output << "\t@storageInterfaceInit(&inserter, queryState.execCtx, " << static_cast<uint32_t>(tbl_oid)
-             << ", col_oids, true)\n";
-      output << "\tinsert_pr = @getTablePR(&inserter)\n";
+        // It is possible that we should iterate against a single index.
+        output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
+        PrintInsertTupleIntoIndexes(output, idx_oids, key_num);
+        output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
+      } else {
+        // Need to first insert into the indexes. This is not necessarily ideal
+        // but we need a TupleSlot in order to call IndexDelete.
+        PrintInsertTupleIntoTable(output, tbl_cols, num_rows, tbl_oid.UnderlyingValue());
+        PrintInsertTupleIntoIndexes(output, idx_oids, key_num);
 
-      // Init all projected rows for insert
-      for (int i = 0; i < tbl_cols; i++) {
-        output << "\t@prSetInt(insert_pr, " << i << ", @intToSql(" << num_rows << "))\n";
-      }
-
-      // Table Insert
-      output << "\tvar insert_slot = @tableInsert(&inserter)\n";
-
-      // It is possible that we should iterate against a single index.
-      output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
-      for (auto idx : idx_oids) {
-        auto oid = static_cast<uint32_t>(idx);
-        std::string idx_pr;
-        {
-          std::stringstream idx_pr_creator;
-          idx_pr_creator << "insert_index_pr_" << oid;
-          idx_pr = idx_pr_creator.str();
-        }
-        output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
-        for (int col = 0; col < key_num; col++) {
-          output << "\t@prSetInt(" << idx_pr << ", " << col << ", @prGetInt(insert_pr, " << col << "))\n";
-        }
-        output << "\tif (!@indexInsert(&inserter)) {\n";
+        // It is possible that we should iterate against a single index.
+        output << "\tif (!@tableDelete(&inserter, &insert_slot)) {\n";
         output << "\t\t@abortTxn(queryState.execCtx)\n";
         output << "\t}\n";
         output << "\n";
+        output << "\t@execCtxStartPipelineTracker(queryState.execCtx, 1)\n";
+        for (auto idx : idx_oids) {
+          auto oid = static_cast<uint32_t>(idx);
+          std::string idx_pr;
+          {
+            std::stringstream idx_pr_creator;
+            idx_pr_creator << "delete_index_pr_" << oid;
+            idx_pr = idx_pr_creator.str();
+          }
+          output << "\tvar " << idx_pr << " = @getIndexPR(&inserter, " << oid << ")\n";
+          for (int col = 0; col < key_num; col++) {
+            output << "\t@prSetInt(" << idx_pr << ", " << col << ", @prGetInt(insert_pr, " << col << "))\n";
+          }
+          output << "\t@indexDelete(&inserter, &insert_slot)\n";
+          output << "\n";
+        }
+        output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
       }
-      output << "\t@execCtxEndPipelineTracker(queryState.execCtx, 0, 1, &pipelineState.execFeatures)\n";
 
       // Free storage interfaces
       output << "\n";
@@ -1074,8 +1119,10 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
     // KEY_SIZE: size of the keys
     // KEY_NUM: number of keys
     // Cardinality field: number of indexes being inserted into (i.e batch size)
-    pipe0_vec.emplace_back(execution::translator_id_t(1), brain::ExecutionOperatingUnitType::INDEX_INSERT, num_rows,
-                           key_size, key_num, num_index, 1, 0, 0);
+    auto feature_type =
+        is_insert ? brain::ExecutionOperatingUnitType::INDEX_INSERT : brain::ExecutionOperatingUnitType::INDEX_DELETE;
+    pipe0_vec.emplace_back(execution::translator_id_t(1), feature_type, num_rows, key_size, key_num, num_index, 1, 0,
+                           0);
     units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
     exec_query.SetPipelineOperatingUnits(std::move(units));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -1093,6 +1140,16 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ10_0_IndexInsertRunners)(benchmark::State &st
 
   InvokeGC();
   InvokeGC();
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ10_IndexInsertRunners)(benchmark::State &state) {
+  ExecuteIndexOperation(&state, true);
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(MiniRunners, SEQ11_IndexDeleteRunners)(benchmark::State &state) {
+  ExecuteIndexOperation(&state, false);
 }
 
 void MiniRunners::ExecuteSeqScan(benchmark::State *state) {
@@ -2053,7 +2110,12 @@ void RegisterRunners() {
       ->Iterations(1)
       ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments>);
 
-  BENCHMARK_REGISTER_F(MiniRunners, SEQ10_0_IndexInsertRunners)
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ10_IndexInsertRunners)
+      ->Unit(benchmark::kMillisecond)
+      ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
+      ->Iterations(1);
+
+  BENCHMARK_REGISTER_F(MiniRunners, SEQ11_IndexDeleteRunners)
       ->Unit(benchmark::kMillisecond)
       ->Apply(GenBenchmarkArguments<MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments>)
       ->Iterations(1);
@@ -2146,19 +2208,28 @@ void RunBenchmarkSequence(int rerun_counter) {
   // In order for the modeller to work correctly, we first need to model
   // the dependent features and then subtract estimations/exact counters
   // from the composite to get an approximation for the target feature.
-  std::vector<std::vector<std::string>> filters = {{"SEQ0"},   {"SEQ1_0", "SEQ1_1"}, {"SEQ2_0", "SEQ2_1"}, {"SEQ3"},
-                                                   {"SEQ4"},   {"SEQ5_0", "SEQ5_1"}, {"SEQ6_0", "SEQ6_1"}, {"SEQ7_2"},
-                                                   {"SEQ8_2"}, {"SEQ9_0", "SEQ9_1"}, {"SEQ10_0"}};
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",   "AGGS",
-                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX"};
+  std::vector<std::vector<std::string>> filters = {{"SEQ0"},
+                                                   {"SEQ1_0", "SEQ1_1"},
+                                                   {"SEQ2_0", "SEQ2_1"},
+                                                   {"SEQ3"},
+                                                   {"SEQ4"},
+                                                   {"SEQ5_0", "SEQ5_1"},
+                                                   {"SEQ6_0", "SEQ6_1"},
+                                                   {"SEQ7_2"},
+                                                   {"SEQ8_2"},
+                                                   {"SEQ9_0", "SEQ9_1"},
+                                                   {"SEQ10"},
+                                                   {"SEQ11"}};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",           "AGGS",
+                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX_INSERT", "INDEX_DELETE"};
 
   char buffer[64];
   const char *argv[2];
   argv[0] = "mini_runners";
   argv[1] = buffer;
 
-  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret,
-                   noisepage::execution::vm::ExecutionMode::Compiled};
+  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret};
+  // noisepage::execution::vm::ExecutionMode::Compiled};
   for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
@@ -2201,9 +2272,9 @@ void RunMiniRunners() {
   std::rename("pipeline.csv", "execution_NETWORK.csv");
 
   // Do post-processing
-  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",   "AGGS",
-                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX"};
-  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6", "7"};
+  std::vector<std::string> titles = {"OUTPUT", "SCANS",  "IDX_SCANS", "SORTS",        "HJ",           "AGGS",
+                                     "INSERT", "UPDATE", "DELETE",    "CREATE_INDEX", "INDEX_INSERT", "INDEX_DELETE"};
+  std::vector<std::string> adjusts = {"0", "1_0", "1_1", "2", "3", "4", "5_0", "5_1", "5_2", "6", "7", "8"};
   for (size_t t = 0; t < titles.size(); t++) {
     auto &title = titles[t];
     char target[64];

@@ -25,17 +25,9 @@ void MiniRunnersSettings::InitializeFromArguments(int argc, char **argv) {
   Arg create_index_small_data{"--create_index_small_limit=", false};
   Arg create_index_car_data{"--create_index_large_car_num=", false};
   Arg run_limit{"--mini_runner_rows_limit=", false};
-  Arg *args[] = {&port_info,
-                 &filter_info,
-                 &skip_large_rows_runs_info,
-                 &warm_num_info,
-                 &rerun_info,
-                 &updel_info,
-                 &warm_limit_info,
-                 &gen_test_data,
-                 &create_index_small_data,
-                 &create_index_car_data,
-                 &run_limit};
+  Arg *args[] = {
+      &port_info,       &filter_info,   &skip_large_rows_runs_info, &warm_num_info,         &rerun_info, &updel_info,
+      &warm_limit_info, &gen_test_data, &create_index_small_data,   &create_index_car_data, &run_limit};
 
   for (int i = 0; i < argc; i++) {
     for (auto *arg : args) {

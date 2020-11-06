@@ -58,7 +58,9 @@ class OpUnit(enum.IntEnum):
     PARALLEL_MERGE_HASHJOIN = 28,
     PARALLEL_MERGE_AGGBUILD = 29,
     PARALLEL_SORT_STEP = 30,
-    PARALLEL_SORT_MERGE_STEP = 31
+    PARALLEL_SORT_MERGE_STEP = 31,
+    INDEX_INSERT = 32
+    INDEX_DELETE = 33
 
 
 class ExecutionFeature(enum.IntEnum):

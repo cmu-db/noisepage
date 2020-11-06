@@ -79,6 +79,25 @@ def _tuple_num_log_predict_transform(x, y):
 # Transform the target in a log scale (logn) according to the tuple num
 _tuple_num_log_transformer = (_tuple_num_log_train_transform, _tuple_num_log_predict_transform)
 
+
+def _tuple_num_cardinality_linear_log_train_transform(x, y):
+    # Transform down the target according to the log tuple num value in the input
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
+    cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
+    return y / ((cardinality * np.log2(tuple_num)) + 1)[:, np.newaxis]
+
+
+def _tuple_num_cardinality_linear_log_predict_transform(x, y):
+    # Transform up the target according to the log tuple num value in the input
+    tuple_num = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.NUM_ROWS]])
+    cardinality = np.copy(x[:, data_info.INPUT_CSV_INDEX[ExecutionFeature.EST_CARDINALITIES]])
+    return y * ((cardinality * np.log2(tuple_num)) + 1)[:, np.newaxis]
+
+
+# Transform the target in a linaer log scale (cardinality * log tuple_num)
+_tuple_num_cardinality_linear_log_transformer = (_tuple_num_cardinality_linear_log_train_transform,
+                                                 _tuple_num_cardinality_linear_log_predict_transform)
+
 # Map the opunit to the output (y) transformer it needs for mini-model training
 OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.GC: None,
@@ -117,6 +136,9 @@ OPUNIT_Y_TRANSFORMER_MAP = {
     OpUnit.PARALLEL_MERGE_AGGBUILD: _tuple_num_linear_transformer,
     OpUnit.PARALLEL_SORT_STEP: _tuple_num_linear_log_transformer,
     OpUnit.PARALLEL_SORT_MERGE_STEP: _tuple_num_linear_log_transformer,
+
+    OpUnit.INDEX_INSERT: _tuple_num_cardinality_linear_log_transformer,
+    OpUnit.INDEX_DELETE: _tuple_num_cardinality_linear_log_transformer,
 }
 
 
@@ -166,4 +188,6 @@ OPUNIT_X_TRANSFORMER_MAP = {
     OpUnit.PARALLEL_MERGE_AGGBUILD: None,
     OpUnit.PARALLEL_SORT_STEP: None,
     OpUnit.PARALLEL_SORT_MERGE_STEP: None,
+    OpUnit.INDEX_INSERT: None,
+    OpUnit.INDEX_DELETE: None,
 }
