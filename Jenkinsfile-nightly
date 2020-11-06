@@ -68,16 +68,26 @@ pipeline {
                 cmake -GNinja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DNOISEPAGE_USE_ASAN=OFF -DNOISEPAGE_USE_JEMALLOC=ON -DNOISEPAGE_BUILD_TESTS=OFF ..
                 ninja''', label: 'Compiling'
 
-                // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
-                //  # of Threads: 4
-                //  WAL Path: Ramdisk
-                sh script:'''
-                cd script/testing
-                python3 microbench/run_microbench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
-                ''', label:'Microbenchmark'
+                script { // TODO: This script block is temporary to get some initial data into microbenchmarks
+                    def iterations = 4
+                    for(int i = 0;i < iterations; i++){
+                        // The micro_bench configuration has to be consistent because we currently check against previous runs with the same config
+                        //  # of Threads: 4
+                        //  WAL Path: Ramdisk
+                        sh script:'''
+                        cd script/testing
+                        python3 microbench/run_microbench.py --run --num-threads=4 --benchmark-path $(pwd)/../../build/benchmark --logfile-path=/mnt/ramdisk/benchmark.log --publish-results=prod --publish-username=${PSS_CREATOR_USR} --publish-password=${PSS_CREATOR_PSW}
+                        ''', label:'Microbenchmark'
 
-                archiveArtifacts 'script/testing/*.json'
-                junit 'script/testing/*.xml'
+                        archiveArtifacts 'script/testing/*.json'
+                        junit 'script/testing/*.xml'
+                        // This next line can be removed when the loop is removed
+                        sh 'rm script/testing/*.json'
+                        sh 'rm script/testing/*.xml'
+                    }
+
+                }
+
             }
             post {
                 cleanup {
