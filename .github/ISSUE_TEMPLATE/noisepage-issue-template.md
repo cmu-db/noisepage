@@ -38,9 +38,13 @@ Please provide a short summary of the bug observed.
 ## Environment
 To address the bug, especially if it environment specific, we need to know what kind of configuration you are running on. Please include the following:
 
-**OS**: Ubuntu 18.04 (LTS) or macOS 10.14+ (specify version).
+**OS**: Ubuntu (LTS) 18.04-20.04 or macOS 10.14+ (please specify version).
 
 **Compiler**: GCC 7.0+ or Clang 8.0+. 
+
+**CMake Profile**: Debug/Release or maybe even FastDebug/Relwithdebinfo. If exists across all cmake profiles on a platform-compiler combo, then please say so.
+
+**Jenkins/CI**: If the bug has been observed in CI, please link to the Jenkins/CI build so that the bug can be referenced. Please make sure that if the issue has appeared on a PR branch that the PR itself is not causing the issue.
 
 **Note:** we do not support any other toolchains at the moment, so please do not create bug reports if you are building on other environments. Please see the [wiki page](https://github.com/cmu-db/noisepage/wiki/System-Setup) on our supported systems.
 
