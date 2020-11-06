@@ -511,12 +511,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * Build the create table plan node
      * @return plan node
      */
-    std::unique_ptr<CreateTablePlanNode> Build() {
-      return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
-          std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_),
-          std::move(table_schema_), block_store_, has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
-          std::move(con_uniques_), std::move(con_checks_)));
-    }
+    std::unique_ptr<CreateTablePlanNode> Build();
 
    protected:
     /**
@@ -585,17 +580,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
                       std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
                       common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
                       PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
-                      std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        namespace_oid_(namespace_oid),
-        table_name_(std::move(table_name)),
-        table_schema_(std::move(table_schema)),
-        block_store_(block_store),
-        has_primary_key_(has_primary_key),
-        primary_key_(std::move(primary_key)),
-        foreign_keys_(std::move(foreign_keys)),
-        con_uniques_(std::move(con_uniques)),
-        con_checks_(std::move(con_checks)) {}
+                      std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks);
 
  public:
   /**

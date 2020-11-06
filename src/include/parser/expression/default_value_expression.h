@@ -33,7 +33,7 @@ class DefaultValueExpression : public AbstractExpression {
     return Copy();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(DefaultValueExpression);

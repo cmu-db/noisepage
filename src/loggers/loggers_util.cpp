@@ -8,6 +8,7 @@
 #include "loggers/common_logger.h"
 #include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
+#include "loggers/messenger_logger.h"
 #include "loggers/metrics_logger.h"
 #include "loggers/network_logger.h"
 #include "loggers/optimizer_logger.h"
@@ -33,6 +34,7 @@ void LoggersUtil::Initialize() {
     catalog::InitCatalogLogger();
     common::InitCommonLogger();
     execution::InitExecutionLogger();
+    messenger::InitMessengerLogger();
     metrics::InitMetricsLogger();
     network::InitNetworkLogger();
     optimizer::InitOptimizerLogger();

@@ -6,8 +6,18 @@
 #include <vector>
 
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
 namespace noisepage::planner {
+
+std::unique_ptr<DropTablePlanNode> DropTablePlanNode::Builder::Build() {
+  return std::unique_ptr<DropTablePlanNode>(
+      new DropTablePlanNode(std::move(children_), std::move(output_schema_), table_oid_));
+}
+
+DropTablePlanNode::DropTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                     std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)), table_oid_(table_oid) {}
 
 common::hash_t DropTablePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
@@ -39,7 +49,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> DropTablePlanNode::From
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   return exprs;
 }
-
 DEFINE_JSON_BODY_DECLARATIONS(DropTablePlanNode);
 
 }  // namespace noisepage::planner

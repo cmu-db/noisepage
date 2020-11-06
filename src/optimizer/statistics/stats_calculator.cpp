@@ -177,6 +177,8 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
     root_group->SetNumRows(static_cast<int>(curr_rows));
   }
 
+  // TODO(elenac): For now we comment this because required_cols_ is always empty in the system
+  /*
   size_t num_rows = root_group->GetNumRows();
   for (auto &col : required_cols_) {
     NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
@@ -196,6 +198,7 @@ void StatsCalculator::Visit(const LogicalSemiJoin *op) {
     column_stats->SetNumRows(num_rows);
     root_group->AddStats(col_name, std::move(column_stats));
   }
+  */
 }
 
 void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *op) {

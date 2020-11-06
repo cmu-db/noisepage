@@ -1,147 +1,213 @@
-# Test that timestamps can be updated.
-# Fix #783: update query that modifies timestamp attribute fails.
 statement ok
-CREATE TABLE update1 (c1 int, c2 timestamp)
+-- Generate tracefile with:
 
 statement ok
-INSERT INTO update1 (c1, c2) VALUES (1, '2020-01-02 12:23:34.56789')
+--     ant generate-trace -Dpath=sql/update.sql -Ddb-url=jdbc:postgresql://localhost/postgres -Ddb-user=postgres -Ddb-password="postgres" -Doutput-name=update.test && sed -i 's/nosort/rowsort/' traces/update.test
 
 statement ok
-INSERT INTO update1 (c1, c2) VALUES (2, '2020-01-02 11:22:33.721-05')
+CREATE TABLE update1 (c1 int, c2 timestamp);
 
 statement ok
-UPDATE update1 SET c2 = '2020-01-02 11:22:33.721-05' WHERE c1 = 2
+INSERT INTO update1 (c1, c2) VALUES (1, '2020-01-02 12:23:34.567893');
 
-query I nosort
-SELECT * from update1 ORDER BY c1 ASC
+statement ok
+INSERT INTO update1 (c1, c2) VALUES (2, '2020-01-02 11:22:33.721052');
+
+statement ok
+UPDATE update1 SET c2 = '2020-01-03 11:22:33.721058' WHERE c1 = 2;
+
+query I rowsort
+SELECT * from update1;
 ----
-4 values hashing to caeda8dba73c9a002266ce348d8727e9
+1
+2020-01-02 12:23:34.567893
+2
+2020-01-03 11:22:33.721058
 
 statement ok
-DROP TABLE update1
+DROP TABLE update1;
 
 statement ok
-CREATE TABLE update2 (c1 int, c2 INTEGER)
+
 
 statement ok
-INSERT INTO update2 (c1, c2) VALUES (1, 1)
+
 
 statement ok
-INSERT INTO update2 (c1, c2) VALUES (22, 22)
+CREATE TABLE update2 (c1 int, c2 INTEGER);
 
 statement ok
-INSERT INTO update2 (c1, c2) VALUES (23, 33)
+INSERT INTO update2 (c1, c2) VALUES (1, 1);
 
 statement ok
-UPDATE update2 SET c2 = 4 WHERE c1 = 22
+INSERT INTO update2 (c1, c2) VALUES (22, 22);
 
-query II nosort
-SELECT * FROM update2
+statement ok
+INSERT INTO update2 (c1, c2) VALUES (23, 33);
+
+statement ok
+UPDATE update2 SET c2 = 4 WHERE c1 = 22;
+
+query II rowsort
+SELECT * FROM update2;
 ----
-6 values hashing to 190677788c9e53a2716f40ca4a10e132
+1
+1
+22
+4
+23
+33
 
-query II nosort
-SELECT * FROM update2 WHERE c2=22
-----
-
-query I nosort
-SELECT c2 FROM update2 WHERE c1=23
-----
-1 values hashing to 4fbafd6948b6529caa2b78e476359875
-
-statement ok
-DROP TABLE update2
-
-statement ok
-CREATE TABLE update3 (c1 int, c2 float)
-
-statement ok
-INSERT INTO update3 (c1, c2) VALUES (1, 1.0)
-
-statement ok
-INSERT INTO update3 (c1, c2) VALUES (2, 2.0)
-
-statement ok
-INSERT INTO update3 (c1, c2) VALUES (3, 3.0)
-
-statement ok
-UPDATE update3 SET c2 = 4.0 WHERE c1 = 2
-
-query IR nosort
-SELECT * FROM update3
-----
-6 values hashing to c83c2a26476216903b2d54eb9f5d1b01
-
-query IR nosort
-SELECT * FROM update3 WHERE c2=2.0
+query II rowsort
+SELECT * FROM update2 WHERE c2=22;
 ----
 
-query R nosort
-SELECT c2 FROM update3 WHERE c1=2
+query I rowsort
+SELECT c2 FROM update2 WHERE c1=23;
 ----
-1 values hashing to 48a24b70a0b376535542b996af517398
+33
 
 statement ok
-UPDATE update3 SET c1=2 WHERE c2=1.0
-
-query IR nosort
-SELECT * FROM update3 WHERE c1=2
-----
-4 values hashing to 68dbc538b31e461cd48daa116345fc9c
+DROP TABLE update2;
 
 statement ok
-DROP TABLE update3
+
 
 statement ok
-CREATE TABLE update4 (c1 int, c2 float, c3 varchar)
+
 
 statement ok
-INSERT INTO update4 (c1, c2, c3) VALUES (1, 1.0, '1')
+CREATE TABLE update3 (c1 int, c2 float);
 
 statement ok
-INSERT INTO update4 (c1, c2, c3) VALUES (2, 2.0, '2')
+INSERT INTO update3 (c1, c2) VALUES (1, 1.0);
 
 statement ok
-INSERT INTO update4 (c1, c2, c3) VALUES (3, 3.0, '3')
+INSERT INTO update3 (c1, c2) VALUES (2, 2.0);
 
 statement ok
-UPDATE update4 SET c2 = 4.0 WHERE c1 = 2
-
-query IRT nosort
-SELECT * FROM update4
-----
-9 values hashing to d6eb3cbabeb480aef68da6106902c619
-
-query IRT nosort
-SELECT * FROM update4 WHERE c2=2.0
-----
-
-query IRT nosort
-SELECT * FROM update4 WHERE c2=2.0 AND c3='2'
-----
-
-query I nosort
-SELECT c1 FROM update4 WHERE c2=2.0 OR c3='1'
-----
-1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
-
-query IRT nosort
-SELECT * FROM update4 WHERE c2=2.0 AND c3='2' OR c1=1
-----
-3 values hashing to 280262bb00bfccfa4c24774d8faccde2
-
-query R nosort
-SELECT c2 FROM update4 WHERE c1=2
-----
-1 values hashing to 48a24b70a0b376535542b996af517398
+INSERT INTO update3 (c1, c2) VALUES (3, 3.0);
 
 statement ok
-UPDATE update4 SET c1=2 WHERE c2=1.0
+UPDATE update3 SET c2 = 4.0 WHERE c1 = 2;
 
-query IRT nosort
-SELECT * FROM update4 WHERE c1=2
+query IR rowsort
+SELECT * FROM update3;
 ----
-6 values hashing to c9ebc146b67fa6b443f8da2bbc9c9d8c
+1
+1
+2
+4
+3
+3
+
+query IR rowsort
+SELECT * FROM update3 WHERE c2=2.0;
+----
+
+query R rowsort
+SELECT c2 FROM update3 WHERE c1=2;
+----
+4
 
 statement ok
-DROP TABLE update4
+UPDATE update3 SET c1=2 WHERE c2=1.0;
+
+query IR rowsort
+SELECT * FROM update3 WHERE c1=2;
+----
+2
+1
+2
+4
+
+statement ok
+DROP TABLE update3;
+
+statement ok
+
+
+statement ok
+
+
+statement ok
+CREATE TABLE update4 (c1 int, c2 float, c3 varchar);
+
+statement ok
+INSERT INTO update4 (c1, c2, c3) VALUES (1, 1.0, '1');
+
+statement ok
+INSERT INTO update4 (c1, c2, c3) VALUES (3, 3.0, '3');
+
+statement ok
+UPDATE update4 SET c2 = 4.0 WHERE c1 = 2;
+
+query IRT rowsort
+SELECT * FROM update4;
+----
+1
+1
+1
+3
+3
+3
+
+query IRT rowsort
+SELECT * FROM update4 WHERE c2=2.0;
+----
+
+query IRT rowsort
+SELECT * FROM update4 WHERE c2=2.0 AND c3='2';
+----
+
+query I rowsort
+SELECT c1 FROM update4 WHERE c2=2.0 OR c3='1';
+----
+1
+
+query IRT rowsort
+SELECT * FROM update4 WHERE c2=2.0 AND c3='2' OR c1=1;
+----
+1
+1
+1
+
+query R rowsort
+SELECT c2 FROM update4 WHERE c1=2;
+----
+
+statement ok
+UPDATE update4 SET c1=2 WHERE c2=1.0;
+
+query IRT rowsort
+SELECT * FROM update4 WHERE c1=2;
+----
+2
+1
+1
+
+statement ok
+DROP TABLE update4;
+
+statement ok
+
+
+statement ok
+CREATE TABLE update5 (a int)
+
+statement ok
+INSERT INTO update5 (a) VALUES (1),(2),(3);
+
+statement ok
+UPDATE update5 SET a=a;
+
+query I rowsort
+SELECT a FROM update5;
+----
+1
+2
+3
+
+statement ok
+DROP TABLE update5
+

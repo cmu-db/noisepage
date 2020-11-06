@@ -7,17 +7,13 @@
 #include <string>
 #include <type_traits>
 
+#include "common/hash_defs.h"
 #include "common/macros.h"
 #include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
 #include "xxHash/xxh3.h"
 
 namespace noisepage::common {
-
-/**
- * This is our typedef that we use throughout the entire code to represent a hash value.
- */
-using hash_t = uint64_t;
 
 /**
  * Generic hashing utility class. The main entry point are the HashUtil::Hash() functions. There are

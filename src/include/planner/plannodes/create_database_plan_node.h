@@ -45,10 +45,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
      * Build the create database plan node
      * @return plan node
      */
-    std::unique_ptr<CreateDatabasePlanNode> Build() {
-      return std::unique_ptr<CreateDatabasePlanNode>(
-          new CreateDatabasePlanNode(std::move(children_), std::move(output_schema_), std::move(database_name_)));
-    }
+    std::unique_ptr<CreateDatabasePlanNode> Build();
 
    protected:
     /**
@@ -64,8 +61,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    * @param database_name the name of the database
    */
   CreateDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                         std::unique_ptr<OutputSchema> output_schema, std::string database_name)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), database_name_(std::move(database_name)) {}
+                         std::unique_ptr<OutputSchema> output_schema, std::string database_name);
 
  public:
   /**
