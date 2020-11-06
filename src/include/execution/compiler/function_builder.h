@@ -1,74 +1,95 @@
 #pragma once
 
-#include <list>
 #include <string>
-#include "execution/ast/ast.h"
-#include "execution/compiler/codegen.h"
-#include "execution/compiler/compiler_defs.h"
+#include <utility>
+
+#include "execution/ast/identifier.h"
+#include "execution/compiler/ast_fwd.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
+
+class CodeGen;
 
 /**
- * Builder for functions.
+ * Helper class to build TPL functions.
  */
 class FunctionBuilder {
+  friend class If;
+  friend class Loop;
+
  public:
   /**
-   * constructor
-   * @param codegen code generator to use
-   * @param fn_name function name
-   * @param fn_params function parameters.
-   * @param fn_ret_type function return type
+   * Create a builder for a function with the provided name, return type, and arguments.
+   * @param codegen The code generation instance.
+   * @param name The name of the function.
+   * @param params The parameters to the function.
+   * @param ret_type The return type representation of the function.
    */
-  FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> &&fn_params,
-                  ast::Expr *fn_ret_type);
+  FunctionBuilder(CodeGen *codegen, ast::Identifier name, util::RegionVector<ast::FieldDecl *> &&params,
+                  ast::Expr *ret_type);
 
   /**
-   * This class cannot be copied or moved
+   * Destructor.
    */
-  DISALLOW_COPY_AND_MOVE(FunctionBuilder);
+  ~FunctionBuilder();
 
   /**
-   * Appends a statement to the current block
-   * @param stmt statement to append.
+   * @return A reference to a function parameter by its ordinal position.
    */
-  void Append(ast::Stmt *stmt) { blocks_.back()->AppendStmt(stmt); }
+  ast::Expr *GetParameterByPosition(uint32_t param_idx);
 
   /**
-   * Begins an IfStmt
-   * @param condition if condition
+   * Append a statement to the list of statements in this function.
+   * @param stmt The statement to append.
    */
-  void StartIfStmt(ast::Expr *condition);
+  void Append(ast::Stmt *stmt);
 
   /**
-   * Begins a ForStmt
-   * @param init
-   * @param cond
-   * @param next
+   * Append an expression as a statement to the list of statements in this function.
+   * @param expr The expression to append as a statement.
    */
-  void StartForStmt(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next);
+  void Append(ast::Expr *expr);
 
   /**
-   * Finish an if or a for statement.
+   * Append a variable declaration as a statement to the list of statements in this function.
+   * @param decl The declaration to append to the statement.
    */
-  void FinishBlockStmt();
+  void Append(ast::VariableDecl *decl);
 
   /**
-   * @return finalized FunctionDecl
+   * Finish constructing the function.
+   * @param ret The value to return from the function. Use a null pointer to return nothing.
+   * @return The build function declaration.
    */
-  ast::FunctionDecl *Finish();
+  ast::FunctionDecl *Finish(ast::Expr *ret = nullptr);
+
+  /**
+   * @return The final constructed function; null if the builder hasn't been constructed through
+   *         FunctionBuilder::Finish().
+   */
+  ast::FunctionDecl *GetConstructedFunction() const { return decl_; }
+
+  /**
+   * @return The code generator instance.
+   */
+  CodeGen *GetCodeGen() const { return codegen_; }
 
  private:
+  // The code generation instance.
   CodeGen *codegen_;
-
-  ast::Identifier fn_name_;
-  util::RegionVector<ast::FieldDecl *> fn_params_;
-  ast::Expr *fn_ret_type_;
-
-  ast::BlockStmt *fn_body_;
-  std::list<ast::BlockStmt *> blocks_;
-  std::list<ast::Stmt *> final_stmts_;
+  // The function's name.
+  ast::Identifier name_;
+  // The function's arguments.
+  util::RegionVector<ast::FieldDecl *> params_;
+  // The return type of the function.
+  ast::Expr *ret_type_;
+  // The start and stop position of statements in the function.
+  SourcePosition start_;
+  // The list of generated statements making up the function.
+  ast::BlockStmt *statements_;
+  // The cached function declaration. Constructed once in Finish().
+  ast::FunctionDecl *decl_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

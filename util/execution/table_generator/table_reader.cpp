@@ -1,12 +1,16 @@
+#include "execution/table_generator/table_reader.h"
+
 #include <storage/index/index_builder.h>
+
 #include <string>
 #include <vector>
 
-#include "csv/csv.h"  // NOLINT
+#include "csv/csv.hpp"  // NOLINT
 #include "execution/sql/value.h"
-#include "execution/table_generator/table_reader.h"
+#include "storage/index/index.h"
+#include "storage/sql_table.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 uint32_t TableReader::ReadTable(const std::string &schema_file, const std::string &data_file) {
   uint32_t val_written = 0;
@@ -120,8 +124,7 @@ void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *
       index_info->index_pr_->SetNull(index_offset);
     } else {
       byte *index_data = index_info->index_pr_->AccessForceNotNull(index_offset);
-      uint8_t type_size =
-          type::TypeUtil::GetTypeSize(index_info->cols_[index_col_idx].Type()) & static_cast<uint8_t>(0x7f);
+      uint8_t type_size = type::TypeUtil::GetTypeTrueSize(index_info->cols_[index_col_idx].Type());
       std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
     }
   }
@@ -187,4 +190,4 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
   }
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -1,3 +1,5 @@
+// TODO(WAN): test this
+
 fun index_count_2(execCtx: *ExecutionContext, key : int64, key2 : int64) -> int64 {
   var count = 0 // output count
   // The following code initializes the index iterator.
@@ -51,11 +53,11 @@ fun table_count(execCtx: *ExecutionContext, oids: *[4]uint32) -> int64 {
   var count : int64
   count = 0
   for (@tableIterAdvance(&tvi)) {
-      var pci = @tableIterGetPCI(&tvi)
-          for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      var vpi = @tableIterGetVPI(&tvi)
+          for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
             count = count + 1
           }
-          @pciReset(pci)
+          @vpiReset(vpi)
     }
   @tableIterClose(&tvi)
   return count

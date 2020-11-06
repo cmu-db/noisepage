@@ -4,10 +4,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 /**
  * Plan node for a CSV scan
  */
@@ -74,11 +75,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * Build the csv scan plan node
      * @return plan node
      */
-    std::unique_ptr<CSVScanPlanNode> Build() {
-      return std::unique_ptr<CSVScanPlanNode>(
-          new CSVScanPlanNode(std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_,
-                              database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_));
-    }
+    std::unique_ptr<CSVScanPlanNode> Build();
 
    protected:
     /**
@@ -120,15 +117,9 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
-                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
-                  char delimiter, char quote, char escape, std::vector<type::TypeId> value_types)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, database_oid,
-                             namespace_oid),
-        file_name_(std::move(file_name)),
-        delimiter_(delimiter),
-        quote_(quote),
-        escape_(escape),
-        value_types_(std::move(value_types)) {}
+                  catalog::db_oid_t database_oid, std::string file_name, char delimiter, char quote, char escape,
+                  std::vector<type::TypeId> value_types, uint32_t scan_limit, bool scan_has_limit, uint32_t scan_offset,
+                  bool scan_has_offset);
 
  public:
   /**
@@ -190,4 +181,4 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CSVScanPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

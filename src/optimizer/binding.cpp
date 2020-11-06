@@ -1,14 +1,15 @@
+#include "optimizer/binding.h"
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "optimizer/binding.h"
-
 #include "loggers/optimizer_logger.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 bool GroupBindingIterator::HasNext() {
   if (pattern_->Type() == OpType::LEAF) {
@@ -68,8 +69,9 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
     return;
   }
 
-  OPTIMIZER_LOG_TRACE("Attempting to bind on group {0} with expression of type {1}, children size {2}",
-                      gexpr->GetGroupID(), gexpr->Contents()->GetName().c_str(), child_groups.size())
+  OPTIMIZER_LOG_TRACE("Attempting to bind on group " + std::to_string(gexpr->GetGroupID().UnderlyingValue()) +
+                      " with expression of type " + gexpr->Contents()->GetName() + ", children size " +
+                      std::to_string(child_groups.size()));
 
   // Find all bindings for children
   children_bindings_.resize(child_groups.size());
@@ -132,7 +134,7 @@ bool GroupExprBindingIterator::HasNext() {
         children.emplace_back(child_binding[children_bindings_pos_[idx]]->Copy());
       }
 
-      TERRIER_ASSERT(!current_binding_, "Next() should have been called");
+      NOISEPAGE_ASSERT(!current_binding_, "Next() should have been called");
       current_binding_ = std::make_unique<OperatorNode>(gexpr_->Contents(), std::move(children), txn_);
     }
   }
@@ -140,4 +142,4 @@ bool GroupExprBindingIterator::HasNext() {
   return has_next_;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

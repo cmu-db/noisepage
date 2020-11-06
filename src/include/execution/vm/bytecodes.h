@@ -4,10 +4,9 @@
 #include <cstdint>
 
 #include "common/macros.h"
-#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_operands.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // Creates instances of a given opcode for all integer primitive types
 #define CREATE_FOR_INT_TYPES(F, op, ...) \
@@ -25,8 +24,8 @@ namespace terrier::execution::vm {
 
 // Creates instances of a given opcode for all floating-point primitive types
 #define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
-  F(op##_##float, __VA_ARGS__)             \
-  F(op##_##double, __VA_ARGS__)
+  F(op##_float, __VA_ARGS__)               \
+  F(op##_double, __VA_ARGS__)
 
 // Creates instances of a given opcode for primitive numeric types
 #define CREATE_FOR_NUMERIC_TYPES(F, op, ...) \
@@ -34,10 +33,10 @@ namespace terrier::execution::vm {
   CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
-#define CREATE_FOR_ALL_TYPES(F, op, ...)     \
-  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__)   \
-  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__) \
-  CREATE_FOR_BOOL_TYPES(F, op, __VA_ARGS__)
+#define CREATE_FOR_ALL_TYPES(F, op, ...)    \
+  CREATE_FOR_BOOL_TYPES(F, op, __VA_ARGS__) \
+  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__)  \
+  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
 
 #define GET_BASE_FOR_INT_TYPES(op) (op##_int8_t)
 #define GET_BASE_FOR_FLOAT_TYPES(op) (op##_float)
@@ -53,7 +52,7 @@ namespace terrier::execution::vm {
   CREATE_FOR_NUMERIC_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_NUMERIC_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_NUMERIC_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                        \
-  CREATE_FOR_NUMERIC_TYPES(F, Rem, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  CREATE_FOR_NUMERIC_TYPES(F, Mod, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_INT_TYPES(F, BitAnd, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitOr, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   CREATE_FOR_INT_TYPES(F, BitXor, OperandType::Local, OperandType::Local, OperandType::Local)                         \
@@ -64,8 +63,9 @@ namespace terrier::execution::vm {
   CREATE_FOR_ALL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   CREATE_FOR_ALL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
   CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  /* Boolean complement */                                                                                            \
+  /* Boolean compliment */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
+  F(NotSql, OperandType::Local, OperandType::Local)                                                                   \
                                                                                                                       \
   /* Branching */                                                                                                     \
   F(Jump, OperandType::JumpOffset)                                                                                    \
@@ -98,103 +98,186 @@ namespace terrier::execution::vm {
   F(Return)                                                                                                           \
                                                                                                                       \
   /* Execution Context */                                                                                             \
+  F(ExecutionContextAddRowsAffected, OperandType::Local, OperandType::Local)                                          \
   F(ExecutionContextGetMemoryPool, OperandType::Local, OperandType::Local)                                            \
+  F(ExecutionContextGetTLS, OperandType::Local, OperandType::Local)                                                   \
   F(ExecutionContextStartResourceTracker, OperandType::Local, OperandType::Local)                                     \
   F(ExecutionContextEndResourceTracker, OperandType::Local, OperandType::Local)                                       \
-  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  F(ExecutionContextStartPipelineTracker, OperandType::Local, OperandType::Local)                                     \
+  F(ExecutionContextEndPipelineTracker, OperandType::Local, OperandType::Local, OperandType::Local,                   \
+    OperandType::Local)                                                                                               \
+  F(ExecutionContextInitHooks, OperandType::Local, OperandType::Local)                                                \
+  F(ExecutionContextRegisterHook, OperandType::Local, OperandType::Local, OperandType::FunctionId)                    \
+  F(ExecutionContextClearHooks, OperandType::Local)                                                                   \
+  F(ExecOUFeatureVectorRecordFeature, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, \
+    OperandType::Local, OperandType::Local)                                                                           \
+  F(ExecOUFeatureVectorInitialize, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
+  F(ExecOUFeatureVectorFilter, OperandType::Local, OperandType::Local)                                                \
+  F(ExecOUFeatureVectorReset, OperandType::Local)                                                                     \
+                                                                                                                      \
+  F(RegisterThreadWithMetricsManager, OperandType::Local)                                                             \
+  F(CheckTrackersStopped, OperandType::Local)                                                                         \
+  F(AggregateMetricsThread, OperandType::Local)                                                                       \
+  F(ExecutionContextSetMemoryUseOverride, OperandType::Local, OperandType::Local)                                     \
                                                                                                                       \
   /* Thread State Container */                                                                                        \
-  F(ThreadStateContainerInit, OperandType::Local, OperandType::Local)                                                 \
   F(ThreadStateContainerIterate, OperandType::Local, OperandType::Local, OperandType::FunctionId)                     \
+  F(ThreadStateContainerAccessCurrentThreadState, OperandType::Local, OperandType::Local)                             \
   F(ThreadStateContainerReset, OperandType::Local, OperandType::Local, OperandType::FunctionId,                       \
     OperandType::FunctionId, OperandType::Local)                                                                      \
-  F(ThreadStateContainerFree, OperandType::Local)                                                                     \
+  F(ThreadStateContainerClear, OperandType::Local)                                                                    \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,          \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
-  F(TableVectorIteratorReset, OperandType::Local)                                                                     \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
-  F(TableVectorIteratorGetPCI, OperandType::Local, OperandType::Local)                                                \
-  F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \
-    OperandType::FunctionId)                                                                                          \
+  F(TableVectorIteratorGetVPINumTuples, OperandType::Local, OperandType::Local)                                       \
+  F(TableVectorIteratorGetVPI, OperandType::Local, OperandType::Local)                                                \
+  F(ParallelScanTable, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
+    OperandType::Local, OperandType::FunctionId)                                                                      \
                                                                                                                       \
-  /* ProjectedColumns Iterator (PCI) */                                                                               \
-  F(PCIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
-  F(PCIHasNext, OperandType::Local, OperandType::Local)                                                               \
-  F(PCIHasNextFiltered, OperandType::Local, OperandType::Local)                                                       \
-  F(PCIAdvance, OperandType::Local)                                                                                   \
-  F(PCIAdvanceFiltered, OperandType::Local)                                                                           \
-  F(PCIMatch, OperandType::Local, OperandType::Local)                                                                 \
-  F(PCIReset, OperandType::Local)                                                                                     \
-  F(PCIResetFiltered, OperandType::Local)                                                                             \
-  F(PCIGetSlot, OperandType::Local, OperandType::Local)                                                               \
-  F(PCIGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
-  F(PCIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
-  F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
-  F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetDateVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
-  F(PCIGetTimestampVal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
-  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
-  F(PCIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
-  F(PCIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
-  F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
-  F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetDateValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
-  F(PCIGetTimestampValNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
-  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
-  F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
-  F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
-    OperandType::Imm8)                                                                                                \
-  F(PCIFilterGreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,         \
-    OperandType::Imm8)                                                                                                \
-  F(PCIFilterLessThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
-    OperandType::Imm8)                                                                                                \
-  F(PCIFilterLessThanEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,            \
-    OperandType::Imm8)                                                                                                \
-  F(PCIFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,                 \
-    OperandType::Imm8)                                                                                                \
+  /* Vector Projection Iterator (VPI) */                                                                              \
+  F(VPIInit, OperandType::Local, OperandType::Local)                                                                  \
+  F(VPIInitWithList, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(VPIFree, OperandType::Local)                                                                                      \
+  F(VPIIsFiltered, OperandType::Local, OperandType::Local)                                                            \
+  F(VPIGetSelectedRowCount, OperandType::Local, OperandType::Local)                                                   \
+  F(VPIGetVectorProjection, OperandType::Local, OperandType::Local)                                                   \
+  F(VPIHasNext, OperandType::Local, OperandType::Local)                                                               \
+  F(VPIHasNextFiltered, OperandType::Local, OperandType::Local)                                                       \
+  F(VPIAdvance, OperandType::Local)                                                                                   \
+  F(VPIAdvanceFiltered, OperandType::Local)                                                                           \
+  F(VPISetPosition, OperandType::Local, OperandType::Local)                                                           \
+  F(VPISetPositionFiltered, OperandType::Local, OperandType::Local)                                                   \
+  F(VPIMatch, OperandType::Local, OperandType::Local)                                                                 \
+  F(VPIReset, OperandType::Local)                                                                                     \
+  F(VPIResetFiltered, OperandType::Local)                                                                             \
+  F(VPIGetSlot, OperandType::Local, OperandType::Local)                                                               \
+  F(VPIGetBool, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(VPIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(VPIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPIGetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
+  F(VPIGetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(VPIGetPointer, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(VPIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
+  F(VPIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(VPIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(VPIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(VPIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(VPIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPIGetTimestampNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                  \
+  F(VPIGetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(VPISetBool, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPISetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPISetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPISetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPISetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(VPISetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPISetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(VPISetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
+  F(VPISetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
+  F(VPISetTimestamp, OperandType::Local, OperandType::Local, OperandType::UImm4)                                      \
+  F(VPISetString, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
+  F(VPISetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPISetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(VPISetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
+  F(VPISetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(VPISetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(VPISetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPISetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(VPISetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(VPISetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
+  F(VPISetTimestampNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                  \
+  F(VPISetStringNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
                                                                                                                       \
   /* Filter Manager */                                                                                                \
-  F(FilterManagerInit, OperandType::Local)                                                                            \
+  F(FilterManagerInit, OperandType::Local, OperandType::Local)                                                        \
   F(FilterManagerStartNewClause, OperandType::Local)                                                                  \
-  F(FilterManagerInsertFlavor, OperandType::Local, OperandType::FunctionId)                                           \
-  F(FilterManagerFinalize, OperandType::Local)                                                                        \
-  F(FilterManagerRunFilters, OperandType::Local, OperandType::Local)                                                  \
+  F(FilterManagerInsertFilter, OperandType::Local, OperandType::FunctionId)                                           \
+  F(FilterManagerRunFilters, OperandType::Local, OperandType::Local, OperandType::Local)                              \
   F(FilterManagerFree, OperandType::Local)                                                                            \
                                                                                                                       \
-  /* Date functions */                                                                                                \
-  F(ExtractYear, OperandType::Local, OperandType::Local)                                                              \
+  /* Vector Filter Executor */                                                                                        \
+  F(VectorFilterEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterGreaterThanVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,       \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterGreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,     \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterGreaterThanEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,  \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLessThan, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLessThanVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,        \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLessThanEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,     \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotEqual, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotEqualVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,          \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLike, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                 \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterLikeVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,              \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotLike, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,              \
+    OperandType::Local)                                                                                               \
+  F(VectorFilterNotLikeVal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,           \
+    OperandType::Local)                                                                                               \
                                                                                                                       \
-  /* SQL type comparisons */                                                                                          \
+  /* SQL value creation */                                                                                            \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
   F(InitSqlNull, OperandType::Local)                                                                                  \
-  F(InitBoolVal, OperandType::Local, OperandType::Local)                                                              \
+  F(InitBool, OperandType::Local, OperandType::Local)                                                                 \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
+  F(InitInteger64, OperandType::Local, OperandType::Local)                                                            \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
-  F(IntegerToReal, OperandType::Local, OperandType::Local)                                                            \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitTimestamp, OperandType::Local, OperandType::Local)                                                            \
-  F(InitTimestampHMSu, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
-    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                             \
-  F(InitVarlen, OperandType::Local, OperandType::Local)                                                               \
-  F(LessThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
-  F(LessThanEqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(GreaterThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(GreaterThanEqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
-  F(EqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
-  F(NotEqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(InitTimestampYMDHMSMU, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,            \
+    OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)               \
+  F(InitString, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)                                     \
+  /* SQL value conversion */                                                                                          \
+  F(BoolToInteger, OperandType::Local, OperandType::Local)                                                            \
+  F(IntegerToBool, OperandType::Local, OperandType::Local)                                                            \
+  F(IntegerToReal, OperandType::Local, OperandType::Local)                                                            \
+  F(IntegerToString, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(RealToBool, OperandType::Local, OperandType::Local)                                                               \
+  F(RealToInteger, OperandType::Local, OperandType::Local)                                                            \
+  F(RealToString, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(DateToTimestamp, OperandType::Local, OperandType::Local)                                                          \
+  F(DateToString, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(TimestampToDate, OperandType::Local, OperandType::Local)                                                          \
+  F(TimestampToString, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(StringToBool, OperandType::Local, OperandType::Local)                                                             \
+  F(StringToInteger, OperandType::Local, OperandType::Local)                                                          \
+  F(StringToReal, OperandType::Local, OperandType::Local)                                                             \
+  F(StringToDate, OperandType::Local, OperandType::Local)                                                             \
+  F(StringToTimestamp, OperandType::Local, OperandType::Local)                                                        \
+  /* SQL value comparisons */                                                                                         \
+  F(LessThanBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanEqualBool, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(GreaterThanBool, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GreaterThanEqualBool, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(EqualBool, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(NotEqualBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(LessThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(LessThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GreaterThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
@@ -207,24 +290,24 @@ namespace terrier::execution::vm {
   F(GreaterThanEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(EqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(NotEqualReal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
-  F(LessThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
-  F(LessThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                               \
-  F(GreaterThanStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(GreaterThanEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(EqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
-  F(NotEqualStringVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
-  F(LessThanDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
-  F(LessThanEqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(GreaterThanDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
-  F(GreaterThanEqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
-  F(EqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
-  F(NotEqualDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
-  F(LessThanTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(LessThanEqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(GreaterThanTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
-  F(GreaterThanEqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  F(EqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
-  F(NotEqualTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(LessThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(LessThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
+  F(GreaterThanString, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(GreaterThanEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(EqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                          \
+  F(NotEqualString, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(LessThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(GreaterThanDate, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(GreaterThanEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(EqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(NotEqualDate, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(LessThanTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(LessThanEqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                               \
+  F(GreaterThanTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanEqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(EqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+  F(NotEqualTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
                                                                                                                       \
   /* SQL value unary operations */                                                                                    \
   F(AbsInteger, OperandType::Local, OperandType::Local)                                                               \
@@ -236,27 +319,38 @@ namespace terrier::execution::vm {
   F(SubInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(MulInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(DivInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
-  F(RemInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(ModInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(AddReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(SubReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(MulReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(DivReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
-  F(RemReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(ModReal, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
                                                                                                                       \
   /* Hashing */                                                                                                       \
-  F(HashInt, OperandType::Local, OperandType::Local)                                                                  \
-  F(HashReal, OperandType::Local, OperandType::Local)                                                                 \
-  F(HashString, OperandType::Local, OperandType::Local)                                                               \
+  F(HashInt, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+  F(HashBool, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
+  F(HashReal, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
+  F(HashDate, OperandType::Local, OperandType::Local, OperandType::Local)                                             \
+  F(HashTimestamp, OperandType::Local, OperandType::Local, OperandType::Local)                                        \
+  F(HashString, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
   F(HashCombine, OperandType::Local, OperandType::Local)                                                              \
                                                                                                                       \
   /* Aggregation Hash Table */                                                                                        \
   F(AggregationHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                             \
-  F(AggregationHashTableInsert, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(AggregationHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                        \
+  F(AggregationHashTableGetInsertCount, OperandType::Local, OperandType::Local)                                       \
+  F(AggregationHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  F(AggregationHashTableAllocTuplePartitioned, OperandType::Local, OperandType::Local, OperandType::Local)            \
+  F(AggregationHashTableLinkHashTableEntry, OperandType::Local, OperandType::Local)                                   \
   F(AggregationHashTableLookup, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::FunctionId,  \
     OperandType::Local)                                                                                               \
-  F(AggregationHashTableProcessBatch, OperandType::Local, OperandType::Local, OperandType::FunctionId,                \
-    OperandType::FunctionId, OperandType::FunctionId, OperandType::FunctionId)                                        \
+  F(AggregationHashTableProcessBatch, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, \
+    OperandType::FunctionId, OperandType::FunctionId, OperandType::Local)                                             \
   F(AggregationHashTableTransferPartitions, OperandType::Local, OperandType::Local, OperandType::Local,               \
+    OperandType::FunctionId)                                                                                          \
+  F(AggregationHashTableBuildAllHashTablePartitions, OperandType::Local, OperandType::Local)                          \
+  F(AggregationHashTableRepartition, OperandType::Local)                                                              \
+  F(AggregationHashTableMergePartitions, OperandType::Local, OperandType::Local, OperandType::Local,                  \
     OperandType::FunctionId)                                                                                          \
   F(AggregationHashTableParallelPartitionedScan, OperandType::Local, OperandType::Local, OperandType::Local,          \
     OperandType::FunctionId)                                                                                          \
@@ -270,7 +364,8 @@ namespace terrier::execution::vm {
   F(AggregationOverflowPartitionIteratorNext, OperandType::Local)                                                     \
   F(AggregationOverflowPartitionIteratorGetHash, OperandType::Local, OperandType::Local)                              \
   F(AggregationOverflowPartitionIteratorGetRow, OperandType::Local, OperandType::Local)                               \
-  /* Aggregates */                                                                                                    \
+  F(AggregationOverflowPartitionIteratorGetRowEntry, OperandType::Local, OperandType::Local)                          \
+  /* COUNT Aggregates */                                                                                              \
   F(CountAggregateInit, OperandType::Local)                                                                           \
   F(CountAggregateAdvance, OperandType::Local, OperandType::Local)                                                    \
   F(CountAggregateMerge, OperandType::Local, OperandType::Local)                                                      \
@@ -283,64 +378,97 @@ namespace terrier::execution::vm {
   F(CountStarAggregateReset, OperandType::Local)                                                                      \
   F(CountStarAggregateGetResult, OperandType::Local, OperandType::Local)                                              \
   F(CountStarAggregateFree, OperandType::Local)                                                                       \
+  /* SUM Aggregates */                                                                                                \
   F(IntegerSumAggregateInit, OperandType::Local)                                                                      \
   F(IntegerSumAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
   F(IntegerSumAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
   F(IntegerSumAggregateReset, OperandType::Local)                                                                     \
   F(IntegerSumAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
   F(IntegerSumAggregateFree, OperandType::Local)                                                                      \
-  F(IntegerMaxAggregateInit, OperandType::Local)                                                                      \
-  F(IntegerMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
-  F(IntegerMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
-  F(IntegerMaxAggregateReset, OperandType::Local)                                                                     \
-  F(IntegerMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
-  F(IntegerMaxAggregateFree, OperandType::Local)                                                                      \
-  F(IntegerMinAggregateInit, OperandType::Local)                                                                      \
-  F(IntegerMinAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
-  F(IntegerMinAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
-  F(IntegerMinAggregateReset, OperandType::Local)                                                                     \
-  F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
-  F(IntegerMinAggregateFree, OperandType::Local)                                                                      \
-  F(AvgAggregateInit, OperandType::Local)                                                                             \
-  F(IntegerAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
-  F(RealAvgAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
-  F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                        \
-  F(AvgAggregateReset, OperandType::Local)                                                                            \
-  F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                    \
-  F(AvgAggregateFree, OperandType::Local)                                                                             \
   F(RealSumAggregateInit, OperandType::Local)                                                                         \
   F(RealSumAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(RealSumAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealSumAggregateReset, OperandType::Local)                                                                        \
   F(RealSumAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealSumAggregateFree, OperandType::Local)                                                                         \
+  /* MAX Aggregates */                                                                                                \
+  F(IntegerMaxAggregateInit, OperandType::Local)                                                                      \
+  F(IntegerMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
+  F(IntegerMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
+  F(IntegerMaxAggregateReset, OperandType::Local)                                                                     \
+  F(IntegerMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
+  F(IntegerMaxAggregateFree, OperandType::Local)                                                                      \
   F(RealMaxAggregateInit, OperandType::Local)                                                                         \
   F(RealMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(RealMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealMaxAggregateReset, OperandType::Local)                                                                        \
   F(RealMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMaxAggregateFree, OperandType::Local)                                                                         \
+  F(DateMaxAggregateInit, OperandType::Local)                                                                         \
+  F(DateMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(DateMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
+  F(DateMaxAggregateReset, OperandType::Local)                                                                        \
+  F(DateMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(DateMaxAggregateFree, OperandType::Local)                                                                         \
+  F(StringMaxAggregateInit, OperandType::Local)                                                                       \
+  F(StringMaxAggregateAdvance, OperandType::Local, OperandType::Local)                                                \
+  F(StringMaxAggregateMerge, OperandType::Local, OperandType::Local)                                                  \
+  F(StringMaxAggregateReset, OperandType::Local)                                                                      \
+  F(StringMaxAggregateGetResult, OperandType::Local, OperandType::Local)                                              \
+  F(StringMaxAggregateFree, OperandType::Local)                                                                       \
+  /* MIN Aggregates */                                                                                                \
+  F(IntegerMinAggregateInit, OperandType::Local)                                                                      \
+  F(IntegerMinAggregateAdvance, OperandType::Local, OperandType::Local)                                               \
+  F(IntegerMinAggregateMerge, OperandType::Local, OperandType::Local)                                                 \
+  F(IntegerMinAggregateReset, OperandType::Local)                                                                     \
+  F(IntegerMinAggregateGetResult, OperandType::Local, OperandType::Local)                                             \
+  F(IntegerMinAggregateFree, OperandType::Local)                                                                      \
   F(RealMinAggregateInit, OperandType::Local)                                                                         \
   F(RealMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
   F(RealMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
   F(RealMinAggregateReset, OperandType::Local)                                                                        \
   F(RealMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
   F(RealMinAggregateFree, OperandType::Local)                                                                         \
+  F(DateMinAggregateInit, OperandType::Local)                                                                         \
+  F(DateMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                  \
+  F(DateMinAggregateMerge, OperandType::Local, OperandType::Local)                                                    \
+  F(DateMinAggregateReset, OperandType::Local)                                                                        \
+  F(DateMinAggregateGetResult, OperandType::Local, OperandType::Local)                                                \
+  F(DateMinAggregateFree, OperandType::Local)                                                                         \
+  F(StringMinAggregateInit, OperandType::Local)                                                                       \
+  F(StringMinAggregateAdvance, OperandType::Local, OperandType::Local)                                                \
+  F(StringMinAggregateMerge, OperandType::Local, OperandType::Local)                                                  \
+  F(StringMinAggregateReset, OperandType::Local)                                                                      \
+  F(StringMinAggregateGetResult, OperandType::Local, OperandType::Local)                                              \
+  F(StringMinAggregateFree, OperandType::Local)                                                                       \
+  /* AVG Aggregates */                                                                                                \
+  F(AvgAggregateInit, OperandType::Local)                                                                             \
+  F(AvgAggregateAdvanceInteger, OperandType::Local, OperandType::Local)                                               \
+  F(AvgAggregateAdvanceReal, OperandType::Local, OperandType::Local)                                                  \
+  F(AvgAggregateMerge, OperandType::Local, OperandType::Local)                                                        \
+  F(AvgAggregateReset, OperandType::Local)                                                                            \
+  F(AvgAggregateGetResult, OperandType::Local, OperandType::Local)                                                    \
+  F(AvgAggregateFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Hash Joins */                                                                                                    \
   F(JoinHashTableInit, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
   F(JoinHashTableAllocTuple, OperandType::Local, OperandType::Local, OperandType::Local)                              \
-  F(JoinHashTableIterInit, OperandType::Local, OperandType::Local, OperandType::Local)                                \
-  F(JoinHashTableIterHasNext, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local,    \
-    OperandType::Local)                                                                                               \
-  F(JoinHashTableIterGetRow, OperandType::Local, OperandType::Local)                                                  \
-  F(JoinHashTableIterClose, OperandType::Local)                                                                       \
+  F(JoinHashTableGetTupleCount, OperandType::Local, OperandType::Local)                                               \
   F(JoinHashTableBuild, OperandType::Local)                                                                           \
   F(JoinHashTableBuildParallel, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(JoinHashTableLookup, OperandType::Local, OperandType::Local, OperandType::Local)                                  \
   F(JoinHashTableFree, OperandType::Local)                                                                            \
+  F(HashTableEntryIteratorHasNext, OperandType::Local, OperandType::Local)                                            \
+  F(HashTableEntryIteratorGetRow, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorInit, OperandType::Local, OperandType::Local)                                                \
+  F(JoinHashTableIteratorHasNext, OperandType::Local, OperandType::Local)                                             \
+  F(JoinHashTableIteratorNext, OperandType::Local)                                                                    \
+  F(JoinHashTableIteratorGetRow, OperandType::Local, OperandType::Local)                                              \
+  F(JoinHashTableIteratorFree, OperandType::Local)                                                                    \
                                                                                                                       \
   /* Sorting */                                                                                                       \
   F(SorterInit, OperandType::Local, OperandType::Local, OperandType::FunctionId, OperandType::Local)                  \
+  F(SorterGetTupleCount, OperandType::Local, OperandType::Local)                                                      \
   F(SorterAllocTuple, OperandType::Local, OperandType::Local)                                                         \
   F(SorterAllocTupleTopK, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(SorterAllocTupleTopKFinish, OperandType::Local, OperandType::Local)                                               \
@@ -352,15 +480,19 @@ namespace terrier::execution::vm {
   F(SorterIteratorGetRow, OperandType::Local, OperandType::Local)                                                     \
   F(SorterIteratorHasNext, OperandType::Local, OperandType::Local)                                                    \
   F(SorterIteratorNext, OperandType::Local)                                                                           \
+  F(SorterIteratorSkipRows, OperandType::Local, OperandType::Local)                                                   \
   F(SorterIteratorFree, OperandType::Local)                                                                           \
                                                                                                                       \
   /* Output */                                                                                                        \
-  F(OutputAlloc, OperandType::Local, OperandType::Local)                                                              \
-  F(OutputFinalize, OperandType::Local)                                                                               \
+  F(ResultBufferNew, OperandType::Local, OperandType::Local)                                                          \
+  F(ResultBufferAllocOutputRow, OperandType::Local, OperandType::Local)                                               \
+  F(ResultBufferFinalize, OperandType::Local)                                                                         \
+  F(ResultBufferFree, OperandType::Local)                                                                             \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
-    OperandType::UImm4, OperandType::Local, OperandType::UImm4)                                                       \
+  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,                \
+    OperandType::Local, OperandType::Local, OperandType::UImm4)                                                       \
+  F(IndexIteratorGetSize, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
   F(IndexIteratorScanAscending, OperandType::Local, OperandType::Local, OperandType::Local)                           \
@@ -373,6 +505,16 @@ namespace terrier::execution::vm {
   F(IndexIteratorGetHiPR, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorGetTablePR, OperandType::Local, OperandType::Local)                                                  \
   F(IndexIteratorGetSlot, OperandType::Local, OperandType::Local)                                                     \
+                                                                                                                      \
+  /* CSV Reader */                                                                                                    \
+  /*                                                                                                                  \
+  F(CSVReaderInit, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)                                  \
+  F(CSVReaderPerformInit, OperandType::Local, OperandType::Local)                                                     \
+  F(CSVReaderAdvance, OperandType::Local, OperandType::Local)                                                         \
+  F(CSVReaderGetField, OperandType::Local, OperandType::Local, OperandType::Local)                                    \
+  F(CSVReaderGetRecordNumber, OperandType::Local, OperandType::Local)                                                 \
+  F(CSVReaderClose, OperandType::Local)                                                                               \
+  */                                                                                                                  \
                                                                                                                       \
   /* ProjectedRow */                                                                                                  \
   F(PRGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                            \
@@ -417,15 +559,19 @@ namespace terrier::execution::vm {
   F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local, OperandType::Local)                  \
                                                                                                                       \
   /* StorageInterface */                                                                                              \
-  F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,             \
+  F(StorageInterfaceInit, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,             \
     OperandType::UImm4, OperandType::Local)                                                                           \
   F(StorageInterfaceGetTablePR, OperandType::Local, OperandType::Local)                                               \
   F(StorageInterfaceTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   F(StorageInterfaceTableInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                          \
-  F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(StorageInterfaceGetIndexHeapSize, OperandType::Local, OperandType::Local)                                         \
+  F(StorageInterfaceGetIndexPR, OperandType::Local, OperandType::Local, OperandType::Local)                           \
+  F(StorageInterfaceIndexGetSize, OperandType::Local, OperandType::Local)                                             \
   F(StorageInterfaceIndexInsert, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceIndexInsertUnique, OperandType::Local, OperandType::Local)                                        \
+  F(StorageInterfaceIndexInsertWithSlot, OperandType::Local, OperandType::Local, OperandType::Local,                  \
+    OperandType::Local)                                                                                               \
   F(StorageInterfaceIndexDelete, OperandType::Local, OperandType::Local)                                              \
   F(StorageInterfaceFree, OperandType::Local)                                                                         \
                                                                                                                       \
@@ -456,33 +602,68 @@ namespace terrier::execution::vm {
   F(Radians, OperandType::Local, OperandType::Local)                                                                  \
   F(Degrees, OperandType::Local, OperandType::Local)                                                                  \
   F(Round, OperandType::Local, OperandType::Local)                                                                    \
-  F(RoundUpTo, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(Round2, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
   F(Log, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
   F(Pow, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
                                                                                                                       \
+  /* Atomic functions */                                                                                              \
+  F(AtomicAnd1, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicAnd2, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicAnd4, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicAnd8, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(AtomicOr1, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicOr2, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicOr4, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicOr8, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
+  F(AtomicCompareExchange1, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(AtomicCompareExchange2, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(AtomicCompareExchange4, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+  F(AtomicCompareExchange8, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)           \
+                                                                                                                      \
   /* String functions */                                                                                              \
+  F(Chr, OperandType::Local, OperandType::Local, OperandType::Local)                                                  \
+  F(CharLength, OperandType::Local, OperandType::Local, OperandType::Local)                                           \
+  F(ASCII, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(Concat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
   F(Left, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
   F(Length, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
+  F(Like, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
   F(Lower, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
-  F(LPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(LTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(LPad3Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
+  F(LPad2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(LTrim2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(LTrim1Arg, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(Repeat, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                           \
   F(Reverse, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
   F(Right, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  F(RPad, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)         \
-  F(RTrim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  F(RPad3Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)     \
+  F(RPad2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(RTrim2Arg, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  F(RTrim1Arg, OperandType::Local, OperandType::Local, OperandType::Local)                                            \
   F(SplitPart, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
   F(Substring, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)    \
-  F(Trim, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                             \
+  F(Trim, OperandType::Local, OperandType::Local, OperandType::Local)                                                 \
+  F(Trim2, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                            \
   F(Upper, OperandType::Local, OperandType::Local, OperandType::Local)                                                \
+  F(StartsWith, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  F(Position, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  F(InitCap, OperandType::Local, OperandType::Local, OperandType::Local)                                              \
+                                                                                                                      \
+  /* Date Functions */                                                                                                \
+  F(ExtractYearFromDate, OperandType::Local, OperandType::Local)                                                      \
+                                                                                                                      \
+  F(AbortTxn, OperandType::Local)                                                                                     \
+                                                                                                                      \
+  /* Mini-runners. */                                                                                                 \
   F(NpRunnersEmitInt, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                 \
     OperandType::Local)                                                                                               \
   F(NpRunnersEmitReal, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local,                \
     OperandType::Local)                                                                                               \
   F(NpRunnersDummyInt, OperandType::Local)                                                                            \
   F(NpRunnersDummyReal, OperandType::Local)                                                                           \
+  F(Version, OperandType::Local, OperandType::Local)                                                                  \
                                                                                                                       \
-  /* String functions */                                                                                              \
+  /* Parameter support. */                                                                                            \
   F(GetParamBool, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
   F(GetParamTinyInt, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(GetParamSmallInt, OperandType::Local, OperandType::Local, OperandType::Local)                                     \
@@ -492,10 +673,15 @@ namespace terrier::execution::vm {
   F(GetParamDouble, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
   F(GetParamDateVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(GetParamTimestampVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
-  F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)
+  F(GetParamString, OperandType::Local, OperandType::Local, OperandType::Local)                                       \
+                                                                                                                      \
+  /* FOR TESTING ONLY */                                                                                              \
+  F(TestCatalogLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4,          \
+    OperandType::StaticLocal, OperandType::UImm4)                                                                     \
+  F(TestCatalogIndexLookup, OperandType::Local, OperandType::Local, OperandType::StaticLocal, OperandType::UImm4)
 
 /**
- * The single enumeration of all possible bytecode instructions
+ * The enumeration listing all possible bytecode instructions.
  */
 enum class Bytecode : uint32_t {
 #define DECLARE_OP(inst, ...) inst,
@@ -507,143 +693,131 @@ enum class Bytecode : uint32_t {
 };
 
 /**
- * Helper class for querying/interacting with bytecode instructions
+ * Helper class for querying/interacting with bytecode instructions.
  */
 class Bytecodes {
  public:
-  /**
-   * The total number of bytecode instructions
-   */
-  static constexpr const uint32_t K_BYTECODE_COUNT = static_cast<uint32_t>(Bytecode::Last) + 1;
+  /** The total number of bytecode instructions. */
+  static constexpr const uint32_t BYTECODE_COUNT = static_cast<uint32_t>(Bytecode::Last) + 1;
 
   /**
-   * @return total number of bytecode instructions
+   * @return The total number of bytecodes.
    */
-  static constexpr uint32_t NumBytecodes() { return K_BYTECODE_COUNT; }
+  static constexpr uint32_t NumBytecodes() { return BYTECODE_COUNT; }
 
   /**
-   * @return the maximum length of any bytecode instruction in bytes
+   * @return The maximum length of any bytecode instruction in bytes.
    */
   static uint32_t MaxBytecodeNameLength();
 
   /**
-   * @param bytecode bytecode to convert
-   * @return the string representation of the given bytecode
+   * @return The string representation of the given bytecode.
    */
-  static const char *ToString(Bytecode bytecode) { return k_bytecode_names[static_cast<uint32_t>(bytecode)]; }
+  static const char *ToString(Bytecode bytecode) { return bytecode_names[static_cast<uint32_t>(bytecode)]; }
 
   /**
-   * @param bytecode bytecode for the number of operands is needed
-   * @return the number of operands a bytecode accepts
+   * @return The number of operands a bytecode accepts.
    */
-  static uint32_t NumOperands(Bytecode bytecode) { return k_bytecode_operand_counts[static_cast<uint32_t>(bytecode)]; }
+  static uint32_t NumOperands(Bytecode bytecode) { return bytecode_operand_counts[static_cast<uint32_t>(bytecode)]; }
 
   /**
-   * @param bytecode for which the operand types are needed
-   * @return an array of the operand types to the given bytecode
+   * @return An array of the operand types to the given bytecode.
    */
   static const OperandType *GetOperandTypes(Bytecode bytecode) {
-    return k_bytecode_operand_types[static_cast<uint32_t>(bytecode)];
+    return bytecode_operand_types[static_cast<uint32_t>(bytecode)];
   }
 
   /**
-   * @param bytecode bytecode for which the operand sizes_ are needed.
-   * @return an array of the sizes_ of all operands to the given bytecode
+   * @return An array containing the sizes of all operands to the given bytecode.
    */
   static const OperandSize *GetOperandSizes(Bytecode bytecode) {
-    return k_bytecode_operand_sizes[static_cast<uint32_t>(bytecode)];
+    return bytecode_operand_sizes[static_cast<uint32_t>(bytecode)];
   }
 
   /**
-   * Type of the Nth operand
-   * @param bytecode bytecode for which the Nth operand type is needed
-   * @param operand_index index of the operand
-   * @return the type of the operand at the given index
+   * @return The type of the Nth operand to the given bytecode.
    */
   static OperandType GetNthOperandType(Bytecode bytecode, uint32_t operand_index) {
-    TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
+    NOISEPAGE_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandTypes(bytecode)[operand_index];
   }
 
   /**
-   * Nth operand size
-   * @param bytecode bytecode for which the Nth operand size is needed
-   * @param operand_index index of the operand
-   * @return the size of the operand at the given index
+   * @return The size of the Nth operand to the given bytecode.
    */
   static OperandSize GetNthOperandSize(Bytecode bytecode, uint32_t operand_index) {
-    TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
+    NOISEPAGE_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandSizes(bytecode)[operand_index];
   }
 
-  // Return the offset of the Nth operand of the given bytecode
   /**
-   * Nth operand offset
-   * @param bytecode bytecode for which the Nth operand offset is needed
-   * @param operand_index index of the operand
-   * @return the offset of the operand at the given index
+   * @return The offset of the Nth operand of the given bytecode.
    */
   static uint32_t GetNthOperandOffset(Bytecode bytecode, uint32_t operand_index);
 
   /**
-   * @param bytecode bytecode for which the name is needed
-   * @return the name of the bytecode handler function for this bytecode
+   * @return The name of the bytecode handler function for the given bytecode.
    */
-  static const char *GetBytecodeHandlerName(Bytecode bytecode) { return k_bytecode_handler_name[ToByte(bytecode)]; }
+  static const char *GetBytecodeHandlerName(Bytecode bytecode) { return bytecode_handler_name[ToByte(bytecode)]; }
 
   /**
-   * Converts the given bytecode to a single-byte representation
-   * @param bytecode to convert
-   * @return byte representation of the given bytecode
+   * Converts the bytecode instruction @em bytecode into a raw encoded value.
+   * @param bytecode The bytecode to convert.
+   * @return The raw encoded value for the input bytecode instruction.
    */
   static constexpr std::underlying_type_t<Bytecode> ToByte(Bytecode bytecode) {
-    TERRIER_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
+    NOISEPAGE_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return static_cast<std::underlying_type_t<Bytecode>>(bytecode);
   }
 
-  // Converts the given unsigned byte into the associated bytecode
   /**
-   * Converts the given unsigned byte into the associated bytecode
-   * @param val value to convert
-   * @return Bytecode representating the given value
+   * Decode and convert the raw value @em val into a bytecode instruction.
+   * @param val The value to convert.
+   * @return The bytecode associated with the given value.
    */
   static constexpr Bytecode FromByte(std::underlying_type_t<Bytecode> val) {
     auto bytecode = static_cast<Bytecode>(val);
-    TERRIER_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
+    NOISEPAGE_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return bytecode;
   }
 
   /**
-   * Checks whether the given bytecode is a jump bytecode
-   * @param bytecode bytecode to check
-   * @return whether the given bytecode is a jump bytecode.
+   * @return True if the bytecode @em bytecode is an unconditional jump; false otherwise.
+   */
+  static constexpr bool IsUnconditionalJump(Bytecode bytecode) { return bytecode == Bytecode::Jump; }
+
+  /**
+   * @return True if the bytecode @em bytecode is a conditional jump; false otherwise.
+   */
+  static constexpr bool IsConditionalJump(Bytecode bytecode) {
+    return bytecode == Bytecode::JumpIfFalse || bytecode == Bytecode::JumpIfTrue;
+  }
+
+  /**
+   * @return True if the bytecode @em bytecode is a jump instruction, either conditional or not;
+   *         false otherwise.
    */
   static constexpr bool IsJump(Bytecode bytecode) {
-    return (bytecode == Bytecode::Jump || bytecode == Bytecode::JumpIfFalse || bytecode == Bytecode::JumpIfTrue);
+    return IsConditionalJump(bytecode) || IsUnconditionalJump(bytecode);
   }
 
   /**
-   * Checks whether the given bytecode is a function call bytecode
-   * @param bytecode bytecode to check
-   * @return whether the given bytecode is a function call bytecode
+   * @return True if the bytecode @em bytecode is a return instruction.
    */
-  static constexpr bool IsCall(Bytecode bytecode) { return bytecode == Bytecode::Call; }
+  static constexpr bool IsReturn(Bytecode bytecode) { return bytecode == Bytecode::Return; }
 
   /**
-   * Checks whether the given bytecode is a terminal (return or unconditional jump) bytecode
-   * @param bytecode bytecode to check
-   * @return whether the given bytecode is a terminal bytecode.
+   * @return True if the bytecode @em bytecode is a terminal instruction. A terminal instruction is
+   *         one that appears at the end of a basic block.
    */
-  static constexpr bool IsTerminal(Bytecode bytecode) {
-    return bytecode == Bytecode::Jump || bytecode == Bytecode::Return;
-  }
+  static constexpr bool IsTerminal(Bytecode bytecode) { return IsJump(bytecode) || IsReturn(bytecode); }
 
  private:
-  static const char *k_bytecode_names[];
-  static uint32_t k_bytecode_operand_counts[];
-  static const OperandType *k_bytecode_operand_types[];
-  static const OperandSize *k_bytecode_operand_sizes[];
-  static const char *k_bytecode_handler_name[];
+  static const char *bytecode_names[];
+  static uint32_t bytecode_operand_counts[];
+  static const OperandType *bytecode_operand_types[];
+  static const OperandSize *bytecode_operand_sizes[];
+  static const char *bytecode_handler_name[];
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

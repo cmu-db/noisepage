@@ -1,10 +1,11 @@
 #pragma once
 
 #include <memory>
+
 #include "common/managed_pointer.h"
 #include "nlohmann/json.hpp"
 
-namespace terrier::common {
+namespace noisepage::common {
 // TODO(WAN): I think we should be using the adt_serializable, not this hack..
 /**
  * Convenience alias for a JSON object from the nlohmann::json library.
@@ -37,4 +38,4 @@ using json = nlohmann::json;
     }                                                                                   \
   }
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

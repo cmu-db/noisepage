@@ -1,18 +1,19 @@
 #pragma once
 
-#include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_label.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
+
+class BytecodeGenerator;
 
 /**
- * Base class for all control-flow builders
+ * Base class for all control-flow builders.
  */
 class ControlFlowBuilder {
  public:
   /**
-   * Constructor
-   * @param generator bytecode generator to use when generating code.
+   * Construct a builder that will modify the given generator instance.
+   * @param generator The generator to use for generating code.
    */
   explicit ControlFlowBuilder(BytecodeGenerator *generator) : generator_(generator) {}
 
@@ -22,60 +23,65 @@ class ControlFlowBuilder {
   virtual ~ControlFlowBuilder() = default;
 
  protected:
-  /**
-   * @return the bytecode generator
-   */
-  BytecodeGenerator *Generator() { return generator_; }
+  /** @return The bytecode generator. */
+  BytecodeGenerator *GetGenerator() { return generator_; }
 
  private:
   BytecodeGenerator *generator_;
 };
 
 /**
- * Builder for blocks that can be broken out of.
+ * Base class for code-blocks that can be broken out of.
  */
 class BreakableBlockBuilder : public ControlFlowBuilder {
  public:
   /**
-   * Constructor
-   * @param generator bytecode generator to use when generating code.
+   * Construct a builder that will modify the given generator instance.
+   * @param generator The generator to use for generating code.
    */
   explicit BreakableBlockBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
 
+  /**
+   * Destructor.
+   */
   ~BreakableBlockBuilder() override;
 
   /**
-   * Emits the byte for break out of the block.
+   * Break out of the current block.
    */
   void Break();
 
   /**
-   * @return the break label
+   * @return The label that all breaks from this block jump to.
    */
-  BytecodeLabel *BreakLabel() { return &break_label_; }
+  BytecodeLabel *GetBreakLabel() { return &break_label_; }
 
  protected:
   /**
-   * Helper method to jump to a label
-   * @param label label to jump to.
+   * Helper method to jump to a label.
+   * @param label The label to jump to.
    */
   void EmitJump(BytecodeLabel *label);
 
  private:
+  // The label we jump to from breaks.
   BytecodeLabel break_label_;
 };
 
 /**
- * Builder for blocks that represent loops.
+ * Helper class to build loops.
  */
 class LoopBuilder : public BreakableBlockBuilder {
  public:
   /**
-   * Constructor
-   * @param generator bytecode generator to use when generating code.
+   * Construct a loop builder.
+   * @param generator The generator the loop writes.
    */
   explicit LoopBuilder(BytecodeGenerator *generator) : BreakableBlockBuilder(generator) {}
 
+  /**
+   * Destructor.
+   */
   ~LoopBuilder() override;
 
   /**
@@ -84,12 +90,12 @@ class LoopBuilder : public BreakableBlockBuilder {
   void LoopHeader();
 
   /**
-   * Emits the bytecode to jump to the loop header.
+   * Jump to the header of the loop from the current position in the bytecode.
    */
   void JumpToHeader();
 
   /**
-   * Emits the bytecode used to "continue" during iteration.
+   * Generate a 'continue' to skip the remainder of the loop and jump to the header.
    */
   void Continue();
 
@@ -99,18 +105,13 @@ class LoopBuilder : public BreakableBlockBuilder {
   void BindContinueTarget();
 
  private:
-  /**
-   * @return the header label
-   */
-  BytecodeLabel *HeaderLabel() { return &header_label_; }
+  /** @return The label associated with the header of the loop. */
+  BytecodeLabel *GetHeaderLabel() { return &header_label_; }
 
-  /**
-   * @return the continue label
-   */
-  BytecodeLabel *ContinueLabel() { return &continue_label_; }
+  /** @return The label associated with the target of the continue. */
+  BytecodeLabel *GetContinueLabel() { return &continue_label_; }
 
  private:
-  // These label allow us to jump to a specific point during iteration.
   BytecodeLabel header_label_;
   BytecodeLabel continue_label_;
 };
@@ -121,37 +122,40 @@ class LoopBuilder : public BreakableBlockBuilder {
 class IfThenElseBuilder : public ControlFlowBuilder {
  public:
   /**
-   * Constructor
-   * @param generator bytecode generator to use when generating code.
+   * Construct an if-then-else generator.
+   * @param generator The generator the if-then-else writes.
    */
   explicit IfThenElseBuilder(BytecodeGenerator *generator) : ControlFlowBuilder(generator) {}
 
+  /**
+   * Destructor.
+   */
   ~IfThenElseBuilder() override;
 
   /**
-   * Emit then label
+   * Generate the 'then' part of the if-then-else.
    */
   void Then();
 
   /**
-   * Emit else label
+   * Generate the 'else' part of the if-then-else.
    */
   void Else();
 
   /**
-   * Emit code to jump to the end of the statement.
+   * Jump to the end of the if-then-else.
    */
   void JumpToEnd();
 
   /**
-   * @return the then label
+   * @return The label associated with the 'then' block of this if-then-else.
    */
-  BytecodeLabel *ThenLabel() { return &then_label_; }
+  BytecodeLabel *GetThenLabel() { return &then_label_; }
 
   /**
-   * @return the else label
+   * @return THe label associated with the 'else' block of this if-then-else
    */
-  BytecodeLabel *ElseLabel() { return &else_label_; }
+  BytecodeLabel *GetElseLabel() { return &else_label_; }
 
  private:
   BytecodeLabel *EndLabel() { return &end_label_; }
@@ -162,4 +166,4 @@ class IfThenElseBuilder : public ControlFlowBuilder {
   BytecodeLabel end_label_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -1,3 +1,5 @@
+#include "optimizer/index_util.h"
+
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -6,11 +8,10 @@
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
-#include "optimizer/index_util.h"
 #include "optimizer/properties.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const PropertySort *prop,
                                        catalog::table_oid_t tbl_oid, catalog::index_oid_t idx_oid) {
@@ -52,8 +53,9 @@ bool IndexUtil::SatisfiesSortWithIndex(catalog::CatalogAccessor *accessor, const
 }
 
 bool IndexUtil::SatisfiesPredicateWithIndex(
-    catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
-    const std::vector<AnnotatedExpression> &predicates, bool allow_cves, planner::IndexScanType *scan_type,
+    catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
+    catalog::index_oid_t index_oid, const std::vector<AnnotatedExpression> &predicates, bool allow_cves,
+    planner::IndexScanType *scan_type,
     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<planner::IndexExpression>> *bounds) {
   auto &index_schema = accessor->GetIndexSchema(index_oid);
   if (!SatisfiesBaseColumnRequirement(index_schema)) {
@@ -71,11 +73,12 @@ bool IndexUtil::SatisfiesPredicateWithIndex(
   std::unordered_set<catalog::col_oid_t> mapped_set;
   for (auto col : mapped_cols) mapped_set.insert(col);
 
-  return CheckPredicates(index_schema, tbl_oid, lookup, mapped_set, predicates, allow_cves, scan_type, bounds);
+  return CheckPredicates(index_schema, tbl_oid, tbl_alias, lookup, mapped_set, predicates, allow_cves, scan_type,
+                         bounds);
 }
 
 bool IndexUtil::CheckPredicates(
-    const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid,
+    const catalog::IndexSchema &schema, catalog::table_oid_t tbl_oid, const std::string &tbl_alias,
     const std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> &lookup,
     const std::unordered_set<catalog::col_oid_t> &mapped_cols, const std::vector<AnnotatedExpression> &predicates,
     bool allow_cves, planner::IndexScanType *idx_scan_type,
@@ -85,6 +88,7 @@ bool IndexUtil::CheckPredicates(
   // To concatenate/shrink ranges, we would need to be able to compare TransientValues.
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_highs;  // <index, low start>
   std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> open_lows;   // <index, high end>
+  bool left_side = true;
   for (const auto &pred : predicates) {
     auto expr = pred.GetExpr();
     if (expr->HasSubquery()) return false;
@@ -121,12 +125,15 @@ bool IndexUtil::CheckPredicates(
                    (ltype == parser::ExpressionType::COLUMN_VALUE && rtype == parser::ExpressionType::COLUMN_VALUE)) {
           auto lexpr = expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
           auto rexpr = expr->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
-          if (lexpr->GetTableOid() == tbl_oid) {
+          if (lexpr->GetTableOid() == tbl_oid &&
+              (rexpr->GetTableOid() != tbl_oid || lexpr->GetTableName() == tbl_alias)) {
             tv_expr = lexpr;
             idx_expr = expr->GetChild(1);
+            left_side = true;
           } else {
             tv_expr = rexpr;
             idx_expr = expr->GetChild(0);
+            left_side = false;
           }
         } else {
           // By derivation, all of these predicates should be CONJUNCTIVE_AND
@@ -143,10 +150,18 @@ bool IndexUtil::CheckPredicates(
             open_lows[idxkey] = idx_expr;
           } else if (type == parser::ExpressionType::COMPARE_LESS_THAN ||
                      type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
-            open_lows[idxkey] = idx_expr;
+            if (left_side) {
+              open_lows[idxkey] = idx_expr;
+            } else {
+              open_highs[idxkey] = idx_expr;
+            }
           } else if (type == parser::ExpressionType::COMPARE_GREATER_THAN ||
                      type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO) {
-            open_highs[idxkey] = idx_expr;
+            if (left_side) {
+              open_highs[idxkey] = idx_expr;
+            } else {
+              open_lows[idxkey] = idx_expr;
+            }
           }
         }
         break;
@@ -187,12 +202,12 @@ bool IndexUtil::CheckPredicates(
       if (scan_type == planner::IndexScanType::Exact || scan_type == planner::IndexScanType::AscendingClosed ||
           scan_type == planner::IndexScanType::AscendingOpenHigh) {
         scan_type = planner::IndexScanType::AscendingOpenHigh;
+
       } else {
         // OpenHigh scan is not compatible with an OpenLow scan
         // Revert to a sequential scan
         break;
       }
-
       bounds->insert(std::make_pair(
           oid, std::vector<planner::IndexExpression>{open_highs[oid], planner::IndexExpression(nullptr)}));
     } else if (open_lows.find(oid) != open_lows.end()) {
@@ -204,7 +219,6 @@ bool IndexUtil::CheckPredicates(
         // Revert to a sequential scan
         break;
       }
-
       bounds->insert(std::make_pair(
           oid, std::vector<planner::IndexExpression>{planner::IndexExpression(nullptr), open_lows[oid]}));
     }
@@ -218,7 +232,7 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
                                            const catalog::IndexSchema &schema,
                                            std::unordered_map<catalog::col_oid_t, catalog::indexkeycol_oid_t> *key_map,
                                            std::vector<catalog::col_oid_t> *col_oids) {
-  TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
+  NOISEPAGE_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
   auto &tbl_schema = accessor->GetSchema(tbl_oid);
   if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
     return false;
@@ -240,7 +254,7 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
       }
 
       auto it = schema_col.find(tv_expr->GetColumnName());
-      TERRIER_ASSERT(it != schema_col.end(), "Inconsistency between IndexSchema and table schema");
+      NOISEPAGE_ASSERT(it != schema_col.end(), "Inconsistency between IndexSchema and table schema");
       col_oids->push_back(it->second);
       key_map->insert(std::make_pair(it->second, column.Oid()));
     }
@@ -249,4 +263,4 @@ bool IndexUtil::ConvertIndexKeyOidToColOid(catalog::CatalogAccessor *accessor, c
   return true;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -2,17 +2,18 @@
 
 #include <algorithm>
 
+#include "execution/sql/operators/comparison_operators.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Comparison functions for SQL values.
  */
 class EXPORT ComparisonFunctions {
  public:
-  // Delete to force only static functions
-  ComparisonFunctions() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(ComparisonFunctions);
 
   /**
    * Sets result = (v1 == v2)
@@ -216,6 +217,14 @@ class EXPORT ComparisonFunctions {
     return int32_t(len1) - int32_t(len2);
   }
 
+  /**
+   * Logical negation for SQL booleans
+   */
+  static void NotBoolVal(BoolVal *result, const BoolVal &input) {
+    result->is_null_ = input.is_null_;
+    result->val_ = !input.val_;
+  }
+
  private:
   /**
    * Compare two strings. Returns
@@ -228,18 +237,18 @@ class EXPORT ComparisonFunctions {
    * @return The appropriate signed value indicating comparison order.
    */
   static int32_t Compare(const StringVal &v1, const StringVal &v2) {
-    TERRIER_ASSERT(!v1.is_null_ && !v2.is_null_, "Both input strings must not be null");
-    const auto min_len = std::min(v1.len_, v2.len_);
+    NOISEPAGE_ASSERT(!v1.is_null_ && !v2.is_null_, "Both input strings must not be null");
+    const auto min_len = std::min(v1.GetLength(), v2.GetLength());
     if (min_len == 0) {
-      if (v1.len_ == v2.len_) {
+      if (v1.GetLength() == v2.GetLength()) {
         return 0;
       }
-      if (v1.len_ == 0) {
+      if (v1.GetLength() == 0) {
         return -1;
       }
       return 1;
     }
-    return RawStringCompare(v1.Content(), v1.len_, v2.Content(), v2.len_, min_len);
+    return RawStringCompare(v1.GetContent(), v1.GetLength(), v2.GetContent(), v2.GetLength(), min_len);
   }
 };
 
@@ -252,36 +261,37 @@ class EXPORT ComparisonFunctions {
 
 #define BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TYPE, OP)                                   \
   inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
+    using CppType = decltype(v1.val_);                                                           \
     result->is_null_ = (v1.is_null_ || v2.is_null_);                                             \
-    result->val_ = v1.val_ OP v2.val_;                                                           \
+    result->val_ = OP<CppType>{}(v1.val_, v2.val_);                                              \
   }
 
-#define BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, TYPE, OP)                                    \
-  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
-    if (v1.is_null_ || v2.is_null_) {                                                            \
-      *result = BoolVal::Null();                                                                 \
-      return;                                                                                    \
-    }                                                                                            \
-    *result = BoolVal(Compare(v1, v2) OP 0);                                                     \
+#define BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, TYPE, OP)                                              \
+  inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const StringVal &v1, const StringVal &v2) { \
+    using CppType = decltype(v1.val_);                                                                     \
+    if (v1.is_null_ || v2.is_null_) {                                                                      \
+      *result = BoolVal::Null();                                                                           \
+      return;                                                                                              \
+    }                                                                                                      \
+    *result = BoolVal(OP<CppType>{}(v1.val_, v2.val_));                                                    \
   }
 
-#define BINARY_COMPARISON_ALL_TYPES(NAME, OP)                \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, BoolVal, OP)  \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Integer, OP)  \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Real, OP)     \
-  BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, StringVal, OP) \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, DateVal, OP)  \
-  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TimestampVal, OP)
+#define BINARY_COMPARISONS(NAME, OP)                             \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, BoolVal, OP)      \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Integer, OP)      \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, Real, OP)         \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, DateVal, OP)      \
+  BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL(NAME, TimestampVal, OP) \
+  BINARY_COMPARISON_STRING_FN_HIDE_NULL(NAME, StringVal, OP)
 
-BINARY_COMPARISON_ALL_TYPES(Eq, ==);
-BINARY_COMPARISON_ALL_TYPES(Ge, >=);
-BINARY_COMPARISON_ALL_TYPES(Gt, >);
-BINARY_COMPARISON_ALL_TYPES(Le, <=);
-BINARY_COMPARISON_ALL_TYPES(Lt, <);
-BINARY_COMPARISON_ALL_TYPES(Ne, !=);
+BINARY_COMPARISONS(Eq, noisepage::execution::sql::Equal);
+BINARY_COMPARISONS(Ge, noisepage::execution::sql::GreaterThanEqual);
+BINARY_COMPARISONS(Gt, noisepage::execution::sql::GreaterThan);
+BINARY_COMPARISONS(Le, noisepage::execution::sql::LessThanEqual);
+BINARY_COMPARISONS(Lt, noisepage::execution::sql::LessThan);
+BINARY_COMPARISONS(Ne, noisepage::execution::sql::NotEqual);
 
-#undef BINARY_COMPARISON_ALL_TYPES
+#undef BINARY_COMPARISONS
 #undef BINARY_COMPARISON_STRING_FN_HIDE_NULL
 #undef BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL
-#undef BINARY_COMPARISON_DATE_FN_HIDE_NULL
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

@@ -1,5 +1,6 @@
-// Should return 5
-fun main() -> int64 {
+// Expected output: 6
+
+fun main() -> int {
   var ret = 0
 
   // ----------------------

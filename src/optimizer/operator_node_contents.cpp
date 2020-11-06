@@ -1,10 +1,13 @@
 #include "optimizer/operator_node_contents.h"
+
 #include <memory>
 #include <string>
 #include <utility>
-#include "common/managed_pointer.h"
 
-namespace terrier::optimizer {
+#include "common/managed_pointer.h"
+#include "transaction/transaction_context.h"
+
+namespace noisepage::optimizer {
 
 Operator::Operator() noexcept = default;
 
@@ -72,4 +75,4 @@ Operator Operator::RegisterWithTxnContext(transaction::TransactionContext *txn) 
   return *this;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

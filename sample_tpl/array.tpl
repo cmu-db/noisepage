@@ -1,18 +1,17 @@
-// Test arrays and structs
-// Should output 44
+// Expected output: 44
 
 struct S {
-  a: int32
-  b: int32
+    a: int32
+    b: int32
 }
 
 fun main() -> int {
-  var x: [10]int
-  x[1] = 10
+    var x: [10]int
+    x[1] = 10
 
-  var y: [10]S
-  y[1].b = 44
-  y[2].a = 1
+    var y: [10]S
+    y[1].b = 44
+    y[2].a = 1
 
-  return y[y[2].a].b
+    return y[y[2].a].b
 }

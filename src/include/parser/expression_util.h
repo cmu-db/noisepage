@@ -21,10 +21,10 @@
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
- * Collection of expression helpers for the optimizer
+ * Collection of expression helpers for the optimizer and execution engine.
  */
 class ExpressionUtil {
  public:
@@ -117,6 +117,59 @@ class ExpressionUtil {
   }
 
   /**
+   * @return True if the given expression type is a comparison expression; false otherwise.
+   */
+  static bool IsComparisonExpression(ExpressionType type) {
+    switch (type) {
+      case ExpressionType::COMPARE_EQUAL:
+      case ExpressionType::COMPARE_NOT_EQUAL:
+      case ExpressionType::COMPARE_LESS_THAN:
+      case ExpressionType::COMPARE_GREATER_THAN:
+      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+      case ExpressionType::COMPARE_LIKE:
+      case ExpressionType::COMPARE_NOT_LIKE:
+      case ExpressionType::COMPARE_IN:
+      case ExpressionType::COMPARE_IS_DISTINCT_FROM:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the given expression type is an arithmetic expression; false otherwise.
+   */
+  static bool IsArithmeticExpression(ExpressionType type) {
+    switch (type) {
+      case ExpressionType::OPERATOR_PLUS:
+      case ExpressionType::OPERATOR_MINUS:
+      case ExpressionType::OPERATOR_MULTIPLY:
+      case ExpressionType::OPERATOR_DIVIDE:
+      case ExpressionType::OPERATOR_CONCAT:
+      case ExpressionType::OPERATOR_MOD:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @return True if the given expression type is a column-reference expression; false otherwise.
+   */
+  static bool IsColumnRefExpression(ExpressionType type) { return type == ExpressionType::COLUMN_VALUE; }
+
+  /**
+   * @return True if the given expression type is a constant value expression; false otherwise.
+   */
+  static bool IsConstantExpression(ExpressionType type) { return type == ExpressionType::VALUE_CONSTANT; }
+
+  /**
+   * @return True if the given expression type is a parameter value expression; false otherwise.
+   */
+  static bool IsParamExpression(ExpressionType type) { return type == ExpressionType::VALUE_PARAMETER; }
+
+  /**
    * For a given comparison operator, reverses the comparison.
    * This function flips ExpressionType such that flipping the left and right
    * child of the original expression would still be logically equivalent.
@@ -179,7 +232,7 @@ class ExpressionUtil {
         if (child_expr->GetExpressionType() != ExpressionType::COLUMN_VALUE && child_expr_map.count(child_expr) != 0U) {
           auto type = child_expr->GetReturnValueType();
           auto iter = child_expr_map.find(child_expr);
-          TERRIER_ASSERT(iter != child_expr_map.end(), "Missing ColumnValueExpression...");
+          NOISEPAGE_ASSERT(iter != child_expr_map.end(), "Missing ColumnValueExpression...");
 
           // Add to children directly because DerivedValueExpression has no children
           auto value_idx = static_cast<int>(iter->second);
@@ -198,7 +251,7 @@ class ExpressionUtil {
     }
 
     // Return a copy with new children
-    TERRIER_ASSERT(children.size() == expr->GetChildrenSize(), "size not equal after walk");
+    NOISEPAGE_ASSERT(children.size() == expr->GetChildrenSize(), "size not equal after walk");
     return expr->CopyWithChildren(std::move(children));
   }
 
@@ -275,8 +328,8 @@ class ExpressionUtil {
     } else if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       tv_exprs->push_back(expr);
     } else {
-      TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
-                     "DerivedValueExpression should not exist here.");
+      NOISEPAGE_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
+                       "DerivedValueExpression should not exist here.");
       for (size_t i = 0; i < children_size; i++) {
         GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i));
       }
@@ -349,7 +402,7 @@ class ExpressionUtil {
     if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       // Point to the correct column returned in the logical tuple underneath
       auto c_tup_expr = expr.CastManagedPointerTo<ColumnValueExpression>();
-      TERRIER_ASSERT(children_size == 0, "ColumnValueExpression should have 0 children");
+      NOISEPAGE_ASSERT(children_size == 0, "ColumnValueExpression should have 0 children");
 
       int tuple_idx = 0;
       for (auto &expr_map : expr_maps) {
@@ -375,7 +428,7 @@ class ExpressionUtil {
       Peloton never seems to read from AggregateExpression's value_idx
 
       auto c_aggr_expr = dynamic_cast<const AggregateExpression *>(expr);
-      TERRIER_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
+      NOISEPAGE_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
 
       auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
 
@@ -412,7 +465,7 @@ class ExpressionUtil {
       */
     } else if (expr->GetExpressionType() == ExpressionType::OPERATOR_CASE_EXPR) {
       auto case_expr = expr.CastManagedPointerTo<CaseExpression>();
-      TERRIER_ASSERT(children_size == 0, "CaseExpression should have 0 children");
+      NOISEPAGE_ASSERT(children_size == 0, "CaseExpression should have 0 children");
 
       // Evaluate against WhenClause condition + result and store new
       std::vector<CaseExpression::WhenClause> clauses;
@@ -486,9 +539,45 @@ class ExpressionUtil {
       children = std::move(new_children);
     }
 
-    TERRIER_ASSERT(children.size() == 1, "children should have exactly 1 AbstractExpression");
+    NOISEPAGE_ASSERT(children.size() == 1, "children should have exactly 1 AbstractExpression");
     return std::move(children[0]);
+  }
+
+  /**
+   * @return True if the given expression is of the form: col op const_val. False otherwise.
+   */
+  static bool IsColumnCompareWithConst(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsConstantExpression(expr.GetChild(1)->GetExpressionType());
+  }
+
+  /**
+   * @return True if the given expression is of the form: col op param_val. False otherwise.
+   */
+  static bool IsColumnCompareWithParam(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsParamExpression(expr.GetChild(1)->GetExpressionType());
+  }
+
+  /**
+   * @return True if the given expression is of the form: const op col. False otherwise.
+   */
+  static bool IsConstCompareWithColumn(const parser::AbstractExpression &expr) {
+    if (expr.GetChildrenSize() != 2) {
+      return false;
+    }
+    return IsComparisonExpression(expr.GetExpressionType()) &&
+           IsConstantExpression(expr.GetChild(0)->GetExpressionType()) &&
+           IsColumnRefExpression(expr.GetChild(1)->GetExpressionType());
   }
 };
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

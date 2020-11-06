@@ -18,8 +18,10 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/index/index_builder.h"
+#include "storage/sql_table.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog::postgres {
 
 constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 
@@ -127,7 +129,7 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(
 
   // Indexes on pg_proc
   dbc->procs_oid_index_ = Builder::BuildUniqueIndex(Builder::GetProcOidIndexSchema(oid), PRO_OID_INDEX_OID);
-  dbc->procs_name_index_ = Builder::BuildUniqueIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
+  dbc->procs_name_index_ = Builder::BuildLookupIndex(Builder::GetProcNameIndexSchema(oid), PRO_NAME_INDEX_OID);
 
   dbc->next_oid_.store(START_OID);
 
@@ -763,14 +765,24 @@ IndexSchema Builder::GetProcNameIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, PRO_TABLE_OID, PRONAME_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
-  columns.emplace_back("proallargs", type::TypeId::VARBINARY, MAX_NAME_LENGTH, false,
-                       parser::ColumnValueExpression(db, PRO_TABLE_OID, PROALLARGTYPES_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(3));
-
-  // Unique, not primary
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  // Non-Unique, not primary
+  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, false);
 
   return schema;
 }
 
-}  // namespace terrier::catalog::postgres
+storage::index::Index *Builder::BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  NOISEPAGE_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(key_schema);
+  return index_builder.Build();
+}
+
+storage::index::Index *Builder::BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
+  NOISEPAGE_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(key_schema);
+  return index_builder.Build();
+}
+
+}  // namespace noisepage::catalog::postgres

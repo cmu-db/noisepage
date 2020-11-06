@@ -1,76 +1,97 @@
 #pragma once
 
 #include <vector>
-#include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/delete_plan_node.h"
 
-namespace terrier::execution::compiler {
+#include "execution/ast/identifier.h"
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
+
+namespace noisepage::catalog {
+class Schema;
+}  // namespace noisepage::catalog
+
+namespace noisepage::planner {
+class DeletePlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::compiler {
 
 /**
  * Delete Translator
  */
-class DeleteTranslator : public OperatorTranslator {
+class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a new translator for the given delete plan. The compilation occurs within the
+   * provided compilation context and the operator is participating in the provided pipeline.
+   * @param plan The plan.
+   * @param compilation_context The context of compilation this translation is occurring in.
+   * @param pipeline The pipeline this operator is participating in.
    */
-  DeleteTranslator(const terrier::planner::DeletePlanNode *op, CodeGen *codegen);
+  DeleteTranslator(const planner::DeletePlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
+  /**
+   * Does nothing.
+   * @param decls The top-level declarations.
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
+  /**
+   * Initialize the counters.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing.
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override{};
+  /**
+   * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct
+   * with values from the child and then deletes using this from the table and all concerned indexes.
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
+  /** Record the counters. */
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override{};
+  /**
+   * Unreachable.
+   * @param col_oid Column oid to return a value for.
+   * @return An expression representing the value of the column with the given OID.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override { UNREACHABLE("Delete doesn't provide values"); }
 
-  // Produce and consume logic
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Delete is serial."); };
 
-  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Deletes don't output anything"); };
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
-
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
- private:
-  // Declare the deleter
-  void DeclareDeleter(FunctionBuilder *builder);
-  // Free the deleter
-  void GenDeleterFree(FunctionBuilder *builder);
-  // Set the oids variable
-  void SetOids(FunctionBuilder *builder);
-  // Delete from table.
-  void GenTableDelete(FunctionBuilder *builder);
-  // Delete from index.
-  void GenIndexDelete(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
-  // Get all columns oids.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Delete is serial.");
+  };
 
  private:
-  const planner::DeletePlanNode *op_;
+  // Declare the deleter storage interface.
+  void DeclareDeleter(FunctionBuilder *builder) const;
+
+  // Free the delete storage interface.
+  void GenDeleterFree(FunctionBuilder *builder) const;
+
+  // Sets the oids that we are inserting, using the schema from the delete plan node.
+  void SetOids(FunctionBuilder *builder) const;
+
+  // Generates code to delete from the table.
+  void GenTableDelete(FunctionBuilder *builder) const;
+
+  // Generates code to delete from the indexes.
+  void GenIndexDelete(FunctionBuilder *builder, WorkContext *context, const catalog::index_oid_t &index_oid) const;
+
+ private:
+  // Deleter storage interface struct.
   ast::Identifier deleter_;
+
+  // Column oids of the table we are deleting from.
   ast::Identifier col_oids_;
 
-  // TODO(Amadou): If tpl supports null arrays, leave this empty. Otherwise, put a dummy value of 1 inside.
-  std::vector<catalog::col_oid_t> oids_;
+  // The number of deletes that are performed.
+  StateDescriptor::Entry num_deletes_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

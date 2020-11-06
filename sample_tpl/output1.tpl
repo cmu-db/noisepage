@@ -1,31 +1,34 @@
-// Test output buffer
+// Expected output: ???
+// SQL: SELECT col1, col2 from test_2 WHERE col1 < 500
 
 struct output_struct {
   col1: Integer
   col2: Integer
 }
 
-// SELECT col1, col2 from test_2 WHERE col1 < 500
 fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
   var count = 0
   var out : *output_struct
   var tvi: TableVectorIterator
-  var oids: [2]uint32
-  oids[0] = 1 // col1
-  oids[1] = 2 // col2
-  @tableIterInitBind(&tvi, execCtx, "test_2", oids)
+  var table_oid = @testCatalogLookup(execCtx, "test_2", "")
+  var col_oids: [2]uint32
+  col_oids[0] = @testCatalogLookup(execCtx, "test_2", "col1")
+  col_oids[1] = @testCatalogLookup(execCtx, "test_2", "col2")
+  @tableIterInit(&tvi, execCtx, table_oid, col_oids)
   for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      if (@pciGetSmallInt(pci, 1) < 500) {
-        out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-        out.col1 = @pciGetSmallInt(pci, 1)
-        out.col2 = @pciGetIntNull(pci, 0)
+    var vpi = @tableIterGetVPI(&tvi)
+    for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+      if (@vpiGetSmallInt(vpi, 0) < 500) {
+        out = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
+        out.col1 = @vpiGetSmallInt(vpi, 0)
+        out.col2 = @vpiGetInt(vpi, 1)
         count = count + 1
       }
     }
   }
-  @outputFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   @tableIterClose(&tvi)
   return count
 }

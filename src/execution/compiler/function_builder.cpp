@@ -1,44 +1,67 @@
 #include "execution/compiler/function_builder.h"
 
-#include <utility>
-#include "execution/ast/ast.h"
-#include "execution/ast/ast_dump.h"
+#include "execution/ast/ast_node_factory.h"
 #include "execution/compiler/codegen.h"
-#include "execution/compiler/compiler_defs.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
-FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name,
-                                 util::RegionVector<ast::FieldDecl *> &&fn_params, ast::Expr *fn_ret_type)
+FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier name, util::RegionVector<ast::FieldDecl *> &&params,
+                                 ast::Expr *ret_type)
     : codegen_(codegen),
-      fn_name_(fn_name),
-      fn_params_(std::move(fn_params)),
-      fn_ret_type_(fn_ret_type),
-      fn_body_(codegen->EmptyBlock()),
-      blocks_{fn_body_} {}
+      name_(name),
+      params_(std::move(params)),
+      ret_type_(ret_type),
+      start_(codegen->GetPosition()),
+      statements_(codegen->MakeEmptyBlock()),
+      decl_(nullptr) {}
 
-void FunctionBuilder::StartForStmt(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next) {
-  auto forblock = codegen_->EmptyBlock();
-  Append(codegen_->Factory()->NewForStmt(DUMMY_POS, init, cond, next, forblock));
-  blocks_.emplace_back(forblock);
-}
+FunctionBuilder::~FunctionBuilder() { Finish(); }
 
-void FunctionBuilder::StartIfStmt(ast::Expr *condition) {
-  auto ifblock = codegen_->EmptyBlock();
-  Append(codegen_->Factory()->NewIfStmt(DUMMY_POS, condition, ifblock, nullptr));
-  blocks_.emplace_back(ifblock);
-}
-
-void FunctionBuilder::FinishBlockStmt() { blocks_.pop_back(); }
-
-ast::FunctionDecl *FunctionBuilder::Finish() {
-  for (const auto &stmt : final_stmts_) {
-    fn_body_->AppendStmt(stmt);
+ast::Expr *FunctionBuilder::GetParameterByPosition(uint32_t param_idx) {
+  if (param_idx < params_.size()) {
+    return codegen_->MakeExpr(params_[param_idx]->Name());
   }
-  auto fn_ty = codegen_->Factory()->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);
-  auto fn_lit = codegen_->Factory()->NewFunctionLitExpr(fn_ty, fn_body_);
-  blocks_.clear();
-  return codegen_->Factory()->NewFunctionDecl(DUMMY_POS, fn_name_, fn_lit);
+  return nullptr;
 }
 
-}  // namespace terrier::execution::compiler
+void FunctionBuilder::Append(ast::Stmt *stmt) {
+  // Append the statement to the block.
+  statements_->AppendStatement(stmt);
+  // Bump line number.
+  codegen_->NewLine();
+}
+
+void FunctionBuilder::Append(ast::Expr *expr) { Append(codegen_->GetFactory()->NewExpressionStmt(expr)); }
+
+void FunctionBuilder::Append(ast::VariableDecl *decl) { Append(codegen_->GetFactory()->NewDeclStmt(decl)); }
+
+ast::FunctionDecl *FunctionBuilder::Finish(ast::Expr *ret) {
+  if (decl_ != nullptr) {
+    return decl_;
+  }
+
+  NOISEPAGE_ASSERT(ret == nullptr || statements_->IsEmpty() || !statements_->GetLast()->IsReturnStmt(),
+                   "Double-return at end of function. You should either call FunctionBuilder::Finish() "
+                   "with an explicit return expression, or use the factory to manually append a return "
+                   "statement and call FunctionBuilder::Finish() with a null return.");
+
+  // Add the return.
+  if (!statements_->IsEmpty() && !statements_->GetLast()->IsReturnStmt()) {
+    Append(codegen_->GetFactory()->NewReturnStmt(codegen_->GetPosition(), ret));
+  }
+
+  // Finalize everything.
+  statements_->SetRightBracePosition(codegen_->GetPosition());
+
+  // Build the function's type.
+  auto func_type = codegen_->GetFactory()->NewFunctionType(start_, std::move(params_), ret_type_);
+
+  // Create the declaration.
+  auto func_lit = codegen_->GetFactory()->NewFunctionLitExpr(func_type, statements_);
+  decl_ = codegen_->GetFactory()->NewFunctionDecl(start_, name_, func_lit);
+
+  // Done
+  return decl_;
+}
+
+}  // namespace noisepage::execution::compiler

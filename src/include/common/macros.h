@@ -7,7 +7,13 @@
 // attributes
 //===--------------------------------------------------------------------===//
 
+#define UNUSED_ATTRIBUTE __attribute__((unused))
+#define RESTRICT __restrict__
 #define NEVER_INLINE __attribute__((noinline))
+#define PACKED __attribute__((packed))
+// NOLINTNEXTLINE
+#define FALLTHROUGH [[fallthrough]]
+#define NORETURN __attribute((noreturn))
 
 #ifdef NDEBUG
 #define ALWAYS_INLINE __attribute__((always_inline))
@@ -23,25 +29,19 @@
 #define NO_CLONE __attribute__((noclone))
 #endif
 
-#define UNUSED_ATTRIBUTE __attribute__((unused))
-
-#define PACKED __attribute__((packed))
-
-#define RESTRICT __restrict__
-
 //===--------------------------------------------------------------------===//
 // ALWAYS_ASSERT
 //===--------------------------------------------------------------------===//
 
 #ifdef NDEBUG
-#define TERRIER_ASSERT(expr, message) ((void)0)
+#define NOISEPAGE_ASSERT(expr, message) ((void)0)
 #else
 /*
  * On assert failure, most existing implementations of C++ will print out the condition.
  * By ANDing the truthy not-null message and our initial expression together, we get
  * asserts-with-messages without needing to bring in iostream or logging.
  */
-#define TERRIER_ASSERT(expr, message) assert((expr) && (message))
+#define NOISEPAGE_ASSERT(expr, message) assert((expr) && (message))
 #endif /* NDEBUG */
 
 //===--------------------------------------------------------------------===//
@@ -105,6 +105,12 @@
 #define DISALLOW_COPY_AND_MOVE(cname) \
   DISALLOW_COPY(cname);               \
   DISALLOW_MOVE(cname);
+
+/** Disallow instantiation of the class. This should be used for classes that only have static functions. */
+#define DISALLOW_INSTANTIATION(cname) \
+  /* Prevent instantiation. */        \
+  cname() = delete;
+
 #endif
 
 /**
@@ -135,11 +141,11 @@
 // switch statements
 //===----------------------------------------------------------------------===//
 #if defined __clang__
-#define TERRIER_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
+#define NOISEPAGE_FALLTHROUGH [[clang::fallthrough]]  // NOLINT
 #elif defined __GNUC__ && __GNUC__ >= 7
-#define TERRIER_FALLTHROUGH [[fallthrough]]  // NOLINT
+#define NOISEPAGE_FALLTHROUGH [[fallthrough]]  // NOLINT
 #else
-#define TERRIER_FALLTHROUGH
+#define NOISEPAGE_FALLTHROUGH
 #endif
 
 //===----------------------------------------------------------------------===//

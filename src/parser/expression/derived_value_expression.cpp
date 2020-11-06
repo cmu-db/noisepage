@@ -1,7 +1,10 @@
 #include "parser/expression/derived_value_expression.h"
+
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> DerivedValueExpression::Copy() const {
   auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
@@ -23,6 +26,10 @@ bool DerivedValueExpression::operator==(const AbstractExpression &rhs) const {
   return GetValueIdx() == other.GetValueIdx();
 }
 
+void DerivedValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 nlohmann::json DerivedValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
   j["tuple_idx"] = tuple_idx_;
@@ -41,4 +48,4 @@ std::vector<std::unique_ptr<AbstractExpression>> DerivedValueExpression::FromJso
 
 DEFINE_JSON_BODY_DECLARATIONS(DerivedValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

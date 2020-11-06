@@ -10,9 +10,10 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier {
+namespace noisepage {
 // Not thread-safe
 class RandomDataTableTestObject {
  public:
@@ -73,7 +74,7 @@ class RandomDataTableTestObject {
   bool RandomlyUpdateTuple(const transaction::timestamp_t timestamp, const storage::TupleSlot slot, Random *generator,
                            storage::RecordBufferSegmentPool *buffer_pool) {
     // tuple must already exist
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    NOISEPAGE_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
 
     // generate a random redo ProjectedRow to Update
     std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout_, generator);
@@ -114,7 +115,7 @@ class RandomDataTableTestObject {
   // or nullptr of no version of this tuple is visible to the timestamp
   const storage::ProjectedRow *GetReferenceVersionedTuple(const storage::TupleSlot slot,
                                                           const transaction::timestamp_t timestamp) {
-    TERRIER_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
+    NOISEPAGE_ASSERT(tuple_versions_.find(slot) != tuple_versions_.end(), "Slot not found.");
     auto &versions = tuple_versions_[slot];
     // search backwards so the first entry with smaller timestamp can be returned
     for (auto i = static_cast<int64_t>(versions.size() - 1); i >= 0; i--)
@@ -164,7 +165,7 @@ class RandomDataTableTestObject {
 
 struct DataTableTests : public TerrierTest {
   storage::BlockStore block_store_{100, 100};
-  storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
+  storage::RecordBufferSegmentPool buffer_pool_{500000, 50000};
   std::default_random_engine generator_;
   std::uniform_real_distribution<double> null_ratio_{0.0, 1.0};
 };
@@ -213,7 +214,7 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
       tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
 
     std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
-    EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
+    EXPECT_NE(all_cols[all_cols.size() - 1].UnderlyingValue(), -1);
     storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
@@ -231,6 +232,61 @@ TEST_F(DataTableTests, SimpleSequentialScan) {
       EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), &stored, ref));
     }
     delete[] buffer;
+  }
+}
+
+// Insert some number of tuples and sequentially scan for them down the table, scanning ranges of RawBlock at a time.
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, SimpleSequentialScanBlocks) {
+  const uint16_t max_columns = 20;
+  for (uint32_t num_inserts_multiplier : {4, 5}) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    // Make sure we have at least 2 blocks, up to 5 blocks.
+    uint32_t num_inserts = num_inserts_multiplier * tested.Layout().NumSlots();
+
+    // Populate the table with random tuples
+    for (uint32_t i = 0; i < num_inserts; ++i)
+      tested.InsertRandomTuple(transaction::timestamp_t(0), &generator_, &buffer_pool_);
+
+    std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(tested.Layout());
+    EXPECT_NE(all_cols[all_cols.size() - 1].UnderlyingValue(), -1);
+    storage::ProjectedColumnsInitializer initializer(tested.Layout(), all_cols, num_inserts);
+
+    auto *buffer1 = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns1 = initializer.Initialize(buffer1);
+    auto *buffer2 = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns2 = initializer.Initialize(buffer2);
+
+    // We want at least two blocks to be present so that this will actually test something.
+    EXPECT_GT(tested.GetTable().GetNumBlocks(), 1);
+    auto midpoint = tested.GetTable().GetNumBlocks() / 2;
+    auto it1 = tested.GetTable().GetBlockedSlotIterator(0, midpoint);
+    auto it2 = tested.GetTable().GetBlockedSlotIterator(midpoint, tested.GetTable().GetNumBlocks());
+
+    tested.Scan(&it1, transaction::timestamp_t(1), columns1, &buffer_pool_);
+    tested.Scan(&it2, transaction::timestamp_t(1), columns2, &buffer_pool_);
+
+    EXPECT_EQ(num_inserts, columns1->NumTuples() + columns2->NumTuples());
+
+    // Test that the scan ends when it should.
+    EXPECT_EQ(it1, tested.GetTable().end());
+    EXPECT_EQ(it2, tested.GetTable().end());
+
+    for (uint32_t i = 0; i < columns1->NumTuples(); i++) {
+      storage::ProjectedColumns::RowView stored = columns1->InterpretAsRow(i);
+      const storage::ProjectedRow *ref =
+          tested.GetReferenceVersionedTuple(columns1->TupleSlots()[i], transaction::timestamp_t(1));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), &stored, ref));
+    }
+    for (uint32_t i = 0; i < columns2->NumTuples(); i++) {
+      storage::ProjectedColumns::RowView stored = columns2->InterpretAsRow(i);
+      const storage::ProjectedRow *ref =
+          tested.GetReferenceVersionedTuple(columns2->TupleSlots()[i], transaction::timestamp_t(1));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), &stored, ref));
+    }
+
+    delete[] buffer1;
+    delete[] buffer2;
   }
 }
 
@@ -321,4 +377,40 @@ TEST_F(DataTableTests, InsertNoWrap) {
     delete txn;
   }
 }
-}  // namespace terrier
+
+// tests to make sure that the correct number of tuple slots are iterated through by slot iterator
+// NOLINTNEXTLINE
+TEST_F(DataTableTests, SlotIteraterSingleThreadedTest) {
+  const uint32_t num_iterations = 10;
+  const uint16_t max_columns = 10;
+  const uint64_t max_tuples_inserted = 10000;
+  for (uint32_t iteration = 0; iteration < num_iterations; ++iteration) {
+    RandomDataTableTestObject tested(&block_store_, max_columns, null_ratio_(generator_), &generator_);
+    transaction::timestamp_t timestamp(0);
+    //    transaction::TimestampManager timestamp_manager;
+    //    transaction::TransactionManager txn_manager(timestamp_manager);
+    auto *txn =
+        new transaction::TransactionContext(timestamp, timestamp, common::ManagedPointer(&buffer_pool_), DISABLED);
+    uint64_t size;
+    // number of tuples in the table
+    for (uint64_t i = 0; i < max_tuples_inserted; i++) {
+      // check that iterator sees correct number of tuples
+      size = 0;
+      for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
+      EXPECT_EQ(size, i);
+
+      // add new tuple and make sure that expected element is in table
+      auto slot = tested.InsertRandomTuple(txn, &generator_, &buffer_pool_);
+      auto it = tested.GetTable().begin();
+      for (uint64_t num_slots = 0; it != tested.GetTable().end() && num_slots < size; num_slots++) it++;
+      EXPECT_EQ(slot, *it);
+    }
+
+    size = 0;
+    for (auto UNUSED_ATTRIBUTE _ : tested.GetTable()) size++;
+    EXPECT_EQ(size, max_tuples_inserted);
+
+    delete txn;
+  }
+}
+}  // namespace noisepage

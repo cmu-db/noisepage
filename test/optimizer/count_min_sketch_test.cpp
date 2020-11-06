@@ -1,3 +1,5 @@
+#include "optimizer/statistics/count_min_sketch.h"
+
 #include <cmath>
 #include <random>
 #include <string>
@@ -6,11 +8,9 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "optimizer/statistics/count_min_sketch.h"
-
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class CountMinSketchTests : public TerrierTest {};
 
@@ -218,4 +218,4 @@ TEST_F(CountMinSketchTests, RemoveTest) {
   EXPECT_EQ(sketch.GetTotalCount(), 0);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

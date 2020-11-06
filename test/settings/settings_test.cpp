@@ -10,7 +10,7 @@
 #include "settings/settings_manager.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
@@ -63,13 +63,13 @@ TEST_F(SettingsTests, BasicTest) {
   EXPECT_EQ(static_cast<uint16_t>(settings_manager_->GetInt(Param::record_buffer_segment_size)), 9999);
 
   // String
-  auto log_file_path = static_cast<std::string>(settings_manager_->GetString(Param::log_file_path));
+  auto log_file_path = static_cast<std::string>(settings_manager_->GetString(Param::wal_file_path));
   EXPECT_FALSE(log_file_path.empty());
   // FIXME: We currently do not have a string parameter that is mutable, so we cannot test
   //        whether we are able to set a string in the SettingsManager yet.
-  // settings_manager_->SetString(Param::log_file_path, "fake.log", action_context, setter_callback);
+  // settings_manager_->SetString(Param::wal_file_path, "fake.log", action_context, setter_callback);
   // EXPECT_EQ(common::ActionState::SUCCESS, action_context->GetState());
-  // EXPECT_EQ(static_cast<std::String>(settings_manager_->GetString(Param::log_file_path)), "fake.log");
+  // EXPECT_EQ(static_cast<std::String>(settings_manager_->GetString(Param::wal_file_path)), "fake.log");
 
   // TODO(pavlo): Boolean
 
@@ -85,7 +85,11 @@ TEST_F(SettingsTests, ImmutableValueTest) {
   // Test immutable parameters.
   auto port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
-  settings_manager_->SetInt(Param::port, 23333, common::ManagedPointer(action_context), setter_callback);
+  try {
+    settings_manager_->SetInt(Param::port, 23333, common::ManagedPointer(action_context), setter_callback);
+  } catch (SettingsException &e) {
+    EXPECT_EQ(e.code_, common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
   port = static_cast<uint16_t>(settings_manager_->GetInt(Param::port));
   EXPECT_EQ(port, 15721);
@@ -100,7 +104,11 @@ TEST_F(SettingsTests, InvalidValueTest) {
   // Test setting an invalid parameter using the set API
   auto gc_interval = static_cast<uint32_t>(settings_manager_->GetInt(Param::gc_interval));
   EXPECT_GE(gc_interval, 0);
-  settings_manager_->SetInt(Param::gc_interval, -1, common::ManagedPointer(action_context), setter_callback);
+  try {
+    settings_manager_->SetInt(Param::gc_interval, -1, common::ManagedPointer(action_context), setter_callback);
+  } catch (SettingsException &e) {
+    EXPECT_EQ(e.code_, common::ErrorCode::ERRCODE_INVALID_PARAMETER_VALUE);
+  }
   EXPECT_EQ(common::ActionState::FAILURE, action_context->GetState());
 }
 
@@ -133,7 +141,12 @@ TEST_F(SettingsTests, SetterCallbackTest) {
     EXPECT_EQ(action_context->GetState(), common::ActionState::FAILURE);
     SettingsTests::invoked_ = true;
   };
-  settings_manager_->SetInt(Param::port, 9999, common::ManagedPointer(context1), callback1);
+
+  try {
+    settings_manager_->SetInt(Param::port, 9999, common::ManagedPointer(context1), callback1);
+  } catch (SettingsException &e) {
+    EXPECT_EQ(e.code_, common::ErrorCode::ERRCODE_INTERNAL_ERROR);
+  }
   EXPECT_EQ(context1->GetState(), common::ActionState::FAILURE);
   EXPECT_TRUE(SettingsTests::invoked_);
 }
@@ -168,7 +181,7 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
   const common::action_id_t action_id(1);
 
   // Check default value is correctly passed to log manager
-  auto num_buffers = settings_manager_->GetInt64(Param::num_log_manager_buffers);
+  auto num_buffers = settings_manager_->GetInt64(Param::wal_num_buffers);
   EXPECT_EQ(num_buffers, log_manager_->TestGetNumBuffers());
 
   // Change value
@@ -176,11 +189,11 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
 
   auto action_context = std::make_unique<common::ActionContext>(action_id);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
-  settings_manager_->SetInt64(Param::num_log_manager_buffers, new_num_buffers, common::ManagedPointer(action_context),
+  settings_manager_->SetInt64(Param::wal_num_buffers, new_num_buffers, common::ManagedPointer(action_context),
                               setter_callback);
 
   // Check new value is propagated
-  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::num_log_manager_buffers));
+  EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::wal_num_buffers));
   EXPECT_EQ(new_num_buffers, log_manager_->TestGetNumBuffers());
 }
 
@@ -212,4 +225,4 @@ TEST_F(SettingsTests, ConcurrentModifyTest) {
   EXPECT_EQ(buffer_pool_size_param, buffer_pool_size);
 }
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

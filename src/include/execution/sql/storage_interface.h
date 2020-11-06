@@ -2,21 +2,28 @@
 
 #include <vector>
 
-#include "execution/exec/execution_context.h"
+#include "catalog/catalog_defs.h"
 #include "execution/util/execution_common.h"
+#include "storage/projected_row.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class ProjectedRow;
 class SqlTable;
 class RedoRecord;
 
 namespace index {
 class Index;
-}
+}  // namespace index
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage
 
-namespace terrier::execution::sql {
+namespace noisepage::execution {
+
+namespace exec {
+class ExecutionContext;
+}  // namespace exec
+
+namespace sql {
 
 /**
  * Base class to interact with the storage layer (tables and indexes).
@@ -42,7 +49,7 @@ class EXPORT StorageInterface {
   /**
    * @return The table's projected row.
    */
-  terrier::storage::ProjectedRow *GetTablePR();
+  noisepage::storage::ProjectedRow *GetTablePR();
 
   /**
    * Delete slot from the table.
@@ -70,6 +77,9 @@ class EXPORT StorageInterface {
    */
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
+  /** @return The size of the current index. */
+  uint64_t IndexGetSize() const;
+
   /**
    * Delete item from the current index.
    * @param table_tuple_slot slot corresponding to the item.
@@ -88,6 +98,19 @@ class EXPORT StorageInterface {
    */
   bool IndexInsertUnique();
 
+  /**
+   * Insert into the current index given a tuple
+   * @param table_tuple_slot tuple slot
+   * @param unique if this insertion is unique
+   * @return Whether insertion was successful.
+   */
+  bool IndexInsertWithTuple(storage::TupleSlot table_tuple_slot, bool unique);
+
+  /**
+   * @returns index heap size
+   */
+  uint32_t GetIndexHeapSize();
+
  protected:
   /**
    * Oid of the table being accessed.
@@ -96,7 +119,7 @@ class EXPORT StorageInterface {
   /**
    * Table being accessed.
    */
-  common::ManagedPointer<terrier::storage::SqlTable> table_;
+  common::ManagedPointer<noisepage::storage::SqlTable> table_;
   /**
    * The current execution context.
    */
@@ -129,9 +152,16 @@ class EXPORT StorageInterface {
    * The index PR.
    */
   storage::ProjectedRow *index_pr_{nullptr};
+
+  /**
+   * Reusable ProjectedRowInitializer for this table access
+   */
+  storage::ProjectedRowInitializer pri_;
+
   /**
    * Current index being accessed.
    */
   common::ManagedPointer<storage::index::Index> curr_index_{nullptr};
 };
-}  // namespace terrier::execution::sql
+}  // namespace sql
+}  // namespace noisepage::execution

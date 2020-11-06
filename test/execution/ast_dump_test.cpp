@@ -1,19 +1,19 @@
+#include "execution/ast/ast_dump.h"
+
 #include <set>
 #include <string>
 #include <vector>
 
-#include "execution/tpl_test.h"
-
 #include "execution/ast/ast.h"
-#include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/ast_traversal_visitor.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/sema.h"
+#include "execution/tpl_test.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 /**
  * Magic macro so that we can easily add Visit methods to our extractor class
@@ -282,4 +282,4 @@ TEST_F(AstDumpTest, TypeTest) {
   CheckDump(src, constants);
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

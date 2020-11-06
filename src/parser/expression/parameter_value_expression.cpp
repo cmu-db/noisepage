@@ -1,7 +1,10 @@
 #include "parser/expression/parameter_value_expression.h"
+
+#include "binder/sql_node_visitor.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> ParameterValueExpression::Copy() const {
   auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
@@ -23,6 +26,16 @@ std::vector<std::unique_ptr<AbstractExpression>> ParameterValueExpression::FromJ
   return exprs;
 }
 
+void ParameterValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
+common::hash_t ParameterValueExpression::Hash() const {
+  common::hash_t hash = AbstractExpression::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
+  return hash;
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(ParameterValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

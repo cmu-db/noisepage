@@ -1,10 +1,12 @@
 #include "common/rusage_monitor.h"
+
 #include <thread>  //NOLINT
+
 #include "common/macros.h"
 #include "storage/storage_defs.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Simple test that just does some work wrapped in a RusageMonitor and checks the user time afterwards. It should be
@@ -60,4 +62,4 @@ TEST(RusageMonitorTests, ThreadTest) {
   EXPECT_GT(process_cpu_time_us, thread2_cpu_time_us);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

@@ -8,14 +8,16 @@ struct Output {
   string_col : StringVal
 }
 
-fun main(execCtx: *ExecutionContext) -> int64 {
-  for (var i : int64 = 0; i < 37; i = i + 1) {
-    var out =  @ptrCast(*Output, @outputAlloc(execCtx))
+fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
+  for (var i : int = 0; i < 37; i = i + 1) {
+    var out = @ptrCast(*Output, @resultBufferAllocRow(output_buffer))
     out.int_col = @getParamInt(execCtx, 0)
     out.real_col = @getParamReal(execCtx, 1)
     out.date_col = @getParamDate(execCtx, 2)
     out.string_col = @getParamString(execCtx, 3)
   }
-  @outputFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return 37
 }

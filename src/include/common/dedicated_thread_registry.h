@@ -4,15 +4,15 @@
 #include <thread>  // NOLINT
 #include <unordered_map>
 #include <unordered_set>
+
 #include "common/dedicated_thread_owner.h"
 #include "common/dedicated_thread_task.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
-
 #include "metrics/metrics_manager.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * @brief Singleton class responsible for maintaining and dispensing long running
@@ -36,7 +36,7 @@ class DedicatedThreadRegistry {
   ~DedicatedThreadRegistry() {
     // Note that if registry is shutting down, it doesn't matter whether
     // owners are notified as this class should have the same life cycle
-    // as the entire terrier process.
+    // as the entire noisepage process.
 
     TearDown();
   }
@@ -102,7 +102,7 @@ class DedicatedThreadRegistry {
       common::SpinLatch::ScopedSpinLatch guard(&table_latch_);
       // Exposing the raw pointer like this is okay because we own the underlying raw pointer
       auto search = threads_table_.find(task.operator->());
-      TERRIER_ASSERT(search != threads_table_.end(), "Task is not registered");
+      NOISEPAGE_ASSERT(search != threads_table_.end(), "Task is not registered");
       task_ptr = search->first;
       task_thread = &search->second;
     }
@@ -143,4 +143,4 @@ class DedicatedThreadRegistry {
   const common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

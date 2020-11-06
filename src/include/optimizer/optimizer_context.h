@@ -10,7 +10,7 @@
 #include "optimizer/rule.h"
 #include "optimizer/statistics/stats_storage.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace transaction {
 class TransactionContext;
@@ -140,31 +140,7 @@ class OptimizerContext {
    * @param node AbstractOptimizerNode to convert
    * @returns GroupExpression representing AbstractOptimizerNode
    */
-  GroupExpression *MakeGroupExpression(common::ManagedPointer<AbstractOptimizerNode> node) {
-    std::vector<group_id_t> child_groups;
-    for (auto &child : node->GetChildren()) {
-      if (child->Contents()->GetOpType() == OpType::LEAF) {
-        // Special case for LEAF
-        const auto leaf = child->Contents()->GetContentsAs<LeafOperator>();
-        auto child_group = leaf->GetOriginGroup();
-        child_groups.push_back(child_group);
-      } else {
-        // Create a GroupExpression for the child
-        auto gexpr = MakeGroupExpression(child);
-
-        // Insert into the memo (this allows for duplicate detection)
-        auto mexpr = memo_.InsertExpression(gexpr, false);
-        if (mexpr == nullptr) {
-          // Delete if need to (see InsertExpression spec)
-          child_groups.push_back(gexpr->GetGroupID());
-          delete gexpr;
-        } else {
-          child_groups.push_back(mexpr->GetGroupID());
-        }
-      }
-    }
-    return new GroupExpression(node->Contents(), std::move(child_groups));
-  }
+  GroupExpression *MakeGroupExpression(common::ManagedPointer<AbstractOptimizerNode> node);
 
   /**
    * A group contains all logical/physically equivalent AbstractOptimizerNodes.
@@ -193,7 +169,7 @@ class OptimizerContext {
                                     group_id_t target_group) {
     auto new_gexpr = MakeGroupExpression(node);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
-    TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
+    NOISEPAGE_ASSERT(ptr, "Root of expr should not fail insertion");
 
     (*gexpr) = ptr;
     return (ptr == new_gexpr);
@@ -210,7 +186,7 @@ class OptimizerContext {
   void ReplaceRewriteExpression(common::ManagedPointer<AbstractOptimizerNode> node, group_id_t target_group) {
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(node), target_group, false);
-    TERRIER_ASSERT(ret, "Root expr should always be inserted");
+    NOISEPAGE_ASSERT(ret, "Root expr should always be inserted");
   }
 
  private:
@@ -225,4 +201,4 @@ class OptimizerContext {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

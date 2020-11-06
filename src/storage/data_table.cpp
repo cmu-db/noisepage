@@ -1,45 +1,41 @@
+#include "storage/data_table.h"
+
 #include <list>
 
 #include "common/allocator.h"
-#include "common/performance_counter_body.h"
+#include "execution/sql/vector_projection.h"
 #include "storage/block_access_controller.h"
-#include "storage/data_table.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
-DEFINE_PERFORMANCE_CLASS_BODY(DataTableCounter, DataTableCounterMembers);
-
-DataTable::DataTable(const common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
+DataTable::DataTable(common::ManagedPointer<BlockStore> store, const BlockLayout &layout,
                      const layout_version_t layout_version)
-    : block_store_(store), layout_version_(layout_version), accessor_(layout) {
-  TERRIER_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
-                 "First column must have size 8 for the version chain.");
-  TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
-                 "First column is reserved for version info, second column is reserved for logical delete.");
-  if (block_store_ != nullptr) {
-    RawBlock *new_block = NewBlock();
-    // insert block
-    blocks_.push_back(new_block);
+    : accessor_(layout), block_store_(store), layout_version_(layout_version) {
+  NOISEPAGE_ASSERT(layout.AttrSize(VERSION_POINTER_COLUMN_ID) == 8,
+                   "First column must have size 8 for the version chain.");
+  NOISEPAGE_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
+                   "First column is reserved for version info, second column is reserved for logical delete.");
+  if (store != DISABLED) {
+    blocks_.push_back(NewBlock());
+    blocks_size_++;
   }
-  insertion_head_ = blocks_.begin();
 }
 
 DataTable::~DataTable() {
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  for (RawBlock *block : blocks_) {
+  common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
+  for (auto block : blocks_) {
     StorageUtil::DeallocateVarlens(block, accessor_);
     for (col_id_t i : accessor_.GetBlockLayout().Varlens())
       accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
-    block_store_->Release(block);
+    block_store_.operator->()->Release(block);
   }
 }
 
 bool DataTable::Select(const common::ManagedPointer<transaction::TransactionContext> txn, TupleSlot slot,
                        ProjectedRow *out_buffer) const {
-  data_table_counter_.IncrementNumSelect(1);
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
@@ -62,44 +58,28 @@ void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContex
   out_buffer->SetNumTuples(filled);
 }
 
-DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
-  // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
-  //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&table_->blocks_latch_);
-  // Jump to the next block if already the last slot in the block.
-  if (current_slot_.GetOffset() == table_->accessor_.GetBlockLayout().NumSlots() - 1) {
-    ++block_;
-    // Cannot dereference if the next block is end(), so just use nullptr to denote
-    current_slot_ = {block_ == table_->blocks_.end() ? nullptr : *block_, 0};
-  } else {
-    current_slot_ = {*block_, current_slot_.GetOffset() + 1};
+void DataTable::Scan(const common::ManagedPointer<transaction::TransactionContext> txn, SlotIterator *const start_pos,
+                     execution::sql::VectorProjection *const out_buffer) const {
+  uint32_t filled = 0;
+  while (filled < out_buffer->GetTupleCapacity() && *start_pos != end() &&
+         **start_pos != SlotIterator::InvalidTupleSlot()) {
+    execution::sql::VectorProjection::RowView row = out_buffer->InterpretAsRow(filled);
+    const TupleSlot slot = **start_pos;
+    // Only fill the buffer with valid, visible tuples
+    if (SelectIntoBuffer(txn, slot, &row)) {
+      row.SetTupleSlot(slot);
+      filled++;
+    }
+    ++(*start_pos);
   }
-  return *this;
-}
-
-DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
-  // TODO(Lin): We need to temporarily comment out this latch for the concurrent TPCH experiments. Should be replaced
-  //  with a real solution
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
-
-  // The end iterator could either point to an unfilled slot in a block, or point to nothing if every block in the
-  // table is full. In the case that it points to nothing, we will use the end-iterator of the blocks list and
-  // 0 to denote that this is the case. This solution makes increment logic simple and natural.
-  if (blocks_.empty()) return {this, blocks_.end(), 0};
-  auto last_block = --blocks_.end();
-  uint32_t insert_head = (*last_block)->GetInsertHead();
-  // Last block is full, return the default end iterator that doesn't point to anything
-  if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
-  // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
-  return {this, last_block, insert_head};
+  out_buffer->Reset(filled);
 }
 
 bool DataTable::Update(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot,
                        const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
-  TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
+  NOISEPAGE_ASSERT(redo.NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                   "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
+  NOISEPAGE_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
   slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
@@ -125,117 +105,100 @@ bool DataTable::Update(const common::ManagedPointer<transaction::TransactionCont
 
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Input buffer should not change the version pointer column.");
+    NOISEPAGE_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Input buffer should not change the version pointer column.");
     // TODO(Matt): It would be nice to check that a ProjectedRow that modifies the logical delete column only originated
     // from the DataTable calling Update() within Delete(), rather than an outside soure modifying this column, but
     // that's difficult with this implementation
     StorageUtil::CopyAttrFromProjection(accessor_, slot, redo, i);
   }
-  data_table_counter_.IncrementNumUpdate(1);
 
   return true;
 }
 
-void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
-  // Assume block is full
-  common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
-  if (block == insertion_head_) {
-    // If the header block is full, move the header to point to the next block
-    insertion_head_++;
-  }
-
-  // If there are no more free blocks, create a new empty block and  point the insertion_head to it
-  if (insertion_head_ == blocks_.end()) {
-    RawBlock *new_block = NewBlock();
-    // take latch
-    common::SpinLatch::ScopedSpinLatch guard_block(&blocks_latch_);
-    // insert block
-    blocks_.push_back(new_block);
-    // set insertion header to --end()
-    insertion_head_ = --blocks_.end();
-  }
-}
-
 TupleSlot DataTable::Insert(const common::ManagedPointer<transaction::TransactionContext> txn,
                             const ProjectedRow &redo) {
-  TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
-                 "attribute than the DataTable's layout.");
+  NOISEPAGE_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                   "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
+                   "attribute than the DataTable's layout.");
 
-  // Insertion header points to the first block that has free tuple slots
-  // Once a txn arrives, it will start from the insertion header to find the first
+  // Insertion index points to the first block that has free tuple slots
+  // Once a txn arrives, it will start from the insertion index to find the first
   // idle (no other txn is trying to get tuple slots in that block) and non-full block.
   // If no such block is found, the txn will create a new block.
   // Before the txn writes to the block, it will set block status to busy.
   // The first bit of block insert_head_ is used to indicate if the block is busy
   // If the first bit is 1, it indicates one txn is writing to the block.
-
   TupleSlot result;
-  auto block = insertion_head_;
+  uint64_t current_insert_idx = insert_index_.load();
+  RawBlock *block;
   while (true) {
     // No free block left
-    if (block == blocks_.end()) {
-      RawBlock *new_block = NewBlock();
-      TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
-      // No need to flip the busy status bit
-      accessor_.Allocate(new_block, &result);
-      // take latch
-      common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-      // insert block
-      blocks_.push_back(new_block);
-      block = --blocks_.end();
-      break;
+    uint64_t size = blocks_size_;
+    if (current_insert_idx >= size) {
+      block = NewBlock();
+      common::SharedLatch::ScopedExclusiveLatch latch(&blocks_latch_);
+      blocks_.push_back(block);
+      blocks_size_ = blocks_.size();
+      current_insert_idx = blocks_size_ - 1;
+    } else {
+      common::SharedLatch::ScopedSharedLatch latch(&blocks_latch_);
+      block = blocks_[current_insert_idx];
     }
-
-    if (accessor_.SetBlockBusyStatus(*block)) {
+    if (accessor_.SetBlockBusyStatus(block)) {
       // No one is inserting into this block
-      if (accessor_.Allocate(*block, &result)) {
+      if (accessor_.Allocate(block, &result)) {
         // The block is not full, succeed
         break;
       }
-      // Fail to insert into the block, flip back the status bit
-      accessor_.ClearBlockBusyStatus(*block);
+
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
-      CheckMoveHead(block);
+      if (current_insert_idx == insert_index_.load()) {
+        // if we fail, that's ok because that means that someone else incremented insert_index_
+        // so we retry on the next index
+        bool UNUSED_ATTRIBUTE result =
+            insert_index_.compare_exchange_strong(current_insert_idx, current_insert_idx + 1);
+        NOISEPAGE_ASSERT(result, "only one thread should be able to try (and fail) to insert into a block at a time");
+      }
+
+      // Fail to insert into the block, flip back the status bit
+      accessor_.ClearBlockBusyStatus(block);
     }
     // The block is full or the block is being inserted by other txn, try next block
-    ++block;
+    ++current_insert_idx;
   }
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
-  accessor_.ClearBlockBusyStatus(*block);
+  accessor_.ClearBlockBusyStatus(block);
   InsertInto(txn, redo, result);
 
-  data_table_counter_.IncrementNumInsert(1);
   return result;
 }
 
 void DataTable::InsertInto(const common::ManagedPointer<transaction::TransactionContext> txn, const ProjectedRow &redo,
                            TupleSlot dest) {
-  TERRIER_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
-  TERRIER_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
-                 "The slot needs to be logically deleted to every running transaction");
+  NOISEPAGE_ASSERT(accessor_.Allocated(dest), "destination slot must already be allocated");
+  NOISEPAGE_ASSERT(accessor_.IsNull(dest, VERSION_POINTER_COLUMN_ID),
+                   "The slot needs to be logically deleted to every running transaction");
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
-  TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
-                 "Should only be able to insert into hot blocks");
+  NOISEPAGE_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
+                   "Should only be able to insert into hot blocks");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
   // Update in place with the new value.
   for (uint16_t i = 0; i < redo.NumColumns(); i++) {
-    TERRIER_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
-                   "Insert buffer should not change the version pointer column.");
+    NOISEPAGE_ASSERT(redo.ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+                     "Insert buffer should not change the version pointer column.");
     StorageUtil::CopyAttrFromProjection(accessor_, dest, redo, i);
   }
 }
 
 bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionContext> txn, const TupleSlot slot) {
-  data_table_counter_.IncrementNumDelete(1);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
   slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
@@ -262,55 +225,25 @@ bool DataTable::Delete(const common::ManagedPointer<transaction::TransactionCont
 template <class RowType>
 bool DataTable::SelectIntoBuffer(const common::ManagedPointer<transaction::TransactionContext> txn,
                                  const TupleSlot slot, RowType *const out_buffer) const {
-  TERRIER_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
-                 "The output buffer never returns the version pointer columns, so it should have "
-                 "fewer attributes.");
-  TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
+  NOISEPAGE_ASSERT(out_buffer->NumColumns() <= accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
+                   "The output buffer never returns the version pointer columns, so it should have "
+                   "fewer attributes.");
+  NOISEPAGE_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
   // This cannot be visible if it's already deallocated.
   if (!accessor_.Allocated(slot)) return false;
 
-  UndoRecord *version_ptr;
-  bool visible;
-  do {
-    version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
-    // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
-    // because so long as we set the version ptr before updating in place, the reader will know if a conflict
-    // can potentially happen, and chase the version chain before returning anyway,
-    for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
-      TERRIER_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
+  // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
+  // because so long as we set the version ptr before updating in place, the reader will chase the version chain
+  // and apply the pre-image of the writer before returning anyway.  In the worst case, we accidentally overwrite
+  // a good read with the exact same data, but there is no way to detect this.
+  for (uint16_t i = 0; i < out_buffer->NumColumns(); i++) {
+    NOISEPAGE_ASSERT(out_buffer->ColumnIds()[i] != VERSION_POINTER_COLUMN_ID,
                      "Output buffer should not read the version pointer column.");
-      StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
-    }
+    StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
+  }
 
-    // We still need to check the allocated bit because GC could have flipped it since last check
-    visible = Visible(slot, accessor_);
-
-    // Here we will need to check that the version pointer did not change during our read. If it did, the content
-    // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
-    // we will have to loop around to avoid a dirty read.
-    //
-    // There is still an a-b-a problem if aborting transactions unlink themselves. Thus, in the system aborting
-    // transactions still check out a timestamp and "commit" after rolling back their changes to guard against this,
-    // The exact interleaving is this:
-    //
-    //      transaction 1         transaction 2
-    //          begin
-    //    read version_ptr
-    //                                begin
-    //                             write a -> a1
-    //          read a1
-    //                            rollback a1 -> a
-    //    check version_ptr
-    //         return a1
-    //
-    // For this to manifest, there has to be high contention on a given tuple slot, and insufficient CPU resources
-    // (way more threads than there are cores, around 8x seems to work) such that threads are frequently swapped
-    // out. compare-and-swap along with the pointer reduces the probability of this happening to be essentially
-    // infinitesimal, but it's still a probabilistic fix. To 100% prevent this race, we have to wait until no
-    // concurrent transaction with the abort that could have had a dirty read is alive to unlink this. The easiest
-    // way to achieve that is to take a timestamp as well when all changes have been rolled back for an aborted
-    // transaction, and let GC handle the unlinking.
-  } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+  bool visible = !accessor_.IsNull(slot, VERSION_POINTER_COLUMN_ID);
+  UndoRecord *version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
@@ -389,7 +322,6 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
-  data_table_counter_.IncrementNumNewBlock(1);
   return new_block;
 }
 
@@ -433,4 +365,4 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
   return visible;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

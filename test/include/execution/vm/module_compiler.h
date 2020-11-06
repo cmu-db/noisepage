@@ -12,7 +12,7 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/module.h"
 
-namespace terrier::execution::vm::test {
+namespace noisepage::execution::vm::test {
 
 class ModuleCompiler {
  public:
@@ -33,11 +33,17 @@ class ModuleCompiler {
   std::unique_ptr<Module> CompileToModule(const std::string &source) {
     auto *ast = CompileToAst(source);
     if (HasErrors()) return nullptr;
-    return std::make_unique<Module>(vm::BytecodeGenerator::Compile(ast, nullptr, "test"));
+    return std::make_unique<Module>(vm::BytecodeGenerator::Compile(ast, "test"));
   }
 
   // Does the error reporter have any errors?
   bool HasErrors() const { return errors_.HasErrors(); }
+
+  void LogErrors() {
+    if (errors_.HasErrors()) {
+      EXECUTION_LOG_ERROR("CompileToAst error: {}", errors_.SerializeErrors());
+    }
+  }
 
   // Reset any previous errors
   void ClearErrors() { errors_.Reset(); }
@@ -48,4 +54,4 @@ class ModuleCompiler {
   ast::Context ctx_;
 };
 
-}  // namespace terrier::execution::vm::test
+}  // namespace noisepage::execution::vm::test

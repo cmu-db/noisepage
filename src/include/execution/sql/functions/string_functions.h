@@ -1,127 +1,117 @@
 #pragma once
 
 #include <limits>
+#include <string>
 
 #include "execution/sql/value.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle SQL string manipulations.
  */
-class EXPORT StringFunctions {
+class StringFunctions {
  public:
-  /**
-   * Delete to force only static functions
-   */
-  StringFunctions() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(StringFunctions);
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(StringFunctions);
 
-  /**
-   * Return the string length
-   */
-  static void CharLength(exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
-    Length(ctx, result, str);
+  /** Compute ASCII(str). */
+  static void ASCII(Integer *result, exec::ExecutionContext *ctx, const StringVal &str);
+
+  /** Compute LENGTH(str). */
+  static void CharLength(Integer *result, exec::ExecutionContext *ctx, const StringVal &str) {
+    Length(result, ctx, str);
   }
 
-  /**
-   * First min(length, n) characters
-   */
-  static void Left(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
+  /** Compute CONCAT(str1, str2, str3, ...). */
+  static void Concat(StringVal *result, exec::ExecutionContext *ctx, const StringVal *inputs[], uint32_t num_inputs);
 
-  /**
-   * Return the length of the string
-   */
-  static void Length(exec::ExecutionContext *ctx, Integer *result, const StringVal &str);
+  /** Compute LEFT(str, n). */
+  static void Left(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /**
-   * Set the string to lower case
-   */
-  static void Lower(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  /** Compute LENGTH(str). */
+  static void Length(Integer *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Pads the left side of the string with min(pad_length, len) characters
-   */
-  static void Lpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
+  /** Compute LOWER(str). */
+  static void Lower(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
+
+  /** Compute LPAD(str, len, pad). */
+  static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
 
-  /**
-   * Perform left trim of the given chars
-   */
-  static void Ltrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);
+  /** Compute LPAD(str, len). */
+  static void Lpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len);
 
-  /**
-   * Perform left trim of blank chars
-   */
-  static void Ltrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  /** Compute LTRIM(str, chars). */
+  static void Ltrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
-  /**
-   * Repeat a string n times
-   */
-  static void Repeat(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
+  /** Compute LTRIM(str). */
+  static void Ltrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Reverse a string
-   */
-  static void Reverse(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  /** Compute REPEAT(str, n). */
+  static void Repeat(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
 
-  /**
-   * Last min(length, n) characters of the string
-   */
-  static void Right(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n);
+  /** Compute REVERSE(str). */
+  static void Reverse(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 
-  /**
-   * Pads the right side of the string with min(pad_length, len) characters
-   */
-  static void Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
+  /** Compute RIGHT(str, n). */
+  static void Right(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &n);
+
+  /** Compute RPAD(str, n, pad). */
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len,
                    const StringVal &pad);
 
-  /**
-   * Perform right trim of the given chars
-   */
-  static void Rtrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);
+  /** Compute RPAD(str, n). */
+  static void Rpad(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &len);
 
-  /**
-   * Perform right trim of blank chars
-   */
-  static void Rtrim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  /** Compute RTRIM(str, chars). */
+  static void Rtrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
-  /**
-   * Split the string and return the split at the given index
-   */
-  static void SplitPart(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &delim,
+  /** Compute RTRIM(str). */
+  static void Rtrim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
+
+  /** Compute SPLITPART(str, delim, field). */
+  static void SplitPart(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &delim,
                         const Integer &field);
 
-  /**
-   * Return the substring starting at pos of length len
-   */
-  static void Substring(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &pos,
+  /** Compute SUBSTRING(str, pos, len). */
+  static void Substring(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &pos,
                         const Integer &len);
 
-  /**
-   * Return the suffix starting at pos
-   */
-  static void Substring(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &pos) {
-    Substring(ctx, result, str, pos, Integer(std::numeric_limits<int64_t>::max()));
+  /** Compute SUBSTRING(str, pos). */
+  static void Substring(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const Integer &pos) {
+    Substring(result, ctx, str, pos, Integer(std::numeric_limits<int64_t>::max()));
   }
 
-  /**
-   * Perform a trim of the given characters on both sides
-   */
-  static void Trim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const StringVal &chars);
+  /** Compute STARTS_WITH(str, start). */
+  static void StartsWith(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &start);
 
-  /**
-   * Perform a trim of blank spaces on both sides
-   */
-  static void Trim(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  /** Compute TRIM(str, chars). */
+  static void Trim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str, const StringVal &chars);
 
-  /**
-   * Converts the string to upper case
-   */
-  static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
+  /** Compute TRIM(str). */
+  static void Trim(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
+
+  /** Compute UPPER(str). */
+  static void Upper(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
+
+  /** Compute LIKE(string, pattern). */
+  static void Like(BoolVal *result, exec::ExecutionContext *ctx, const StringVal &string, const StringVal &pattern);
+
+  /** Compute POSITION(search_str, search_sub_str). */
+  static void Position(Integer *result, exec::ExecutionContext *ctx, const StringVal &search_str,
+                       const StringVal &search_sub_str);
+
+  /** Compute CHR(code). */
+  static void Chr(StringVal *result, exec::ExecutionContext *ctx, const Integer &code);
+
+  /** Compute INITCAP(str). */
+  static void InitCap(StringVal *result, exec::ExecutionContext *ctx, const StringVal &str);
 };
-
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

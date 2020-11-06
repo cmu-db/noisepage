@@ -1,13 +1,14 @@
+#include "optimizer/util.h"
+
 #include <string>
 #include <unordered_set>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "optimizer/optimizer_defs.h"
-#include "optimizer/util.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
                                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
@@ -19,9 +20,9 @@ void OptimizerUtil::ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &
     if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL) {
       auto l_expr = expr->GetChild(0);
       auto r_expr = expr->GetChild(1);
-      TERRIER_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
-                         r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
-                     "DerivedValue should not exist here");
+      NOISEPAGE_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
+                           r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
+                       "DerivedValue should not exist here");
 
       // equi-join between two ColumnValueExpressions
       if (l_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
@@ -68,4 +69,4 @@ std::vector<parser::AbstractExpression *> OptimizerUtil::GenerateTableColumnValu
   return exprs;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

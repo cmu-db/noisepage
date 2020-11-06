@@ -3,12 +3,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class OperatorVisitor;
 
@@ -106,4 +107,4 @@ class AbstractOptimizerNodeContents {
   common::ManagedPointer<AbstractOptimizerNodeContents> contents_{};
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -1,16 +1,21 @@
 #pragma once
 
+#include <condition_variable>  // NOLINT
 #include <queue>
+#include <thread>  // NOLINT
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "common/container/concurrent_blocking_queue.h"
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
 #include "storage/record_buffer.h"
+#include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Task that processes buffers handed over by transactions and serializes them into consumer buffers.
@@ -52,7 +57,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   void Terminate() override {
     // If the task hasn't run yet, yield the thread until it's started
     while (!run_task_) std::this_thread::yield();
-    TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+    NOISEPAGE_ASSERT(run_task_, "Cant terminate a task that isnt running");
     run_task_ = false;
   }
 
@@ -61,8 +66,12 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param buffer_segment the (perhaps partially) filled log buffer ready to be consumed
    */
   void AddBufferToFlushQueue(RecordBufferSegment *const buffer_segment) {
-    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    flush_queue_.push(buffer_segment);
+    {
+      std::unique_lock<std::mutex> guard(flush_queue_latch_);
+      flush_queue_.push(buffer_segment);
+      empty_ = false;
+      if (sleeping_) flush_queue_cv_.notify_all();
+    }
   }
 
  private:
@@ -82,9 +91,15 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
   //  optimization we applied to the GC queue.
   // Latch to protect flush queue
-  common::SpinLatch flush_queue_latch_;
+  std::mutex flush_queue_latch_;
   // Stores unserialized buffers handed off by transactions
   std::queue<RecordBufferSegment *> flush_queue_;
+
+  // conditional variable to be notified when there are logs to be processed
+  std::condition_variable flush_queue_cv_;
+
+  // bools representing whether the logging thread is sleeping and if the log queue is empty
+  bool sleeping_ = false, empty_ = true;
 
   // Current buffer we are serializing logs to
   BufferedLogWriter *filled_buffer_;
@@ -117,16 +132,16 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * Process all the accumulated log records and serialize them to log consumer tasks. It's important that we serialize
    * the logs in order to ensure that a single transaction's logs are ordered. Only a single thread can serialize the
    * logs (without more sophisticated ordering checks).
-   * @return true if we processed new buffers, false otherwise
+   * @return (number of bytes processed, number of records processed, number of transactions processed)
    */
-  bool Process();
+  std::tuple<uint64_t, uint64_t, uint64_t> Process();
 
   /**
    * Serialize out the task buffer to the current serialization buffer
    * @param buffer_to_serialize the iterator to the redo buffer to be serialized
-   * @return pair representing number of bytes and number of records serialized, used for metrics
+   * @return tuple representing number of bytes, number of records, and number of txns serialized, used for metrics
    */
-  std::pair<uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
+  std::tuple<uint64_t, uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
 
   /**
    * Serialize out the record to the log
@@ -165,4 +180,4 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    */
   void HandFilledBufferToWriter();
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

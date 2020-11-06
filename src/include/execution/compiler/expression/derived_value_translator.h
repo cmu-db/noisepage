@@ -1,21 +1,32 @@
 #pragma once
-#include <memory>
+
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::parser {
+class DerivedValueExpression;
+}  // namespace noisepage::parser
+
+namespace noisepage::execution::compiler {
 
 /**
- * DerivedValue Translator.
+ * A translator for derived value expressions.
  */
 class DerivedValueTranslator : public ExpressionTranslator {
  public:
   /**
-   * Constructor
-   * @param expression expression to translate
-   * @param codegen code generator to use
+   * Create a translator for the given derived value.
+   * @param expr The expression to translate.
+   * @param compilation_context The context in which translation occurs.
    */
-  DerivedValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
+  DerivedValueTranslator(const parser::DerivedValueExpression &expr, CompilationContext *compilation_context);
 
-  ast::Expr *DeriveExpr(ExpressionEvaluator *evaluator) override;
+  /**
+   * Derive the value of the expression.
+   * @param ctx The context containing collected subexpressions.
+   * @param provider A provider for specific column values.
+   * @return The value of the expression.
+   */
+  ast::Expr *DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const override;
 };
-}  // namespace terrier::execution::compiler
+
+}  // namespace noisepage::execution::compiler

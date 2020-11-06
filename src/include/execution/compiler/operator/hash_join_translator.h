@@ -1,180 +1,215 @@
 #pragma once
 
-#include "execution/compiler/expression/expression_translator.h"
+#include <vector>
+
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/hash_join_plan_node.h"
+#include "execution/compiler/pipeline.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::brain {
+class OperatingUnitRecorder;
+}  // namespace noisepage::brain
 
-// Forward declare for friendship
-class HashJoinRightTranslator;
+namespace noisepage::parser {
+class AbstractExpression;
+}  // namespace noisepage::parser
+
+namespace noisepage::planner {
+class HashJoinPlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::compiler {
+
+class FunctionBuilder;
 
 /**
- * Left translator for joins
+ * A translator for hash joins.
  */
-class HashJoinLeftTranslator : public OperatorTranslator {
+class HashJoinTranslator : public OperatorTranslator {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a new translator for the given hash join plan. The compilation occurs within the
+   * provided compilation context and the operator is participating in the provided pipeline.
+   * @param plan The plan.
+   * @param compilation_context The context of compilation this translation is occurring in.
+   * @param pipeline The pipeline this operator is participating in.
    */
-  HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen);
-
-  // Insert tuples into the hash table
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
-
-  // Add the join hash table
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
-
-  // Declare JoinBuild struct
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
-
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Call @joinHTInit on the hash table
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override;
-
-  // Call @joinHTFree on the hash table
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
-
-  ast::Expr *GetOutput(uint32_t attr_idx) override;
-
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
+  HashJoinTranslator(const planner::HashJoinPlanNode &plan, CompilationContext *compilation_context,
+                     Pipeline *pipeline);
 
   /**
-   * @returns struct declaration
+   * Declare the build-row struct used to materialize tuples from the build side of the join. In the
+   * case of left outer joins additionally declare a probe-row struct which lets us
+   * materialize tuples from the probe side of the join.
+   * @param decls The top-level declarations for the query. The declared structs will be registered
+   *              here after they've been constructed.
    */
+  void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
+
+  /**
+   * Only for left outer joins - declare a function joinConsumer which encapsulates the parent translator's
+   * functionality
+   * @param decls
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
+   * Define all hook functions
+   * @param pipeline Pipeline that helper functions are being generated for.
+   * @param decls Query-level declarations.
+   */
+  void DefineTLSDependentHelperFunctions(const Pipeline &pipeline,
+                                         util::RegionVector<ast::FunctionDecl *> *decls) override;
+
+  /**
+   * Initialize the global hash table.
+   */
+  void InitializeQueryState(FunctionBuilder *function) const override;
+
+  /**
+   * Tear-down the global hash table.
+   */
+  void TearDownQueryState(FunctionBuilder *function) const override;
+
+  /**
+   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
+   * need to initialize the thread-local join hash table we've declared.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
+   * need to clean up and destroy the thread-local join hash table we've declared.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * Implement main join logic. If the context is coming from the left pipeline, the input tuples
+   * are materialized into the join hash table. If the context is coming from the right pipeline,
+   * the input tuples are probed in the join hash table.
+   * @param ctx The context of the work.
+   * @param function The pipeline generating function.
+   */
+  void PerformPipelineWork(WorkContext *ctx, FunctionBuilder *function) const override;
+
+  /**
+   * If the pipeline context represents the left pipeline and the left pipeline is parallel, we'll
+   * issue a parallel join hash table construction at this point.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * @return The value (vector) of the attribute at the given index (@em attr_idx) produced by the
+   *         child at the given index (@em child_idx).
+   */
+  ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
+
+  /**
+   * Hash-joins do not produce columns from base tables.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
+    UNREACHABLE("Hash-joins do not produce columns from base tables.");
+  }
+
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+ private:
+  friend class brain::OperatingUnitRecorder;
+
+  // Is the given pipeline this join's left pipeline?
+  bool IsLeftPipeline(const Pipeline &pipeline) const { return &left_pipeline_ == &pipeline; }
+
+  // Is the given pipeline this join's right pipeline?
+  bool IsRightPipeline(const Pipeline &pipeline) const { return GetPipeline() == &pipeline; }
+
+  // Initialize the given join hash table instance, provided as a *JHT.
+  void InitializeJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const;
+
+  // Clean up and destroy the given join hash table instance, provided as a *JHT.
+  void TearDownJoinHashTable(FunctionBuilder *function, ast::Expr *jht_ptr) const;
+
+  // Access an attribute at the given index in the provided row.
+  ast::Expr *GetRowAttribute(ast::Expr *row, uint32_t attr_idx) const;
+
+  // Evaluate the provided hash keys in the provided context and return the
+  // results in the provided results output vector.
+  ast::Expr *HashKeys(WorkContext *ctx, FunctionBuilder *function,
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &hash_keys) const;
+
+  // Fill the build row with the columns from the given context.
+  void FillBuildRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *build_row) const;
+
+  // Fill the probe row with the columns from the given context.
+  void FillProbeRow(WorkContext *ctx, FunctionBuilder *function, ast::Expr *probe_row) const;
+
+  // Input the tuple(s) in the provided context into the join hash table.
+  void InsertIntoJoinHashTable(WorkContext *ctx, FunctionBuilder *function) const;
+
+  // Probe the join hash table with the input tuple(s).
+  void ProbeJoinHashTable(WorkContext *ctx, FunctionBuilder *function) const;
+
+  // Check the right mark.
+  void CheckRightMark(WorkContext *ctx, FunctionBuilder *function, ast::Identifier right_mark) const;
+
+  // Check the join predicate.
+  void CheckJoinPredicate(WorkContext *ctx, FunctionBuilder *function) const;
+
+  // Only for left outer joins - iterate the hash table and output unmatched left rows
+  void CollectUnmatchedLeftRows(FunctionBuilder *function) const;
+
+  /** @return The struct that was declared, used for the minirunner. */
   ast::StructDecl *GetStructDecl() const { return struct_decl_; }
 
+  /** Generate start hook function for parallel build */
+  ast::FunctionDecl *GenerateStartHookFunction() const;
+
+  /** Generate end hook function for parallel build */
+  ast::FunctionDecl *GenerateEndHookFunction() const;
+
  private:
-  friend class HashJoinRightTranslator;
+  // Flag to indicate whether or not we are in the joinConsumer function
+  bool join_consumer_flag_;
 
-  // Iterate through the left join keys and hash them
-  void GenHashCall(FunctionBuilder *builder);
+  // The name of the materialized row when inserting into join hash table.
+  ast::Identifier build_row_var_;
+  ast::Identifier build_row_type_;
+  // For mark-based joins.
+  ast::Identifier build_mark_;
 
-  // Generate the join hash table insertion code
-  void GenHTInsert(FunctionBuilder *builder);
+  // The name of the materialized probe row
+  ast::Identifier probe_row_var_;
+  ast::Identifier probe_row_type_;
 
-  // Fill the build row
-  void FillBuildRow(FunctionBuilder *builder);
+  // The name of the function which encapuslates the join conumser
+  ast::Identifier join_consumer_;
 
-  // Get an attribute from attribute struct
-  ast::Expr *GetBuildValue(uint32_t idx);
+  // The left build-side pipeline.
+  Pipeline left_pipeline_;
 
-  // Get the mark flag
-  ast::Expr *GetMarkFlag();
+  // The slots in the global and thread-local state where this join's join hash
+  // table is stored.
+  StateDescriptor::Entry global_join_ht_;
+  StateDescriptor::Entry local_join_ht_;
 
-  // Build the hash table
-  void GenBuildCall(FunctionBuilder *builder);
+  // The number of rows that are inserted into the hash table.
+  StateDescriptor::Entry num_build_rows_;
+  // The number of probes that are performed.
+  StateDescriptor::Entry num_probe_rows_;
+  // The number of rows that are matched by the probes.
+  StateDescriptor::Entry num_match_rows_;
 
-  // The hash join plan node
-  const planner::HashJoinPlanNode *op_;
-
-  // Struct Decl
+  // Struct declaration for minirunner.
   ast::StructDecl *struct_decl_;
 
-  // Structs, functions, and locals
-  static constexpr const char *LEFT_ATTR_NAME = "left_attr";
-  ast::Identifier hash_val_;
-  ast::Identifier build_struct_;
-  ast::Identifier build_row_;
-  ast::Identifier join_ht_;
-  // This boolean is used for semi and anti joins.
-  // It indicates whether a tuple has been matched or not.
-  ast::Identifier mark_;
+  ast::Identifier parallel_build_pre_hook_fn_;
+  ast::Identifier parallel_build_post_hook_fn_;
 };
 
-/**
- * Right translator for joins
- */
-class HashJoinRightTranslator : public OperatorTranslator {
- public:
-  /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
-   * @param left The corresponding left translator
-   */
-  HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op, CodeGen *codegen, OperatorTranslator *left);
-
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
-
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
-
-  // Declare JoinProbe struct if the previous operator is not a materializer
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
-
-  // Declare the keyCheck function
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override;
-
-  // Does nothing (left operator already initialized the hash table)
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
-
-  // Does nothing (left operator already freed the hash table)
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
-
-  // Get the output at idx
-  ast::Expr *GetOutput(uint32_t attr_idx) override;
-
-  // Dispatch the call to the correct child
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
-
- private:
-  // Returns a probe value
-  ast::Expr *GetProbeValue(uint32_t idx);
-
-  // Make the probing hash value
-  void GenHashValue(FunctionBuilder *builder);
-
-  // Fill the probe row if necessary
-  void FillProbeRow(FunctionBuilder *builder);
-
-  // Declare the hash table iterator
-  void DeclareIterator(FunctionBuilder *builder);
-
-  // Loop to probe the hash table
-  void GenProbeLoop(FunctionBuilder *builder);
-
-  // Close the iterator after the loop
-  void GenIteratorClose(FunctionBuilder *builder);
-
-  // Declare the matching tuple
-  void DeclareMatch(FunctionBuilder *builder);
-
-  // If statement for left semi joins
-  void GenLeftSemiJoinCondition(FunctionBuilder *builder);
-
-  // Complete the join key check function
-  void GenKeyCheck(FunctionBuilder *builder);
-
-  // The hash join plan node
-  const planner::HashJoinPlanNode *op_;
-  // The left translator
-  HashJoinLeftTranslator *left_;
-
-  /*
-   * Whether the right child is a materializer. And whether the materialized tuple is a pointer.
-   */
-  bool is_child_materializer_{false};
-  bool is_child_ptr_{false};
-
-  // Structs, functions, and locals
-  static constexpr const char *RIGHT_ATTR_NAME = "right_attr";
-  ast::Identifier hash_val_;
-  ast::Identifier probe_struct_;
-  ast::Identifier probe_row_;
-  ast::Identifier key_check_;
-  ast::Identifier join_iter_;
-};
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

@@ -1,12 +1,14 @@
 #include "metrics/metrics_manager.h"
+
 #include <sys/stat.h>
+
 #include <fstream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 bool FileExists(const std::string &path) {
   struct stat buffer;
@@ -74,6 +76,21 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
         metric->Swap();
         break;
       }
+      case MetricsComponent::BIND_COMMAND: {
+        const auto &metric = metrics_store.second->bind_command_metric_;
+        metric->Swap();
+        break;
+      }
+      case MetricsComponent::EXECUTE_COMMAND: {
+        const auto &metric = metrics_store.second->execute_command_metric_;
+        metric->Swap();
+        break;
+      }
+      case MetricsComponent::QUERY_TRACE: {
+        const auto &metric = metrics_store.second->query_trace_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -81,10 +98,10 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
 void MetricsManager::RegisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
-  TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
+  NOISEPAGE_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
   auto result = stores_map_.emplace(thread_id,
                                     new MetricsStore(common::ManagedPointer(this), enabled_metrics_, sample_interval_));
-  TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");
+  NOISEPAGE_ASSERT(result.second, "Insertion to concurrent map failed.");
   common::thread_context.metrics_store_ = result.first->second;
 }
 
@@ -96,7 +113,7 @@ void MetricsManager::UnregisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
   stores_map_.erase(thread_id);
-  TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
+  NOISEPAGE_ASSERT(stores_map_.count(thread_id) == 0, "Deletion from concurrent map failed.");
   common::thread_context.metrics_store_ = nullptr;
 }
 
@@ -126,6 +143,18 @@ void MetricsManager::ToCSV() const {
           OpenFiles<PipelineMetricRawData>(&outfiles);
           break;
         }
+        case MetricsComponent::BIND_COMMAND: {
+          OpenFiles<BindCommandMetricRawData>(&outfiles);
+          break;
+        }
+        case MetricsComponent::EXECUTE_COMMAND: {
+          OpenFiles<ExecuteCommandMetricRawData>(&outfiles);
+          break;
+        }
+        case MetricsComponent::QUERY_TRACE: {
+          OpenFiles<QueryTraceMetricRawData>(&outfiles);
+          break;
+        }
       }
       aggregated_metrics_[component]->ToCSV(&outfiles);
       for (auto &file : outfiles) {
@@ -135,4 +164,4 @@ void MetricsManager::ToCSV() const {
   }
 }
 
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

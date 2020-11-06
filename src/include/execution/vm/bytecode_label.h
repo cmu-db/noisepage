@@ -5,65 +5,68 @@
 
 #include "common/macros.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
- * A label represents a location in the bytecode and is used as the target of a
- * jump instruction. When the label is bound, it becomes an immutable reference
- * to a location in the bytecode (accessible through @ref Offset()). If the
- * label is a forward target, @ref ReferrerOffsets() will return the bytecode location
- * of the referring jump instruction.
+ * A label represents a location in the bytecode and is used as the target of a jump instruction.
+ * When the label is bound, it becomes an immutable reference to a location in the bytecode
+ * accessible through BytecodeLabel::GetOffset(). If the label is a forward target,
+ * BytecodeLabel::GetOffset() will return the bytecode location of the referring jump instruction.
  */
 class BytecodeLabel {
-  /**
-   * Invalid offset. Used for unbound labels.
-   */
-  static constexpr const std::size_t K_INVALID_OFFSET = std::numeric_limits<std::size_t>::max();
+  static constexpr const std::size_t INVALID_OFFSET = std::numeric_limits<std::size_t>::max();
 
  public:
   /**
-   * Constructor. Does not yet bind the label
+   * Construct an unbound label with no referrers.
    */
-  BytecodeLabel() : offset_(K_INVALID_OFFSET) {}
+  BytecodeLabel() = default;
 
   /**
-   * @return whether the label is bound ot not.
+   * @return True if the label is bound (to a fixed bytecode position); false otherwise.
    */
-  bool IsBound() const { return bound_; }
+  bool IsBound() const noexcept { return bound_; }
 
   /**
-   * @return the bytecode offset of the label.
+   * @return The offset this label is bound to, if bound at all.
    */
-  std::size_t Offset() const { return offset_; }
+  std::size_t GetOffset() const noexcept { return offset_; }
 
   /**
-   * @return the list of referrer offsets.
+   * @return The list of other positions in the bytecode that refer (i.e., jump) to this label.
    */
-  const std::vector<size_t> &ReferrerOffsets() const { return referrer_offsets_; }
+  const std::vector<std::size_t> &GetReferrerOffsets() const noexcept { return referrer_offsets_; }
 
   /**
-   * @return whether the label is a forward target.
+   * @return True if this label is a forward target. A forward target is one that has yet to be
+   *         bound (because we haven't reached that bytecode position), and if there are other
+   *         bytecode positions that refer (i.e., jump) to this label.
    */
-  bool IsForwardTarget() const { return !IsBound() && !ReferrerOffsets().empty(); }
+  bool IsForwardTarget() const noexcept { return !IsBound() && !GetReferrerOffsets().empty(); }
 
  private:
   friend class BytecodeEmitter;
 
-  void SetReferrer(std::size_t offset) {
-    TERRIER_ASSERT(!IsBound(), "Cannot set offset reference for already bound label");
+  void SetReferrer(const std::size_t offset) {
+    NOISEPAGE_ASSERT(!IsBound(), "Cannot set offset reference for already bound label");
     referrer_offsets_.push_back(offset);
   }
 
   void BindTo(std::size_t offset) {
-    TERRIER_ASSERT(!IsBound() && offset != K_INVALID_OFFSET, "Cannot rebind an already bound label!");
+    NOISEPAGE_ASSERT(!IsBound() && offset != INVALID_OFFSET, "Cannot rebind an already bound label!");
     bound_ = true;
     offset_ = offset;
   }
 
  private:
-  std::size_t offset_;
-  std::vector<size_t> referrer_offsets_;
+  // The bytecode offset of this label
+  std::size_t offset_{INVALID_OFFSET};
+
+  // The list of positions that jump to this label
+  std::vector<std::size_t> referrer_offsets_;
+
+  // Flag indicating if the label has been bound to a position/offset
   bool bound_{false};
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

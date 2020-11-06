@@ -3,18 +3,18 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
+#include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer_defs.h"
-#include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::transaction {
+class TransactionContext;
+}  // namespace noisepage::transaction
 
-/**
- * Utility class for visiting the operator tree
- */
-class OperatorVisitor;
+namespace noisepage::optimizer {
 
 /**
  * Base class for operators
@@ -122,7 +122,7 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
    * Utility method for applying visitor pattern on the underlying operator
    * @param v operator visitor for visitor pattern
    */
-  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override { v->Visit(reinterpret_cast<const T *>(this)); }
 
   /**
    * Copy
@@ -148,12 +148,12 @@ class OperatorNodeContents : public BaseOperatorNodeContents {
   /**
    * @return whether the underlying operator is logical
    */
-  bool IsLogical() const override;
+  bool IsLogical() const override { return type < OpType::LOGICALPHYSICALDELIMITER; }
 
   /**
    * @return whether the underlying operator is physical
    */
-  bool IsPhysical() const override;
+  bool IsPhysical() const override { return type > OpType::LOGICALPHYSICALDELIMITER; }
 
  private:
   /**
@@ -261,7 +261,7 @@ class Operator : public AbstractOptimizerNodeContents {
    */
   Operator RegisterWithTxnContext(transaction::TransactionContext *txn);
 };
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
 namespace std {
 
@@ -269,11 +269,11 @@ namespace std {
  * Hash function object of a BaseOperatorNodeContents
  */
 template <>
-struct hash<terrier::optimizer::BaseOperatorNodeContents> {
+struct hash<noisepage::optimizer::BaseOperatorNodeContents> {
   /**
    * Argument type of the base operator
    */
-  using argument_type = terrier::optimizer::BaseOperatorNodeContents;
+  using argument_type = noisepage::optimizer::BaseOperatorNodeContents;
 
   /**
    * Result type of the base operator

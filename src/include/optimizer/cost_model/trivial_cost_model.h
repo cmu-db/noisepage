@@ -1,12 +1,9 @@
 #pragma once
 
+#include "common/macros.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/group_expression.h"
-#include "optimizer/physical_operators.h"
-#include "transaction/transaction_context.h"
 
-namespace terrier {
-namespace optimizer {
+namespace noisepage::optimizer {
 
 class Memo;
 class GroupExpression;
@@ -43,14 +40,7 @@ class TrivialCostModel : public AbstractCostModel {
    * @param gexpr GroupExpression to calculate cost for
    */
   double CalculateCost(transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, Memo *memo,
-                       GroupExpression *gexpr) override {
-    gexpr_ = gexpr;
-    memo_ = memo;
-    txn_ = txn;
-    accessor_ = accessor;
-    gexpr_->Contents()->Accept(common::ManagedPointer<OperatorVisitor>(this));
-    return output_cost_;
-  };
+                       GroupExpression *gexpr) override;
 
   /**
    * Visit a SeqScan operator
@@ -62,12 +52,7 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a IndexScan operator
    * @param op operator
    */
-  void Visit(const IndexScan *op) override {
-    // Get the table schema
-    // This heuristic is not really good --- it merely picks the index based on
-    // how many of those index's keys are set (op->GetBounds())
-    output_cost_ = SCAN_COST - op->GetBounds().size();
-  }
+  void Visit(const IndexScan *op) override;
 
   /**
    * Visit a QueryDerivedScan operator
@@ -91,12 +76,7 @@ class TrivialCostModel : public AbstractCostModel {
    * Visit a InnerIndexJoin operator
    * @param op operator
    */
-  void Visit(const InnerIndexJoin *op) override {
-    // Get the table schema
-    // This heuristic is not really good --- it merely picks the index based on
-    // how many of those index's keys are set (op->GetBounds())
-    output_cost_ = NLJOIN_COST - op->GetJoinKeys().size();
-  }
+  void Visit(const InnerIndexJoin *op) override;
 
   /**
    * Visit a InnerNLJoin operator
@@ -145,6 +125,12 @@ class TrivialCostModel : public AbstractCostModel {
    * @param op operator
    */
   void Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) override {}
+
+  /**
+   * Visit a LeftSemiHashJoin operator
+   * @param op operator
+   */
+  void Visit(UNUSED_ATTRIBUTE const LeftSemiHashJoin *op) override { output_cost_ = 1.f; }
 
   /**
    * Visit a Insert operator
@@ -215,5 +201,4 @@ class TrivialCostModel : public AbstractCostModel {
   double output_cost_ = 0;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage::optimizer

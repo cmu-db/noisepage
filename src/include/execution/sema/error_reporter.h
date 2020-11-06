@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "execution/ast/identifier.h"
@@ -10,7 +12,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace ast {
 class Type;
@@ -79,37 +81,23 @@ class ErrorReporter {
    */
   class MessageArgument {
    public:
-    enum Kind { CString, Int, Position, Token, Type };
+    explicit MessageArgument(const char *str) : arg_(str) {}
 
-    explicit MessageArgument(const char *str) : kind_(Kind::CString), raw_str_(str) {}
+    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.GetData()) {}
 
-    explicit MessageArgument(int32_t integer) : kind_(Kind::Int), integer_(integer) {}
+    explicit MessageArgument(SourcePosition pos) : arg_(pos) {}
 
-    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.Data()) {}
+    explicit MessageArgument(int32_t integer) : arg_(integer) {}
 
-    explicit MessageArgument(ast::Type *type) : kind_(Kind::Type), type_(type) {}
+    explicit MessageArgument(ast::Type *type) : arg_(type) {}
 
-    explicit MessageArgument(const parsing::Token::Type type)
-        : MessageArgument(static_cast<std::underlying_type_t<parsing::Token::Type>>(type)) {
-      kind_ = Kind::Token;
-    }
-
-    explicit MessageArgument(const SourcePosition &pos) : kind_(Kind::Position), pos_(pos) {}
-
-    Kind GetKind() const { return kind_; }
+    explicit MessageArgument(parsing::Token::Type type) : arg_(type) {}
 
    private:
     friend class ErrorReporter;
     void FormatMessageArgument(std::string *str) const;
 
-   private:
-    Kind kind_;
-    union {
-      const char *raw_str_;
-      int32_t integer_;
-      SourcePosition pos_;
-      ast::Type *type_;
-    };
+    std::variant<const char *, int32_t, SourcePosition, parsing::Token::Type, ast::Type *> arg_;
   };
 
   /*
@@ -140,9 +128,12 @@ class ErrorReporter {
   };
 
  private:
+  // Memory region
   util::Region *region_;
+
+  // List of all errors
   util::RegionVector<MessageWithArgs> errors_;
 };
 
 }  // namespace sema
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

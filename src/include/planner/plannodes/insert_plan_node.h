@@ -6,13 +6,14 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "parser/insert_statement.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/abstract_scan_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for insert
@@ -37,15 +38,6 @@ class InsertPlanNode : public AbstractPlanNode {
      */
     Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
       database_oid_ = database_oid;
-      return *this;
-    }
-
-    /**
-     * @param namespace_oid OID of the namespace
-     * @return builder object
-     */
-    Builder &SetNamespaceOid(catalog::namespace_oid_t namespace_oid) {
-      namespace_oid_ = namespace_oid;
       return *this;
     }
 
@@ -91,25 +83,13 @@ class InsertPlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::unique_ptr<InsertPlanNode> Build() {
-      TERRIER_ASSERT(!children_.empty() || !values_.empty(), "Can't have an empty insert plan");
-      TERRIER_ASSERT(!children_.empty() || values_[0].size() == parameter_info_.size(),
-                     "Must have parameter info for each value");
-      return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
-                                                                database_oid_, namespace_oid_, table_oid_,
-                                                                std::move(values_), std::move(parameter_info_)));
-    }
+    std::unique_ptr<InsertPlanNode> Build();
 
    protected:
     /**
      * OID of the database
      */
     catalog::db_oid_t database_oid_;
-
-    /**
-     * OID of namespace
-     */
-    catalog::namespace_oid_t namespace_oid_;
 
     /**
      * OID of the table to insert into
@@ -146,15 +126,9 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param parameter_info parameters information
    */
   InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                 catalog::db_oid_t database_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
-                 std::vector<catalog::col_oid_t> &&parameter_info)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        namespace_oid_(namespace_oid),
-        table_oid_(table_oid),
-        values_(std::move(values)),
-        parameter_info_(std::move(parameter_info)) {}
+                 std::vector<catalog::col_oid_t> &&parameter_info);
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)
@@ -172,11 +146,6 @@ class InsertPlanNode : public AbstractPlanNode {
    * @return OID of the database
    */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
-
-  /**
-   * @return OID of the namespace
-   */
-  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table to insert into
@@ -231,11 +200,6 @@ class InsertPlanNode : public AbstractPlanNode {
   catalog::db_oid_t database_oid_;
 
   /**
-   * OID of namespace
-   */
-  catalog::namespace_oid_t namespace_oid_;
-
-  /**
    * OID of the table to insert into
    */
   catalog::table_oid_t table_oid_;
@@ -262,4 +226,4 @@ class InsertPlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(InsertPlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

@@ -1,11 +1,11 @@
-// Test for loops
+// Expected output: 166167000
 
 fun main() -> int32 {
-  var c = 0
-  for (var i = 0; i < 1000; i = i + 1) {
-    for (var j = 0; j < i; j = j + 1) {
-      c = c + j
+    var c = 0
+    for (var i = 0; i < 1000; i = i + 1) {
+        for (var j = 0; j < i; j = j + 1) {
+            c = c + j
+        }
     }
-  }
-  return c
+    return c
 }

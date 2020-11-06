@@ -2,20 +2,16 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "binder/binder_context.h"
-#include "binder/binder_sherpa.h"
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
-#include "parser/postgresparser.h"
-#include "parser/statements.h"
+#include "type/type_id.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace parser {
-class SQLStatement;
+class AbstractExpression;
 class AggregateExpression;
 class CaseExpression;
 class ConstantValueExpression;
@@ -23,6 +19,8 @@ class ColumnValueExpression;
 class OperatorExpression;
 class SubqueryExpression;
 class StarExpression;
+class TableStarExpression;
+class SQLStatement;
 }  // namespace parser
 
 namespace catalog {
@@ -30,13 +28,13 @@ class CatalogAccessor;
 }  // namespace catalog
 
 namespace binder {
-
+class BinderContext;
 class BinderSherpa;
 
 /**
  * Interface to be notified of the composition of a bind node.
  */
-class BindNodeVisitor : public SqlNodeVisitor {
+class BindNodeVisitor final : public SqlNodeVisitor {
  public:
   /**
    * Initialize the bind node visitor object with a pointer to a catalog accessor, and a default database name
@@ -44,6 +42,9 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * @param db_oid oid of the connected database
    */
   BindNodeVisitor(common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, catalog::db_oid_t db_oid);
+
+  /** Destructor. Must be defined due to forward declaration. */
+  ~BindNodeVisitor() final;
 
   /**
    * Perform binding on the passed in tree. Bind the relation names to oids
@@ -82,6 +83,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(common::ManagedPointer<parser::OperatorExpression> expr) override;
   void Visit(common::ManagedPointer<parser::ParameterValueExpression> expr) override;
   void Visit(common::ManagedPointer<parser::StarExpression> expr) override;
+  void Visit(common::ManagedPointer<parser::TableStarExpression> expr) override;
   void Visit(common::ManagedPointer<parser::SubqueryExpression> expr) override;
   void Visit(common::ManagedPointer<parser::TypeCastExpression> expr) override;
 
@@ -93,7 +95,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
 
  private:
   /** BinderSherpa which stores metadata (e.g. type information) across Visit calls. **/
-  std::unique_ptr<BinderSherpa> sherpa_ = nullptr;
+  std::unique_ptr<BinderSherpa> sherpa_;
   /** Current context of the query or subquery */
   common::ManagedPointer<BinderContext> context_ = nullptr;
 
@@ -101,18 +103,18 @@ class BindNodeVisitor : public SqlNodeVisitor {
   const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor_;
   const catalog::db_oid_t db_oid_;
 
-  static void InitTableRef(const common::ManagedPointer<parser::TableRef> node) {
-    if (node->table_info_ == nullptr) node->table_info_ = std::make_unique<parser::TableInfo>();
-  }
+  static void InitTableRef(common::ManagedPointer<parser::TableRef> node);
 
-  void ValidateDatabaseName(const std::string &db_name) {
-    if (!(db_name.empty())) {
-      const auto db_oid = catalog_accessor_->GetDatabaseOid(db_name);
-      if (db_oid == catalog::INVALID_DATABASE_OID) throw BINDER_EXCEPTION("Database does not exist");
-      if (db_oid != db_oid_) throw BINDER_EXCEPTION("Not connected to specified database");
-    }
-  }
+  /**
+   * Change the type of exprs_ of order_by_description from ConstantValueExpression to ColumnValueExpression.
+   * @param order_by_description OrderByDescription
+   * @param select_items select columns
+   */
+  void UnifyOrderByExpression(common::ManagedPointer<parser::OrderByDescription> order_by_description,
+                              const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_items);
+
+  void ValidateDatabaseName(const std::string &db_name);
 };
 
 }  // namespace binder
-}  // namespace terrier
+}  // namespace noisepage

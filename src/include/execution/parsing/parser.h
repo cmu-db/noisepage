@@ -11,7 +11,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 /**
  * Parses TPL files.
@@ -37,7 +37,7 @@ class Parser {
   ast::AstNode *Parse();
 
  private:
-  util::Region *Region() { return context_->Region(); }
+  util::Region *Region() { return context_->GetRegion(); }
 
   // Move to the next token in the stream
   Token::Type Next() { return scanner_->Next(); }
@@ -153,4 +153,4 @@ class Parser {
   sema::ErrorReporter *error_reporter_;
 };
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

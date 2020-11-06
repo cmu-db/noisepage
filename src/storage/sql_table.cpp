@@ -1,17 +1,16 @@
 #include "storage/sql_table.h"
 
 #include <map>
-#include <set>
 #include <string>
 #include <vector>
 
+#include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
-SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema)
-    : block_store_(store) {
+SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog::Schema &schema) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint16_t> attr_sizes;
   attr_sizes.reserve(NUM_RESERVED_COLUMNS + schema.GetColumns().size());
@@ -20,8 +19,8 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
     attr_sizes.emplace_back(8);
   }
 
-  TERRIER_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
-                 "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
+  NOISEPAGE_ASSERT(attr_sizes.size() == NUM_RESERVED_COLUMNS,
+                   "attr_sizes should be initialized with NUM_RESERVED_COLUMNS elements.");
 
   for (const auto &column : schema.GetColumns()) {
     attr_sizes.push_back(column.AttrSize());
@@ -29,24 +28,24 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
 
   auto offsets = storage::StorageUtil::ComputeBaseAttributeOffsets(attr_sizes, NUM_RESERVED_COLUMNS);
 
-  ColumnMap col_oid_to_id;
+  ColumnMap col_map;
   // Build the map from Schema columns to underlying columns
   for (const auto &column : schema.GetColumns()) {
     switch (column.AttrSize()) {
       case VARLEN_COLUMN:
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[0]++);
+        col_map[column.Oid()] = {col_id_t(offsets[0]++), column.Type()};
         break;
       case 8:
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[1]++);
+        col_map[column.Oid()] = {col_id_t(offsets[1]++), column.Type()};
         break;
       case 4:
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[2]++);
+        col_map[column.Oid()] = {col_id_t(offsets[2]++), column.Type()};
         break;
       case 2:
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[3]++);
+        col_map[column.Oid()] = {col_id_t(offsets[3]++), column.Type()};
         break;
       case 1:
-        col_oid_to_id[column.Oid()] = col_id_t(offsets[4]++);
+        col_map[column.Oid()] = {col_id_t(offsets[4]++), column.Type()};
         break;
       default:
         throw std::runtime_error("unexpected switch case value");
@@ -54,17 +53,17 @@ SqlTable::SqlTable(const common::ManagedPointer<BlockStore> store, const catalog
   }
 
   auto layout = storage::BlockLayout(attr_sizes);
-  table_ = {new DataTable(block_store_, layout, layout_version_t(0)), layout, col_oid_to_id};
+  table_ = {new DataTable(store, layout, layout_version_t(0)), layout, col_map};
 }
 
 std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const {
-  TERRIER_ASSERT(!col_oids.empty(), "Should be used to access at least one column.");
+  NOISEPAGE_ASSERT(!col_oids.empty(), "Should be used to access at least one column.");
   std::vector<col_id_t> col_ids;
 
   // Build the input to the initializer constructor
   for (const catalog::col_oid_t col_oid : col_oids) {
-    TERRIER_ASSERT(table_.column_map_.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
-    const col_id_t col_id = table_.column_map_.at(col_oid);
+    NOISEPAGE_ASSERT(table_.column_map_.count(col_oid) > 0, "Provided col_oid does not exist in the table.");
+    const col_id_t col_id = table_.column_map_.at(col_oid).col_id_;
     col_ids.push_back(col_id);
   }
 
@@ -88,9 +87,10 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 }
 
 catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
-  const auto oid_to_id = std::find_if(table_.column_map_.cbegin(), table_.column_map_.cend(),
-                                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
+  const auto oid_to_id =
+      std::find_if(table_.column_map_.cbegin(), table_.column_map_.cend(),
+                   [&](const auto &oid_to_id) -> bool { return oid_to_id.second.col_id_ == col_id; });
   return oid_to_id->first;
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

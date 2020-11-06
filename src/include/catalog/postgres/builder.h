@@ -2,14 +2,25 @@
 
 #include <utility>
 
-#include "catalog/database_catalog.h"
-#include "catalog/index_schema.h"
-#include "catalog/schema.h"
-#include "storage/index/index_builder.h"
-#include "storage/sql_table.h"
-#include "transaction/transaction_context.h"
+#include "catalog/catalog_defs.h"
+#include "common/managed_pointer.h"
+#include "storage/storage_defs.h"
 
-namespace terrier::catalog::postgres {
+namespace noisepage::catalog {
+class DatabaseCatalog;
+class IndexSchema;
+class Schema;
+}  // namespace noisepage::catalog
+
+namespace noisepage::storage {
+class GarbageCollector;
+}  // namespace noisepage::storage
+
+namespace noisepage::storage::index {
+class Index;
+}  // namespace noisepage::storage::index
+
+namespace noisepage::catalog::postgres {
 /**
  * Helper class for building tables and indexes for postgres catalog.
  */
@@ -220,12 +231,7 @@ class Builder {
    * @param oid for the new index
    * @return pointer to the new index
    */
-  static storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
-    TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
-    storage::index::IndexBuilder index_builder;
-    index_builder.SetKeySchema(key_schema);
-    return index_builder.Build();
-  }
+  static storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid);
 
   /**
    * Instantiate a new non-unique index with the given schema and oid
@@ -233,11 +239,6 @@ class Builder {
    * @param oid for the new index
    * @return pointer to the new index
    */
-  static storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
-    TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
-    storage::index::IndexBuilder index_builder;
-    index_builder.SetKeySchema(key_schema);
-    return index_builder.Build();
-  }
+  static storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid);
 };
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

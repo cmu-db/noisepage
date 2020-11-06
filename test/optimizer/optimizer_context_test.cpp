@@ -1,21 +1,23 @@
+#include "optimizer/optimizer_context.h"
+
 #include <memory>
 #include <stack>
 #include <utility>
 #include <vector>
 
 #include "optimizer/binding.h"
-#include "optimizer/optimizer_context.h"
+#include "optimizer/logical_operators.h"
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/pattern.h"
+#include "optimizer/physical_operators.h"
+#include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_manager.h"
 
-#include "test_util/test_harness.h"
-
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 struct OptimizerContextTest : public TerrierTest {
   void SetUp() override { TerrierTest::SetUp(); }
@@ -129,9 +131,8 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateSingleLayer) {
 
   // Create OperatorNode of JOIN <= (GET A, GET A)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  Operator logical_get =
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
-          .RegisterWithTxnContext(txn_context);
+  Operator logical_get = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), {}, "tbl", false)
+                             .RegisterWithTxnContext(txn_context);
   std::unique_ptr<Operator> logical_get_contents = std::make_unique<Operator>(logical_get);
   std::unique_ptr<OperatorNode> left_get =
       std::make_unique<OperatorNode>(common::ManagedPointer<AbstractOptimizerNodeContents>(
@@ -196,10 +197,10 @@ TEST_F(OptimizerContextTest, RecordOperatorNodeIntoGroupDuplicateMultiLayer) {
 
   // Create OperatorNode (A JOIN B) JOIN (A JOIN B)
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
-          .RegisterWithTxnContext(txn_context),
-      std::move(c), txn_context);
+  auto left_get =
+      std::make_unique<OperatorNode>(LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), {}, "tbl", false)
+                                         .RegisterWithTxnContext(txn_context),
+                                     std::move(c), txn_context);
   auto lg_copy = left_get->Copy();
 
   auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
@@ -314,10 +315,10 @@ TEST_F(OptimizerContextTest, SimpleBindingTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
-          .RegisterWithTxnContext(txn_context),
-      std::move(c), txn_context);
+  auto left_get =
+      std::make_unique<OperatorNode>(LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), {}, "tbl", false)
+                                         .RegisterWithTxnContext(txn_context),
+                                     std::move(c), txn_context);
   auto right_get = std::unique_ptr<OperatorNode>(dynamic_cast<OperatorNode *>(left_get->Copy().release()));
   EXPECT_EQ(*left_get, *right_get);
 
@@ -374,10 +375,10 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
-  auto left_get = std::make_unique<OperatorNode>(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false)
-          .RegisterWithTxnContext(txn_context),
-      std::move(c), txn_context);
+  auto left_get =
+      std::make_unique<OperatorNode>(LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), {}, "tbl", false)
+                                         .RegisterWithTxnContext(txn_context),
+                                     std::move(c), txn_context);
   auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *reinterpret_cast<OperatorNode *>(right_get.get()));
 
@@ -422,4 +423,4 @@ TEST_F(OptimizerContextTest, SingleWildcardTest) {
   delete pattern;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

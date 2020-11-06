@@ -1,9 +1,15 @@
 #pragma once
 
+#include <llvm/Support/ErrorHandling.h>
+
 #include <cstddef>
 #include <cstdint>
-#include "llvm/Support/ErrorHandling.h"
 #define EXPORT __attribute__((visibility("default")))
+
+/** Selection vector. */
+using sel_t = uint16_t;
+using int128_t = __int128;
+using uint128_t = unsigned __int128;
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints
@@ -55,7 +61,7 @@
 //===----------------------------------------------------------------------===//
 #define UNREACHABLE(msg) llvm_unreachable(msg)
 
-namespace terrier::execution {
+namespace noisepage::execution {
 /**
  * A compact structure used during parsing to capture and describe the position in the source as 1-based line and column
  * number
@@ -75,4 +81,4 @@ struct SourcePosition {
  * Use to classify locality of reference for memory accesses
  */
 enum class Locality : uint8_t { None = 0, Low = 1, Medium = 2, High = 3 };
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

@@ -5,10 +5,9 @@
 
 #include "execution/ast/type.h"
 #include "execution/ast/type_visitor.h"
-
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 namespace {
 #define F(id, str, arg_types) str,
@@ -16,35 +15,35 @@ namespace {
 constexpr const char *error_strings[] = {MESSAGE_LIST(F)};
 #undef F
 
+// Helper template class for MessageArgument::FormatMessageArgument().
+template <class T>
+struct AlwaysFalse : std::false_type {};
+
 }  // namespace
 
 void ErrorReporter::MessageArgument::FormatMessageArgument(std::string *str) const {
-  switch (GetKind()) {
-    case Kind::CString: {
-      str->append(raw_str_);
-      break;
-    }
-    case MessageArgument::Kind::Int: {
-      str->append(std::to_string(integer_));
-      break;
-    }
-    case Kind::Position: {
-      str->append("[line/col: ")
-          .append(std::to_string(pos_.line_))
-          .append("/")
-          .append(std::to_string(pos_.column_))
-          .append("]");
-      break;
-    }
-    case Kind::Token: {
-      str->append(parsing::Token::GetString(static_cast<parsing::Token::Type>(integer_)));
-      break;
-    }
-    case Kind::Type: {
-      str->append(ast::Type::ToString(type_));
-      break;
-    }
-  }
+  std::visit(
+      [&](auto &&arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, const char *>) {  // NOLINT
+          str->append(arg);
+        } else if constexpr (std::is_same_v<T, int32_t>) {  // NOLINT
+          str->append(std::to_string(arg));
+        } else if constexpr (std::is_same_v<T, SourcePosition>) {  // NOLINT
+          str->append("[line/col: ")
+              .append(std::to_string(arg.line_))
+              .append("/")
+              .append(std::to_string(arg.column_))
+              .append("]");
+        } else if constexpr (std::is_same_v<T, parsing::Token::Type>) {  // NOLINT
+          str->append(parsing::Token::GetString(static_cast<parsing::Token::Type>(arg)));
+        } else if constexpr (std::is_same_v<T, ast::Type *>) {  // NOLINT
+          str->append(ast::Type::ToString(arg));
+        } else {
+          static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+        }
+      },
+      arg_);
 }
 
 std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
@@ -93,4 +92,4 @@ std::string ErrorReporter::SerializeErrors() {
   return error_str;
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

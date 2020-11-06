@@ -5,12 +5,11 @@
 #include <unordered_set>
 #include <vector>
 
-#include "catalog/schema.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace planner {
 class AbstractPlanNode;
@@ -24,10 +23,19 @@ class OutputSchema;
 
 namespace settings {
 class SettingsManager;
-}
+}  // namespace settings
 
 namespace catalog {
 class CatalogAccessor;
+class Schema;
+}  // namespace catalog
+
+namespace transaction {
+class TransactionContext;
+}  // namespace transaction
+
+namespace planner {
+enum class AggregateStrategyType;
 }
 
 namespace optimizer {
@@ -160,6 +168,12 @@ class PlanGenerator : public OperatorVisitor {
    * @param op OuterHashJoin operator being visited
    */
   void Visit(const OuterHashJoin *op) override;
+
+  /**
+   * Visitor function for a LeftSemiHashJoin operator
+   * @param op LeftSemiHashJoin operator being visited
+   */
+  void Visit(const LeftSemiHashJoin *op) override;
 
   /**
    * Visitor function for a Insert operator
@@ -402,4 +416,4 @@ class PlanGenerator : public OperatorVisitor {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

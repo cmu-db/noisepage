@@ -4,6 +4,7 @@
 #include <string>
 
 #include "binder/bind_node_visitor.h"
+#include "execution/compiler/executable_query.h"
 #include "execution/exec/execution_context.h"
 #include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
@@ -16,7 +17,7 @@
 #include "test_util/tpcc/worker.h"
 #include "traffic_cop/traffic_cop_util.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 WorkloadCached::WorkloadCached(common::ManagedPointer<DBMain> db_main, const std::vector<std::string> &txn_names,
                                int8_t num_threads) {
@@ -59,13 +60,13 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
 
   for (auto &txn_name : txn_names) {
     // read queries from files
-    auto curr = queries_.emplace(txn_name, std::vector<execution::ExecutableQuery>{});
+    std::vector<std::unique_ptr<execution::compiler::ExecutableQuery>> exec_queries;
 
     for (auto &query : sqls_.find(txn_name)->second) {
       const auto parse_result = parser::PostgresParser::BuildParseTree(query);
       transaction::TransactionContext *txn = txn_manager_->BeginTransaction();
 
-      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+      auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
       binder::BindNodeVisitor visitor(common::ManagedPointer(accessor.get()), db_oid_);
       visitor.BindNameToNode(common::ManagedPointer<parser::ParseResult>(parse_result), nullptr, nullptr);
 
@@ -74,15 +75,19 @@ void WorkloadCached::LoadTPCCQueries(const std::vector<std::string> &txn_names) 
           common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(parse_result), db_oid_,
           db_main_->GetStatsStorage(), std::make_unique<optimizer::TrivialCostModel>(), optimizer_timeout);
 
-      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(db_oid_, common::ManagedPointer(txn), nullptr,
-                                                                          nullptr, common::ManagedPointer(accessor));
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          db_oid_, common::ManagedPointer(txn), nullptr, nullptr, common::ManagedPointer(accessor), exec_settings_,
+          db_main_->GetMetricsManager());
 
       // generate executable query and emplace it into the vector; break down here
-      execution::ExecutableQuery executable{common::ManagedPointer(plan_node), common::ManagedPointer(exec_ctx)};
-      curr.first->second.emplace_back(std::move(executable));
+      auto exec_query =
+          std::make_unique<execution::compiler::ExecutableQuery>(*plan_node, exec_ctx->GetExecutionSettings());
+      exec_queries.emplace_back(std::move(exec_query));
 
       txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
+
+    queries_.emplace(txn_name, std::move(exec_queries));
 
     // record the name of transaction
     txn_names_.emplace_back(txn_name);
@@ -103,12 +108,17 @@ void WorkloadCached::Execute(int8_t worker_id, uint32_t num_precomputed_txns_per
   for (uint32_t i = 0; i < num_precomputed_txns_per_worker; i++) {
     // Executing all the queries on by one in round robin
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_);
-    for (execution::ExecutableQuery &query : queries_.find(txn_names_[index[counter]])->second) {
-      execution::exec::ExecutionContext exec_ctx{db_oid_, common::ManagedPointer<transaction::TransactionContext>(txn),
-                                                 nullptr, nullptr,  // FIXME: Get the correct output later
-                                                 common::ManagedPointer<catalog::CatalogAccessor>(accessor)};
-      query.Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
+    auto accessor =
+        catalog_->GetAccessor(common::ManagedPointer<transaction::TransactionContext>(txn), db_oid_, DISABLED);
+    for (const auto &query : queries_.find(txn_names_[index[counter]])->second) {
+      execution::exec::ExecutionContext exec_ctx{db_oid_,
+                                                 common::ManagedPointer<transaction::TransactionContext>(txn),
+                                                 nullptr,
+                                                 nullptr,  // FIXME: Get the correct output later
+                                                 common::ManagedPointer<catalog::CatalogAccessor>(accessor),
+                                                 exec_settings_,
+                                                 db_main_->GetMetricsManager()};
+      query->Run(common::ManagedPointer<execution::exec::ExecutionContext>(&exec_ctx), mode);
     }
     counter = counter == num_queries - 1 ? 0 : counter + 1;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -238,4 +248,4 @@ void WorkloadCached::InitializeSQLs() {
   InitSeqScan();
   InitStockLevel();
 }
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

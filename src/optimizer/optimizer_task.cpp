@@ -1,3 +1,5 @@
+#include "optimizer/optimizer_task.h"
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -7,12 +9,11 @@
 #include "optimizer/binding.h"
 #include "optimizer/child_property_deriver.h"
 #include "optimizer/optimizer_context.h"
-#include "optimizer/optimizer_task.h"
 #include "optimizer/property_enforcer.h"
 #include "optimizer/statistics/child_stats_deriver.h"
 #include "optimizer/statistics/stats_calculator.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 //===--------------------------------------------------------------------===//
 // Base class
@@ -49,7 +50,7 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetOptimizerContex
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
 void OptimizeGroup::Execute() {
-  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group {0}", group_->GetID());
+  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group " + std::to_string(group_->GetID().UnderlyingValue()));
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
     return;
@@ -203,11 +204,11 @@ void DeriveStats::Execute() {
   auto children_required_stats =
       deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetOptimizerContext()->GetMemo());
   bool derive_children = false;
-  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group {0}", gexpr_->GetGroupID());
+  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group " + std::to_string(gexpr_->GetGroupID().UnderlyingValue()));
 
   // If we haven't got enough stats to compute the current stats, derive them
   // from the child first
-  TERRIER_ASSERT(children_required_stats.size() == gexpr_->GetChildrenGroupsSize(), "Stats size mismatch");
+  NOISEPAGE_ASSERT(children_required_stats.size() == gexpr_->GetChildrenGroupsSize(), "Stats size mismatch");
   for (size_t idx = 0; idx < children_required_stats.size(); ++idx) {
     auto &child_required_stats = children_required_stats[idx];
     auto child_group_id = gexpr_->GetChildGroupId(static_cast<int>(idx));
@@ -401,12 +402,12 @@ void TopDownRewrite::Execute() {
                                       context_->GetOptimizerContext()->GetTxn());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
-      TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
+      NOISEPAGE_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
       std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
-      TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
+      NOISEPAGE_ASSERT(after.size() <= 1, "rule provided too many transformations");
       if (!after.empty()) {
         auto &new_expr = after[0];
         context_->GetOptimizerContext()->ReplaceRewriteExpression(common::ManagedPointer(new_expr.get()), group_id_);
@@ -458,12 +459,12 @@ void BottomUpRewrite::Execute() {
                                       context_->GetOptimizerContext()->GetTxn());
     if (iterator.HasNext()) {
       auto before = iterator.Next();
-      TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
+      NOISEPAGE_ASSERT(!iterator.HasNext(), "should only bind to 1");
       std::vector<std::unique_ptr<AbstractOptimizerNode>> after;
       rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
-      TERRIER_ASSERT(after.size() <= 1, "rule generated too many transformations");
+      NOISEPAGE_ASSERT(after.size() <= 1, "rule generated too many transformations");
       // If a rule is applied, we replace the old expression and optimize this
       // group again, this will ensure that we apply rule for this level until
       // saturated, also children are already been rewritten
@@ -479,4 +480,4 @@ void BottomUpRewrite::Execute() {
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

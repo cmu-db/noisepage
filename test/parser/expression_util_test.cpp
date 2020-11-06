@@ -1,3 +1,5 @@
+#include "parser/expression_util.h"
+
 #include <memory>
 #include <set>
 #include <utility>
@@ -6,12 +8,11 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "parser/expression/operator_expression.h"
-#include "parser/expression_util.h"
 #include "type/type_id.h"
 
 using ::testing::ElementsAre;
 
-namespace terrier::parser::expression {
+namespace noisepage::parser::expression {
 
 // NOLINTNEXTLINE
 TEST(ExpressionUtilTest, GetColumnOidsTest) {
@@ -58,4 +59,4 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
               ElementsAre(catalog::col_oid_t(4), catalog::col_oid_t(5), catalog::col_oid_t(6), catalog::col_oid_t(7)));
 }
 
-}  // namespace terrier::parser::expression
+}  // namespace noisepage::parser::expression

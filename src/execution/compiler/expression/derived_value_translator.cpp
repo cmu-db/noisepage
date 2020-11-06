@@ -1,15 +1,20 @@
 #include "execution/compiler/expression/derived_value_translator.h"
-#include "execution/compiler/operator/seq_scan_translator.h"
-#include "execution/compiler/translator_factory.h"
+
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/work_context.h"
 #include "parser/expression/derived_value_expression.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::compiler {
-DerivedValueTranslator::DerivedValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen) {}
+namespace noisepage::execution::compiler {
 
-ast::Expr *DerivedValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  auto derived_val = GetExpressionAs<terrier::parser::DerivedValueExpression>();
-  return evaluator->GetChildOutput(derived_val->GetTupleIdx(), derived_val->GetValueIdx(),
-                                   derived_val->GetReturnValueType());
+DerivedValueTranslator::DerivedValueTranslator(const parser::DerivedValueExpression &expr,
+                                               CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {}
+
+ast::Expr *DerivedValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  const auto &derived_expr = GetExpressionAs<parser::DerivedValueExpression>();
+  return provider->GetChildOutput(ctx, derived_expr.GetTupleIdx(), derived_expr.GetValueIdx());
 }
-};  // namespace terrier::execution::compiler
+
+}  // namespace noisepage::execution::compiler

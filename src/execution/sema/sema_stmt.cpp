@@ -1,12 +1,9 @@
-#include <memory>
-
-#include "execution/sema/sema.h"
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
+#include "execution/sema/sema.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
 void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
   ast::Type *src_type = Resolve(node->Source());
@@ -73,7 +70,7 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   Visit(node->Body());
 }
 
-void Sema::VisitForInStmt(ast::ForInStmt *node) { TERRIER_ASSERT(false, "Not supported"); }
+void Sema::VisitForInStmt(ast::ForInStmt *node) { NOISEPAGE_ASSERT(false, "Not supported"); }
 
 void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->Expression()); }
 
@@ -93,8 +90,8 @@ void Sema::VisitIfStmt(ast::IfStmt *node) {
 
     // Perform implicit cast from SQL boolean to primitive boolean
     ast::Expr *cond = node->Condition();
-    cond = GetContext()->NodeFactory()->NewImplicitCastExpr(cond->Position(), ast::CastKind::SqlBoolToBool, bool_type,
-                                                            cond);
+    cond = GetContext()->GetNodeFactory()->NewImplicitCastExpr(cond->Position(), ast::CastKind::SqlBoolToBool,
+                                                               bool_type, cond);
     cond->SetType(bool_type);
     node->SetCondition(cond);
   }
@@ -114,7 +111,7 @@ void Sema::VisitIfStmt(ast::IfStmt *node) {
 void Sema::VisitDeclStmt(ast::DeclStmt *node) { Visit(node->Declaration()); }
 
 void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
-  if (CurrentFunction() == nullptr) {
+  if (GetCurrentFunction() == nullptr) {
     error_reporter_->Report(node->Position(), ErrorMessages::kReturnOutsideFunction);
     return;
   }
@@ -130,12 +127,12 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   // If the function has a nil-type, we just need to make sure this return
   // statement doesn't have an attached expression. If it does, that's an error
 
-  auto *func_type = CurrentFunction()->GetType()->As<ast::FunctionType>();
+  auto *func_type = GetCurrentFunction()->GetType()->As<ast::FunctionType>();
 
-  if (func_type->ReturnType()->IsNilType()) {
+  if (func_type->GetReturnType()->IsNilType()) {
     if (return_type != nullptr) {
       error_reporter_->Report(node->Position(), ErrorMessages::kMismatchedReturnType, return_type,
-                              func_type->ReturnType());
+                              func_type->GetReturnType());
     }
     return;
   }
@@ -150,16 +147,15 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   }
 
   ast::Expr *ret = node->Ret();
-  if (!CheckAssignmentConstraints(func_type->ReturnType(), &ret)) {
+  if (!CheckAssignmentConstraints(func_type->GetReturnType(), &ret)) {
     error_reporter_->Report(node->Position(), ErrorMessages::kMismatchedReturnType, return_type,
-                            func_type->ReturnType());
+                            func_type->GetReturnType());
     return;
   }
 
-  // Cast if necessary
   if (ret != node->Ret()) {
-    node->SetReturn(ret);
+    node->SetRet(ret);
   }
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

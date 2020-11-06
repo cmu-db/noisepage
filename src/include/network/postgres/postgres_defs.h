@@ -1,13 +1,34 @@
 #pragma once
 
+#include <array>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "common/macros.h"
-#include "network/network_defs.h"
-#include "type/type_id.h"
+#include "common/version.h"
 
-namespace terrier::network {
+namespace noisepage::network {
+
+/**
+ * The string values to use for reading 'true' boolean values
+ */
+constexpr std::array<std::string_view, 6> POSTGRES_BOOLEAN_STR_TRUES = {"t", "true", "yes", "y", "on", "1"};
+
+/**
+ * The string values to use for reading 'false' boolean values
+ */
+constexpr std::array<std::string_view, 6> POSTGRES_BOOLEAN_STR_FALSES = {"f", "false", "no", "n", "off", "0"};
+
+/**
+ * The string value to use for writing 'true' boolean values
+ */
+constexpr std::string_view POSTGRES_BOOLEAN_STR_TRUE = "t";
+
+/**
+ * The string value to use for writing 'false' boolean values
+ */
+constexpr std::string_view POSTGRES_BOOLEAN_STR_FALSE = "f";
 
 /**
  * Hardcoded server parameter values to send to the client
@@ -21,8 +42,10 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
     {"IntervalStyle", "postgres"},
     {"is_superuser", "on"},
     {"server_encoding", "UTF8"},
+    // Warning: The DBMS must report that its 'server_version' is at least "9" for libpqxx
+    // Do not change this parameter unless you know what you are doing!
     {"server_version", "9.5devel"},
-    {"session_authorization", "terrier"},
+    {"session_authorization", common::NOISEPAGE_NAME.data()},
     {"standard_conforming_strings", "on"},
     {"TimeZone", "US/Eastern"}
 };
@@ -35,9 +58,8 @@ const std::unordered_map<std::string, std::string> PG_PARAMETER_STATUS_MAP = {
  * For more information, see 'pg_type.h' in Postgres
  * https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.h#L273
  */
-
 enum class PostgresValueType : int32_t {
-  INVALID = INVALID_TYPE_ID,
+  INVALID = 0,
   BOOLEAN = 16,
   TINYINT = 16,  // BOOLEAN is an alias for TINYINT
   SMALLINT = 21,
@@ -64,4 +86,4 @@ enum class PostgresValueType : int32_t {
 
 const uint32_t MAX_NAME_LENGTH = 63;  // Max length for internal name
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

@@ -6,17 +6,29 @@
 
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
+#include "planner/plannodes/output_schema.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
+
+AbstractScanPlanNode::AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                                           std::unique_ptr<OutputSchema> output_schema,
+                                           common::ManagedPointer<parser::AbstractExpression> predicate,
+                                           bool is_for_update, catalog::db_oid_t database_oid, uint32_t scan_limit,
+                                           bool scan_has_limit, uint32_t scan_offset, bool scan_has_offset)
+    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+      scan_predicate_(predicate),
+      is_for_update_(is_for_update),
+      database_oid_(database_oid),
+      scan_limit_(scan_limit),
+      scan_has_limit_(scan_has_limit),
+      scan_offset_(scan_offset),
+      scan_has_offset_(scan_has_offset) {}
 
 common::hash_t AbstractScanPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
   // Database oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
-
-  // Namespace oid
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Predicate
   if (scan_predicate_ != nullptr) {
@@ -36,9 +48,6 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Database Oid
   if (database_oid_ != other.database_oid_) return false;
-
-  // Namespace Oid
-  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Predicate
   if ((scan_predicate_ == nullptr && other.scan_predicate_ != nullptr) ||
@@ -60,7 +69,6 @@ nlohmann::json AbstractScanPlanNode::ToJson() const {
   j["scan_predicate"] = scan_predicate_ == nullptr ? nlohmann::json(nullptr) : scan_predicate_->ToJson();
   j["is_for_update"] = is_for_update_;
   j["database_oid"] = database_oid_;
-  j["namespace_oid"] = namespace_oid_;
   return j;
 }
 
@@ -77,8 +85,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractScanPlanNode::F
   }
   is_for_update_ = j.at("is_for_update").get<bool>();
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
-  namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   return exprs;
 }
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

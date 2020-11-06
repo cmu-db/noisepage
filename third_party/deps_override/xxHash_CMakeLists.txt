@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(xxHash
+        VERSION 0.1.0.0
+        DESCRIPTION "NoisePage trying to use xxHash."
+        LANGUAGES C
+        )
+
+file(GLOB_RECURSE
+        XXHASH_SRCS
+        CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/xxh3.h
+        ${PROJECT_SOURCE_DIR}/xxhash.h
+        ${PROJECT_SOURCE_DIR}/xxhash.c
+        )
+
+add_library(xxHash STATIC "${XXHASH_SRCS}")         # Create the xxhash library.
+add_library(${PROJECT_NAME}::xxhash ALIAS xxHash)   # Create a namespaced alias.
+
+target_include_directories(
+        xxHash
+        PRIVATE
+        # These includes are library-internal and necessary for compilation.
+        ${PROJECT_SOURCE_DIR}/
+)

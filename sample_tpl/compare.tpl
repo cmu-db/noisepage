@@ -1,25 +1,22 @@
-// Tests comparisons
-// Should output 1
+// Expected output: 200
 
 struct S {
-  a: int64
-  b: int64
+    a: int32
+    b: int32
 }
 
-fun compare(a: *S, b: *S) -> bool {
-  var ret : bool = (a.a > b.a)
-  return ret
+fun compare_a_lt_b(a: *S, b: *S) -> bool {
+    return a.a < b.a
 }
 
-fun main() -> int64 {
-  var s1: S
-  s1.a = 10
-  s1.b = 10
-  var s2: S
-  s2.a = 20
-  s2.b = 20
-  if (!compare(&s1, &s2)) {
-    return 1
-  }
-  return -1
+fun main() -> int32 {
+    var s1: S
+    var s2: S
+    s1.a = 100
+    s2.a = 10
+    if (compare_a_lt_b(&s1, &s2)) {
+        return 100
+    } else {
+        return 200
+    }
 }

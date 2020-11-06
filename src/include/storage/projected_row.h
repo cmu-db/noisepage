@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 
 #include "common/container/bitmap.h"
@@ -6,12 +7,16 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Catalog;
 class DatabaseCatalog;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::storage {
+namespace noisepage::execution::sql {
+class StorageInterface;
+}
+
+namespace noisepage::storage {
 // TODO(Tianyu): To be consistent with other places, maybe move val_offset fields in front of col_ids
 /**
  * A projected row is a partial row image of a tuple. It also encodes
@@ -81,7 +86,7 @@ class PACKED ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   byte *AccessWithNullCheck(const uint16_t offset) {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    NOISEPAGE_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -93,7 +98,7 @@ class PACKED ProjectedRow {
    * nullable and set to null, then return value is nullptr
    */
   const byte *AccessWithNullCheck(const uint16_t offset) const {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    NOISEPAGE_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) return nullptr;
     return reinterpret_cast<const byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -104,7 +109,7 @@ class PACKED ProjectedRow {
    * @return byte pointer to the attribute. reinterpret_cast and dereference to access the value
    */
   byte *AccessForceNotNull(const uint16_t offset) {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    NOISEPAGE_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     if (!Bitmap().Test(offset)) Bitmap().Flip(offset);
     return reinterpret_cast<byte *>(this) + AttrValueOffsets()[offset];
   }
@@ -114,7 +119,7 @@ class PACKED ProjectedRow {
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
   void SetNull(const uint16_t offset) {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    NOISEPAGE_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     Bitmap().Set(offset, false);
   }
 
@@ -123,7 +128,7 @@ class PACKED ProjectedRow {
    * @param offset The 0-indexed element to access in this ProjectedRow
    */
   void SetNotNull(const uint16_t offset) {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    NOISEPAGE_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     Bitmap().Set(offset, true);
   }
 
@@ -133,7 +138,7 @@ class PACKED ProjectedRow {
    * @return true if null, false otherwise
    */
   bool IsNull(const uint16_t offset) const {
-    TERRIER_ASSERT(offset < num_cols_, "Column offset out of bounds.");
+    NOISEPAGE_ASSERT(offset < num_cols_, "Column offset out of bounds.");
     return !Bitmap().Test(offset);
   }
 
@@ -150,7 +155,7 @@ class PACKED ProjectedRow {
     const auto *result = reinterpret_cast<const T *>(AccessWithNullCheck(col_idx));
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Nullable) {
-      TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+      NOISEPAGE_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
       if (result == nullptr) {
         *null = true;
         return result;
@@ -259,8 +264,9 @@ class ProjectedRowInitializer {
   static ProjectedRowInitializer Create(std::vector<uint16_t> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
-  friend class catalog::Catalog;          // access to the PRI default constructor
-  friend class catalog::DatabaseCatalog;  // access to the PRI default constructor
+  friend class catalog::Catalog;                  // access to the PRI default constructor
+  friend class catalog::DatabaseCatalog;          // access to the PRI default constructor
+  friend class execution::sql::StorageInterface;  // access to the PRI default constructor
   friend class WriteAheadLoggingTests;
   friend class AbstractLogProvider;
 
@@ -296,4 +302,4 @@ class ProjectedRowInitializer {
   std::vector<col_id_t> col_ids_;
   std::vector<uint32_t> offsets_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

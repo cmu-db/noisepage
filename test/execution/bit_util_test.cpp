@@ -1,8 +1,8 @@
-#include "execution/tpl_test.h"
-
 #include "execution/util/bit_util.h"
 
-namespace terrier::execution::util::test {
+#include "execution/tpl_test.h"
+
+namespace noisepage::execution::util::test {
 
 // NOLINTNEXTLINE
 TEST(BitUtilTest, BitVectorSize) {
@@ -23,9 +23,11 @@ TEST(BitUtilTest, EmptyBitVector) {
   // Create an empty bit vector, ensure all bits unset
   //
 
-  BitVector bv(100);
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    EXPECT_FALSE(bv[i]);
+  uint32_t num_bits = 100;
+  uint32_t bv[BitUtil::Num32BitWordsFor(num_bits)];
+  BitUtil::Clear(bv, num_bits);
+  for (uint32_t i = 0; i < num_bits; i++) {
+    EXPECT_FALSE(BitUtil::Test(bv, i));
   }
 }
 
@@ -35,13 +37,15 @@ TEST(BitUtilTest, ClearBits) {
   // Create a bit vector, set all the bits, clear it, check
   //
 
-  BitVector bv(10);
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    bv.Set(i);
+  uint32_t num_bits = 10;
+  uint32_t bv[BitUtil::Num32BitWordsFor(num_bits)];
+  BitUtil::Clear(bv, num_bits);
+  for (uint32_t i = 0; i < num_bits; i++) {
+    BitUtil::Set(bv, i);
   }
-  bv.ClearAll();
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    EXPECT_FALSE(bv[i]);
+  BitUtil::Clear(bv, num_bits);
+  for (uint32_t i = 0; i < num_bits; i++) {
+    EXPECT_FALSE(BitUtil::Test(bv, i));
   }
 }
 
@@ -51,106 +55,72 @@ TEST(BitUtilTest, TestAndSet) {
   // Create a BitVector, set every odd bit position
   //
 
-  BitVector bv(100);
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
+  uint32_t num_bits = 100;
+  uint32_t bv[BitUtil::Num32BitWordsFor(num_bits)];
+  BitUtil::Clear(bv, num_bits);
+  for (uint32_t i = 0; i < num_bits; i++) {
     if (i % 2 == 0) {
-      bv.Set(i);
+      BitUtil::Set(bv, i);
     }
   }
 
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
+  for (uint32_t i = 0; i < num_bits; i++) {
     if (i % 2 == 0) {
-      EXPECT_TRUE(bv[i]);
+      EXPECT_TRUE(BitUtil::Test(bv, i));
     } else {
-      EXPECT_FALSE(bv[i]);
+      EXPECT_FALSE(BitUtil::Test(bv, i));
     }
   }
 
   // Flip every bit
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    bv.Flip(i);
+  for (uint32_t i = 0; i < num_bits; i++) {
+    BitUtil::Flip(bv, i);
   }
 
   // Now, every even bit position should be set
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
+  for (uint32_t i = 0; i < num_bits; i++) {
     if (i % 2 == 0) {
-      EXPECT_FALSE(bv[i]);
+      EXPECT_FALSE(BitUtil::Test(bv, i));
     } else {
-      EXPECT_TRUE(bv[i]);
+      EXPECT_TRUE(BitUtil::Test(bv, i));
     }
   }
 
   // Now, manually unset every bit
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    bv.Unset(i);
+  for (uint32_t i = 0; i < num_bits; i++) {
+    BitUtil::Unset(bv, i);
   }
 
   // Ensure all unset
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    EXPECT_FALSE(bv[i]);
+  for (uint32_t i = 0; i < num_bits; i++) {
+    EXPECT_FALSE(BitUtil::Test(bv, i));
   }
 }
 
 // NOLINTNEXTLINE
 TEST(BitUtilTest, SetToValue) {
-  BitVector bv(100);
+  uint32_t num_bits = 100;
+  uint32_t bv[BitUtil::Num32BitWordsFor(num_bits)];
+  BitUtil::Clear(bv, num_bits);
 
-  bv.ClearAll();
-  bv.SetTo(10, true);
+  BitUtil::SetTo(bv, 10, true);
 
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    EXPECT_EQ(i == 10u, bv.Test(i));
+  for (uint32_t i = 0; i < num_bits; i++) {
+    EXPECT_EQ(i == 10u, BitUtil::Test(bv, i));
   }
 
-  bv.SetTo(80, true);
-  bv.SetTo(10, false);
+  BitUtil::SetTo(bv, 80, true);
+  BitUtil::SetTo(bv, 10, false);
 
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    EXPECT_EQ(i == 80u, bv.Test(i));
+  for (uint32_t i = 0; i < num_bits; i++) {
+    EXPECT_EQ(i == 80u, BitUtil::Test(bv, i));
   }
 
-  bv.SetTo(80, false);
+  BitUtil::SetTo(bv, 80, false);
 
-  for (uint32_t i = 0; i < bv.NumBits(); i++) {
-    EXPECT_FALSE(bv.Test(i));
-  }
-}
-
-// NOLINTNEXTLINE
-TEST(BitUtilTest, InlinedBitVector) {
-  InlinedBitVector<64> bits;
-
-  EXPECT_EQ(64u, bits.NumBits());
-
-  // Initially all false
-  for (uint32_t i = 0; i < bits.NumBits(); i++) {
-    EXPECT_FALSE(bits.Test(i));
-  }
-
-  // Set even bits
-  for (uint32_t i = 0; i < bits.NumBits(); i++) {
-    if (i % 2 == 0) {
-      bits.Set(i);
-    }
-  }
-
-  // Check
-  for (uint32_t i = 0; i < bits.NumBits(); i++) {
-    auto set = bits.Test(i);
-    if (i % 2 == 0) {
-      EXPECT_TRUE(set);
-    } else {
-      EXPECT_FALSE(set);
-    }
-  }
-
-  // Clear
-  bits.ClearAll();
-
-  // Final check all 0
-  for (uint32_t i = 0; i < bits.NumBits(); i++) {
-    EXPECT_FALSE(bits.Test(i));
+  for (uint32_t i = 0; i < num_bits; i++) {
+    EXPECT_FALSE(BitUtil::Test(bv, i));
   }
 }
 
-}  // namespace terrier::execution::util::test
+}  // namespace noisepage::execution::util::test

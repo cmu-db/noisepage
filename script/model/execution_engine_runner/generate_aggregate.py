@@ -2,7 +2,7 @@
 
 
 def get_type_info(value_type):
-    # The name we should use after "@pciGet...", like "@pciGetInt"
+    # The name we should use after "@vpiGet...", like "@vpiGetInt"
     get_name = None
     type_size = None
     if value_type == 'Integer':
@@ -15,7 +15,7 @@ def get_type_info(value_type):
     return get_name, type_size
 
 
-def tpl_type_to_terrier_type(value_type):
+def tpl_type_to_noisepage_type(value_type):
     if value_type == 'Integer':
         return "INTEGER"
     if value_type == 'Real':
@@ -42,11 +42,11 @@ def generate_build_row(col_num, value_type):
 def generate_key_check(col_num, value_type):
     get_name, _ = get_type_info(value_type)
 
-    print("fun keyCheck{}{}(row: *BuildRow{}{}, pci: *ProjectedColumnsIterator) -> bool {{".format(value_type, col_num,
+    print("fun keyCheck{}{}(row: *BuildRow{}{}, vpi: *VectorProjectionIterator) -> bool {{".format(value_type, col_num,
                                                                                                    value_type, col_num))
-    print("  return @sqlToBool(@pciGet{}(pci, {}) == row.key.c1)".format(get_name, col_num - 1), end="")
+    print("  return @sqlToBool(@vpiGet{}(vpi, {}) == row.key.c1)".format(get_name, col_num - 1), end="")
     for i in range(1, col_num):
-        print(" and @sqlToBool(@pciGet{}(pci, {}) == row.key.c{})".format(get_name, col_num - 1, i + 1), end="")
+        print(" and @sqlToBool(@vpiGet{}(vpi, {}) == row.key.c{})".format(get_name, col_num - 1, i + 1), end="")
     print("\n}\n")
 
 
@@ -65,17 +65,17 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
     for i in range(0, col_num):
         print("  col_oids[{}] = {}".format(i, 15 - i))
 
-    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col31Row{}Car{}\", col_oids)".format(tpl_type_to_terrier_type(
+    print("  @tableIterInitBind(&tvi, execCtx, \"{}Col31Row{}Car{}\", col_oids)".format(tpl_type_to_noisepage_type(
         value_type), row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
-    print("    var vec = @tableIterGetPCI(&tvi)")
-    print("    for (; @pciHasNext(vec); @pciAdvance(vec)) {")
+    print("    var vec = @tableIterGetVPI(&tvi)")
+    print("    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {")
 
     # calculate the join key
-    print("      var hash_val = @hash(@pciGet{}(vec, {})".format(get_name, col_num - 1), end="")
+    print("      var hash_val = @hash(@vpiGet{}(vec, {})".format(get_name, col_num - 1), end="")
     for i in range(1, col_num):
-        print(", @pciGet{}(vec, {})".format(get_name, col_num - 1), end="")
+        print(", @vpiGet{}(vec, {})".format(get_name, col_num - 1), end="")
     print(")")
     # insert into the join table
     print("      var agg = @ptrCast(*BuildRow{}{}, @aggHTLookup(ht, hash_val, keyCheck{}{}, vec))".format(value_type,
@@ -85,9 +85,9 @@ def generate_build_side(col_num, row_num, cardinality, value_type):
     print("      if (agg == nil) {")
     # construct the agg element
     print("        agg = @ptrCast(*BuildRow{}{}, @aggHTInsert(ht, hash_val))".format(value_type, col_num))
-    print("        agg.key.c1 = @pciGet{}(vec, {})".format(get_name, col_num - 1))
+    print("        agg.key.c1 = @vpiGet{}(vec, {})".format(get_name, col_num - 1))
     for i in range(1, col_num):
-        print("        agg.key.c{} = @pciGet{}(vec, {})".format(i + 1, get_name, col_num - 1))
+        print("        agg.key.c{} = @vpiGet{}(vec, {})".format(i + 1, get_name, col_num - 1))
     print("      }")
 
     print("    }")
@@ -111,7 +111,7 @@ def generate_probe_side(col_num, row_num, cardinality, value_type):
     print("  @execCtxStartResourceTracker(execCtx, 3)")
 
     # construct the iterator
-    print("  var agg_ht_iter: AggregationHashTableIterator")
+    print("  var agg_ht_iter: AHTIterator")
     print("  var iter = &agg_ht_iter")
 
     # iterate through the agg table

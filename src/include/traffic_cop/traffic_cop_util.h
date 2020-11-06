@@ -7,29 +7,29 @@
 #include "common/managed_pointer.h"
 #include "network/network_defs.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 }
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ParseResult;
 class SQLStatement;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class StatsStorage;
 class AbstractCostModel;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 
 /**
  * Static helper methods for accessing some of the TrafficCop's functionality without instantiating an object
@@ -62,4 +62,4 @@ class TrafficCopUtil {
   static network::QueryType QueryTypeForStatement(common::ManagedPointer<parser::SQLStatement> statement);
 };
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

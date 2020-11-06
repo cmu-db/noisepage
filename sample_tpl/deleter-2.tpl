@@ -1,12 +1,19 @@
+// TODO(WAN) port
+
 fun index_count_2(execCtx: *ExecutionContext, key : int64, key2 : int64) -> int64 {
   var count = 0 // output count
   // The following code initializes the index iterator.
   // The oids are the table col_oids that will be selected
-  var index : IndexIterator
   var col_oids: [2]uint32
-  col_oids[0] = 1 // colA
-  col_oids[1] = 2 // colB
-  @indexIteratorInitBind(&index, execCtx, "test_2", "index_2_multi", col_oids)
+  col_oids[0] = @testCatalogLookup(execCtx, "test_2", "colA")
+  col_oids[1] = @testCatalogLookup(execCtx, "test_2", "colB")
+
+  var index : IndexIterator
+  var test2_oid : int32
+  var index2_oid : int32
+  test2_oid = @testCatalogLookup(execCtx, "test_2", "")
+  index2_oid = @testCatalogIndexLookup(execCtx, "index_2_multi")
+  @indexIteratorInit(&index, execCtx, 2, test2_oid, index2_oid, col_oids)
 
   // Next we fill up the index's projected row
   var index_pr : *ProjectedRow = @indexIteratorGetPR(&index)
@@ -27,9 +34,14 @@ fun index_count_1(execCtx: *ExecutionContext, key : int64) -> int64 {
   var count = 0 // output count
   // The following code initializes the index iterator.
   // The oids are the table col_oids that will be selected
-  var index : IndexIterator
   var col_oids: [1]uint32
-  col_oids[0] = 1 // colA
+  col_oids[0] = @testCatalogLookup(execCtx, "test_2", "colA")
+
+  var index : IndexIterator
+  var test2_oid : int32
+  var index2_oid : int32
+  test2_oid = @testCatalogLookup(execCtx, "test_2", "")
+  index2_oid = @testCatalogIndexLookup(execCtx, "index_2")
   @indexIteratorInitBind(&index, execCtx, "test_2", "index_2", col_oids)
 
   // Next we fill up the index's projected row
@@ -51,11 +63,11 @@ fun table_count(execCtx: *ExecutionContext, oids: *[4]uint32) -> int64 {
   var count : int64
   count = 0
   for (@tableIterAdvance(&tvi)) {
-      var pci = @tableIterGetPCI(&tvi)
-          for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      var vpi = @tableIterGetVPI(&tvi)
+          for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
             count = count + 1
           }
-          @pciReset(pci)
+          @vpiReset(vpi)
     }
   @tableIterClose(&tvi)
   return count

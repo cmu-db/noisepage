@@ -1,12 +1,12 @@
+#include "storage/arrow_serializer.h"
+
 #include <cstring>
 #include <fstream>
 #include <list>
 #include <string>
 #include <vector>
 
-#include "storage/arrow_serializer.h"
-
-namespace terrier::storage {
+namespace noisepage::storage {
 
 constexpr int32_t FLATBUF_CONTINUZATION = -1;
 constexpr uint8_t ARROW_ALIGNMENT = 8;
@@ -43,8 +43,8 @@ void ArrowSerializer::AssembleMetadataBuffer(std::ofstream &outfile, flatbuf::Me
 void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
                                          std::vector<type::TypeId> *col_types,
                                          flatbuffers::FlatBufferBuilder *flatbuf_builder) {
-  RawBlock *block = data_table_.blocks_.front();
-  const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
+  RawBlock *block = *data_table_.GetBlocks().begin();
+  const BlockLayout &layout = data_table_.GetBlockLayout();
   ArrowBlockMetadata &metadata = data_table_.accessor_.GetArrowBlockMetadata(block);
   std::vector<flatbuffers::Offset<flatbuf::Field>> fields;
   int64_t dictionary_id = 0;
@@ -61,23 +61,23 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
   for (col_id_t col_id : layout.AllColumns()) {
     ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
     // TODO(Yuze): Change column name when we have the information, which we may need from upper layers.
-    auto name = flatbuf_builder->CreateString("Col" + std::to_string(!col_id));
+    auto name = flatbuf_builder->CreateString("Col" + std::to_string(col_id.UnderlyingValue()));
     flatbuf::Type type;
     flatbuffers::Offset<void> type_offset;
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = data_table_.accessor_.GetBlockLayout().AttrSize(col_id);
-      switch ((*col_types)[!col_id]) {
+      switch ((*col_types)[col_id.UnderlyingValue()]) {
         case type::TypeId::BOOLEAN:
           type = flatbuf::Type_Bool;
           type_offset = flatbuf::CreateBool(*flatbuf_builder).Union();
           break;
         case type::TypeId::TINYINT:
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case type::TypeId::SMALLINT:
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case type::TypeId::INTEGER:
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case type::TypeId::BIGINT:
           type = flatbuf::Type_Int;
           type_offset = flatbuf::CreateInt(*flatbuf_builder, 8 * byte_width, true).Union();
@@ -99,7 +99,7 @@ void ArrowSerializer::WriteSchemaMessage(std::ofstream &outfile, std::unordered_
           dictionary = flatbuf::CreateDictionaryEncoding(
               *flatbuf_builder, dictionary_id, flatbuf::CreateInt(*flatbuf_builder, 8 * sizeof(uint64_t), true), false);
           dictionary_ids->emplace(col_id, dictionary_id++);
-          TERRIER_FALLTHROUGH;
+          NOISEPAGE_FALLTHROUGH;
         case ArrowColumnType::GATHERED_VARLEN:
           type = flatbuf::Type_LargeBinary;
           type_offset = flatbuf::CreateLargeBinary(*flatbuf_builder).Union();
@@ -163,11 +163,9 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
 
   const BlockLayout &layout = data_table_.accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
-  data_table_.blocks_latch_.Lock();
-  std::list<RawBlock *> tmp_blocks = data_table_.blocks_;
-  data_table_.blocks_latch_.Unlock();
 
-  for (RawBlock *block : tmp_blocks) {
+  for (auto it : data_table_.GetBlocks()) {  // NOLINT
+    RawBlock *block = it;
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
 
@@ -281,4 +279,4 @@ void ArrowSerializer::ExportTable(const std::string &file_name, std::vector<type
   }
   outfile.close();
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

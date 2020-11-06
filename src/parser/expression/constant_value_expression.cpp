@@ -5,13 +5,16 @@
 #include <utility>
 #include <vector>
 
+#include "binder/sql_node_visitor.h"
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "execution/sql/runtime_types.h"
 #include "execution/sql/value.h"
 #include "execution/sql/value_util.h"
 #include "parser/expression/abstract_expression.h"
+#include "spdlog/fmt/fmt.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 template <typename T>
 ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const T value)
@@ -27,29 +30,30 @@ ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const 
 
 void ConstantValueExpression::Validate() const {
   if (std::holds_alternative<execution::sql::Val>(value_)) {
-    TERRIER_ASSERT(
+    NOISEPAGE_ASSERT(
         std::get<execution::sql::Val>(value_).is_null_,
         "Should have only constructed a base-type Val in the event of a NULL (likely coming out of PostgresParser).");
   } else if (std::holds_alternative<execution::sql::BoolVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::BOOLEAN, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Integer>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
-                       return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
-                   "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TINYINT || return_value_type_ == type::TypeId::SMALLINT ||
+                         return_value_type_ == type::TypeId::INTEGER || return_value_type_ == type::TypeId::BIGINT,
+                     "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::Real>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DECIMAL, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::DateVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::DATE, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::TimestampVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::TIMESTAMP, "Invalid TypeId for Val type.");
   } else if (std::holds_alternative<execution::sql::StringVal>(value_)) {
-    TERRIER_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
-                   "Invalid TypeId for Val type.");
-    TERRIER_ASSERT(GetStringVal().is_null_ ||
-                       (buffer_ == nullptr && GetStringVal().len_ <= execution::sql::StringVal::InlineThreshold()) ||
-                       (buffer_ != nullptr && GetStringVal().len_ > execution::sql::StringVal::InlineThreshold()),
-                   "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
-                   "InlineThreshold with a provided buffer.");
+    NOISEPAGE_ASSERT(return_value_type_ == type::TypeId::VARCHAR || return_value_type_ == type::TypeId::VARBINARY,
+                     "Invalid TypeId for Val type.");
+    NOISEPAGE_ASSERT(
+        GetStringVal().is_null_ ||
+            (buffer_ == nullptr && GetStringVal().GetLength() <= execution::sql::StringVal::InlineThreshold()) ||
+            (buffer_ != nullptr && GetStringVal().GetLength() > execution::sql::StringVal::InlineThreshold()),
+        "StringVal should either be NULL, below the InlineThreshold with no owned buffer, or above the "
+        "InlineThreshold with a provided buffer.");
   } else {
     UNREACHABLE("Unknown Val type!");
   }
@@ -217,6 +221,35 @@ bool ConstantValueExpression::operator==(const AbstractExpression &other) const 
   }
 }
 
+std::string ConstantValueExpression::ToString() const {
+  switch (GetReturnValueType()) {
+    case type::TypeId::BOOLEAN: {
+      return fmt::format("{}", GetBoolVal().val_);
+    }
+    case type::TypeId::TINYINT:
+    case type::TypeId::SMALLINT:
+    case type::TypeId::INTEGER:
+    case type::TypeId::BIGINT: {
+      return fmt::format("{}", GetInteger().val_);
+    }
+    case type::TypeId::DECIMAL: {
+      return fmt::format("{}", GetReal().val_);
+    }
+    case type::TypeId::TIMESTAMP: {
+      return fmt::format("{}", GetTimestampVal().val_.ToString());
+    }
+    case type::TypeId::DATE: {
+      return fmt::format("{}", GetDateVal().val_.ToString());
+    }
+    case type::TypeId::VARCHAR:
+    case type::TypeId::VARBINARY: {
+      return fmt::format("{}", GetStringVal().val_.StringView());
+    }
+    default:
+      UNREACHABLE("Invalid TypeId.");
+  }
+}
+
 nlohmann::json ConstantValueExpression::ToJson() const {
   nlohmann::json j = AbstractExpression::ToJson();
 
@@ -310,13 +343,18 @@ std::vector<std::unique_ptr<AbstractExpression>> ConstantValueExpression::FromJs
   return exprs;
 }
 
+void ConstantValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(ConstantValueExpression);
 
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Val value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::BoolVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Integer value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Real value);
-template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::Decimal value);
+template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
+                                                          const execution::sql::DecimalVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
                                                           const execution::sql::StringVal value);
 template ConstantValueExpression::ConstantValueExpression(const type::TypeId type, const execution::sql::DateVal value);
@@ -327,7 +365,7 @@ template void ConstantValueExpression::SetValue(const type::TypeId type, const e
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
-template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DecimalVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
 template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::TimestampVal value);
@@ -343,4 +381,4 @@ template execution::sql::Date ConstantValueExpression::Peek() const;
 template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 template std::string_view ConstantValueExpression::Peek() const;
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

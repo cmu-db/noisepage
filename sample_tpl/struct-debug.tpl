@@ -1,15 +1,15 @@
-// Test struct fields
+// Expected output: 100000
 
 struct S {
-  a : int64
-  b : int64
+    a : int
+    b : int
 }
 
-fun main() -> int64 {
-  var s : S
-  s.a = 0
-  for (s.a < 100000) {
-    s.a = s.a + 1
-  }
-  return s.a
+fun main() -> int {
+    var s : S
+    s.a = 0
+    for (s.a < 100000) {
+        s.a = s.a + 1
+    }
+    return s.a
 }

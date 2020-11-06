@@ -2,12 +2,12 @@
 
 #include <string>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/strong_typedef.h"
-#include "storage/block_layout.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::type {
+namespace noisepage::type {
 
 /**
  * Static utility class for common functions in type
@@ -43,9 +43,16 @@ class TypeUtil {
       case TypeId::VARBINARY:
         return storage::VARLEN_COLUMN;
       default:
-        throw std::runtime_error("Unknown TypeId in terrier::type::TypeUtil::GetTypeSize().");
+        throw std::runtime_error("Unknown TypeId in noisepage::type::TypeUtil::GetTypeSize().");
     }
   }
+
+  /**
+   * Get the true size of the given type (without flipping the sign bit)
+   * @param type_id the type to get the size of
+   * @return size in bytes used to represent the given type
+   */
+  static uint16_t GetTypeTrueSize(const TypeId type_id) { return GetTypeSize(type_id) & static_cast<uint8_t>(0x7f); }
 
   /**
    * This function stringify the Types for getting expression name for the constant value expression
@@ -87,4 +94,4 @@ class TypeUtil {
   }
 };
 
-}  // namespace terrier::type
+}  // namespace noisepage::type

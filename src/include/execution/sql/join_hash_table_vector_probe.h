@@ -1,94 +1,105 @@
 #pragma once
 
-#include "execution/sql/hash_table_entry.h"
-#include "execution/sql/projected_columns_iterator.h"
-#include "execution/util/execution_common.h"
+#include <vector>
 
-namespace terrier::execution::sql {
+#include "execution/sql/tuple_id_list.h"
+#include "execution/sql/vector.h"
+#include "planner/plannodes/plan_node_defs.h"
+
+namespace noisepage::execution::sql {
 
 class JoinHashTable;
+class VectorProjection;
 
 /**
- * Helper class to perform vectorized lookups into a JoinHashTable
+ * Structure to capture a vector probe.
  */
-class EXPORT JoinHashTableVectorProbe {
+class JoinHashTableVectorProbe {
  public:
   /**
-   * Function to hash the tuple the iterator is currently pointing at.
+   * Create a new probe structure.
+   * @param table The hash table to probe.
+   * @param join_type The type of join to perform.
+   * @param join_key_indexes The indexes of the join keys in the input projection.
    */
-  using HashFn = hash_t (*)(ProjectedColumnsIterator *);
+  JoinHashTableVectorProbe(const JoinHashTable &table, planner::LogicalJoinType join_type,
+                           std::vector<uint32_t> join_key_indexes);
 
   /**
-   * Function to check if the tuple in the hash table (i.e., the first argument)
-   * is equivalent to the tuple the iterator is currently pointing at.
+   * Prepare a probe using the given probe keys.
+   * @param input The probe keys.
    */
-  using KeyEqFn = bool (*)(const void *, ProjectedColumnsIterator *);
+  void Init(VectorProjection *input);
 
   /**
-   * Constructor given a hashing function and a key equality function
+   * Advance to the next set of matches for the input keys.
    */
-  explicit JoinHashTableVectorProbe(const JoinHashTable &table);
+  bool Next(VectorProjection *input);
 
   /**
-   * Setup a vectorized lookup using the given input batch @em pci
-   * @param pci The input vector
-   * @param hash_fn The hashing function
+   * @return The current set of matches.
    */
-  void Prepare(ProjectedColumnsIterator *pci, HashFn hash_fn);
+  const Vector *GetMatches() { return &curr_matches_; }
 
   /**
-   * Return the next match, moving the input iterator if need be
-   * @param pci The input vector projection
-   * @param key_eq_fn The function to check key equality
-   * @return The next matching entry
+   * @return The list of TIDs that currently have matches in this probe. This same list filters the
+   *         matches vector returned from JoinHashTableVectorProbe::GetMatches().
    */
-  const HashTableEntry *GetNextOutput(ProjectedColumnsIterator *pci, KeyEqFn key_eq_fn);
+  const TupleIdList *GetMatchList() { return &key_matches_; }
+
+  /**
+   * Reset this probe to the state immediately after initialization. This enables re-iterating the
+   * results of the probe for the same input batch.
+   */
+  void Reset();
 
  private:
-  // The table we're probing
+  // Next operator for an inner join.
+  bool NextInnerJoin(VectorProjection *input);
+  // Next operator for a semi join.
+  bool NextSemiJoin(VectorProjection *input);
+  // Next operator for an anti join.
+  bool NextAntiJoin(VectorProjection *input);
+  // Next operator for a right outer join.
+  bool NextRightJoin(VectorProjection *input);
+
+  // Follow the chain for all non-null entries in 'matches'
+  void FollowNext();
+
+  // Given the input keys, check their equality to the current set of matches.
+  void CheckKeyEquality(VectorProjection *input);
+
+  // Common logic for semi and anti joins.
+  template <bool Match>
+  bool NextSemiOrAntiJoin(VectorProjection *input);
+
+ private:
+  // The join table.
   const JoinHashTable &table_;
-  // The current index in the entries output we're iterating over
-  uint16_t match_idx_;
-  // The vector of computed hashes
-  hash_t hashes_[common::Constants::K_DEFAULT_VECTOR_SIZE];
-  // The vector of entries
-  const HashTableEntry *entries_[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  // The join type.
+  const planner::LogicalJoinType join_type_;
+  // The indexes of the join keys in the input.
+  const std::vector<uint32_t> join_key_indexes_;
+
+  // The list of non-null initial matches. This list and vector are needed so
+  // that the probe can be reset without having to re-probe the hash table.
+  TupleIdList initial_match_list_;
+  Vector initial_matches_;
+
+  // The list of non-null entries in the current matches vector.
+  TupleIdList non_null_entries_;
+  // The list of TIDs that have matching keys in the current matches vector.
+  TupleIdList key_matches_;
+  // The list used when processing semi or anti joins. Since these are processed
+  // at once in a loop, they're collecting a running list of matches.
+  TupleIdList semi_anti_key_matches_;
+  // The list of current matches. This is always filtered by the key-matches TID
+  // list to select only matches keys. But, it is modified in each iteration of
+  // Next() to follow bucket chains.
+  Vector curr_matches_;
+
+  // First 'next' call?
+  bool first_;
 };
 
-// ---------------------------------------------------------
-// Implementation below
-// ---------------------------------------------------------
-
-// Because this function is a tuple-at-a-time, it's placed in the header to
-// reduce function call overhead.
-inline const HashTableEntry *JoinHashTableVectorProbe::GetNextOutput(ProjectedColumnsIterator *const pci,
-                                                                     const KeyEqFn key_eq_fn) {
-  TERRIER_ASSERT(pci != nullptr, "No input PCI!");
-  TERRIER_ASSERT(match_idx_ < pci->NumSelected(), "Continuing past iteration!");
-
-  while (true) {
-    // Continue along current chain until we find a match
-    while (const auto *entry = entries_[match_idx_]) {
-      entries_[match_idx_] = entry->next_;
-      if (entry->hash_ == hashes_[match_idx_] && key_eq_fn(entry->payload_, pci)) {
-        return entry;
-      }
-    }
-
-    // No match found, move to the next probe tuple index
-    if (++match_idx_ >= pci->NumSelected()) {
-      break;
-    }
-
-    // Advance probe input
-    if (pci->IsFiltered()) {
-      pci->AdvanceFiltered();
-    } else {
-      pci->Advance();
-    }
-  }
-
-  return nullptr;
-}
-
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

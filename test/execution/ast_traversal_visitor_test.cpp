@@ -1,43 +1,33 @@
-#include <string>
+#include "execution/ast/ast_traversal_visitor.h"
 
-#include "execution/tpl_test.h"
+#include <string>
 
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
-#include "execution/ast/ast_traversal_visitor.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/sema.h"
+#include "execution/tpl_test.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class AstTraversalVisitorTest : public TplTest {
  public:
-  AstTraversalVisitorTest() : region_("ast_test"), pos_() {}
-
-  util::Region *Region() { return &region_; }
-
-  const SourcePosition &EmptyPos() const { return pos_; }
+  AstTraversalVisitorTest() : region_("ast_test"), error_reporter_(&region_), context_(&region_, &error_reporter_) {}
 
   AstNode *GenerateAst(const std::string &src) {
-    sema::ErrorReporter error(Region());
-    ast::Context ctx(Region(), &error);
-
     parsing::Scanner scanner(src);
-    parsing::Parser parser(&scanner, &ctx);
+    parsing::Parser parser(&scanner, Ctx());
 
-    if (error.HasErrors()) {
+    if (ErrorReporter()->HasErrors()) {
+      std::cerr << ErrorReporter()->SerializeErrors() << std::endl;  // NOLINT
       return nullptr;
     }
 
     auto *root = parser.Parse();
 
-    sema::Sema sema(&ctx);
+    sema::Sema sema(Ctx());
     auto check = sema.Run(root);
-
-    if (error.HasErrors()) {
-      return nullptr;
-    }
 
     EXPECT_FALSE(check);
 
@@ -45,8 +35,14 @@ class AstTraversalVisitorTest : public TplTest {
   }
 
  private:
+  sema::ErrorReporter *ErrorReporter() { return &error_reporter_; }
+
+  ast::Context *Ctx() { return &context_; }
+
+ private:
   util::Region region_;
-  SourcePosition pos_;
+  sema::ErrorReporter error_reporter_;
+  ast::Context context_;
 };
 
 namespace {
@@ -307,4 +303,4 @@ TEST_F(AstTraversalVisitorTest, CountIfTest) {
   }
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

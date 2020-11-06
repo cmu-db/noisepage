@@ -1,30 +1,24 @@
-// Perform:
-// select colA from test_1 WHERE colA < 500;
-//
-// Should output 500 (number of output rows)
-// This tests just makes sure that reading multiple columns does not break the code.
+// Expected output: 9950
+// SQL: SELECT colA, colB FROM test_1 WHERE (colA >= 50 AND colB < 10000)
 
-fun main(execCtx: *ExecutionContext) -> int64 {
-  var ret = 0
-  var tvi: TableVectorIterator
-  var oids: [4]uint32
-  oids[0] = 1 // colA
-  oids[1] = 2 // colB
-  oids[2] = 3 // colC
-  oids[3] = 4 // colD
-
-  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
-  for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var cola = @pciGetInt(pci, 0)
-      if (cola < 500) {
-        ret = ret + 1
-      }
+fun main(execCtx: *ExecutionContext) -> int {
+    var ret = 0
+    var tvi: TableVectorIterator
+    var table_oid = @testCatalogLookup(execCtx, "test_1", "")
+    var col_oids: [2]uint32
+    col_oids[0] = @testCatalogLookup(execCtx, "test_1", "colA")
+    col_oids[1] = @testCatalogLookup(execCtx, "test_1", "colB")
+    for (@tableIterInit(&tvi, execCtx, table_oid, col_oids); @tableIterAdvance(&tvi); ) {
+        var vpi = @tableIterGetVPI(&tvi)
+        for (; @vpiHasNext(vpi); @vpiAdvance(vpi)) {
+            var cola = @vpiGetInt(vpi, 0)
+            var colb = @vpiGetInt(vpi, 1)
+            if (cola >= 50 and colb < 10000) {
+                ret = ret + 1
+            }
+        }
+        @vpiReset(vpi)
     }
-    @pciReset(pci)
-  }
-  @tableIterClose(&tvi)
-  return ret
+    @tableIterClose(&tvi)
+    return ret
 }
-

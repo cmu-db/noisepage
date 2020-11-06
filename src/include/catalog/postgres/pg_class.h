@@ -1,12 +1,10 @@
 #pragma once
 
-#include "catalog/index_schema.h"
-#include "catalog/schema.h"
-#include "storage/projected_row.h"
-#include "storage/sql_table.h"
-#include "transaction/transaction_context.h"
+#include <array>
 
-namespace terrier::catalog::postgres {
+#include "catalog/catalog_defs.h"
+
+namespace noisepage::catalog::postgres {
 
 constexpr table_oid_t CLASS_TABLE_OID = table_oid_t(21);
 constexpr index_oid_t CLASS_OID_INDEX_OID = index_oid_t(22);
@@ -16,7 +14,7 @@ constexpr index_oid_t CLASS_NAMESPACE_INDEX_OID = index_oid_t(24);
 /*
  * Column names of the form "REL[name]_COL_OID" are present in the PostgreSQL
  * catalog specification and columns of the form "REL_[name]_COL_OID" are
- * terrier-specific addtions (generally pointers to internal objects).
+ * noisepage-specific addtions (generally pointers to internal objects).
  */
 constexpr col_oid_t RELOID_COL_OID = col_oid_t(1);          // INTEGER (pkey)
 constexpr col_oid_t RELNAME_COL_OID = col_oid_t(2);         // VARCHAR
@@ -43,4 +41,4 @@ enum class ClassKind : char {
   FOREIGN_TABLE = 'f',
 };
 
-}  // namespace terrier::catalog::postgres
+}  // namespace noisepage::catalog::postgres

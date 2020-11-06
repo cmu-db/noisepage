@@ -15,38 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Toolchain library versions
-
-GTEST_VERSION=1.8.0
-GFLAGS_VERSION=2.2.0
-GBENCHMARK_VERSION=1.4.1
-
 # Library, Version, Commit Hash
-# nlohmann::json, 3.1.2, d2dd27dc3b8472dbaa7d66f83619b3ebcd9185fe
-
-# spdlog
-# url: https://github.com/gabime/spdlog.git
-# branch: v1.x
-# commit hash: 8179b26388d118fa887030f2609560ec287531dd
-# commit hash date: 7 Aug 2018
-
-# madoka
-# url: https://github.com/s-yata/madoka.git
-# branch: master
-# commit hash: 66783ee5b84a432f934517ad65452d54b19230bb
-# commit hash date: 16 Nov 2018
-
-# libcount
-# url: https://github.com/pmenon/libcount.git
-# branch: master
-# commit hash: 6eef9d048d4577f144506ffc076c1913f8faf3ef
-# commit hash date: 14 Sep 2019
-
-# xxhash
-# url: https://github.com/Cyan4973/xxHash
-# release: 0.7.2
-# commit hash: e2f4695899e831171ecd2e780078474712ea61d3
-# commit hash date: 8 Oct 2019
 
 # libcuckoo
 # url: https://github.com/efficient/libcuckoo.git

@@ -1,16 +1,13 @@
 #pragma once
 
+#include <bitset>
 #include <string>
-
-#include "common/macros.h"
-#include "execution/util/bit_util.h"
-#include "execution/util/execution_common.h"
 
 namespace llvm {
 class StringRef;
 }  // namespace llvm
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 /**
  * Info about the CPU.
@@ -25,6 +22,9 @@ class CpuInfo {
     AVX = 1,
     AVX2 = 2,
     AVX512 = 3,
+
+    // Don't add any features below this comment. If you add more features, remember to modify the value of MAX below.
+    MAX,
   };
 
   // -------------------------------------------------------
@@ -54,60 +54,69 @@ class CpuInfo {
   }
 
   /**
-   * Get CPU
+   * @return The current CPU's ID.
    */
   static int GetCpuId();
 
   /**
-   * Return the number of logical cores in the system
+   * @return The total number of physical processor packages in the system.
    */
-  uint32_t GetNumCores() const noexcept { return num_cores_; }
+  uint32_t GetNumProcessors() const noexcept { return num_processors_; }
 
   /**
-   * Return the size of the cache at level \a level in bytes
+   * @return The total number of physical cores in the system.
    */
-  uint32_t GetCacheSize(CacheLevel level) const noexcept { return cache_sizes_[level]; }
+  uint32_t GetNumPhysicalCores() const noexcept { return num_physical_cores_; }
 
   /**
-   * Return the size of a cache line at level \a level
+   * @return The total number of logical cores in the system.
    */
-  uint32_t GetCacheLineSize(CacheLevel level) const noexcept { return cache_line_sizes_[level]; }
+  uint32_t GetNumLogicalCores() const noexcept { return num_logical_cores_; }
 
   /**
-   * Return The number of reference cycles advanced per microsecond
+   * @return The size of the cache at level @em level in bytes.
+   */
+  uint32_t GetCacheSize(const CacheLevel level) const noexcept { return cache_sizes_[level]; }
+
+  /**
+y   * @return The size of a cache line at level @em level.
+   */
+  uint32_t GetCacheLineSize(const CacheLevel level) const noexcept { return cache_line_sizes_[level]; }
+
+  /**
+   * @return The number of reference cycles advanced per microsecond.
    */
   uint64_t GetRefCyclesUs() const { return ref_cycles_us_; }
 
   /**
-   * Does the CPU have the given hardware feature?
+   * @return True if the CPU has the input hardware feature @em feature; false otherwise;
    */
-  bool HasFeature(Feature feature) const noexcept { return hardware_flags_.Test(feature); }
+  bool HasFeature(const Feature feature) const noexcept { return hardware_flags_[feature]; }
 
   /**
-   * Pretty print CPU information to a string
+   * Pretty print CPU information to a string.
+   * @return A string-representation of the CPU information.
    */
   std::string PrettyPrintInfo() const;
 
  private:
-  // Initialize cpu info
   void InitCpuInfo();
-  // Initialize cache info
   void InitCacheInfo();
-  // Parse cpu flags
   void ParseCpuFlags(llvm::StringRef flags);
 
  private:
-  // Constructor
   CpuInfo();
 
  private:
-  uint32_t num_cores_;
+  uint32_t num_logical_cores_;
+  uint32_t num_physical_cores_;
+  uint32_t num_processors_;
   std::string model_name_;
   double cpu_mhz_;
   uint64_t ref_cycles_us_;
   uint32_t cache_sizes_[K_NUM_CACHE_LEVELS];
   uint32_t cache_line_sizes_[K_NUM_CACHE_LEVELS];
-  util::InlinedBitVector<64> hardware_flags_;
+  std::bitset<Feature::MAX> hardware_flags_;
 };
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

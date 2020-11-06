@@ -1,14 +1,15 @@
+#include "common/object_pool.h"
+
 #include <atomic>
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
 
-#include "common/object_pool.h"
 #include "gtest/gtest.h"
 #include "test_util/multithread_test_util.h"
 #include "test_util/random_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // Rather minimalistic checks for whether we reuse memory
 // NOLINTNEXTLINE
@@ -127,4 +128,4 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   common::WorkerPool thread_pool(MultiThreadTestUtil::HardwareConcurrency(), {});
   MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, MultiThreadTestUtil::HardwareConcurrency(), workload, 100);
 }
-}  // namespace terrier
+}  // namespace noisepage

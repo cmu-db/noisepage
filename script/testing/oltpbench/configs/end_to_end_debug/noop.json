@@ -1,0 +1,13 @@
+{
+    "type": "oltpbenchmark",
+    "testcases": [
+        {
+            "base": {
+                "benchmark": "noop",
+                "weights": "100",
+                "terminals": 2,
+                "query_mode": "extended"
+            }
+        }
+    ]
+}

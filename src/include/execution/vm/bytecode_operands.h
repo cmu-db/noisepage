@@ -1,35 +1,32 @@
 #pragma once
 
-#include "execution/util/execution_common.h"
-
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 /**
- * This enumeration lists all possible sizes_ of operands to any bytecode
+ * This enumeration lists all possible <b>sizes</b> of operands to any bytecode.
  */
-enum class OperandSize : uint8_t { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, Float = 4, Double = 8 };
+enum class OperandSize : uint8_t { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8 };
 
-/**
- * This macro list provides information about all possible operand types to a
- * bytecode operation. The format is: Name, IsSigned, BaseSize
- */
+// This macro list provides information about all possible operand types to a bytecode operation.
+// The format is: Name, IsSigned, BaseSize
 #define OPERAND_TYPE_LIST(V)               \
   V(None, false, OperandSize::None)        \
   V(Imm1, true, OperandSize::Byte)         \
   V(Imm2, true, OperandSize::Short)        \
   V(Imm4, true, OperandSize::Int)          \
   V(Imm8, true, OperandSize::Long)         \
-  V(Imm4F, true, OperandSize::Float)       \
-  V(Imm8F, true, OperandSize::Double)      \
+  V(Imm4F, true, OperandSize::Int)         \
+  V(Imm8F, true, OperandSize::Long)        \
   V(UImm2, false, OperandSize::Short)      \
   V(UImm4, false, OperandSize::Int)        \
   V(JumpOffset, true, OperandSize::Int)    \
   V(Local, false, OperandSize::Int)        \
+  V(StaticLocal, false, OperandSize::Int)  \
   V(LocalCount, false, OperandSize::Short) \
   V(FunctionId, false, OperandSize::Short)
 
 /**
- * This enumeration lists all possible types of operands to any bytecode
+ * This enumeration lists all possible <b>types</b> of operands to any bytecode.
  */
 enum class OperandType : uint8_t {
 #define OP_TYPE(Name, ...) Name,
@@ -38,51 +35,49 @@ enum class OperandType : uint8_t {
 };
 
 /**
- * Helper class to query operand types
+ * Helper class to query operand types.
  */
 class OperandTypes {
  public:
   /**
-   * @param operand_type operand to check
-   * @return whether the operand is a signed immediate type
+   * @return True if @em operand_type is a signed integer immediate operand; false otherwise.
    */
-  static constexpr bool IsSignedImmediate(OperandType operand_type) {
+  static constexpr bool IsSignedIntegerImmediate(OperandType operand_type) {
     return operand_type == OperandType::Imm1 || operand_type == OperandType::Imm2 ||
            operand_type == OperandType::Imm4 || operand_type == OperandType::Imm8;
   }
 
   /**
-   * @param operand_type operand to check
-   * @return whether the operand is a float immediate type
+   * @return True if @em operand_type is an unsigned integer immediate operand; false otherwise.
+   */
+  static constexpr bool IsUnsignedIntegerImmediate(OperandType operand_type) {
+    return operand_type == OperandType::UImm2 || operand_type == OperandType::UImm4;
+  }
+
+  /**
+   * @return True if @em operand_type is a floating pointer immediate operand; false otherwise.
    */
   static constexpr bool IsFloatImmediate(OperandType operand_type) {
     return operand_type == OperandType::Imm4F || operand_type == OperandType::Imm8F;
   }
 
   /**
-   * @param operand_type operand to check
-   * @return whether the operand is an unsigned immediate type
-   */
-  static constexpr bool IsUnsignedImmediate(OperandType operand_type) {
-    return operand_type == OperandType::UImm2 || operand_type == OperandType::UImm4;
-  }
-
-  /**
-   * @param operand_type operand to check
-   * @return whether the operand is a Local
+   * @return True if @em operand_type is a local-reference operand; false otherwise.
    */
   static constexpr bool IsLocal(OperandType operand_type) { return operand_type == OperandType::Local; }
 
   /**
-   * @param operand_type operand to check
-   * @return whether the operand is a LocalCount
+   * @return True if @em operand_type is a static-local reference operand; false otherwise.
+   */
+  static constexpr bool IsStaticLocal(OperandType operand_type) { return operand_type == OperandType::StaticLocal; }
+
+  /**
+   * @return True if @em operand_type is a count of locals following this operand; false otherwise.
    */
   static constexpr bool IsLocalCount(OperandType operand_type) { return operand_type == OperandType::LocalCount; }
 
-  /**
-   * @return the maximum jump offset
-   */
+  /** @return The maximum jump offset. */
   static int32_t MaxJumpOffset();
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

@@ -17,7 +17,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalInsertTest) {
@@ -33,7 +33,6 @@ TEST(OperatorTests, LogicalInsertTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   catalog::db_oid_t database_oid(123);
-  catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
   catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
   parser::AbstractExpression *raw_values[] = {
@@ -45,12 +44,11 @@ TEST(OperatorTests, LogicalInsertTest) {
   // Check that all of our GET methods work as expected
   Operator op1 =
       LogicalInsert::Make(
-          database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+          database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
           common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values))
           .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsert>()->GetColumns(),
             (std::vector<catalog::col_oid_t>{catalog::col_oid_t(1), catalog::col_oid_t(2)}));
@@ -60,7 +58,7 @@ TEST(OperatorTests, LogicalInsertTest) {
   // be equal to our first object and have the same hash
   Operator op2 =
       LogicalInsert::Make(
-          database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+          database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
           common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values))
           .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
@@ -73,32 +71,12 @@ TEST(OperatorTests, LogicalInsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 =
       LogicalInsert::Make(
-          database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+          database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
           common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
               other_values))
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  // Make sure that we catch when the insert values do not match the
-  // number of columns that we are trying to insert into
-  // NOTE: We only do this for debug builds
-#ifndef NDEBUG
-  parser::AbstractExpression *bad_raw_values[] = {
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(2)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(3))};
-  auto *bad_values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
-      {std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
-  EXPECT_DEATH(LogicalInsert::Make(
-                   database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
-                       bad_values))
-                   .RegisterWithTxnContext(txn_context),
-               "Mismatched");
-  for (auto entry : bad_raw_values) delete entry;
-  delete bad_values;
-#endif
 
   // All operators created should be cleaned up on abort
   txn_manager.Abort(txn_context);
@@ -123,27 +101,24 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
   catalog::db_oid_t database_oid(123);
-  catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid).RegisterWithTxnContext(txn_context);
+  Operator op1 = LogicalInsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALINSERTSELECT);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalInsertSelect>()->GetTableOid(), table_oid);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid).RegisterWithTxnContext(txn_context);
+  Operator op2 = LogicalInsertSelect::Make(database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 =
-      LogicalInsertSelect::Make(other_database_oid, namespace_oid, table_oid).RegisterWithTxnContext(txn_context);
+  Operator op3 = LogicalInsertSelect::Make(other_database_oid, table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -212,27 +187,24 @@ TEST(OperatorTests, LogicalDeleteTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
   catalog::db_oid_t database_oid(123);
-  catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
+  Operator op1 = LogicalDelete::Make(database_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDELETE);
   EXPECT_EQ(op1.GetContentsAs<LogicalDelete>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.GetContentsAs<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalDelete>()->GetTableOid(), table_oid);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
+  Operator op2 = LogicalDelete::Make(database_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 =
-      LogicalDelete::Make(other_database_oid, namespace_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
+  Operator op3 = LogicalDelete::Make(other_database_oid, "tbl", table_oid).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -263,15 +235,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
   std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v;
   update_clause_v.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause));
   catalog::db_oid_t database_oid(123);
-  catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v))
+  Operator op1 = LogicalUpdate::Make(database_oid, "tbl", table_oid, std::move(update_clause_v))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetDatabaseOid(), database_oid);
-  EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.GetContentsAs<LogicalUpdate>()->GetUpdateClauses().size(), 1);
   EXPECT_EQ(update_clause2->GetColumnName(),
@@ -283,15 +253,14 @@ TEST(OperatorTests, LogicalUpdateTest) {
   // be equal to our first object and have the same hash
   std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v2;
   update_clause_v2.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause2));
-  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v2))
+  Operator op2 = LogicalUpdate::Make(database_oid, "tbl", table_oid, std::move(update_clause_v2))
                      .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 =
-      LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, {}).RegisterWithTxnContext(txn_context);
+  Operator op3 = LogicalUpdate::Make(database_oid, "tbl", table_oid, {}).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -382,43 +351,36 @@ TEST(OperatorTests, LogicalGetTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "table", false)
                                 .RegisterWithTxnContext(txn_context);
-  Operator logical_get_02 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+  Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(4),
                                              std::vector<AnnotatedExpression>(), "table", false)
                                 .RegisterWithTxnContext(txn_context);
-  Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
-                                             std::vector<AnnotatedExpression>(), "table", false)
-                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_04 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_04 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "tableTable", false)
                                 .RegisterWithTxnContext(txn_context);
-  Operator logical_get_05 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                             std::vector<AnnotatedExpression>(), "table", true)
-                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_05 =
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3), std::vector<AnnotatedExpression>(), "table", true)
+          .RegisterWithTxnContext(txn_context);
+  Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false)
                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_2 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
-                                            std::vector<AnnotatedExpression>(), "table", false)
-                               .RegisterWithTxnContext(txn_context);
-  Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false)
                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_4 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_4 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false)
                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_5 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_5 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false)
                                .RegisterWithTxnContext(txn_context);
-  Operator logical_get_6 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_6 = LogicalGet::Make(catalog::db_oid_t(1), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false)
                                .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(logical_get_1.GetOpType(), OpType::LOGICALGET);
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableOid(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_get_3.GetContentsAs<LogicalGet>()->GetPredicates(),
@@ -428,20 +390,16 @@ TEST(OperatorTests, LogicalGetTest) {
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetTableAlias(), "table");
   EXPECT_EQ(logical_get_1.GetContentsAs<LogicalGet>()->GetIsForUpdate(), false);
   EXPECT_EQ(logical_get_1.GetName(), "LogicalGet");
-  EXPECT_TRUE(logical_get_1 == logical_get_2);
   EXPECT_FALSE(logical_get_1 == logical_get_3);
   EXPECT_FALSE(logical_get_1 == logical_get_01);
-  EXPECT_FALSE(logical_get_1 == logical_get_02);
   EXPECT_FALSE(logical_get_1 == logical_get_03);
   EXPECT_FALSE(logical_get_1 == logical_get_04);
   EXPECT_FALSE(logical_get_1 == logical_get_05);
   EXPECT_FALSE(logical_get_1 == logical_get_4);
   EXPECT_FALSE(logical_get_4 == logical_get_5);
   EXPECT_FALSE(logical_get_1 == logical_get_6);
-  EXPECT_EQ(logical_get_1.Hash(), logical_get_2.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_3.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_01.Hash());
-  EXPECT_NE(logical_get_1.Hash(), logical_get_02.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_03.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_04.Hash());
   EXPECT_NE(logical_get_1.Hash(), logical_get_05.Hash());
@@ -1537,15 +1495,6 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   EXPECT_FALSE(op1 == op11);
   EXPECT_NE(op1.Hash(), op11.Hash());
 
-#ifndef NDEBUG
-  EXPECT_DEATH(
-      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
-                                  {}, {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true)
-          .RegisterWithTxnContext(txn_context),
-      "Mismatched");
-#endif
-
   txn_manager.Abort(txn_context);
   delete txn_context;
 }
@@ -2157,44 +2106,32 @@ TEST(OperatorTests, LogicalDropTriggerTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false)
-          .RegisterWithTxnContext(txn_context);
+  Operator op1 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPTRIGGER);
   EXPECT_EQ(op1.GetName(), "LogicalDropTrigger");
   EXPECT_EQ(op1.GetContentsAs<LogicalDropTrigger>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.GetContentsAs<LogicalDropTrigger>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<LogicalDropTrigger>()->GetTriggerOid(), catalog::trigger_oid_t(1));
   EXPECT_FALSE(op1.GetContentsAs<LogicalDropTrigger>()->IsIfExists());
 
-  Operator op2 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false)
-          .RegisterWithTxnContext(txn_context);
+  Operator op2 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), false)
-          .RegisterWithTxnContext(txn_context);
+  Operator op3 = LogicalDropTrigger::Make(catalog::db_oid_t(2), catalog::trigger_oid_t(1), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::trigger_oid_t(1), false)
-          .RegisterWithTxnContext(txn_context);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
-
-  Operator op5 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(2), false)
-          .RegisterWithTxnContext(txn_context);
+  Operator op5 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(2), false)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 =
-      LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::trigger_oid_t(1), true)
-          .RegisterWithTxnContext(txn_context);
+  Operator op6 = LogicalDropTrigger::Make(catalog::db_oid_t(1), catalog::trigger_oid_t(1), true)
+                     .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
@@ -2219,38 +2156,32 @@ TEST(OperatorTests, LogicalDropViewTest) {
 
   transaction::TransactionContext *txn_context = txn_manager.BeginTransaction();
 
-  Operator op1 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false)
-                     .RegisterWithTxnContext(txn_context);
+  Operator op1 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
 
   EXPECT_EQ(op1.GetOpType(), OpType::LOGICALDROPVIEW);
   EXPECT_EQ(op1.GetName(), "LogicalDropView");
   EXPECT_EQ(op1.GetContentsAs<LogicalDropView>()->GetDatabaseOid(), catalog::db_oid_t(1));
-  EXPECT_EQ(op1.GetContentsAs<LogicalDropView>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
   EXPECT_EQ(op1.GetContentsAs<LogicalDropView>()->GetViewOid(), catalog::view_oid_t(1));
   EXPECT_FALSE(op1.GetContentsAs<LogicalDropView>()->IsIfExists());
 
-  Operator op2 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false)
-                     .RegisterWithTxnContext(txn_context);
+  Operator op2 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
-  Operator op3 = LogicalDropView::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(1), catalog::view_oid_t(1), false)
-                     .RegisterWithTxnContext(txn_context);
+  Operator op3 =
+      LogicalDropView::Make(catalog::db_oid_t(2), catalog::view_oid_t(1), false).RegisterWithTxnContext(txn_context);
   EXPECT_TRUE(op1 != op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  Operator op4 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::view_oid_t(1), false)
-                     .RegisterWithTxnContext(txn_context);
-  EXPECT_FALSE(op1 == op4);
-  EXPECT_NE(op1.Hash(), op4.Hash());
-
-  Operator op5 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(2), false)
-                     .RegisterWithTxnContext(txn_context);
+  Operator op5 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(2), false).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op5);
   EXPECT_NE(op1.Hash(), op5.Hash());
 
-  Operator op6 = LogicalDropView::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), catalog::view_oid_t(1), true)
-                     .RegisterWithTxnContext(txn_context);
+  Operator op6 =
+      LogicalDropView::Make(catalog::db_oid_t(1), catalog::view_oid_t(1), true).RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op6);
   EXPECT_NE(op1.Hash(), op6.Hash());
 
@@ -2258,4 +2189,4 @@ TEST(OperatorTests, LogicalDropViewTest) {
   delete txn_context;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -12,7 +12,7 @@
 #include "common/json_header.h"
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /*
  * A strong typedef is like a typedef, except the compiler will enforce explicit
  * conversion for you.
@@ -31,8 +31,8 @@ namespace terrier::common {
  *
  * ... and the compiler will happily compile and run that code with no warning.
  *
- * With strong typedef, you are required to explicitly convert these types, turning
- * our example into:
+ * With a strong typedef, you are required to explicitly convert these types,
+ * turning our example into:
  *
  * A a(42);
  * B b(10);
@@ -40,12 +40,15 @@ namespace terrier::common {
  *
  * Now foo(b, a) would be a type mismatch.
  *
- * To get 42 out of a, simply do (!a) to get back an int.
+ * To extract the primitive integral type that backs the strong typedef out
+ * of an instance, use the StrongTypeAlias::UnderlyingValue() member. For example:
  *
- * e.g. STRONG_TYPEDEF(foo, uint32_t)
- * int result = !foo(a(42), b(10));
+ * using A = StrongTypeAlias<struct SomeTag, int>
  *
- * This works with all types of ints.
+ * A a(42)
+ * assert(a.UnderlyingValue() == 42)
+ *
+ * This mechanism works with all integral types (as defined by std::is_integral).
  *
  * In order to use this macro, you need to use STRONG_TYPEDEF_HEADER in the .h file, then
  * include common/strong_typedef_body.h in the corresponding .cpp file and use
@@ -53,14 +56,14 @@ namespace terrier::common {
  * of the template in common/strong_typedef.cpp.
  *
  */
-#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                          \
-  namespace tags {                                                                            \
-  struct name##_typedef_tag {};                                                               \
-  }                                                                                           \
-  using name = ::terrier::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
-  namespace tags {                                                                            \
-  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                              \
-  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                              \
+#define STRONG_TYPEDEF_HEADER(name, underlying_type)                                            \
+  namespace tags {                                                                              \
+  struct name##_typedef_tag {};                                                                 \
+  }                                                                                             \
+  using name = ::noisepage::common::StrongTypeAlias<tags::name##_typedef_tag, underlying_type>; \
+  namespace tags {                                                                              \
+  void to_json(nlohmann::json &j, const name &c);   /* NOLINT */                                \
+  void from_json(const nlohmann::json &j, name &c); /* NOLINT */                                \
   }
 
 /**
@@ -90,16 +93,18 @@ class StrongTypeAlias {
   constexpr explicit StrongTypeAlias(IntType &&val) : val_(std::move(val)) {}
 
   /**
-   * @return the underlying value.
+   * @return the underlying value
    */
-  constexpr IntType &operator!() { return val_; }
+  constexpr IntType &UnderlyingValue() { return val_; }
 
   /**
-   * @return the underlying value.
+   * @return the underlying value
    */
-  constexpr const IntType &operator!() const { return val_; }
+  constexpr const IntType &UnderlyingValue() const { return val_; }
 
+  // TODO(Kyle): perhaps remove ability to static_cast to underlying value altogether.
   /**
+   *
    * @return the underlying value
    */
   explicit operator IntType() const { return val_; }
@@ -229,15 +234,15 @@ class StrongTypeAlias {
  private:
   IntType val_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common
 
 /* Define all typedefs here */
-namespace terrier {
+namespace noisepage {
 using byte = std::byte;
 using int128_t = __int128;
 using uint128_t = unsigned __int128;
 using hash_t = uint64_t;
-}  // namespace terrier
+}  // namespace noisepage
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
@@ -246,13 +251,13 @@ namespace std {
  * @tparam Tag a dummy class type to annotate the underlying uint32_t
  */
 template <class Tag, class IntType>
-struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
+struct atomic<noisepage::common::StrongTypeAlias<Tag, IntType>> {
   static_assert(std::is_integral<IntType>::value, "Only int types are defined for strong typedefs");
 
   /**
    * Type alias shorthand.
    */
-  using t = terrier::common::StrongTypeAlias<Tag, IntType>;
+  using t = noisepage::common::StrongTypeAlias<Tag, IntType>;
   /**
    * Constructs new atomic variable.
    * @param val value to initialize with.
@@ -262,7 +267,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * Constructs new atomic variable.
    * @param val value to initialize with.
    */
-  explicit atomic(t val) : underlying_{!val} {}
+  explicit atomic(t val) : underlying_{val.UnderlyingValue()} {}
 
   DISALLOW_COPY_AND_MOVE(atomic)
 
@@ -280,7 +285,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param order memory order constraints to enforce.
    */
   void store(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {  // NOLINT match underlying API
-    underlying_.store(!desired, order);
+    underlying_.store(desired.UnderlyingValue(), order);
   }
 
   /**
@@ -316,7 +321,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_weak(!expected, !desired, order);
+    return underlying_.compare_exchange_weak(expected.UnderlyingValue(), desired.UnderlyingValue(), order);
   }
 
   /**
@@ -331,7 +336,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_strong(!expected, !desired, order);
+    return underlying_.compare_exchange_strong(expected.UnderlyingValue(), desired.UnderlyingValue(), order);
   }
 
   /**
@@ -362,13 +367,15 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
  * @tparam T the underlying type.
  */
 template <class Tag, typename T>
-struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
+struct hash<noisepage::common::StrongTypeAlias<Tag, T>> {
   /**
    * Returns the hash of the underlying type's contents.
    * @param alias the aliased type to be hashed.
    * @return the hash of the aliased type.
    */
-  size_t operator()(const terrier::common::StrongTypeAlias<Tag, T> &alias) const { return hash<T>()(!alias); }
+  size_t operator()(const noisepage::common::StrongTypeAlias<Tag, T> &alias) const {
+    return hash<T>()(alias.UnderlyingValue());
+  }
 };
 
 /**
@@ -377,15 +384,15 @@ struct hash<terrier::common::StrongTypeAlias<Tag, T>> {
  * @tparam T the underlying type.
  */
 template <class Tag, class T>
-struct less<terrier::common::StrongTypeAlias<Tag, T>> {
+struct less<noisepage::common::StrongTypeAlias<Tag, T>> {
   /**
    * @param x one value
    * @param y other value
    * @return x < y (underlying value)
    */
-  bool operator()(const terrier::common::StrongTypeAlias<Tag, T> &x,
-                  const terrier::common::StrongTypeAlias<Tag, T> &y) const {
-    return std::less<T>()(!x, !y);
+  bool operator()(const noisepage::common::StrongTypeAlias<Tag, T> &x,
+                  const noisepage::common::StrongTypeAlias<Tag, T> &y) const {
+    return std::less<T>()(x.UnderlyingValue(), y.UnderlyingValue());
   }
 };
 }  // namespace std

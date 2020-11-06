@@ -4,17 +4,17 @@
 #include <string>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "optimizer/abstract_optimizer_node_contents.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * A wrapper for an AbstractExpression for the query rewriter.
@@ -118,7 +118,7 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
     // Equality check relies on performing the following:
     // - Check each node's ExpressionType
     // - Check other parameters for a given node
-    // We believe that in terrier so long as the AbstractExpression
+    // We believe that in noisepage so long as the AbstractExpression
     // are children-less, operator== provides sufficient checking.
     // The reason behind why the children-less guarantee is required,
     // is that the "real" children are actually tracked by the
@@ -157,4 +157,4 @@ class ExpressionNodeContents : public AbstractOptimizerNodeContents {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

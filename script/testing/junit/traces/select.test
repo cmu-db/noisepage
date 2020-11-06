@@ -1,0 +1,1177 @@
+# SELECT With Duplicate Columns Produces Zero Results
+# #720 fixed
+statement ok
+CREATE TABLE temp(c1 int NOT NULL PRIMARY KEY, c2 int, c3 int)
+
+statement ok
+INSERT INTO temp VALUES (1, 2, 3), (2, 3, 4)
+
+query I nosort
+SELECT c1,c1 FROM temp
+----
+4 values hashing to 361619205d8fd52692717ea4890ccf94
+
+statement ok
+DROP TABLE temp
+
+# SELECT With Alias
+# #795 fixed
+statement ok
+CREATE TABLE new(c1 int NOT NULL PRIMARY KEY, c2 int, c3 int)
+
+statement ok
+INSERT INTO new VALUES (1, 2, 3), (2, 3, 4)
+
+query I nosort
+SELECT c1 as new_name FROM new
+----
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+
+query I nosort
+SELECT 1 as new_name FROM new
+----
+2 values hashing to f2160c8ffedf48068f2e1137e0a3a7e7
+
+query I nosort
+SELECT c1 as c2, c2 as c1 FROM new
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+query I nosort
+SELECT COUNT(*) AS cnt FROM new HAVING COUNT(*) > 10
+----
+0 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT c1 as c1, c2 as c2 FROM new
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+query I nosort
+SELECT c1, c2 as c1 FROM new
+----
+4 values hashing to ac6975dcd8128ada5f5f9270b005e3d1
+
+statement ok
+INSERT INTO new VALUES (3, 2, 10), (4, 3, 20)
+
+# query I nosort
+# SELECT COUNT(DISTINCT c2) AS STOCK_COUNT FROM new
+# ----
+# 1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+statement ok
+DROP TABLE new
+
+# Test for selecting with a timestamp in the where clause.
+# Fix #782: selecting with timestamp in where clause will crash the system.
+statement ok
+CREATE TABLE now (c1 int, c2 timestamp)
+
+statement ok
+INSERT INTO now (c1, c2) VALUES (1, '2020-01-02 12:23:34.56789')
+
+statement ok
+INSERT INTO now (c1, c2) VALUES (2, '2020-01-02 11:22:33.721-05')
+
+query I nosort
+SELECT * FROM now WHERE c2 = '2020-01-02 11:22:33.721-05'
+----
+2 values hashing to a0e91b1aa8295dd1f1f29c33471fd5b9
+
+statement ok
+DROP TABLE now
+
+# SELECT with arithmetic on integer and reals
+statement ok
+CREATE TABLE temp2 (a int, b float)
+
+statement ok
+INSERT INTO temp2 VALUES (1, 1.37)
+
+query I nosort
+SELECT a + b AS AB FROM temp2
+----
+1 values hashing to 8ce0fad9de37990d53615a006836d77a
+
+query I nosort
+SELECT 2+3
+----
+1 values hashing to 1dcca23355272056f04fe8bf20edfce0
+
+statement ok
+DROP TABLE temp2
+
+# self-join
+statement ok
+CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
+
+statement ok
+INSERT INTO xxx VALUES (1,1),(2,2),(3,3),(4,4);
+
+query I nosort
+SELECT * FROM xxx AS x1 JOIN xxx AS x2 ON x1.id = x2.id;
+----
+16 values hashing to 5411f476c4907debb6739c004a33651a
+
+statement ok
+DROP TABLE xxx
+
+statement ok
+CREATE TABLE temp3 (id INT, data INT, time INT)
+
+statement ok
+INSERT INTO temp3 VALUES (1, 10, 100),(2, 20, 200),(3, 30, 300),(4, 40, 400)
+
+query I nosort
+SELECT * FROM temp3 WHERE id=1 OR id=2 OR id=3 OR id=4
+----
+12 values hashing to 2401ff248c34227bb6bde09cfa997e69
+
+query I nosort
+SELECT * FROM temp3 WHERE id=1 AND data=10 AND time=100 OR id=2
+----
+6 values hashing to 1f0a26169aca259a4ca4294d6fd34aa2
+
+query I nosort
+SELECT * FROM temp3 WHERE (id=1 OR data=10 AND time=200) AND (time=100 OR id=2)
+----
+3 values hashing to 09193879dba9ab285e0ad30d0ae5678a
+
+query I nosort
+SELECT * FROM temp3 WHERE (id=2 OR (id=1 AND (time=100 AND data=10))) OR (id=3 AND data=30)
+----
+9 values hashing to 7ff726f07b4ea83a6d55b0edf0fb2581
+
+query I nosort
+SELECT * FROM temp3 WHERE id=1 OR time=300 AND id=3 OR id=4 AND time=200 OR id=2 AND data=20 OR id=5
+----
+9 values hashing to 7ff726f07b4ea83a6d55b0edf0fb2581
+
+statement ok
+DROP TABLE temp3
+
+# LIKE AND NOT LIKE
+statement ok
+CREATE TABLE like_tbl (int_val INT, double_val DECIMAL,str_i_val VARCHAR(32),str_a_val VARCHAR(32));
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (1, 2.0, '123456', 'AbCdEf');
+
+query  nosort
+SELECT str_a_val LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to b7269fa2508548e4032c455818f1e321
+
+query  nosort
+SELECT str_a_val LIKE '.*' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val LIKE '\\D%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val LIKE '(%)' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCd[E]f';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val LIKE 'abc';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf';
+----
+1 values hashing to e4ade2bcd87bc76eb43dcad872004a9f
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE '%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbC%dEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query  nosort
+SELECT str_a_val NOT LIKE 'Ab%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+1 values hashing to 9a8ad92c50cae39aa2c5604fd0ab6d8c
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val NOT LIKE '%Ef';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val  NOT LIKE '%d%';
+----
+
+query T nosort
+SELECT str_a_val AS result FROM like_tbl WHERE str_a_val NOT LIKE '%A%d%E%';
+----
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (2, 2.0, '123456', 'AbCdEF');
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (3, 2.0, '123456', 'AbcdEf');
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (4, 2.0, '123456', 'abcdEf');
+
+statement ok
+INSERT INTO like_tbl (int_val, double_val, str_i_val, str_a_val) VALUES (null, null, null, null);
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf';
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEF';
+----
+1 values hashing to 26ab0db90d72e28ad0ba1e22ee510510
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbcdEf';
+----
+1 values hashing to 6d7fce9fee471194aa8b5b6e47267f03
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'abcdEf';
+----
+1 values hashing to 48a24b70a0b376535542b996af517398
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%';
+----
+4 values hashing to 302c28003d487124d97c242de94da856
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf%';
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbC%dEf';
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'Ab%';
+----
+3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%Ef';
+----
+3 values hashing to d99c0b2e82d6d483eed4d4f7edb09941
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%d%';
+----
+4 values hashing to 302c28003d487124d97c242de94da856
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%A%d%E%';
+----
+3 values hashing to c0710d6b4f15dfa88f600b0e6b624077
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '______';
+----
+4 values hashing to 302c28003d487124d97c242de94da856
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_b____';
+----
+4 values hashing to 302c28003d487124d97c242de94da856
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCd_f';
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_bCdEf';
+----
+1 values hashing to b026324c6904b2a9cb4b88d6d61c81d1
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_b_d_f';
+----
+3 values hashing to d99c0b2e82d6d483eed4d4f7edb09941
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '___%___';
+----
+4 values hashing to 302c28003d487124d97c242de94da856
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_b%';
+----
+4 values hashing to 302c28003d487124d97c242de94da856
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%d_f';
+----
+3 values hashing to d99c0b2e82d6d483eed4d4f7edb09941
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%C_E%';
+----
+2 values hashing to 6ddb4095eb719e2a9f0a3f95677d24e0
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '_';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '___%____';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCdEf_';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbC';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '\"AbCdEf\"';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'abcdef';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'ABCDEF';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '%e%';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '.*';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '\\D%';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE '(%)';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val LIKE 'AbCd[E]f';
+----
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val IS NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query I nosort
+SELECT int_val AS result FROM like_tbl WHERE str_a_val IS NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEF' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 85de89aaa1b0385c43913a20d810bdb0
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbcdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 6af861be1c2a073fe3f6cc63a2775e5f
+
+query  nosort
+SELECT str_a_val NOT LIKE 'abcdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to af7ffb60963d7edc08cd189776dd7b0f
+
+query  nosort
+SELECT str_a_val NOT LIKE '%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbC%dEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE 'Ab%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to e309130f659d3f873a2df5867470fec1
+
+query  nosort
+SELECT str_a_val NOT LIKE '%Ef' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 70e87fb72c05fbabaedb14fd8daf81a3
+
+query  nosort
+SELECT str_a_val NOT LIKE '%d%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '%A%d%E%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to e309130f659d3f873a2df5867470fec1
+
+query  nosort
+SELECT str_a_val NOT LIKE '______' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '_b____' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCd_f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE '_bCdEf' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to d6a63446a23dd66bbecfeb2ea15431ff
+
+query  nosort
+SELECT str_a_val NOT LIKE '_b_d_f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 70e87fb72c05fbabaedb14fd8daf81a3
+
+query  nosort
+SELECT str_a_val NOT LIKE '___%___' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '_b%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to b56b210ddffee892cbd805e65037ae66
+
+query  nosort
+SELECT str_a_val NOT LIKE '%d_f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 70e87fb72c05fbabaedb14fd8daf81a3
+
+query  nosort
+SELECT str_a_val NOT LIKE '%C_E%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 1902fb2018692f1cd7edb56a3050f825
+
+query  nosort
+SELECT str_a_val NOT LIKE '' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '_' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '___%____' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf_' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbC' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '\"AbCdEf\"' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'abcdef' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'ABCDEF' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '%e%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '.*' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '\\D%' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE '(%)' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCd[E]f' AS result FROM like_tbl WHERE str_a_val IS NOT NULL;
+----
+4 values hashing to 36650ac23b802846071b452c7ff7b2ea
+
+query  nosort
+SELECT str_a_val NOT LIKE 'abc' AS result FROM like_tbl WHERE str_a_val IS NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+query  nosort
+SELECT str_a_val NOT LIKE 'AbCdEf' AS result FROM like_tbl WHERE str_a_val IS NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+statement ok
+DROP TABLE like_tbl;
+
+# index-join
+statement ok
+CREATE TABLE xxx (idx INT PRIMARY KEY, valx INT);
+
+statement ok
+CREATE TABLE yyy (idy INT PRIMARY KEY, valy INT);
+
+statement ok
+INSERT INTO xxx VALUES (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (3, 3), (4,4);
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > yyy.idy;
+----
+12 values hashing to 2211707029586b57f3cd914baf324b2c
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < yyy.idy;
+----
+4 values hashing to 0d3bb445591b380a6dda3e14858bb6d8
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 5 > yyy.idy;
+----
+24 values hashing to c1b907cf71f6191015b4faf1a98ea419
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON 2 < yyy.idy;
+----
+24 values hashing to c1b907cf71f6191015b4faf1a98ea419
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx < 6;
+----
+24 values hashing to 59da6214b398ce9dbf3a59784fe2a5a9
+
+query I nosort
+SELECT * FROM xxx INNER JOIN yyy ON xxx.idx > 3;
+----
+16 values hashing to 6d9c94d9a90929418f3338158f3506a0
+
+query I nosort
+SELECT * FROM yyy INNER JOIN xxx ON yyy.idy > xxx.idx;
+----
+4 values hashing to 78ebd17527f557a57704ea0c0ee12ff6
+
+statement ok
+DROP TABLE xxx
+
+statement ok
+DROP TABLE yyy
+
+# LEFT OUTER JOIN
+
+statement ok
+CREATE TABLE xxx (id INT PRIMARY KEY, val INT);
+
+statement ok
+CREATE TABLE yyy (id INT PRIMARY KEY, val INT);
+
+statement ok
+INSERT INTO xxx VALUES (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO yyy VALUES (2,2), (3,3), (4,4);
+
+query IIII nosort
+SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.id = yyy.id;
+----
+16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
+
+query IIII nosort
+SELECT * FROM xxx LEFT OUTER JOIN yyy ON xxx.val = yyy.val;
+----
+16 values hashing to 9b5db11aa006df4bd42954943bad4c2e
+
+statement ok
+DROP TABLE xxx;
+
+statement ok
+DROP TABLE yyy;
+
+statement ok
+
+
+statement ok
+CREATE TABLE tab0(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab1(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab2(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+INSERT INTO tab0 VALUES(97,1,99);
+
+statement ok
+INSERT INTO tab0 VALUES(15,81,47);
+
+statement ok
+INSERT INTO tab0 VALUES(87,21,10);
+
+statement ok
+INSERT INTO tab0 VALUES(65, 57, 73);
+
+statement ok
+INSERT INTO tab1 VALUES(51,14,96);
+
+statement ok
+INSERT INTO tab1 VALUES(85,5,59);
+
+statement ok
+INSERT INTO tab1 VALUES(91,47,68);
+
+statement ok
+INSERT INTO tab1 VALUES(65, 57, 21);
+
+statement ok
+INSERT INTO tab2 VALUES(64,77,40);
+
+statement ok
+INSERT INTO tab2 VALUES(75,67,58);
+
+statement ok
+INSERT INTO tab2 VALUES(46,51,23);
+
+statement ok
+INSERT INTO tab2 VALUES(65, 84, 93);
+
+query IIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 ORDER BY tab0.col0 ASC;
+----
+24 values hashing to 2a84540455705fe817e98454de2ace6c
+
+query IIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col1 = tab1.col1 ORDER BY tab0.col1 ASC;
+----
+24 values hashing to 5a527294c5e516c91f3272a2cf40b839
+
+query IIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col2 = tab1.col2 ORDER BY tab0.col2 ASC;
+----
+24 values hashing to 14518454e4a8b066a4b4da08adc9b70e
+
+query IIIIIIIII nosort
+SELECT * FROM tab0 LEFT OUTER JOIN tab1 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN tab2 ON tab0.col0 = tab2.col0 ORDER BY tab0.col0 ASC;
+----
+36 values hashing to 85710c95d9cc0b47c11f8d9f337a14ea
+
+query IIIIIIIII nosort
+SELECT * FROM tab1 LEFT OUTER JOIN tab0 ON tab0.col0 = tab1.col0 LEFT OUTER JOIN tab2 ON tab1.col0 = tab2.col0 ORDER BY tab1.col0 ASC;
+----
+36 values hashing to c7a1815881623a3bd00c29e67f9e8947
+
+query IIIIIIIII nosort
+SELECT * FROM tab2 LEFT OUTER JOIN tab0 ON tab2.col0 = tab0.col0 LEFT OUTER JOIN tab1 ON tab2.col0 = tab1.col0 ORDER BY tab2.col0 ASC;
+----
+36 values hashing to dd53c7839eafa8257a7c65224d248e7f
+
+statement ok
+DROP TABLE tab0;
+
+statement ok
+DROP TABLE tab1;
+
+statement ok
+DROP TABLE tab2;
+
+statement ok
+
+
+statement ok
+CREATE TABLE tab3(col0 INTEGER, col1 INTEGER, col2 INTEGER);
+
+statement ok
+CREATE TABLE tab4(col0 INTEGER, col1 INTEGER);
+
+statement ok
+INSERT INTO tab3 VALUES(967,14,399);
+
+statement ok
+INSERT INTO tab3 VALUES(115,281,437);
+
+statement ok
+INSERT INTO tab3 VALUES(847,221,102);
+
+statement ok
+INSERT INTO tab3 VALUES(653, 573, 733);
+
+statement ok
+INSERT INTO tab4 VALUES(51, 14);
+
+statement ok
+INSERT INTO tab4 VALUES(854,5);
+
+statement ok
+INSERT INTO tab4 VALUES(967, 399);
+
+statement ok
+INSERT INTO tab4 VALUES(653, 239);
+
+query IIIII nosort
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col0 = tab4.col0 ORDER BY tab3.col0 ASC;
+----
+20 values hashing to 05444ccc4114ea58ea81c4d7265ce0cf
+
+query IIIII nosort
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col1 = tab4.col1 ORDER BY tab3.col1 ASC;
+----
+20 values hashing to e020bd906325b64a85b01baac93ca8f5
+
+query IIIII nosort
+SELECT * FROM tab3 LEFT OUTER JOIN tab4 ON tab3.col2 = tab4.col1 ORDER BY tab3.col1 ASC;
+----
+20 values hashing to 79503262d3189fbafe4a8a9697104c7c
+
+statement ok
+DROP TABLE tab3;
+
+statement ok
+DROP TABLE tab4;
+
+# #1020 SELECT * TODO(WAN): no good way of testing exceptions being thrown right now
+
+# #1191 SELECT NULL
+query T
+SELECT NULL;
+----
+1 values hashing to 68b329da9893e34099c7d8ad5cb9c940
+
+# Fix #780
+statement ok
+CREATE TABLE t (a INT, aa INT);
+
+statement ok
+CREATE TABLE tt (b INT, bb INT);
+
+statement ok
+INSERT INTO t VALUES (1,1), (2,2), (3,3), (4,4), (5,5);
+
+statement ok
+INSERT INTO tt VALUES (10,10), (20,20), (30,30), (40,40), (50,50);
+
+query II nosort
+SELECT * FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query II nosort
+SELECT * FROM tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query IIII nosort
+SELECT *, * FROM t;
+----
+1
+1
+1
+1
+2
+2
+2
+2
+3
+3
+3
+3
+4
+4
+4
+4
+5
+5
+5
+5
+
+query IIII nosort
+SELECT *, * FROM tt;
+----
+10
+10
+10
+10
+20
+20
+20
+20
+30
+30
+30
+30
+40
+40
+40
+40
+50
+50
+50
+50
+
+query IIII nosort
+SELECT * FROM t, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIIIIIII nosort
+SELECT *, * FROM t, tt;
+----
+200 values hashing to f63c5b706ef9235039ca4a62161936e9
+
+query II nosort
+SELECT t.* FROM t;
+----
+1
+1
+2
+2
+3
+3
+4
+4
+5
+5
+
+query II nosort
+SELECT tt.* FROM tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query IIII nosort
+SELECT t.*, tt.* FROM t, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT ta.*, tt.* FROM t ta, tt;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT t.*, tb.* FROM t, tt tb;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query IIII nosort
+SELECT ta.*, tb.* FROM t ta, tt tb;
+----
+100 values hashing to fd753217f4567732025d25d3a856ea0b
+
+query II nosort
+SELECT t.* FROM t, tt;
+----
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+4
+4
+4
+4
+4
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+5
+5
+5
+5
+
+query II nosort
+SELECT tt.* FROM t, tt;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+
+query II nosort
+SELECT ta.* FROM t ta, tt;
+----
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
+3
+4
+4
+4
+4
+4
+4
+4
+4
+4
+4
+5
+5
+5
+5
+5
+5
+5
+5
+5
+5
+
+query II nosort
+SELECT tb.* FROM t, tt tb;
+----
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50
+10
+10
+20
+20
+30
+30
+40
+40
+50
+50

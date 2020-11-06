@@ -5,14 +5,16 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/index_schema.h"
 #include "common/macros.h"
+#include "storage/block_layout.h"
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"
 #include "storage/storage_util.h"
 #include "type/type_util.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 /**
  * Precomputes index-related metadata that can be used to optimize the operations of the various index key types.
@@ -268,4 +270,4 @@ class IndexMetadata {
   }
 };
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

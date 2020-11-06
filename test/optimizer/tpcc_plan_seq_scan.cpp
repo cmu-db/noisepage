@@ -15,7 +15,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class TpccPlanSeqScanTests : public TpccPlanTest {};
 
@@ -30,7 +30,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelect) {
     EXPECT_EQ(seq->GetScanPredicate(), nullptr);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     auto &schema = test->accessor_->GetSchema(tbl_oid);
     EXPECT_EQ(seq->GetTableOid(), test->tbl_new_order_);
@@ -54,7 +53,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     auto seq = dynamic_cast<planner::SeqScanPlanNode *>(plan.get());
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
     test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_id").Oid(), schema.GetColumn("o_carrier_id").Oid()});
 
@@ -108,7 +106,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
     test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_ol_cnt").Oid(), schema.GetColumn("o_id").Oid(),
                                            schema.GetColumn("o_carrier_id").Oid()});
@@ -151,7 +148,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
     test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_id").Oid(), schema.GetColumn("o_carrier_id").Oid()});
 
@@ -213,7 +209,6 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(seq->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(seq->GetTableOid(), test->tbl_order_);
     test->CheckOids(seq->GetColumnOids(), {schema.GetColumn("o_id").Oid(), schema.GetColumn("o_ol_cnt").Oid(),
                                            schema.GetColumn("o_carrier_id").Oid()});
@@ -236,4 +231,4 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
   OptimizeQuery(query, tbl_order_, check);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

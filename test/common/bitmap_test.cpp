@@ -1,13 +1,15 @@
 #include "common/container/bitmap.h"
+
 #include <cstring>
 #include <random>
 #include <thread>  // NOLINT
 #include <unordered_set>
 #include <vector>
+
 #include "gtest/gtest.h"
 #include "test_util/container_test_util.h"
 
-namespace terrier {
+namespace noisepage {
 
 // Tests a RawBitmap whose base pointer is word aligned, where num_elements is a multiple of 8 (byte size)
 // NOLINTNEXTLINE
@@ -131,4 +133,4 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
     delete[] allocated_buffer;
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

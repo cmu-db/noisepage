@@ -1,30 +1,29 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "binder/sql_node_visitor.h"
-#include "common/hash_util.h"
+#include "common/hash_defs.h"
 #include "common/json_header.h"
 #include "common/managed_pointer.h"
 #include "parser/expression_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class OptimizerUtil;
 class QueryToOperatorTransformer;
 class ExpressionNodeContents;
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer
 
-namespace terrier::binder {
+namespace noisepage::binder {
 class BindNodeVisitor;
 class BinderUtil;
-}  // namespace terrier::binder
+class SqlNodeVisitor;
+}  // namespace noisepage::binder
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ParseResult;
 
 /**
@@ -83,11 +82,6 @@ class AbstractExpression {
    * @param expression_name Set the expression name of the current expression
    */
   void SetExpressionName(std::string expression_name) { expression_name_ = std::move(expression_name); }
-
-  /**
-   * @param expression_type Set the expression type of the current expression
-   */
-  void SetExpressionType(ExpressionType expression_type) { expression_type_ = expression_type; }
 
   /**
    * @param return_value_type Set the return value type of the current expression
@@ -173,7 +167,7 @@ class AbstractExpression {
    * @return child of abstract expression at that index
    */
   common::ManagedPointer<AbstractExpression> GetChild(uint64_t index) const {
-    TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
+    NOISEPAGE_ASSERT(index < children_.size(), "Index must be in bounds.");
     return common::ManagedPointer(children_[index]);
   }
 
@@ -240,6 +234,11 @@ class AbstractExpression {
    * @param j json to deserialize
    */
   virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
+
+  /**
+   * @param expression_type Set the expression type of the current expression
+   */
+  void SetExpressionType(ExpressionType expression_type) { expression_type_ = expression_type; }
 
  protected:
   // We make abstract expression friend with both binder and query to operator transformer
@@ -313,19 +312,19 @@ struct JSONDeserializeExprIntermediate {
  */
 JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
 namespace std {
 /**
  * Implements std::hash for abstract expressions
  */
 template <>
-struct hash<terrier::parser::AbstractExpression> {
+struct hash<noisepage::parser::AbstractExpression> {
   /**
    * Hashes the given expression
    * @param expr the expression to hash
    * @return hash code of the given expression
    */
-  size_t operator()(const terrier::parser::AbstractExpression &expr) const { return expr.Hash(); }
+  size_t operator()(const noisepage::parser::AbstractExpression &expr) const { return expr.Hash(); }
 };
 }  // namespace std

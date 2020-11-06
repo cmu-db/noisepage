@@ -7,7 +7,7 @@
 #include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 /**
  * Used by the tpl executable to retrieve hard-coded test output schemas.
  */
@@ -121,16 +121,26 @@ class SampleOutput {
     // Scan lineitem (no output)
     {
       std::vector<planner::OutputSchema::Column> cols{};
+      for (uint32_t i = 0; i < uint32_t(2); i++) {
+        cols.emplace_back(string_col.Copy());
+      }
+      for (uint32_t i = 0; i < uint32_t(4); i++) {
+        cols.emplace_back(real_col.Copy());
+      }
+      for (uint32_t i = 0; i < uint32_t(4); i++) {
+        cols.emplace_back(int_col.Copy());
+      }
       schemas_.emplace("tpch_scan_lineitem", planner::OutputSchema(std::move(cols)));
     }
 
     // Scan orders (no output)
     {
       std::vector<planner::OutputSchema::Column> cols{};
+      cols.emplace_back(int_col.Copy());
       schemas_.emplace("tpch_scan_orders", planner::OutputSchema(std::move(cols)));
     }
   }
 
   std::unordered_map<std::string, planner::OutputSchema> schemas_;
 };
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

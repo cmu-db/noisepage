@@ -1,8 +1,8 @@
 #pragma once
 
-#include <memory>
+#include <llvm/ADT/StringRef.h>
 
-#include "llvm/ADT/StringRef.h"
+#include <memory>
 
 #include "execution/ast/builtins.h"
 #include "execution/ast/identifier.h"
@@ -10,7 +10,7 @@
 #include "execution/util/region.h"
 #include "type/type_id.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace sema {
 class ErrorReporter;
@@ -22,47 +22,55 @@ class AstNodeFactory;
 class Type;
 
 /**
- * Ast Context. Stores info about current ast.
+ * A Context serves as a container that creates and owns all AST nodes during parsing and semantic
+ * analysis. Contexts should not be shared across threads; they are meant to be as close as
+ * possible to thread-local storage during compilation. This means that type/node/identifier pointer
+ * equality cannot be relied on across different Context's; pointers doled out by this context is
+ * safe.
+ *
+ * Because a Context owns all types, nodes, and identifiers, all these structures are destroyed when
+ * the context is destroyed.
  */
 class Context {
  public:
   /**
-   * Create a context
-   * @param region The region to allocate memory from
-   * @param error_reporter The diagnostic error reporter
+   * Create a Context that uses the injected @em error_reporter to report errors.
+   * @param region The region to allocate memory from.
+   * @param error_reporter The diagnostic error reporter.
    */
   Context(util::Region *region, sema::ErrorReporter *error_reporter);
 
   /**
-   * This class cannot be copied or moved
+   * This class cannot be copied or moved.
    */
   DISALLOW_COPY_AND_MOVE(Context);
 
   /**
-   * Destructor
+   * Destructor.
    */
   ~Context();
 
   /**
-   * Return @em str as a unique string in this context
-   * @param str The input string
-   * @return A uniqued (interned) version of the string in this context
+   * Return a unique and context-owned version of the provided string. Identifiers are any string
+   * that appear in TPL source code. Identical strings will map to the same AST Identifier object.
+   * @param str The input string.
+   * @return A uniqued (interned) version of the string in this context.
    */
   Identifier GetIdentifier(llvm::StringRef str);
 
   /**
-   * Is the type with name identifier a builtin type?
-   * @return A non-null pointer to the Type if a valid builtin; null otherwise
+   * Lookup a builtin type with name @em name in the TPL type system.
+   * @return A non-null pointer to the Type if @em name is a valid builtin type; null otherwise.
    */
-  Type *LookupBuiltinType(Identifier identifier) const;
+  Type *LookupBuiltinType(Identifier name) const;
 
   /**
-   * Is the function with name identifier a builtin function?
-   * @param identifier The name of the function to check
-   * @param builtin If non-null, set to the appropriate builtin enumeration
-   * @return True if the function name is that of a builtin; false otherwise
+   * Is the function with name @em name a builtin TPL function?
+   * @param name The name of the function to check.
+   * @param[out] builtin If non-null, set to the appropriate builtin enumeration.
+   * @return True if the @em name is a builtin function; false otherwise.
    */
-  bool IsBuiltinFunction(Identifier identifier, Builtin *builtin = nullptr) const;
+  bool IsBuiltinFunction(Identifier name, Builtin *builtin = nullptr) const;
 
   /**
    * Get the identifier of a builtin function
@@ -82,26 +90,30 @@ class Context {
   // Simple accessors
   // -------------------------------------------------------
 
-  struct Implementation;
   /**
-   * @return the implementation
+   * PIMPL type.
+   */
+  struct Implementation;
+
+  /**
+   * @return The internal opaque implementation.
    */
   Implementation *Impl() const { return impl_.get(); }
 
   /**
-   * @return the ast node factory
+   * @return The AST node factory.
    */
-  AstNodeFactory *NodeFactory() const { return node_factory_.get(); }
+  AstNodeFactory *GetNodeFactory() const { return node_factory_.get(); }
 
   /**
-   * @return the error reporter
+   * @return The error reporter for this context.
    */
   sema::ErrorReporter *GetErrorReporter() const { return error_reporter_; }
 
   /**
-   * @return the region used for allocation
+   * @return The memory region this context uses to perform ALL allocations.
    */
-  util::Region *Region() const { return region_; }
+  util::Region *GetRegion() const { return region_; }
 
  private:
   // Region allocator for all Ast objects this context needs
@@ -118,4 +130,4 @@ class Context {
 };
 
 }  // namespace ast
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

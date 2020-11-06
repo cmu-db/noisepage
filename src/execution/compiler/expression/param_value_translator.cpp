@@ -1,17 +1,24 @@
 #include "execution/compiler/expression/param_value_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
+
+#include "common/error/exception.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/work_context.h"
 #include "parser/expression/parameter_value_expression.h"
+#include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
-ParamValueTranslator::ParamValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen) {}
+namespace noisepage::execution::compiler {
 
-ast::Expr *ParamValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  auto param_val = GetExpressionAs<terrier::parser::ParameterValueExpression>();
-  auto param_idx = param_val->GetValueIdx();
+ParamValueTranslator::ParamValueTranslator(const parser::ParameterValueExpression &expr,
+                                           CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {}
+
+ast::Expr *ParamValueTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  auto *codegen = GetCodeGen();
+  auto param_val = GetExpressionAs<noisepage::parser::ParameterValueExpression>();
+  auto param_idx = param_val.GetValueIdx();
   ast::Builtin builtin;
-  switch (param_val->GetReturnValueType()) {
+  switch (param_val.GetReturnValueType()) {
     case type::TypeId::BOOLEAN:
       builtin = ast::Builtin::GetParamBool;
       break;
@@ -43,7 +50,7 @@ ast::Expr *ParamValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
       UNREACHABLE("Unsupported parameter type");
   }
 
-  return codegen_->BuiltinCall(builtin,
-                               {codegen_->MakeExpr(codegen_->GetExecCtxVar()), codegen_->IntLiteral(param_idx)});
+  return codegen->CallBuiltin(builtin, {GetExecutionContextPtr(), codegen->Const32(param_idx)});
 }
-};  // namespace terrier::execution::compiler
+
+}  // namespace noisepage::execution::compiler

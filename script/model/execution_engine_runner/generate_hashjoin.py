@@ -19,11 +19,11 @@ def generate_build_row(col_num):
 
 
 def generate_key_check(col_num):
-    print("fun keyCheck{}(execCtx: *ExecutionContext, pci: *ProjectedColumnsIterator, row: *BuildRow{}) -> bool {{"
+    print("fun keyCheck{}(execCtx: *ExecutionContext, vpi: *VectorProjectionIterator, row: *BuildRow{}) -> bool {{"
           "".format(col_num, col_num))
-    print("  return @sqlToBool(@pciGetInt(pci, {}) == row.key.c1)".format(col_num - 1), end="")
+    print("  return @sqlToBool(@vpiGetInt(vpi, {}) == row.key.c1)".format(col_num - 1), end="")
     for i in range(1, col_num):
-        print(" and @sqlToBool(@pciGetInt(pci, {}) == row.key.c{})".format(col_num - 1, i + 1), end="")
+        print(" and @sqlToBool(@vpiGetInt(vpi, {}) == row.key.c{})".format(col_num - 1, i + 1), end="")
     print("\n}\n")
 
 
@@ -43,21 +43,21 @@ def generate_build_side(col_num, row_num, cardinality):
     print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol31Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
-    print("    var vec = @tableIterGetPCI(&tvi)")
-    print("    for (; @pciHasNext(vec); @pciAdvance(vec)) {")
+    print("    var vec = @tableIterGetVPI(&tvi)")
+    print("    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {")
 
     # calculate the join key
-    print("      var hash_val = @hash(@pciGetInt(vec, {})".format(col_num - 1), end="")
+    print("      var hash_val = @hash(@vpiGetInt(vec, {})".format(col_num - 1), end="")
     for i in range(1, col_num):
-        print(", @pciGetInt(vec, {})".format(col_num - 1), end="")
+        print(", @vpiGetInt(vec, {})".format(col_num - 1), end="")
     print(")")
     # insert into the join table
     print("      var elem : *BuildRow{} = @ptrCast(*BuildRow{}, @joinHTInsert(jht, hash_val))".format(col_num, col_num))
 
     # fill in the join key
-    print("      elem.key.c1 = @pciGetInt(vec, {})".format(col_num - 1))
+    print("      elem.key.c1 = @vpiGetInt(vec, {})".format(col_num - 1))
     for i in range(1, col_num):
-        print("      elem.key.c{} = @pciGetInt(vec, {})".format(i + 1, col_num - 1))
+        print("      elem.key.c{} = @vpiGetInt(vec, {})".format(i + 1, col_num - 1))
 
     print("    }")
     print("  }")
@@ -91,13 +91,13 @@ def generate_probe_side(col_num, row_num, cardinality, matched_num):
     print("  @tableIterInitBind(&tvi, execCtx, \"INTEGERCol31Row{}Car{}\", col_oids)".format(row_num, cardinality))
 
     print("  for (@tableIterAdvance(&tvi)) {")
-    print("    var vec = @tableIterGetPCI(&tvi)")
-    print("    for (; @pciHasNext(vec); @pciAdvance(vec)) {")
+    print("    var vec = @tableIterGetVPI(&tvi)")
+    print("    for (; @vpiHasNext(vec); @vpiAdvance(vec)) {")
 
     # calculate the join key
-    print("      var hash_val = @hash(@pciGetInt(vec, {})".format(col_num - 1), end="")
+    print("      var hash_val = @hash(@vpiGetInt(vec, {})".format(col_num - 1), end="")
     for i in range(1, col_num):
-        print(", @pciGetInt(vec, {})".format(col_num - 1), end="")
+        print(", @vpiGetInt(vec, {})".format(col_num - 1), end="")
     print(")")
 
     # iterate the hash table

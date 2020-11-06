@@ -2,7 +2,7 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::type {
+namespace noisepage::type {
 
 /**
  * Julian date.
@@ -30,7 +30,8 @@ enum class TypeId : uint8_t {
   DATE,
   VARCHAR,
   VARBINARY,
-  PARAMETER_OFFSET
+  PARAMETER_OFFSET,
+  VARIADIC,
 };
 
-}  // namespace terrier::type
+}  // namespace noisepage::type

@@ -1,21 +1,24 @@
 #include "execution/vm/control_flow_builders.h"
 
 #include "execution/vm/bytecode_emitter.h"
+#include "execution/vm/bytecode_generator.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 // ---------------------------------------------------------
 // Breakable blocks
 // ---------------------------------------------------------
 
 BreakableBlockBuilder::~BreakableBlockBuilder() {
-  TERRIER_ASSERT(!BreakLabel()->IsBound(), "Break label cannot be bound!");
-  Generator()->Emitter()->Bind(BreakLabel());
+  NOISEPAGE_ASSERT(!GetBreakLabel()->IsBound(), "Break label cannot be bound!");
+  GetGenerator()->GetEmitter()->Bind(GetBreakLabel());
 }
 
-void BreakableBlockBuilder::Break() { EmitJump(BreakLabel()); }
+void BreakableBlockBuilder::Break() { EmitJump(GetBreakLabel()); }
 
-void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) { Generator()->Emitter()->EmitJump(Bytecode::Jump, label); }
+void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) {
+  GetGenerator()->GetEmitter()->EmitJump(Bytecode::Jump, label);
+}
 
 // ---------------------------------------------------------
 // Loop Builders
@@ -24,17 +27,17 @@ void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) { Generator()->Emitte
 LoopBuilder::~LoopBuilder() = default;
 
 void LoopBuilder::LoopHeader() {
-  TERRIER_ASSERT(!HeaderLabel()->IsBound(), "Header cannot be rebound");
-  Generator()->Emitter()->Bind(HeaderLabel());
+  NOISEPAGE_ASSERT(!GetHeaderLabel()->IsBound(), "Header cannot be rebound");
+  GetGenerator()->GetEmitter()->Bind(GetHeaderLabel());
 }
 
-void LoopBuilder::JumpToHeader() { Generator()->Emitter()->EmitJump(Bytecode::Jump, HeaderLabel()); }
+void LoopBuilder::JumpToHeader() { GetGenerator()->GetEmitter()->EmitJump(Bytecode::Jump, GetHeaderLabel()); }
 
-void LoopBuilder::Continue() { EmitJump(ContinueLabel()); }
+void LoopBuilder::Continue() { EmitJump(GetContinueLabel()); }
 
 void LoopBuilder::BindContinueTarget() {
-  TERRIER_ASSERT(!ContinueLabel()->IsBound(), "Continue label can only be bound once");
-  Generator()->Emitter()->Bind(ContinueLabel());
+  NOISEPAGE_ASSERT(!GetContinueLabel()->IsBound(), "Continue label can only be bound once");
+  GetGenerator()->GetEmitter()->Bind(GetContinueLabel());
 }
 
 // ---------------------------------------------------------
@@ -42,18 +45,18 @@ void LoopBuilder::BindContinueTarget() {
 // ---------------------------------------------------------
 
 IfThenElseBuilder::~IfThenElseBuilder() {
-  if (!ElseLabel()->IsBound()) {
-    Generator()->Emitter()->Bind(ElseLabel());
+  if (!GetElseLabel()->IsBound()) {
+    GetGenerator()->GetEmitter()->Bind(GetElseLabel());
   }
 
-  TERRIER_ASSERT(!EndLabel()->IsBound(), "End label should not be bound yet");
-  Generator()->Emitter()->Bind(EndLabel());
+  NOISEPAGE_ASSERT(!EndLabel()->IsBound(), "End label should not be bound yet");
+  GetGenerator()->GetEmitter()->Bind(EndLabel());
 }
 
-void IfThenElseBuilder::Then() { Generator()->Emitter()->Bind(ThenLabel()); }
+void IfThenElseBuilder::Then() { GetGenerator()->GetEmitter()->Bind(GetThenLabel()); }
 
-void IfThenElseBuilder::Else() { Generator()->Emitter()->Bind(ElseLabel()); }
+void IfThenElseBuilder::Else() { GetGenerator()->GetEmitter()->Bind(GetElseLabel()); }
 
-void IfThenElseBuilder::JumpToEnd() { Generator()->Emitter()->EmitJump(Bytecode::Jump, EndLabel()); }
+void IfThenElseBuilder::JumpToEnd() { GetGenerator()->GetEmitter()->EmitJump(Bytecode::Jump, EndLabel()); }
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

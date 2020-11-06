@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
 #include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
@@ -12,7 +13,7 @@
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/plan_visitor.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Plan node for creating databases
@@ -44,10 +45,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
      * Build the create database plan node
      * @return plan node
      */
-    std::unique_ptr<CreateDatabasePlanNode> Build() {
-      return std::unique_ptr<CreateDatabasePlanNode>(
-          new CreateDatabasePlanNode(std::move(children_), std::move(output_schema_), std::move(database_name_)));
-    }
+    std::unique_ptr<CreateDatabasePlanNode> Build();
 
    protected:
     /**
@@ -63,8 +61,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    * @param database_name the name of the database
    */
   CreateDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                         std::unique_ptr<OutputSchema> output_schema, std::string database_name)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), database_name_(std::move(database_name)) {}
+                         std::unique_ptr<OutputSchema> output_schema, std::string database_name);
 
  public:
   /**
@@ -105,4 +102,4 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
 
 DEFINE_JSON_HEADER_DECLARATIONS(CreateDatabasePlanNode);
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

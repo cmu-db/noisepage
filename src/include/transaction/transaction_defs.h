@@ -6,8 +6,11 @@
 #include <utility>
 
 #include "common/strong_typedef.h"
-namespace terrier::transaction {
+
+namespace noisepage::transaction {
 STRONG_TYPEDEF_HEADER(timestamp_t, uint64_t);
+
+constexpr uint8_t MIN_GC_INVOCATIONS = 3;
 
 // Invalid txn timestamp. Used for validation.
 static constexpr timestamp_t INVALID_TXN_TIMESTAMP = timestamp_t(INT64_MIN);
@@ -41,4 +44,4 @@ using TransactionEndAction = std::function<void(DeferredActionManager *)>;
  * and in cases such as GC knowing the actual time enables optimizations.
  */
 using DeferredAction = std::function<void(timestamp_t)>;
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

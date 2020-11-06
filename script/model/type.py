@@ -4,20 +4,20 @@ This should be the only module that you directly import classes, instead of the 
 """
 import enum
 
-class Target(enum.Enum):
+class Target(enum.IntEnum):
     """The output targets for the operating units
     """
     START_TIME = 0
     CPU_ID = 1,
-    CPU_CYCLE = 2,
-    INSTRUCTION = 3,
+    CPU_CYCLES = 2,
+    INSTRUCTIONS = 3,
     CACHE_REF = 4,
     CACHE_MISS = 5,
-    CPU_TIME = 6,
+    REF_CPU_CYCLES = 6,
     BLOCK_READ = 7,
     BLOCK_WRITE = 8,
     MEMORY_B = 9,
-    ELAPSED_US = 10,
+    ELAPSED_US = 10
 
 
 class OpUnit(enum.IntEnum):
@@ -26,18 +26,11 @@ class OpUnit(enum.IntEnum):
     For each operating unit, the first upper case name should be used in the codebase,
     and the second lower case name (alias) is to match the string identifier from the csv data file
     """
-    GC_DEALLOC = 0,
-    gc_deallocate = 0,
-    GC_UNLINK = 1,
-    gc_unlink = 1,
-    LOG_SERIAL = 2,
-    log_serializer_task = 2,
-    LOG_CONSUME = 3,
-    disk_log_consumer_task = 3,
-    TXN_BEGIN = 4,
-    txn_begin = 4,
-    TXN_COMMIT = 5,
-    txn_commit = 5,
+    GC = 0,
+    LOG_SERIALIZER_TASK = 1,
+    DISK_LOG_CONSUMER_TASK = 2,
+    TXN_BEGIN = 3,
+    TXN_COMMIT = 4,
 
     # Execution engine opunits
     OUTPUT = 6,
@@ -60,6 +53,39 @@ class OpUnit(enum.IntEnum):
     INSERT = 23,
     UPDATE = 24,
     DELETE = 25,
+    CREATE_INDEX = 26,
+    CREATE_INDEX_MAIN = 27,
+    PARALLEL_MERGE_HASHJOIN = 28,
+    PARALLEL_MERGE_AGGBUILD = 29,
+    PARALLEL_SORT_STEP = 30,
+    PARALLEL_SORT_MERGE_STEP = 31
+
+
+class ExecutionFeature(enum.IntEnum):
+    # Debugging information
+    QUERY_ID = 0,
+    PIPELINE_ID = 1,
+
+    # # features
+    NUM_FEATURES = 2,
+    FEATURES = 3,
+
+    # input features
+    EXEC_MODE = 4,
+    NUM_ROWS = 5,
+    KEY_SIZES = 6,
+    NUM_KEYS = 7,
+    EST_CARDINALITIES = 8,
+    MEM_FACTOR = 9,
+    NUM_LOOPS = 10,
+    NUM_CONCURRENT = 11,
+
+    # interval input features
+    TXNS_DEALLOCATED = 12,
+    TXNS_UNLINKED = 13,
+    BUFFER_UNLINKED = 14,
+    READONLY_UNLINKED = 15,
+    INTERVAL = 16,
 
 
 class ArithmeticFeature(enum.Enum):

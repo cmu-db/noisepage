@@ -3,11 +3,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_record.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * @@brief Abstract class for log providers
@@ -56,7 +57,7 @@ class AbstractLogProvider {
   T ReadValue() {
     T result;
     bool ret UNUSED_ATTRIBUTE = Read(&result, sizeof(T));
-    TERRIER_ASSERT(ret, "Reading of value failed");
+    NOISEPAGE_ASSERT(ret, "Reading of value failed");
     return result;
   }
 
@@ -67,4 +68,4 @@ class AbstractLogProvider {
    */
   std::pair<LogRecord *, std::vector<byte *>> ReadNextRecord();
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

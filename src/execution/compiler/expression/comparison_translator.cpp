@@ -1,39 +1,50 @@
 #include "execution/compiler/expression/comparison_translator.h"
-#include "execution/compiler/translator_factory.h"
 
-namespace terrier::execution::compiler {
+#include "common/error/exception.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/work_context.h"
+#include "parser/expression/comparison_expression.h"
+#include "spdlog/fmt/fmt.h"
 
-ComparisonTranslator::ComparisonTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen),
-      left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).Get(), codegen_)),
-      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).Get(), codegen_)) {}
+namespace noisepage::execution::compiler {
 
-ast::Expr *ComparisonTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  auto *left_expr = left_->DeriveExpr(evaluator);
-  auto *right_expr = right_->DeriveExpr(evaluator);
-  parsing::Token::Type op_token;
-  switch (expression_->GetExpressionType()) {
-    case terrier::parser::ExpressionType::COMPARE_EQUAL:
-      op_token = parsing::Token::Type::EQUAL_EQUAL;
-      break;
-    case terrier::parser::ExpressionType::COMPARE_GREATER_THAN:
-      op_token = parsing::Token::Type::GREATER;
-      break;
-    case terrier::parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
-      op_token = parsing::Token::Type::GREATER_EQUAL;
-      break;
-    case terrier::parser::ExpressionType::COMPARE_LESS_THAN:
-      op_token = parsing::Token::Type::LESS;
-      break;
-    case terrier::parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
-      op_token = parsing::Token::Type::LESS_EQUAL;
-      break;
-    case terrier::parser::ExpressionType::COMPARE_NOT_EQUAL:
-      op_token = parsing::Token::Type::BANG_EQUAL;
-      break;
-    default:
-      UNREACHABLE("Unsupported expression");
-  }
-  return codegen_->Compare(op_token, left_expr, right_expr);
+ComparisonTranslator::ComparisonTranslator(const parser::ComparisonExpression &expr,
+                                           CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {
+  // Prepare the left and right expression subtrees for translation.
+  compilation_context->Prepare(*expr.GetChild(0));
+  compilation_context->Prepare(*expr.GetChild(1));
 }
-}  // namespace terrier::execution::compiler
+
+ast::Expr *ComparisonTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  auto *codegen = GetCodeGen();
+  auto left_val = ctx->DeriveValue(*GetExpression().GetChild(0), provider);
+  auto right_val = ctx->DeriveValue(*GetExpression().GetChild(1), provider);
+
+  switch (const auto expr_type = GetExpression().GetExpressionType(); expr_type) {
+    case parser::ExpressionType::COMPARE_EQUAL:
+    case parser::ExpressionType::COMPARE_IN:
+      return codegen->Compare(parsing::Token::Type::EQUAL_EQUAL, left_val, right_val);
+    case parser::ExpressionType::COMPARE_GREATER_THAN:
+      return codegen->Compare(parsing::Token::Type::GREATER, left_val, right_val);
+    case parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+      return codegen->Compare(parsing::Token::Type::GREATER_EQUAL, left_val, right_val);
+    case parser::ExpressionType::COMPARE_LESS_THAN:
+      return codegen->Compare(parsing::Token::Type::LESS, left_val, right_val);
+    case parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+      return codegen->Compare(parsing::Token::Type::LESS_EQUAL, left_val, right_val);
+    case parser::ExpressionType::COMPARE_NOT_EQUAL:
+      return codegen->Compare(parsing::Token::Type::BANG_EQUAL, left_val, right_val);
+    case parser::ExpressionType::COMPARE_LIKE:
+      return codegen->Like(left_val, right_val);
+    case parser::ExpressionType::COMPARE_NOT_LIKE:
+      return codegen->NotLike(left_val, right_val);
+    default: {
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("Translation of comparison type {}", parser::ExpressionTypeToString(expr_type, true)));
+    }
+  }
+}
+
+}  // namespace noisepage::execution::compiler

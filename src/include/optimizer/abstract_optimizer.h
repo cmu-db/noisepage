@@ -5,29 +5,25 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-
-#include "parser/expression/abstract_expression.h"
-#include "parser/parser_defs.h"
-
-#include "settings/settings_manager.h"
-
 #include "optimizer/operator_node.h"
 #include "optimizer/property_set.h"
 #include "optimizer/statistics/stats_storage.h"
+#include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
 }
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 }
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
 class TransactionContext;
 }
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Struct defining information about the query.
@@ -114,4 +110,4 @@ class AbstractOptimizer {
   virtual void Reset() {}
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

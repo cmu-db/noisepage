@@ -4,11 +4,11 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::trafficcop {
+namespace noisepage::trafficcop {
 class TrafficCop;
 }
 
-namespace terrier::network {
+namespace noisepage::network {
 class PostgresPacketWriter;
 class ReadBuffer;
 
@@ -71,10 +71,6 @@ enum class NetworkMessageType : unsigned char {
   PG_PARAMETER_DESCRIPTION = 't',
   PG_ROW_DESCRIPTION = 'T',
   PG_DATA_ROW = 'D',
-  // Errors  // TODO(Matt): These should be their own enums. They're field types for ErrorResponse and NoticeResponse,
-  // not message types
-  PG_HUMAN_READABLE_ERROR = 'M',
-  PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
   PG_EXECUTE_COMMAND = 'E',
   PG_SYNC_COMMAND = 'S',
@@ -119,6 +115,8 @@ enum class QueryType : uint8_t {
   QUERY_DROP_TRIGGER,
   QUERY_DROP_SCHEMA,
   QUERY_DROP_VIEW,
+  // Misc (non-transactional)
+  QUERY_SET,
   // end of what we support in the traffic cop right now
   QUERY_RENAME,
   QUERY_ALTER,
@@ -129,7 +127,6 @@ enum class QueryType : uint8_t {
   // Misc
   QUERY_COPY,
   QUERY_ANALYZE,
-  QUERY_SET,
   QUERY_SHOW,
   QUERY_OTHER,
   QUERY_EXPLAIN,
@@ -146,4 +143,4 @@ enum class NetworkTransactionStateType : unsigned char {
 // postgres uses 0 for text, 1 for binary, so this is fine
 enum class FieldFormat : bool { text = false, binary = true };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

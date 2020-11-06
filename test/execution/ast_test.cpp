@@ -1,9 +1,9 @@
+#include "execution/ast/ast.h"
+
+#include "execution/ast/ast_node_factory.h"
 #include "execution/tpl_test.h"
 
-#include "execution/ast/ast.h"
-#include "execution/ast/ast_node_factory.h"
-
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 class AstTest : public TplTest {
  public:
@@ -20,7 +20,7 @@ class AstTest : public TplTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(AstTest, HierechyTest) {
+TEST_F(AstTest, HierarchyTest) {
   AstNodeFactory factory(Region());
 
 #define CHECK_NODE_IS_NOT_KIND(n) EXPECT_FALSE(node->Is<n>()) << "Node " << node->KindName() << " is not " << #n;
@@ -32,13 +32,13 @@ TEST_F(AstTest, HierechyTest) {
   /// Test declarations
   {
     AstNode *all_decls[] = {
-        factory.NewFieldDecl(EmptyPos(), Identifier(nullptr), nullptr),
+        factory.NewFieldDecl(EmptyPos(), Identifier(), nullptr),
         factory.NewFunctionDecl(
-            EmptyPos(), Identifier(nullptr),
+            EmptyPos(), Identifier(),
             factory.NewFunctionLitExpr(
                 factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr)),
-        factory.NewStructDecl(EmptyPos(), Identifier(nullptr), nullptr),
-        factory.NewVariableDecl(EmptyPos(), Identifier(nullptr), nullptr, nullptr),
+        factory.NewStructDecl(EmptyPos(), Identifier(), nullptr),
+        factory.NewVariableDecl(EmptyPos(), Identifier(), nullptr, nullptr),
     };
 
     for (const auto *node : all_decls) {
@@ -66,7 +66,7 @@ TEST_F(AstTest, HierechyTest) {
             factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr),
         factory.NewNilLiteral(EmptyPos()),
         factory.NewUnaryOpExpr(EmptyPos(), parsing::Token::Type::MINUS, nullptr),
-        factory.NewIdentifierExpr(EmptyPos(), Identifier(nullptr)),
+        factory.NewIdentifierExpr(EmptyPos(), Identifier()),
         factory.NewArrayType(EmptyPos(), nullptr, nullptr),
         factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr),
         factory.NewPointerType(EmptyPos(), nullptr),
@@ -93,7 +93,7 @@ TEST_F(AstTest, HierechyTest) {
   {
     AstNode *all_stmts[] = {
         factory.NewBlockStmt(EmptyPos(), EmptyPos(), util::RegionVector<Stmt *>(Region())),
-        factory.NewDeclStmt(factory.NewVariableDecl(EmptyPos(), Identifier(nullptr), nullptr, nullptr)),
+        factory.NewDeclStmt(factory.NewVariableDecl(EmptyPos(), Identifier(), nullptr, nullptr)),
         factory.NewExpressionStmt(factory.NewNilLiteral(EmptyPos())),
         factory.NewForStmt(EmptyPos(), nullptr, nullptr, nullptr, nullptr),
         factory.NewIfStmt(EmptyPos(), nullptr, nullptr, nullptr),
@@ -117,4 +117,4 @@ TEST_F(AstTest, HierechyTest) {
   }
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

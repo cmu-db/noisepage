@@ -2,10 +2,10 @@
 
 #include <chrono>  // NOLINT
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
- * A simple restartable timer
+ * A simple restartable timer.
  */
 template <typename ResolutionRatio = std::milli>
 class Timer {
@@ -16,12 +16,12 @@ class Timer {
   Timer() noexcept { Start(); }
 
   /**
-   * Start the timer
+   * Start the timer.
    */
   void Start() noexcept { start_ = Clock::now(); }
 
   /**
-   * Stop the timer
+   * Stop the timer.
    */
   void Stop() noexcept {
     stop_ = Clock::now();
@@ -30,24 +30,9 @@ class Timer {
   }
 
   /**
-   * Return the total number of elapsed time units
+   * @return The total number of elapsed time units.
    */
-  double Elapsed() const noexcept { return elapsed_; }
-
-  /**
-   * Time a function @em func
-   * @tparam F A no-arg void return functor-type
-   * @param fn The functor to time
-   * @return The elapsed time in whatever resolution ratio the caller wants
-   */
-  template <typename F>
-  static inline double TimeFunction(const F &fn) {
-    Timer<ResolutionRatio> timer;
-    timer.Start();
-    fn();
-    timer.StOp();
-    return timer.elapsed();
-  }
+  double GetElapsed() const noexcept { return elapsed_; }
 
  private:
   TimePoint start_;
@@ -57,9 +42,51 @@ class Timer {
 };
 
 /**
- * An RAII timer that begins timing upon construction and stops timing when the
- * object goes out of scope. The total elapsed time is written to the output
- * @em elapsed argument.
+ * Measure the time taken evaluation the functor @em func.
+ *
+ * @code
+ * auto time_ns = Time<std::nano>([] {
+ *   // your busy work ...
+ * });
+ * @endcode
+ *
+ * @tparam ResolutionRatio Timing resolution, std::milli, std::micro, std::nano etc.
+ * @tparam F A no-arg void return functor-type
+ * @param f The functor to time
+ * @return The elapsed time in whatever resolution ratio the caller wants
+ */
+template <typename ResolutionRatio, typename F>
+inline double Time(F &&f) {
+  Timer<ResolutionRatio> timer;
+  timer.Start();
+  f();
+  timer.Stop();
+  return timer.GetElapsed();
+}
+
+/**
+ * Measure the time taken to run the provided function @em f in nanoseconds.
+ * @tparam F A no-arg void return functor-type.
+ * @param fn The functor to time.
+ * @return The elapsed time in nanoseconds.
+ */
+template <typename F>
+inline double TimeNanos(F &&f) {
+  return Time<std::nano>(f);
+}
+
+/**
+ * An RAII timer that begins timing upon construction and stops timing when the object goes out of
+ * scope. The total elapsed time is written to the output @em elapsed argument.
+ *
+ * @code
+ * double t = 0.0;
+ * {
+ *   ScopedTimer<std::milli> timer(&t);
+ *   // Work ...
+ * }
+ * // 't' contains the number of elapsed milliseconds spent in the above block
+ * @endcode
  */
 template <typename ResolutionRatio = std::milli>
 class ScopedTimer {
@@ -75,7 +102,7 @@ class ScopedTimer {
 
   ~ScopedTimer() {
     timer_.Stop();
-    *elapsed_ = timer_.Elapsed();
+    *elapsed_ = timer_.GetElapsed();
   }
 
  private:
@@ -83,4 +110,4 @@ class ScopedTimer {
   double *elapsed_;
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

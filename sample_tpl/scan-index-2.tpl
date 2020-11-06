@@ -10,14 +10,22 @@ struct output_struct {
   col2: Integer
 }
 
-fun main(execCtx: *ExecutionContext) -> int64 {
+fun main(execCtx: *ExecutionContext) -> int {
+  var output_buffer = @resultBufferNew(execCtx)
   var res = 0
-  // Initialize index iterator
+
+  // Initialize the index iterator.
+  var test2_oid : int32
   var index : IndexIterator
+  var index_oid : int32
   var col_oids: [2]uint32
-  col_oids[0] = 1 // col1
-  col_oids[1] = 2 // col2
-  @indexIteratorInitBind(&index, execCtx, 1, "test_2", "index_2", col_oids)
+
+  col_oids[0] = @testCatalogLookup(execCtx, "test_2", "col1")
+  col_oids[1] = @testCatalogLookup(execCtx, "test_2", "col2")
+  test2_oid = @testCatalogLookup(execCtx, "test_2", "")
+  index_oid = @testCatalogIndexLookup(execCtx, "index_2")
+
+  @indexIteratorInit(&index, execCtx, 2, test2_oid, index_oid, col_oids)
 
   // Fill up index PR
   var index_pr = @indexIteratorGetPR(&index)
@@ -29,13 +37,14 @@ fun main(execCtx: *ExecutionContext) -> int64 {
     var table_pr = @indexIteratorGetTablePR(&index)
 
     // Output (note the reordering of the columns)
-    var out = @ptrCast(*output_struct, @outputAlloc(execCtx))
+    var out = @ptrCast(*output_struct, @resultBufferAllocRow(output_buffer))
     out.col1 = @prGetSmallInt(table_pr, 1)
     out.col2 = @prGetIntNull(table_pr, 0)
     res = res + 1
   }
   // Finalize output
   @indexIteratorFree(&index)
-  @outputFinalize(execCtx)
+  @resultBufferFinalize(output_buffer)
+  @resultBufferFree(output_buffer)
   return res
 }

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -6,15 +7,17 @@
 #include "common/gate.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
-#include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
-#include "storage/write_ahead_log/log_manager.h"
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::storage {
+class LogManager;
+}  // namespace noisepage::storage
+
+namespace noisepage::transaction {
 /**
  * A transaction manager maintains global state about all running transactions, and is responsible for creating,
  * committing and aborting transactions
@@ -40,7 +43,7 @@ class TransactionManager {
         buffer_pool_(buffer_pool),
         gc_enabled_(gc_enabled),
         log_manager_(log_manager) {
-    TERRIER_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
+    NOISEPAGE_ASSERT(timestamp_manager_ != DISABLED, "transaction manager cannot function without a timestamp manager");
   }
 
   /**
@@ -104,4 +107,4 @@ class TransactionManager {
                                        const storage::TupleAccessStrategy &accessor) const;
   void GCLastUpdateOnAbort(TransactionContext *txn);
 };
-}  // namespace terrier::transaction
+}  // namespace noisepage::transaction

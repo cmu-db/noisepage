@@ -4,7 +4,7 @@
 #include "loggers/execution_logger.h"
 #include "network/postgres/postgres_packet_writer.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 
 OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
 
@@ -22,6 +22,10 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
   for (uint32_t row = 0; row < num_tuples; row++) {
     uint32_t curr_offset = 0;
     for (uint16_t col = 0; col < schema_->GetColumns().size(); col++) {
+      auto alignment = execution::sql::ValUtil::GetSqlAlignment(schema_->GetColumns()[col].GetType());
+      if (!common::MathUtil::IsAligned(curr_offset, alignment)) {
+        curr_offset = static_cast<uint32_t>(common::MathUtil::AlignTo(curr_offset, alignment));
+      }
       // TODO(Amadou): Figure out to print other types.
       switch (schema_->GetColumns()[col].GetType()) {
         case type::TypeId::TINYINT:
@@ -70,7 +74,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
           if (val->is_null_) {
             ss << "NULL";
           } else {
-            ss.write(val->Content(), val->len_);
+            ss.write(val->GetContent(), val->GetLength());
             ss.put('\0');
           }
           break;
@@ -83,16 +87,19 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
     }
     ss << std::endl;
   }
-  EXECUTION_LOG_INFO("Ouptut batch {}: \n{}", printed_, ss.str());
+  EXECUTION_LOG_TRACE("Output batch {}: \n{}", printed_, ss.str());
   printed_++;
 }
 
 void OutputWriter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+  common::SpinLatch::ScopedSpinLatch guard(&latch_);
+
   // Write out the rows for this batch
   for (uint32_t row = 0; row < num_tuples; row++) {
     const byte *const tuple = tuples + row * tuple_size;
     out_->WriteDataRow(tuple, schema_->GetColumns(), field_formats_);
-    num_rows_++;
   }
+
+  num_rows_ += num_tuples;
 }
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

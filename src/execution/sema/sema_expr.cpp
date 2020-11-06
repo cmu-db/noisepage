@@ -1,14 +1,12 @@
-#include "execution/sema/sema.h"
-
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
-
+#include "execution/sema/sema.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::sema {
+namespace noisepage::execution::sema {
 
-void Sema::VisitBadExpr(ast::BadExpr *node) { TERRIER_ASSERT(false, "Bad expression in type checker!"); }
+void Sema::VisitBadExpr(ast::BadExpr *node) { NOISEPAGE_ASSERT(false, "Bad expression in type checker!"); }
 
 void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   ast::Type *left_type = Resolve(node->Left());
@@ -22,7 +20,6 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   switch (node->Op()) {
     case parsing::Token::Type::AND:
     case parsing::Token::Type::OR: {
-      // NOLINTNEXTLINE
       auto [result_type, left, right] = CheckLogicalOperands(node->Op(), node->Position(), node->Left(), node->Right());
       node->SetType(result_type);
       if (node->Left() != left) node->SetLeft(left);
@@ -37,7 +34,6 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
     case parsing::Token::Type::STAR:
     case parsing::Token::Type::SLASH:
     case parsing::Token::Type::PERCENT: {
-      // NOLINTNEXTLINE
       auto [result_type, left, right] =
           CheckArithmeticOperands(node->Op(), node->Position(), node->Left(), node->Right());
       node->SetType(result_type);
@@ -67,7 +63,6 @@ void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
     case parsing::Token::Type::GREATER_EQUAL:
     case parsing::Token::Type::LESS:
     case parsing::Token::Type::LESS_EQUAL: {
-      // NOLINTNEXTLINE
       auto [result_type, left, right] =
           CheckComparisonOperands(node->Op(), node->Position(), node->Left(), node->Right());
       node->SetType(result_type);
@@ -102,7 +97,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   }
 
   // Check argument count matches
-  if (!CheckArgCount(node, func_type->NumParams())) {
+  if (!CheckArgCount(node, func_type->GetNumParams())) {
     return;
   }
 
@@ -119,7 +114,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
 
   const auto &actual_args = node->Arguments();
   for (uint32_t arg_num = 0; arg_num < actual_args.size(); arg_num++) {
-    ast::Type *expected_type = func_type->Params()[arg_num].type_;
+    ast::Type *expected_type = func_type->GetParams()[arg_num].type_;
     ast::Expr *arg = actual_args[arg_num];
 
     // Function application simplifies to performing an assignment of the
@@ -143,7 +138,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   }
 
   // Looks good ...
-  node->SetType(func_type->ReturnType());
+  node->SetType(func_type->GetReturnType());
 }
 
 void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
@@ -163,8 +158,8 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
   FunctionSemaScope function_scope(this, node);
 
   // Declare function parameters in scope
-  for (const auto &param : func_type->Params()) {
-    CurrentScope()->Declare(param.name_, param.type_);
+  for (const auto &param : func_type->GetParams()) {
+    GetCurrentScope()->Declare(param.name_, param.type_);
   }
 
   // Recurse into the function body
@@ -174,19 +169,19 @@ void Sema::VisitFunctionLitExpr(ast::FunctionLitExpr *node) {
   // "return" statement only if the function has a "nil" return type. In this
   // case, we automatically insert a "return" statement.
   if (node->IsEmpty() || !ast::Stmt::IsTerminating(node->Body())) {
-    if (!func_type->ReturnType()->IsNilType()) {
+    if (!func_type->GetReturnType()->IsNilType()) {
       GetErrorReporter()->Report(node->Body()->RightBracePosition(), ErrorMessages::kMissingReturn);
       return;
     }
 
-    ast::ReturnStmt *empty_ret = GetContext()->NodeFactory()->NewReturnStmt(node->Position(), nullptr);
-    node->Body()->Statements().push_back(empty_ret);
+    auto *empty_ret = GetContext()->GetNodeFactory()->NewReturnStmt(node->Position(), nullptr);
+    node->Body()->AppendStatement(empty_ret);
   }
 }
 
 void Sema::VisitIdentifierExpr(ast::IdentifierExpr *node) {
   // Check the current context
-  if (auto *type = CurrentScope()->Lookup(node->Name())) {
+  if (auto *type = GetCurrentScope()->Lookup(node->Name())) {
     node->SetType(type);
     return;
   }
@@ -225,14 +220,14 @@ void Sema::VisitIndexExpr(ast::IndexExpr *node) {
   }
 
   if (auto *arr_type = obj_type->SafeAs<ast::ArrayType>()) {
-    node->SetType(arr_type->ElementType());
+    node->SetType(arr_type->GetElementType());
   } else {
-    node->SetType(obj_type->As<ast::MapType>()->ValueType());
+    node->SetType(obj_type->As<ast::MapType>()->GetValueType());
   }
 }
 
 void Sema::VisitLitExpr(ast::LitExpr *node) {
-  switch (node->LiteralKind()) {
+  switch (node->GetLiteralKind()) {
     case ast::LitExpr::LitKind::Nil: {
       node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Nil));
       break;
@@ -247,8 +242,14 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
       break;
     }
     case ast::LitExpr::LitKind::Int: {
-      // Literal integers default to int64
-      node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int64));
+      // TODO(WAN): get prashanth's blessing
+      // Literal integers default to int32 or int64 depending on their value
+      if (static_cast<int64_t>(std::numeric_limits<int>::lowest()) <= node->Int64Val() &&
+          node->Int64Val() <= static_cast<int64_t>(std::numeric_limits<int>::max())) {
+        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int32));
+      } else {
+        node->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Int64));
+      }
       break;
     }
     case ast::LitExpr::LitKind::String: {
@@ -260,7 +261,7 @@ void Sema::VisitLitExpr(ast::LitExpr *node) {
 
 void Sema::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
   // Resolve the type of the sub expression
-  ast::Type *expr_type = Resolve(node->Expression());
+  ast::Type *expr_type = Resolve(node->Input());
 
   if (expr_type == nullptr) {
     // Some error occurred
@@ -269,7 +270,7 @@ void Sema::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
 
   switch (node->Op()) {
     case parsing::Token::Type::BANG: {
-      if (!expr_type->IsBoolType()) {
+      if (!expr_type->IsBoolType() && !expr_type->IsSqlBooleanType()) {
         GetErrorReporter()->Report(node->Position(), ErrorMessages::kInvalidOperation, node->Op(), expr_type);
         return;
       }
@@ -292,7 +293,7 @@ void Sema::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
         return;
       }
 
-      node->SetType(expr_type->As<ast::PointerType>()->Base());
+      node->SetType(expr_type->As<ast::PointerType>()->GetBase());
       break;
     }
     case parsing::Token::Type::AMPERSAND: {
@@ -319,7 +320,7 @@ void Sema::VisitMemberExpr(ast::MemberExpr *node) {
   }
 
   if (auto *pointer_type = obj_type->SafeAs<ast::PointerType>()) {
-    obj_type = pointer_type->Base();
+    obj_type = pointer_type->GetBase();
   }
 
   if (!obj_type->IsStructType()) {
@@ -344,4 +345,4 @@ void Sema::VisitMemberExpr(ast::MemberExpr *node) {
   node->SetType(member_type);
 }
 
-}  // namespace terrier::execution::sema
+}  // namespace noisepage::execution::sema

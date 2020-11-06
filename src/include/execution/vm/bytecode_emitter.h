@@ -3,11 +3,10 @@
 #include <cstdint>
 #include <vector>
 
-#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeLabel;
 
@@ -17,21 +16,23 @@ class BytecodeLabel;
 class BytecodeEmitter {
  public:
   /**
-   * Construct a bytecode emitter instance that emits bytecode operations into
-   * the provided bytecode vector
-   * @param bytecode vector to emit bytecodes into
+   * Construct a bytecode emitter instance that encodes and writes bytecode instructions into the
+   * provided bytecode vector.
+   * @param bytecode The bytecode array to emit bytecode into.
    */
-  explicit BytecodeEmitter(std::vector<uint8_t> *bytecode) : bytecode_(bytecode) {}
+  explicit BytecodeEmitter(std::vector<uint8_t> *bytecode) : bytecode_(bytecode) {
+    NOISEPAGE_ASSERT(bytecode_ != nullptr, "NULL bytecode pointer provided to emitter");
+  }
 
   /**
-   * Cannot copy or move this class
+   * This class cannot be copied or moved.
    */
   DISALLOW_COPY_AND_MOVE(BytecodeEmitter);
 
   /**
-   * @return the current position of the emitter in the bytecode stream
+   * @return The current position of the emitter in the bytecode stream.
    */
-  std::size_t Position() const { return bytecode_->size(); }
+  std::size_t GetPosition() const { return bytecode_->size(); }
 
   // -------------------------------------------------------
   // Derefs
@@ -87,6 +88,13 @@ class BytecodeEmitter {
   void EmitAssignImm4(LocalVar dest, int32_t val);
 
   /**
+   * Emit assignment code for 8 byte values.
+   * @param dest destination variable
+   * @param val value to assign
+   */
+  void EmitAssignImm8(LocalVar dest, int64_t val);
+
+  /**
    * Emit assignment code for 4 byte float values.
    * @param dest destination variable
    * @param val value to assign
@@ -99,13 +107,6 @@ class BytecodeEmitter {
    * @param val value to assign
    */
   void EmitAssignImm8F(LocalVar dest, double val);
-
-  /**
-   * Emit assignment code for 8 byte values.
-   * @param dest destination variable
-   * @param val value to assign
-   */
-  void EmitAssignImm8(LocalVar dest, int64_t val);
 
   // -------------------------------------------------------
   // Jumps
@@ -204,7 +205,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1);
 
   /**
-   * Emit arbitrary bytecode with two operand
+   * Emit arbitrary bytecode with two operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -212,7 +213,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with three operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -221,7 +222,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with four operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -231,7 +232,7 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with five operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -243,7 +244,7 @@ class BytecodeEmitter {
             LocalVar operand_5);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with six operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -256,7 +257,7 @@ class BytecodeEmitter {
             LocalVar operand_5, LocalVar operand_6);
 
   /**
-   * Emit arbitrary bytecode with three operand
+   * Emit arbitrary bytecode with eight operands
    * @param bytecode bytecode to emit
    * @param operand_1 first operand
    * @param operand_2 second operand
@@ -284,128 +285,82 @@ class BytecodeEmitter {
   void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
             LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8);
 
+  /**
+   * Emit arbitrary bytecode with nine operands
+   * @param bytecode bytecode to emit
+   * @param operand_1 first operand
+   * @param operand_2 second operand
+   * @param operand_3 third operand
+   * @param operand_4 fourth operand
+   * @param operand_5 fifth operand
+   * @param operand_6 sixth operand
+   * @param operand_7 seventh operand
+   * @param operand_8 eighth operand
+   * @param operand_9 ninth operand
+   */
+  void Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3, LocalVar operand_4,
+            LocalVar operand_5, LocalVar operand_6, LocalVar operand_7, LocalVar operand_8, LocalVar operand_9);
+
   // -------------------------------------------------------
   // Special
   // -------------------------------------------------------
 
-  /**
-   * Iterate over all the states in the container
-   */
+  /** Initialize a SQL string from a raw string. */
+  void EmitInitString(LocalVar dest, LocalVar static_local_string, uint32_t string_len);
+
+  /** Iterate over all the states in the container. */
   void EmitThreadStateContainerIterate(LocalVar tls, LocalVar ctx, FunctionId iterate_fn);
 
-  /**
-   * Reset a thread state container with init and destroy functions
-   */
+  /** Reset a thread state container with init and destroy functions. */
   void EmitThreadStateContainerReset(LocalVar tls, LocalVar state_size, FunctionId init_fn, FunctionId destroy_fn,
                                      LocalVar ctx);
 
-  /**
-   * Emit TVI init code
-   * @param bytecode init bytecode
-   * @param iter TVI to initialize
-   * @param exec_ctx execution context
-   * @param table_oid oid of the sql table
-   * @param col_oids array of oids
-   * @param num_oids length of the array
-   */
-  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
+  /** Initialize a table iterator. */
+  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, LocalVar table_oid, LocalVar col_oids,
                          uint32_t num_oids);
 
-  /**
-   * Emit bytecode to add a column for scanning
-   * @param bytecode bytecode to emit
-   * @param iter TVI and index iterator
-   * @param col_oid oid of the column
-   */
-  void EmitAddCol(Bytecode bytecode, LocalVar iter, uint32_t col_oid);
+  /** Emit a parallel table scan. */
+  void EmitParallelTableScan(LocalVar table_oid, LocalVar col_oids, uint32_t num_oids, LocalVar query_state,
+                             LocalVar exec_ctx, FunctionId scan_fn);
 
-  /**
-   * Emit a parallel table scan
-   */
-  void EmitParallelTableScan(uint32_t db_oid, uint32_t table_oid, LocalVar ctx, LocalVar thread_states,
-                             FunctionId scan_fn);
+  /** Emit a register hook function. */
+  void EmitRegisterHook(LocalVar exec_ctx, LocalVar hook_idx, FunctionId hook_fn);
 
-  // Reading integer values from an iterator
-  /**
-   * Emit bytecode to read from a PCI
-   * @param bytecode PCIGet bytecode
-   * @param out destination variable
-   * @param pci PCI to read
-   * @param col_idx index of the column to read
-   */
-  void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, uint16_t col_idx);
+  /** Reading values from an iterator. */
+  void EmitVPIGet(Bytecode bytecode, LocalVar out, LocalVar vpi, uint32_t col_idx);
 
-  /**
-   * Filter a column in the iterator by a constant value
-   * @param bytecode filter bytecode to emit
-   * @param selected output variable for the number of selected values
-   * @param pci PCI to filter
-   * @param col_idx index of the iterator to filter
-   * @param type type of the column
-   * @param val filter value
-   */
-  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx, int8_t type,
-                           int64_t val);
+  /** Setting values in an iterator. */
+  void EmitVPISet(Bytecode bytecode, LocalVar vpi, LocalVar input, uint32_t col_idx);
 
-  /**
-   * Insert a filter flavor into the filter manager builder
-   */
-  void EmitFilterManagerInsertFlavor(LocalVar fmb, FunctionId func);
+  /** Insert a filter flavor into the filter manager builder. */
+  void EmitFilterManagerInsertFilter(LocalVar filter_manager, FunctionId func);
 
-  /**
-   * Lookup a single entry in the aggregation hash table
-   */
+  /** Lookup a single entry in the aggregation hash table. */
   void EmitAggHashTableLookup(LocalVar dest, LocalVar agg_ht, LocalVar hash, FunctionId key_eq_fn, LocalVar arg);
 
-  /**
-   * Process a batch of input into the aggregation hash table
-   */
-  void EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar iters, FunctionId hash_fn, FunctionId key_eq_fn,
-                                    FunctionId init_agg_fn, FunctionId merge_agg_fn);
+  /** Emit code to process a batch of input into the aggregation hash table. */
+  void EmitAggHashTableProcessBatch(LocalVar agg_ht, LocalVar vpi, uint32_t num_keys, LocalVar key_cols,
+                                    FunctionId init_agg_fn, FunctionId merge_agg_fn, LocalVar partitioned);
 
-  /**
-   * Emit move partition code
-   */
+  /** Emit code to move thread-local data into main agg table. */
   void EmitAggHashTableMovePartitions(LocalVar agg_ht, LocalVar tls, LocalVar aht_offset, FunctionId merge_part_fn);
 
-  /**
-   * Emit parallel partition scan code
-   */
+  /** Emit code to scan an agg table in parallel. */
   void EmitAggHashTableParallelPartitionedScan(LocalVar agg_ht, LocalVar context, LocalVar tls,
                                                FunctionId scan_part_fn);
 
-  /**
-   * Emit join table iteration code
-   */
-  void EmitJoinHashTableIterHasNext(LocalVar has_more, LocalVar iterator, FunctionId key_eq, LocalVar opaque_ctx,
-                                    LocalVar probe_tuple);
+  /** Initialize a sorter instance. */
+  void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar exec_ctx, FunctionId cmp_fn, LocalVar tuple_size);
 
-  /**
-   * Initialize a sorter instance
-   */
-  void EmitSorterInit(Bytecode bytecode, LocalVar sorter, LocalVar region, FunctionId cmp_fn, LocalVar tuple_size);
+  /** Initialize a CSV reader. */
+  // void EmitCSVReaderInit(LocalVar creader, LocalVar file_name, uint32_t file_name_len);
 
-  // --------------------------------------------
-  // Output calls
-  // --------------------------------------------
-  /**
-   * Emit output slot allocation code.
-   * @param bytecode output allocation bytecode
-   * @param exec_ctx to execution context
-   * @param dest destination variable
-   */
-  void EmitOutputAlloc(Bytecode bytecode, LocalVar exec_ctx, LocalVar dest);
+  /** ONLY FOR TESTING! */
+  void EmitTestCatalogLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len,
+                             LocalVar col_name, uint32_t col_name_len);
 
-  /**
-   * Generic helper method to emit output calls.
-   * @param bytecode bytecode to emit
-   * @param exec_ctx the execution context
-   */
-  void EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx);
-
-  // -------------------------------------------
-  // Index Calls
-  // -------------------------------------------
+  /** ONLY FOR TESTING! */
+  void EmitTestCatalogIndexLookup(LocalVar oid_var, LocalVar exec_ctx, LocalVar table_name, uint32_t table_name_len);
 
   /**
    * Emit code to initialize an index iterator
@@ -419,16 +374,7 @@ class BytecodeEmitter {
    * @param num_oids length of the array
    */
   void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t num_attrs,
-                             uint32_t table_oid, uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
-
-  /**
-   * Initialize a StringVal from a char array
-   * @param bytecode bytecode to emit
-   * @param out where to store the result
-   * @param length length of the string
-   * @param data pointer to the char array
-   */
-  void EmitInitString(Bytecode bytecode, LocalVar out, uint64_t length, uintptr_t data);
+                             LocalVar table_oid, LocalVar index_oid, LocalVar col_oids, uint32_t num_oids);
 
   /**
    * Emit bytecode to set value within a PR
@@ -448,67 +394,59 @@ class BytecodeEmitter {
   /**
    * Emit bytecode to init an Storage Interface
    */
-  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, uint32_t table_oid,
+  void EmitStorageInterfaceInit(Bytecode bytecode, LocalVar storage_interface, LocalVar exec_ctx, LocalVar table_oid,
                                 LocalVar col_oids, uint32_t num_oids, LocalVar need_indexes);
 
   /**
    * Emit bytecode to get an index PR for the storage_interface.
    */
-  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, uint32_t index_oid);
+  void EmitStorageInterfaceGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar storage_interface, LocalVar index_oid);
 
   /**
-   * Copy a scalar immediate value into the bytecode stream
-   * @tparam T type of the value
-   * @param val value to copy
-   * @return nothing
+   * Emits bytecode to abort the current transaction
    */
+  void EmitAbortTxn(Bytecode bytecode, LocalVar exec_ctx);
+
+  /**
+   * @brief Emits a concat instruction
+   * @param ret where to store the result of concat instruction
+   * @param exec_ctx execution context
+   * @param inputs string inputs to concat
+   * @param num_inputs length of inputs
+   */
+  void EmitConcat(LocalVar ret, LocalVar exec_ctx, LocalVar inputs, uint32_t num_inputs);
+
+ private:
+  /** Copy a scalar immediate value into the bytecode stream */
   template <typename T>
-  auto EmitScalarValue(T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
+  auto EmitScalarValue(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     bytecode_->insert(bytecode_->end(), sizeof(T), 0);
     *reinterpret_cast<T *>(&*(bytecode_->end() - sizeof(T))) = val;
   }
 
-  /**
-   * Emit a bytecode
-   * @param bytecode bytecode to emit
-   */
-  void EmitImpl(Bytecode bytecode) { EmitScalarValue(Bytecodes::ToByte(bytecode)); }
+  /** Emit a bytecode */
+  void EmitImpl(const Bytecode bytecode) { EmitScalarValue(Bytecodes::ToByte(bytecode)); }
 
-  /**
-   * Emit a local variable reference by encoding it into the bytecode stream
-   * @param local local variable to referenece
-   */
-  void EmitImpl(LocalVar local) { EmitScalarValue(local.Encode()); }
+  /** Emit a local variable reference by encoding it into the bytecode stream */
+  void EmitImpl(const LocalVar local) { EmitScalarValue(local.Encode()); }
 
-  /**
-   * Emit an integer immediate value
-   * @tparam T type of the value
-   * @param val value to emit
-   * @return nothing
-   */
+  /** Emit an integer immediate value */
   template <typename T>
-  auto EmitImpl(T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
+  auto EmitImpl(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>> {
     EmitScalarValue(val);
   }
 
-  /**
-   * Emit all arguments in sequence
-   * @tparam ArgTypes types of the arguments
-   * @param args list of arguments
-   */
+  /** Emit all arguments in sequence */
   template <typename... ArgTypes>
-  void EmitAll(ArgTypes... args) {
+  void EmitAll(const ArgTypes... args) {
     (EmitImpl(args), ...);
   }
 
-  /**
-   * Emits jump code
-   * @param label label to jump
-   */
+  /** Emit a jump instruction to the given label */
   void EmitJump(BytecodeLabel *label);
 
  private:
   std::vector<uint8_t> *bytecode_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

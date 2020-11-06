@@ -11,9 +11,8 @@
 #include "network/postgres/postgres_protocol_util.h"
 #include "parser/expression/constant_value_expression.h"
 #include "type/type_id.h"
-#include "util/time_util.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 std::vector<FieldFormat> PostgresPacketUtil::ReadFormatCodes(const common::ManagedPointer<ReadBufferView> read_buffer) {
   const auto num_formats = read_buffer->ReadValue<int16_t>();
@@ -54,7 +53,7 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       // Matt: as best as I can tell, we only expect 'TRUE' of 'FALSE' coming in here, rather than the 't' or 'f' that
       // results use. We can simplify this logic a bit if that assumption can be verified
       if (string == "TRUE") return {type, execution::sql::BoolVal(true)};
-      TERRIER_ASSERT(string == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
+      NOISEPAGE_ASSERT(string == "FALSE", "Input equals something other than TRUE or FALSE. We should check that.");
       return {type, execution::sql::BoolVal(false)};
     }
     case type::TypeId::TINYINT:
@@ -72,26 +71,26 @@ parser::ConstantValueExpression PostgresPacketUtil::TextValueToInternalValue(
       return {type, string_val.first, std::move(string_val.second)};
     }
     case type::TypeId::TIMESTAMP: {
-      const auto parse_result = util::TimeConvertor::ParseTimestamp(string);
-      TERRIER_ASSERT(parse_result.first, "Failed to parse the timestamp.");
-      return {type, execution::sql::TimestampVal(static_cast<uint64_t>(parse_result.second))};
+      const auto parse_result = execution::sql::Timestamp::FromString(string);
+      return {type, execution::sql::TimestampVal(parse_result)};
     }
     case type::TypeId::DATE: {
-      const auto parse_result = util::TimeConvertor::ParseDate(string);
-      TERRIER_ASSERT(parse_result.first, "Failed to parse the date.");
-      return {type, execution::sql::DateVal(static_cast<uint32_t>(parse_result.second))};
+      const auto parse_result = execution::sql::Date::FromString(string);
+      return {type, execution::sql::DateVal(parse_result)};
     }
     case type::TypeId::INVALID: {
       // Postgres may not have told us the type in Parse message. Right now in oltpbench the JDBC driver is doing this
       // with timestamps on inserting into the Customer table. Let's just try to parse it and fall back to VARCHAR?
-      const auto ts_parse_result = util::TimeConvertor::ParseTimestamp(string);
-      if (ts_parse_result.first) {
-        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(static_cast<uint64_t>(ts_parse_result.second))};
+      try {
+        const auto ts_parse_result = execution::sql::Timestamp::FromString(string);
+        return {type::TypeId::TIMESTAMP, execution::sql::TimestampVal(ts_parse_result)};
+      } catch (...) {
       }
       // try date?
-      const auto date_parse_result = util::TimeConvertor::ParseDate(string);
-      if (date_parse_result.first) {
-        return {type::TypeId::DATE, execution::sql::DateVal(static_cast<uint32_t>(date_parse_result.second))};
+      try {
+        const auto date_parse_result = execution::sql::Date::FromString(string);
+        return {type::TypeId::DATE, execution::sql::DateVal(date_parse_result)};
+      } catch (...) {
       }
       // fall back to VARCHAR?
       auto string_val = execution::sql::ValueUtil::CreateStringVal(string);
@@ -112,23 +111,23 @@ parser::ConstantValueExpression PostgresPacketUtil::BinaryValueToInternalValue(
 
   switch (type) {
     case type::TypeId::TINYINT: {
-      TERRIER_ASSERT(size == 1, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 1, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int8_t>())};
     }
     case type::TypeId::SMALLINT: {
-      TERRIER_ASSERT(size == 2, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 2, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int16_t>())};
     }
     case type::TypeId::INTEGER: {
-      TERRIER_ASSERT(size == 4, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 4, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int32_t>())};
     }
     case type::TypeId::BIGINT: {
-      TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Integer(read_buffer->ReadValue<int64_t>())};
     }
     case type::TypeId::DECIMAL: {
-      TERRIER_ASSERT(size == 8, "Unexpected size for this type.");
+      NOISEPAGE_ASSERT(size == 8, "Unexpected size for this type.");
       return {type, execution::sql::Real(read_buffer->ReadValue<double>())};
     }
     case type::TypeId::DATE: {
@@ -145,9 +144,9 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
     const common::ManagedPointer<ReadBufferView> read_buffer, const std::vector<type::TypeId> &param_types,
     const std::vector<FieldFormat> &param_formats) {
   const auto num_params = static_cast<size_t>(read_buffer->ReadValue<int16_t>());
-  TERRIER_ASSERT(num_params == param_types.size(),
-                 "We don't support type inference on parameters yet, so the size of param_types should equal the "
-                 "number of parameters.");
+  NOISEPAGE_ASSERT(num_params == param_types.size(),
+                   "We don't support type inference on parameters yet, so the size of param_types should equal the "
+                   "number of parameters.");
   std::vector<parser::ConstantValueExpression> params;
   params.reserve(num_params);
   for (uint16_t i = 0; i < num_params; i++) {
@@ -162,4 +161,4 @@ std::vector<parser::ConstantValueExpression> PostgresPacketUtil::ReadParameters(
   return params;
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

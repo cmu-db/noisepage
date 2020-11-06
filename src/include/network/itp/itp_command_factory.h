@@ -1,11 +1,12 @@
 #pragma once
 #include <memory>
+
 #include "network/itp/itp_network_commands.h"
 
 #define MAKE_ITP_COMMAND(type) \
   std::unique_ptr<ITPNetworkCommand>(reinterpret_cast<ITPNetworkCommand *>(new type(packet)))
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * ITPCommandFactory constructs ITPNetworkCommands that parses input packets to API calls
@@ -23,4 +24,4 @@ class ITPCommandFactory {
   virtual ~ITPCommandFactory() = default;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

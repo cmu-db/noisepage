@@ -7,56 +7,57 @@
 #include "execution/parsing/token.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 /**
- * Text Scanner
+ * Token scanner
  */
 class Scanner {
   static constexpr int32_t K_END_OF_INPUT = -1;
 
+  static constexpr int32_t K_NEW_LINE = '\n';
+
  public:
   /**
-   * Constructor
-   * @param source source code
-   * @param source_len length of the source code
+   * Construct a scanner over the given input string.
+   * @param source Input TPL source.
+   * @param source_len Length (in bytes) of input source.
    */
   Scanner(const char *source, uint64_t source_len);
 
   /**
-   * Constructor
-   * @param source code
+   * Construct a scanner over the given input string @em source.
+   * @param source The input TPL source.
    */
   explicit Scanner(const std::string &source);
 
   /**
-   * Prevent copy and move
+   * This class cannot be copied or moved.
    */
   DISALLOW_COPY_AND_MOVE(Scanner);
 
   /**
-   * Returns the current token type and advances the scanner
-   * @return the current token type
+   * Move the scanner ahead by one token, returning the token that was read.
    */
   Token::Type Next();
 
   /**
-   * @return the next token type.
+   * Peek at the next token without moving ahead.
    */
   Token::Type Peek() const { return next_.type_; }
 
   /**
-   * @return the current token type
+   * Return the token the scanner is currently pointing to.
    */
   Token::Type CurrentToken() const { return curr_.type_; }
 
   /**
-   * @return the current string literal
+   * If the current token is a literal, return the literal value.
    */
   const std::string &CurrentLiteral() const { return curr_.literal_; }
 
   /**
-   * @return the current source position
+   * Return the position (line and column) of the scanner.
    */
   const SourcePosition &CurrentPosition() const { return curr_.pos_; }
 
@@ -75,6 +76,14 @@ class Scanner {
     // Not at end, bump
     c0_ = source_[offset_++];
     c0_pos_.column_++;
+  }
+
+  // Advance until the given predicate returns false or we reach the end of the input
+  template <typename P>
+  void AdvanceUntil(P &&p) {
+    while (c0_ != K_END_OF_INPUT && !p(c0_)) {
+      Advance();
+    }
   }
 
   // Does the current character match the expected? If so, advance the scanner
@@ -109,7 +118,7 @@ class Scanner {
   // Scan a string literal
   Token::Type ScanString();
 
-  /*
+  /**
    * This struct describes information about a single token, including its type,
    * its position in the origin source, and its literal value if it should have
    * one.
@@ -121,11 +130,9 @@ class Scanner {
     std::string literal_;
   };
 
-  //////////////////////////////////////////////////////////////////////////////
-  ///
-  /// Static utilities
-  ///
-  //////////////////////////////////////////////////////////////////////////////
+  // -------------------------------------------------------
+  // Static utilities
+  // -------------------------------------------------------
 
   // Is the current character a character?
   static bool IsInRange(int32_t c, int32_t lower, int32_t upper) { return (c >= lower && c <= upper); }
@@ -156,4 +163,4 @@ class Scanner {
   TokenDesc next_;
 };
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

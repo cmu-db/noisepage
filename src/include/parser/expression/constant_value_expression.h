@@ -12,11 +12,11 @@
 #include "parser/expression/abstract_expression.h"
 #include "type/type_util.h"
 
-namespace terrier::binder {
+namespace noisepage::binder {
 class BindNodeVisitor;
 }
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 /**
  * ConstantValueExpression represents a constant, e.g. numbers, string literals.
@@ -96,7 +96,7 @@ class ConstantValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "ConstantValueExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "ConstantValueExpression should have 0 children");
     return Copy();
   }
 
@@ -110,7 +110,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @return copy of the underlying Val
    */
   execution::sql::BoolVal GetBoolVal() const {
-    TERRIER_ASSERT(std::holds_alternative<execution::sql::BoolVal>(value_), "Invalid variant type for Get.");
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::BoolVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::BoolVal>(value_);
   }
 
@@ -118,7 +118,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @return copy of the underlying Val
    */
   execution::sql::Integer GetInteger() const {
-    TERRIER_ASSERT(std::holds_alternative<execution::sql::Integer>(value_), "Invalid variant type for Get.");
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Integer>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::Integer>(value_);
   }
 
@@ -126,7 +126,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @return copy of the underlying Val
    */
   execution::sql::Real GetReal() const {
-    TERRIER_ASSERT(std::holds_alternative<execution::sql::Real>(value_), "Invalid variant type for Get.");
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::Real>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::Real>(value_);
   }
 
@@ -134,7 +134,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @return copy of the underlying Val
    */
   execution::sql::DateVal GetDateVal() const {
-    TERRIER_ASSERT(std::holds_alternative<execution::sql::DateVal>(value_), "Invalid variant type for Get.");
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::DateVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::DateVal>(value_);
   }
 
@@ -142,7 +142,7 @@ class ConstantValueExpression : public AbstractExpression {
    * @return copy of the underlying Val
    */
   execution::sql::TimestampVal GetTimestampVal() const {
-    TERRIER_ASSERT(std::holds_alternative<execution::sql::TimestampVal>(value_), "Invalid variant type for Get.");
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::TimestampVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::TimestampVal>(value_);
   }
 
@@ -152,7 +152,7 @@ class ConstantValueExpression : public AbstractExpression {
    * a pointer to the buffer in this CVE. In that case, do not destroy this CVE before the copied StringVal
    */
   execution::sql::StringVal GetStringVal() const {
-    TERRIER_ASSERT(std::holds_alternative<execution::sql::StringVal>(value_), "Invalid variant type for Get.");
+    NOISEPAGE_ASSERT(std::holds_alternative<execution::sql::StringVal>(value_), "Invalid variant type for Get.");
     return std::get<execution::sql::StringVal>(value_);
   }
 
@@ -227,7 +227,10 @@ class ConstantValueExpression : public AbstractExpression {
   template <typename T>
   T Peek() const;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
+
+  /** @return A string representation of this ConstantValueExpression. */
+  std::string ToString() const;
 
   /**
    * @return expression serialized to json
@@ -243,9 +246,9 @@ class ConstantValueExpression : public AbstractExpression {
   friend class binder::BindNodeVisitor; /* value_ may be modified, e.g., when parsing dates. */
   void Validate() const;
   std::variant<execution::sql::Val, execution::sql::BoolVal, execution::sql::Integer, execution::sql::Real,
-               execution::sql::Decimal, execution::sql::StringVal, execution::sql::DateVal,
+               execution::sql::DecimalVal, execution::sql::StringVal, execution::sql::DateVal,
                execution::sql::TimestampVal>
-      value_;
+      value_{execution::sql::Val(true)};
   std::unique_ptr<byte[]> buffer_ = nullptr;
 };
 
@@ -261,7 +264,7 @@ extern template ConstantValueExpression::ConstantValueExpression(const type::Typ
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
                                                                  const execution::sql::Real value);
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
-                                                                 const execution::sql::Decimal value);
+                                                                 const execution::sql::DecimalVal value);
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
                                                                  const execution::sql::StringVal value);
 extern template ConstantValueExpression::ConstantValueExpression(const type::TypeId type,
@@ -273,7 +276,7 @@ extern template void ConstantValueExpression::SetValue(const type::TypeId type, 
 extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::BoolVal value);
 extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Integer value);
 extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Real value);
-extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::Decimal value);
+extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DecimalVal value);
 extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::StringVal value);
 extern template void ConstantValueExpression::SetValue(const type::TypeId type, const execution::sql::DateVal value);
 extern template void ConstantValueExpression::SetValue(const type::TypeId type,
@@ -291,4 +294,4 @@ extern template execution::sql::Timestamp ConstantValueExpression::Peek() const;
 extern template std::string_view ConstantValueExpression::Peek() const;
 /// @endcond
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

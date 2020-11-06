@@ -1,15 +1,21 @@
 #include "execution/compiler/expression/star_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "execution/sql/value.h"
-#include "parser/expression/star_expression.h"
 
-namespace terrier::execution::compiler {
-StarTranslator::StarTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen) {}
+#include "common/error/exception.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/work_context.h"
+#include "spdlog/fmt/fmt.h"
 
-ast::Expr *StarTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
+namespace noisepage::execution::compiler {
+
+StarTranslator::StarTranslator(const parser::AbstractExpression &expr, CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {}
+
+ast::Expr *StarTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  auto *codegen = GetCodeGen();
   // TODO(Amadou): COUNT(*) will increment its counter regardless of the input we pass in.
   // So the value we return here does not matter. The StarExpression can just be replaced by a constant.
-  return codegen_->IntToSql(0);
+  return codegen->IntToSql(0);
 }
-};  // namespace terrier::execution::compiler
+
+}  // namespace noisepage::execution::compiler

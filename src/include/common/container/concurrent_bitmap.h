@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <memory>
+
 #include "common/allocator.h"
 #include "common/container/bitmap.h"
 #include "common/strong_typedef.h"
@@ -10,7 +11,7 @@
 static_assert(sizeof(std::atomic<uint8_t>) == sizeof(uint8_t), "unexpected std::atomic size for 8-bit ints");
 static_assert(sizeof(std::atomic<uint64_t>) == sizeof(uint64_t), "unexpected std::atomic size for 64-bit ints");
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * A RawConcurrentBitmap is a bitmap that does not have the compile-time
@@ -43,7 +44,7 @@ class RawConcurrentBitmap {
   static RawConcurrentBitmap *Allocate(const uint32_t num_bits) {
     uint32_t num_bytes = RawBitmap::SizeInBytes(num_bits);
     auto *result = AllocationUtil::AllocateAligned(num_bytes);
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
+    NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(result) % sizeof(uint64_t) == 0, "Allocate should be 64-bit aligned.");
     std::memset(result, 0, num_bytes);
     return reinterpret_cast<RawConcurrentBitmap *>(result);
   }
@@ -106,7 +107,7 @@ class RawConcurrentBitmap {
       return false;
     }
 
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(bits_) % sizeof(uint64_t) == 0, "bits_ should be 64-bit aligned.");
+    NOISEPAGE_ASSERT(reinterpret_cast<uintptr_t>(bits_) % sizeof(uint64_t) == 0, "bits_ should be 64-bit aligned.");
 
     const uint32_t num_bytes = RawBitmap::SizeInBytes(bitmap_num_bits);  // maximum number of bytes in the bitmap
     uint32_t byte_pos = start_pos / BYTE_SIZE;                           // current byte position
@@ -168,7 +169,8 @@ class RawConcurrentBitmap {
    */
   void UnsafeClear(const uint32_t num_bits) {
     auto size = RawBitmap::SizeInBytes(num_bits);
-    std::memset(bits_, 0, size);
+    // Recast bits_ as workaround for -Wclass-memaccess
+    std::memset(static_cast<void *>(bits_), 0, size);
   }
 
   // TODO(Tianyu): We will eventually need optimization for bulk checks and
@@ -188,7 +190,8 @@ class RawConcurrentBitmap {
    */
   template <class T>
   bool FindUnsetBit(uint32_t *const byte_pos, uint32_t *const bits_left) const {
-    TERRIER_ASSERT(*bits_left >= sizeof(T) * BYTE_SIZE, "Need to check that there are enough bits left before calling");
+    NOISEPAGE_ASSERT(*bits_left >= sizeof(T) * BYTE_SIZE,
+                     "Need to check that there are enough bits left before calling");
     // for a signed integer, -1 represents that all the bits are set
     T bits = reinterpret_cast<const std::atomic<T> *>(&bits_[*byte_pos])->load();
     if (bits == static_cast<T>(-1)) {
@@ -218,4 +221,4 @@ class RawConcurrentBitmap {
 // exact layout. Changes include marking a function as virtual, as that adds
 // a Vtable to the class layout,
 static_assert(sizeof(RawConcurrentBitmap) == 0, "Unexpected RawConcurrentBitmap layout!");
-}  // namespace terrier::common
+}  // namespace noisepage::common

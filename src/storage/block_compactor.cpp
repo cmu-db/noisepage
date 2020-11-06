@@ -6,12 +6,11 @@
 #include <utility>
 #include <vector>
 
-#include "storage/index/bwtree_index.h"
-#include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *deferred_action_manager,
                                             transaction::TransactionManager *txn_manager) {
   std::queue<RawBlock *> to_process = std::move(compaction_queue_);
@@ -78,8 +77,8 @@ bool BlockCompactor::EliminateGaps(CompactionGroup *cg) {
   for (auto &entry : cg->blocks_to_compact_) {
     RawBlock *block = entry.first;
     std::vector<uint32_t> &empty_slots = entry.second;
-    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(),
-                   "The block should be full to stop inserts from coming in");
+    NOISEPAGE_ASSERT(block->GetInsertHead() == layout.NumSlots(),
+                     "The block should be full to stop inserts from coming in");
 
     // We will loop through each block and figure out if we are safe to proceed with compaction and identify
     // any gaps
@@ -169,7 +168,7 @@ bool BlockCompactor::MoveTuple(CompactionGroup *cg, TupleSlot from, TupleSlot to
   // varlen value as not reclaimable so as to not double-free
   for (col_id_t varlen_col_id : layout.Varlens()) {
     // We know this to be true because the projection list has all columns
-    auto offset = static_cast<uint16_t>(!varlen_col_id - NUM_RESERVED_COLUMNS);
+    auto offset = static_cast<uint16_t>(varlen_col_id.UnderlyingValue() - NUM_RESERVED_COLUMNS);
     auto *entry = reinterpret_cast<VarlenEntry *>(record->Delta()->AccessWithNullCheck(offset));
     if (entry == nullptr) continue;
     if (entry->Size() <= VarlenEntry::InlineThreshold()) {
@@ -300,7 +299,7 @@ void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, Ar
     // Because this change does not change the logical content of the database, and reads of aligned qwords on
     // modern architectures are atomic anyways, this is still safe for possible concurrent readers. The deferred
     // event framework guarantees that readers will not read garbage.
-    // TODO(Tianyu): This guarantee is only true when we fix https://github.com/cmu-db/terrier/issues/402
+    // TODO(Tianyu): This guarantee is only true when we fix https://github.com/cmu-db/noisepage/issues/402
     if (entry.Size() > VarlenEntry::InlineThreshold())
       entry = VarlenEntry::Create(new_col.Values() + acc, entry.Size(), false);
     acc += entry.Size();
@@ -358,8 +357,8 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
     uint64_t dictionary_code = new_col_info.Indices()[i] = dictionary[entry];
 
     byte *dictionary_word = new_col.Values() + new_col.Offsets()[dictionary_code];
-    TERRIER_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
-                   "varlen entry should be equal to the dictionary word it is encoded as ");
+    NOISEPAGE_ASSERT(memcmp(dictionary_word, entry.Content(), entry.Size()) == 0,
+                     "varlen entry should be equal to the dictionary word it is encoded as ");
     // Similar to in CopyToArrowVarlen this is safe even when there are concurrent readers
     if (entry.Size() > VarlenEntry::InlineThreshold())
       entry = VarlenEntry::Create(dictionary_word, entry.Size(), false);
@@ -367,4 +366,4 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   *col = std::move(new_col_info);
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -5,73 +5,89 @@
 ################################################################################
 # TPL tests
 ################################################################################
+
 array.tpl,false,44
 array-iterate.tpl,false,110
+array-iterate-2.tpl,false,110
 call.tpl,false,70
-compare.tpl,false,1
+comments.tpl,false,46
+compare.tpl,false,200
+date-functions.tpl,false,0
 deref.tpl,false,404
-fib.tpl,false,6765
+fib.tpl,false,832040
+#function_pointer.tpl,false,20              Not working on tpl either
 if.tpl,false,2
 if-2.tpl,false,1
 if-3.tpl,false,100
 if-4.tpl,false,2
 loop.tpl,false,45
-loop2.tpl,false,1666683333
+loop2.tpl,false,-2099742443
 loop3.tpl,false,0
 loop4.tpl,false,166167000
+#map.tpl,false,10                           Not working on tpl either
 nil.tpl,false,0
+offsetof.tpl,false,54
 param.tpl,false,10
-pointer.tpl,false,10
 point.tpl,false,-20
-short-circuit.tpl,false,1
+pointer.tpl,false,10
+return-expr.tpl,false,15
+#return-val.tpl,false,44                    While it returns the right value, it throws some error. We weren't running with this before.
+return-sql.tpl,false,0
+#scope.tpl,false,3                          Scoping doesn't work in TPL
+#scope-2.tpl,false,42                       Scoping doesn't work in TPL
 simple.tpl,false,1
+short-circuit.tpl,false,1
+#sql-conversions.tpl,false,0                TODO(WAN): wtf Mac CI?
+sql-date.tpl,false,0
 struct.tpl,false,10
 struct-debug.tpl,false,100000
+struct-empty.tpl,false,0
 struct-field-use.tpl,false,30
 struct-nested.tpl,false,10
 struct-nested-2.tpl,false,10
+struct-padding.tpl,false,1500
 struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
-return-exp.tpl,false,2
-types/bools.tpl,false,6
 types/bigint.tpl,false,0
-types/int_aggregators.tpl,false,0
-types/real_aggregators.tpl,false,0
+types/bools.tpl,false,6
 types/dates.tpl,false,0
+#types/int_aggregators.tpl,false,           port this
 types/nulls.tpl,false,0
+#types/real_aggregators.tpl,false,          port this
 types/strings.tpl,false,0
 types/timestamps.tpl,false,0
-date-functions.tpl,false,0
-#scope.tpl,false,3 <Add after merging Wan's scoping PR>
-#scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
 
 ################################################################################
 # TPL SQL tests
 ################################################################################
 
 agg.tpl,true,10
-agg-vec.tpl,true,10
-agg-vec-filter.tpl,true,10
-static-agg.tpl,true,49995000
-distinct-agg.tpl,true,45
+#agg-vec.tpl,true,10                doesn't work on prashanth's branch
+#agg-vec-filter.tpl,true,10         doesn't work on prashanth's branch
 delete.tpl,true,0
+#deleter-2                          to port
+distinct-agg.tpl,true,45
+exec_params.tpl,true,37
 insert.tpl,true,11
-update.tpl,true,11
-join.tpl,true,0
-#parallel-join.tpl,true,0 <Parallel scan not yet supported>
-#parallel-scan.tpl,true,0 <Parallel scan not yet supported>
-scan-table.tpl,true,500
-scan-table-2.tpl,true,500
-scan-table-3.tpl,true,9950
-#scan-table-4.tpl,true,5 <Non deterministic>
+join.tpl,true,1000
+#join-index                         to port
+output1.tpl,true,500
+#parallel-agg.tpl,true,10           Doesn't work in TPL either
+parallel-join.tpl,true,500
+parallel-scan.tpl,true,500
 scan-alltypes.tpl,true,500
-scan-vpi-iter.tpl,true,500
-sort.tpl,true,2000
-sort-limit.tpl,true,100
-vec-filter.tpl,true,3000
-#output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1
 scan-index-2.tpl,true,1
 scan-index-3.tpl,true,32
-join-index.tpl,true,0
+scan-table.tpl,true,500
+scan-table-2.tpl,true,9950
+scan-table-3.tpl,true,10000
+#scan-table-4.tpl,                  Why do we have nondeterministic tests?
+scan-vpi-iter.tpl,true,500
+sort.tpl,true,2000
+sort-limit.tpl,true,11
+sql-null-check.tpl,true,0
+#static-agg.tpl                     ? what's up here
+vec-filter.tpl,true,2000
+#all of tpch is pending

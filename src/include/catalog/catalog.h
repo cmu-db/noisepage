@@ -8,18 +8,22 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
-#include "transaction/transaction_context.h"
+#include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::transaction {
+namespace noisepage::transaction {
+class TransactionContext;
 class TransactionManager;
-}
+}  // namespace noisepage::transaction
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class GarbageCollector;
-}
+class RecoveryManager;
+}  // namespace noisepage::storage
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
+
+class CatalogCache;
 class DatabaseCatalog;
 class CatalogAccessor;
 
@@ -38,7 +42,7 @@ class Catalog {
  public:
   /**
    * Initializes the Catalog object which creates the primary table for databases
-   * and bootstraps the default database ("terrier").  This also constructs the
+   * and bootstraps the default database ("noisepage").  This also constructs the
    * debootstrap logic (i.e. table deallocations) that gets deferred using the
    * action framework in the destructor.
    * @param txn_manager for spawning read-only transactions in destructors
@@ -119,10 +123,11 @@ class Catalog {
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
    * @param txn for all subsequent catalog queries
    * @param database in which this transaction is scoped
+   * @param cache CatalogCache object for this connection, or nullptr if disabled
    * @return a CatalogAccessor object for use with this transaction
    */
   std::unique_ptr<CatalogAccessor> GetAccessor(common::ManagedPointer<transaction::TransactionContext> txn,
-                                               db_oid_t database);
+                                               db_oid_t database, common::ManagedPointer<CatalogCache> cache);
 
   /**
    * @return Catalog's BlockStore
@@ -197,4 +202,4 @@ class Catalog {
    */
   std::function<void()> DeallocateDatabaseCatalog(DatabaseCatalog *dbc);
 };
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

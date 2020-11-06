@@ -1,9 +1,10 @@
 #pragma once
 
-#include <cstdint>
-#include <utility>
+#include <llvm/Support/Casting.h>
 
-#include "llvm/Support/Casting.h"
+#include <cstdint>
+#include <string>
+#include <utility>
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
@@ -12,7 +13,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 namespace sema {
 class Sema;
@@ -20,7 +21,9 @@ class Sema;
 
 namespace ast {
 
-// Top-level file node
+/**
+ * Top-level file node
+ */
 #define FILE_NODE(T) T(File)
 
 /**
@@ -82,9 +85,7 @@ namespace ast {
   FILE_NODE(T)         \
   STATEMENT_NODES(T)
 
-/**
- * Forward declare some base classes
- */
+// Forward declare some base classes
 class Decl;
 class Expr;
 class Stmt;
@@ -99,18 +100,23 @@ AST_NODES(FORWARD_DECLARE)
 
 // ---------------------------------------------------------
 // AST Node
-
 // ---------------------------------------------------------
+
 /**
  * The base class for all AST nodes. AST nodes are emphemeral, and thus, are
- * only allocated from regions. Once created, they are immutable only during
- * semantic checks - this is why you'll often see sema::Sema declared as a
- * friend class in some concrete node subclasses.
+ * only allocated from regions. This is because they are often allocated and
+ * de-allocated in a bulk-process, i.e., during parsing and compilation.
+ * AST nodes are effectively immutable after they've been constructed.
+ * The only exception is during semantic analysis where TPL types are filled in.
+ * This is why you'll often see sema::Sema declared as a friend class in some
+ * concrete node subclasses.
  *
- * All nodes have a "kind" that represents as an ID indicating the specific
- * kind of AST node it is (i.e., if it's an if-statement or a binary
- * expression). You can query the node for it's kind, but it's usually more
- * informative and clear to use the Is() method.
+ * All AST nodes have a "kind" that represents as an ID indicating the specific
+ * kind of AST node it is (i.e., if it's an if-statement, loop, or a binary
+ * expression). You can query the node for its kind, but it's usually more
+ * informative and clear to use the Is() method. We use kind instead of type to
+ * not confuse the type of TPL AST node it is, and its resolved TPL type as it
+ * appears in TPL code.
  */
 class AstNode : public util::RegionObject {
  public:
@@ -122,17 +128,17 @@ class AstNode : public util::RegionObject {
 #undef T
 
   /**
-   * @return the kind of this node
+   * @return The kind of this node.
    */
   Kind GetKind() const { return kind_; }
 
   /**
-   * @return the position in the source where this element was found
+   * @return The position in the source where this element was found.
    */
   const SourcePosition &Position() const { return pos_; }
 
   /**
-   * @return the name of this node. NOTE: this is mainly used in tests!
+   * @return The name of this node. NOTE: this is mainly used in tests!
    */
   const char *KindName() const {
 #define KIND_CASE(kind) \
@@ -168,7 +174,7 @@ class AstNode : public util::RegionObject {
    */
   template <typename T>
   T *As() {
-    TERRIER_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
+    NOISEPAGE_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
     return reinterpret_cast<T *>(this);
   }
 
@@ -181,7 +187,7 @@ class AstNode : public util::RegionObject {
    */
   template <typename T>
   const T *As() const {
-    TERRIER_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
+    NOISEPAGE_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
     return reinterpret_cast<const T *>(this);
   }
 
@@ -224,7 +230,7 @@ class AstNode : public util::RegionObject {
   AstNode(Kind kind, const SourcePosition &pos) : kind_(kind), pos_(pos) {}
 
  private:
-  // The kind of AST node
+  // The kind of AST node.
   Kind kind_;
 
   // The position in the original source where this node's underlying
@@ -233,7 +239,7 @@ class AstNode : public util::RegionObject {
 };
 
 /**
- * Represents a file
+ * Represents a file composed of a list of declarations.
  */
 class File : public AstNode {
  public:
@@ -246,20 +252,21 @@ class File : public AstNode {
       : AstNode(Kind::File, pos), decls_(std::move(decls)) {}
 
   /**
-   * @return Returns the list of declarations
+   * @return A const-view of the declarations making up the file.
    */
-  util::RegionVector<Decl *> &Declarations() { return decls_; }
+  const util::RegionVector<Decl *> &Declarations() const { return decls_; }
 
   /**
-   * Checks whether the given node is a File
-   * @param node node to check
-   * @return true iff given node is a File
+   * Is the given node an AST File? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a file; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::File;
   }
 
  private:
+  // The declarations.
   util::RegionVector<Decl *> decls_;
 };
 
@@ -285,31 +292,33 @@ class Decl : public AstNode {
       : AstNode(kind, pos), name_(name), type_repr_(type_repr) {}
 
   /**
-   * @return the name of the declared object
+   * @return The name of the declaration as it appears in code.
    */
   Identifier Name() const { return name_; }
 
   /**
-   * @return the type representation.
+   * @return The type representation of the declaration. May be null for variables.
    */
   Expr *TypeRepr() const { return type_repr_; }
 
   /**
-   * Checks whether the given node is a Declaration.
-   * @param node node to check
-   * @return true iff given node is a Declaration
+   * Is the given node an AST Declaration? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a declaration; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() >= Kind::FieldDecl && node->GetKind() <= Kind::VariableDecl;
   }
 
  private:
+  // The name of the declaration.
   Identifier name_;
+  // The unresolved type representation of the declaration.
   Expr *type_repr_;
 };
 
 /**
- * A generic declaration of a function argument or a field in a struct
+ * A generic declaration of a function argument or a field in a struct.
  */
 class FieldDecl : public Decl {
  public:
@@ -323,9 +332,9 @@ class FieldDecl : public Decl {
       : Decl(Kind::FieldDecl, pos, name, type_repr) {}
 
   /**
-   * Checks whether the given node is a FieldDecl.
-   * @param node node to check
-   * @return true iff given node is a FieldDecl
+   * Is the given node an AST field? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a field; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::FieldDecl;
@@ -333,7 +342,7 @@ class FieldDecl : public Decl {
 };
 
 /**
- * A function declaration
+ * A function declaration.
  */
 class FunctionDecl : public Decl {
  public:
@@ -346,40 +355,53 @@ class FunctionDecl : public Decl {
   FunctionDecl(const SourcePosition &pos, Identifier name, FunctionLitExpr *func);
 
   /**
-   * @return Return the function literal
+   * @return The function literal defining the body of the function declaration.
    */
   FunctionLitExpr *Function() const { return func_; }
 
   /**
-   * Checks whether the given node is a FunctionDecl.
-   * @param node node to check
-   * @return true iff given node is a FunctionDecl
+   * Is the given node a function declaration? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a function declaration; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::FunctionDecl;
   }
 
  private:
+  // The function definition (signature and body).
   FunctionLitExpr *func_;
 };
 
 /**
- * A structure declaration
+ * A structure declaration.
  */
 class StructDecl : public Decl {
  public:
   /**
-   * Constructor
-   * @param pos source position
-   * @param name identifier
-   * @param type_repr struct type representation (list of fields).
+   * Create a new structure declaration.
+   * @param pos The position in the source where the declaration was defined.
+   * @param name The name of the structure.
+   * @param type_repr The type representation of the structure.
    */
   StructDecl(const SourcePosition &pos, Identifier name, StructTypeRepr *type_repr);
 
   /**
-   * Checks whether the given node is a Declaration.
-   * @param node node to check
-   * @return true iff given node is a Declaration
+   * @return The number of fields in the declaration.
+   */
+  uint32_t NumFields() const;
+
+  /**
+   * @return The field at the given index within the structure declaration. Note: this method does
+   *         not perform any bounds checking. It is the responsibility of the caller to access only
+   *         valid fields.
+   */
+  ast::FieldDecl *GetFieldAt(uint32_t field_idx) const;
+
+  /**
+   * Is the given node a struct declaration? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a struct declaration; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::StructDecl;
@@ -387,7 +409,7 @@ class StructDecl : public Decl {
 };
 
 /**
- * A variable declaration
+ * A variable declaration.
  */
 class VariableDecl : public Decl {
  public:
@@ -402,24 +424,25 @@ class VariableDecl : public Decl {
       : Decl(Kind::VariableDecl, pos, name, type_repr), init_(init) {}
 
   /**
-   * @return Initial value
+   * @return The initial value assigned to the variable, if one was provided; null otherwise.
    */
   Expr *Initial() const { return init_; }
 
   /**
-   * @return Did the variable declaration come with an explicit type i.e., var x:int = 0?
+   * @return True if the variable declaration came with an explicit type, i.e., var v: int = 0.
+   *         False if no explicit type was provided.
    */
   bool HasTypeDecl() const { return TypeRepr() != nullptr; }
 
   /**
-   * @return Did the variable declaration come with an initial value?
+   * @return True if the variable is assigned an initial value; false otherwise.
    */
   bool HasInitialValue() const { return init_ != nullptr; }
 
   /**
-   * Checks whether the given node is a VariableDecl.
-   * @param node node to check
-   * @return true iff given node is a VariableDecl.
+   * Is the given node a variable declaration? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a variable declaration; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::VariableDecl;
@@ -427,6 +450,7 @@ class VariableDecl : public Decl {
 
  private:
   friend class sema::Sema;
+
   void SetInitial(ast::Expr *initial) { init_ = initial; }
 
  private:
@@ -438,7 +462,7 @@ class VariableDecl : public Decl {
 // ---------------------------------------------------------
 
 /**
- * Base class for all statement nodes
+ * Base class for all statement nodes.
  */
 class Stmt : public AstNode {
  public:
@@ -450,16 +474,16 @@ class Stmt : public AstNode {
   Stmt(Kind kind, const SourcePosition &pos) : AstNode(kind, pos) {}
 
   /**
-   * Determines if the given stmt, the last in a statement list, is terminating
-   * @param stmt The statement node to check
-   * @return True if statement has a terminator; false otherwise
+   * Determines if the provided statement, the last in a statement list, is terminating.
+   * @param stmt The statement node to check.
+   * @return True if statement has a terminator; false otherwise.
    */
   static bool IsTerminating(Stmt *stmt);
 
   /**
-   * Checks whether the given node is a Stmt.
-   * @param node node to check
-   * @return true iff given node is a Stmt.
+   * Is the given node an AST statement? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a statement; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() >= Kind::AssignmentStmt && node->GetKind() <= Kind::ReturnStmt;
@@ -467,7 +491,7 @@ class Stmt : public AstNode {
 };
 
 /**
- * An assignment, dest = source
+ * An assignment, dest = source.
  */
 class AssignmentStmt : public Stmt {
  public:
@@ -481,19 +505,19 @@ class AssignmentStmt : public Stmt {
       : Stmt(AstNode::Kind::AssignmentStmt, pos), dest_(dest), src_(src) {}
 
   /**
-   * @return the destination of the assignment
+   * @return The target/destination of the assignment.
    */
   Expr *Destination() { return dest_; }
 
   /**
-   * @return the source of the assignment
+   * @return The source of the assignment.
    */
   Expr *Source() { return src_; }
 
   /**
-   * Checks whether the given node is a AssignmentStmt.
-   * @param node node to check
-   * @return true iff given node is a AssignmentStmt.
+   * Is the given node an AST assignment? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a assignment; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::AssignmentStmt;
@@ -506,12 +530,14 @@ class AssignmentStmt : public Stmt {
   void SetSource(Expr *source) { src_ = source; }
 
  private:
+  // The destination of the assignment.
   Expr *dest_;
+  // The source of the assignment.
   Expr *src_;
 };
 
 /**
- * A block of statements
+ * A block of statements.
  */
 class BlockStmt : public Stmt {
  public:
@@ -525,47 +551,57 @@ class BlockStmt : public Stmt {
       : Stmt(Kind::BlockStmt, pos), rbrace_pos_(rbrace_pos), statements_(std::move(statements)) {}
 
   /**
-   * @return the list of statements
+   * @return The statements making up the block.
    */
-  util::RegionVector<Stmt *> &Statements() { return statements_; }
+  const util::RegionVector<Stmt *> &Statements() const { return statements_; }
 
   /**
-   * @return the position of the right brace
+   * Append a new statement to the list of statements.
+   * @param stmt The statement to append.
+   */
+  void AppendStatement(Stmt *stmt) { statements_.emplace_back(stmt); }
+
+  /**
+   * @return The position of the right-brace.
    */
   const SourcePosition &RightBracePosition() const { return rbrace_pos_; }
 
   /**
-   * Appends a statement to the block
-   * @param stmt the statement to append
+   * Set the right-brace position for the end of the block.
+   * @param pos The right brace position.
    */
-  void AppendStmt(Stmt *stmt) { statements_.emplace_back(stmt); }
+  void SetRightBracePosition(const SourcePosition &pos) { rbrace_pos_ = pos; }
 
   /**
-   * @return whether this is an empty block.
+   * @return True if the block is empty; false otherwise.
    */
   bool IsEmpty() const { return statements_.empty(); }
 
   /**
-   * @return the last statement is the block
+   * @return The last statement in the block; null if the block is empty;
    */
-  Stmt *LastStmt() { return (IsEmpty() ? nullptr : statements_.back()); }
+  Stmt *GetLast() const { return (IsEmpty() ? nullptr : statements_.back()); }
 
   /**
-   * Checks whether the given node is a BlockStmt.
-   * @param node node to check
-   * @return true iff given node is a BlockStmt.
+   * Is the given node an AST statement list? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a statement list; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::BlockStmt;
   }
 
  private:
-  const SourcePosition rbrace_pos_;
+  friend class sema::Sema;
+
+  // The right brace position.
+  SourcePosition rbrace_pos_;
+  // The list of statements.
   util::RegionVector<Stmt *> statements_;
 };
 
 /**
- * A statement that is just a declaration
+ * The bridge between statements and declarations.
  */
 class DeclStmt : public Stmt {
  public:
@@ -576,25 +612,26 @@ class DeclStmt : public Stmt {
   explicit DeclStmt(Decl *decl) : Stmt(Kind::DeclStmt, decl->Position()), decl_(decl) {}
 
   /**
-   * @return the declaration
+   * @return The wrapped declaration.
    */
   Decl *Declaration() const { return decl_; }
 
   /**
-   * Checks whether the given node is a DeclStmt.
-   * @param node node to check
-   * @return true iff given node is a DeclStmt.
+   * Is the given node an AST declaration? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a declaration; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::DeclStmt;
   }
 
  private:
+  // The wrapped declaration.
   Decl *decl_;
 };
 
 /**
- * The bridge between statements and expressions
+ * The bridge between statements and expressions.
  */
 class ExpressionStmt : public Stmt {
  public:
@@ -604,20 +641,21 @@ class ExpressionStmt : public Stmt {
   explicit ExpressionStmt(Expr *expr);
 
   /**
-   * @return the expression
+   * @return The wrapped expression.
    */
   Expr *Expression() { return expr_; }
 
   /**
-   * Checks whether the given node is an ExpressionStmt.
-   * @param node node to check
-   * @return true iff given node is an ExpressionStmt.
+   * Is the given node an AST expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ExpressionStmt;
   }
 
  private:
+  // The wrapped expression.
   Expr *expr_;
 };
 
@@ -635,25 +673,26 @@ class IterationStmt : public Stmt {
   IterationStmt(const SourcePosition &pos, AstNode::Kind kind, BlockStmt *body) : Stmt(kind, pos), body_(body) {}
 
   /**
-   * @return the body of the declaration
+   * @return The block making up the body of the iteration.
    */
   BlockStmt *Body() const { return body_; }
 
   /**
-   * Checks whether the given node is an IterationStmt.
-   * @param node node to check
-   * @return true iff given node is an IterationStmt.
+   * Is the given node an AST iteration? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an iteration; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() >= Kind::ForStmt && node->GetKind() <= Kind::ForInStmt;
   }
 
  private:
+  // The body of the iteration.
   BlockStmt *body_;
 };
 
 /**
- * A for statement
+ * A vanilla for-statement.
  */
 class ForStmt : public IterationStmt {
  public:
@@ -669,24 +708,24 @@ class ForStmt : public IterationStmt {
       : IterationStmt(pos, AstNode::Kind::ForStmt, body), init_(init), cond_(cond), next_(next) {}
 
   /**
-   * @return the initialization stmt
+   * @return The initialization statement(s). Can be null.
    */
   Stmt *Init() const { return init_; }
 
   /**
-   * @return the condition expr
+   * @return The loop condition. Can be null if infinite loop.
    */
   Expr *Condition() const { return cond_; }
 
   /**
-   * @return the update stmt
+   * @return The advancement statement(s). Can be null.
    */
   Stmt *Next() const { return next_; }
 
   /**
-   * Checks whether the given node is an ForStmt.
-   * @param node node to check
-   * @return true iff given node is an ForStmt.
+   * Is the given node an AST for loop? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a for loop; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ForStmt;
@@ -699,7 +738,15 @@ class ForStmt : public IterationStmt {
 };
 
 /**
- * A range for statement
+ * A range for statement.
+ *
+ * @code
+ * for (row in table) {
+ *   // body
+ * }
+ * @endcode
+ *
+ * 'row' is the target and 'table' is the iterable object in a for-in statement.
  */
 class ForInStmt : public IterationStmt {
  public:
@@ -714,19 +761,19 @@ class ForInStmt : public IterationStmt {
       : IterationStmt(pos, AstNode::Kind::ForInStmt, body), target_(target), iter_(iter) {}
 
   /**
-   * @return target variable
+   * @return The loop iteration variable.
    */
   Expr *Target() const { return target_; }
 
   /**
-   * @return container over which to iterate
+   * @return The iterable.
    */
-  Expr *Iter() const { return iter_; }
+  Expr *Iterable() const { return iter_; }
 
   /**
-   * Checks whether the given node is an ForInStmt.
-   * @param node node to check
-   * @return true iff given node is an ForInStmt.
+   * Is the given node an AST for-in loop? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a for-in loop; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ForInStmt;
@@ -738,7 +785,7 @@ class ForInStmt : public IterationStmt {
 };
 
 /**
- * An if-then-else statement
+ * An if-then-else statement.
  */
 class IfStmt : public Stmt {
  public:
@@ -753,29 +800,29 @@ class IfStmt : public Stmt {
       : Stmt(Kind::IfStmt, pos), cond_(cond), then_stmt_(then_stmt), else_stmt_(else_stmt) {}
 
   /**
-   * @return if condition
+   * @return The if-condition.
    */
-  Expr *Condition() { return cond_; }
+  Expr *Condition() const { return cond_; }
 
   /**
-   * @return then stmt
+   * @return The block of statements if the condition is true.
    */
-  BlockStmt *ThenStmt() { return then_stmt_; }
+  BlockStmt *ThenStmt() const { return then_stmt_; }
 
   /**
-   * @return else stmt
+   * @return The else statement.
    */
-  Stmt *ElseStmt() { return else_stmt_; }
+  Stmt *ElseStmt() const { return else_stmt_; }
 
   /**
-   * @return whether there is an else stmt
+   * @return True if there is an else statement; false otherwise.
    */
   bool HasElseStmt() const { return else_stmt_ != nullptr; }
 
   /**
-   * Checks whether the given node is an IfStmt.
-   * @param node node to check
-   * @return true iff given node is an IfStmt.
+   * Is the given node an AST if statement? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an if statement; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::IfStmt;
@@ -783,19 +830,23 @@ class IfStmt : public Stmt {
 
  private:
   friend class sema::Sema;
+
   void SetCondition(Expr *cond) {
-    TERRIER_ASSERT(cond != nullptr, "Cannot set null condition");
+    NOISEPAGE_ASSERT(cond != nullptr, "Cannot set null condition");
     cond_ = cond;
   }
 
  private:
+  // The if condition.
   Expr *cond_;
+  // The block of statements if the condition is true.
   BlockStmt *then_stmt_;
+  // The else statement.
   Stmt *else_stmt_;
 };
 
 /**
- * A return statement
+ * A return statement.
  */
 class ReturnStmt : public Stmt {
  public:
@@ -807,26 +858,25 @@ class ReturnStmt : public Stmt {
   ReturnStmt(const SourcePosition &pos, Expr *ret) : Stmt(Kind::ReturnStmt, pos), ret_(ret) {}
 
   /**
-   * @return the returned expression
+   * @return The expression representing the value that's to be returned.
    */
-  Expr *Ret() { return ret_; }
+  Expr *Ret() const { return ret_; }
 
   /**
-   * Sets the return statement. This is used for casting.
-   * @param new_ret new return statement.
-   */
-  void SetReturn(Expr *new_ret) { ret_ = new_ret; }
-
-  /**
-   * Checks whether the given node is an ReturnStmt.
-   * @param node node to check
-   * @return true iff given node is an ReturnStmt.
+   * Is the given node a return statement? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a return statement; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ReturnStmt;
   }
 
  private:
+  friend class sema::Sema;
+
+  void SetRet(ast::Expr *ret) { ret_ = ret; }
+
+  // The expression representing the value that's returned.
   Expr *ret_;
 };
 
@@ -859,56 +909,59 @@ class Expr : public AstNode {
   Expr(Kind kind, const SourcePosition &pos, Type *type = nullptr) : AstNode(kind, pos), type_(type) {}
 
   /**
-   * @return the type of the expression
+   * @return The resolved TPL type of the expression. NULL if type checking has yet to run.
    */
   Type *GetType() { return type_; }
 
   /**
-   * @return the type of the expression
+   * @return The resolved TPL type of the expression. NULL if type checking has yet to run.
    */
   const Type *GetType() const { return type_; }
 
   /**
-   * Sets the expression type
-   * @param type type of the expression
+   * Set the type of the expression. Usually performed during semantic type checking.
+   * @param type The type to set.
    */
   void SetType(Type *type) { type_ = type; }
 
   /**
-   * @return Is this a nil literal?
+   * @return True if this expression is a 'nil' literal; false otherwise.
    */
   bool IsNilLiteral() const;
 
   /**
-   * @return Is this a string literal?
+   * @return True if this expression is a boolean literal (true or false); false otherwise.
+   */
+  bool IsBoolLiteral() const;
+
+  /**
+   * @return True if this expression is a string literal, an explicit quoted string appearing in TPL
+   *         code; false otherwise.
    */
   bool IsStringLiteral() const;
 
   /**
-   * @return Is this an integer literal
+   * @return True if this expression is an integer literal, an explicit number appearing in TPL
+   *         code; false otherwise.
    */
   bool IsIntegerLiteral() const;
 
   /**
-   * @return Is this a boolean literal
-   */
-  bool IsBooleanLiteral() const;
-
-  /**
-   * Checks whether the given node is an Expr.
-   * @param node node to check
-   * @return true iff given node is an Expr.
+   * Is the given node an AST expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() >= Kind::BadExpr && node->GetKind() <= Kind::StructTypeRepr;
   }
 
  private:
+  // The resolved TPL type. Null if type checking has not run.
   Type *type_;
 };
 
 /**
- * A bad expression
+ * A bad expression.
  */
 class BadExpr : public Expr {
  public:
@@ -929,7 +982,7 @@ class BadExpr : public Expr {
 };
 
 /**
- * A binary expression with non-null left and right children and an operator
+ * A binary expression with non-null left and right children and an operator.
  */
 class BinaryOpExpr : public Expr {
  public:
@@ -944,24 +997,24 @@ class BinaryOpExpr : public Expr {
       : Expr(Kind::BinaryOpExpr, pos), op_(op), left_(left), right_(right) {}
 
   /**
-   * @return the binary operator
+   * @return The parsing token representing the kind of binary operation. +, -, etc.
    */
-  parsing::Token::Type Op() { return op_; }
+  parsing::Token::Type Op() const { return op_; }
 
   /**
-   * @return the lhs
+   * @return The left input to the binary expression.
    */
-  Expr *Left() { return left_; }
+  Expr *Left() const { return left_; }
 
   /**
-   * @return the rhs
+   * @return The right input to the binary expression.
    */
-  Expr *Right() { return right_; }
+  Expr *Right() const { return right_; }
 
   /**
-   * Checks whether the given node is an BinaryOpExpr.
-   * @param node node to check
-   * @return true iff given node is an BinaryOpExpr.
+   * Is the given node a binary expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a binary expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::BinaryOpExpr;
@@ -970,21 +1023,13 @@ class BinaryOpExpr : public Expr {
  private:
   friend class sema::Sema;
 
-  /**
-   * Sets the lhs
-   * @param left new lhs
-   */
   void SetLeft(Expr *left) {
-    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
+    NOISEPAGE_ASSERT(left != nullptr, "Left cannot be null!");
     left_ = left;
   }
 
-  /**
-   * Sets the rhs
-   * @param right new rhs
-   */
   void SetRight(Expr *right) {
-    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
+    NOISEPAGE_ASSERT(right != nullptr, "Right cannot be null!");
     right_ = right;
   }
 
@@ -995,7 +1040,7 @@ class BinaryOpExpr : public Expr {
 };
 
 /**
- * A function call expression
+ * A function call expression.
  */
 class CallExpr : public Expr {
  public:
@@ -1021,34 +1066,39 @@ class CallExpr : public Expr {
       : Expr(Kind::CallExpr, func->Position()), func_(func), args_(std::move(args)), call_kind_(call_kind) {}
 
   /**
-   * @return the name of the function this node is calling
+   * @return The name of the function to call.
    */
   Identifier GetFuncName() const;
 
   /**
-   * @return the function we're calling as an expression node
+   * @return The function that's to be called.
    */
-  Expr *Function() { return func_; }
+  Expr *Function() const { return func_; }
 
   /**
-   * @return a reference to the arguments
+   * @return A const-view of the arguments to the function.
    */
   const util::RegionVector<Expr *> &Arguments() const { return args_; }
 
   /**
-   * @return the number of arguments to the function this node is calling
+   * @return The number of call arguments.
    */
   uint32_t NumArgs() const { return static_cast<uint32_t>(args_.size()); }
 
   /**
-   * @return the kind of call this node represents
+   * @return The kind of call, either regular or a call to a builtin function.
    */
   CallKind GetCallKind() const { return call_kind_; }
 
   /**
-   * Checks whether the given node is an CallExpr.
-   * @param node node to check
-   * @return true iff given node is an CallExpr.
+   * @return True if the call is to a builtin function; false otherwise.
+   */
+  bool IsBuiltinCall() const { return call_kind_ == CallKind::Builtin; }
+
+  /**
+   * Is the given node a call? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a call; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::CallExpr;
@@ -1057,30 +1107,24 @@ class CallExpr : public Expr {
  private:
   friend class sema::Sema;
 
-  /**
-   * Sets the kind
-   * @param call_kind new kind
-   */
   void SetCallKind(CallKind call_kind) { call_kind_ = call_kind; }
 
-  /**
-   * Sets an argument
-   * @param arg_idx index of the argument
-   * @param expr new argument
-   */
   void SetArgument(uint32_t arg_idx, Expr *expr) {
-    TERRIER_ASSERT(arg_idx < NumArgs(), "Out-of-bounds argument access");
+    NOISEPAGE_ASSERT(arg_idx < NumArgs(), "Out-of-bounds argument access");
     args_[arg_idx] = expr;
   }
 
  private:
+  // The function to call.
   Expr *func_;
+  // The arguments to the invocation.
   util::RegionVector<Expr *> args_;
+  // The kind of call.
   CallKind call_kind_;
 };
 
 /**
- * A binary comparison operator
+ * A binary comparison operator.
  */
 class ComparisonOpExpr : public Expr {
  public:
@@ -1095,32 +1139,32 @@ class ComparisonOpExpr : public Expr {
       : Expr(Kind::ComparisonOpExpr, pos), op_(op), left_(left), right_(right) {}
 
   /**
-   * @return comparison operator
+   * @return The parsing token representing the kind of comparison, <, ==, etc.
    */
-  parsing::Token::Type Op() { return op_; }
+  parsing::Token::Type Op() const { return op_; }
 
   /**
-   * @return the lhs
+   * @return The left input to the comparison.
    */
-  Expr *Left() { return left_; }
+  Expr *Left() const { return left_; }
 
   /**
-   * @return the rhs
+   * @return The right input to the comparison.
    */
-  Expr *Right() { return right_; }
+  Expr *Right() const { return right_; }
 
   /**
    * Is this a comparison between an expression and a nil literal?
-   * @param[out] result If this is a literal nil comparison, result will point
-   *                    to the expression we're checking nil against
+   * @param[out] result If this is a literal nil comparison, result will point to the expression
+   *                    we're checking nil against, either the left or right input.
    * @return True if this is a nil comparison; false otherwise
    */
   bool IsLiteralCompareNil(Expr **result) const;
 
   /**
-   * Checks whether the given node is an ComparisonOpExpr.
-   * @param node node to check
-   * @return true iff given node is an ComparisonOpExpr.
+   * Is the given node a comparison? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a comparison; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ComparisonOpExpr;
@@ -1129,32 +1173,27 @@ class ComparisonOpExpr : public Expr {
  private:
   friend class sema::Sema;
 
-  /**
-   * Sets the lhs
-   * @param left new lhs
-   */
   void SetLeft(Expr *left) {
-    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
+    NOISEPAGE_ASSERT(left != nullptr, "Left cannot be null!");
     left_ = left;
   }
 
-  /**
-   * Sets the rhs
-   * @param right new rhs
-   */
   void SetRight(Expr *right) {
-    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
+    NOISEPAGE_ASSERT(right != nullptr, "Right cannot be null!");
     right_ = right;
   }
 
  private:
+  // The kind of comparison.
   parsing::Token::Type op_;
+  // The left side of comparison.
   Expr *left_;
+  // The right side of comparison.
   Expr *right_;
 };
 
 /**
- * A function (params, return type, body)
+ * A function literal (params, return type, body).
  */
 class FunctionLitExpr : public Expr {
  public:
@@ -1166,36 +1205,38 @@ class FunctionLitExpr : public Expr {
   FunctionLitExpr(FunctionTypeRepr *type_repr, BlockStmt *body);
 
   /**
-   * @return the type representation
+   * @return The function's signature.
    */
   FunctionTypeRepr *TypeRepr() const { return type_repr_; }
 
   /**
-   * @return the body
+   * @return The statements making up the body of the function.
    */
   BlockStmt *Body() const { return body_; }
 
   /**
-   * @return whether the body is empty
+   * @return True if the function has no statements; false otherwise.
    */
   bool IsEmpty() const { return Body()->IsEmpty(); }
 
   /**
-   * Checks whether the given node is an FunctionLitExpr.
-   * @param node node to check
-   * @return true iff given node is an FunctionLitExpr.
+   * Is the given node a function literal? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a function literal; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::FunctionLitExpr;
   }
 
  private:
+  // The function's signature.
   FunctionTypeRepr *type_repr_;
+  // The body of the function.
   BlockStmt *body_;
 };
 
 /**
- * A reference to a variable, function or struct
+ * A reference to a variable, function or struct.
  */
 class IdentifierExpr : public Expr {
  public:
@@ -1208,25 +1249,26 @@ class IdentifierExpr : public Expr {
       : Expr(Kind::IdentifierExpr, pos), name_(name), decl_(nullptr) {}
 
   /**
-   * @return the identifier
+   * @return The identifier the expression represents.
    */
   Identifier Name() const { return name_; }
 
   /**
-   * Binds a declaration
-   * @param decl the declaration to bind.
+   * Bind an identifier to a source declaration.
+   * @param decl The declaration to bind this identifier to.
    */
   void BindTo(Decl *decl) { decl_ = decl; }
 
   /**
-   * @return the identifier is bound
+   * @return True if the expression has been bound; false otherwise.
    */
   bool IsBound() const { return decl_ != nullptr; }
 
   /**
-   * Checks whether the given node is an IdentifierExpr.
-   * @param node node to check
-   * @return true iff given node is an IdentifierExpr.
+   * Is the given node an identifier expression? Needed as part of the custom AST RTTI
+   * infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an identifier expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::IdentifierExpr;
@@ -1234,19 +1276,19 @@ class IdentifierExpr : public Expr {
 
  private:
   // TODO(pmenon) Should these two be a union since only one should be active?
-  // Pre-binding, 'name_' is used, and post-binding 'decl_' should be used?
+  // Pre-binding, 'name_' is used, and post-binding 'decl_' should be used.
   Identifier name_;
   Decl *decl_;
 };
 
 /**
- * An enumeration capturing all possible casting operations
+ * An enumeration capturing all possible casting operations.
  */
 enum class CastKind : uint8_t {
-  // Conversion of a 32-bit integer into a non-nullable SQL Integer value
+  // Conversion of a 64-bit integer into a non-nullable SQL Integer value
   IntToSqlInt,
 
-  // Conversion of a 32-bit integer into a non-nullable SQL Decimal value
+  // Conversion of a 64-bit integer into a non-nullable SQL Decimal value
   IntToSqlDecimal,
 
   // Conversion of a SQL boolean value (potentially nullable) into a primitive
@@ -1270,7 +1312,7 @@ enum class CastKind : uint8_t {
   // A simple bit cast reinterpretation
   BitCast,
 
-  // 64 bit float To Sql Real
+  // Conversion of a 64-bit float into a non-nullable SQL Real value
   FloatToSqlReal,
 
   // Conversion of a SQL timestamp value (potentially nullable) into a primitive timestamp value
@@ -1284,24 +1326,29 @@ enum class CastKind : uint8_t {
 };
 
 /**
+ * @return A string representation for a given cast kind.
+ */
+std::string CastKindToString(CastKind cast_kind);
+
+/**
  * An implicit cast operation is one that is inserted automatically by the compiler during semantic analysis.
  */
 class ImplicitCastExpr : public Expr {
  public:
   /**
-   * @return kind of the cast
+   * @return The kind of cast operation this expression represents.
    */
   CastKind GetCastKind() const { return cast_kind_; }
 
   /**
-   * @return input of the cast
+   * @return The input to the cast operation.
    */
-  Expr *Input() { return input_; }
+  Expr *Input() const { return input_; }
 
   /**
-   * Checks whether the given node is an ImplicitCastExpr.
-   * @param node node to check
-   * @return true iff given node is an ImplicitCastExpr.
+   * Is the given node an implicit cast? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an implicit cast; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ImplicitCastExpr;
@@ -1321,7 +1368,9 @@ class ImplicitCastExpr : public Expr {
       : Expr(Kind::ImplicitCastExpr, pos, target_type), cast_kind_(cast_kind), input_(input) {}
 
  private:
+  // The kind of cast operation.
   CastKind cast_kind_;
+  // The input to the cast.
   Expr *input_;
 };
 
@@ -1333,31 +1382,29 @@ class ImplicitCastExpr : public Expr {
 class IndexExpr : public Expr {
  public:
   /**
-   * @return the object being indexed
+   * @return The object that's being indexed into.
    */
   Expr *Object() const { return obj_; }
 
   /**
-   * @return the index
+   * @return The index to use to access the object.
    */
   Expr *Index() const { return index_; }
 
   /**
-   * Is this expression for an array access?
-   * @return True if for array; false otherwise
+   * @return True if this expression for an array access; false otherwise.
    */
   bool IsArrayAccess() const;
 
   /**
-   * Is this expression for a map access?
-   * @return True if for a map; false otherwise
+   * @return True if this expression for a map access; false otherwise.
    */
   bool IsMapAccess() const;
 
   /**
-   * Checks whether the given node is an IndexExpr.
-   * @param node node to check
-   * @return true iff given node is an IndexExpr.
+   * Is the given node an index expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an index expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::IndexExpr;
@@ -1375,12 +1422,14 @@ class IndexExpr : public Expr {
   IndexExpr(const SourcePosition &pos, Expr *obj, Expr *index) : Expr(Kind::IndexExpr, pos), obj_(obj), index_(index) {}
 
  private:
+  // The object that's being indexed.
   Expr *obj_;
+  // The index.
   Expr *index_;
 };
 
 /**
- * A literal in the original source code
+ * A literal in the original source code.
  */
 class LitExpr : public Expr {
  public:
@@ -1400,8 +1449,7 @@ class LitExpr : public Expr {
    * @param pos source position
    * @param val boolean value
    */
-  LitExpr(const SourcePosition &pos, bool val)
-      : Expr(Kind::LitExpr, pos), lit_kind_(LitExpr::LitKind::Boolean), boolean_(val) {}
+  LitExpr(const SourcePosition &pos, bool val) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Boolean), boolean_(val) {}
 
   /**
    * String constructor
@@ -1426,78 +1474,78 @@ class LitExpr : public Expr {
   LitExpr(const SourcePosition &pos, double num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float64_(num) {}
 
   /**
-   * @return the literal kind
+   * @return The kind of literal this expression represents.
    */
-  LitExpr::LitKind LiteralKind() const { return lit_kind_; }
+  LitExpr::LitKind GetLiteralKind() const { return lit_kind_; }
 
   /**
-   * @return Is this a nil literal?
+   * @return True if this is a 'nil' literal; false otherwise.
    */
   bool IsNilLitExpr() const { return lit_kind_ == LitKind::Nil; }
 
   /**
-   * @return Is this a bool literal?
+   * @return True if this is a bool literal ('true' or 'false'); false otherwise.
    */
   bool IsBoolLitExpr() const { return lit_kind_ == LitKind::Boolean; }
 
   /**
-   * @return Is this an int literal?
+   * @return True if this is an integer literal ('1', '44', etc.); false otherwise.
    */
   bool IsIntLitExpr() const { return lit_kind_ == LitKind::Int; }
 
   /**
-   * @return Is this a float literal?
+   * @return True if this is a floating point literal ('1.0', '77.12', etc.); false otherwise.
    */
   bool IsFloatLitExpr() const { return lit_kind_ == LitKind::Float; }
 
   /**
-   * @return Is this a string literal?
+   * @return True if this is a string literal ('hello', 'there', etc.); false otherwise.
    */
   bool IsStringLitExpr() const { return lit_kind_ == LitKind::String; }
 
   /**
-   * @return the boolean value
+   * @return The boolean literal value. No check to ensure expression is a boolean literal.
    */
   bool BoolVal() const {
-    TERRIER_ASSERT(LiteralKind() == LitKind::Boolean, "Getting boolean value from a non-bool expression!");
+    NOISEPAGE_ASSERT(IsBoolLitExpr(), "Literal is not a boolean value literal");
     return boolean_;
   }
 
   /**
-   * @return the string value
+   * @return The raw string value. No check to ensure expression is a string.
    */
-  Identifier RawStringVal() const {
-    TERRIER_ASSERT(LiteralKind() != LitKind::Nil && LiteralKind() != LitKind::Boolean,
-                   "Getting a raw string value from a non-string or numeric value");
+  Identifier StringVal() const {
+    NOISEPAGE_ASSERT(IsStringLitExpr(), "Literal is not a string or identifier");
     return str_;
   }
 
   /**
-   * @return the integer value
+   * @return The integer value. No check to ensure expression is an integer.
    */
   int64_t Int64Val() const {
-    TERRIER_ASSERT(LiteralKind() == LitKind::Int, "Getting integer value from a non-integer literal expression");
+    NOISEPAGE_ASSERT(IsIntLitExpr(), "Literal is not an integer literal");
     return int64_;
   }
 
   /**
-   * @return the float value
+   * @return The floating point value. No check to ensure expression is a floating point value.
    */
   double Float64Val() const {
-    TERRIER_ASSERT(LiteralKind() == LitKind::Float, "Getting float value from a non-float literal expression");
+    NOISEPAGE_ASSERT(IsFloatLitExpr(), "Literal is not a floating point literal");
     return float64_;
   }
 
   /**
-   * Checks whether the given node is an LitExpr.
-   * @param node node to check
-   * @return true iff given node is an LitExpr.
+   * Is the given node a literal? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a literal; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::LitExpr;
   }
 
  private:
+  // The kind of literal.
   LitKind lit_kind_;
 
   /**
@@ -1506,7 +1554,6 @@ class LitExpr : public Expr {
   union {
     bool boolean_;
     Identifier str_;
-    byte *bytes_;
     int64_t int64_;
     double float64_;
   };
@@ -1515,8 +1562,8 @@ class LitExpr : public Expr {
 /**
  * Expressions accessing structure members, e.g., x.f
  *
- * TPL uses the same member access syntax for regular struct member access and
- * access through a struct pointer. Thus, the language allows the following:
+ * TPL uses the same member access syntax for regular struct member access and access through a
+ * struct pointer. Thus, the language allows the following:
  *
  * @code
  * struct X {
@@ -1530,28 +1577,29 @@ class LitExpr : public Expr {
  * px.a = 20
  * @endcode
  *
+ * Using dot-access for pointers to object is termed a sugared-arrow access.
  */
 class MemberExpr : public Expr {
  public:
   /**
-   * @return object being accessed
+   * @return The object being accessed.
    */
   Expr *Object() const { return object_; }
 
   /**
-   * @return member being accessed
+   * @return The member of the object/struct to access.
    */
   Expr *Member() const { return member_; }
 
   /**
-   * @return Whether a struct pointer is being accesed
+   * @return True if this member access is sugared. Refer to docs to understand arrow sugaring.
    */
   bool IsSugaredArrow() const;
 
   /**
-   * Checks whether the given node is an MemberExpr.
-   * @param node node to check
-   * @return true iff given node is an MemberExpr.
+   * Is the given node a member expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a member expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::MemberExpr;
@@ -1570,12 +1618,14 @@ class MemberExpr : public Expr {
       : Expr(Kind::MemberExpr, pos), object_(obj), member_(member) {}
 
  private:
+  // The object being accessed.
   Expr *object_;
+  // The member in the object to access.
   Expr *member_;
 };
 
 /**
- * A unary expression with a non-null inner expression and an operator
+ * A unary expression with a non-null inner expression and an operator.
  */
 class UnaryOpExpr : public Expr {
  public:
@@ -1589,26 +1639,28 @@ class UnaryOpExpr : public Expr {
       : Expr(Kind::UnaryOpExpr, pos), op_(op), expr_(expr) {}
 
   /**
-   * @return the unary operator
+   * @return The parsing token operator representing the unary operation.
    */
-  parsing::Token::Type Op() { return op_; }
+  parsing::Token::Type Op() const { return op_; }
 
   /**
-   * @return the operand
+   * @return The input expression to the unary operation.
    */
-  Expr *Expression() { return expr_; }
+  Expr *Input() const { return expr_; }
 
   /**
-   * Checks whether the given node is an UnaryOpExpr.
-   * @param node node to check
-   * @return true iff given node is an UnaryOpExpr.
+   * Is the given node a unary expression? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a unary expression; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::UnaryOpExpr;
   }
 
  private:
+  // The unary operator.
   parsing::Token::Type op_;
+  // The input to the unary operation.
   Expr *expr_;
 };
 
@@ -1616,58 +1668,58 @@ class UnaryOpExpr : public Expr {
 // Type Representation Nodes
 // ---------------------------------------------------------
 
-//
 // Type representation nodes. A type representation is a thin representation of
 // how the type appears in code. They are structurally the same as their full
 // blown Type counterparts, but we use the expressions to defer their type
 // resolution.
-//
 
 /**
- * Array type
+ * Array type.
  */
 class ArrayTypeRepr : public Expr {
  public:
   /**
-   * Constructor
-   * @param pos source position
-   * @param len length of the array
-   * @param elem_type element type
+   * Constructor.
+   * @param pos Source position.
+   * @param len Length of the array.
+   * @param elem_type The type of elements that the array stores.
    */
   ArrayTypeRepr(const SourcePosition &pos, Expr *len, Expr *elem_type)
       : Expr(Kind::ArrayTypeRepr, pos), len_(len), elem_type_(elem_type) {}
 
   /**
-   * @return the length of the array
+   * @return The length of the array, if provided; null if not provided.
    */
   Expr *Length() const { return len_; }
 
   /**
-   * @return the element type
+   * @return The type of elements the array stores.
    */
   Expr *ElementType() const { return elem_type_; }
 
   /**
-   * @return whether the length is given
+   * @return True if a length was specified in the array type representation; false otherwise.
    */
   bool HasLength() const { return len_ != nullptr; }
 
   /**
-   * Checks whether the given node is an ArrayTypeRepr.
-   * @param node node to check
-   * @return true iff given node is an ArrayTypeRepr.
+   * Is the given node an array type? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is an array type; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::ArrayTypeRepr;
   }
 
  private:
+  // The specified length.
   Expr *len_;
+  // The element type of the array.
   Expr *elem_type_;
 };
 
 /**
- * Function type (params and return type)
+ * Function type (params and return type).
  */
 class FunctionTypeRepr : public Expr {
  public:
@@ -1681,31 +1733,33 @@ class FunctionTypeRepr : public Expr {
       : Expr(Kind::FunctionTypeRepr, pos), param_types_(std::move(param_types)), ret_type_(ret_type) {}
 
   /**
-   * @return list of param types
+   * @return The parameters to the function.
    */
-  const util::RegionVector<FieldDecl *> &Paramaters() const { return param_types_; }
+  const util::RegionVector<FieldDecl *> &Parameters() const { return param_types_; }
 
   /**
-   * @return the return type
+   * @return The return type of the function.
    */
   Expr *ReturnType() const { return ret_type_; }
 
   /**
-   * Checks whether the given node is an FunctionTypeRepr.
-   * @param node node to check
-   * @return true iff given node is an FunctionTypeRepr.
+   * Is the given node a function type? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a function type; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::FunctionTypeRepr;
   }
 
  private:
+  // The parameters to the function.
   util::RegionVector<FieldDecl *> param_types_;
+  // The return type.
   Expr *ret_type_;
 };
 
 /**
- * Map types
+ * Map type.
  */
 class MapTypeRepr : public Expr {
  public:
@@ -1718,31 +1772,33 @@ class MapTypeRepr : public Expr {
   MapTypeRepr(const SourcePosition &pos, Expr *key, Expr *val) : Expr(Kind::MapTypeRepr, pos), key_(key), val_(val) {}
 
   /**
-   * @return the key type
+   * @return The key type of the map.
    */
-  Expr *Key() const { return key_; }
+  Expr *KeyType() const { return key_; }
 
   /**
-   * @return the value type
+   * @return The value type of the map.
    */
-  Expr *Val() const { return val_; }
+  Expr *ValType() const { return val_; }
 
   /**
-   * Checks whether the given node is an MapTypeRepr.
-   * @param node node to check
-   * @return true iff given node is an MapTypeRepr.
+   * Is the given node a map type? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a map type; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::MapTypeRepr;
   }
 
  private:
+  // The key type.
   Expr *key_;
+  // The value type.
   Expr *val_;
 };
 
 /**
- * Pointer type
+ * Pointer type.
  */
 class PointerTypeRepr : public Expr {
  public:
@@ -1754,25 +1810,26 @@ class PointerTypeRepr : public Expr {
   PointerTypeRepr(const SourcePosition &pos, Expr *base) : Expr(Kind::PointerTypeRepr, pos), base_(base) {}
 
   /**
-   * @return the pointee type
+   * @return The pointee type.
    */
   Expr *Base() const { return base_; }
 
   /**
-   * Checks whether the given node is an PointerTypeRepr.
-   * @param node node to check
-   * @return true iff given node is an PointerTypeRepr.
+   * Is the given node a pointer type? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a pointer type; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::PointerTypeRepr;
   }
 
  private:
+  // The type of the element being pointed to.
   Expr *base_;
 };
 
 /**
- * Struct type
+ * Struct type.
  */
 class StructTypeRepr : public Expr {
  public:
@@ -1785,22 +1842,31 @@ class StructTypeRepr : public Expr {
       : Expr(Kind::StructTypeRepr, pos), fields_(std::move(fields)) {}
 
   /**
-   * @return the list of fields
+   * @return The fields of the struct.
    */
   const util::RegionVector<FieldDecl *> &Fields() const { return fields_; }
 
   /**
-   * Checks whether the given node is an StructTypeRepr.
-   * @param node node to check
-   * @return true iff given node is an StructTypeRepr.
+   * @return The field at the provided index. No bounds checking is performed!
+   */
+  FieldDecl *GetFieldAt(uint32_t field_idx) const {
+    NOISEPAGE_ASSERT(field_idx < fields_.size(), "Out-of-bounds field access");
+    return fields_[field_idx];
+  }
+
+  /**
+   * Is the given node a struct type? Needed as part of the custom AST RTTI infrastructure.
+   * @param node The node to check.
+   * @return True if the node is a struct type; false otherwise.
    */
   static bool classof(const AstNode *node) {  // NOLINT
     return node->GetKind() == Kind::StructTypeRepr;
   }
 
  private:
+  // The fields of the struct.
   util::RegionVector<FieldDecl *> fields_;
 };
 
 }  // namespace ast
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

@@ -1,18 +1,20 @@
+#include "optimizer/child_property_deriver.h"
+
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
 #include "common/managed_pointer.h"
-#include "optimizer/child_property_deriver.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/index_util.h"
 #include "optimizer/memo.h"
+#include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> ChildPropertyDeriver::GetProperties(
     catalog::CatalogAccessor *accessor, Memo *memo, PropertySet *requirements, GroupExpression *gexpr) {
@@ -112,9 +114,10 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerHashJoin *op) { DeriveForJoin(); }
 
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {}
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) { DeriveForJoin(); }
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {}
+void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftSemiHashJoin *op) { DeriveForJoin(); }
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
   std::vector<PropertySet *> child_input_properties;
@@ -254,4 +257,4 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const DropView *drop_view) {
   output_.emplace_back(new PropertySet(), std::vector<PropertySet *>{});
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

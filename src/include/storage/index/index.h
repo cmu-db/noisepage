@@ -5,20 +5,16 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "common/performance_counter.h"
+#include "common/managed_pointer.h"
 #include "storage/data_table.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
-#include "transaction/transaction_context.h"
 
-namespace terrier::storage::index {
+namespace noisepage::transaction {
+class TransactionContext;
+}  // namespace noisepage::transaction
 
-enum class ScanType : uint32_t {
-  Closed,   /* [low, high] range scan */
-  OpenLow,  /* [begin(), high] range scan */
-  OpenHigh, /* [low, end()] range scan */
-  OpenBoth  /* [begin(), end()] range scan */
-};
+namespace noisepage::storage::index {
 
 /**
  * Wrapper class for the various types of indexes in our system. Semantically, we expect updates on indexed attributes
@@ -66,10 +62,18 @@ class Index {
    */
   virtual IndexType Type() const = 0;
 
+  /** @return The number of keys in the index. */
+  virtual uint64_t GetSize() const = 0;
+
   /**
    * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
    */
   virtual void PerformGarbageCollection() {}
+
+  /**
+   * @return approximate number of bytes allocated on the heap for this index data structure
+   */
+  virtual size_t EstimateHeapUsage() const = 0;
 
   /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.
@@ -124,7 +128,7 @@ class Index {
   virtual void ScanAscending(const transaction::TransactionContext &txn, ScanType scan_type, uint32_t num_attrs,
                              ProjectedRow *low_key, ProjectedRow *high_key, uint32_t limit,
                              std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -136,7 +140,7 @@ class Index {
    */
   virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                               const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -149,7 +153,7 @@ class Index {
    */
   virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                                    const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {
-    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+    NOISEPAGE_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
   }
 
   /**
@@ -170,4 +174,4 @@ class Index {
   IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
 };
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

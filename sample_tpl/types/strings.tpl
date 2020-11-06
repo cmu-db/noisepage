@@ -1,4 +1,6 @@
-fun main() -> int64 {
+// Expected output: 0
+
+fun main() -> int {
   var str1 = @stringToSql("StrAing")
   var copy = @stringToSql("StrAing")
   var str2 = @stringToSql("StrBing")

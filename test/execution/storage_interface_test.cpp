@@ -10,7 +10,7 @@
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 class StorageInterfaceTest : public SqlBasedTest {
   void SetUp() override {
@@ -38,8 +38,12 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{
-      exec_ctx_.get(), 1, !table_oid1, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{exec_ctx_.get(),
+                            1,
+                            table_oid1.UnderlyingValue(),
+                            index_oid1.UnderlyingValue(),
+                            col_oids.data(),
+                            static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
 
   // Inserter.
@@ -72,17 +76,18 @@ TEST_F(StorageInterfaceTest, SimpleInsertTest) {
   }
 
   // Try to fetch the inserted values.
-  TableVectorIterator table_iter(exec_ctx_.get(), !table_oid0, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator table_iter(exec_ctx_.get(), table_oid0.UnderlyingValue(), col_oids.data(),
+                                 static_cast<uint32_t>(col_oids.size()));
   table_iter.Init();
-  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *val_a = pci->Get<int32_t, false>(0, nullptr);
+    for (; vpi->HasNext(); vpi->Advance()) {
+      auto *val_a = vpi->GetValue<int32_t, false>(0, nullptr);
       ASSERT_EQ(*val_a, inserted_vals[num_tuples]);
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(num_tuples, (hi_match - lo_match) + 1);
 }
@@ -96,8 +101,12 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   std::array<uint32_t, 1> col_oids{1};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Deleter.
@@ -131,15 +140,16 @@ TEST_F(StorageInterfaceTest, SimpleDeleteTest) {
   ASSERT_FALSE(index_iter.Advance());
 
   // Try scanning through the table. There should be less elements.
-  TableVectorIterator table_iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator table_iter(exec_ctx_.get(), table_oid.UnderlyingValue(), col_oids.data(),
+                                 static_cast<uint32_t>(col_oids.size()));
   table_iter.Init();
-  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
+  VectorProjectionIterator *vpi = table_iter.GetVectorProjectionIterator();
   uint32_t num_tuples = 0;
   while (table_iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
+    for (; vpi->HasNext(); vpi->Advance()) {
       num_tuples++;
     }
-    pci->Reset();
+    vpi->Reset();
   }
   EXPECT_EQ(num_tuples, TEST1_SIZE - ((hi_match - lo_match) + 1));
 }
@@ -153,8 +163,12 @@ TEST_F(StorageInterfaceTest, SimpleNonIndexedUpdateTest) {
   std::array<uint32_t, 1> col_oids{2};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Non indexed updater.
@@ -205,8 +219,12 @@ TEST_F(StorageInterfaceTest, SimpleIndexedUpdateTest) {
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter{
-      exec_ctx_.get(), 1, !table_oid, !index_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter{exec_ctx_.get(),
+                           1,
+                           table_oid.UnderlyingValue(),
+                           index_oid.UnderlyingValue(),
+                           col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   index_iter.Init();
 
   // Indexed updater.
@@ -278,11 +296,19 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
   uint16_t idx_d = 2;
 
   // The index iterator gives us the slots to update.
-  IndexIterator index_iter1{
-      exec_ctx_.get(), 1, !table_oid, !index_oid1, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter1{exec_ctx_.get(),
+                            1,
+                            table_oid.UnderlyingValue(),
+                            index_oid1.UnderlyingValue(),
+                            col_oids.data(),
+                            static_cast<uint32_t>(col_oids.size())};
 
-  IndexIterator index_iter2{
-      exec_ctx_.get(), 1, !table_oid, !index_oid2, col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  IndexIterator index_iter2{exec_ctx_.get(),
+                            1,
+                            table_oid.UnderlyingValue(),
+                            index_oid2.UnderlyingValue(),
+                            col_oids.data(),
+                            static_cast<uint32_t>(col_oids.size())};
   index_iter1.Init();
   index_iter2.Init();
 
@@ -389,4 +415,4 @@ TEST_F(StorageInterfaceTest, MultiIndexedUpdateTest) {
     ASSERT_EQ(num_matches, (hi_match - lo_match) + 1);
   }
 }
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

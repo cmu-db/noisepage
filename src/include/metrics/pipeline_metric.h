@@ -17,7 +17,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for the execution engine
@@ -27,7 +27,7 @@ class PipelineMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<PipelineMetricRawData *>(other);
     if (!other_db_metric->pipeline_data_.empty()) {
-      pipeline_data_.splice(pipeline_data_.cbegin(), other_db_metric->pipeline_data_);
+      pipeline_data_.splice(pipeline_data_.cend(), other_db_metric->pipeline_data_);
     }
   }
 
@@ -41,24 +41,26 @@ class PipelineMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
 
     for (auto &data : pipeline_data_) {
-      outfile << (!data.query_id_) << ", ";
-      outfile << (!data.pipeline_id_) << ", ";
-      outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
+      outfile << data.query_id_.UnderlyingValue() << ", ";
+      outfile << data.pipeline_id_.UnderlyingValue() << ", ";
       outfile << data.features_.size() << ", ";
       outfile << data.GetFeatureVectorString() << ", ";
+      outfile << static_cast<uint32_t>(data.execution_mode_) << ", ";
       outfile << data.GetEstRowsVectorString() << ", ";
       outfile << data.GetKeySizeVectorString() << ", ";
       outfile << data.GetNumKeysVectorString() << ", ";
       outfile << data.GetCardinalityVectorString() << ", ";
       outfile << data.GetMemFactorsVectorString() << ", ";
+      outfile << data.GetNumLoopsVectorString() << ", ";
+      outfile << data.GetNumConcurrentVectorString() << ", ";
 
       data.resource_metrics_.ToCSV(outfile);
       outfile << std::endl;
@@ -76,17 +78,18 @@ class PipelineMetricRawData : public AbstractRawData {
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
   static constexpr std::array<std::string_view, 1> FEATURE_COLUMNS = {
-      "query_id, pipeline_id, exec_mode, num_features, features, est_output_rows, key_sizes, num_keys, "
-      "est_cardinalities, mem_factor"};
+      "query_id, pipeline_id, num_features, features, exec_mode, num_rows, key_sizes, num_keys, "
+      "est_cardinalities, mem_factor, num_loops, num_concurrent"};
 
  private:
   friend class PipelineMetric;
+  FRIEND_TEST(MetricsTests, PipelineCSVTest);
   struct PipelineData;
 
   void RecordPipelineData(execution::query_id_t query_id, execution::pipeline_id_t pipeline_id, uint8_t execution_mode,
                           std::vector<brain::ExecutionOperatingUnitFeature> &&features,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    pipeline_data_.emplace_front(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
+    pipeline_data_.emplace_back(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 
   struct PipelineData {
@@ -129,11 +132,11 @@ class PipelineMetricRawData : public AbstractRawData {
     }
 
     std::string GetCardinalityVectorString() {
-      std::vector<double> cars;
+      std::vector<size_t> cars;
       for (auto &feature : features_) {
         cars.emplace_back(feature.GetCardinality());
       }
-      return ConcatVectorToString<double>(cars);
+      return ConcatVectorToString<size_t>(cars);
     }
 
     std::string GetKeySizeVectorString() {
@@ -160,6 +163,22 @@ class PipelineMetricRawData : public AbstractRawData {
       return ConcatVectorToString<double>(factors);
     }
 
+    std::string GetNumLoopsVectorString() {
+      std::vector<size_t> num_loops;
+      for (auto &feature : features_) {
+        num_loops.emplace_back(feature.GetNumLoops());
+      }
+      return ConcatVectorToString<size_t>(num_loops);
+    }
+
+    std::string GetNumConcurrentVectorString() {
+      std::vector<size_t> num_concurrent;
+      for (auto &feature : features_) {
+        num_concurrent.emplace_back(feature.GetNumConcurrent());
+      }
+      return ConcatVectorToString<size_t>(num_concurrent);
+    }
+
     const execution::query_id_t query_id_;
     const execution::pipeline_id_t pipeline_id_;
     const uint8_t execution_mode_;
@@ -183,4 +202,4 @@ class PipelineMetric : public AbstractMetric<PipelineMetricRawData> {
     GetRawData()->RecordPipelineData(query_id, pipeline_id, execution_mode, std::move(features), resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

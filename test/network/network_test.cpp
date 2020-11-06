@@ -5,11 +5,14 @@
 #include <thread>  // NOLINT
 #include <vector>
 
+#include "catalog/catalog.h"
+#include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "network/connection_handle_factory.h"
-#include "network/terrier_server.h"
+#include "network/noisepage_server.h"
+#include "network/postgres/postgres_protocol_interpreter.h"
 #include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
@@ -17,7 +20,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /*
  * The network tests does not check whether the result is correct. It only checks if the network layer works.
@@ -49,6 +52,7 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = 15721;
+  std::string socket_directory_ = "/tmp/";
   uint16_t connection_thread_count_ = 4;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
@@ -68,21 +72,23 @@ class NetworkTests : public TerrierTest {
                                     common::ManagedPointer(gc_));
 
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_), DISABLED,
-                                       DISABLED, 0, false);
+                                       DISABLED, DISABLED, 0, false, execution::vm::ExecutionMode::Interpret);
 
     auto txn = txn_manager_->BeginTransaction();
     catalog_->CreateDatabase(common::ManagedPointer(txn), catalog::DEFAULT_DATABASE, true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+#if NOISEPAGE_USE_LOGGER
     network_logger->set_level(spdlog::level::info);
     spdlog::flush_every(std::chrono::seconds(1));
+#endif
 
     try {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
-      server_ =
-          std::make_unique<TerrierServer>(common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-                                          common::ManagedPointer(handle_factory_.get()),
-                                          common::ManagedPointer(&thread_registry_), port_, connection_thread_count_);
+      server_ = std::make_unique<TerrierServer>(
+          common::ManagedPointer<ProtocolInterpreterProvider>(&protocol_provider_),
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_), port_,
+          connection_thread_count_, socket_directory_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
       NETWORK_LOG_ERROR("[LaunchServer] exception when launching server");
@@ -177,6 +183,35 @@ TEST_F(NetworkTests, SimpleQueryTest) {
     EXPECT_TRUE(false);
   }
   NETWORK_LOG_DEBUG("[SimpleQueryTest] Client has closed");
+}
+
+/**
+ * Performs the exact same test as SimpleQueryTest, but using a Unix domain socket instead.
+ * This just verifies that the Unix domain socket infrastructure works.
+ */
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, UnixDomainSocketTest) {
+  try {
+    /*
+     * We specify the location of the domain socket (defaults to /tmp/) for PSQL.
+     * This is necessary in order to ensure that the Unix domain socket gets used.
+     */
+    pqxx::connection c(fmt::format("host={0} port={1} user={2} sslmode=disable application_name=psql",
+                                   socket_directory_, port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(c);
+    txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
+    txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
+    txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
+
+    pqxx::result r = txn1.exec("SELECT name FROM employee where id=1;");
+    txn1.commit();
+    EXPECT_EQ(r.size(), 0);
+  } catch (const std::exception &e) {
+    NETWORK_LOG_ERROR("[UnixDomainSocketTest] Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+  NETWORK_LOG_DEBUG("[UnixDomainSocketTest] Client has closed");
 }
 
 // NOLINTNEXTLINE
@@ -366,4 +401,4 @@ TEST_F(NetworkTests, GusThesisSaver) {
   NETWORK_LOG_INFO("[GusThesisSaver] Completed");
 }
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

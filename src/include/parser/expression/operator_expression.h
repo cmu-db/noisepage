@@ -3,9 +3,10 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * OperatorExpression represents a generic N-ary operator.
  */
@@ -41,9 +42,9 @@ class OperatorExpression : public AbstractExpression {
 
   void DeriveReturnValueType() override;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(OperatorExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

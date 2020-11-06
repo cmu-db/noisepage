@@ -4,9 +4,11 @@
 #include <vector>
 
 #include "binder/bind_node_visitor.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/executable_query.h"
 #include "execution/compiler/output_checker.h"
 #include "execution/exec/execution_context.h"
-#include "execution/executable_query.h"
+#include "execution/exec/execution_settings.h"
 #include "execution/sql/value.h"
 #include "execution/vm/module.h"
 #include "main/db_main.h"
@@ -29,35 +31,47 @@
 #include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 struct IdxJoinTest : public TerrierTest {
   const uint64_t optimizer_timeout_ = 1000000;
+
+  void CompileAndRun(std::unique_ptr<planner::AbstractPlanNode> *plan, network::Statement *stmt) {
+    network::WriteQueue queue;
+    auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
+    auto portal = network::Portal(common::ManagedPointer(stmt));
+    stmt->SetPhysicalPlan(std::move(*plan));
+    auto result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
+                                             common::ManagedPointer(&portal));
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
+    result = tcop_->RunExecutableQuery(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
+                                       common::ManagedPointer(&portal));
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+  }
+
+  void ExecuteCreate(std::unique_ptr<planner::AbstractPlanNode> *plan, network::QueryType qtype) {
+    auto result =
+        tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(*plan), qtype);
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+  }
 
   void ExecuteSQL(std::string sql, network::QueryType qtype) {
     std::vector<parser::ConstantValueExpression> params;
     tcop_->BeginTransaction(common::ManagedPointer(&context_));
     auto parse = tcop_->ParseQuery(sql, common::ManagedPointer(&context_));
-    auto stmt = network::Statement(std::move(sql), std::move(parse));
+    auto stmt = network::Statement(std::move(sql), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse)));
     auto result = tcop_->BindQuery(common::ManagedPointer(&context_), common::ManagedPointer(&stmt),
                                    common::ManagedPointer(&params));
-    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Bind should have succeeded");
 
     auto plan = tcop_->OptimizeBoundQuery(common::ManagedPointer(&context_), stmt.ParseResult());
-    if (qtype >= network::QueryType::QUERY_CREATE_TABLE) {
-      result = tcop_->ExecuteCreateStatement(common::ManagedPointer(&context_), common::ManagedPointer(plan), qtype);
-      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+    if (qtype >= network::QueryType::QUERY_CREATE_TABLE && qtype != network::QueryType::QUERY_CREATE_INDEX) {
+      ExecuteCreate(&plan, qtype);
+    } else if (qtype == network::QueryType::QUERY_CREATE_INDEX) {
+      ExecuteCreate(&plan, qtype);
+      CompileAndRun(&plan, &stmt);
     } else {
-      network::WriteQueue queue;
-      auto pwriter = network::PostgresPacketWriter(common::ManagedPointer(&queue));
-      auto portal = network::Portal(common::ManagedPointer(&stmt));
-      stmt.SetPhysicalPlan(std::move(plan));
-      result = tcop_->CodegenPhysicalPlan(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
-                                          common::ManagedPointer(&portal));
-      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Codegen should have succeeded");
-      result = tcop_->RunExecutableQuery(common::ManagedPointer(&context_), common::ManagedPointer(&pwriter),
-                                         common::ManagedPointer(&portal));
-      TERRIER_ASSERT(result.type_ == trafficcop::ResultType::COMPLETE, "Execute should have succeeded");
+      CompileAndRun(&plan, &stmt);
     }
 
     tcop_->EndTransaction(common::ManagedPointer(&context_), network::QueryType::QUERY_COMMIT);
@@ -66,13 +80,8 @@ struct IdxJoinTest : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
-    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    settings::SettingsManager::ConstructParamMap(param_map);
-
-    db_main_ = terrier::DBMain::Builder()
+    db_main_ = noisepage::DBMain::Builder()
                    .SetUseGC(true)
-                   .SetSettingsParameterMap(std::move(param_map))
-                   .SetUseSettingsManager(true)
                    .SetUseCatalog(true)
                    .SetUseStatsStorage(true)
                    .SetUseTrafficCop(true)
@@ -83,8 +92,8 @@ struct IdxJoinTest : public TerrierTest {
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
 
     tcop_ = db_main_->GetTrafficCop();
-    auto oids = tcop_->CreateTempNamespace(network::connection_id_t(0), "terrier");
-    context_.SetDatabaseName("terrier");
+    auto oids = tcop_->CreateTempNamespace(network::connection_id_t(0), "noisepage");
+    context_.SetDatabaseName("noisepage");
     context_.SetDatabaseOid(oids.first);
     context_.SetTempNamespaceOid(oids.second);
     db_oid_ = oids.first;
@@ -133,7 +142,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -152,61 +161,82 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
 
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows = 243;
-  execution::compiler::RowChecker row_checker = [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
-    num_output_rows++;
+  execution::compiler::test::RowChecker row_checker =
+      [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
+        num_output_rows++;
 
-    // Read cols
-    auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
-    auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
-    auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
-    auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
-    auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
-    auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
-                 bar_col2->is_null_ || bar_col3->is_null_);
+        // Read cols
+        auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
+        auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
+        auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
+        auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
+        auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
+        auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
+        ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                     bar_col2->is_null_ || bar_col3->is_null_);
 
-    ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 81));
-    ASSERT_EQ(foo_col1->val_, bar_col1->val_);
+        ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 81));
+        ASSERT_EQ(foo_col1->val_, bar_col1->val_);
 
-    ASSERT_GE(foo_col2->val_, 11);
-    ASSERT_GE(bar_col2->val_, 11);
-    ASSERT_LE(foo_col2->val_, 13);
-    ASSERT_LE(bar_col2->val_, 13);
+        ASSERT_GE(foo_col2->val_, 11);
+        ASSERT_GE(bar_col2->val_, 11);
+        ASSERT_LE(foo_col2->val_, 13);
+        ASSERT_LE(bar_col2->val_, 13);
 
-    ASSERT_GE(foo_col3->val_, 31);
-    ASSERT_LE(foo_col3->val_, 33);
-    ASSERT_GE(bar_col3->val_, 301);
-    ASSERT_LE(bar_col3->val_, 303);
-  };
+        ASSERT_GE(foo_col3->val_, 31);
+        ASSERT_LE(foo_col3->val_, 33);
+        ASSERT_GE(bar_col3->val_, 301);
+        ASSERT_LE(bar_col3->val_, 303);
+      };
 
-  execution::compiler::CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  execution::compiler::test::CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  execution::compiler::GenericChecker checker(row_checker, correcteness_fn);
+  execution::compiler::test::GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
-  execution::compiler::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
+  execution::compiler::test::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-  execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   // Pipeline Units
-  auto pipeline = executable.GetPipelineOperatingUnits();
+  auto pipeline = executable->GetPipelineOperatingUnits();
   EXPECT_EQ(pipeline->units_.size(), 2);
 
+  // TODO(WAN): Right now build_feature and iterate_feature are indistinguishable.
+
   bool build_feature = false, seq_feature = false, idx_feature = false;
-  auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(0));
+  auto pipe0_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
   for (auto &feature : pipe0_vec) {
     switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT_BUILD:
+      case brain::ExecutionOperatingUnitType::SORT_ITERATE:
         build_feature = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  EXPECT_TRUE(build_feature);
+
+  bool iterate_feature = false;
+  auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(2));
+  for (auto &feature : pipe1_vec) {
+    switch (feature.GetExecutionOperatingUnitType()) {
+      case brain::ExecutionOperatingUnitType::SORT_BUILD:
+        iterate_feature = true;
         break;
       case brain::ExecutionOperatingUnitType::SEQ_SCAN:
         seq_feature = true;
@@ -218,21 +248,7 @@ TEST_F(IdxJoinTest, SimpleIdxJoinTest) {
         break;
     }
   }
-
-  EXPECT_TRUE(build_feature && seq_feature && idx_feature);
-
-  bool iterate_feature = false;
-  auto pipe1_vec = pipeline->GetPipelineFeatures(execution::pipeline_id_t(1));
-  for (auto &feature : pipe1_vec) {
-    switch (feature.GetExecutionOperatingUnitType()) {
-      case brain::ExecutionOperatingUnitType::SORT_ITERATE:
-        iterate_feature = true;
-        break;
-      default:
-        break;
-    }
-  }
-  EXPECT_TRUE(iterate_feature);
+  EXPECT_TRUE(iterate_feature && seq_feature && idx_feature);
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -247,7 +263,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -266,50 +282,55 @@ TEST_F(IdxJoinTest, MultiPredicateJoin) {
 
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows = 81;
-  execution::compiler::RowChecker row_checker = [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
-    num_output_rows++;
+  execution::compiler::test::RowChecker row_checker =
+      [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
+        num_output_rows++;
 
-    // Read cols
-    auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
-    auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
-    auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
-    auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
-    auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
-    auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
-                 bar_col2->is_null_ || bar_col3->is_null_);
+        // Read cols
+        auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
+        auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
+        auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
+        auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
+        auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
+        auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
+        ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                     bar_col2->is_null_ || bar_col3->is_null_);
 
-    ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 27));
-    ASSERT_EQ(foo_col1->val_, bar_col1->val_);
+        ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 27));
+        ASSERT_EQ(foo_col1->val_, bar_col1->val_);
 
-    ASSERT_EQ(foo_col2->val_, bar_col2->val_);
-    ASSERT_GE(foo_col2->val_, 11);
-    ASSERT_GE(bar_col2->val_, 11);
-    ASSERT_LE(foo_col2->val_, 13);
-    ASSERT_LE(bar_col2->val_, 13);
+        ASSERT_EQ(foo_col2->val_, bar_col2->val_);
+        ASSERT_GE(foo_col2->val_, 11);
+        ASSERT_GE(bar_col2->val_, 11);
+        ASSERT_LE(foo_col2->val_, 13);
+        ASSERT_LE(bar_col2->val_, 13);
 
-    ASSERT_GE(foo_col3->val_, 31);
-    ASSERT_LE(foo_col3->val_, 33);
-    ASSERT_GE(bar_col3->val_, 301);
-    ASSERT_LE(bar_col3->val_, 303);
-  };
+        ASSERT_GE(foo_col3->val_, 31);
+        ASSERT_LE(foo_col3->val_, 33);
+        ASSERT_GE(bar_col3->val_, 301);
+        ASSERT_LE(bar_col3->val_, 303);
+      };
 
-  execution::compiler::CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  execution::compiler::test::CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  execution::compiler::GenericChecker checker(row_checker, correcteness_fn);
+  execution::compiler::test::GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
-  execution::compiler::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
+  execution::compiler::test::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-  execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -325,7 +346,7 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -344,49 +365,54 @@ TEST_F(IdxJoinTest, MultiPredicateJoinWithExtra) {
 
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows = 27;
-  execution::compiler::RowChecker row_checker = [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
-    num_output_rows++;
+  execution::compiler::test::RowChecker row_checker =
+      [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
+        num_output_rows++;
 
-    // Read cols
-    auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
-    auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
-    auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
-    auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
-    auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
-    auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
-                 bar_col2->is_null_ || bar_col3->is_null_);
+        // Read cols
+        auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
+        auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
+        auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
+        auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
+        auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
+        auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
+        ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                     bar_col2->is_null_ || bar_col3->is_null_);
 
-    ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 9));
-    ASSERT_EQ(foo_col1->val_, bar_col1->val_);
+        ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 9));
+        ASSERT_EQ(foo_col1->val_, bar_col1->val_);
 
-    ASSERT_EQ(foo_col2->val_, bar_col2->val_);
-    ASSERT_GE(foo_col2->val_, 11);
-    ASSERT_GE(bar_col2->val_, 11);
-    ASSERT_LE(foo_col2->val_, 13);
-    ASSERT_LE(bar_col2->val_, 13);
+        ASSERT_EQ(foo_col2->val_, bar_col2->val_);
+        ASSERT_GE(foo_col2->val_, 11);
+        ASSERT_GE(bar_col2->val_, 11);
+        ASSERT_LE(foo_col2->val_, 13);
+        ASSERT_LE(bar_col2->val_, 13);
 
-    ASSERT_GE(foo_col3->val_, 31);
-    ASSERT_LE(foo_col3->val_, 33);
-    ASSERT_EQ(bar_col3->val_, 301);
-  };
+        ASSERT_GE(foo_col3->val_, 31);
+        ASSERT_LE(foo_col3->val_, 33);
+        ASSERT_EQ(bar_col3->val_, 301);
+      };
 
-  execution::compiler::CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  execution::compiler::test::CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  execution::compiler::GenericChecker checker(row_checker, correcteness_fn);
+  execution::compiler::test::GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
-  execution::compiler::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
+  execution::compiler::test::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-  execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -402,7 +428,7 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -418,38 +444,43 @@ TEST_F(IdxJoinTest, FooOnlyScan) {
 
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows = 81;
-  execution::compiler::RowChecker row_checker = [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
-    num_output_rows++;
+  execution::compiler::test::RowChecker row_checker =
+      [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
+        num_output_rows++;
 
-    // Read cols
-    auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
-    auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
-    auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_);
+        // Read cols
+        auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
+        auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
+        auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
+        ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_);
 
-    ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 27));
-    ASSERT_GE(foo_col2->val_, 11);
-    ASSERT_LE(foo_col2->val_, 13);
-    ASSERT_GE(foo_col3->val_, 31);
-    ASSERT_LE(foo_col3->val_, 33);
-  };
+        ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 27));
+        ASSERT_GE(foo_col2->val_, 11);
+        ASSERT_LE(foo_col2->val_, 13);
+        ASSERT_GE(foo_col3->val_, 31);
+        ASSERT_LE(foo_col3->val_, 33);
+      };
 
-  execution::compiler::CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  execution::compiler::test::CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  execution::compiler::GenericChecker checker(row_checker, correcteness_fn);
+  execution::compiler::test::GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
-  execution::compiler::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
+  execution::compiler::test::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-  execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -465,7 +496,7 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -481,38 +512,43 @@ TEST_F(IdxJoinTest, BarOnlyScan) {
 
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows = 81;
-  execution::compiler::RowChecker row_checker = [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
-    num_output_rows++;
+  execution::compiler::test::RowChecker row_checker =
+      [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
+        num_output_rows++;
 
-    // Read cols
-    auto bar_col1 = static_cast<execution::sql::Integer *>(vals[0]);
-    auto bar_col2 = static_cast<execution::sql::Integer *>(vals[1]);
-    auto bar_col3 = static_cast<execution::sql::Integer *>(vals[2]);
-    ASSERT_FALSE(bar_col1->is_null_ || bar_col2->is_null_ || bar_col3->is_null_);
+        // Read cols
+        auto bar_col1 = static_cast<execution::sql::Integer *>(vals[0]);
+        auto bar_col2 = static_cast<execution::sql::Integer *>(vals[1]);
+        auto bar_col3 = static_cast<execution::sql::Integer *>(vals[2]);
+        ASSERT_FALSE(bar_col1->is_null_ || bar_col2->is_null_ || bar_col3->is_null_);
 
-    ASSERT_EQ(bar_col1->val_, 1 + ((num_output_rows - 1) / 27));
-    ASSERT_GE(bar_col2->val_, 11);
-    ASSERT_LE(bar_col2->val_, 13);
-    ASSERT_GE(bar_col3->val_, 301);
-    ASSERT_LE(bar_col3->val_, 303);
-  };
+        ASSERT_EQ(bar_col1->val_, 1 + ((num_output_rows - 1) / 27));
+        ASSERT_GE(bar_col2->val_, 11);
+        ASSERT_LE(bar_col2->val_, 13);
+        ASSERT_GE(bar_col3->val_, 301);
+        ASSERT_LE(bar_col3->val_, 303);
+      };
 
-  execution::compiler::CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  execution::compiler::test::CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  execution::compiler::GenericChecker checker(row_checker, correcteness_fn);
+  execution::compiler::test::GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
-  execution::compiler::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
+  execution::compiler::test::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-  execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -528,7 +564,7 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
   auto txn = txn_manager_->BeginTransaction();
   auto stmt_list = parser::PostgresParser::BuildParseTree(sql);
 
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn), db_oid_, DISABLED);
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid_);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), nullptr, nullptr);
 
@@ -549,49 +585,54 @@ TEST_F(IdxJoinTest, IndexToIndexJoin) {
 
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows = 9;
-  execution::compiler::RowChecker row_checker = [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
-    num_output_rows++;
+  execution::compiler::test::RowChecker row_checker =
+      [&num_output_rows](const std::vector<execution::sql::Val *> &vals) {
+        num_output_rows++;
 
-    // Read cols
-    auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
-    auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
-    auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
-    auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
-    auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
-    auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
-    ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
-                 bar_col2->is_null_ || bar_col3->is_null_);
+        // Read cols
+        auto foo_col1 = static_cast<execution::sql::Integer *>(vals[0]);
+        auto foo_col2 = static_cast<execution::sql::Integer *>(vals[1]);
+        auto foo_col3 = static_cast<execution::sql::Integer *>(vals[2]);
+        auto bar_col1 = static_cast<execution::sql::Integer *>(vals[3]);
+        auto bar_col2 = static_cast<execution::sql::Integer *>(vals[4]);
+        auto bar_col3 = static_cast<execution::sql::Integer *>(vals[5]);
+        ASSERT_FALSE(foo_col1->is_null_ || foo_col2->is_null_ || foo_col3->is_null_ || bar_col1->is_null_ ||
+                     bar_col2->is_null_ || bar_col3->is_null_);
 
-    ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 3));
-    ASSERT_EQ(foo_col1->val_, bar_col1->val_);
+        ASSERT_EQ(foo_col1->val_, 1 + ((num_output_rows - 1) / 3));
+        ASSERT_EQ(foo_col1->val_, bar_col1->val_);
 
-    ASSERT_EQ(foo_col2->val_, 12);
-    ASSERT_EQ(bar_col2->val_, 12);
+        ASSERT_EQ(foo_col2->val_, 12);
+        ASSERT_EQ(bar_col2->val_, 12);
 
-    ASSERT_GE(foo_col3->val_, 31);
-    ASSERT_LE(foo_col3->val_, 33);
-    ASSERT_EQ(bar_col3->val_, 302);
-  };
+        ASSERT_GE(foo_col3->val_, 31);
+        ASSERT_LE(foo_col3->val_, 33);
+        ASSERT_EQ(bar_col3->val_, 302);
+      };
 
-  execution::compiler::CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
+  execution::compiler::test::CorrectnessFn correctness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-  execution::compiler::GenericChecker checker(row_checker, correcteness_fn);
+  execution::compiler::test::GenericChecker checker(row_checker, correctness_fn);
 
   // Make Exec Ctx
-  execution::compiler::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
+  execution::compiler::test::OutputStore store{&checker, out_plan->GetOutputSchema().Get()};
   execution::exec::OutputPrinter printer(out_plan->GetOutputSchema().Get());
-  execution::compiler::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::compiler::test::MultiOutputCallback callback{std::vector<execution::exec::OutputCallback>{store, printer}};
+  execution::exec::ExecutionSettings exec_settings{};
+  exec_settings.is_parallel_execution_enabled_ = false;
+  execution::exec::OutputCallback callback_fn = callback.ConstructOutputCallback();
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-      db_oid_, common::ManagedPointer(txn), std::move(callback), out_plan->GetOutputSchema().Get(),
-      common::ManagedPointer(accessor));
+      db_oid_, common::ManagedPointer(txn), callback_fn, out_plan->GetOutputSchema().Get(),
+      common::ManagedPointer(accessor), exec_settings, db_main_->GetMetricsManager());
 
   // Run & Check
-  auto executable = execution::ExecutableQuery(common::ManagedPointer(out_plan), common::ManagedPointer(exec_ctx));
-  executable.Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+  auto executable = execution::compiler::CompilationContext::Compile(*out_plan, exec_ctx->GetExecutionSettings(),
+                                                                     exec_ctx->GetAccessor());
+  executable->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
   checker.CheckCorrectness();
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

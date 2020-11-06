@@ -4,14 +4,15 @@
 #include <string>
 #include <variant>
 
+#include "common/thread_context.h"
+#include "metrics/metrics_store.h"
 #include "network/network_util.h"
 #include "network/postgres/postgres_packet_util.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/postgres/statement.h"
 #include "traffic_cop/traffic_cop.h"
-#include "traffic_cop/traffic_cop_util.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 static Transition FinishSimpleQueryCommand(const common::ManagedPointer<PostgresPacketWriter> out,
                                            const common::ManagedPointer<ConnectionContext> connection) {
@@ -38,14 +39,22 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
     result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
   } else if (NetworkUtil::CreateQueryType(query_type)) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_CREATE_DB) {
-      out->WriteErrorResponse("ERROR:  CREATE DATABASE cannot run inside a transaction block");
+      out->WriteError({common::ErrorSeverity::ERROR, "CREATE DATABASE cannot run inside a transaction block",
+                       common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
-    result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
+    if (query_type == network::QueryType::QUERY_CREATE_INDEX) {
+      result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
+      result = t_cop->CodegenPhysicalPlan(connection_ctx, out, portal);
+      result = t_cop->RunExecutableQuery(connection_ctx, out, portal);
+    } else {
+      result = t_cop->ExecuteCreateStatement(connection_ctx, physical_plan, query_type);
+    }
   } else if (NetworkUtil::DropQueryType(query_type)) {
     if (explicit_txn_block && query_type == network::QueryType::QUERY_DROP_DB) {
-      out->WriteErrorResponse("ERROR:  DROP DATABASE cannot run inside a transaction block");
+      out->WriteError({common::ErrorSeverity::ERROR, "DROP DATABASE cannot run inside a transaction block",
+                       common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
       connection_ctx->Transaction()->SetMustAbort();
       return;
     }
@@ -53,13 +62,13 @@ static void ExecutePortal(const common::ManagedPointer<network::ConnectionContex
   }
 
   if (result.type_ == trafficcop::ResultType::COMPLETE) {
-    TERRIER_ASSERT(std::holds_alternative<uint32_t>(result.extra_), "We're expecting number of rows here.");
+    NOISEPAGE_ASSERT(std::holds_alternative<uint32_t>(result.extra_), "We're expecting number of rows here.");
     out->WriteCommandComplete(query_type, std::get<uint32_t>(result.extra_));
   } else {
-    TERRIER_ASSERT(result.type_ == trafficcop::ResultType::ERROR,
-                   "Currently only expecting COMPLETE or ERROR from TrafficCop here.");
-    TERRIER_ASSERT(std::holds_alternative<std::string>(result.extra_), "We're expecting a message here.");
-    out->WriteErrorResponse(std::get<std::string>(result.extra_));
+    NOISEPAGE_ASSERT(result.type_ == trafficcop::ResultType::ERROR,
+                     "Currently only expecting COMPLETE or ERROR from TrafficCop here.");
+    NOISEPAGE_ASSERT(std::holds_alternative<common::ErrorData>(result.extra_), "We're expecting a message here.");
+    out->WriteError(std::get<common::ErrorData>(result.extra_));
   }
 }
 
@@ -68,28 +77,29 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
                                     const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
-                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
-                 "caught at the protocol interpreter Process() level.");
-
-  auto query_text = in_.ReadString();
-
-  auto parse_result = t_cop->ParseQuery(query_text, connection);
-
-  const auto statement = std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result));
+  NOISEPAGE_ASSERT(!postgres_interpreter->WaitingForSync(),
+                   "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                   "caught at the protocol interpreter Process() level.");
 
   // Parsing a SimpleQuery clears the unnamed statement and portal
   postgres_interpreter->CloseStatement("");
   postgres_interpreter->ClosePortal("");
 
-  if (!statement->Valid()) {
-    out->WriteErrorResponse("ERROR:  syntax error");
+  auto query_text = in_.ReadString();
+
+  auto parse_result = t_cop->ParseQuery(query_text, connection);
+
+  if (std::holds_alternative<common::ErrorData>(parse_result)) {
+    out->WriteError(std::get<common::ErrorData>(parse_result));
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
     }
     return FinishSimpleQueryCommand(out, connection);
   }
+
+  const auto statement = std::make_unique<network::Statement>(
+      std::move(query_text), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse_result)));
 
   // TODO(Matt:) Clients may send multiple statements in a single SimpleQuery packet/string. Handling that would
   // probably exist here, looping over all of the elements in the ParseResult. It's not clear to me how the binder would
@@ -106,14 +116,34 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
       query_type != QueryType::QUERY_COMMIT && query_type != QueryType::QUERY_ROLLBACK) {
-    out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
+    out->WriteError({common::ErrorSeverity::ERROR,
+                     "current transaction is aborted, commands ignored until end of transaction block",
+                     common::ErrorCode::ERRCODE_IN_FAILED_SQL_TRANSACTION});
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
+  // Set statements are manually handled here. They are not transactional, so handle them before transactional logic.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
+    if (postgres_interpreter->ExplicitTransactionBlock()) {
+      out->WriteError({common::ErrorSeverity::ERROR, "SET cannot run inside a transaction block",
+                       common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
+      connection->Transaction()->SetMustAbort();
+      return FinishSimpleQueryCommand(out, connection);
+    }
+
+    auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
+    if (set_result.type_ == trafficcop::ResultType::ERROR) {
+      out->WriteError(std::get<common::ErrorData>(set_result.extra_));
+    } else {
+      out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
+    }
     return FinishSimpleQueryCommand(out, connection);
   }
 
   // Begin a transaction, regardless of statement type. If it's a BEGIN statement it's implicitly in this txn
   if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE) {
-    TERRIER_ASSERT(!postgres_interpreter->ExplicitTransactionBlock(),
-                   "We shouldn't be in an explicit txn block is transaction state is IDLE.");
+    NOISEPAGE_ASSERT(!postgres_interpreter->ExplicitTransactionBlock(),
+                     "We shouldn't be in an explicit txn block is transaction state is IDLE.");
     t_cop->BeginTransaction(connection);
   }
 
@@ -121,7 +151,7 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
   if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (query_type == network::QueryType::QUERY_BEGIN) {
-      postgres_interpreter->SetExplicitTransactionBlock();
+      if (!(postgres_interpreter->ExplicitTransactionBlock())) postgres_interpreter->SetExplicitTransactionBlock();
     } else {
       postgres_interpreter->ResetTransactionState();
     }
@@ -130,8 +160,8 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::UnsupportedQueryType(query_type)) {
-    // We don't yet support query types with values greater than this
-    out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
+    out->WriteError({common::ErrorSeverity::NOTICE, "we don't yet support that query type.",
+                     common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED});
     out->WriteCommandComplete(query_type, 0);
   } else {
     // Try to bind the parsed statement
@@ -151,16 +181,18 @@ Transition SimpleQueryCommand::Exec(const common::ManagedPointer<ProtocolInterpr
       ExecutePortal(connection, common::ManagedPointer(portal), out, t_cop,
                     postgres_interpreter->ExplicitTransactionBlock());
     } else if (bind_result.type_ == trafficcop::ResultType::NOTICE) {
-      TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
-      out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
+      NOISEPAGE_ASSERT(std::holds_alternative<common::ErrorData>(bind_result.extra_),
+                       "We're expecting a message here.");
+      out->WriteError(std::get<common::ErrorData>(bind_result.extra_));
       out->WriteCommandComplete(query_type, 0);
     } else {
-      TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
-                     "I don't think we expect any other ResultType at this point.");
-      TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+      NOISEPAGE_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
+                       "I don't think we expect any other ResultType at this point.");
+      NOISEPAGE_ASSERT(std::holds_alternative<common::ErrorData>(bind_result.extra_),
+                       "We're expecting a message here.");
       // failing to bind fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
-      out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
+      out->WriteError(std::get<common::ErrorData>(bind_result.extra_));
     }
   }
 
@@ -180,16 +212,17 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
-                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
-                 "caught at the protocol interpreter Process() level.");
+  NOISEPAGE_ASSERT(!postgres_interpreter->WaitingForSync(),
+                   "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                   "caught at the protocol interpreter Process() level.");
 
   const auto statement_name = in_.ReadString();
 
   if (!statement_name.empty() && postgres_interpreter->GetStatement(statement_name) != nullptr) {
-    out->WriteErrorResponse(
-        "ERROR:  Named prepared statements must be explicitly closed before they can be redefined by another Parse "
-        "message.");
+    out->WriteError(
+        {common::ErrorSeverity::ERROR,
+         "Named prepared statements must be explicitly closed before they can be redefined by another Parse message.",
+         common::ErrorCode::ERRCODE_DUPLICATE_PSTATEMENT});
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
@@ -199,14 +232,27 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
 
   auto query_text = in_.ReadString();
   auto parse_result = t_cop->ParseQuery(query_text, connection);
+
+  if (std::holds_alternative<common::ErrorData>(parse_result)) {
+    out->WriteError(std::get<common::ErrorData>(parse_result));
+    if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
+      // failing to parse fails a transaction in postgres
+      connection->Transaction()->SetMustAbort();
+    }
+    postgres_interpreter->SetWaitingForSync();
+    return FinishSimpleQueryCommand(out, connection);
+  }
+
   auto param_types = PostgresPacketUtil::ReadParamTypes(common::ManagedPointer(&in_));
 
-  auto statement =
-      std::make_unique<network::Statement>(std::move(query_text), std::move(parse_result), std::move(param_types));
+  auto statement = std::make_unique<network::Statement>(
+      std::move(query_text), std::move(std::get<std::unique_ptr<parser::ParseResult>>(parse_result)),
+      std::move(param_types));
 
   // Extended Query protocol doesn't allow for more than one statement per query string
-  if (!statement->Valid() || statement->ParseResult()->NumStatements() > 1) {
-    out->WriteErrorResponse("ERROR:  syntax error");
+  if (statement->ParseResult()->NumStatements() > 1) {
+    out->WriteError({common::ErrorSeverity::ERROR, "extended query only allows one statement per query",
+                     common::ErrorCode::ERRCODE_SYNTAX_ERROR});
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
@@ -215,9 +261,9 @@ Transition ParseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     return Transition::PROCEED;
   }
 
-  if (statement->GetQueryType() >= network::QueryType::QUERY_RENAME) {
-    // We don't yet support query types with values greater than this
-    out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
+  if (NetworkUtil::UnsupportedQueryType(statement->GetQueryType())) {
+    out->WriteError({common::ErrorSeverity::NOTICE, "we don't yet support that query type.",
+                     common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED});
   }
 
   auto cached_statement = postgres_interpreter->LookupStatementInCache(statement->GetQueryText());
@@ -237,17 +283,26 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
                              const common::ManagedPointer<PostgresPacketWriter> out,
                              const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              const common::ManagedPointer<ConnectionContext> connection) {
+  const bool bind_command_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::BIND_COMMAND);
+  if (bind_command_metrics_enabled) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
-                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
-                 "caught at the protocol interpreter Process() level.");
+  NOISEPAGE_ASSERT(!postgres_interpreter->WaitingForSync(),
+                   "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                   "caught at the protocol interpreter Process() level.");
 
   const auto portal_name = in_.ReadString();
   const auto statement_name = in_.ReadString();
   const auto statement = postgres_interpreter->GetStatement(statement_name);
 
   if (statement == nullptr) {
-    out->WriteErrorResponse("ERROR:  Statement name referenced by Bind message does not exist.");
+    out->WriteError({common::ErrorSeverity::ERROR, "Statement name referenced by Bind message does not exist.",
+                     common::ErrorCode::ERRCODE_INVALID_SQL_STATEMENT_NAME});
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to bind fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
@@ -258,8 +313,9 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   const auto query_type = statement->GetQueryType();
 
   if (!portal_name.empty() && postgres_interpreter->GetPortal(statement_name) != nullptr) {
-    out->WriteErrorResponse(
-        "ERROR:  Named portals must be explicitly closed before they can be redefined by another Bind message.");
+    out->WriteError({common::ErrorSeverity::ERROR,
+                     "Named portals must be explicitly closed before they can be redefined by another Bind message.",
+                     common::ErrorCode::ERRCODE_PROTOCOL_VIOLATION});
     if (connection->TransactionState() == network::NetworkTransactionStateType::BLOCK) {
       // failing to parse fails a transaction in postgres
       connection->Transaction()->SetMustAbort();
@@ -269,14 +325,15 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
 
   // read out the parameter formats
   const auto param_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
-  TERRIER_ASSERT(param_formats.size() == 1 || param_formats.size() == statement->ParamTypes().size(),
-                 "Incorrect number of parameter format codes. Should either be 1 (all the same) or the number of "
-                 "parameters required for this statement.");
+  NOISEPAGE_ASSERT(param_formats.size() == 1 || param_formats.size() == statement->ParamTypes().size(),
+                   "Incorrect number of parameter format codes. Should either be 1 (all the same) or the number of "
+                   "parameters required for this statement.");
   // TODO(Matt): probably shouldn't be an assert, but rather an error response
 
   // read the params
   auto params =
       PostgresPacketUtil::ReadParameters(common::ManagedPointer(&in_), statement->ParamTypes(), param_formats);
+  uint64_t param_num = params.size();
 
   // read out the result formats
   auto result_formats = PostgresPacketUtil::ReadFormatCodes(common::ManagedPointer(&in_));
@@ -286,20 +343,24 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   // Check if we're in a must-abort situation first before attempting to issue any statement other than ROLLBACK
   if (connection->TransactionState() == network::NetworkTransactionStateType::FAIL &&
       query_type != QueryType::QUERY_COMMIT && query_type != QueryType::QUERY_ROLLBACK) {
-    out->WriteErrorResponse("ERROR:  current transaction is aborted, commands ignored until end of transaction block");
+    out->WriteError({common::ErrorSeverity::ERROR,
+                     "current transaction is aborted, commands ignored until end of transaction block",
+                     common::ErrorCode::ERRCODE_IN_FAILED_SQL_TRANSACTION});
     return Transition::PROCEED;
   }
 
   // Begin a transaction, regardless of statement type. If it's a BEGIN statement it's implicitly in this txn
-  if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE) {
-    TERRIER_ASSERT(!postgres_interpreter->ExplicitTransactionBlock(),
-                   "We shouldn't be in an explicit txn block is transaction state is IDLE.");
+  if (connection->TransactionState() == network::NetworkTransactionStateType::IDLE &&
+      !NetworkUtil::NonTransactionalQueryType(query_type)) {
+    NOISEPAGE_ASSERT(!postgres_interpreter->ExplicitTransactionBlock(),
+                     "We shouldn't be in an explicit txn block is transaction state is IDLE.");
     t_cop->BeginTransaction(connection);
   }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
-  if (NetworkUtil::TransactionalQueryType(query_type)) {
-    // Don't begin an implicit txn in this case, and don't bind or optimize this statement
+  // TODO(Matt): maybe this check against SET eventually encompasses a class of non-transactional query types
+  if (NetworkUtil::TransactionalQueryType(query_type) || query_type == QueryType::QUERY_SET) {
+    // Don't bind or optimize this statement
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
     out->WriteBindComplete();
@@ -307,12 +368,12 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
   }
 
   if (NetworkUtil::UnsupportedQueryType(query_type)) {
-    // We don't yet support query types with values greater than this
     // Don't begin an implicit txn in this case, and don't bind or optimize this statement. Just noop with a Notice (not
     // an Error) and proceed to reading more messages.
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
-    out->WriteNoticeResponse("NOTICE:  we don't yet support that query type.");
+    out->WriteError({common::ErrorSeverity::NOTICE, "we don't yet support that query type.",
+                     common::ErrorCode::ERRCODE_FEATURE_NOT_SUPPORTED});
     out->WriteBindComplete();
     return Transition::PROCEED;
   }
@@ -339,21 +400,28 @@ Transition BindCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> i
     // handle that case in Execute. In case it previously bound and compiled, we're gonna throw that away for next
     // execution
     statement->ClearCachedObjects();
-    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    NOISEPAGE_ASSERT(std::holds_alternative<common::ErrorData>(bind_result.extra_), "We're expecting a message here.");
     postgres_interpreter->SetPortal(portal_name,
                                     std::make_unique<Portal>(statement, std::move(params), std::move(result_formats)));
-    out->WriteNoticeResponse(std::get<std::string>(bind_result.extra_));
+    out->WriteError(std::get<common::ErrorData>(bind_result.extra_));
     out->WriteBindComplete();
   } else {
-    TERRIER_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
-                   "I don't think we expect any other ResultType at this point.");
-    TERRIER_ASSERT(std::holds_alternative<std::string>(bind_result.extra_), "We're expecting a message here.");
+    NOISEPAGE_ASSERT(bind_result.type_ == trafficcop::ResultType::ERROR,
+                     "I don't think we expect any other ResultType at this point.");
+    NOISEPAGE_ASSERT(std::holds_alternative<common::ErrorData>(bind_result.extra_), "We're expecting a message here.");
     // failing to bind fails a transaction in postgres
     connection->Transaction()->SetMustAbort();
     // clear anything cached related to this statement
     statement->ClearCachedObjects();
-    out->WriteErrorResponse(std::get<std::string>(bind_result.extra_));
+    out->WriteError(std::get<common::ErrorData>(bind_result.extra_));
     postgres_interpreter->SetWaitingForSync();
+  }
+
+  if (bind_command_metrics_enabled) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordBindCommandData(param_num, statement->GetQueryText().size(),
+                                                                 resource_metrics);
   }
 
   return Transition::PROCEED;
@@ -364,9 +432,9 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
                                  const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                  const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
-                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
-                 "caught at the protocol interpreter Process() level.");
+  NOISEPAGE_ASSERT(!postgres_interpreter->WaitingForSync(),
+                   "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                   "caught at the protocol interpreter Process() level.");
 
   const auto object_type = in_.ReadValue<DescribeCommandObjectType>();
   const auto object_name = in_.ReadString();
@@ -374,7 +442,8 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
   if (object_type == DescribeCommandObjectType::PORTAL) {
     const auto portal = postgres_interpreter->GetPortal(object_name);
     if (portal == nullptr) {
-      out->WriteErrorResponse("ERROR:  Portal does not exist for Describe message.");
+      out->WriteError({common::ErrorSeverity::ERROR, "Portal does not exist for Describe message.",
+                       common::ErrorCode::ERRCODE_PROTOCOL_VIOLATION});
     } else if (portal->GetStatement()->GetQueryType() == network::QueryType::QUERY_SELECT) {
       out->WriteRowDescription(portal->PhysicalPlan()->GetOutputSchema()->GetColumns(), portal->ResultFormats());
     } else {
@@ -382,12 +451,13 @@ Transition DescribeCommand::Exec(const common::ManagedPointer<ProtocolInterprete
     }
     return Transition::PROCEED;
   }
-  TERRIER_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
+  NOISEPAGE_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
 
   const auto statement = postgres_interpreter->GetStatement(object_name);
 
   if (statement == nullptr) {
-    out->WriteErrorResponse("ERROR:  Statement does not exist for Describe message.");
+    out->WriteError({common::ErrorSeverity::ERROR, "Statement does not exist for Describe message.",
+                     common::ErrorCode::ERRCODE_INVALID_SQL_STATEMENT_NAME});
   } else {
     out->WriteParameterDescription(statement->ParamTypes());
     if (statement->GetQueryType() == network::QueryType::QUERY_SELECT) {
@@ -405,10 +475,18 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
                                 const common::ManagedPointer<PostgresPacketWriter> out,
                                 const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 const common::ManagedPointer<ConnectionContext> connection) {
+  const bool execute_command_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::EXECUTE_COMMAND);
+  if (execute_command_metrics_enabled) {
+    // start the operating unit resource tracker
+    common::thread_context.resource_tracker_.Start();
+  }
+
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
-                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
-                 "caught at the protocol interpreter Process() level.");
+  NOISEPAGE_ASSERT(!postgres_interpreter->WaitingForSync(),
+                   "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                   "caught at the protocol interpreter Process() level.");
 
   const auto portal_name = in_.ReadString();
   const auto max_rows UNUSED_ATTRIBUTE = in_.ReadValue<int32_t>();
@@ -418,7 +496,8 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   const auto portal = postgres_interpreter->GetPortal(portal_name);
 
   if (portal == nullptr) {
-    out->WriteErrorResponse("ERROR:  Specified portal does not exist to execute.");
+    out->WriteError({common::ErrorSeverity::ERROR, "Specified portal does not exist to execute.",
+                     common::ErrorCode::ERRCODE_PROTOCOL_VIOLATION});
     return Transition::PROCEED;
   }
 
@@ -426,12 +505,29 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
   const auto query_type = statement->GetQueryType();
 
   // TODO(Matt): Probably handle EmptyStatement around here somewhere, maybe somewhere more general purpose though?
+  // Set statements are manually handled here.
+  if (UNLIKELY(query_type == network::QueryType::QUERY_SET)) {
+    if (postgres_interpreter->ExplicitTransactionBlock()) {
+      out->WriteError({common::ErrorSeverity::ERROR, "SET cannot run inside a transaction block",
+                       common::ErrorCode::ERRCODE_ACTIVE_SQL_TRANSACTION});
+      connection->Transaction()->SetMustAbort();
+      return FinishSimpleQueryCommand(out, connection);
+    }
+
+    auto set_result = t_cop->ExecuteSetStatement(connection, common::ManagedPointer(statement));
+    if (set_result.type_ == trafficcop::ResultType::ERROR) {
+      out->WriteError(std::get<common::ErrorData>(set_result.extra_));
+    } else {
+      out->WriteCommandComplete(network::QueryType::QUERY_SET, 0);
+    }
+    return Transition::PROCEED;
+  }
 
   // This logic relies on ordering of values in the enum's definition and is documented there as well.
   if (NetworkUtil::TransactionalQueryType(query_type)) {
     t_cop->ExecuteTransactionStatement(connection, out, postgres_interpreter->ExplicitTransactionBlock(), query_type);
     if (query_type == network::QueryType::QUERY_BEGIN) {
-      postgres_interpreter->SetExplicitTransactionBlock();
+      if (!(postgres_interpreter->ExplicitTransactionBlock())) postgres_interpreter->SetExplicitTransactionBlock();
     } else {
       postgres_interpreter->ResetTransactionState();
     }
@@ -442,6 +538,12 @@ Transition ExecuteCommand::Exec(const common::ManagedPointer<ProtocolInterpreter
     // We don't yet support query types with values greater than this
     out->WriteCommandComplete(query_type, 0);
     return Transition::PROCEED;
+  }
+
+  if (execute_command_metrics_enabled) {
+    common::thread_context.resource_tracker_.Stop();
+    auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+    common::thread_context.metrics_store_->RecordExecuteCommandData(portal_name.size(), resource_metrics);
   }
 
   if (portal->PhysicalPlan() != nullptr) {
@@ -479,9 +581,9 @@ Transition CloseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
                               const common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               const common::ManagedPointer<ConnectionContext> connection) {
   const auto postgres_interpreter = interpreter.CastManagedPointerTo<network::PostgresProtocolInterpreter>();
-  TERRIER_ASSERT(!postgres_interpreter->WaitingForSync(),
-                 "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
-                 "caught at the protocol interpreter Process() level.");
+  NOISEPAGE_ASSERT(!postgres_interpreter->WaitingForSync(),
+                   "We shouldn't be trying to execute commands while waiting for Sync message. This should have been "
+                   "caught at the protocol interpreter Process() level.");
 
   const auto object_type = in_.ReadValue<DescribeCommandObjectType>();
   const auto object_name = in_.ReadString();
@@ -491,7 +593,7 @@ Transition CloseCommand::Exec(const common::ManagedPointer<ProtocolInterpreter> 
     out->WriteCloseComplete();
     return Transition::PROCEED;
   }
-  TERRIER_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
+  NOISEPAGE_ASSERT(object_type == DescribeCommandObjectType::STATEMENT, "Unknown object type passed in Close message.");
   postgres_interpreter->CloseStatement(object_name);
   // "It is not an error to issue Close against a nonexistent statement or portal name."
   out->WriteCloseComplete();
@@ -518,4 +620,4 @@ Transition EmptyCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
-}  // namespace terrier::network
+}  // namespace noisepage::network

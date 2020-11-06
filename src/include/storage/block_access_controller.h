@@ -1,11 +1,15 @@
 #pragma once
+
 #include <emmintrin.h>
+
 #include <atomic>
 #include <cstring>
 #include <utility>
+
 #include "common/macros.h"
 #include "common/strong_typedef.h"
-namespace terrier::storage {
+
+namespace noisepage::storage {
 
 /**
  * Denotes the state of a block.
@@ -80,7 +84,7 @@ class BlockAccessController {
    * Releases the read lock acquired by an in-place reader on the block
    */
   void ReleaseInPlaceRead() {
-    TERRIER_ASSERT(GetReaderCount()->load() > 0, "Attempting to release read lock when there is none");
+    NOISEPAGE_ASSERT(GetReaderCount()->load() > 0, "Attempting to release read lock when there is none");
     // Increment reader count while holding the rest constant
     GetReaderCount()->fetch_sub(1);
   }
@@ -139,4 +143,4 @@ class BlockAccessController {
     return reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->compare_exchange_strong(expected_bytes, *desired_bytes);
   }
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

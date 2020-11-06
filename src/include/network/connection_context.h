@@ -6,18 +6,12 @@
 #include <utility>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/catalog_cache.h"
 #include "catalog/catalog_defs.h"
 #include "network/network_defs.h"
+#include "transaction/transaction_context.h"
 
-namespace terrier::transaction {
-class TransactionContext;
-}
-
-namespace terrier::catalog {
-class CatalogAccessor;
-}
-
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * A ConnectionContext stores the state of a connection. There should be as little as possible that is protocol-specific
@@ -42,6 +36,7 @@ class ConnectionContext {
     accessor_ = nullptr;
     callback_ = nullptr;
     callback_arg_ = nullptr;
+    catalog_cache_.Reset(transaction::INITIAL_TXN_TIMESTAMP);
   }
 
   /**
@@ -131,7 +126,7 @@ class ConnectionContext {
    * @return current CatalogAccesor for connection
    */
   common::ManagedPointer<catalog::CatalogAccessor> Accessor() const {
-    TERRIER_ASSERT(accessor_ != nullptr, "Requesting CatalogAccessor that doesn't exist yet.");
+    NOISEPAGE_ASSERT(accessor_ != nullptr, "Requesting CatalogAccessor that doesn't exist yet.");
     // TODO(Matt): I'd like an assert here that the accessor's txn matches the connection context's txn, but the
     // accessor doesn't expose a getter.
     return common::ManagedPointer(accessor_);
@@ -155,16 +150,21 @@ class ConnectionContext {
   }
 
   /**
-   * @return handle to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * @return handle to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_NOISEPAGE
    * state. Currently not used, but may in the future for asynchronous execution.
    */
   network::NetworkCallback Callback() const { return callback_; }
 
   /**
-   * @return args to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_TERRIER
+   * @return args to the ConnectionHandle callback to issue a libevent wakeup in the event of WAIT_ON_NOISEPAGE
    * state. Currently not used, but may in the future for asynchronous execution.
    */
   void *CallbackArg() const { return callback_arg_; }
+
+  /**
+   * @return CatalogCache to be injected into requests for CatalogAcessors
+   */
+  common::ManagedPointer<catalog::CatalogCache> GetCatalogCache() { return common::ManagedPointer(&catalog_cache_); }
 
  private:
   /**
@@ -208,11 +208,13 @@ class ConnectionContext {
   std::unique_ptr<catalog::CatalogAccessor> accessor_ = nullptr;
 
   /**
-   * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_TERRIER state. Currently
+   * ConnectionHandle callback stuff to issue a libevent wakeup in the event of WAIT_ON_NOISEPAGE state. Currently
    * not used, but may in the future for asynchronous execution.
    */
   network::NetworkCallback callback_;
   void *callback_arg_;
+
+  catalog::CatalogCache catalog_cache_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

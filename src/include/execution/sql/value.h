@@ -1,52 +1,39 @@
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <string_view>
+#include <cstring>
 
 #include "common/macros.h"
-#include "common/math_util.h"
-#include "execution/exec/execution_context.h"
 #include "execution/sql/runtime_types.h"
-#include "execution/util/execution_common.h"
+#include "execution/util/string_heap.h"
+#include "storage/storage_defs.h"
 #include "type/type_id.h"
-#include "util/time_util.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
- * A generic base catch-all SQL value
+ * A generic base catch-all SQL value. Used to represent a NULL-able SQL value.
  */
 struct Val {
-  /**
-   * Whether the value is null
-   */
+  /** NULL indication flag. */
   bool is_null_;
 
   /**
-   * Constructs a generic value
-   * @param is_null whether the value is null
+   * Construct a value with the given NULL indication.
+   * @param is_null Whether the SQL value is NULL.
    */
-  explicit Val(bool is_null = false) noexcept : is_null_(is_null) {}
-
-  /**
-   * @return a NULL SQL value
-   */
-  static Val Null() { return Val(true); }
+  explicit Val(bool is_null) noexcept : is_null_(is_null) {}
 };
 
 /**
- * A SQL boolean value
+ * A NULL-able SQL boolean value.
  */
 struct BoolVal : public Val {
-  /**
-   * raw boolean value
-   */
+  /** The raw boolean value. */
   bool val_;
 
   /**
-   * Non-null constructor
-   * @param val value of the boolean
+   * Construct a non-NULL boolean with the given value.
+   * @param val The value of the boolean.
    */
   explicit BoolVal(bool val) noexcept : Val(false), val_(val) {}
 
@@ -62,12 +49,12 @@ struct BoolVal : public Val {
    * | true  | true  | false  |
    * +-------+-------+--------+
    *
-   * @return converted value
+   * @return The primitive boolean value corresponding to this SQL Boolean.
    */
   bool ForceTruth() const noexcept { return !is_null_ && val_; }
 
   /**
-   * @return a NULL bool value
+   * @return A NULL boolean value.
    */
   static BoolVal Null() {
     BoolVal val(false);
@@ -77,29 +64,20 @@ struct BoolVal : public Val {
 };
 
 /**
- * An integral SQL value
+ * A NULL-able integral SQL value. Captures tinyint, smallint, integer and bigint.
  */
 struct Integer : public Val {
-  /**
-   * raw integer value
-   */
+  /** The raw integer value. */
   int64_t val_;
 
   /**
-   * Non-Null constructor
-   * @param val raw int value
+   * Construct a non-NULL integer with the given value.
+   * @param val The value to set.
    */
-  explicit Integer(int64_t val) noexcept : Integer(false, val) {}
+  explicit Integer(int64_t val) noexcept : Val(false), val_(val) {}
 
   /**
-   * Generic constructor
-   * @param null whether the value is NULL or not
-   * @param val the raw int value
-   */
-  explicit Integer(bool null, int64_t val) noexcept : Val(null), val_(val) {}
-
-  /**
-   * Create a NULL integer
+   * @return A NULL integer.
    */
   static Integer Null() {
     Integer val(0);
@@ -109,42 +87,26 @@ struct Integer : public Val {
 };
 
 /**
- * Real
+ * A NULL-able single- and double-precision floating point SQL value.
  */
 struct Real : public Val {
-  /**
-   * raw double value
-   */
+  /** The raw double value. */
   double val_;
 
   /**
-   * Non-null float constructor
-   * @param val value of the real
+   * Construct a non-NULL real value from a 32-bit floating point value.
+   * @param val The initial value.
    */
   explicit Real(float val) noexcept : Val(false), val_(val) {}
 
   /**
-   * Non-null double constructor
-   * @param val value of the double
+   * Construct a non-NULL real value from a 64-bit floating point value
+   * @param val The initial value.
    */
   explicit Real(double val) noexcept : Val(false), val_(val) {}
 
   /**
-   * Generic constructor
-   * @param null whether the value is NULL or not
-   * @param val the raw float value
-   */
-  explicit Real(bool null, float val) noexcept : Val(null), val_(val) {}
-
-  /**
-   * Generic constructor
-   * @param null whether the value is NULL or not
-   * @param val the raw double value
-   */
-  explicit Real(bool null, double val) noexcept : Val(null), val_(val) {}
-
-  /**
-   * @return a NULL real value
+   * @return A NULL Real value.
    */
   static Real Null() {
     Real real(0.0);
@@ -154,121 +116,119 @@ struct Real : public Val {
 };
 
 /**
- * A decimal SQL value
+ * A NULL-able fixed-point decimal SQL value.
  */
-struct Decimal : public Val {
-  // TODO(Amadou): Check with Prashant to be sure of the meaning of val
-  /**
-   * bit representaion
-   */
-  uint64_t val_;
-  /**
-   * Precision of the decimal
-   */
-  uint32_t precision_;
-  /**
-   * Scale of the decimal
-   */
-  uint32_t scale_;
+struct DecimalVal : public Val {
+  /** The internal decimal representation. */
+  Decimal64 val_;
 
   /**
-   * Constructor
-   * @param val bit representation
-   * @param precision precision of the decimal
-   * @param scale scale of the decimal
+   * Construct a non-NULL decimal value from the given 64-bit decimal value.
+   * @param val The decimal value.
    */
-  Decimal(uint64_t val, uint32_t precision, uint32_t scale) noexcept
-      : Val(false), val_(val), precision_(precision), scale_(scale) {}
+  explicit DecimalVal(Decimal64 val) noexcept : Val(false), val_(val) {}
 
   /**
-   * @return a NULL decimal value
+   * Construct a non-NULL decimal value from the given 64-bit decimal value.
+   * @param val The raw decimal value.
    */
-  static Decimal Null() {
-    Decimal val(0, 0, 0);
+  explicit DecimalVal(Decimal64::NativeType val) noexcept : DecimalVal(Decimal64{val}) {}
+
+  /**
+   * @return A NULL decimal value.
+   */
+  static DecimalVal Null() {
+    DecimalVal val(0);
     val.is_null_ = true;
     return val;
   }
 };
 
 /**
- * A SQL string
- * TODO(Amadou): Check if the object's layout is optimal
+ * A NULL-able SQL string. These strings are always <b>views</b> onto externally managed memory.
+ * They never own the memory they point to! They're a very thin wrapper around storage::VarlenEntry
+ * used for string processing.
  */
 struct StringVal : public Val {
-  /**
-   * Maximum string length
-   */
-  static constexpr std::size_t K_MAX_STRING_LEN = 1 * common::Constants::GB;
+  /** The VarlenEntry being wrapped. */
+  storage::VarlenEntry val_;
 
   /**
-   * Padding for inlining
+   * Construct a non-NULL string from the given string value.
+   * @param val The string.
    */
-  char prefix_[sizeof(uint64_t) - sizeof(bool)];
+  explicit StringVal(storage::VarlenEntry val) noexcept : Val(false), val_(val) {}
 
   /**
-   * Raw string
-   */
-  const char *ptr_;
-
-  /**
-   * String length
-   */
-  uint32_t len_;
-
-  /**
-   * Create a string value (i.e., a view) over the given potentially non-null
-   * terminated byte sequence.
-   * @param str The byte sequence.
+   * Create a non-NULL string value (i.e., a view) over the given (potentially non-null terminated)
+   * string.
+   * @param str The character sequence.
    * @param len The length of the sequence.
    */
-  StringVal(const char *str, uint32_t len) noexcept : Val(str == nullptr), len_(len) {
-    if (!is_null_) {
-      if (len <= InlineThreshold()) {
-        std::memcpy(prefix_, str, len);
-      } else {
-        ptr_ = str;
-      }
-    }
+  StringVal(const char *str, uint32_t len) noexcept
+      : Val(false),
+        val_(len <= storage::VarlenEntry::InlineThreshold()
+                 ? storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str), len)
+                 : storage::VarlenEntry::Create(reinterpret_cast<const byte *>(str), len, false)) {
+    NOISEPAGE_ASSERT(str != nullptr, "String input cannot be NULL");
   }
 
   /**
    * @return std::string_view of StringVal's contents
    */
   std::string_view StringView() const {
-    TERRIER_ASSERT(!is_null_,
-                   "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
-    return std::string_view(Content(), len_);
+    NOISEPAGE_ASSERT(
+        !is_null_, "You should be doing a NULL check before attempting to generate a std::string_view of a StringVal.");
+    return val_.StringView();
   }
 
   /**
-   * Helper method to turn a StringVal into a VarlenEntry.
-   * @param str input to be turned into a VarlenEntry
-   * @param own whether the varlen entry to own the string
-   * @return VarlenEntry representing StringVal
+   * @return Threshold for inlining.
+   */
+  static uint32_t InlineThreshold() { return storage::VarlenEntry::InlineThreshold(); }
+
+  /**
+   * Helper method to create a VarlenEntry from a StringVal.
+   * @param str The input to be turned into a VarlenEntry.
+   * @param own Whether the VarlenEntry should own the resulting string.
+   * @return A VarlenEntry with the contents of the StringVal.
    */
   static storage::VarlenEntry CreateVarlen(const StringVal &str, bool own) {
     if (str.is_null_) {
-      return terrier::storage::VarlenEntry::CreateInline(static_cast<const terrier::byte *>(nullptr), 0);
+      // TODO(WAN): matt points out that this is rather strange, but it currently exists in upstream/master. Fix later.
+      return noisepage::storage::VarlenEntry::CreateInline(static_cast<const noisepage::byte *>(nullptr), 0);
     }
-    if (str.len_ > storage::VarlenEntry::InlineThreshold()) {
+    if (str.GetLength() > storage::VarlenEntry::InlineThreshold()) {
       if (own) {
-        byte *contents = common::AllocationUtil::AllocateAligned(str.len_);
-        std::memcpy(contents, str.Content(), str.len_);
-        return terrier::storage::VarlenEntry::Create(contents, str.len_, true);
+        // TODO(WAN): smarter allocation?
+        byte *contents = common::AllocationUtil::AllocateAligned(str.GetLength());
+        std::memcpy(contents, str.GetContent(), str.GetLength());
+        return noisepage::storage::VarlenEntry::Create(contents, str.GetLength(), true);
       }
-      return terrier::storage::VarlenEntry::Create(reinterpret_cast<const terrier::byte *>(str.Content()), str.len_,
-                                                   false);
+      return noisepage::storage::VarlenEntry::Create(reinterpret_cast<const noisepage::byte *>(str.GetContent()),
+                                                     str.GetLength(), false);
     }
-    return terrier::storage::VarlenEntry::CreateInline(reinterpret_cast<const terrier::byte *>(str.Content()),
-                                                       str.len_);
+    return noisepage::storage::VarlenEntry::CreateInline(reinterpret_cast<const noisepage::byte *>(str.GetContent()),
+                                                         str.GetLength());
   }
 
   /**
-   * Create a string value (i.e., view) over the C-style null-terminated string.
-   * Note that no copy is made.
+   * Create a non-NULL string value (i.e., view) over the C-style null-terminated string.
    * @param str The C-string.
    */
-  explicit StringVal(const char *str) noexcept : StringVal(str, uint32_t(strlen(str))) {}
+  explicit StringVal(const char *str) noexcept : StringVal(const_cast<char *>(str), strlen(str)) {}
+
+  /**
+   * Get the length of the string value.
+   * @return The length of the string in bytes.
+   */
+  std::size_t GetLength() const noexcept { return val_.Size(); }
+
+  /**
+   * Return a pointer to the bytes underlying the string.
+   * @return A pointer to the underlying content.
+   */
+  const char *GetContent() const noexcept { return reinterpret_cast<const char *>(val_.Content()); }
 
   /**
    * Compare if this (potentially nullable) string value is equivalent to
@@ -283,13 +243,7 @@ struct StringVal : public Val {
     if (is_null_) {
       return true;
     }
-    if (len_ != that.len_) {
-      return false;
-    }
-    if (len_ <= InlineThreshold()) {
-      return memcmp(prefix_, that.prefix_, len_) == 0;
-    }
-    return ptr_ == that.ptr_ || memcmp(ptr_, that.ptr_, len_) == 0;
+    return storage::VarlenEntry::CompareEqualOrNot<true>(val_, that.val_);
   }
 
   /**
@@ -300,57 +254,19 @@ struct StringVal : public Val {
   bool operator!=(const StringVal &that) const { return !(*this == that); }
 
   /**
-   * Create a NULL varchar/string
+   * @return A NULL varchar/string.
    */
-  static StringVal Null() { return StringVal(static_cast<char *>(nullptr), 0); }
-
-  /**
-   * @return the raw content
-   */
-  const char *Content() const {
-    if (len_ <= InlineThreshold()) {
-      return prefix_;
-    }
-    return ptr_;
+  static StringVal Null() {
+    StringVal result("");
+    result.is_null_ = true;
+    return result;
   }
-
-  /**
-   * Preallocate a StringVal whose content will be filled afterwards.
-   * @param result what to allocate
-   * @param memory allocator to use
-   * @param len length of the string
-   * @return a buffer that can be filled
-   */
-  static char *PreAllocate(StringVal *result, exec::ExecutionContext::StringAllocator *memory, uint32_t len) {
-    // Inlined
-    if (len <= InlineThreshold()) {
-      *result = StringVal(len);
-      return result->prefix_;
-    }
-    // Out of line
-    if (UNLIKELY(len > K_MAX_STRING_LEN)) {
-      return nullptr;
-    }
-    auto *ptr = memory->Allocate(len);
-    *result = StringVal(ptr, len);
-    return ptr;
-  }
-
-  /**
-   * @return threshold for inlining.
-   */
-  static uint32_t InlineThreshold() { return storage::VarlenEntry::InlineThreshold(); }
-
- private:
-  // Used to pre allocated inlined strings
-  explicit StringVal(uint32_t len) : Val(false), len_(len) {}
 };
-
 /**
  * A NULL-able SQL date value.
  */
 struct DateVal : public Val {
-  /** The date value. */
+  /** The internal date value. **/
   Date val_;
 
   /**
@@ -379,7 +295,7 @@ struct DateVal : public Val {
  * A NULL-able SQL timestamp value.
  */
 struct TimestampVal : public Val {
-  /** The timestamp value. */
+  /** The internal timestamp value. */
   Timestamp val_;
 
   /**
@@ -389,7 +305,7 @@ struct TimestampVal : public Val {
   explicit TimestampVal(Timestamp val) noexcept : Val(false), val_(val) {}
 
   /**
-   * Construct a non-NULL timestamp with the given raw timestamp value.
+   * Construct a non-NULL timestamp with the given raw timestamp value
    * @param val The raw timestamp value.
    */
   explicit TimestampVal(Timestamp::NativeType val) noexcept : TimestampVal(Timestamp{val}) {}
@@ -409,7 +325,7 @@ struct TimestampVal : public Val {
  */
 struct ValUtil {
   /**
-   * @param type a terrier type
+   * @param type a noisepage type
    * @return the size of the corresponding sql type
    */
   static uint32_t GetSqlSize(type::TypeId type) {
@@ -418,23 +334,53 @@ struct ValUtil {
       case type::TypeId::SMALLINT:
       case type::TypeId::INTEGER:
       case type::TypeId::BIGINT:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Integer), 8));
+        return static_cast<uint32_t>(sizeof(Integer));
       case type::TypeId::BOOLEAN:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(BoolVal), 8));
+        return static_cast<uint32_t>(sizeof(BoolVal));
       case type::TypeId::DATE:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(DateVal), 8));
+        return static_cast<uint32_t>(sizeof(DateVal));
       case type::TypeId::TIMESTAMP:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(TimestampVal), 8));
+        return static_cast<uint32_t>(sizeof(TimestampVal));
       case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Real), 8));
+        // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
+        return static_cast<uint32_t>(sizeof(DecimalVal));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
-        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(StringVal), 8));
+        return static_cast<uint32_t>(sizeof(StringVal));
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * @param type A noisepage type.
+   * @return The alignment for this type in the execution engine.
+   */
+  static uint32_t GetSqlAlignment(type::TypeId type) {
+    switch (type) {
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT:
+        return static_cast<uint32_t>(alignof(Integer));
+      case type::TypeId::BOOLEAN:
+        return static_cast<uint32_t>(alignof(BoolVal));
+      case type::TypeId::DATE:
+        return static_cast<uint32_t>(alignof(DateVal));
+      case type::TypeId::TIMESTAMP:
+        return static_cast<uint32_t>(alignof(TimestampVal));
+      case type::TypeId::DECIMAL:
+        // TODO(Amadou): We only support reals for now. Switch to Decimal once it's implemented
+        // TODO(WAN): switching to DecimalVal, but we don't have a Real type?
+        return static_cast<uint32_t>(alignof(DecimalVal));
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY:
+        return static_cast<uint32_t>(alignof(StringVal));
       default:
         return 0;
     }
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

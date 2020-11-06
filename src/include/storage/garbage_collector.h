@@ -1,17 +1,30 @@
 #pragma once
 
 #include <queue>
+#include <tuple>
 #include <unordered_set>
 #include <utility>
 
 #include "common/shared_latch.h"
-#include "storage/access_observer.h"
-#include "storage/index/index.h"
-#include "transaction/transaction_context.h"
+#include "storage/storage_defs.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
 
-namespace terrier::storage {
+namespace noisepage::transaction {
+class TimestampManager;
+class TransactionManager;
+class DeferredActionManager;
+class TransactionContext;
+}  // namespace noisepage::transaction
+
+namespace noisepage::storage {
+
+class AccessObserver;
+class DataTable;
+class UndoRecord;
+
+namespace index {
+class Index;
+}
 
 /**
  * The garbage collector is responsible for processing a queue of completed transactions from the transaction manager.
@@ -34,21 +47,13 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  GarbageCollector(const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
-                   const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                   const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
-      : timestamp_manager_(timestamp_manager),
-        deferred_action_manager_(deferred_action_manager),
-        txn_manager_(txn_manager),
-        observer_(observer),
-        last_unlinked_{0} {
-    TERRIER_ASSERT(txn_manager_->GCEnabled(),
-                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
-  }
+  GarbageCollector(common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+                   common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+                   common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer);
 
   ~GarbageCollector() {
-    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
-    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
+    NOISEPAGE_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
+    NOISEPAGE_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
   }
 
   /**
@@ -74,6 +79,13 @@ class GarbageCollector {
    */
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
+  /**
+   * Set the GC interval for metrics collection
+   * TODO(lma): this need to be called in the settings callback after we add the ability to change the GC interval
+   * @param gc_interval interval to set (in us)
+   */
+  void SetGCInterval(uint64_t gc_interval) { gc_interval_ = gc_interval; }
+
  private:
   /**
    * Process the deallocate queue
@@ -83,9 +95,12 @@ class GarbageCollector {
 
   /**
    * Process the unlink queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
+   * @return a tuple
+   *   first element - number of txns processed
+   *   second element - number UndoRecords processed
+   *   first element - number of read-only txns processed
    */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
+  std::tuple<uint32_t, uint32_t, uint32_t> ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process deferred actions
@@ -113,6 +128,8 @@ class GarbageCollector {
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
+
+  uint64_t gc_interval_{0};
 };
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

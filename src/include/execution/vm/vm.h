@@ -1,12 +1,8 @@
 #pragma once
 
-#include "execution/util/execution_common.h"
-#include "execution/util/region_containers.h"
 #include "execution/vm/bytecode_function_info.h"
-#include "execution/vm/bytecodes.h"
-#include "loggers/execution_logger.h"
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class Module;
 
@@ -42,4 +38,4 @@ class VM {
   const Module *module_;
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

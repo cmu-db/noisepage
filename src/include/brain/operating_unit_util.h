@@ -5,9 +5,10 @@
 #include <vector>
 
 #include "brain/brain_defs.h"
+#include "brain/operating_unit.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::brain {
+namespace noisepage::brain {
 
 /**
  * Utility class for OperatingUnits
@@ -18,7 +19,7 @@ class OperatingUnitUtil {
   /**
    * Derive the type of computation
    * @param expr Expression
-   * @returns type of computation
+   * @return type of computation
    */
   static type::TypeId DeriveComputation(common::ManagedPointer<parser::AbstractExpression> expr) {
     if (expr->GetChildrenSize() == 0) {
@@ -50,7 +51,7 @@ class OperatingUnitUtil {
    * parser::ExpressionType does not have an equivalent conversion.
    *
    * @param expr Expression
-   * @returns converted equivalent brain::ExecutionOperatingUnitType
+   * @return converted equivalent brain::ExecutionOperatingUnitType
    */
   static std::pair<type::TypeId, ExecutionOperatingUnitType> ConvertExpressionType(
       common::ManagedPointer<parser::AbstractExpression> expr) {
@@ -163,6 +164,48 @@ class OperatingUnitUtil {
 
     return feature_types;
   }
+
+  /**
+   * Whether or not an operating unit type can be merged
+   * @param feature OperatingUnitType to consider
+   * @return mergeable or not
+   */
+  static bool IsOperatingUnitTypeMergeable(ExecutionOperatingUnitType feature) {
+    return feature > ExecutionOperatingUnitType::PLAN_OPS_DELIMITER;
+  }
+
+  /**
+   * Determines whether the operating unit type is a blocking OU
+   * @param feature OperatingUnitType to consider
+   * @return blocking or not
+   */
+  static bool IsOperatingUnitTypeBlocking(ExecutionOperatingUnitType feature);
+
+  /**
+   * Gets the non-parallel type for the OU feature
+   * @param feature Parallel OU
+   * @return Corresponding non-parallel OU or INVALID
+   */
+  static ExecutionOperatingUnitType GetNonParallelType(ExecutionOperatingUnitType feature);
+
+  /** @return The ExecutionOperatingUnitFeature that has the corresponding type. It must be unique in the vector. */
+  static const ExecutionOperatingUnitFeature &GetFeature(execution::translator_id_t translator_id,
+                                                         const std::vector<ExecutionOperatingUnitFeature> &features,
+                                                         ExecutionOperatingUnitType type) {
+    UNUSED_ATTRIBUTE bool found = false;
+    size_t idx = 0;
+    for (size_t i = 0; i < features.size(); ++i) {
+      bool same_translator = translator_id == features[i].GetTranslatorId();
+      bool same_feature = type == features[i].GetExecutionOperatingUnitType();
+      if (same_translator && same_feature) {
+        NOISEPAGE_ASSERT(!found, "There are multiple features of the same type.");
+        found = true;
+        idx = i;
+      }
+    }
+    NOISEPAGE_ASSERT(found, "The feature was not found.");
+    return features[idx];
+  }
 };
 
-}  // namespace terrier::brain
+}  // namespace noisepage::brain

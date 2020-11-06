@@ -8,7 +8,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Struct implementing the Hash() function for a GroupExpression*
@@ -97,8 +97,8 @@ class Memo {
    * @returns Group with specified ID
    */
   Group *GetGroupByID(group_id_t id) const {
-    auto idx = !id;
-    TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
+    auto idx = id.UnderlyingValue();
+    NOISEPAGE_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
     return groups_[idx];
   }
 
@@ -109,8 +109,8 @@ class Memo {
    * @param group_id GroupID of Group to erase
    */
   void EraseExpression(group_id_t group_id) {
-    auto idx = !group_id;
-    TERRIER_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
+    auto idx = group_id.UnderlyingValue();
+    NOISEPAGE_ASSERT(idx >= 0 && static_cast<size_t>(idx) < groups_.size(), "group_id out of bounds");
 
     auto gexpr = groups_[idx]->GetLogicalExpression();
     group_expressions_.erase(gexpr);
@@ -137,4 +137,4 @@ class Memo {
   std::vector<Group *> groups_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

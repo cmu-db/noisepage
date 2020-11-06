@@ -1,12 +1,13 @@
+#include "optimizer/property_enforcer.h"
+
 #include <utility>
 #include <vector>
 
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
 #include "optimizer/property.h"
-#include "optimizer/property_enforcer.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 GroupExpression *PropertyEnforcer::EnforceProperty(GroupExpression *gexpr, Property *property,
                                                    transaction::TransactionContext *txn) {
@@ -21,4 +22,4 @@ void PropertyEnforcer::Visit(const PropertySort *prop) {
   output_gexpr_ = new GroupExpression(OrderBy::Make().RegisterWithTxnContext(txn_), std::move(child_groups), txn_);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

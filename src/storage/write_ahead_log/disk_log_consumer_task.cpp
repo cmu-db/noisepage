@@ -1,10 +1,12 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
-#include "common/resource_tracker.h"
+
+#include <thread>  // NOLINT
+
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 void DiskLogConsumerTask::RunTask() {
   run_task_ = true;
@@ -14,7 +16,7 @@ void DiskLogConsumerTask::RunTask() {
 void DiskLogConsumerTask::Terminate() {
   // If the task hasn't run yet, yield the thread until it's started
   while (!run_task_) std::this_thread::yield();
-  TERRIER_ASSERT(run_task_, "Cant terminate a task that isnt running");
+  NOISEPAGE_ASSERT(run_task_, "Cant terminate a task that isnt running");
   // Signal to terminate and force a flush so task persists before LogManager closes buffers
   run_task_ = false;
   disk_log_writer_thread_cv_.notify_one();
@@ -57,15 +59,6 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // input for this operating unit
   uint64_t num_bytes = 0, num_buffers = 0;
 
-  bool logging_metrics_enabled =
-      common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
-
-  if (logging_metrics_enabled) {
-    // start the operating unit resource tracker
-    common::thread_context.resource_tracker_.Start();
-  }
-
   // Keeps track of how much data we've written to the log file since the last persist
   current_data_written_ = 0;
   // Initialize sleep period
@@ -77,6 +70,15 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // Disk log consumer task thread spins in this loop. When notified or periodically, we wake up and process serialized
   // buffers
   do {
+    const bool logging_metrics_enabled =
+        common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::LOGGING);
+
+    if (logging_metrics_enabled && !common::thread_context.resource_tracker_.IsRunning()) {
+      // start the operating unit resource tracker
+      common::thread_context.resource_tracker_.Start();
+    }
+
     curr_sleep = next_sleep;
     {
       // Wait until we are told to flush buffers
@@ -88,7 +90,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
       // 4) Our persist interval timed out
 
       bool signaled = disk_log_writer_thread_cv_.wait_for(
-          lock, curr_sleep, [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
+          lock, curr_sleep, [&] { return force_flush_ || !filled_buffer_queue_->Empty() || !run_task_; });
       next_sleep = signaled ? persist_interval_ : curr_sleep * 2;
       next_sleep = std::min(next_sleep, max_sleep);
     }
@@ -104,33 +106,30 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
     bool timeout = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() -
                                                                          last_persist) > curr_sleep;
 
-    if (timeout || current_data_written_ > persist_threshold_ || do_persist_ || !run_task_) {
+    if (timeout || current_data_written_ > persist_threshold_ || force_flush_ || !run_task_) {
       std::unique_lock<std::mutex> lock(persist_lock_);
       num_buffers = PersistLogFile();
       num_bytes = current_data_written_;
       // Reset meta data
       last_persist = std::chrono::high_resolution_clock::now();
       current_data_written_ = 0;
-      do_persist_ = false;
+      force_flush_ = false;
 
       // Signal anyone who forced a persist that the persist has finished
       persist_cv_.notify_all();
     }
 
-    if (logging_metrics_enabled) {
+    if (logging_metrics_enabled && num_buffers > 0) {
       // Stop the resource tracker for this operating unit
       common::thread_context.resource_tracker_.Stop();
-      if (num_bytes > 0) {
-        auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-        common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, resource_metrics);
-      }
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordConsumerData(num_bytes, num_buffers, persist_interval_.count(),
+                                                                resource_metrics);
       num_bytes = num_buffers = 0;
-      // start the operating unit resource tracker
-      common::thread_context.resource_tracker_.Start();
     }
   } while (run_task_);
   // Be extra sure we processed everything
   WriteBuffersToLogFile();
   PersistLogFile();
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

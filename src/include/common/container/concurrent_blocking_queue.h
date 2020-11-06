@@ -1,9 +1,10 @@
 #pragma once
 
 #include <tbb/concurrent_queue.h>
+
 #include "common/macros.h"
 
-namespace terrier::common {
+namespace noisepage::common {
 /**
  * A thread-safe blocking queue implementation
  * @tparam T element type
@@ -53,4 +54,4 @@ class ConcurrentBlockingQueue {
  private:
   tbb::concurrent_bounded_queue<T, Alloc> queue_;
 };
-}  // namespace terrier::common
+}  // namespace noisepage::common

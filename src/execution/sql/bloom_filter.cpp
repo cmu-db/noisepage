@@ -1,60 +1,47 @@
 #include "execution/sql/bloom_filter.h"
 
 #include <limits>
+#include <string>
 #include <vector>
 
 #include "execution/util/bit_util.h"
 #include "execution/util/simd.h"
+#include "loggers/execution_logger.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
-BloomFilter::BloomFilter() = default;
+BloomFilter::BloomFilter() noexcept {}  // NOLINT default constructor doesn't support noexcept
 
-BloomFilter::BloomFilter(MemoryPool *memory)
-    : memory_(memory), blocks_(nullptr), block_mask_(0), lazily_added_hashes_(nullptr) {}
+BloomFilter::BloomFilter(MemoryPool *memory) : memory_(memory) {}
 
-BloomFilter::BloomFilter(MemoryPool *memory, uint32_t num_elems) : BloomFilter() { Init(memory, num_elems); }
+BloomFilter::BloomFilter(MemoryPool *memory, uint32_t expected_num_elems) : BloomFilter() {
+  Init(memory, expected_num_elems);
+}
 
 BloomFilter::~BloomFilter() {
   const auto num_bytes = GetNumBlocks() * sizeof(Block);
-  if (blocks_ != nullptr) memory_->Deallocate(blocks_, num_bytes);
+  if (memory_ != nullptr) memory_->Deallocate(blocks_, num_bytes);
 }
 
-void BloomFilter::Init(MemoryPool *memory, uint32_t num_elems) {
+void BloomFilter::Init(MemoryPool *memory, uint32_t expected_num_elems) {
   memory_ = memory;
   lazily_added_hashes_ = MemPoolVector<hash_t>(memory_);
 
-  uint64_t num_bits = common::MathUtil::PowerOf2Ceil(K_BITS_PER_ELEMENT * num_elems);
+  uint64_t num_bits = common::MathUtil::PowerOf2Ceil(BITS_PER_ELEMENT * expected_num_elems);
   uint64_t num_blocks = common::MathUtil::DivRoundUp(num_bits, sizeof(Block) * common::Constants::K_BITS_PER_BYTE);
   uint64_t num_bytes = num_blocks * sizeof(Block);
   blocks_ = reinterpret_cast<Block *>(memory->AllocateAligned(num_bytes, common::Constants::CACHELINE_SIZE, true));
 
   block_mask_ = static_cast<uint32_t>(num_blocks - 1);
+  num_additions_ = 0;
 }
 
-uint64_t BloomFilter::GetTotalBitsSet() const {
-  uint64_t count = 0;
-  for (uint32_t i = 0; i < GetNumBlocks(); i++) {
-    // Note that we process 64-bits at a time, thus we only need four iterations
-    // over a block. We don't use SIMD here because this function isn't
-    // performance-critical.
-    const auto *const chunk = reinterpret_cast<const uint64_t *>(blocks_[i]);
-    for (uint32_t j = 0; j < 4; j++) {
-      count += util::BitUtil::CountBits(chunk[j]);
-    }
-  }
-  return count;
-}
-
-#if defined(__AVX2__) || defined(__AVX512F__)
-
-// Vectorized version of Add
 void BloomFilter::Add(hash_t hash) {
   auto block_idx = static_cast<uint32_t>(hash & block_mask_);
 
   auto block = util::simd::Vec8().Load(blocks_[block_idx]);
   auto alt_hash = util::simd::Vec8(static_cast<uint32_t>(hash >> 32));
-  auto salts = util::simd::Vec8().Load(K_SALTS);
+  auto salts = util::simd::Vec8().Load(SALTS);
 
   alt_hash *= salts;
   if constexpr (util::simd::Bitwidth::VALUE != 256) {
@@ -68,15 +55,16 @@ void BloomFilter::Add(hash_t hash) {
   block |= masks;
 
   block.Store(blocks_[block_idx]);
+
+  num_additions_++;
 }
 
-// Vectorized version of Contains
 bool BloomFilter::Contains(hash_t hash) const {
   auto block_idx = static_cast<uint32_t>(hash & block_mask_);
 
   auto block = util::simd::Vec8().Load(blocks_[block_idx]);
   auto alt_hash = util::simd::Vec8(static_cast<uint32_t>(hash >> 32));
-  auto salts = util::simd::Vec8().Load(K_SALTS);
+  auto salts = util::simd::Vec8().Load(SALTS);
 
   alt_hash *= salts;
   if constexpr (util::simd::Bitwidth::VALUE != 256) {
@@ -90,34 +78,25 @@ bool BloomFilter::Contains(hash_t hash) const {
   return block.AllBitsAtPositionsSet(masks);
 }
 
-#else
-
-// Scalar version of Add
-void BloomFilter::Add(hash_t hash) {
-  uint32_t block_idx = static_cast<uint32_t>(hash & block_mask_);
-  Block &block = blocks_[block_idx];
-  uint32_t alt_hash = static_cast<uint32_t>(hash >> 32);
-  for (uint32_t i = 0; i < 8; i++) {
-    uint32_t bit_idx = (alt_hash * K_SALTS[i]) >> 27;
-    util::BitUtil::Set(&block[i], bit_idx);
-  }
-}
-
-// Scalar version of Contains
-bool BloomFilter::Contains(hash_t hash) const {
-  uint32_t alt_hash = static_cast<uint32_t>(hash >> 32);
-  uint32_t block_idx = static_cast<uint32_t>(hash & block_mask_);
-
-  Block &block = blocks_[block_idx];
-  for (uint32_t i = 0; i < 8; i++) {
-    uint32_t bit_idx = (alt_hash * K_SALTS[i]) >> 27;
-    if (!util::BitUtil::Test(&block[i], bit_idx)) {
-      return false;
+uint64_t BloomFilter::GetTotalBitsSet() const {
+  uint64_t count = 0;
+  for (uint32_t i = 0; i < GetNumBlocks(); i++) {
+    // Note that we process 64-bits at a time, thus we only need four iterations
+    // over a block. We don't use SIMD here because this function isn't
+    // performance-critical.
+    const auto *const chunk = reinterpret_cast<const uint64_t *>(blocks_[i]);
+    for (uint32_t j = 0; j < 4; j++) {
+      count += util::BitUtil::CountPopulation(chunk[j]);
     }
   }
-
-  return true;
+  return count;
 }
-#endif
 
-}  // namespace terrier::execution::sql
+std::string BloomFilter::DebugString() const {
+  auto bits_per_elem = static_cast<double>(GetSizeInBits()) / GetNumAdditions();
+  auto bit_set_prob = static_cast<double>(GetTotalBitsSet()) / GetSizeInBits();
+  return fmt::format("Filter: {} elements, {} bits, {} bits/element, {} bits set (p={:.2f})", GetNumAdditions(),
+                     GetSizeInBits(), bits_per_elem, GetTotalBitsSet(), bit_set_prob);
+}
+
+}  // namespace noisepage::execution::sql

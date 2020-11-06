@@ -3,11 +3,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "storage/arrow_block_metadata.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * Typedef for a standard hash map with varlen entry as the key. The map uses deep equality checks (whether
@@ -30,8 +31,8 @@ class BlockCompactor {
     CompactionGroup(transaction::TransactionContext *txn, DataTable *table)
         : txn_(txn),
           table_(table),
-          all_cols_initializer_(ProjectedRowInitializer::Create(table_->accessor_.GetBlockLayout(),
-                                                                table_->accessor_.GetBlockLayout().AllColumns())),
+          all_cols_initializer_(
+              ProjectedRowInitializer::Create(table_->GetBlockLayout(), table_->GetBlockLayout().AllColumns())),
           read_buffer_(all_cols_initializer_.InitializeRow(
               common::AllocationUtil::AllocateAligned(all_cols_initializer_.ProjectedRowSize()))) {}
 
@@ -96,4 +97,4 @@ class BlockCompactor {
 
   std::queue<RawBlock *> compaction_queue_;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

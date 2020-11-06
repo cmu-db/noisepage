@@ -9,7 +9,7 @@
 #include "test_util/test_harness.h"
 #include "test_util/tpcc/tpcc_plan_test.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct TpccPlanNewOrderTests : public TpccPlanTest {};
 
@@ -45,7 +45,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_district_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -68,7 +67,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
@@ -123,7 +121,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
     EXPECT_EQ(update->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
     EXPECT_EQ(update->GetTableOid(), test->tbl_stock_);
     EXPECT_EQ(update->GetUpdatePrimaryKey(), false);
     EXPECT_EQ(update->GetOutputSchema()->GetColumns().size(), 0);
@@ -179,7 +176,6 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
     auto idx_scan = reinterpret_cast<const planner::IndexScanPlanNode *>(update->GetChild(0));
     EXPECT_EQ(idx_scan->IsForUpdate(), true);
     EXPECT_EQ(idx_scan->GetDatabaseOid(), test->db_);
-    EXPECT_EQ(idx_scan->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
 
     // IdxScan OutputSchema/ColumnIds
     auto idx_scan_schema = idx_scan->GetOutputSchema();
@@ -216,4 +212,4 @@ TEST_F(TpccPlanNewOrderTests, InsertOrderLine) {
   OptimizeInsert(query, tbl_order_line_);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

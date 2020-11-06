@@ -1,7 +1,8 @@
 #include "test_util/tpcc/workload.h"
+
 #include <vector>
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::TransactionManager *const txn_manager,
               const std::vector<std::vector<TransactionArgs>> &precomputed_args, std::vector<Worker> *const workers) {
@@ -50,4 +51,4 @@ void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionAr
   }
 }
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

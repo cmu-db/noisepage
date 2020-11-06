@@ -2,9 +2,15 @@
 
 #include "common/strong_typedef.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
-STRONG_TYPEDEF_HEADER(query_id_t, uint64_t);
-STRONG_TYPEDEF_HEADER(pipeline_id_t, uint64_t);
+constexpr uint32_t NULL_PIPELINE_ID = 0;
 
-}  // namespace terrier::execution
+STRONG_TYPEDEF_HEADER(query_id_t, uint32_t);
+STRONG_TYPEDEF_HEADER(pipeline_id_t, uint32_t);
+STRONG_TYPEDEF_HEADER(feature_id_t, uint32_t);
+STRONG_TYPEDEF_HEADER(translator_id_t, uint32_t);
+
+constexpr pipeline_id_t INVALID_PIPELINE_ID = pipeline_id_t(NULL_PIPELINE_ID);
+
+}  // namespace noisepage::execution

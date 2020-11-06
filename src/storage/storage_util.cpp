@@ -1,13 +1,16 @@
 #include "storage/storage_util.h"
+
 #include <cstring>
 #include <unordered_map>
-#include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
+#include "execution/sql/vector_projection.h"
 #include "storage/projected_columns.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
-namespace terrier::storage {
+
+namespace noisepage::storage {
 
 template <class RowType>
 void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, const uint16_t size,
@@ -21,6 +24,8 @@ void StorageUtil::CopyWithNullCheck(const byte *const from, RowType *const to, c
 template void StorageUtil::CopyWithNullCheck<ProjectedRow>(const byte *, ProjectedRow *, uint16_t, uint16_t);
 template void StorageUtil::CopyWithNullCheck<ProjectedColumns::RowView>(const byte *, ProjectedColumns::RowView *,
                                                                         uint16_t, uint16_t);
+template void StorageUtil::CopyWithNullCheck<execution::sql::VectorProjection::RowView>(
+    const byte *, execution::sql::VectorProjection::RowView *, uint16_t, uint16_t);
 
 void StorageUtil::CopyWithNullCheck(const byte *const from, const TupleAccessStrategy &accessor, const TupleSlot to,
                                     const col_id_t col_id) {
@@ -43,6 +48,8 @@ template void StorageUtil::CopyAttrIntoProjection<ProjectedRow>(const TupleAcces
                                                                 uint16_t);
 template void StorageUtil::CopyAttrIntoProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
                                                                              ProjectedColumns::RowView *, uint16_t);
+template void StorageUtil::CopyAttrIntoProjection<execution::sql::VectorProjection::RowView>(
+    const TupleAccessStrategy &, TupleSlot, execution::sql::VectorProjection::RowView *, uint16_t);
 
 template <class RowType>
 void StorageUtil::CopyAttrFromProjection(const TupleAccessStrategy &accessor, const TupleSlot to, const RowType &from,
@@ -57,6 +64,8 @@ template void StorageUtil::CopyAttrFromProjection<ProjectedRow>(const TupleAcces
 template void StorageUtil::CopyAttrFromProjection<ProjectedColumns::RowView>(const TupleAccessStrategy &, TupleSlot,
                                                                              const ProjectedColumns::RowView &,
                                                                              uint16_t);
+template void StorageUtil::CopyAttrFromProjection<execution::sql::VectorProjection::RowView>(
+    const TupleAccessStrategy &, TupleSlot, const execution::sql::VectorProjection::RowView &, uint16_t);
 
 template <class RowType>
 void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delta, RowType *const buffer) {
@@ -68,8 +77,8 @@ void StorageUtil::ApplyDelta(const BlockLayout &layout, const ProjectedRow &delt
     col_id_t delta_col_id = delta.ColumnIds()[delta_i], buffer_col_id = buffer->ColumnIds()[buffer_i];
     if (delta_col_id == buffer_col_id) {
       // Should apply changes
-      TERRIER_ASSERT(delta_col_id != VERSION_POINTER_COLUMN_ID,
-                     "Output buffer should never return the version vector column.");
+      NOISEPAGE_ASSERT(delta_col_id != VERSION_POINTER_COLUMN_ID,
+                       "Output buffer should never return the version vector column.");
       uint8_t attr_size = layout.AttrSize(delta_col_id);
       StorageUtil::CopyWithNullCheck(delta.AccessWithNullCheck(delta_i), buffer, attr_size, buffer_i);
       delta_i++;
@@ -88,9 +97,11 @@ template void StorageUtil::ApplyDelta<ProjectedRow>(const BlockLayout &layout, c
                                                     ProjectedRow *buffer);
 template void StorageUtil::ApplyDelta<ProjectedColumns::RowView>(const BlockLayout &layout, const ProjectedRow &delta,
                                                                  ProjectedColumns::RowView *buffer);
+template void StorageUtil::ApplyDelta<execution::sql::VectorProjection::RowView>(
+    const BlockLayout &layout, const ProjectedRow &delta, execution::sql::VectorProjection::RowView *buffer);
 
 uint32_t StorageUtil::PadUpToSize(const uint8_t word_size, const uint32_t offset) {
-  TERRIER_ASSERT((word_size & (word_size - 1)) == 0, "word_size should be a power of two.");
+  NOISEPAGE_ASSERT((word_size & (word_size - 1)) == 0, "word_size should be a power of two.");
   // Because size is a power of two, mask is always all 1s up to the length of size.
   // example, size is 8 (1000), mask is (0111)
   uint32_t mask = word_size - 1;
@@ -142,43 +153,43 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
 }
 
 uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, const uint16_t col_idx) {
-  TERRIER_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
-                 "Boudaries vector size should equal to number of boundaries");
+  NOISEPAGE_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
+                   "Boudaries vector size should equal to number of boundaries");
   // Since the columns are sorted (DESC) by size, the boundaries denote the index boundaries between columns of size
   // 16|8|4|2|1. Iterate through boundaries until we find a boundary greater than the index.
   uint8_t shift;
   for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {
     if (col_idx < boundaries[shift]) break;
   }
-  TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
-  TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
+  NOISEPAGE_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
+  NOISEPAGE_ASSERT(shift >= 0, "Out-of-bounds attribute size");
   // The amount of boundaries we had to cross is how much we shift 16 (the max size) by
   return static_cast<uint8_t>(16U >> shift);
 }
 
-void StorageUtil::ComputeAttributeSizeBoundaries(const terrier::storage::BlockLayout &layout, const col_id_t *col_ids,
+void StorageUtil::ComputeAttributeSizeBoundaries(const noisepage::storage::BlockLayout &layout, const col_id_t *col_ids,
                                                  const uint16_t num_cols, uint16_t *attr_boundaries) {
   int attr_size_index = 0;
 
   // Col ids ASC sorted order is also attribute size DESC sorted order
   for (uint16_t i = 0; i < num_cols; i++) {
-    TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");
+    NOISEPAGE_ASSERT(i < (1 << 15), "Out-of-bounds index");
 
     int attr_size = layout.AttrSize(col_ids[i]);
-    TERRIER_ASSERT(attr_size <= (16 >> attr_size_index), "Out-of-order columns");
-    TERRIER_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
+    NOISEPAGE_ASSERT(attr_size <= (16 >> attr_size_index), "Out-of-order columns");
+    NOISEPAGE_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
     // When we see a size that is less than our current boundary size, denote the end of the boundary
     while (attr_size < (16 >> attr_size_index)) {
       if (attr_size_index < (NUM_ATTR_BOUNDARIES - 1))
         attr_boundaries[attr_size_index + 1] = attr_boundaries[attr_size_index];
       attr_size_index++;
     }
-    TERRIER_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
+    NOISEPAGE_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
     // At this point, this column's size is the same as the current boundary size, so we increment the number of cols
     // for this boundary
     if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_boundaries[attr_size_index]++;
-    TERRIER_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_boundaries[attr_size_index] == i + 1,
-                   "Inconsistent state on attribute bounds");
+    NOISEPAGE_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_boundaries[attr_size_index] == i + 1,
+                     "Inconsistent state on attribute bounds");
   }
 }
 
@@ -205,4 +216,4 @@ void StorageUtil::DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &
   }
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

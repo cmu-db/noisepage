@@ -9,12 +9,17 @@
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace planner {
+enum class AggregateStrategyType;
+}
+
+namespace noisepage::optimizer {
 
 class PropertySet;
 class GroupExpression;
 class OperatorNode;
 class Memo;
+class BaseOperatorNodeContents;
 
 /**
  * InputColumnDeriver generate input and output columns based on the required columns,
@@ -143,6 +148,12 @@ class InputColumnDeriver : public OperatorVisitor {
    * @param op OuterHashJoin operator to visit
    */
   void Visit(const OuterHashJoin *op) override;
+
+  /**
+   * Visit function to derive input/output columns for LeftSemiHashJoin
+   * @param op LeftSemiHashJoin operator to visit
+   */
+  void Visit(const LeftSemiHashJoin *op) override;
 
   /**
    * Visit function to derive input/output columns for TableFreeScan
@@ -283,4 +294,4 @@ class InputColumnDeriver : public OperatorVisitor {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -1,13 +1,13 @@
+#include "optimizer/statistics/hyperloglog.h"
+
 #include <random>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/statistics/hyperloglog.h"
-
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class HyperLogLogTests : public TerrierTest {
  public:
@@ -183,4 +183,4 @@ TEST_F(HyperLogLogTests, LargeDatasetTest) {
   HyperLogLogTests::CheckErrorBounds(threshold, actual, estimate, error);
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

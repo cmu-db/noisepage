@@ -1,26 +1,48 @@
 #include "storage/garbage_collector.h"
+
 #include <unordered_set>
 #include <utility>
+
 #include "common/macros.h"
 #include "common/thread_context.h"
 #include "loggers/storage_logger.h"
 #include "metrics/metrics_store.h"
+#include "storage/access_observer.h"
 #include "storage/data_table.h"
+#include "storage/index/index.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
+
+GarbageCollector::GarbageCollector(
+    const common::ManagedPointer<transaction::TimestampManager> timestamp_manager,
+    const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
+    const common::ManagedPointer<transaction::TransactionManager> txn_manager, AccessObserver *observer)
+    : timestamp_manager_(timestamp_manager),
+      deferred_action_manager_(deferred_action_manager),
+      txn_manager_(txn_manager),
+      observer_(observer),
+      last_unlinked_{0} {
+  NOISEPAGE_ASSERT(txn_manager_->GCEnabled(),
+                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
+}
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+  const bool gc_metrics_enabled =
+      common::thread_context.metrics_store_ != nullptr &&
+      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
+
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   uint32_t txns_deallocated = ProcessDeallocateQueue(oldest_txn);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
-  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn);
+  uint32_t txns_unlinked, buffer_unlinked, readonly_unlinked;
+  std::tie(txns_unlinked, buffer_unlinked, readonly_unlinked) = ProcessUnlinkQueue(oldest_txn);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
   if (txns_unlinked > 0) {
     // Only update this field if we actually unlinked anything, otherwise we're being too conservative about when it's
@@ -28,22 +50,26 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
     last_unlinked_ = timestamp_manager_->CheckOutTimestamp();
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
-                    static_cast<uint64_t>(last_unlinked_));
+                    last_unlinked_.UnderlyingValue());
   ProcessDeferredActions(oldest_txn);
   ProcessIndexes();
+
+  if ((txns_deallocated > 0 || txns_unlinked > 0) && gc_metrics_enabled) {
+    if (common::thread_context.resource_tracker_.IsRunning()) {
+      // Stop the resource tracker for this operating unit
+      common::thread_context.resource_tracker_.Stop();
+      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
+      common::thread_context.metrics_store_->RecordGCData(txns_deallocated, txns_unlinked, buffer_unlinked,
+                                                          readonly_unlinked, gc_interval_, resource_metrics);
+    }
+    common::thread_context.resource_tracker_.Start();
+  }
+
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
-  bool gc_metrics_enabled =
-      common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
-
-  if (gc_metrics_enabled) {
-    // start the operating unit resource tracker
-    common::thread_context.resource_tracker_.Start();
-  }
 
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
     // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system, and
@@ -56,29 +82,11 @@ uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldes
     txns_to_deallocate_.clear();
   }
 
-  if (gc_metrics_enabled) {
-    // Stop the resource tracker for this operating unit
-    common::thread_context.resource_tracker_.Stop();
-    if (txns_processed > 0) {
-      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordDeallocateData(txns_processed, resource_metrics);
-    }
-  }
-
   return txns_processed;
 }
 
-uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
+std::tuple<uint32_t, uint32_t, uint32_t> GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
-
-  bool gc_metrics_enabled =
-      common::thread_context.metrics_store_ != nullptr &&
-      common::thread_context.metrics_store_->ComponentToRecord(metrics::MetricsComponent::GARBAGECOLLECTION);
-  if (gc_metrics_enabled) {
-    // start the operating unit resource tracker
-    common::thread_context.resource_tracker_.Start();
-  }
-  uint64_t buffer_processed = 0, readonly_processed = 0;
 
   // Get the completed transactions from the TransactionManager
   transaction::TransactionQueue completed_txns = txn_manager_->CompletedTransactionsForGC();
@@ -87,7 +95,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
     txns_to_unlink_.splice_after(txns_to_unlink_.cbefore_begin(), std::move(completed_txns));
   }
 
-  uint32_t txns_processed = 0;
+  uint32_t txns_processed = 0, buffer_processed = 0, readonly_processed = 0;
   // Certain transactions might not be yet safe to gc. Need to requeue them
   transaction::TransactionQueue requeue;
   // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
@@ -117,8 +125,8 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
         // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
         // unless the transaction is aborted, and the record holds a version that is still visible.
         if (!txn->Aborted()) {
-          ReclaimSlotIfDeleted(&undo_record);
           ReclaimBufferIfVarlen(txn, &undo_record);
+          ReclaimSlotIfDeleted(&undo_record);
         }
         if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
         buffer_processed++;
@@ -134,17 +142,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
   // Requeue any txns that we were still visible to running transactions
   txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
 
-  if (gc_metrics_enabled) {
-    // Stop the resource tracker for this operating unit
-    common::thread_context.resource_tracker_.Stop();
-    if (txns_processed > 0) {
-      auto &resource_metrics = common::thread_context.resource_tracker_.GetMetrics();
-      common::thread_context.metrics_store_->RecordUnlinkData(txns_processed, buffer_processed, readonly_processed,
-                                                              resource_metrics);
-    }
-  }
-
-  return txns_processed;
+  return std::make_tuple(txns_processed, buffer_processed, readonly_processed);
 }
 
 void GarbageCollector::ProcessDeferredActions(transaction::timestamp_t oldest_txn) {
@@ -234,16 +232,16 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
 }
 
 void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  NOISEPAGE_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
+  NOISEPAGE_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
   indexes_.insert(index);
 }
 
 void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
+  NOISEPAGE_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
+  NOISEPAGE_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
   indexes_.erase(index);
 }
 
@@ -252,4 +250,4 @@ void GarbageCollector::ProcessIndexes() {
   for (const auto &index : indexes_) index->PerformGarbageCollection();
 }
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

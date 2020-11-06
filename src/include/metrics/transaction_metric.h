@@ -12,7 +12,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected at transaction level
@@ -22,10 +22,10 @@ class TransactionMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<TransactionMetricRawData *>(other);
     if (!other_db_metric->begin_data_.empty()) {
-      begin_data_.splice(begin_data_.cbegin(), other_db_metric->begin_data_);
+      begin_data_.splice(begin_data_.cend(), other_db_metric->begin_data_);
     }
     if (!other_db_metric->commit_data_.empty()) {
-      commit_data_.splice(commit_data_.cbegin(), other_db_metric->commit_data_);
+      commit_data_.splice(commit_data_.cend(), other_db_metric->commit_data_);
     }
   }
 
@@ -39,10 +39,10 @@ class TransactionMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &begin_outfile = (*outfiles)[0];
     auto &commit_outfile = (*outfiles)[1];
@@ -113,4 +113,4 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
     GetRawData()->RecordCommitData(is_readonly, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

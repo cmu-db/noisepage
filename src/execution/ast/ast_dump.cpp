@@ -1,17 +1,17 @@
 #include "execution/ast/ast_dump.h"
 
+#include <llvm/ADT/SmallString.h>
+#include <llvm/Support/raw_os_ostream.h>
+#include <llvm/Support/raw_ostream.h>
+
 #include <string>
 #include <utility>
-
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_os_ostream.h"
-#include "llvm/Support/raw_ostream.h"
 
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 class AstDumperImpl : public AstVisitor<AstDumperImpl> {
  public:
@@ -81,7 +81,7 @@ class AstDumperImpl : public AstVisitor<AstDumperImpl> {
     out_ << val;
   }
 
-  void DumpIdentifier(Identifier str) { out_.write(str.Data(), str.Length()); }
+  void DumpIdentifier(Identifier str) { out_.write(str.GetData(), str.GetLength()); }
 
   template <typename Fn>
   void DumpChild(Fn dump_fn) {
@@ -100,8 +100,8 @@ class AstDumperImpl : public AstVisitor<AstDumperImpl> {
       {
         WithColor color(this, llvm::raw_ostream::BLUE);
         out_ << "\n";
-        out_ << prefix_ << (last_child ? "`" : "|") << "-";
-        prefix_.append(last_child ? " " : "|").append(" ");
+        out_ << prefix_ << " " << (last_child ? "└" : "├") << "—";
+        prefix_.append(last_child ? "  " : " |").append(" ");
       }
 
       first_child_ = true;
@@ -113,7 +113,7 @@ class AstDumperImpl : public AstVisitor<AstDumperImpl> {
         pending_.pop_back_val()(true);
       }
 
-      prefix_.resize(prefix_.size() - 2);
+      prefix_.resize(prefix_.size() - 3);
     };
 
     if (first_child_) {
@@ -174,7 +174,7 @@ void AstDumperImpl::VisitFunctionDecl(FunctionDecl *node) {
 void AstDumperImpl::VisitVariableDecl(VariableDecl *node) {
   DumpNodeCommon(node);
   DumpIdentifier(node->Name());
-  if (node->HasTypeDecl()) {
+  if (node->HasTypeDecl() && node->TypeRepr()->GetType() != nullptr) {
     DumpType(node->TypeRepr()->GetType());
   }
   if (node->HasInitialValue()) {
@@ -224,7 +224,7 @@ void AstDumperImpl::VisitForStmt(ForStmt *node) {
 void AstDumperImpl::VisitForInStmt(ForInStmt *node) {
   DumpNodeCommon(node);
   DumpExpr(node->Target());
-  DumpExpr(node->Iter());
+  DumpExpr(node->Iterable());
   DumpStmt(node->Body());
 }
 
@@ -297,56 +297,7 @@ void AstDumperImpl::VisitImplicitCastExpr(ImplicitCastExpr *node) {
   DumpPrimitive("<");
   {
     WithColor color(this, llvm::raw_ostream::Colors::RED);
-    switch (node->GetCastKind()) {
-      case CastKind::IntToSqlInt: {
-        DumpPrimitive("IntToSqlInt");
-        break;
-      }
-      case CastKind::IntToSqlDecimal: {
-        DumpPrimitive("IntToSqlDecimal");
-        break;
-      }
-      case CastKind::SqlBoolToBool: {
-        DumpPrimitive("SqlBoolToBool");
-        break;
-      }
-      case CastKind::BoolToSqlBool: {
-        DumpPrimitive("BoolToSqlBool");
-        break;
-      }
-      case CastKind::IntegralCast: {
-        DumpPrimitive("IntegralCast");
-        break;
-      }
-      case CastKind::IntToFloat: {
-        DumpPrimitive("IntToFloat");
-        break;
-      }
-      case CastKind::FloatToInt: {
-        DumpPrimitive("FloatToInt");
-        break;
-      }
-      case CastKind::BitCast: {
-        DumpPrimitive("BitCast");
-        break;
-      }
-      case CastKind::FloatToSqlReal: {
-        DumpPrimitive("FloatToSqlReal");
-        break;
-      }
-      case CastKind::SqlTimestampToTimestamp: {
-        DumpPrimitive("SqlTimestampToTimestamp");
-        break;
-      }
-      case CastKind::TimestampToSqlTimestamp: {
-        DumpPrimitive("TimestampToSqlTimestamp");
-        break;
-      }
-      case CastKind::SqlIntToSqlReal: {
-        DumpPrimitive("SqlIntToSqlReal");
-        break;
-      }
-    }
+    DumpPrimitive(CastKindToString(node->GetCastKind()));
   }
   DumpPrimitive(">");
   DumpExpr(node->Input());
@@ -360,27 +311,22 @@ void AstDumperImpl::VisitIndexExpr(IndexExpr *node) {
 
 void AstDumperImpl::VisitLitExpr(LitExpr *node) {
   DumpExpressionCommon(node);
-  switch (node->LiteralKind()) {
-    case LitExpr::LitKind::Nil: {
+  switch (node->GetLiteralKind()) {
+    case LitExpr::LitKind::Nil:
       DumpPrimitive("nil");
       break;
-    }
-    case LitExpr::LitKind::Boolean: {
+    case LitExpr::LitKind::Boolean:
       DumpPrimitive(node->BoolVal() ? "'true'" : "'false'");
       break;
-    }
-    case LitExpr::LitKind::Int: {
+    case LitExpr::LitKind::Int:
       DumpPrimitive(node->Int64Val());
       break;
-    }
-    case LitExpr::LitKind::Float: {
+    case LitExpr::LitKind::Float:
       DumpPrimitive(node->Float64Val());
       break;
-    }
-    case LitExpr::LitKind::String: {
-      DumpIdentifier(node->RawStringVal());
+    case LitExpr::LitKind::String:
+      DumpIdentifier(node->StringVal());
       break;
-    }
   }
 }
 
@@ -393,7 +339,7 @@ void AstDumperImpl::VisitMemberExpr(MemberExpr *node) {
 void AstDumperImpl::VisitUnaryOpExpr(UnaryOpExpr *node) {
   DumpExpressionCommon(node);
   DumpToken(node->Op());
-  DumpExpr(node->Expression());
+  DumpExpr(node->Input());
 }
 
 void AstDumperImpl::VisitBadExpr(BadExpr *node) {
@@ -425,8 +371,8 @@ void AstDumperImpl::VisitArrayTypeRepr(ArrayTypeRepr *node) {
 
 void AstDumperImpl::VisitMapTypeRepr(MapTypeRepr *node) {
   DumpNodeCommon(node);
-  DumpExpr(node->Key());
-  DumpExpr(node->Val());
+  DumpExpr(node->KeyType());
+  DumpExpr(node->ValType());
 }
 
 std::string AstDump::Dump(AstNode *node) {
@@ -437,4 +383,4 @@ std::string AstDump::Dump(AstNode *node) {
   return buffer.str();
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

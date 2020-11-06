@@ -1,103 +1,124 @@
 #pragma once
 
-#include <functional>
+#include <llvm/ADT/DenseMapInfo.h>
 
-#include "llvm/ADT/DenseMapInfo.h"
+#include <functional>
+#include <string>
+#include <string_view>
 
 #include "common/macros.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
- * A uniqued string identifier in some AST context. This serves as a super-
- * lightweight string reference. Two identifiers are equal if they point to the
- * same string (i.e., we don't need to check contents).
+ * A uniqued string identifier in some AST context. This serves as a super-lightweight string
+ * reference. Two identifiers allocated from the same AST context are equal if they have the same
+ * pointer value - we don't need to check contents.
  */
 class Identifier {
- public:
-  /**
-   * Constructor
-   * @param str string literal of the identifier
-   */
+ private:
+  friend class Context;
+
+  // Constructor accessible only to Context which ensures uniqueness.
   explicit Identifier(const char *str) noexcept : data_(str) {}
 
+ public:
   /**
-   * @return the string literal of the identifier
+   * Create an empty identifier.
    */
-  const char *Data() const { return data_; }
+  Identifier() noexcept = default;
 
   /**
-   * @return the length of the string
+   * @return A const pointer to this identifier's underlying string data.
    */
-  std::size_t Length() const {
-    TERRIER_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
-    return std::strlen(Data());
+  const char *GetData() const noexcept { return data_; }
+
+  /**
+   * @return The length of this identifier in bytes.
+   */
+  std::size_t GetLength() const {
+    NOISEPAGE_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
+    return std::strlen(GetData());
   }
 
   /**
-   * @return whether the string is empty
+   * @return True if this identifier is empty; false otherwise.
    */
-  bool Empty() const { return Length() == 0; }
+  bool IsEmpty() const noexcept { return data_ == nullptr; }
 
   /**
-   * @param other other identifer
-   * @return whether this == other according to pointer comparison.
+   * @return A string view over this identifier.
    */
-  bool operator==(const Identifier &other) const { return Data() == other.Data(); }
+  std::string_view GetView() const noexcept { return std::string_view(data_, GetLength()); }
 
   /**
-   * @param other other identifer
-   * @return whether this != other according to pointer comparison.
+   * @return A copy of this identifier's contents as a string. We assume that the identifier was
+   *         properly NULL terminated.
    */
-  bool operator!=(const Identifier &other) const { return !(*this == other); }
+  std::string GetString() const { return data_ == nullptr ? std::string() : std::string(data_, GetLength()); }
 
   /**
-   * @return an empty key
+   * Is this identifier equal to another identifier @em other.
+   * @param other The identifier to compare with.
+   * @return True if equal; false otherwise.
+   */
+  bool operator==(const Identifier &other) const noexcept { return GetData() == other.GetData(); }
+
+  /**
+   * Is this identifier not equal to another identifier @em other.
+   * @param other The identifier to compare with.
+   * @return True if not equal; false otherwise.
+   */
+  bool operator!=(const Identifier &other) const noexcept { return !(*this == other); }
+
+  /**
+   * @return An identifier that can be used to indicate an empty idenfitier.
    */
   static Identifier GetEmptyKey() {
     return Identifier(static_cast<const char *>(llvm::DenseMapInfo<const void *>::getEmptyKey()));
   }
 
   /**
-   * @return a tombstone key
+   * @return A tombstone key that can be used to determine deleted keys in LLVM's DenseMap. This
+   *         Identifier cannot equal any valid identifier that can be stored in the map.
    */
   static Identifier GetTombstoneKey() {
     return Identifier(static_cast<const char *>(llvm::DenseMapInfo<const void *>::getTombstoneKey()));
   }
 
  private:
-  const char *data_;
+  const char *data_{nullptr};
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
 
 namespace llvm {
 
 /**
- * Make Identifiers usable from LLVM DenseMaps
+ * Functor to make Identifiers usable from LLVM DenseMap.
  */
 template <>
-struct DenseMapInfo<terrier::execution::ast::Identifier> {
+struct DenseMapInfo<noisepage::execution::ast::Identifier> {
   /**
    * @return An empty key
    */
-  static inline terrier::execution::ast::Identifier getEmptyKey() {  // NOLINT
-    return terrier::execution::ast::Identifier::GetEmptyKey();
+  static noisepage::execution::ast::Identifier getEmptyKey() {  // NOLINT
+    return noisepage::execution::ast::Identifier::GetEmptyKey();
   }
 
   /**
    * @return A tombstone key
    */
-  static inline terrier::execution::ast::Identifier getTombstoneKey() {  // NOLINT
-    return terrier::execution::ast::Identifier::GetTombstoneKey();
+  static noisepage::execution::ast::Identifier getTombstoneKey() {  // NOLINT
+    return noisepage::execution::ast::Identifier::GetTombstoneKey();
   }
 
   /**
    * @param identifier: Identifier to hash
    * @return the hash of the identifier
    */
-  static unsigned getHashValue(const terrier::execution::ast::Identifier identifier) {  // NOLINT
-    return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.Data()));
+  static unsigned getHashValue(const noisepage::execution::ast::Identifier identifier) {  // NOLINT
+    return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.GetData()));
   }
 
   /**
@@ -105,8 +126,8 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
    * @param rhs right hand side
    * @return whether lhs == rhs.
    */
-  static bool isEqual(const terrier::execution::ast::Identifier lhs,  // NOLINT
-                      const terrier::execution::ast::Identifier rhs) {
+  static bool isEqual(const noisepage::execution::ast::Identifier lhs,  // NOLINT
+                      const noisepage::execution::ast::Identifier rhs) {
     return lhs == rhs;
   }
 };
@@ -116,17 +137,17 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
 namespace std {
 
 /**
- * Make Identifiers usable as keys in STL/TPL maps
+ * Functor to make Identifiers usable as keys in STL/TPL maps.
  */
 template <>
-struct hash<terrier::execution::ast::Identifier> {
+struct hash<noisepage::execution::ast::Identifier> {
   /**
    * Hashing operator
    * @param ident identifier to hash
    * @return hash value
    */
-  std::size_t operator()(const terrier::execution::ast::Identifier &ident) const noexcept {
-    std::string_view s(ident.Data(), ident.Length());
+  std::size_t operator()(const noisepage::execution::ast::Identifier &ident) const noexcept {
+    std::string_view s(ident.GetData(), ident.GetLength());
     return std::hash<decltype(s)>()(s);
   }
 };

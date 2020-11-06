@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 // ---------------------------------------------------------
 // Function Declaration
@@ -18,6 +18,15 @@ FunctionDecl::FunctionDecl(const SourcePosition &pos, Identifier name, FunctionL
 StructDecl::StructDecl(const SourcePosition &pos, Identifier name, StructTypeRepr *type_repr)
     : Decl(Kind::StructDecl, pos, name, type_repr) {}
 
+uint32_t StructDecl::NumFields() const {
+  const auto &fields = TypeRepr()->As<ast::StructTypeRepr>()->Fields();
+  return fields.size();
+}
+
+ast::FieldDecl *StructDecl::GetFieldAt(uint32_t field_idx) const {
+  return TypeRepr()->As<ast::StructTypeRepr>()->GetFieldAt(field_idx);
+}
+
 // ---------------------------------------------------------
 // Expression Statement
 // ---------------------------------------------------------
@@ -30,28 +39,28 @@ ExpressionStmt::ExpressionStmt(Expr *expr) : Stmt(Kind::ExpressionStmt, expr->Po
 
 bool Expr::IsNilLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Nil;
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::Nil;
+  }
+  return false;
+}
+
+bool Expr::IsBoolLiteral() const {
+  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::Boolean;
   }
   return false;
 }
 
 bool Expr::IsStringLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::String;
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::String;
   }
   return false;
 }
 
 bool Expr::IsIntegerLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Int;
-  }
-  return false;
-}
-
-bool Expr::IsBooleanLiteral() const {
-  if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Boolean;
+    return lit_expr->GetLiteralKind() == ast::LitExpr::LitKind::Int;
   }
   return false;
 }
@@ -95,14 +104,14 @@ Identifier CallExpr::GetFuncName() const { return func_->As<IdentifierExpr>()->N
 // ---------------------------------------------------------
 
 bool IndexExpr::IsArrayAccess() const {
-  TERRIER_ASSERT(Object() != nullptr, "Object cannot be NULL");
-  TERRIER_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Object cannot be NULL");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
   return Object()->GetType()->IsArrayType();
 }
 
 bool IndexExpr::IsMapAccess() const {
-  TERRIER_ASSERT(Object() != nullptr, "Object cannot be NULL");
-  TERRIER_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Object cannot be NULL");
+  NOISEPAGE_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
   return Object()->GetType()->IsMapType();
 }
 
@@ -111,7 +120,7 @@ bool IndexExpr::IsMapAccess() const {
 // ---------------------------------------------------------
 
 bool MemberExpr::IsSugaredArrow() const {
-  TERRIER_ASSERT(Object()->GetType() != nullptr, "Cannot determine sugared-arrow before type checking!");
+  NOISEPAGE_ASSERT(Object()->GetType() != nullptr, "Cannot determine sugared-arrow before type checking!");
   return Object()->GetType()->IsPointerType();
 }
 
@@ -137,4 +146,31 @@ bool Stmt::IsTerminating(Stmt *stmt) {
   }
 }
 
-}  // namespace terrier::execution::ast
+std::string CastKindToString(const CastKind cast_kind) {
+  switch (cast_kind) {
+    case CastKind::IntToSqlInt:
+      return "IntToSqlInt";
+    case CastKind::IntToSqlDecimal:
+      return "IntToSqlDecimal";
+    case CastKind::SqlBoolToBool:
+      return "SqlBoolToBool";
+    case CastKind::BoolToSqlBool:
+      return "BoolToSqlBool";
+    case CastKind::IntegralCast:
+      return "IntegralCast";
+    case CastKind::IntToFloat:
+      return "IntToFloat";
+    case CastKind::FloatToInt:
+      return "FloatToInt";
+    case CastKind::BitCast:
+      return "BitCast";
+    case CastKind::FloatToSqlReal:
+      return "FloatToSqlReal";
+    case CastKind::SqlIntToSqlReal:
+      return "SqlIntToSqlReal";
+    default:
+      UNREACHABLE("Impossible cast kind");
+  }
+}
+
+}  // namespace noisepage::execution::ast

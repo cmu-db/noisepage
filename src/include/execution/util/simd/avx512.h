@@ -6,7 +6,7 @@
 #include "execution/util/execution_common.h"
 #include "execution/util/simd/types.h"
 
-namespace terrier::execution::util::simd {
+namespace noisepage::execution::util::simd {
 
 #define USE_GATHER 1
 
@@ -196,7 +196,7 @@ class Vec8 : public Vec512b {
   /**
    * Store the eight 64-bit integers in this vector into the output array.
    */
-  void Store(unsigned long *arr) const { Store(reinterpret_cast<int64_t *>(ptr)); }  // NOLINT (runtime/int)
+  void Store(unsigned long *arr) const { Store(reinterpret_cast<int64_t *>(arr)); }  // NOLINT (runtime/int)
 #endif
 
   /**
@@ -208,7 +208,7 @@ class Vec8 : public Vec512b {
    * @return the element at the given index
    */
   int64_t Extract(uint32_t index) const {
-    TERRIER_ASSERT(index < 8, "Out-of-bounds mask element access");
+    NOISEPAGE_ASSERT(index < 8, "Out-of-bounds mask element access");
     alignas(64) int64_t x[Size()];
     Store(x);
     return x[index & 7];
@@ -931,11 +931,11 @@ struct FilterVecSizer<intptr_t> {
   /**
    * Four 64-bit integer values.
    */
-  using Vec = Vec4;
+  using Vec = Vec8;
   /**
    * Mask for four 64-bit integer values.
    */
-  using VecMask = Vec4Mask;
+  using VecMask = Vec8Mask;
 };
 #endif
 
@@ -1042,4 +1042,4 @@ static inline uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RES
   return out_pos;
 }
 
-}  // namespace terrier::execution::util::simd
+}  // namespace noisepage::execution::util::simd

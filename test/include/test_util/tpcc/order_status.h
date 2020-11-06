@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "benchmark_util/data_table_benchmark_util.h"
+
 #include "catalog/catalog_defs.h"
 #include "storage/sql_table.h"
 #include "test_util/tpcc/database.h"
@@ -12,7 +12,7 @@
 #include "test_util/tpcc/worker.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::tpcc {
+namespace noisepage::tpcc {
 
 /**
  * Order-Status transaction according to section 2.6.2 of the specification
@@ -134,4 +134,4 @@ class OrderStatus {
                const TransactionArgs &args) const;
 };
 
-}  // namespace terrier::tpcc
+}  // namespace noisepage::tpcc

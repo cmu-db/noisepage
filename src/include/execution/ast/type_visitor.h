@@ -2,47 +2,59 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
- * Generic visitor for type hierarchies
+ * Base class for TPL type hierarchy visitors. Uses the Curiously Recurring Template Pattern (CRTP)
+ * to avoid overhead of virtual function dispatch. Made possible because we keep a static,
+ * macro-based list of all possible TPL types.
+ *
+ * Derived classes parameterize TypeVisitor with itself, e.g.:
+ *
+ * @code
+ * class Derived : public TypeVisitor<Derived> {
+ *   ...
+ * }
+ * @endcode
+ *
+ * All type visitations will get forwarded to the derived class, if they are implemented, and falls
+ * back to this base class otherwise. To easily define visitors for all nodes, use the TYPE_LIST()
+ * macro providing a function generator argument.
  */
-template <typename Impl, typename RetType = void>
+template <typename Subclass, typename RetType = void>
 class TypeVisitor {
  public:
-#define DISPATCH(Type) return static_cast<Impl *>(this)->Visit##Type(static_cast<const Type *>(type));
+#define DISPATCH(Type) return this->Impl()->Visit##Type(static_cast<const Type *>(type));
 
   /**
-   * Visits an arbitrary type
-   * @param type type to visit
-   * @return return value of the visitor (usually void)
+   * Begin type traversal at the given type node.
+   * @param type The type to begin traversal at.
+   * @return Template-specific return type.
    */
   RetType Visit(const Type *type) {
-    switch (type->GetTypeId()) {
-      default: {
-        llvm_unreachable("Impossible node type");
-      }
-#define T(TypeClass)            \
-  case Type::TypeId::TypeClass: \
+#define GEN_VISIT_CASE(TypeClass) \
+  case Type::TypeId::TypeClass:   \
     DISPATCH(TypeClass)
-        TYPE_LIST(T)
-#undef T
+
+    // Main switch
+    switch (type->GetTypeId()) {
+      TYPE_LIST(GEN_VISIT_CASE)
+      default:
+        UNREACHABLE("Impossible node type");
     }
+
+#undef GEN_VISIT_CASE
   }
 
-  /**
-   * Visitor for an abstract type, which does nothing
-   * @param type type to visit
-   * @return default return type (usually void)
-   */
-  RetType VisitType(UNUSED_ATTRIBUTE const Type *type) { return RetType(); }
-
-#define T(Type) \
-  RetType Visit##Type(const Type *type) { DISPATCH(Type); }
-  TYPE_LIST(T)
-#undef T
-
+#define GEN_VISIT_TYPE(TypeClass) \
+  RetType Visit##TypeClass(const TypeClass *type) { DISPATCH(TypeClass); }
+  TYPE_LIST(GEN_VISIT_TYPE)
+#undef GEN_VISIT_TYPE
 #undef DISPATCH
+
+ protected:
+  /** The implementation of this class. */
+  Subclass *Impl() { return static_cast<Subclass *>(this); }
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

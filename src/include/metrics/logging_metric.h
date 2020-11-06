@@ -13,7 +13,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected at logging level
@@ -23,10 +23,10 @@ class LoggingMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<LoggingMetricRawData *>(other);
     if (!other_db_metric->serializer_data_.empty()) {
-      serializer_data_.splice(serializer_data_.cbegin(), other_db_metric->serializer_data_);
+      serializer_data_.splice(serializer_data_.cend(), other_db_metric->serializer_data_);
     }
     if (!other_db_metric->consumer_data_.empty()) {
-      consumer_data_.splice(consumer_data_.cbegin(), other_db_metric->consumer_data_);
+      consumer_data_.splice(consumer_data_.cend(), other_db_metric->consumer_data_);
     }
   }
 
@@ -40,21 +40,22 @@ class LoggingMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &serializer_outfile = (*outfiles)[0];
     auto &consumer_outfile = (*outfiles)[1];
 
     for (const auto &data : serializer_data_) {
-      serializer_outfile << data.num_bytes_ << ", " << data.num_records_ << ", ";
+      serializer_outfile << data.num_bytes_ << ", " << data.num_records_ << ", " << data.num_txns_ << ", "
+                         << data.interval_ << ", ";
       data.resource_metrics_.ToCSV(serializer_outfile);
       serializer_outfile << std::endl;
     }
     for (const auto &data : consumer_data_) {
-      consumer_outfile << data.num_bytes_ << ", " << data.num_buffers_ << ", ";
+      consumer_outfile << data.num_bytes_ << ", " << data.num_buffers_ << ", " << data.interval_ << ", ";
       data.resource_metrics_.ToCSV(consumer_outfile);
       consumer_outfile << std::endl;
     }
@@ -71,38 +72,45 @@ class LoggingMetricRawData : public AbstractRawData {
    * Columns to use for writing to CSV.
    * Note: This includes the columns for the input feature, but not the output (resource counters)
    */
-  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"num_bytes, num_records",
-                                                                      "num_bytes, num_buffers"};
+  static constexpr std::array<std::string_view, 2> FEATURE_COLUMNS = {"num_bytes, num_records, num_txns, interval",
+                                                                      "num_bytes, num_buffers, interval"};
 
  private:
   friend class LoggingMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
-                            const common::ResourceTracker::Metrics &resource_metrics) {
-    serializer_data_.emplace_front(num_bytes, num_records, resource_metrics);
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                            const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
+    serializer_data_.emplace_back(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
 
-  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers,
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    consumer_data_.emplace_front(num_bytes, num_buffers, resource_metrics);
+    consumer_data_.emplace_back(num_bytes, num_buffers, interval, resource_metrics);
   }
 
   struct SerializerData {
-    SerializerData(const uint64_t num_bytes, const uint64_t num_records,
-                   const common::ResourceTracker::Metrics &resource_metrics)
-        : num_bytes_(num_bytes), num_records_(num_records), resource_metrics_(resource_metrics) {}
+    SerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                   const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics)
+        : num_bytes_(num_bytes),
+          num_records_(num_records),
+          num_txns_(num_txns),
+          interval_(interval),
+          resource_metrics_(resource_metrics) {}
     const uint64_t num_bytes_;
     const uint64_t num_records_;
+    const uint64_t num_txns_;
+    const uint64_t interval_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
   struct ConsumerData {
-    ConsumerData(const uint64_t num_bytes, const uint64_t num_buffers,
+    ConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
                  const common::ResourceTracker::Metrics &resource_metrics)
-        : num_bytes_(num_bytes), num_buffers_(num_buffers), resource_metrics_(resource_metrics) {}
+        : num_bytes_(num_bytes), num_buffers_(num_buffers), interval_(interval), resource_metrics_(resource_metrics) {}
     const uint64_t num_bytes_;
     const uint64_t num_buffers_;
+    const uint64_t interval_;
     const common::ResourceTracker::Metrics resource_metrics_;
   };
 
@@ -118,13 +126,13 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records,
-                            const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordSerializerData(num_bytes, num_records, resource_metrics);
+  void RecordSerializerData(const uint64_t num_bytes, const uint64_t num_records, const uint64_t num_txns,
+                            const uint64_t interval, const common::ResourceTracker::Metrics &resource_metrics) {
+    GetRawData()->RecordSerializerData(num_bytes, num_records, num_txns, interval, resource_metrics);
   }
-  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers,
+  void RecordConsumerData(const uint64_t num_bytes, const uint64_t num_buffers, const uint64_t interval,
                           const common::ResourceTracker::Metrics &resource_metrics) {
-    GetRawData()->RecordConsumerData(num_bytes, num_buffers, resource_metrics);
+    GetRawData()->RecordConsumerData(num_bytes, num_buffers, interval, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

@@ -1,12 +1,14 @@
 #pragma once
+
 #include <map>
 #include <unordered_set>
 #include <utility>
+
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 // TODO(Tianyu): In this future, there can be situations where varlen fields should not be gathered
 // compressed (e.g, blob). Can add a flag here to handle that.
@@ -175,8 +177,8 @@ class ArrowColumnInfo {
    * @return the indices array
    */
   uint64_t *&Indices() {
-    TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
-                   "this array is only meaningful if the column is dicationary compressed");
+    NOISEPAGE_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
+                     "this array is only meaningful if the column is dicationary compressed");
     return indices_;
   }
 
@@ -244,13 +246,17 @@ class ArrowBlockMetadata {
    * @param col_id the column of interest
    * @return reference to the null count value for given column
    */
-  uint32_t &NullCount(col_id_t col_id) { return reinterpret_cast<uint32_t *>(varlen_content_)[!col_id]; }
+  uint32_t &NullCount(col_id_t col_id) {
+    return reinterpret_cast<uint32_t *>(varlen_content_)[col_id.UnderlyingValue()];
+  }
 
   /**
    * @param col_id the column of interest
    * @return the null count for given column
    */
-  uint32_t NullCount(col_id_t col_id) const { return reinterpret_cast<const uint32_t *>(varlen_content_)[!col_id]; }
+  uint32_t NullCount(col_id_t col_id) const {
+    return reinterpret_cast<const uint32_t *>(varlen_content_)[col_id.UnderlyingValue()];
+  }
 
   /**
    * @param layout layout object of the Block
@@ -260,7 +266,7 @@ class ArrowBlockMetadata {
   ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.UnderlyingValue()];
   }
 
   /**
@@ -271,7 +277,7 @@ class ArrowBlockMetadata {
   const ArrowColumnInfo &GetColumnInfo(const BlockLayout &layout, col_id_t col_id) const {
     byte *null_count_end =
         storage::StorageUtil::AlignedPtr(sizeof(uint64_t), varlen_content_ + sizeof(uint32_t) * layout.NumColumns());
-    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[!col_id];
+    return reinterpret_cast<ArrowColumnInfo *>(null_count_end)[col_id.UnderlyingValue()];
   }
 
  private:
@@ -279,4 +285,4 @@ class ArrowBlockMetadata {
   // null_count[num_cols] (32-bit) | padding up to 8 byte-aligned | arrow_varlen_buffers[num_cols] |
   byte varlen_content_[];
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

@@ -9,10 +9,10 @@
 #include "catalog/index_schema.h"
 #include "main/db_main.h"
 #include "portable_endian/portable_endian.h"
-#include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/generic_key.h"
 #include "storage/index/hash_key.h"
+#include "storage/index/index.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
@@ -26,7 +26,7 @@
 #include "type/type_id.h"
 #include "type/type_util.h"
 
-namespace terrier::storage::index {
+namespace noisepage::storage::index {
 
 class IndexKeyTests : public TerrierTest {
  public:
@@ -448,11 +448,11 @@ TEST_F(IndexKeyTests, IndexMetadataCompactIntsKeyTest) {
   EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::BIGINT);
   EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
   EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::SMALLINT);
-  EXPECT_EQ(!metadata_key_schema[0].Oid(), 20);
-  EXPECT_EQ(!metadata_key_schema[1].Oid(), 21);
-  EXPECT_EQ(!metadata_key_schema[2].Oid(), 22);
-  EXPECT_EQ(!metadata_key_schema[3].Oid(), 23);
-  EXPECT_EQ(!metadata_key_schema[4].Oid(), 24);
+  EXPECT_EQ(metadata_key_schema[0].Oid().UnderlyingValue(), 20);
+  EXPECT_EQ(metadata_key_schema[1].Oid().UnderlyingValue(), 21);
+  EXPECT_EQ(metadata_key_schema[2].Oid().UnderlyingValue(), 22);
+  EXPECT_EQ(metadata_key_schema[3].Oid().UnderlyingValue(), 23);
+  EXPECT_EQ(metadata_key_schema[4].Oid().UnderlyingValue(), 24);
   EXPECT_FALSE(metadata_key_schema[0].Nullable());
   EXPECT_FALSE(metadata_key_schema[1].Nullable());
   EXPECT_FALSE(metadata_key_schema[2].Nullable());
@@ -543,11 +543,11 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::VARCHAR);
   EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
   EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(!metadata_key_schema[0].Oid(), 20);
-  EXPECT_EQ(!metadata_key_schema[1].Oid(), 21);
-  EXPECT_EQ(!metadata_key_schema[2].Oid(), 22);
-  EXPECT_EQ(!metadata_key_schema[3].Oid(), 23);
-  EXPECT_EQ(!metadata_key_schema[4].Oid(), 24);
+  EXPECT_EQ(metadata_key_schema[0].Oid().UnderlyingValue(), 20);
+  EXPECT_EQ(metadata_key_schema[1].Oid().UnderlyingValue(), 21);
+  EXPECT_EQ(metadata_key_schema[2].Oid().UnderlyingValue(), 22);
+  EXPECT_EQ(metadata_key_schema[3].Oid().UnderlyingValue(), 23);
+  EXPECT_EQ(metadata_key_schema[4].Oid().UnderlyingValue(), 24);
   EXPECT_FALSE(metadata_key_schema[0].Nullable());
   EXPECT_FALSE(metadata_key_schema[1].Nullable());
   EXPECT_FALSE(metadata_key_schema[2].Nullable());
@@ -633,11 +633,11 @@ TEST_F(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   EXPECT_EQ(metadata_key_schema[2].Type(), type::TypeId::VARCHAR);
   EXPECT_EQ(metadata_key_schema[3].Type(), type::TypeId::TINYINT);
   EXPECT_EQ(metadata_key_schema[4].Type(), type::TypeId::VARCHAR);
-  EXPECT_EQ(!metadata_key_schema[0].Oid(), 20);
-  EXPECT_EQ(!metadata_key_schema[1].Oid(), 21);
-  EXPECT_EQ(!metadata_key_schema[2].Oid(), 22);
-  EXPECT_EQ(!metadata_key_schema[3].Oid(), 23);
-  EXPECT_EQ(!metadata_key_schema[4].Oid(), 24);
+  EXPECT_EQ(metadata_key_schema[0].Oid().UnderlyingValue(), 20);
+  EXPECT_EQ(metadata_key_schema[1].Oid().UnderlyingValue(), 21);
+  EXPECT_EQ(metadata_key_schema[2].Oid().UnderlyingValue(), 22);
+  EXPECT_EQ(metadata_key_schema[3].Oid().UnderlyingValue(), 23);
+  EXPECT_EQ(metadata_key_schema[4].Oid().UnderlyingValue(), 24);
   EXPECT_FALSE(metadata_key_schema[0].Nullable());
   EXPECT_FALSE(metadata_key_schema[1].Nullable());
   EXPECT_FALSE(metadata_key_schema[2].Nullable());
@@ -713,7 +713,7 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
         break;
       }
     }
-    TERRIER_ASSERT(1 <= key_type && key_type <= 4, "CompactIntsKey only has 4 possible KeySizes.");
+    NOISEPAGE_ASSERT(1 <= key_type && key_type <= 4, "CompactIntsKey only has 4 possible KeySizes.");
 
     // create our projected row buffers
     auto *pr_buffer_a = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
@@ -1276,4 +1276,4 @@ TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   delete index;
 }
 
-}  // namespace terrier::storage::index
+}  // namespace noisepage::storage::index

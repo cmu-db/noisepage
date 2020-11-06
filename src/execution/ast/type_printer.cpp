@@ -1,13 +1,12 @@
-#include "execution/ast/type.h"
+#include <llvm/ADT/SmallString.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <string>
 
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_ostream.h"
-
+#include "execution/ast/type.h"
 #include "execution/ast/type_visitor.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 namespace {
 
@@ -32,12 +31,12 @@ class TypePrinter : public TypeVisitor<TypePrinter> {
   llvm::raw_ostream &out_;
 };
 
-void execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { Os() << type->TplName(); }
+void execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { Os() << type->GetTplName(); }
 
 void TypePrinter::VisitFunctionType(const FunctionType *type) {
   Os() << "(";
   bool first = true;
-  for (const auto &param : type->Params()) {
+  for (const auto &param : type->GetParams()) {
     if (!first) {
       Os() << ",";
     }
@@ -45,20 +44,20 @@ void TypePrinter::VisitFunctionType(const FunctionType *type) {
     Visit(param.type_);
   }
   Os() << ")->";
-  Visit(type->ReturnType());
+  Visit(type->GetReturnType());
 }
 
 void TypePrinter::VisitStringType(const StringType *type) { Os() << "string"; }
 
 void TypePrinter::VisitPointerType(const PointerType *type) {
   Os() << "*";
-  Visit(type->Base());
+  Visit(type->GetBase());
 }
 
 void TypePrinter::VisitStructType(const StructType *type) {
   Os() << "struct{";
   bool first = true;
-  for (const auto &field : type->Fields()) {
+  for (const auto &field : type->GetAllFields()) {
     if (!first) {
       Os() << ",";
     }
@@ -73,17 +72,17 @@ void TypePrinter::VisitArrayType(const ArrayType *type) {
   if (type->HasUnknownLength()) {
     Os() << "*";
   } else {
-    Os() << type->Length();
+    Os() << type->GetLength();
   }
   Os() << "]";
-  Visit(type->ElementType());
+  Visit(type->GetElementType());
 }
 
 void execution::ast::TypePrinter::VisitMapType(const MapType *type) {
   Os() << "map[";
-  Visit(type->KeyType());
+  Visit(type->GetKeyType());
   Os() << "]";
-  Visit(type->ValueType());
+  Visit(type->GetValueType());
 }
 
 }  // namespace
@@ -99,4 +98,4 @@ std::string Type::ToString(const Type *type) {
   return buffer.str();
 }
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

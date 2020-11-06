@@ -8,13 +8,14 @@
 #include <vector>
 
 #include "catalog/catalog_accessor.h"
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "loggers/execution_logger.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // Maps from index columns to table columns.
 using IndexTableMap = std::vector<uint16_t>;
@@ -123,7 +124,7 @@ class SchemaReader {
     // Read Table name and num_cols
     uint32_t num_cols;
     schema_file >> table_info->table_name_ >> num_cols;
-    EXECUTION_LOG_INFO("Reading table {} with {} columns", table_info->table_name_, num_cols);
+    EXECUTION_LOG_TRACE("Reading table {} with {} columns", table_info->table_name_, num_cols);
     // Read columns & create table schema
     table_info->cols_ = ReadColumns(&schema_file, num_cols);
     // Read num_indexes & create index information
@@ -178,12 +179,12 @@ class SchemaReader {
     return cols;
   }
 
-  terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+  noisepage::parser::ConstantValueExpression DummyCVE() {
+    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
  private:
   // Supported types
   const std::unordered_map<std::string, type::TypeId> type_names_;
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

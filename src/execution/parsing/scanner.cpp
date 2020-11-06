@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace terrier::execution::parsing {
+namespace noisepage::execution::parsing {
 
 Scanner::Scanner(const std::string &source) : Scanner(source.data(), source.length()) {}
 
@@ -247,21 +247,23 @@ void Scanner::SkipWhiteSpace() {
 }
 
 void Scanner::SkipLineComment() {
-  while (c0_ != '\n' && c0_ != K_END_OF_INPUT) {
-    Advance();
-  }
+  AdvanceUntil([](auto c) { return c == K_NEW_LINE; });
 }
 
 void Scanner::SkipBlockComment() {
-  int32_t c;
-  do {
-    c = c0_;
-    Advance();
-  } while (c != '*' && c0_ != '/' && c0_ != K_END_OF_INPUT);
+  while (c0_ != K_END_OF_INPUT) {
+    // Find the first '*'
+    AdvanceUntil([](auto c) { return c == '*'; });
 
-  // Skip the '/' if we found. If we're are the end, Advance() will be a no-op
-  // anyways, so we're safe.
-  Advance();
+    // Look for '/' after potentially repeated '*'
+    while (c0_ == '*') {
+      Advance();
+      if (c0_ == '/') {
+        Advance();
+        return;
+      }
+    }
+  }
 }
 
 Token::Type Scanner::ScanIdentifierOrKeyword() {
@@ -283,6 +285,7 @@ Token::Type Scanner::ScanIdentifierOrKeyword() {
   return CheckIdentifierOrKeyword(identifier, identifier_len);
 }
 
+// clang-format off
 #define KEYWORDS()                          \
   GROUP_START('a')                          \
   GROUP_ELEM("and", Token::Type::AND)       \
@@ -309,6 +312,7 @@ Token::Type Scanner::ScanIdentifierOrKeyword() {
   GROUP_ELEM("true", Token::Type::TRUE)     \
   GROUP_START('v')                          \
   GROUP_ELEM("var", Token::Type::VAR)
+// clang-format on
 
 Token::Type Scanner::CheckIdentifierOrKeyword(const char *input, uint32_t input_len) {
   static constexpr uint32_t k_min_keyword_len = 2;
@@ -322,15 +326,19 @@ Token::Type Scanner::CheckIdentifierOrKeyword(const char *input, uint32_t input_
   break;               \
   case c:
 
-#define GROUP_ELEM(str, typ)                                                                             \
-  {                                                                                                      \
-    const uint64_t keyword_len = sizeof(str) - 1;                                                        \
-    if (keyword_len == input_len && (str)[1] == input[1] && (keyword_len < 3 || (str)[2] == input[2]) && \
-        (keyword_len < 4 || (str)[3] == input[3]) && (keyword_len < 5 || (str)[4] == input[4]) &&        \
-        (keyword_len < 6 || (str)[5] == input[5])) {                                                     \
-      return typ;                                                                                        \
-    }                                                                                                    \
+// clang-format off
+#define GROUP_ELEM(str, typ)                                \
+  {                                                         \
+    const uint64_t keyword_len = sizeof(str) - 1;                \
+    if (keyword_len == input_len && (str)[1] == input[1] && \
+        (keyword_len < 3 || (str)[2] == input[2]) &&        \
+        (keyword_len < 4 || (str)[3] == input[3]) &&        \
+        (keyword_len < 5 || (str)[4] == input[4]) &&        \
+        (keyword_len < 6 || (str)[5] == input[5])) {        \
+      return typ;                                           \
+    }                                                       \
   }
+  // clang-format on
 
   // The main switch statement that outlines all keywords
   switch (input[0]) {
@@ -374,6 +382,13 @@ Token::Type Scanner::ScanNumber() {
 Token::Type Scanner::ScanString() {
   // Single-line string. The lookahead character points to the start of the
   // string literal
+
+  // Support empty strings.
+  if (c0_ == '"') {
+    curr_.literal_ = "";
+    Advance();
+    return Token::Type::STRING;
+  }
   while (true) {
     if (c0_ == K_END_OF_INPUT) {
       next_.literal_.clear();
@@ -397,4 +412,4 @@ Token::Type Scanner::ScanString() {
   }
 }
 
-}  // namespace terrier::execution::parsing
+}  // namespace noisepage::execution::parsing

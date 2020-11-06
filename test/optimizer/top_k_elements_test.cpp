@@ -1,3 +1,5 @@
+#include "optimizer/statistics/top_k_elements.h"
+
 #include <stack>
 #include <string>
 #include <unordered_map>
@@ -6,14 +8,16 @@
 #include "gtest/gtest.h"
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/count_min_sketch.h"
-#include "optimizer/statistics/top_k_elements.h"
-
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 class TopKElementsTests : public TerrierTest {
-  void SetUp() override { optimizer::optimizer_logger->set_level(spdlog::level::info); }
+  void SetUp() override {
+#if NOISEPAGE_USE_LOGGER
+    optimizer::optimizer_logger->set_level(spdlog::level::info);
+#endif
+  }
 };
 
 // Check that we can do simple increments to the top-k trackre
@@ -125,7 +129,7 @@ TEST_F(TopKElementsTests, SortedKeyTest) {
   auto sorted_keys = top_k.GetSortedTopKeys();
   EXPECT_EQ(sorted_keys.size(), k);
   int i = 0;
-  for (const auto &key : sorted_keys) {
+  for (UNUSED_ATTRIBUTE const auto &key : sorted_keys) {
     // Pop off the keys from our expected stack each time.
     // It should match the current key in our sorted key list
     auto expected_key = expected_keys.top();
@@ -365,4 +369,4 @@ TEST_F(TopKElementsTests, OutputTest) {
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -1,7 +1,9 @@
 #include "parser/expression/default_value_expression.h"
+
+#include "binder/sql_node_visitor.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> DefaultValueExpression::Copy() const {
   auto expr = std::make_unique<DefaultValueExpression>();
@@ -9,6 +11,10 @@ std::unique_ptr<AbstractExpression> DefaultValueExpression::Copy() const {
   return expr;
 }
 
+void DefaultValueExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(DefaultValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

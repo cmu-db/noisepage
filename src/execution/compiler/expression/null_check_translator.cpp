@@ -1,25 +1,31 @@
 #include "execution/compiler/expression/null_check_translator.h"
 
-#include "execution/compiler/translator_factory.h"
+#include "common/error/exception.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/work_context.h"
+#include "parser/expression/operator_expression.h"
+#include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::compiler {
-NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen),
-      child_{TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).Get(), codegen)} {}
+namespace noisepage::execution::compiler {
 
-ast::Expr *NullCheckTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  auto type = expression_->GetExpressionType();
-  auto child_expr = child_->DeriveExpr(evaluator);
-
-  ast::Expr *ret;
-  if (type == terrier::parser::ExpressionType::OPERATOR_IS_NULL) {
-    ret = codegen_->IsSqlNull(child_expr);
-  } else if (type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL) {
-    ret = codegen_->IsSqlNotNull(child_expr);
-  } else {
-    UNREACHABLE("Unsupported expression");
-  }
-
-  return ret;
+NullCheckTranslator::NullCheckTranslator(const parser::OperatorExpression &expr,
+                                         CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {
+  compilation_context->Prepare(*expr.GetChild(0));
 }
-};  // namespace terrier::execution::compiler
+
+ast::Expr *NullCheckTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  auto *codegen = GetCodeGen();
+  auto input = ctx->DeriveValue(*GetExpression().GetChild(0), provider);
+  switch (auto type = GetExpression().GetExpressionType()) {
+    case parser::ExpressionType::OPERATOR_IS_NULL:
+      return codegen->CallBuiltin(ast::Builtin::IsValNull, {input});
+    case parser::ExpressionType::OPERATOR_IS_NOT_NULL:
+      return codegen->UnaryOp(parsing::Token::Type::BANG, codegen->CallBuiltin(ast::Builtin::IsValNull, {input}));
+    default:
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("operator expression type {}", parser::ExpressionTypeToString(type, false)));
+  }
+}
+
+}  // namespace noisepage::execution::compiler

@@ -1,80 +1,76 @@
 #pragma once
 
-#include <unordered_map>
-#include <utility>
-#include "execution/ast/ast.h"
-#include "execution/compiler/codegen.h"
-#include "parser/expression/abstract_expression.h"
+#include <type_traits>
 
-namespace terrier::execution::compiler {
+#include "common/macros.h"
+#include "execution/ast/ast_fwd.h"
+#include "execution/compiler/expression/column_value_provider.h"
 
-/**
- * These methods have been seperated from the OperatorTranslator to allow
- * arbitrary components of the system to evaluate expressions.
- */
-class ExpressionEvaluator {
- public:
-  /**
-   * @param child_idx index of the child (0 or 1)
-   * @param attr_idx index of the child's output
-   * @param type type of the attribute
-   * @return the child's output at the given index
-   */
-  virtual ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) = 0;
+namespace noisepage::parser {
+class AbstractExpression;
+}  // namespace noisepage::parser
 
-  /**
-   * Return a table column value.
-   * @param col_oid oid of the column
-   * @return an expression representing the value
-   */
-  virtual ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) {
-    UNREACHABLE("This operator does not interact with tables");
-  }
-};
+namespace noisepage::execution::compiler {
+
+class CodeGen;
+class CompilationContext;
+class WorkContext;
+class Pipeline;
 
 /**
- * Expression Translator
+ * Base class for expression translators.
  */
 class ExpressionTranslator {
  public:
   /**
-   * Constructor
-   * @param expression expression to translate
-   * @param codegen code generator to use
+   * Create a translator for an expression.
+   * @param expr The expression.
+   * @param compilation_context The context the translation occurs in.
    */
-  ExpressionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-      : codegen_(codegen), expression_(expression) {}
+  ExpressionTranslator(const parser::AbstractExpression &expr, CompilationContext *compilation_context);
 
   /**
-   * Destructor
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(ExpressionTranslator);
+
+  /**
+   * Destructor.
    */
   virtual ~ExpressionTranslator() = default;
 
   /**
-   * @param evaluator The expression evaluator to use
-   * @return resulting TPL expression
+   * Derive the TPL value of the expression.
+   * @param ctx The context the derivation of expression is occurring in.
+   * @param provider A provider for specific column values.
+   * @return The TPL value of the expression.
    */
-  virtual ast::Expr *DeriveExpr(ExpressionEvaluator *evaluator) = 0;
+  virtual ast::Expr *DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const = 0;
 
   /**
-   * Convert the generic expression to the given type.
-   * @tparam T type to convert to.
-   * @return the converted expression.
+   * @return The expression being translated.
    */
-  template <typename T>
-  const T *GetExpressionAs() {
-    return reinterpret_cast<const T *>(expression_);
-  }
+  const parser::AbstractExpression &GetExpression() const { return expr_; }
+
+  /** @return A pointer to the execution context. */
+  ast::Expr *GetExecutionContextPtr() const;
 
  protected:
-  /**
-   * Code Generator
-   */
-  CodeGen *codegen_;
+  /** The expression for this translator as its concrete type. */
+  template <typename T>
+  const T &GetExpressionAs() const {
+    static_assert(std::is_base_of_v<parser::AbstractExpression, T>, "Template type is not an expression");
+    return static_cast<const T &>(expr_);
+  }
 
-  /**
-   * The expression to translate
-   */
-  const terrier::parser::AbstractExpression *expression_;
+  /** Return the code generation instance. */
+  CodeGen *GetCodeGen() const;
+
+ private:
+  /** The expression that's to be translated. */
+  const parser::AbstractExpression &expr_;
+  /** The context the translation is a part of. */
+  CompilationContext *compilation_context_;
 };
-};  // namespace terrier::execution::compiler
+
+}  // namespace noisepage::execution::compiler

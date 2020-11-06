@@ -1,14 +1,15 @@
 #include "main/db_main.h"
 
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+#define __SETTING_GFLAGS_DEFINE__    // NOLINT
+#include "settings/settings_defs.h"  // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__     // NOLINT
 
-namespace terrier {
+#include "execution/execution_util.h"
+
+namespace noisepage {
 
 void DBMain::Run() {
-  TERRIER_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
+  NOISEPAGE_ASSERT(network_layer_ != DISABLED, "Trying to run without a NetworkLayer.");
   const auto server = network_layer_->GetServer();
   try {
     server->RunServer();
@@ -29,4 +30,8 @@ void DBMain::ForceShutdown() {
 
 DBMain::~DBMain() { ForceShutdown(); }
 
-}  // namespace terrier
+DBMain::ExecutionLayer::ExecutionLayer() { execution::ExecutionUtil::InitTPL(); }
+
+DBMain::ExecutionLayer::~ExecutionLayer() { execution::ExecutionUtil::ShutdownTPL(); }
+
+}  // namespace noisepage

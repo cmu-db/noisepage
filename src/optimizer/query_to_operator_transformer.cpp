@@ -24,7 +24,7 @@
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(
     const common::ManagedPointer<catalog::CatalogAccessor> catalog_accessor, const catalog::db_oid_t db_oid)
@@ -256,7 +256,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
                                          std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       join_expr->PushChild(std::move(prev_expr));
       join_expr->PushChild(std::move(output_expr_));
-      TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
+      NOISEPAGE_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
       prev_expr = std::move(join_expr);
     }
     output_expr_ = std::move(prev_expr);
@@ -266,8 +266,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::TableRef> 
 
     // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
     output_expr_ = std::make_unique<OperatorNode>(
-        LogicalGet::Make(db_oid_, accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {},
-                         node->GetAlias(), false)
+        LogicalGet::Make(db_oid_, accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false)
             .RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
@@ -387,12 +386,11 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
   auto target_db_id = db_oid_;
-  auto target_ns_id = accessor_->GetDefaultNamespace();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   if (op->GetInsertType() == parser::InsertType::SELECT) {
     auto insert_expr = std::make_unique<OperatorNode>(
-        LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id).RegisterWithTxnContext(txn_context),
+        LogicalInsertSelect::Make(target_db_id, target_table_id).RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     op->GetSelect()->Accept(common::ManagedPointer(this).CastManagedPointerTo<SqlNodeVisitor>());
 
@@ -463,7 +461,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::InsertStat
   }
 
   auto insert_expr = std::make_unique<OperatorNode>(
-      LogicalInsert::Make(target_db_id, target_ns_id, target_table_id, std::move(col_ids), op->GetValues())
+      LogicalInsert::Make(target_db_id, target_table_id, std::move(col_ids), op->GetValues())
           .RegisterWithTxnContext(txn_context),
       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   output_expr_ = std::move(insert_expr);
@@ -474,14 +472,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
   auto target_table = op->GetDeletionTable();
   auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto delete_expr = std::make_unique<OperatorNode>(
-      LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id)
-          .RegisterWithTxnContext(txn_context),
+      LogicalDelete::Make(target_db_id, target_table_alias, target_table_id).RegisterWithTxnContext(txn_context),
       std::move(c), txn_context);
 
   std::unique_ptr<OperatorNode> table_scan;
@@ -489,14 +485,14 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
     std::vector<AnnotatedExpression> predicates;
     QueryToOperatorTransformer::ExtractPredicates(op->GetDeleteCondition(), &predicates);
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true)
+        LogicalGet::Make(target_db_id, target_table_id, predicates, target_table_alias, true)
             .RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   } else {
-    table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true)
-            .RegisterWithTxnContext(txn_context),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    table_scan =
+        std::make_unique<OperatorNode>(LogicalGet::Make(target_db_id, target_table_id, {}, target_table_alias, true)
+                                           .RegisterWithTxnContext(txn_context),
+                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
   delete_expr->PushChild(std::move(table_scan));
 
@@ -504,13 +500,12 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DeleteStat
 }
 
 void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::DropStatement> op) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
+  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
   auto drop_type = op->GetDropType();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
   std::unique_ptr<OperatorNode> drop_expr;
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
-
       drop_expr = std::make_unique<OperatorNode>(LogicalDropDatabase::Make(db_oid_).RegisterWithTxnContext(txn_context),
                                                  std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
       break;
@@ -556,7 +551,6 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
   auto target_table = op->GetUpdateTable();
   auto target_db_id = db_oid_;
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
-  auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
   transaction::TransactionContext *txn_context = accessor_->GetTxn().Get();
 
@@ -564,7 +558,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
 
   std::vector<std::unique_ptr<AbstractOptimizerNode>> c;
   auto update_expr = std::make_unique<OperatorNode>(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_alias, target_table_id, op->GetUpdateClauses())
+      LogicalUpdate::Make(target_db_id, target_table_alias, target_table_id, op->GetUpdateClauses())
           .RegisterWithTxnContext(txn_context),
       std::move(c), txn_context);
 
@@ -572,14 +566,14 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::UpdateStat
     std::vector<AnnotatedExpression> predicates;
     QueryToOperatorTransformer::ExtractPredicates(op->GetUpdateCondition(), &predicates);
     table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true)
+        LogicalGet::Make(target_db_id, target_table_id, predicates, target_table_alias, true)
             .RegisterWithTxnContext(txn_context),
         std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   } else {
-    table_scan = std::make_unique<OperatorNode>(
-        LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true)
-            .RegisterWithTxnContext(txn_context),
-        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    table_scan =
+        std::make_unique<OperatorNode>(LogicalGet::Make(target_db_id, target_table_id, {}, target_table_alias, true)
+                                           .RegisterWithTxnContext(txn_context),
+                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
   }
   update_expr->PushChild(std::move(table_scan));
 
@@ -605,11 +599,10 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::CopyStatem
 
     auto target_table = op->GetCopyTable();
 
-    auto insert_op =
-        std::make_unique<OperatorNode>(LogicalInsertSelect::Make(db_oid_, accessor_->GetDefaultNamespace(),
-                                                                 accessor_->GetTableOid(target_table->GetTableName()))
-                                           .RegisterWithTxnContext(txn_context),
-                                       std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
+    auto insert_op = std::make_unique<OperatorNode>(
+        LogicalInsertSelect::Make(db_oid_, accessor_->GetTableOid(target_table->GetTableName()))
+            .RegisterWithTxnContext(txn_context),
+        std::vector<std::unique_ptr<AbstractOptimizerNode>>{}, txn_context);
     insert_op->PushChild(std::move(get_op));
     output_expr_ = std::move(insert_op);
 
@@ -650,6 +643,7 @@ void QueryToOperatorTransformer::Visit(common::ManagedPointer<parser::Comparison
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
     GenerateSubqueryTree(expr.CastManagedPointerTo<parser::AbstractExpression>(), 1, false);
   } else if (expr_type == parser::ExpressionType::COMPARE_EQUAL ||
+             expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
              expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
@@ -750,7 +744,8 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(
   if (expr_type == parser::ExpressionType::COMPARE_EQUAL || expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
       expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
-      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
+      expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO ||
+      expr_type == parser::ExpressionType::COMPARE_NOT_EQUAL) {
     // Supported if one child is subquery and the other is not
     if ((!expr->GetChild(0)->HasSubquery() &&
          expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) ||
@@ -892,4 +887,4 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
   return res;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

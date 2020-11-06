@@ -1,75 +1,56 @@
 #pragma once
 
-#include <utility>
 #include <vector>
-#include "execution/compiler/operator/operator_translator.h"
-#include "execution/compiler/translator_factory.h"
-#include "planner/plannodes/limit_plan_node.h"
 
-namespace terrier::execution::compiler {
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline.h"
+
+namespace noisepage::planner {
+class LimitPlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::compiler {
+
+class FunctionBuilder;
 
 /**
- * Limit Translator
+ * A translator for limits and offsets.
  */
 class LimitTranslator : public OperatorTranslator {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a new translator for the given limit plan. The compilation occurs within the
+   * provided compilation context and the operator is participating in the provided pipeline.
+   * @param plan The plan.
+   * @param compilation_context The context of compilation this translation is occurring in.
+   * @param pipeline The pipeline this operator is participating in.
    */
-  LimitTranslator(const terrier::planner::LimitPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(codegen, brain::ExecutionOperatingUnitType::LIMIT),
-        op_(op),
-        num_tuples_(codegen->NewIdentifier("num_tuples")) {}
+  LimitTranslator(const planner::LimitPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
-  // Pass through
-  void Produce(FunctionBuilder *builder) override;
+  /**
+   * Initialize the tuple counter in the pipeline local state.
+   * @param pipeline The pipeline that's being generated.
+   * @param function The pipeline function generator.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Pass through
-  void Abort(FunctionBuilder *builder) override { child_translator_->Abort(builder); }
+  /**
+   * Implement the limit's logic.
+   * @param context The context of work.
+   * @param function The pipeline function generator.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  // Pass through
-  void Consume(FunctionBuilder *builder) override;
-
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
-
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
-
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
-
-  ast::Expr *GetOutput(uint32_t attr_idx) override {
-    auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr.Get(), codegen_);
-    return translator->DeriveExpr(this);
+  /**
+   * Limits never touch raw table data.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
+    UNREACHABLE("NLJ are never the root of a plan and, thus, cannot be launched in parallel.");
   }
-
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    return child_translator_->GetOutput(attr_idx);
-  }
-
-  // Is always vectorizable.
-  bool IsVectorizable() override { return true; }
-
-  // Should not be called here
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override {
-    UNREACHABLE("Projection nodes should not use column value expressions");
-  }
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
 
  private:
-  const planner::LimitPlanNode *op_;
-  ast::Identifier num_tuples_;
+  // The tuple counter.
+  StateDescriptor::Entry tuple_count_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

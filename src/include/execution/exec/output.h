@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-#include <iostream>
 #include <memory>
 #include <sstream>
 #include <unordered_map>
@@ -10,18 +8,20 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
 #include "network/network_defs.h"
 #include "parser/parser_defs.h"
-#include "planner/plannodes/output_schema.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 class PostgresPacketWriter;
-}
+}  // namespace noisepage::network
 
-namespace terrier::execution::exec {
+namespace noisepage::planner {
+class OutputSchema;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::exec {
 
 // Callback function
 // Params(): tuples, num_tuples, tuple_size;
@@ -44,13 +44,14 @@ class EXPORT OutputBuffer {
    * @param tuple_size size of output tuples
    * @param callback upper layer callback
    */
-  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
+  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size,
+                        const OutputCallback &callback)
       : memory_pool_(memory_pool),
         num_tuples_(0),
         tuple_size_(tuple_size),
         tuples_(
             reinterpret_cast<byte *>(memory_pool->AllocateAligned(BATCH_SIZE * tuple_size, alignof(uint64_t), true))),
-        callback_(std::move(callback)) {}
+        callback_(callback) {}
 
   /**
    * @return an output slot to be written to.
@@ -76,7 +77,12 @@ class EXPORT OutputBuffer {
   ~OutputBuffer();
 
   /**
-   * @returns tuple size
+   * @return memory pool
+   */
+  sql::MemoryPool *GetMemoryPool() const { return memory_pool_; }
+
+  /**
+   * @return tuple size
    */
   uint32_t GetTupleSize() const { return tuple_size_; }
 
@@ -85,7 +91,15 @@ class EXPORT OutputBuffer {
   uint32_t num_tuples_;
   uint32_t tuple_size_;
   byte *tuples_;
-  OutputCallback callback_;
+
+  /**
+   * This is defined as a const OutputCallback & since the caller is able to guarantee the
+   * life-time of the OutputCallback. Furthermore, this relies on the assumption that a
+   * std::function<> can be invoked by multiple threads without corrupting any data internal
+   * to the std::function<>. If this assumption is proven wrong at a future date, this
+   * const &-ing will need to be revisited.
+   */
+  const OutputCallback &callback_;
 };
 
 /**
@@ -129,7 +143,8 @@ class OutputWriter {
       : schema_(schema), out_(out), field_formats_(field_formats) {}
 
   /**
-   * Callback that prints a batch of tuples to std out.
+   * Callback that writes results to PostgresPacketWriter.
+   *
    * @param tuples batch of tuples
    * @param num_tuples number of tuples
    * @param tuple_size size of tuples
@@ -139,10 +154,13 @@ class OutputWriter {
   /**
    * @return number of rows printed
    */
-  uint64_t NumRows() const { return num_rows_; }
+  uint32_t NumRows() const { return num_rows_; }
 
  private:
-  uint64_t num_rows_ = 0;
+  /** Captures the number of rows written.  */
+  uint32_t num_rows_ = 0;
+  /** Latch for synchronizing calls to operator() */
+  common::SpinLatch latch_;
   const common::ManagedPointer<planner::OutputSchema> schema_;
   const common::ManagedPointer<network::PostgresPacketWriter> out_;
   const std::vector<network::FieldFormat> &field_formats_;
@@ -162,4 +180,4 @@ class NoOpResultConsumer {
   void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {}
 };
 
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec

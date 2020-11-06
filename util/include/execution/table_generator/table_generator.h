@@ -10,9 +10,11 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
+#include "runner/mini_runners_config.h"
+#include "runner/mini_runners_settings.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 // Keep small so that nested loop join won't take too long.
 /**
@@ -28,6 +30,11 @@ constexpr uint32_t TEST2_SIZE = 1000;
  * Size of the alltypes table
  */
 constexpr uint32_t TABLE_ALLTYPES_SIZE = 1000;
+
+/**
+ * Size of the index test table
+ */
+constexpr uint32_t INDEX_TEST_SIZE = 400000;
 
 /**
  * Helper class to generate test tables and their indexes.
@@ -93,14 +100,45 @@ class TableGenerator {
 
   /**
    * Generate test tables.
-   * @param is_mini_runner is this generation used for the mini runner
    */
-  void GenerateTestTables(bool is_mini_runner);
+  void GenerateTestTables();
+
+  /**
+   * Generate the tables for the mini runner
+   * @param settings Mini-runners settings
+   * @param config Data Configuration for mini-runners
+   */
+  void GenerateMiniRunnersData(const runner::MiniRunnersSettings &settings,
+                               const runner::MiniRunnersDataConfig &config);
 
   /**
    * Generate mini runners indexes
+   * @param settings Mini-runners settings
+   * @param config Data Configuration for mini-runners
    */
-  void GenerateMiniRunnerIndexes();
+  void GenerateMiniRunnerIndexTables(const runner::MiniRunnersSettings &settings,
+                                     const runner::MiniRunnersDataConfig &config);
+
+  /**
+   * Adds a mini-runner index
+   * Function does not check whether an index of the same key_num
+   * already exists on the table GenerateTableIndexName(type, row_num)
+   *
+   * @param type Datatype of the underlying table
+   * @param row_num # of rows in the underlying table
+   * @param key_num Number of keys comprising the index
+   */
+  void BuildMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
+
+  /**
+   * Drops a unique mini-runner index
+   *
+   * @param type Datatype of the underlying table
+   * @param row_num # of rows in the underlying table
+   * @param key_num Number of keys comprising the index
+   * @returns bool indicating whether successful
+   */
+  bool DropMiniRunnerIndex(type::TypeId type, int64_t row_num, int64_t key_num);
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -248,11 +286,6 @@ class TableGenerator {
         : index_name_(index_name), table_name_(table_name), cols_(std::move(cols)) {}
   };
 
-  /**
-   * Generate the tables for the mini runner
-   */
-  std::vector<TableInsertMeta> GenerateMiniRunnerTableMetas();
-
   void InitTestIndexes();
 
   /**
@@ -280,6 +313,14 @@ class TableGenerator {
    * @return
    */
   std::pair<byte *, uint32_t *> GenerateColumnData(ColumnInsertMeta *col_meta, uint32_t num_rows);
+
+  /**
+   * Generate column data for varchar
+   * @param col_meta
+   * @param num_vals
+   * @return
+   */
+  storage::VarlenEntry *CreateVarcharColumnData(ColumnInsertMeta *col_meta, uint32_t num_vals);
 
   /**
    * Clone Column Data
@@ -318,9 +359,9 @@ class TableGenerator {
                  const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,
                  const catalog::Schema &table_schema);
 
-  terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
+  noisepage::parser::ConstantValueExpression DummyCVE() {
+    return noisepage::parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 };
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

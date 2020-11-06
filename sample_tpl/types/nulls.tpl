@@ -1,21 +1,16 @@
-fun main() -> int64 {
+// Expected output: 0
+
+fun main() -> int {
   var sql_int : Integer
-  var null_int = @nullToSql(&sql_int)
+  var null_int = @initSqlNull(&sql_int)
 
-  if (@isSqlNotNull(null_int)) {
+  if (!@isValNull(null_int)) {
     return -1
   }
-  if (!@isSqlNull(null_int)) {
-    return -1
-  }
-
   var sql_date : Date
-  var null_date = @nullToSql(&sql_date)
+  var null_date = @initSqlNull(&sql_date)
 
-  if (@isSqlNotNull(null_date)) {
-    return -1
-  }
-  if (!@isSqlNull(null_date)) {
+  if (!@isValNull(null_date)) {
     return -1
   }
 

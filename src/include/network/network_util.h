@@ -2,7 +2,7 @@
 
 #include "network/network_defs.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Utility class for static network or query-related functions
@@ -51,9 +51,15 @@ class NetworkUtil {
 
   /**
    * @param type query type from the parser
+   * @return true for statement types that aren't run in a txn, currently SET but other internal queries might be added
+   */
+  static bool NonTransactionalQueryType(const QueryType type) { return type == QueryType::QUERY_SET; }
+
+  /**
+   * @param type query type from the parser
    * @return true if a query that is current not implemented in the system. Order of QueryType enum matters here.
    */
-  static bool UnsupportedQueryType(const QueryType type) { return type > QueryType::QUERY_DROP_VIEW; }
+  static bool UnsupportedQueryType(const QueryType type) { return type > QueryType::QUERY_SET; }
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

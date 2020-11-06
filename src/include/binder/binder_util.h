@@ -3,15 +3,15 @@
 #include <string>
 #include <vector>
 
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/managed_pointer.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
 }
 
-namespace terrier::binder {
+namespace noisepage::binder {
 
 /**
  * Static utility functions for the binder
@@ -38,12 +38,6 @@ class BinderUtil {
    */
   static void CheckAndTryPromoteType(common::ManagedPointer<parser::ConstantValueExpression> value,
                                      type::TypeId desired_type);
-
-  /**
-   * Convenience function. Used by the visitor sheep to report that an error has occurred, causing BINDER_EXCEPTION.
-   * @param message The error message.
-   */
-  static void ReportFailure(const std::string &message) { throw BINDER_EXCEPTION(message.c_str()); }
 
   /**
    * @return True if the value of @p int_val fits in the Output type, false otherwise.
@@ -100,4 +94,4 @@ extern template bool BinderUtil::IsRepresentable<int64_t>(const double int_val);
 extern template bool BinderUtil::IsRepresentable<double>(const double int_val);
 /// @endcond
 
-}  // namespace terrier::binder
+}  // namespace noisepage::binder

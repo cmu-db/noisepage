@@ -6,7 +6,7 @@
 
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 nlohmann::json OrderByDescription::ToJson() const {
   nlohmann::json j;
@@ -240,4 +240,4 @@ bool SelectStatement::operator==(const SelectStatement &rhs) const {
   return *(union_select_) == *(rhs.union_select_);
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

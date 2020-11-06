@@ -1,72 +1,72 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <utility>
-#include "execution/ast/context.h"
-#include "execution/compiler/function_builder.h"
-#include "execution/compiler/operator/operator_translator.h"
-#include "execution/exec/output.h"
+#include <string_view>
+#include <vector>
 
-namespace terrier::execution::compiler {
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline.h"
+
+namespace noisepage::parser {
+class AbstractExpression;
+}  // namespace noisepage::parser
+
+namespace noisepage::execution::compiler {
+
+class FunctionBuilder;
+
 /**
- * Consumer that generates code for outputting to upper layers.
+ * A translator for outputting tuples.
  */
 class OutputTranslator : public OperatorTranslator {
  public:
   /**
-   * Construction
-   * @param codegen The code generator
+   * Create a translator for the given plan.
+   * @param plan The plan.
+   * @param compilation_context The context this translator belongs to.
+   * @param pipeline The pipeline this translator is participating in.
    */
-  explicit OutputTranslator(CodeGen *codegen);
+  OutputTranslator(const planner::AbstractPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override {}
-  void Consume(FunctionBuilder *builder) override;
+  /**
+   * This class cannot be copied or moved.
+   */
+  DISALLOW_COPY_AND_MOVE(OutputTranslator);
 
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
+  /**
+   * Define the output struct.
+   */
+  void DefineHelperStructs(util::RegionVector<ast::StructDecl *> *decls) override;
 
-  // Create the output struct
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void EndParallelPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
+  /**
+   * Perform the main work of the translator.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  // Should never called since this the last layer.
-  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Should not be called on this translator"); }
-
-  // Should never be called for the same reasons.
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    UNREACHABLE("Should not be called on this translator");
+  /**
+   * Does not interact with tables.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override {
+    UNREACHABLE("Output does not interact with tables.");
   }
 
-  const planner::AbstractPlanNode *Op() override { UNREACHABLE("Should not be called on this translator"); }
-
  private:
-  // Return the output field at the given index
-  ast::Expr *GetField(uint32_t attr_idx);
-
-  // Generates: var out = @ptrCast(*Output, @outputAlloc(execCtx))
-  void DeclareOutputVariable(FunctionBuilder *builder);
-
-  // Fills the output slot
-  void FillOutput(FunctionBuilder *builder);
-
-  // Call @outputFinalize(execCtx) at the end of the pipeline
-  void FinalizeOutput(FunctionBuilder *builder);
-
-  // Number of output fields;
-  uint32_t num_output_fields_{0};
-  // Structs and local variables
-  ast::Identifier output_struct_;
   ast::Identifier output_var_;
+  ast::Identifier output_struct_;
+
+  // The number of rows that are output.
+  StateDescriptor::Entry num_output_;
+
+  // The OutputBuffer to use
+  StateDescriptor::Entry output_buffer_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

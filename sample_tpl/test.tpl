@@ -1,4 +1,4 @@
-// Random test
+// Expected output: 356405
 
 fun f1() -> int {
     var x1 = 133 + 353

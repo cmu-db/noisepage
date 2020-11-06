@@ -1,8 +1,9 @@
+#include "optimizer/input_column_deriver.h"
+
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node.h"
 #include "optimizer/physical_operators.h"
@@ -11,7 +12,7 @@
 #include "parser/expression_util.h"
 #include "storage/data_table.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Definition for first type of pair
@@ -98,7 +99,7 @@ void InputColumnDeriver::Visit(const Limit *op) {
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   // we need to pass down both required columns and sort columns
   auto prop = properties_->GetPropertyOfType(PropertyType::SORT);
-  TERRIER_ASSERT(prop != nullptr, "property should exist");
+  NOISEPAGE_ASSERT(prop != nullptr, "property should exist");
 
   ExprSet input_cols_set;
   for (auto expr : required_cols_) {
@@ -161,7 +162,7 @@ void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
     if (col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     } else {
-      TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
+      NOISEPAGE_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
 
       ExprSet tv_exprs;
       // Get the ColumnValueExpression used in the AggregateExpression
@@ -173,12 +174,12 @@ void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
 
       // We get only the first ColumnValueExpression (should probably assert check this)
       tv_expr = (*(tv_exprs.begin())).CastManagedPointerTo<parser::ColumnValueExpression>();
-      TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
+      NOISEPAGE_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
     }
 
     // Pick the probe if alias matches
     std::string tv_table_name = tv_expr->GetTableName();
-    TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
+    NOISEPAGE_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
     if (probe_table_aliases.count(tv_table_name) != 0U) {
       probe_table_cols_set.insert(col);
     }
@@ -201,28 +202,30 @@ void InputColumnDeriver::Visit(const InnerIndexJoin *op) {
 
 void InputColumnDeriver::Visit(const InnerNLJoin *op) { JoinHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not supported"); }
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {
+  NOISEPAGE_ASSERT(0, "LeftNLJoin not supported");
+}
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {
-  TERRIER_ASSERT(0, "RightNLJoin not supported");
+  NOISEPAGE_ASSERT(0, "RightNLJoin not supported");
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
-  TERRIER_ASSERT(0, "OuterNLJoin not supported");
+  NOISEPAGE_ASSERT(0, "OuterNLJoin not supported");
 }
 
 void InputColumnDeriver::Visit(const InnerHashJoin *op) { JoinHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {
-  TERRIER_ASSERT(0, "LeftHashJoin not supported");
-}
+void InputColumnDeriver::Visit(const LeftSemiHashJoin *op) { JoinHelper(op); }
+
+void InputColumnDeriver::Visit(const LeftHashJoin *op) { JoinHelper(op); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {
-  TERRIER_ASSERT(0, "RightHashJoin not supported");
+  NOISEPAGE_ASSERT(0, "RightHashJoin not supported");
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {
-  TERRIER_ASSERT(0, "OuterHashJoin not supported");
+  NOISEPAGE_ASSERT(0, "OuterHashJoin not supported");
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
@@ -362,9 +365,19 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
     join_conds = join_op->GetJoinPredicates();
     left_keys = join_op->GetLeftKeys();
     right_keys = join_op->GetRightKeys();
+  } else if (op->GetOpType() == OpType::LEFTHASHJOIN) {
+    auto join_op = reinterpret_cast<const LeftHashJoin *>(op);
+    join_conds = join_op->GetJoinPredicates();
+    left_keys = join_op->GetLeftKeys();
+    right_keys = join_op->GetRightKeys();
   } else if (op->GetOpType() == OpType::INNERNLJOIN) {
     auto join_op = reinterpret_cast<const InnerNLJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
+  } else if (op->GetOpType() == OpType::LEFTSEMIHASHJOIN) {
+    auto join_op = reinterpret_cast<const LeftSemiHashJoin *>(op);
+    join_conds = join_op->GetJoinPredicates();
+    left_keys = join_op->GetLeftKeys();
+    right_keys = join_op->GetRightKeys();
   }
 
   ExprSet input_cols_set;
@@ -399,7 +412,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
     if (col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     } else {
-      TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
+      NOISEPAGE_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
 
       ExprSet tv_exprs;
       // Get the ColumnValueExpression used in the AggregateExpression
@@ -411,16 +424,16 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNodeContents *op) {
 
       // We get only the first ColumnValueExpression (should probably assert check this)
       tv_expr = (*(tv_exprs.begin())).CastManagedPointerTo<parser::ColumnValueExpression>();
-      TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
+      NOISEPAGE_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
     }
 
     // Pick the build or probe side depending on the table
     std::string tv_table_name = tv_expr->GetTableName();
-    TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
+    NOISEPAGE_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
     if (build_table_aliases.count(tv_table_name) != 0U) {
       build_table_cols_set.insert(col);
     } else {
-      TERRIER_ASSERT(probe_table_aliases.count(tv_table_name), "tv_expr should be against probe table");
+      NOISEPAGE_ASSERT(probe_table_aliases.count(tv_table_name), "tv_expr should be against probe table");
       probe_table_cols_set.insert(col);
     }
   }
@@ -452,4 +465,4 @@ void InputColumnDeriver::Passdown() {
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

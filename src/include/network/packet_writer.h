@@ -10,7 +10,7 @@
 #include "network/network_io_utils.h"
 #include "network/postgres/postgres_defs.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Wrapper around an I/O layer WriteQueue to provide network protocol
@@ -26,7 +26,7 @@ class PacketWriter {
   ~PacketWriter() {
     // Make sure no packet is being written on destruction, otherwise we are
     // malformed write buffer
-    TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is not null");
+    NOISEPAGE_ASSERT(curr_packet_len_ == nullptr, "packet length is not null");
   }
 
   /**
@@ -47,7 +47,7 @@ class PacketWriter {
    */
   void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
-    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    NOISEPAGE_ASSERT(IsPacketEmpty(), "packet length is null");
     BeginPacket(type).EndPacket();
   }
 
@@ -60,7 +60,7 @@ class PacketWriter {
    */
   PacketWriter &BeginPacket(NetworkMessageType type) {
     // No active packet being constructed
-    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    NOISEPAGE_ASSERT(IsPacketEmpty(), "packet length is null");
     if (type != NetworkMessageType::NO_HEADER) WriteType(type);
     // Remember the size field since we will need to modify it as we go along.
     // It is important that our size field is contiguous and not broken between
@@ -79,7 +79,7 @@ class PacketWriter {
    * @return self-reference for chaining
    */
   PacketWriter &AppendRaw(const void *src, size_t len) {
-    TERRIER_ASSERT(!IsPacketEmpty(), "packet length is null");
+    NOISEPAGE_ASSERT(!IsPacketEmpty(), "packet length is null");
     queue_->BufferWriteRaw(src, len);
     // Add the size field to the len of the packet. Be mindful of byte
     // ordering. We switch to network ordering only when the packet is finished
@@ -138,21 +138,22 @@ class PacketWriter {
   /**
    * Append a string onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendString(const std::string &str, bool nul_terminate = true) {
+  PacketWriter &AppendString(const std::string &str, bool nul_terminate) {
     return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
   }
 
   /**
    * Append a string_view onto the write queue.
    * @param str the string to append
-   * @param nul_terminate whether the nul terminaor should be written as well
+   * @param nul_terminate whether the nul terminator should be written as well
    * @return self-reference for chaining
    */
-  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate = true) {
-    return AppendRaw(str.data(), nul_terminate ? str.size() + 1 : str.size());
+  PacketWriter &AppendStringView(const std::string_view str, bool nul_terminate) {
+    return nul_terminate ? AppendRaw(str.data(), str.size()).AppendRawValue<uchar>(0)
+                         : AppendRaw(str.data(), str.size());
   }
 
   /**
@@ -161,7 +162,7 @@ class PacketWriter {
   void WriteStartupRequest(const std::unordered_map<std::string, std::string> &config, int16_t major_version = 3) {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
-    for (const auto &pair : config) AppendString(pair.first).AppendString(pair.second);
+    for (const auto &pair : config) AppendString(pair.first, true).AppendString(pair.second, true);
     AppendRawValue<uchar>(0);  // Startup message should have (byte+1) length
     EndPacket();
   }
@@ -171,7 +172,7 @@ class PacketWriter {
    * well-formed until this method is called.
    */
   void EndPacket() {
-    TERRIER_ASSERT(!IsPacketEmpty(), "packet length is null");
+    NOISEPAGE_ASSERT(!IsPacketEmpty(), "packet length is null");
     // Switch to network byte ordering, add the 4 bytes of size field
     *curr_packet_len_ = htonl(*curr_packet_len_ + static_cast<uint32_t>(sizeof(uint32_t)));
     curr_packet_len_ = nullptr;
@@ -185,4 +186,4 @@ class PacketWriter {
   const common::ManagedPointer<WriteQueue> queue_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

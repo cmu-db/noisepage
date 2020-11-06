@@ -68,6 +68,7 @@ m4/lt~obsolete.m4
 #==============================================================================#
 #m4/
 build/
+release/
 #*.m4
 *.o
 *.lo
@@ -274,3 +275,10 @@ wal.log
 
 # OLTP output
 **/oltp_output_*
+
+# JUnit intermediate out directory
+**/junit/out/
+out/
+
+# debug scripts, artifacts
+debug

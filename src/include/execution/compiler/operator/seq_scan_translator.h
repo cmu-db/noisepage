@@ -1,136 +1,154 @@
 #pragma once
 
-#include <utility>
+#include <string_view>
 #include <vector>
-#include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/seq_scan_plan_node.h"
 
-namespace terrier::execution::compiler {
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline.h"
+#include "execution/compiler/pipeline_driver.h"
+
+namespace noisepage::catalog {
+class Schema;
+}  // namespace noisepage::catalog
+
+namespace noisepage::parser {
+class AbstractExpression;
+}  // namespace noisepage::parser
+
+namespace noisepage::planner {
+class SeqScanPlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::compiler {
+
+class FunctionBuilder;
 
 /**
- * SeqScan Translator
+ * A translator for sequential table scans.
  */
-class SeqScanTranslator : public OperatorTranslator {
+class SeqScanTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a translator for the given plan.
+   * @param plan The plan.
+   * @param compilation_context The context this translator belongs to.
+   * @param pipeline The pipeline this translator is participating in.
    */
-  SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen);
+  SeqScanTranslator(const planner::SeqScanPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
-
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
-
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
-
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
-
-  ast::Expr *GetOutput(uint32_t attr_idx) override;
-
-  // Should not be called here
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
-    UNREACHABLE("SeqScan nodes should use column value expressions");
-  }
-
-  // This is a materializer
-  bool IsMaterializer(bool *is_ptr) override {
-    *is_ptr = true;
-    return true;
-  }
-
-  // This is vectorizable only if the predicate is vectorizable
-  bool IsVectorizable() override { return is_vectorizable_; }
   /**
-   * Recursively walk down the predicate tree to check if it is vectorizable.
-   * @param predicate The predicate to check
-   * @return Whether the predicate is vectorizable or not.
+   * This class cannot be copied or moved.
    */
-  static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
+  DISALLOW_COPY_AND_MOVE(SeqScanTranslator);
 
-  // Return the pci and its type
-  std::pair<const ast::Identifier *, const ast::Identifier *> GetMaterializedTuple() override {
-    return {&pci_, &pci_type_};
-  }
+  /**
+   * If the scan has a predicate, this function will define all clause functions.
+   * @param decls The top-level declarations.
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override;
 
-  // Used by column value expression to get a column.
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
+  /**
+   * Initialize the FilterManager if required.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Return the current slot.
-  ast::Expr *GetSlot() override { return codegen_->PointerTo(slot_); }
+  void InitializeCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
+  void RecordCounters(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  const planner::AbstractPlanNode *Op() override { return op_; }
+  /**
+   * Generate the scan.
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
+
+  /**
+   * Tear-down the FilterManager if required.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  /**
+   * @return The pipeline work function parameters. Just the *TVI.
+   */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override;
+
+  /**
+   * Launch a parallel table scan.
+   * @param function The pipeline generating function.
+   * @param work_func The worker function that'll be called during the parallel scan.
+   */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func) const override;
+
+  /**
+   * @return The value (or value vector) of the column with the provided column OID in the table
+   *         this sequential scan is operating over.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
+
+  ast::Expr *GetSlotAddress() const override;
+
+  /** @return The expression representing the current VPI. */
+  ast::Expr *GetVPI() const;
 
  private:
-  // var tvi : TableVectorIterator
-  void DeclareTVI(FunctionBuilder *builder);
+  // Does the scan have a predicate?
+  bool HasPredicate() const;
 
-  void SetOids(FunctionBuilder *builder);
+  // Get the OID of the table being scanned.
+  catalog::table_oid_t GetTableOid() const;
 
-  void DoTableScan(FunctionBuilder *builder);
+  // Set col_oids_var_ to contain the column OIDs that are being scanned over.
+  void DeclareColOids(FunctionBuilder *function) const;
 
-  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-  void GenTVILoop(FunctionBuilder *builder);
+  // Generate a generic filter term.
+  void GenerateGenericTerm(FunctionBuilder *function, common::ManagedPointer<parser::AbstractExpression> term,
+                           ast::Expr *vector_proj, ast::Expr *tid_list);
 
-  void DeclarePCI(FunctionBuilder *builder);
-  void DeclareSlot(FunctionBuilder *builder);
+  // Generate all filter clauses.
+  void GenerateFilterClauseFunctions(util::RegionVector<ast::FunctionDecl *> *decls,
+                                     common::ManagedPointer<parser::AbstractExpression> predicate,
+                                     std::vector<ast::Identifier> *curr_clause, bool seen_conjunction);
 
-  // var pci = @tableIterGetPCI(&tvi)
-  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-  void GenPCILoop(FunctionBuilder *builder);
+  // Perform a table scan using the provided table vector iterator pointer.
+  void ScanTable(WorkContext *ctx, FunctionBuilder *function) const;
 
-  // if (cond) {...}
-  void GenScanCondition(FunctionBuilder *builder);
+  // Generate a scan over the VPI.
+  void ScanVPI(WorkContext *ctx, FunctionBuilder *function, ast::Expr *vpi) const;
 
-  // @tableIterClose(&tvi)
-  void GenTVIClose(FunctionBuilder *builder);
-
-  // @tableIterReset(&tvi)
-  void GenTVIReset(FunctionBuilder *builder);
-
-  // Generated vectorized filters
-  void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
-
-  // Create the input oids used for the scans.
+ private:
   // When the plan's oid list is empty (like in "SELECT COUNT(*)"), then we just read the first column of the table.
   // Otherwise we just read the plan's oid list.
   // This is because the storage layer needs to read at least one column.
   // TODO(Amadou): Create a special code path for COUNT(*).
   // This requires a new table iterator that doesn't materialize tuples as well as a few builtins.
   static std::vector<catalog::col_oid_t> MakeInputOids(const catalog::Schema &schema,
-                                                       const planner::SeqScanPlanNode *op_) {
-    if (op_->GetColumnOids().empty()) {
-      return {schema.GetColumn(0).Oid()};
-    }
-    return op_->GetColumnOids();
-  }
+                                                       const planner::SeqScanPlanNode &op);
 
- private:
-  const planner::SeqScanPlanNode *op_;
-  const catalog::Schema &schema_;
-  std::vector<catalog::col_oid_t> input_oids_;
-  storage::ProjectionMap pm_;
-  bool has_predicate_;
-  bool is_vectorizable_;
+  /** @return The index of the given column OID inside the col_oids that the plan is scanning over. */
+  uint32_t GetColOidIndex(catalog::col_oid_t col_oid) const;
 
-  // Structs, functions and locals
-  ast::Identifier tvi_;
-  ast::Identifier col_oids_;
-  ast::Identifier pci_;
-  ast::Identifier slot_;
-  ast::Identifier pci_type_;
+  // The name of the declared TVI and VPI.
+  ast::Identifier tvi_var_;
+  ast::Identifier vpi_var_;
+  // The name of the col_oids that the plan wants to scan over.
+  ast::Identifier col_oids_var_;
+
+  ast::Identifier slot_var_;
+
+  // Where the filter manager exists.
+  StateDescriptor::Entry local_filter_manager_;
+
+  // The list of filter manager clauses. Populated during helper function
+  // definition, but only if there's a predicate.
+  std::vector<std::vector<ast::Identifier>> filters_;
+
+  // The version of col_oids that we use for translation. See MakeInputOids for justification.
+  std::vector<catalog::col_oid_t> col_oids_;
+
+  // The number of rows that are scanned.
+  StateDescriptor::Entry num_scans_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

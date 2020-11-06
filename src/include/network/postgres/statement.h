@@ -6,14 +6,14 @@
 #include <vector>
 
 #include "common/managed_pointer.h"
-#include "execution/executable_query.h"
+#include "execution/compiler/executable_query.h"
 #include "network/postgres/statement.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "traffic_cop/traffic_cop_util.h"
 #include "type/type_id.h"
 
-namespace terrier::network {
+namespace noisepage::network {
 
 /**
  * Statement is a postgres concept (see the Extended Query documentation:
@@ -45,33 +45,19 @@ class Statement {
             std::vector<type::TypeId> &&param_types);
 
   /**
-   * @return true if parser succeeded and this statement is usable
-   */
-  bool Valid() const { return parse_result_ != nullptr; }
-
-  /**
    * @return true if the statement is empty
    */
-  bool Empty() const {
-    TERRIER_ASSERT(Valid(), "Attempting to check emptiness without a valid parsed result.");
-    return parse_result_->Empty();
-  }
+  bool Empty() const { return parse_result_->Empty(); }
 
   /**
    * @return managed pointer to the output of the parser for this statement
    */
-  common::ManagedPointer<parser::ParseResult> ParseResult() const {
-    TERRIER_ASSERT(Valid(), "Attempting to get parse results without a valid parsed result.");
-    return common::ManagedPointer(parse_result_);
-  }
+  common::ManagedPointer<parser::ParseResult> ParseResult() const { return common::ManagedPointer(parse_result_); }
 
   /**
    * @return managed pointer to the  root statement of the ParseResult. Just shorthand for ParseResult->GetStatement(0)
    */
-  common::ManagedPointer<parser::SQLStatement> RootStatement() const {
-    TERRIER_ASSERT(Valid(), "Attempting to get root statement without a valid parsed result.");
-    return common::ManagedPointer(root_statement_);
-  }
+  common::ManagedPointer<parser::SQLStatement> RootStatement() const { return common::ManagedPointer(root_statement_); }
 
   /**
    * @return vector of the statements parameters (if any)
@@ -100,7 +86,7 @@ class Statement {
   /**
    * @return the compiled executable query
    */
-  common::ManagedPointer<execution::ExecutableQuery> GetExecutableQuery() const {
+  common::ManagedPointer<execution::compiler::ExecutableQuery> GetExecutableQuery() const {
     return common::ManagedPointer(executable_query_);
   }
 
@@ -114,7 +100,7 @@ class Statement {
   /**
    * @param executable_query executable query to take ownership of
    */
-  void SetExecutableQuery(std::unique_ptr<execution::ExecutableQuery> &&executable_query) {
+  void SetExecutableQuery(std::unique_ptr<execution::compiler::ExecutableQuery> &&executable_query) {
     executable_query_ = std::move(executable_query);
   }
 
@@ -125,7 +111,7 @@ class Statement {
    */
   void SetDesiredParamTypes(std::vector<type::TypeId> &&desired_param_types) {
     desired_param_types_ = std::move(desired_param_types);
-    TERRIER_ASSERT(desired_param_types_.size() == param_types_.size(), "");
+    NOISEPAGE_ASSERT(desired_param_types_.size() == param_types_.size(), "");
   }
 
   /**
@@ -155,9 +141,9 @@ class Statement {
   // The following objects can be "cached" in Statement objects for future statement invocations. Though they don't
   // relate to the Postgres Statement concept, these objects should be compatible with future queries that match the
   // same query text. The exception to this that DDL changes can break these cached objects.
-  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;      // generated in the Bind phase
-  std::unique_ptr<execution::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
-  std::vector<type::TypeId> desired_param_types_;                           // generated in the Bind phase
+  std::unique_ptr<planner::AbstractPlanNode> physical_plan_ = nullptr;                // generated in the Bind phase
+  std::unique_ptr<execution::compiler::ExecutableQuery> executable_query_ = nullptr;  // generated in the Execute phase
+  std::vector<type::TypeId> desired_param_types_;                                     // generated in the Bind phase
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network

@@ -1,11 +1,11 @@
+#include "optimizer/statistics/stats_storage.h"
+
 #include <utility>
 
 #include "gtest/gtest.h"
-#include "optimizer/statistics/stats_storage.h"
-
 #include "test_util/test_harness.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class StatsStorageTests : public TerrierTest {
  protected:
   ColumnStats column_stats_obj_1_;
@@ -55,4 +55,4 @@ TEST_F(StatsStorageTests, DeleteTableStatsTest) {
 
   ASSERT_EQ(false, stats_storage_.DeleteTableStats(catalog::db_oid_t(2), catalog::table_oid_t(1)));
 }
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

@@ -7,14 +7,14 @@
 
 #include "binder/sql_node_visitor.h"
 #include "catalog/catalog_defs.h"
-#include "common/exception.h"
+#include "common/error/exception.h"
 #include "common/hash_util.h"
 #include "common/json_header.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/parser_defs.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace binder {
 class BindNodeVisitor;
@@ -197,4 +197,4 @@ class TableRefStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

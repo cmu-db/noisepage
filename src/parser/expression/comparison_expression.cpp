@@ -1,7 +1,9 @@
 #include "parser/expression/comparison_expression.h"
+
+#include "binder/sql_node_visitor.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> ComparisonExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -18,6 +20,10 @@ std::unique_ptr<AbstractExpression> ComparisonExpression::CopyWithChildren(
   return expr;
 }
 
+void ComparisonExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(ComparisonExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

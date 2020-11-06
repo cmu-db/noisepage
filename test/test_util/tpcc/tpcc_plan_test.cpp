@@ -22,7 +22,7 @@
 #include "test_util/tpcc/builder.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 
 void TpccPlanTest::CheckIndexScan(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                   std::unique_ptr<planner::AbstractPlanNode> plan) {
@@ -47,7 +47,7 @@ void TpccPlanTest::SetUp() {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map;
   settings::SettingsManager::ConstructParamMap(param_map);
 
-  db_main_ = terrier::DBMain::Builder()
+  db_main_ = noisepage::DBMain::Builder()
                  .SetUseGC(true)
                  .SetSettingsParameterMap(std::move(param_map))
                  .SetUseSettingsManager(true)
@@ -81,7 +81,7 @@ void TpccPlanTest::TearDown() { delete tpcc_db_; }
 
 void TpccPlanTest::BeginTransaction() {
   txn_ = txn_manager_->BeginTransaction();
-  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_).release();
+  accessor_ = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED).release();
 }
 
 void TpccPlanTest::EndTransaction(bool commit) {
@@ -98,7 +98,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
   // Bind + Transform
-  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_);
+  auto accessor = catalog_->GetAccessor(common::ManagedPointer(txn_), db_, DISABLED);
   auto *binder = new binder::BindNodeVisitor(common::ManagedPointer(accessor), db_);
   binder->BindNameToNode(common::ManagedPointer(stmt_list.get()), nullptr, nullptr);
   auto *transformer = new optimizer::QueryToOperatorTransformer(common::ManagedPointer(accessor), db_);
@@ -152,7 +152,6 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
     auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.get());
     EXPECT_EQ(insert->GetDatabaseOid(), db_);
-    EXPECT_EQ(insert->GetNamespaceOid(), accessor_->GetDefaultNamespace());
     EXPECT_EQ(insert->GetTableOid(), tbl_oid);
     EXPECT_EQ(insert->GetParameterInfo(), col_oids);
     EXPECT_EQ(insert->GetBulkInsertCount(), 1);
@@ -222,4 +221,4 @@ void TpccPlanTest::CheckOids(const std::vector<catalog::col_oid_t> &lhs, const s
   ASSERT_EQ(copy_lhs, copy_rhs);
 }
 
-}  // namespace terrier
+}  // namespace noisepage

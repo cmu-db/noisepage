@@ -3,9 +3,10 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * TypeCastExpression represents cast expressions of the form CAST(expr) or expr::TYPE.
  */
@@ -34,9 +35,9 @@ class TypeCastExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override;
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 };
 
 DEFINE_JSON_HEADER_DECLARATIONS(TypeCastExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

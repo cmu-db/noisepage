@@ -14,7 +14,7 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::metrics {
+namespace noisepage::metrics {
 
 /**
  * Raw data object for holding stats collected for the execution engine
@@ -24,7 +24,7 @@ class ExecutionMetricRawData : public AbstractRawData {
   void Aggregate(AbstractRawData *const other) override {
     auto other_db_metric = dynamic_cast<ExecutionMetricRawData *>(other);
     if (!other_db_metric->execution_data_.empty()) {
-      execution_data_.splice(execution_data_.cbegin(), other_db_metric->execution_data_);
+      execution_data_.splice(execution_data_.cend(), other_db_metric->execution_data_);
     }
   }
 
@@ -38,10 +38,10 @@ class ExecutionMetricRawData : public AbstractRawData {
    * @param outfiles vector of ofstreams to write to that have been opened by the MetricsManager
    */
   void ToCSV(std::vector<std::ofstream> *const outfiles) final {
-    TERRIER_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
-    TERRIER_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
-                                 [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
-                   "Not all files are open.");
+    NOISEPAGE_ASSERT(outfiles->size() == FILES.size(), "Number of files passed to metric is wrong.");
+    NOISEPAGE_ASSERT(std::count_if(outfiles->cbegin(), outfiles->cend(),
+                                   [](const std::ofstream &outfile) { return !outfile.is_open(); }) == 0,
+                     "Not all files are open.");
 
     auto &outfile = (*outfiles)[0];
 
@@ -69,7 +69,7 @@ class ExecutionMetricRawData : public AbstractRawData {
 
   void RecordExecutionData(const char *feature, uint32_t len, uint8_t execution_mode,
                            const common::ResourceTracker::Metrics &resource_metrics) {
-    execution_data_.emplace_front(feature, len, execution_mode, resource_metrics);
+    execution_data_.emplace_back(feature, len, execution_mode, resource_metrics);
   }
 
   struct ExecutionData {
@@ -96,4 +96,4 @@ class ExecutionMetric : public AbstractMetric<ExecutionMetricRawData> {
     GetRawData()->RecordExecutionData(feature, len, execution_mode, resource_metrics);
   }
 };
-}  // namespace terrier::metrics
+}  // namespace noisepage::metrics

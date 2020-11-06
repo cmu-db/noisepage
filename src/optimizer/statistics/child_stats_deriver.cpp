@@ -1,3 +1,5 @@
+#include "optimizer/statistics/child_stats_deriver.h"
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -5,13 +7,12 @@
 #include <utility>
 #include <vector>
 
-#include "optimizer/statistics/child_stats_deriver.h"
-
+#include "optimizer/logical_operators.h"
 #include "optimizer/memo.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression_util.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 std::vector<ExprSet> ChildStatsDeriver::DeriveInputStats(GroupExpression *gexpr, ExprSet required_cols, Memo *memo) {
   required_cols_ = std::move(required_cols);
@@ -52,7 +53,7 @@ void ChildStatsDeriver::PassDownRequiredCols() {
 }
 
 void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractExpression> col) {
-  TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
+  NOISEPAGE_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
   auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   for (size_t idx = 0; idx < gexpr_->GetChildrenGroupsSize(); ++idx) {
     auto child_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(static_cast<int>(idx)));
@@ -65,4 +66,4 @@ void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractEx
   }
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

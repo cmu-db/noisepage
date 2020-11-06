@@ -8,22 +8,28 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
+#include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
 #include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_type.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
-#include "transaction/transaction_manager.h"
 
-namespace terrier {
+namespace noisepage {
 class RecoveryBenchmark;
-}
+}  // namespace noisepage
 
-namespace terrier::storage {
+namespace noisepage::transaction {
+class TransactionManager;
+}  // namespace noisepage::transaction
+
+namespace noisepage::storage {
 
 /**
  * Recovery Manager
@@ -68,7 +74,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            const common::ManagedPointer<catalog::Catalog> catalog,
                            const common::ManagedPointer<transaction::TransactionManager> txn_manager,
                            const common::ManagedPointer<transaction::DeferredActionManager> deferred_action_manager,
-                           const common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
+                           const common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry,
                            const common::ManagedPointer<BlockStore> store)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
@@ -101,7 +107,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
  private:
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
-  friend class terrier::RecoveryBenchmark;
+  friend class noisepage::RecoveryBenchmark;
 
   // Log provider for reading in logs
   const common::ManagedPointer<AbstractLogProvider> log_provider_;
@@ -185,7 +191,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return new tuple slot
    */
   TupleSlot GetTupleSlotMapping(TupleSlot slot) {
-    TERRIER_ASSERT(tuple_slot_map_.find(slot) != tuple_slot_map_.end(), "No tuple slot mapping exists");
+    NOISEPAGE_ASSERT(tuple_slot_map_.find(slot) != tuple_slot_map_.end(), "No tuple slot mapping exists");
     return tuple_slot_map_[slot];
   }
 
@@ -198,9 +204,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   common::ManagedPointer<catalog::DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
                                                                       catalog::db_oid_t db_oid) {
     auto db_catalog_ptr = catalog_->GetDatabaseCatalog(common::ManagedPointer(txn), db_oid);
-    TERRIER_ASSERT(db_catalog_ptr != nullptr, "No catalog for given database oid");
+    NOISEPAGE_ASSERT(db_catalog_ptr != nullptr, "No catalog for given database oid");
     auto result UNUSED_ATTRIBUTE = db_catalog_ptr->TryLock(common::ManagedPointer(txn));
-    TERRIER_ASSERT(result, "There should not be concurrent DDL changes during recovery.");
+    NOISEPAGE_ASSERT(result, "There should not be concurrent DDL changes during recovery.");
     return db_catalog_ptr;
   }
 
@@ -244,8 +250,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return true if log record is a special case catalog record, false otherwise
    */
   bool IsSpecialCaseCatalogRecord(const LogRecord *record) {
-    TERRIER_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
-                   "Special case catalog records must only be delete or redo records");
+    NOISEPAGE_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
+                     "Special case catalog records must only be delete or redo records");
 
     if (record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
@@ -320,8 +326,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return number of EXTRA log records processed
    */
   uint32_t ProcessSpecialCasePGProcRecord(
-      terrier::transaction::TransactionContext *txn,
-      std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+      noisepage::transaction::TransactionContext *txn,
+      std::vector<std::pair<noisepage::storage::LogRecord *, std::vector<noisepage::byte *>>> *buffered_changes,
       uint32_t start_idx);
 
   /**
@@ -368,4 +374,4 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                                         const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog,
                                         catalog::table_oid_t table_oid) const;
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

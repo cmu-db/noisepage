@@ -4,7 +4,7 @@
 #include "execution/ast/ast_visitor.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 /**
  * A visitor that fully and recursively traverses an entire AST tree. Clients
@@ -15,15 +15,16 @@ namespace terrier::execution::ast {
  *
  * Usage:
  * @code
+ * // The ForStmtVisitor class will find ALL for-statement nodes in the input AST
  * class ForStmtVisitor : public AstTraversalVisitor<ForStmtVisitor> {
  *  public:
- *    ForStmtVisitor(ast::AstNode *root) :
- *      AstTraversalVisitor<ForStmtVisitor>(root) {}
+ *   ForStmtVisitor(ast::AstNode *root) : AstTraversalVisitor<ForStmtVisitor>(root) {}
  *
- *   void VisitForStmt(ast::ForStmt *stmt) { ... }
+ *   void VisitForStmt(ast::ForStmt *stmt) {
+ *     // Process stmt
+ *   }
  * }
  * @endcode
- * The a ForStmtVisitor class will find all for-statement nodes in an AST tree
  *
  * @tparam Subclass visitor subclass
  */
@@ -31,21 +32,21 @@ template <typename Subclass>
 class AstTraversalVisitor : public AstVisitor<Subclass> {
  public:
   /**
-   * Construct a visitor over the AST rooted at the given root
-   * @param root root of the AST
+   * Construct a visitor over the AST rooted at @em root.
+   * @param root The root of the AST tree to begin visiting.
    */
   explicit AstTraversalVisitor(AstNode *root) : root_(root) {}
 
   /**
-   * This class cannot be copied or moved
+   * This class cannot be copied or moved.
    */
   DISALLOW_COPY_AND_MOVE(AstTraversalVisitor);
 
   /**
-   * Run the traversal
+   * Run the traversal.
    */
   void Run() {
-    TERRIER_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
+    NOISEPAGE_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
     AstVisitor<Subclass>::Visit(root_);
   }
 
@@ -71,7 +72,9 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
 };
 
 // ---------------------------------------------------------
+//
 // Implementation below
+//
 // ---------------------------------------------------------
 
 #define PROCESS_NODE(node)                \
@@ -144,7 +147,7 @@ inline void AstTraversalVisitor<Subclass>::VisitVariableDecl(VariableDecl *node)
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitUnaryOpExpr(UnaryOpExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->Expression()));
+  RECURSE(Visit(node->Input()));
 }
 
 template <typename Subclass>
@@ -211,7 +214,7 @@ template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitForInStmt(ForInStmt *node) {
   PROCESS_NODE(node);
   RECURSE(Visit(node->Target()));
-  RECURSE(Visit(node->Iter()));
+  RECURSE(Visit(node->Iterable()));
   RECURSE(Visit(node->Body()));
 }
 
@@ -225,8 +228,8 @@ inline void AstTraversalVisitor<Subclass>::VisitBinaryOpExpr(BinaryOpExpr *node)
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitMapTypeRepr(MapTypeRepr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->Key()));
-  RECURSE(Visit(node->Val()));
+  RECURSE(Visit(node->KeyType()));
+  RECURSE(Visit(node->ValType()));
 }
 
 template <typename Subclass>
@@ -294,11 +297,11 @@ inline void AstTraversalVisitor<Subclass>::VisitIndexExpr(IndexExpr *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRepr *node) {
   PROCESS_NODE(node);
-  for (auto *param : node->Paramaters()) {
+  for (auto *param : node->Parameters()) {
     RECURSE(Visit(param));
   }
   RECURSE(Visit(node->ReturnType()));
 }
 // \endcond
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

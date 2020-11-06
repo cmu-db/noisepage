@@ -1,9 +1,11 @@
 #pragma once
+
 #include <vector>
+
 #include "storage/projected_row.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class DataTable;
 /**
  * Extension of a ProjectedRow that adds relevant information to be able to traverse the version chain and find the
@@ -198,4 +200,4 @@ static_assert(sizeof(UndoRecord) % 8 == 0,
               "a projected row inside the undo record needs to be aligned to 8 bytes"
               "to ensure true atomicity");
 
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

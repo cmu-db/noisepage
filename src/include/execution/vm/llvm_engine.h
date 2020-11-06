@@ -1,20 +1,19 @@
 #pragma once
 
+#include <llvm/Support/MemoryBuffer.h>
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 
-#include "llvm/Support/MemoryBuffer.h"
-
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
-#include "execution/vm/bytecodes.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 class Type;
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeModule;
 class FunctionInfo;
@@ -193,4 +192,4 @@ class LLVMEngine {
   };
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

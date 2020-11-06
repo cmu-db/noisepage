@@ -2,37 +2,59 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include "catalog/catalog.h"
+#include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
+#include "execution/vm/vm_defs.h"
 #include "network/network_defs.h"
-#include "parser/create_statement.h"
-#include "parser/drop_statement.h"
-#include "parser/transaction_statement.h"
-#include "storage/recovery/replication_log_provider.h"
 #include "traffic_cop/traffic_cop_defs.h"
 
-namespace terrier::network {
+namespace noisepage::catalog {
+class Catalog;
+}  // namespace noisepage::catalog
+
+namespace noisepage::network {
 class ConnectionContext;
 class PostgresPacketWriter;
 class Statement;
 class Portal;
-}  // namespace terrier::network
+}  // namespace noisepage::network
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 class StatsStorage;
-}
+}  // namespace noisepage::optimizer
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class ConstantValueExpression;
-}
+class CreateStatement;
+class DropStatement;
+class TransactionStatement;
+class ParseResult;
+}  // namespace noisepage::parser
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class AbstractPlanNode;
-}
+}  // namespace noisepage::planner
 
-namespace terrier::trafficcop {
+namespace noisepage::settings {
+class SettingsManager;
+}  // namespace noisepage::settings
+
+namespace noisepage::storage {
+class ReplicationLogProvider;
+}  // namespace noisepage::storage
+
+namespace noisepage::transaction {
+class TransactionManager;
+}  // namespace noisepage::transaction
+
+namespace noisepage::common {
+class ErrorData;
+}  // namespace noisepage::common
+
+namespace noisepage::trafficcop {
 
 /**
  * The TrafficCop acts as a translation layer between protocol implementations at at the front-end and execution of
@@ -46,21 +68,26 @@ class TrafficCop {
    * @param txn_manager the transaction manager of the system
    * @param catalog the catalog of the system
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
+   * @param settings_manager the settings manager
    * @param stats_storage for optimizer calls
    * @param optimizer_timeout for optimizer calls
    * @param use_query_cache whether to cache physical plans and generated code for Extended Query protocol
+   * @param execution_mode how to run executable queries after code generation
    */
   TrafficCop(common::ManagedPointer<transaction::TransactionManager> txn_manager,
              common::ManagedPointer<catalog::Catalog> catalog,
              common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider,
+             common::ManagedPointer<settings::SettingsManager> settings_manager,
              common::ManagedPointer<optimizer::StatsStorage> stats_storage, uint64_t optimizer_timeout,
-             bool use_query_cache)
+             bool use_query_cache, const execution::vm::ExecutionMode execution_mode)
       : txn_manager_(txn_manager),
         catalog_(catalog),
         replication_log_provider_(replication_log_provider),
+        settings_manager_(settings_manager),
         stats_storage_(stats_storage),
         optimizer_timeout_(optimizer_timeout),
-        use_query_cache_(use_query_cache) {}
+        use_query_cache_(use_query_cache),
+        execution_mode_(execution_mode) {}
 
   virtual ~TrafficCop() = default;
 
@@ -92,7 +119,7 @@ class TrafficCop {
    * @param connection_ctx used to maintain state
    * @return parser's ParseResult, nullptr if failed
    */
-  std::unique_ptr<parser::ParseResult> ParseQuery(
+  std::variant<std::unique_ptr<parser::ParseResult>, common::ErrorData> ParseQuery(
       const std::string &query, common::ManagedPointer<network::ConnectionContext> connection_ctx) const;
 
   /**
@@ -128,7 +155,7 @@ class TrafficCop {
    */
   void ExecuteTransactionStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                    common::ManagedPointer<network::PostgresPacketWriter> out, bool explicit_txn_block,
-                                   terrier::network::QueryType query_type) const;
+                                   noisepage::network::QueryType query_type) const;
 
   /**
    * Contains logic to reason about binding, and basic IF EXISTS logic.
@@ -142,6 +169,15 @@ class TrafficCop {
                              common::ManagedPointer<std::vector<parser::ConstantValueExpression>> parameters) const;
 
   /**
+   * Contains the logic to handle SET statements.
+   * @param connection_ctx The context to be used to access the internal txn.
+   * @param statement The set statement to be executed.
+   * @return The result of the operation.
+   */
+  TrafficCopResult ExecuteSetStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
+                                       common::ManagedPointer<network::Statement> statement) const;
+
+  /**
    * Contains the logic to reason about CREATE execution.
    * @param connection_ctx context to be used to access the internal txn
    * @param physical_plan to be executed
@@ -150,7 +186,7 @@ class TrafficCop {
    */
   TrafficCopResult ExecuteCreateStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                           common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                          terrier::network::QueryType query_type) const;
+                                          noisepage::network::QueryType query_type) const;
 
   /**
    * Contains the logic to reason about DROP execution.
@@ -161,7 +197,7 @@ class TrafficCop {
    */
   TrafficCopResult ExecuteDropStatement(common::ManagedPointer<network::ConnectionContext> connection_ctx,
                                         common::ManagedPointer<planner::AbstractPlanNode> physical_plan,
-                                        terrier::network::QueryType query_type) const;
+                                        noisepage::network::QueryType query_type) const;
 
   /**
    * Contains the logic to reason about DML execution. Responsible for outputting results because we don't want to
@@ -202,9 +238,11 @@ class TrafficCop {
   common::ManagedPointer<catalog::Catalog> catalog_;
   // Hands logs off to replication component. TCop should forward these logs through this provider.
   common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider_;
+  common::ManagedPointer<settings::SettingsManager> settings_manager_;
   common::ManagedPointer<optimizer::StatsStorage> stats_storage_;
   uint64_t optimizer_timeout_;
-  bool use_query_cache_;
+  const bool use_query_cache_;
+  const execution::vm::ExecutionMode execution_mode_;
 };
 
-}  // namespace terrier::trafficcop
+}  // namespace noisepage::trafficcop

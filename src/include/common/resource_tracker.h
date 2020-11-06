@@ -7,17 +7,19 @@
 #include "execution/util/cpu_info.h"
 #include "metrics/metrics_util.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::common {
+namespace noisepage::common {
 
 /**
  * Track the time and hardware resources spent for a particular event (operating unit). This is tracking resources at a
  * thread-local level, but in theory this can be extended to track the system global resource usage.
  */
 class ResourceTracker {
+  static constexpr bool COUNT_CHILDREN_THREADS = false;
+
  public:
   /**
    * Store the start time, the duration, the perf counters and the rusage counters for the tracked event
@@ -28,7 +30,7 @@ class ResourceTracker {
     /** The elapsed time of the tracked event (microseconds) */
     uint64_t elapsed_us_;
     /** The perf counters of the tracked event */
-    PerfMonitor::PerfCounters counters_;
+    PerfMonitor<COUNT_CHILDREN_THREADS>::PerfCounters counters_;
     /** The rusage counters of the tracked event */
     rusage rusage_;
     /** The number of the CPU on which the thread is currently executing */
@@ -50,7 +52,7 @@ class ResourceTracker {
 
     /** Column headers to emit when writing to CSV */
     static constexpr std::string_view COLUMNS = {
-        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles_, "
+        "start_time, cpu_id, cpu_cycles, instructions, cache_ref, cache_miss, ref_cpu_cycles, "
         "block_read, block_write, memory_b, elapsed_us"};
   };
 
@@ -58,6 +60,7 @@ class ResourceTracker {
    * Start the timer and resource monitors
    */
   void Start() {
+    running_ = true;
     perf_monitor_.Start();
     rusage_monitor_.Start();
     metrics_.memory_b_ = 0;
@@ -74,6 +77,7 @@ class ResourceTracker {
     metrics_.counters_ = perf_monitor_.Counters();
     metrics_.rusage_ = rusage_monitor_.Usage();
     metrics_.cpu_id_ = execution::CpuInfo::GetCpuId();
+    running_ = false;
   }
 
   /**
@@ -81,6 +85,11 @@ class ResourceTracker {
    * @return the resource metrics for the tracked event
    */
   const Metrics &GetMetrics() { return metrics_; }
+
+  /**
+   * @return whether the tracker is running
+   */
+  bool IsRunning() const { return running_; }
 
  private:
   friend class execution::exec::ExecutionContext;
@@ -93,11 +102,13 @@ class ResourceTracker {
    */
   void SetMemory(const size_t memory_b) { metrics_.memory_b_ = memory_b; }
 
-  PerfMonitor perf_monitor_{false};
+  PerfMonitor<COUNT_CHILDREN_THREADS> perf_monitor_;
   RusageMonitor rusage_monitor_{false};
 
   // The struct to hold all the tracked resource metrics
   Metrics metrics_;
+
+  bool running_ = false;
 };
 
-}  // namespace terrier::common
+}  // namespace noisepage::common

@@ -1,84 +1,124 @@
 #pragma once
-#include <vector>
-#include "execution/compiler/expression/pr_filler.h"
-#include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/insert_plan_node.h"
 
-namespace terrier::execution::compiler {
+#include <vector>
+
+#include "execution/ast/identifier.h"
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
+#include "storage/storage_defs.h"
+
+namespace noisepage::catalog {
+class Schema;
+}  // namespace noisepage::catalog
+
+namespace noisepage::planner {
+class InsertPlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::compiler {
 
 /**
- * Insert Translator
+ * InsertTranslator
  */
-class InsertTranslator : public OperatorTranslator {
+class InsertTranslator : public OperatorTranslator, public PipelineDriver {
  public:
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * Create a new translator for the given insert plan. The compilation occurs within the
+   * provided compilation context and the operator is participating in the provided pipeline.
+   * @param plan The plan.
+   * @param compilation_context The context of compilation this translation is occurring in.
+   * @param pipeline The pipeline this operator is participating in.
    */
-  InsertTranslator(const terrier::planner::InsertPlanNode *op, CodeGen *codegen);
+  InsertTranslator(const planner::InsertPlanNode &plan, CompilationContext *compilation_context, Pipeline *pipeline);
 
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
+  /**
+   * Does nothing.
+   * @param decls The top-level declarations.
+   */
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
 
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
+  /**
+   * Initialize the counters.
+   * @param pipeline The current pipeline.
+   * @param function The pipeline generating function.
+   */
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
-  // Does nothing.
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override{};
+  /**
+   * Implement insertion logic where it fills in the insert PR obtained from the StorageInterface struct
+   * with values from the child.
+   * @param context The context of the work.
+   * @param function The pipeline generating function.
+   */
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
 
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
+  /**
+   * @return The child's output at the given index.
+   */
+  ast::Expr *GetChildOutput(WorkContext *context, uint32_t child_idx, uint32_t attr_idx) const override;
 
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override{};
+  /**
+   * @return An expression representing the value of the column with the given OID.
+   */
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  // Produce and consume logic
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Insert is serial."); };
 
-  ast::Expr *GetOutput(uint32_t attr_idx) override { UNREACHABLE("Inserts don't output anything"); };
-  const planner::AbstractPlanNode *Op() override { return op_; }
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-
- private:
-  // Declare the inserter
-  void DeclareInserter(FunctionBuilder *builder);
-  void GenInserterFree(FunctionBuilder *builder);
-  // Set the oids variable
-  void SetOids(FunctionBuilder *builder);
-  // Declare the insert PR
-  void DeclareInsertPR(FunctionBuilder *builder);
-  // Get the pr to insert
-  void GetInsertPR(FunctionBuilder *builder);
-  // Fill the insert PR from the child's output
-  void FillPRFromChild(FunctionBuilder *builder);
-  // Set the table PR from raw values
-  void GenSetTablePR(FunctionBuilder *builder, uint32_t idx);
-  // Insert into table.
-  void GenTableInsert(FunctionBuilder *builder);
-  // Insert into index.
-  void GenIndexInsert(FunctionBuilder *builder, const catalog::index_oid_t &index_oid);
-  // Get all columns oids.
-  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema_) {
-    std::vector<catalog::col_oid_t> oids;
-    for (const auto &col : table_schema_.GetColumns()) {
-      oids.emplace_back(col.Oid());
-    }
-    return oids;
-  }
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Insert is serial.");
+  };
 
  private:
-  const planner::InsertPlanNode *op_;
+  // Declare storage interface.
+  void DeclareInserter(FunctionBuilder *builder) const;
+
+  // Free the storage interface.
+  void GenInserterFree(FunctionBuilder *builder) const;
+
+  // Sets the oids that we are inserting on, using the schema from the insert plan node.
+  void SetOids(FunctionBuilder *builder) const;
+
+  // Declares the projected row that we will be using the insert values with.
+  void DeclareInsertPR(FunctionBuilder *builder) const;
+
+  // Gets the projected row pointer that we will fill in with values to insert.
+  void GetInsertPR(FunctionBuilder *builder) const;
+
+  // Sets the values in the projected row which we will use to insert into the table.
+  void GenSetTablePR(FunctionBuilder *builder, WorkContext *context, uint32_t idx) const;
+
+  // Insert into the table.
+  void GenTableInsert(FunctionBuilder *builder) const;
+
+  // Insert into an index of this table.
+  void GenIndexInsert(WorkContext *context, FunctionBuilder *builder, const catalog::index_oid_t &index_oid) const;
+
+  // Gets all the column oids in a schema.
+  static std::vector<catalog::col_oid_t> AllColOids(const catalog::Schema &table_schema);
+
+  // Storage interface inserter struct which we use to insert.
   ast::Identifier inserter_;
+
+  // Projected row that the inserter spits out for us to insert with.
   ast::Identifier insert_pr_;
+
+  // Column oids that we are inserting on.
   ast::Identifier col_oids_;
 
+  // Schema of the table that we are inserting on.
   const catalog::Schema &table_schema_;
+
+  // All the oids that we are inserting on.
   std::vector<catalog::col_oid_t> all_oids_;
+
+  // Projection map of the table that we are inserting into.
+  // This maps column oids to offsets in a projected row.
   storage::ProjectionMap table_pm_;
-  PRFiller pr_filler_;
+
+  // The number of inserts that are performed.
+  StateDescriptor::Entry num_inserts_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

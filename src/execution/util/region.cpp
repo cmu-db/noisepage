@@ -7,7 +7,7 @@
 #include "execution/util/memory.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 Region::Region(std::string name) noexcept
     : name_(std::move(name)),
@@ -21,7 +21,7 @@ Region::Region(std::string name) noexcept
 Region::~Region() { FreeAll(); }  // NOLINT (bugprone-exception-escape)
 
 void *Region::Allocate(std::size_t size, std::size_t alignment) {
-  TERRIER_ASSERT(alignment > 0, "Alignment must be greater than 0");
+  NOISEPAGE_ASSERT(alignment > 0, "Alignment must be greater than 0");
 
   std::size_t adjustment = common::MathUtil::AlignmentAdjustment(position_, alignment);
 
@@ -39,7 +39,7 @@ void *Region::Allocate(std::size_t size, std::size_t alignment) {
   // 'size' more bytes.
   Expand(size + alignment);
 
-  TERRIER_ASSERT(position_ < end_, "Region chunk's start position higher than end");
+  NOISEPAGE_ASSERT(position_ < end_, "Region chunk's start position higher than end");
 
   // The new chunk position may not have the desired alignment, fix that now
   uintptr_t aligned_ptr = common::MathUtil::AlignAddress(position_, alignment);
@@ -64,13 +64,14 @@ void Region::FreeAll() {
   // Clean up member variables
   head_ = nullptr;
   allocated_ = 0;
+  alignment_waste_ = 0;
   chunk_bytes_allocated_ = 0;
   position_ = 0;
   end_ = 0;
 }
 
 uintptr_t Region::Expand(std::size_t requested) {
-  static constexpr std::size_t k_chunk_overhead = sizeof(Chunk);
+  static constexpr std::size_t chunk_overhead = sizeof(Chunk);
 
   //
   // Each expansion increases the size of the chunk we allocate by 2. But, we
@@ -80,18 +81,18 @@ uintptr_t Region::Expand(std::size_t requested) {
   Chunk *head = head_;
   const std::size_t prev_size = (head == nullptr ? 0 : head->size_);
   const std::size_t new_size_no_overhead = (requested + (prev_size * 2));
-  std::size_t new_size = k_chunk_overhead + new_size_no_overhead;
+  std::size_t new_size = chunk_overhead + new_size_no_overhead;
 
-  if (new_size < K_MIN_CHUNK_ALLOCATION) {
-    new_size = K_MIN_CHUNK_ALLOCATION;
-  } else if (new_size > K_MAX_CHUNK_ALLOCATION) {
-    const std::size_t min_new_size = k_chunk_overhead + requested;
-    const std::size_t max_alloc = K_MAX_CHUNK_ALLOCATION;
+  if (new_size < MIN_CHUNK_ALLOCATION) {
+    new_size = MIN_CHUNK_ALLOCATION;
+  } else if (new_size > MAX_CHUNK_ALLOCATION) {
+    const std::size_t min_new_size = chunk_overhead + requested;
+    const std::size_t max_alloc = MAX_CHUNK_ALLOCATION;
     new_size = std::max(min_new_size, max_alloc);
   }
 
   // Allocate a new chunk
-  EXECUTION_LOG_TRACE("Allocating chunk of size {} common::Constants::KB", static_cast<double>(new_size) / 1024.0);
+  EXECUTION_LOG_TRACE("Allocating chunk of size {} KB", static_cast<double>(new_size) / 1024.0);
   auto *new_chunk = static_cast<Chunk *>(std::malloc(new_size));
   new_chunk->Init(head_, new_size);
 
@@ -104,4 +105,4 @@ uintptr_t Region::Expand(std::size_t requested) {
   return position_;
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

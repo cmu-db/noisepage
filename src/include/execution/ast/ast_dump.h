@@ -1,12 +1,12 @@
 #pragma once
 #include <string>
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 
 class AstNode;
 
 /**
- * Class to dump the AST to a string.
+ * Utility class to dump the AST to a string.
  */
 class AstDump {
  public:
@@ -18,4 +18,4 @@ class AstDump {
   static std::string Dump(AstNode *node);
 };
 
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast

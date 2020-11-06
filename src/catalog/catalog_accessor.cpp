@@ -5,9 +5,11 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_cache.h"
+#include "catalog/database_catalog.h"
 #include "catalog/postgres/pg_proc.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(std::string name) const {
   NormalizeObjectName(&name);
   return catalog_->GetDatabaseOid(txn_, name);
@@ -21,7 +23,7 @@ db_oid_t CatalogAccessor::CreateDatabase(std::string name) const {
 bool CatalogAccessor::DropDatabase(db_oid_t db) const { return catalog_->DeleteDatabase(txn_, db); }
 
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
-  TERRIER_ASSERT(!namespaces.empty(), "search path cannot be empty");
+  NOISEPAGE_ASSERT(!namespaces.empty(), "search path cannot be empty");
 
   default_namespace_ = namespaces[0];
   search_path_ = std::move(namespaces);
@@ -77,6 +79,15 @@ bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *tabl
 }
 
 common::ManagedPointer<storage::SqlTable> CatalogAccessor::GetTable(table_oid_t table) const {
+  if (cache_ != DISABLED) {
+    auto table_ptr = cache_->GetTable(table);
+    if (table_ptr == nullptr) {
+      // not in the cache, get it from the actual catalog, stash it, and return retrieved value
+      table_ptr = dbc_->GetTable(txn_, table);
+      cache_->PutTable(table, table_ptr);
+    }
+    return table_ptr;
+  }
   return dbc_->GetTable(txn_, table);
 }
 
@@ -91,6 +102,16 @@ std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table)
 }
 
 std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
+  if (cache_ != DISABLED) {
+    auto cache_lookup = cache_->GetIndexOids(table);
+    if (!cache_lookup.first) {
+      // not in the cache, get it from the actual catalog, stash it, and return retrieved value
+      const auto index_oids = dbc_->GetIndexOids(txn_, table);
+      cache_->PutIndexOids(table, index_oids);
+      return index_oids;
+    }
+    return cache_lookup.second;
+  }
   return dbc_->GetIndexOids(txn_, table);
 }
 
@@ -130,6 +151,15 @@ bool CatalogAccessor::SetIndexPointer(index_oid_t index, storage::index::Index *
 }
 
 common::ManagedPointer<storage::index::Index> CatalogAccessor::GetIndex(index_oid_t index) const {
+  if (cache_ != DISABLED) {
+    auto index_ptr = cache_->GetIndex(index);
+    if (index_ptr == nullptr) {
+      // not in the cache, get it from the actual catalog, stash it, and return retrieved value
+      index_ptr = dbc_->GetIndex(txn_, index);
+      cache_->PutIndex(index, index_ptr);
+    }
+    return index_ptr;
+  }
   return dbc_->GetIndex(txn_, index);
 }
 
@@ -166,8 +196,8 @@ proc_oid_t CatalogAccessor::GetProcOid(const std::string &procname, const std::v
   return catalog::INVALID_PROC_OID;
 }
 
-bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *udf_context) {
-  return dbc_->SetProcCtxPtr(txn_, proc_oid, udf_context);
+bool CatalogAccessor::SetProcCtxPtr(proc_oid_t proc_oid, const execution::functions::FunctionContext *func_context) {
+  return dbc_->SetProcCtxPtr(txn_, proc_oid, func_context);
 }
 
 common::ManagedPointer<execution::functions::FunctionContext> CatalogAccessor::GetProcCtxPtr(proc_oid_t proc_oid) {
@@ -187,4 +217,4 @@ common::ManagedPointer<storage::BlockStore> CatalogAccessor::GetBlockStore() con
   return catalog_->GetBlockStore();
 }
 
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog

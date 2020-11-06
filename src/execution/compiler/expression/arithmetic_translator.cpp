@@ -1,37 +1,43 @@
 #include "execution/compiler/expression/arithmetic_translator.h"
-#include "execution/compiler/translator_factory.h"
 
-namespace terrier::execution::compiler {
+#include "common/error/exception.h"
+#include "execution/compiler/codegen.h"
+#include "execution/compiler/compilation_context.h"
+#include "execution/compiler/work_context.h"
+#include "parser/expression/operator_expression.h"
+#include "spdlog/fmt/fmt.h"
 
-ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
-    : ExpressionTranslator(expression, codegen),
-      left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).Get(), codegen_)),
-      right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).Get(), codegen_)) {}
+namespace noisepage::execution::compiler {
 
-ast::Expr *ArithmeticTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
-  auto *left_expr = left_->DeriveExpr(evaluator);
-  auto *right_expr = right_->DeriveExpr(evaluator);
-  parsing::Token::Type op_token;
-  switch (expression_->GetExpressionType()) {
-    case terrier::parser::ExpressionType::OPERATOR_DIVIDE:
-      op_token = parsing::Token::Type::SLASH;
-      break;
-    case terrier::parser::ExpressionType::OPERATOR_PLUS:
-      op_token = parsing::Token::Type::PLUS;
-      break;
-    case terrier::parser::ExpressionType::OPERATOR_MINUS:
-      op_token = parsing::Token::Type::MINUS;
-      break;
-    case terrier::parser::ExpressionType::OPERATOR_MULTIPLY:
-      op_token = parsing::Token::Type::STAR;
-      break;
-    case terrier::parser::ExpressionType::OPERATOR_MOD:
-      op_token = parsing::Token::Type::PERCENT;
-      break;
-    default:
-      // TODO(tanujnay112): figure out concatenation operation from expressions?
-      UNREACHABLE("Unsupported expression");
-  }
-  return codegen_->BinaryOp(op_token, left_expr, right_expr);
+ArithmeticTranslator::ArithmeticTranslator(const parser::OperatorExpression &expr,
+                                           CompilationContext *compilation_context)
+    : ExpressionTranslator(expr, compilation_context) {
+  // Prepare the left and right expression subtrees for translation.
+  compilation_context->Prepare(*expr.GetChild(0));
+  compilation_context->Prepare(*expr.GetChild(1));
 }
-}  // namespace terrier::execution::compiler
+
+ast::Expr *ArithmeticTranslator::DeriveValue(WorkContext *ctx, const ColumnValueProvider *provider) const {
+  auto *codegen = GetCodeGen();
+  auto left_val = ctx->DeriveValue(*GetExpression().GetChild(0), provider);
+  auto right_val = ctx->DeriveValue(*GetExpression().GetChild(1), provider);
+
+  switch (auto expr_type = GetExpression().GetExpressionType(); expr_type) {
+    case parser::ExpressionType::OPERATOR_PLUS:
+      return codegen->BinaryOp(parsing::Token::Type::PLUS, left_val, right_val);
+    case parser::ExpressionType::OPERATOR_MINUS:
+      return codegen->BinaryOp(parsing::Token::Type::MINUS, left_val, right_val);
+    case parser::ExpressionType::OPERATOR_MULTIPLY:
+      return codegen->BinaryOp(parsing::Token::Type::STAR, left_val, right_val);
+    case parser::ExpressionType::OPERATOR_DIVIDE:
+      return codegen->BinaryOp(parsing::Token::Type::SLASH, left_val, right_val);
+    case parser::ExpressionType::OPERATOR_MOD:
+      return codegen->BinaryOp(parsing::Token::Type::PERCENT, left_val, right_val);
+    default: {
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          fmt::format("Translation of arithmetic type {}", parser::ExpressionTypeToString(expr_type, true)));
+    }
+  }
+}
+
+}  // namespace noisepage::execution::compiler

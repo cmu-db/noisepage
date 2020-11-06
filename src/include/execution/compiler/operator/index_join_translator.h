@@ -1,79 +1,81 @@
 #pragma once
-#include <unordered_map>
-#include <vector>
-#include "catalog/index_schema.h"
-#include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/index_join_plan_node.h"
 
-namespace terrier::execution::compiler {
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "execution/ast/identifier.h"
+#include "execution/compiler/operator/operator_translator.h"
+#include "execution/compiler/pipeline_driver.h"
+#include "planner/plannodes/plan_node_defs.h"
+#include "storage/storage_defs.h"
+
+namespace noisepage::catalog {
+class Schema;
+class IndexSchema;
+}  // namespace noisepage::catalog
+
+namespace noisepage::planner {
+class IndexJoinPlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::execution::compiler {
 
 /**
- * Index Nested Loop join translator.
+ * Index join translator.
  */
-class IndexJoinTranslator : public OperatorTranslator {
+class IndexJoinTranslator : public OperatorTranslator, public PipelineDriver {
  public:
+  /** Translate IndexJoinPlanNode. */
+  IndexJoinTranslator(const planner::IndexJoinPlanNode &plan, CompilationContext *compilation_context,
+                      Pipeline *pipeline);
+
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(IndexJoinTranslator);
+
+  void DefineHelperFunctions(util::RegionVector<ast::FunctionDecl *> *decls) override {}
+
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  void PerformPipelineWork(WorkContext *context, FunctionBuilder *function) const override;
+
+  void FinishPipelineWork(const Pipeline &pipeline, FunctionBuilder *function) const override;
+
+  void TearDownPipelineState(const Pipeline &pipeline, FunctionBuilder *func) const override {}
+
   /**
-   * Constructor
-   * @param op The plan node
-   * @param codegen The code generator
+   * @return The value (or value vector) of the column with the provided column OID in the table
+   *         that this sequential scan is operating over.
    */
-  IndexJoinTranslator(const terrier::planner::IndexJoinPlanNode *op, CodeGen *codegen);
+  ast::Expr *GetTableColumn(catalog::col_oid_t col_oid) const override;
 
-  // Does nothing
-  void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
+  ast::Expr *GetSlotAddress() const override;
 
-  // Does nothing
-  void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override {}
+  /** @return Throw an error, this is serial for now. */
+  util::RegionVector<ast::FieldDecl *> GetWorkerParams() const override { UNREACHABLE("Index join is serial."); };
 
-  // Does nothing
-  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {}
-
-  // Does nothing
-  void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override {}
-
-  // Does nothing
-  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
-
-  void Produce(FunctionBuilder *builder) override;
-  void Abort(FunctionBuilder *builder) override;
-  void Consume(FunctionBuilder *builder) override;
-
-  ast::Expr *GetOutput(uint32_t attr_idx) override;
-  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
-  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
-
-  ast::Expr *GetSlot() override { return codegen_->PointerTo(slot_); }
-
-  const planner::AbstractPlanNode *Op() override { return op_; }
+  /** @return Throw an error, this is serial for now. */
+  void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const override {
+    UNREACHABLE("Index join is serial.");
+  };
 
  private:
-  // Declare the index iterator
-  void DeclareIterator(FunctionBuilder *builder);
-  // Set the column oids to scan
-  void SetOids(FunctionBuilder *builder);
-  // Fill the key with table data
-  void FillKey(FunctionBuilder *builder, ast::Identifier pr,
-               const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs);
-  // Generate the index iteration loop
-  void GenForLoop(FunctionBuilder *builder);
-  // Generate the join predicate's if statement
-  void GenPredicate(FunctionBuilder *builder);
-  // Free the iterator
-  void FreeIterator(FunctionBuilder *builder);
-  // Get Index PR
-  void DeclareIndexPR(FunctionBuilder *builder);
-  // Get Table PR
-  void DeclareTablePR(FunctionBuilder *builder);
-  // Get Slot
-  void DeclareSlot(FunctionBuilder *builder);
+  void DeclareIterator(FunctionBuilder *builder) const;
+  void SetOids(FunctionBuilder *builder) const;
+  void FillKey(WorkContext *context, FunctionBuilder *builder, ast::Identifier pr,
+               const std::unordered_map<catalog::indexkeycol_oid_t, planner::IndexExpression> &index_exprs) const;
+  void FreeIterator(FunctionBuilder *builder) const;
+  void DeclareIndexPR(FunctionBuilder *builder) const;
+  void DeclareTablePR(FunctionBuilder *builder) const;
+  void DeclareSlot(FunctionBuilder *builder) const;
 
  private:
-  const planner::IndexJoinPlanNode *op_;
   std::vector<catalog::col_oid_t> input_oids_;
   const catalog::Schema &table_schema_;
   storage::ProjectionMap table_pm_;
   const catalog::IndexSchema &index_schema_;
   const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &index_pm_;
+
   // Structs and local variables
   ast::Identifier index_iter_;
   ast::Identifier col_oids_;
@@ -81,5 +83,12 @@ class IndexJoinTranslator : public OperatorTranslator {
   ast::Identifier hi_index_pr_;
   ast::Identifier table_pr_;
   ast::Identifier slot_;
+
+  // The size of the index.
+  StateDescriptor::Entry index_size_;
+  // The number of scans on the index.
+  StateDescriptor::Entry num_scans_index_;
+  // The number of outer loop iterations.
+  StateDescriptor::Entry num_loops_;
 };
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

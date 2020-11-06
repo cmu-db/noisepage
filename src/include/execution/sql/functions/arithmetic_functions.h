@@ -2,18 +2,20 @@
 
 #include <cmath>
 
+#include "execution/sql/operators/numeric_binary_operators.h"
+#include "execution/sql/operators/numeric_operators.h"
 #include "execution/sql/value.h"
 #include "execution/util/arithmetic_overflow.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle various arithmetic SQL functions.
  */
 class EXPORT ArithmeticFunctions {
  public:
-  // Delete to force only static functions
-  ArithmeticFunctions() = delete;
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(ArithmeticFunctions);
 
   /**
    * Integer addition
@@ -176,7 +178,7 @@ class EXPORT ArithmeticFunctions {
   static void Ceil(Real *result, const Real &v);
 
   /**
-   * Floot
+   * Floor
    */
   static void Floor(Real *result, const Real &v);
 
@@ -221,9 +223,9 @@ class EXPORT ArithmeticFunctions {
   static void Round(Real *result, const Real &v);
 
   /**
-   * Rounding with scale
+   * Rounding with precision
    */
-  static void RoundUpTo(Real *result, const Real &v, const Integer &scale);
+  static void Round2(Real *result, const Real &v, const Integer &precision);
 
   /**
    * Logarithm with base
@@ -231,9 +233,9 @@ class EXPORT ArithmeticFunctions {
   static void Log(Real *result, const Real &base, const Real &val);
 
   /**
-   * Exponentiation a ^ b
+   * Exponentiation base ^ val
    */
-  static void Pow(Real *result, const Real &a, const Real &b);
+  static void Pow(Real *result, const Real &base, const Real &val);
 
  private:
   // Cotangent
@@ -247,157 +249,101 @@ class EXPORT ArithmeticFunctions {
 // The functions below are inlined in the header for performance. Don't move it
 // unless you know what you're doing.
 
-#define UNARY_MATH_EXPENSIVE_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE, FN)           \
-  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE &v) { \
-    if (v.is_null_) {                                                            \
-      *result = RET_TYPE::Null();                                                \
-      return;                                                                    \
-    }                                                                            \
-    *result = RET_TYPE(FN(v.val_));                                              \
-  }
-
-#define BINARY_MATH_EXPENSIVE_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, FN)                   \
-  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b) { \
-    if (a.is_null_ || b.is_null_) {                                                                     \
-      *result = RET_TYPE::Null();                                                                       \
-      return;                                                                                           \
-    }                                                                                                   \
-    *result = RET_TYPE(FN(a.val_, b.val_));                                                             \
+#define UNARY_MATH_EXPENSIVE_HIDE_NULL(OP, RET_TYPE, INPUT_TYPE)               \
+  inline void ArithmeticFunctions::OP(RET_TYPE *result, const INPUT_TYPE &v) { \
+    using CppType = decltype(v.val_);                                          \
+    if (v.is_null_) {                                                          \
+      *result = RET_TYPE::Null();                                              \
+      return;                                                                  \
+    }                                                                          \
+    *result = RET_TYPE(noisepage::execution::sql::OP<CppType>{}(v.val_));      \
   }
 
 #define BINARY_MATH_FAST_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                        \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b) { \
+    using CppType = decltype(result->val_);                                                             \
     result->is_null_ = (a.is_null_ || b.is_null_);                                                      \
-    result->val_ = a.val_ OP b.val_;                                                                    \
+    result->val_ = OP<CppType>{}(a.val_, b.val_);                                                       \
   }
 
-#define BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, FN)             \
+#define BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)             \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
                                         bool *overflow) {                                             \
+    using CppType = decltype(result->val_);                                                           \
     result->is_null_ = (a.is_null_ || b.is_null_);                                                    \
-    *overflow = FN(a.val_, b.val_, &result->val_);                                                    \
+    *overflow = OP<CppType>{}(a.val_, b.val_, &result->val_);                                         \
   }
 
-#define BINARY_OP_CHECK_ZERO(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                            \
+#define BINARY_MATH_CHECK_ZERO_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
                                         bool *div_by_zero) {                                          \
+    using CppType = decltype(result->val_);                                                           \
     if (a.is_null_ || b.is_null_ || b.val_ == 0) {                                                    \
       *div_by_zero = true;                                                                            \
       *result = RET_TYPE::Null();                                                                     \
       return;                                                                                         \
     }                                                                                                 \
-    *result = RET_TYPE(a.val_ OP b.val_);                                                             \
+    *result = RET_TYPE(OP<CppType>{}(a.val_, b.val_));                                                \
   }
 
-#define BINARY_FN_CHECK_ZERO(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, FN)                            \
-  inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
-                                        bool *div_by_zero) {                                          \
-    if (a.is_null_ || b.is_null_ || b.val_ == 0) {                                                    \
-      *div_by_zero = true;                                                                            \
-      *result = RET_TYPE::Null();                                                                     \
-      return;                                                                                         \
-    }                                                                                                 \
-    *result = RET_TYPE(FN(a.val_, b.val_));                                                           \
-  }
-
-BINARY_MATH_FAST_HIDE_NULL(Add, Integer, Integer, Integer, +);
-BINARY_MATH_FAST_HIDE_NULL(Add, Real, Real, Real, +);
-BINARY_MATH_FAST_HIDE_NULL(Sub, Integer, Integer, Integer, -);
-BINARY_MATH_FAST_HIDE_NULL(Sub, Real, Real, Real, -);
-BINARY_MATH_FAST_HIDE_NULL(Mul, Integer, Integer, Integer, *);
-BINARY_MATH_FAST_HIDE_NULL(Mul, Real, Real, Real, *);
-
-BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Add, Integer, Integer, Integer, util::ArithmeticOverflow::Add);
-BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Sub, Integer, Integer, Integer, util::ArithmeticOverflow::Sub);
-BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Mul, Integer, Integer, Integer, util::ArithmeticOverflow::Mul);
-
-BINARY_OP_CHECK_ZERO(IntDiv, Integer, Integer, Integer, /);
-BINARY_OP_CHECK_ZERO(Div, Real, Real, Real, /);
-BINARY_OP_CHECK_ZERO(IntMod, Integer, Integer, Integer, %);
-
-inline void ArithmeticFunctions::Mod(Real *result, const Real &a, const Real &b, bool *div_by_zero) {
-  *div_by_zero = (b.val_ == 0);
-  if (a.is_null_ || b.is_null_ || b.val_ == 0) {
-    *result = Real::Null();
-    return;
-  }
-  *result = Real(std::fmod(a.val_, b.val_));
-}
+BINARY_MATH_FAST_HIDE_NULL(Add, Integer, Integer, Integer, noisepage::execution::sql::Add);
+BINARY_MATH_FAST_HIDE_NULL(Add, Real, Real, Real, noisepage::execution::sql::Add);
+BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Add, Integer, Integer, Integer, noisepage::execution::sql::AddWithOverflow);
+BINARY_MATH_FAST_HIDE_NULL(Sub, Integer, Integer, Integer, noisepage::execution::sql::Subtract);
+BINARY_MATH_FAST_HIDE_NULL(Sub, Real, Real, Real, noisepage::execution::sql::Subtract);
+BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Sub, Integer, Integer, Integer, noisepage::execution::sql::SubtractWithOverflow);
+BINARY_MATH_FAST_HIDE_NULL(Mul, Integer, Integer, Integer, noisepage::execution::sql::Multiply);
+BINARY_MATH_FAST_HIDE_NULL(Mul, Real, Real, Real, noisepage::execution::sql::Multiply);
+BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(Mul, Integer, Integer, Integer, noisepage::execution::sql::MultiplyWithOverflow);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(IntDiv, Integer, Integer, Integer, noisepage::execution::sql::Divide);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(Div, Real, Real, Real, noisepage::execution::sql::Divide);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(IntMod, Integer, Integer, Integer, noisepage::execution::sql::Modulo);
+BINARY_MATH_CHECK_ZERO_HIDE_NULL(Mod, Real, Real, Real, noisepage::execution::sql::Modulo);
 
 inline void ArithmeticFunctions::Pi(Real *result) { *result = Real(M_PI); }
 
 inline void ArithmeticFunctions::E(Real *result) { *result = Real(M_E); }
 
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Abs, Integer, Integer, std::llabs);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Abs, Real, Real, std::fabs);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Sin, Real, Real, std::sin);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Asin, Real, Real, std::asin);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Cos, Real, Real, std::cos);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Acos, Real, Real, std::acos);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Tan, Real, Real, std::tan);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Cot, Real, Real, Cotan);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Atan, Real, Real, std::atan);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Cosh, Real, Real, std::cosh);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Tanh, Real, Real, std::tanh);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Sinh, Real, Real, std::sinh);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Sqrt, Real, Real, std::sqrt);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Cbrt, Real, Real, std::cbrt);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Ceil, Real, Real, std::ceil);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Floor, Real, Real, std::floor);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Truncate, Real, Real, std::trunc);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Ln, Real, Real, std::log);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Log2, Real, Real, std::log2);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Log10, Real, Real, std::log10);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Exp, Real, Real, std::exp);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Abs, Integer, Integer);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Abs, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Sin, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Asin, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Cos, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Acos, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Tan, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Cot, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Atan, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Cosh, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Tanh, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Sinh, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Sqrt, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Cbrt, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Ceil, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Floor, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Truncate, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Ln, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Log2, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Log10, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Exp, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Sign, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Radians, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Degrees, Real, Real);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Round, Real, Real);
 
-BINARY_MATH_EXPENSIVE_HIDE_NULL(Atan2, Real, Real, Real, std::atan2);
-BINARY_MATH_EXPENSIVE_HIDE_NULL(Pow, Real, Real, Real, std::pow);
-
-#undef BINARY_FN_CHECK_ZERO
-#undef BINARY_OP_CHECK_ZERO
-#undef BINARY_MATH_FAST_HIDE_NULL_OVERFLOW
-#undef BINARY_MATH_FAST_HIDE_NULL
-#undef BINARY_MATH_EXPENSIVE_HIDE_NULL
-#undef UNARY_MATH_EXPENSIVE_HIDE_NULL
-
-inline void ArithmeticFunctions::Sign(Real *result, const Real &v) {
-  if (v.is_null_) {
+inline void ArithmeticFunctions::Atan2(Real *result, const Real &a, const Real &b) {
+  if (a.is_null_ || b.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real((v.val_ > 0) ? 1.0f : ((v.val_ < 0) ? -1.0f : 0.0f));
+  *result = Real(noisepage::execution::sql::Atan2<double>{}(a.val_, b.val_));
 }
 
-inline void ArithmeticFunctions::Radians(Real *result, const Real &v) {
-  if (v.is_null_) {
+inline void ArithmeticFunctions::Round2(Real *result, const Real &v, const Integer &precision) {
+  if (v.is_null_ || precision.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(v.val_ * M_PI / 180.0);
-}
-
-inline void ArithmeticFunctions::Degrees(Real *result, const Real &v) {
-  if (v.is_null_) {
-    *result = Real::Null();
-    return;
-  }
-  *result = Real(v.val_ * 180.0 / M_PI);
-}
-
-inline void ArithmeticFunctions::Round(Real *result, const Real &v) {
-  if (v.is_null_) {
-    *result = Real::Null();
-    return;
-  }
-  *result = Real(v.val_ + ((v.val_ < 0) ? -0.5 : 0.5));
-}
-
-inline void ArithmeticFunctions::RoundUpTo(Real *result, const Real &v, const Integer &scale) {
-  if (v.is_null_ || scale.is_null_) {
-    *result = Real::Null();
-    return;
-  }
-  *result = Real(std::floor(v.val_ * std::pow(10.0, scale.val_) + 0.5) / std::pow(10.0, scale.val_));
+  *result = Real(noisepage::execution::sql::RoundUpTo<double, int64_t>{}(v.val_, precision.val_));
 }
 
 inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real &val) {
@@ -405,7 +351,21 @@ inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real 
     *result = Real::Null();
     return;
   }
-  *result = Real(std::log(val.val_) / std::log(base.val_));
+  *result = Real(noisepage::execution::sql::Log<double>{}(base.val_, val.val_));
 }
 
-}  // namespace terrier::execution::sql
+inline void ArithmeticFunctions::Pow(Real *result, const Real &base, const Real &val) {
+  if (base.is_null_ || val.is_null_) {
+    *result = Real::Null();
+    return;
+  }
+  *result = Real(noisepage::execution::sql::Pow<double, double>{}(base.val_, val.val_));
+}
+
+#undef BINARY_FN_CHECK_ZERO
+#undef BINARY_MATH_CHECK_ZERO_HIDE_NULL
+#undef BINARY_MATH_FAST_HIDE_NULL_OVERFLOW
+#undef BINARY_MATH_FAST_HIDE_NULL
+#undef UNARY_MATH_EXPENSIVE_HIDE_NULL
+
+}  // namespace noisepage::execution::sql

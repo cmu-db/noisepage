@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "loggers/optimizer_logger.h"
-
 #include "optimizer/group.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_node.h"
@@ -15,7 +14,7 @@
 #include "optimizer/pattern.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Abstract interface for a BindingIterator defined similarly to
@@ -74,7 +73,7 @@ class GroupBindingIterator : public BindingIterator {
         num_group_items_(target_group_->GetLogicalExpressions().size()),
         current_item_index_(0),
         txn_(txn) {
-    OPTIMIZER_LOG_TRACE("Attempting to bind on group {0}", id);
+    OPTIMIZER_LOG_TRACE("Attempting to bind on group " + std::to_string(id.UnderlyingValue()));
   }
 
   /**
@@ -154,7 +153,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * @returns next AbstractOptimizerNode that matches
    */
   std::unique_ptr<AbstractOptimizerNode> Next() override {
-    TERRIER_ASSERT(current_binding_, "binding must exist");
+    NOISEPAGE_ASSERT(current_binding_, "binding must exist");
     return std::move(current_binding_);
   }
 
@@ -195,4 +194,4 @@ class GroupExprBindingIterator : public BindingIterator {
   transaction::TransactionContext *txn_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

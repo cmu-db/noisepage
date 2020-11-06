@@ -2,15 +2,21 @@
 
 #include <limits>
 
+#include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 /**
  * Utility class to handle arithmetic operations that can overflow.
  */
 class ArithmeticOverflow {
  public:
+  /** This class cannot be instantiated. */
+  DISALLOW_INSTANTIATION(ArithmeticOverflow);
+  /** This class cannot be copied or moved. */
+  DISALLOW_COPY_AND_MOVE(ArithmeticOverflow);
+
   /**
    * Minimum int128_t value
    */
@@ -19,9 +25,6 @@ class ArithmeticOverflow {
    * Maximum int128_t value
    */
   static constexpr int128_t K_MAX_INT128 = std::numeric_limits<int128_t>::max();
-
-  // Deleted to force only static functions
-  ArithmeticOverflow() = delete;
 
   // -------------------------------------------------------
   // Addition
@@ -314,4 +317,4 @@ class ArithmeticOverflow {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

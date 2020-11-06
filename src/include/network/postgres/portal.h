@@ -8,9 +8,12 @@
 #include "network/postgres/postgres_defs.h"
 #include "network/postgres/statement.h"
 #include "parser/expression/constant_value_expression.h"
-#include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::network {
+namespace noisepage::planner {
+class AbstractPlanNode;
+}  // namespace noisepage::planner
+
+namespace noisepage::network {
 
 /**
  * Portal is a postgres concept (see the Extended Query documentation:
@@ -65,4 +68,4 @@ class Portal {
   const std::vector<FieldFormat> result_formats_;
 };
 
-}  // namespace terrier::network
+}  // namespace noisepage::network
