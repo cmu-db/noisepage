@@ -77,12 +77,12 @@ void Pilot::ExecuteForecast() {
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
-  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 0,
+  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 1,
                              common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
 
-  //  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
-  //  settings_manager_->SetBool(settings::Param::wal_enable, false,
-  //                            common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
+  settings_manager_->SetBool(settings::Param::parallel_execution, false,
+                             common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
 
   std::cout << "After ppl metrics enabled \n" << std::flush;
   forecastor_->ExecuteSegments(db_main_);

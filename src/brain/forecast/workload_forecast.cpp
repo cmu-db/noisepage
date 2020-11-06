@@ -64,13 +64,15 @@ void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_m
   for (auto it = params.begin(); it != params.end(); it++) {
     param_types.push_back(it->GetReturnValueType());
   }
+
   std::string tmp_query = "INSERT INTO ITEM VALUES ($1, $2, $3, $4, $5)";
   std::cout << "Executing query id:" << qid << "; text: " << tmp_query << std::endl << std::flush;
-  // auto stmt_list = parser::PostgresParser::BuildParseTree("UPDATE WAREHOUSE   SET W_YTD = W_YTD + 4290.490234375  WHERE W_ID = 1 ");
-  auto stmt_list = parser::PostgresParser::BuildParseTree(tmp_query);
 
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
   transaction::TransactionContext *txn = txn_manager->BeginTransaction();
+
+  auto stmt_list = parser::PostgresParser::BuildParseTree(tmp_query);
+
   std::cout << "1. Transaction began \n" << std::flush;
 
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
@@ -78,37 +80,35 @@ void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_m
   std::cout << "1.1. Got DB oid \n" << std::flush;
   std::unique_ptr<catalog::CatalogAccessor> accessor = catalog->GetAccessor(common::ManagedPointer(txn),
                                                                             db_oid, DISABLED);
-  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
   auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
   binder.BindNameToNode(common::ManagedPointer(stmt_list), common::ManagedPointer(&params),
                         common::ManagedPointer(&param_types));
 
-  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
-
   // Creating exec_ctx
   std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
-  std::cout << "1.2. Got cost model \n" << std::flush;
 
   std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
   auto out_plan = trafficcop::TrafficCopUtil::Optimize(
         common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
         db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
-  std::cout << "2. Compiled out_plan \n" << std::flush;
 
   std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
   execution::exec::ExecutionSettings exec_settings{};
-  // exec_settings.UpdateFromSettingsManager(db_main->GetSettingsManager());
+  exec_settings.UpdateFromSettingsManager(db_main->GetSettingsManager());
+
+  execution::exec::NoOpResultConsumer consumer;
+  execution::exec::OutputCallback callback = consumer;
 
   auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), execution::exec::NoOpResultConsumer(), out_plan->GetOutputSchema().Get(),
+        db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
         common::ManagedPointer(accessor), exec_settings, db_main->GetMetricsManager());
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
-  std::cout << "3. Compiled exec context\n" << std::flush;
-  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
 
+  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+
+  execution::compiler::ExecutableQuery::query_identifier.store(qid);
   auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                       execution::compiler::CompilationMode::OneShot);
   std::cout << "4. Compiled exec_query\n" << std::flush;
