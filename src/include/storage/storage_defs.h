@@ -512,7 +512,6 @@ class VarlenEntry {
    */
   bool operator>=(const VarlenEntry &that) const { return Compare(*this, that) >= 0; }
 
-
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
