@@ -512,6 +512,7 @@ class VarlenEntry {
    */
   bool operator>=(const VarlenEntry &that) const { return Compare(*this, that) >= 0; }
 
+
  private:
   int32_t size_;                   // buffer reclaimable => sign bit is 0 or size <= InlineThreshold
   byte prefix_[sizeof(uint32_t)];  // Explicit padding so that we can use these bits for inlined values or prefix
@@ -573,5 +574,20 @@ struct hash<noisepage::storage::TupleSlot> {
    * @return the hash of the slot.
    */
   size_t operator()(const noisepage::storage::TupleSlot &slot) const { return hash<uintptr_t>()(slot.bytes_); }
+};
+
+/**
+ * Implements std::hash for VarlenEntry.
+ */
+template <>
+struct hash<noisepage::storage::VarlenEntry> {
+  /**
+   * Returns the hash of the slot's contents.
+   * @param slot the slot to be hashed.
+   * @return the hash of the slot.
+   */
+  size_t operator()(const noisepage::storage::VarlenEntry &key) const {
+    return key.Hash();
+  }
 };
 }  // namespace std

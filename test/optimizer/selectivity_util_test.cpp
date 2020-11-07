@@ -97,9 +97,7 @@ class SelectivityUtilTests : public TerrierTest {
     column_stats_obj_5_.GetTopK()->Increment(true, 60);
     column_stats_obj_5_.GetTopK()->Increment(false, 20);
 
-     // TODO(arvindsk) Initialization for VARLEN column commented out because the VarlenEntry class does not meet the
-     // hash requirements for the TopK class.
-//    // VARCHAR column
+    // TODO(arvindsk) The histogram class currently does not support VARCHAR entries. Templatize the histogram class.
 //    column_stats_obj_6_ = NewColumnStats<execution::sql::StringVal>(
 //        catalog::db_oid_t(6), catalog::table_oid_t(6), catalog::col_oid_t (6), 10, 5, 0.5, 10, 10, 10, true);
 //    // Values and frequencies.

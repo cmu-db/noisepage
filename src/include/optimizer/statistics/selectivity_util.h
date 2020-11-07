@@ -193,7 +193,6 @@ template <typename T>
 double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
                                           const ValueCondition &condition) {
   const auto value = condition.GetPointerToValue()->Peek<decltype(T::val_)>();
-
   // Return default selectivity if empty column_stats
   if (column_stats == nullptr) {
     return DEFAULT_SELECTIVITY;
