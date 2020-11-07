@@ -117,7 +117,10 @@ class SelectivityUtil {
    * Peloton: Complete implementation once we support LIKE Operator
    */
   template <typename T>
-  static double Like(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition);
+  static double Like(UNUSED_ATTRIBUTE common::ManagedPointer<NewColumnStats<T>> column_stats,
+                     UNUSED_ATTRIBUTE const ValueCondition &condition) {
+    return DEFAULT_SELECTIVITY;
+  }
 
   /**
    * Computes Not LIKE Selectivity
@@ -228,53 +231,5 @@ double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_s
 
   NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
   return res;
-}
-
-// Selectivity for 'LIKE' operator. The column type must be VARCHAR.
-// Complete implementation once we support LIKE operator.
-template <typename T>
-double SelectivityUtil::Like(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-  // Check whether column type is VARCHAR.
-  if ((condition.GetPointerToValue())->GetReturnValueType() != type::TypeId::VARCHAR) {
-    return DEFAULT_SELECTIVITY;
-  }
-
-  if (column_stats == nullptr) {
-    return DEFAULT_SELECTIVITY;
-  }
-
-  /*
-  TODO(wz2): Enable once ExecutionEngine for sampling LIKE selectivity is ready
-  auto column_stats = column_stats->GetColumnStats(condition.GetColumnID());
-  size_t matched_count = 0;
-  size_t total_count = 0;
-
-  // Sample on the fly
-  const char *pattern = (condition.value).GetData();
-  oid_t column_id = column_stats->column_id;
-
-  auto sampler = column_stats->GetSampler();
-  PELOTON_ASSERT(sampler != nullptr);
-  if (sampler->GetSampledTuples().empty()) {
-    sampler->AcquireSampleTuples(DEFAULT_SAMPLE_SIZE);
-  }
-  auto &sample_tuples = sampler->GetSampledTuples();
-  for (size_t i = 0; i < sample_tuples.size(); i++) {
-    auto value = sample_tuples[i]->GetValue(column_id);
-    PELOTON_ASSERT(value.GetTypeId() == type::TypeId::VARCHAR);
-    executor::ExecutorContext dummy_context(nullptr);
-    if (function::StringFunctions::Like(dummy_context, value.GetData(),
-                                        value.GetLength(), pattern,
-                                        condition.value.GetLength())) {
-      matched_count++;
-    }
-  }
-  total_count = sample_tuples.size();
-  OPTIMIZER_LOG_TRACE("total sample size %lu matched tupe %lu", total_count, matched_count);
-
-  return total_count == 0 ? DEFAULT_SELECTIVITY : static_cast<double>(matched_count) / static_cast<double>(total_count);
-  */
-
-  return DEFAULT_SELECTIVITY;
 }
 }  // namespace noisepage::optimizer
