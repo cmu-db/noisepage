@@ -1,6 +1,5 @@
 #include "brain/forecast/workload_forecast_segment.h"
 
-#include <fstream>
 #include <utility>
 
 #include "execution/exec_defs.h"

@@ -26,15 +26,19 @@
 namespace noisepage::brain {
 
 /**
- *
+ * Breaking predicted queries passed in by the Pilot into segments by their associated timestamps
+ * Executing each query while extracting pipeline features
  */
 class WorkloadForecast {
  public:
   /**
-   * Constructor for
-   * @param
-   * @param forecast_interval the access observer attached to this GC. The GC reports every record gc-ed to the observer
-   * if
+   * Constructor for WorkloadForecast
+   * @param query_timestamp_to_id Map from a timestamp to one query qid that has a record of this timestamp
+   * @param num_executions Number of occurrence of this qid in the input
+   * @param query_id_to_string Map from a qid to the query text
+   * @param query_string_to_id Map from a query's text to the qid
+   * @param query_id_to_param Map from qid to a constant number of parameters
+   * @param forecast_interval Interval used to partition the queries into segments
    *
    */
   WorkloadForecast(std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id,

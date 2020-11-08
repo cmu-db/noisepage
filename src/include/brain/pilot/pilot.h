@@ -25,35 +25,26 @@
 namespace noisepage::brain {
 
 /**
- * The pilot
+ * The pilot processes the query trace predictions by executing them and extracting pipeline features
  */
 class Pilot {
  public:
   /**
-   * Constructor for the
-   * @param
-   * @param
+   * Constructor for Pilot
+   * @param db_main Managed Pointer to db_main
+   * @param forecast_interval Interval used in the forecastor
    */
   explicit Pilot(const common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval);
 
-  /**
-   *
-   * @return
-   */
-  // void PerformPilotLogic();
-
   std::unique_ptr<brain::WorkloadForecast> forecastor_;
-  // void EnablePlanning();
-  // void DisablePlanning();
+
   void PerformPlanning();
 
  private:
   void LoadQueryTrace();
   void LoadQueryText();
   void ExecuteForecast();
-  // static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
-  // static execution::exec::ExecutionSettings GetExecutionSettings();
-
+  
   common::ManagedPointer<DBMain> db_main_;
 
   std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id_;

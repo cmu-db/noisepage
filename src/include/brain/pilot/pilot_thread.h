@@ -8,15 +8,15 @@
 namespace noisepage::brain {
 
 /**
- * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
- * to enable PL in the system unless you need fine-grained control over table state or profiling.
+ * Class for spinning off a thread that runs the pilot to process query predictions.
+ * This should be used in most cases to enable/disable PL in the system.
  */
 class PilotThread {
  public:
   /**
-   * @param pl pointer to the garbage collector object to be run on this thread
-   * @param pl_period sleep time between PL invocations
-   * @param metrics_manager Metrics Manager
+   * @param pilot Pointer to the pilot object to be run on this thread
+   * @param pl_period Sleep time between PL invocations
+   * @param pilot_planning if the pilot is enabled
    */
   PilotThread(common::ManagedPointer<Pilot> pilot, std::chrono::microseconds pl_period, bool pilot_planning);
 
