@@ -36,17 +36,17 @@ class MetricsTests : public TerrierTest {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     settings::SettingsManager::ConstructParamMap(param_map);
     db_main_ = noisepage::DBMain::Builder()
-        .SetSettingsParameterMap(std::move(param_map))
-        .SetUseSettingsManager(true)
-        .SetUseGC(true)
-        .SetUseCatalog(true)
-        .SetUseGCThread(true)
-        .SetUseTrafficCop(true)
-        .SetUseStatsStorage(true)
-        .SetUseLogging(true)
-        .SetUseNetwork(true)
-        .SetUseExecution(true)
-        .Build();
+                   .SetSettingsParameterMap(std::move(param_map))
+                   .SetUseSettingsManager(true)
+                   .SetUseGC(true)
+                   .SetUseCatalog(true)
+                   .SetUseGCThread(true)
+                   .SetUseTrafficCop(true)
+                   .SetUseStatsStorage(true)
+                   .SetUseLogging(true)
+                   .SetUseNetwork(true)
+                   .SetUseExecution(true)
+                   .Build();
 
     settings_manager_ = db_main_->GetSettingsManager();
     metrics_manager_ = db_main_->GetMetricsManager();
@@ -338,7 +338,7 @@ TEST_F(MetricsTests, QueryCSVTest) {
   EXPECT_EQ(aggregated_data->query_trace_.size(), 2);  // 2 data point recorded
   EXPECT_EQ(aggregated_data->query_text_.size(), 2);   // 2 data point recorded
   if (!(aggregated_data->query_text_.empty())) {
-    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_, "INSERT INTO TableA VALUES (1, 'abc');");
+    EXPECT_EQ(aggregated_data->query_text_.begin()->query_text_, "\"INSERT INTO TableA VALUES (1, 'abc');\"");
     if (!(aggregated_data->query_trace_.empty())) {
       EXPECT_EQ(aggregated_data->query_trace_.begin()->query_id_,
                 aggregated_data->query_text_.begin()->query_id_);  // 2 records: insert, select
