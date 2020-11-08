@@ -77,29 +77,24 @@ void Pilot::ExecuteForecast() {
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
-  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 1,
+  settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 0,
                              common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
 
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
-  settings_manager_->SetBool(settings::Param::parallel_execution, false,
-                             common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
-
-  std::cout << "After ppl metrics enabled \n" << std::flush;
   forecastor_->ExecuteSegments(db_main_);
 
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!oldval) {
     settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false,
                                common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
   }
 
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
   if (!oldcounter) {
     settings_manager_->SetBool(settings::Param::counters_enable, false,
                                common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
   }
 
-  action_context = std::make_unique<common::ActionContext>(common::action_id_t(7));
+  action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
   settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, oldintv,
                             common::ManagedPointer(action_context), WorkloadForecast::EmptySetterCallback);
 
@@ -186,7 +181,8 @@ void Pilot::LoadQueryTrace() {
 }
 
 void Pilot::LoadQueryText() {
-  uint8_t NUM_COLS = 3;
+  // Parse qid and query text, assuming they are the first two columns, with query text wrapped in quotations marks
+
   // Create an input filestream
   std::ifstream myFile("./query_text.csv");
   // Make sure the file is open
@@ -201,36 +197,29 @@ void Pilot::LoadQueryText() {
 
   // Read data, line by line
   execution::query_id_t query_id;
-  size_t pos, colnum;
-  std::vector<std::string> val_vec (NUM_COLS, "");
+  size_t pos;
 
   while(std::getline(myFile, line))
   {
-    colnum = 0;
-    val_vec.assign(NUM_COLS, "");
     // std::cout << line << "\n" << std::flush;
-    while ((pos = line.find(",")) != std::string::npos && colnum < NUM_COLS) {
-      if (pos > 0) {
-        val_vec[colnum] = line.substr(0, pos);
-      }
-      line.erase(0, pos + 2);
-      colnum ++;
-    }
-
-    if (val_vec[0] == "") {
-      // query_id not found
+    pos = line.find("\"");
+    if (pos == std::string::npos || pos < 3) {
+      // no quotation mark found or no query_id found
       continue;
     }
-    query_id = static_cast<execution::query_id_t>(std::stoi(val_vec[0]));
-    query_id_to_text_[query_id] = val_vec[1];
-    query_text_to_id_[val_vec[1]] = query_id;
-    // std::cout << "\n" << std::flush;
+    query_id = static_cast<execution::query_id_t>(std::stoi(line.substr(0, pos-2)));
+    line.erase(0, pos + 1);
+    pos = line.find("\"");
+
+    if (pos == std::string::npos) continue;
+
+    query_id_to_text_[query_id] = line.substr(0, pos);
+    query_text_to_id_[line.substr(0, pos)] = query_id;
+    std::cout << static_cast<uint32_t>(query_id) << "; " << line.substr(0, pos) << "\n" << std::flush;
     // std::cout << "\nnewline\n" << std::endl;
   }
   // Close file
   myFile.close();
-
-  // Initialize queries_, query_params_ here, by loading from CSV files
 }
 
 }  // namespace terrier::brain

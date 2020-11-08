@@ -123,7 +123,8 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
   friend class MetricsStore;
 
   void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
-    GetRawData()->RecordQueryText(query_id, query_text, timestamp);
+    std::string qtext = query_text;
+    GetRawData()->RecordQueryText(query_id, "\"" + qtext + "\"", timestamp);
   }
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
