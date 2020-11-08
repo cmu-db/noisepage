@@ -1,6 +1,5 @@
 #include "execution/compiler/compiler.h"
 
-#include <iostream>
 #include "execution/ast/ast_pretty_print.h"
 #include "execution/ast/context.h"
 #include "execution/parsing/parser.h"
@@ -98,7 +97,7 @@ void Compiler::Run(Compiler::Callbacks *callbacks) {
   }
 
   callbacks->EndPhase(Phase::BytecodeGeneration, this);
-  ast::AstPrettyPrint::Dump(std::cout, root_);
+
   // -------------------------------------------------------
   // Phase 4 : Module Generation
   // -------------------------------------------------------
