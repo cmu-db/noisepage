@@ -9,13 +9,7 @@ from util.constants import PERFORMANCE_STORAGE_SERVICE_API
 from util.constants import LOG
 
 
-def report_oltpbench_result(env,
-                            server_data,
-                            results_dir,
-                            username,
-                            password,
-                            mem_metrics,
-                            query_mode='simple'):
+def report_oltpbench_result(env, server_data, results_dir, username, password, mem_metrics, query_mode='simple'):
     """ Parse and format the data from server_data and the results_dir into a
     JSON body and send those results to the performance storage service"""
     LOG.debug("parsing OLTPBench results and assembling request body.")
@@ -37,20 +31,17 @@ def report_oltpbench_result(env,
     send_result(env, '/oltpbench/', username, password, result)
 
 
-def report_microbenchmark_result(env, timestamp, config,
-                                 artifact_processor_comparison):
+def report_microbenchmark_result(env, timestamp, config, artifact_processor_comparison):
     """ Parse and format the data from the microbenchmark tests into a JSON
     body and send those to the performance storage service"""
     LOG.debug("parsing OLTPBench results and assembling request body.")
-    metadata, test_suite, test_name, metrics = parse_microbenchmark_data(
-        artifact_processor_comparison)
+    metadata, test_suite, test_name, metrics = parse_microbenchmark_data(artifact_processor_comparison)
     parameters = parse_parameters(config)
     metadata['environment']['wal_device'] = parse_wal_device(config)
 
     result = {
         'metadata': metadata,
-        'timestamp':
-        int(timestamp.timestamp() * 1000),  # convert to milliseconds
+        'timestamp': int(timestamp.timestamp() * 1000),  # convert to milliseconds
         'test_suite': test_suite,
         'test_name': test_name,
         'parameters': parameters,
