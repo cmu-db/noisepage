@@ -39,7 +39,7 @@ class PilotThread {
   void StartPL() {
     NOISEPAGE_ASSERT(!run_pl_, "PL should not already be running.");
     run_pl_ = true;
-    pl_paused_ = false;
+    pl_paused_ = true;
     pl_thread_ = std::thread([this] { PLThreadLoop(); });
   }
 

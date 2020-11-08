@@ -53,48 +53,10 @@ std::vector<parser::ConstantValueExpression> WorkloadForecast::SampleParam(execu
 }
 
 void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_main) {
-
-  auto it_begin = forecast_segments_[0].id_to_num_exec_.begin();
-  it_begin ++;
-  it_begin ++;
-  execution::query_id_t qid = it_begin->first;
-  std::vector<type::TypeId> param_types;
-  std::vector<parser::ConstantValueExpression> params = SampleParam(it_begin->first);
-
-  for (auto it = params.begin(); it != params.end(); it++) {
-    param_types.push_back(it->GetReturnValueType());
-  }
-
-  std::string tmp_query = "INSERT INTO ITEM VALUES ($1, $2, $3, $4, $5)";
-  std::cout << "Executing query id:" << qid << "; text: " << tmp_query << std::endl << std::flush;
-
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
-  transaction::TransactionContext *txn = txn_manager->BeginTransaction();
-
-  auto stmt_list = parser::PostgresParser::BuildParseTree(tmp_query);
-
-  std::cout << "1. Transaction began \n" << std::flush;
-
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
-  catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(1);
-  std::cout << "1.1. Got DB oid \n" << std::flush;
-  std::unique_ptr<catalog::CatalogAccessor> accessor = catalog->GetAccessor(common::ManagedPointer(txn),
-                                                                            db_oid, DISABLED);
-
-  auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
-  binder.BindNameToNode(common::ManagedPointer(stmt_list), common::ManagedPointer(&params),
-                        common::ManagedPointer(&param_types));
-
-  // Creating exec_ctx
-  std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
-
-  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
-
-  auto out_plan = trafficcop::TrafficCopUtil::Optimize(
-        common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
-        db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
-
-  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
+  transaction::TransactionContext *txn = nullptr;
+  auto metrics_manager = db_main->GetMetricsManager();
 
   execution::exec::ExecutionSettings exec_settings{};
   exec_settings.UpdateFromSettingsManager(db_main->GetSettingsManager());
@@ -102,34 +64,69 @@ void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_m
   execution::exec::NoOpResultConsumer consumer;
   execution::exec::OutputCallback callback = consumer;
 
-  auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
-        db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
-        common::ManagedPointer(accessor), exec_settings, db_main->GetMetricsManager());
+  execution::query_id_t qid;
+  std::vector<type::TypeId> param_types;
+  std::vector<parser::ConstantValueExpression> params;
 
-  exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+  for (auto it = query_id_to_param_.begin(); it != query_id_to_param_.end(); it++) {
+    qid = it->first;
 
-  execution::compiler::ExecutableQuery::query_identifier.store(qid);
-  auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
-                                                                      execution::compiler::CompilationMode::OneShot);
-  std::cout << "4. Compiled exec_query\n" << std::flush;
-  std::cout << common::thread_context.resource_tracker_.IsRunning() << std::endl << std::flush;
+    for (auto i = 0; i < query_id_to_param_[qid].size(); i++) {
+      params = query_id_to_param_[qid][i];
+      for (auto param_it = params.begin(); param_it != params.end(); param_it++) {
+        param_types.push_back(param_it->GetReturnValueType());
+      }
 
-  // exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&query_id_to_param_[qid][0]));
-  // std::cout << "SetParams succ \n" << std::flush;
-  exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
-  std::cout << "5. Run query succ \n" << std::flush;
+      txn = txn_manager->BeginTransaction();
+      // std::cout << "1. Transaction began \n" << std::flush;
+      auto stmt_list = parser::PostgresParser::BuildParseTree(query_id_to_string_[qid]);
+      catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(1);
+      // std::cout << "1.1. Got DB oid \n" << std::flush;
+      std::unique_ptr<catalog::CatalogAccessor> accessor = catalog->GetAccessor(common::ManagedPointer(txn),
+                                                                                db_oid, DISABLED);
 
-  std::this_thread::sleep_for(std::chrono::seconds(5));
+      auto binder = binder::BindNodeVisitor(common::ManagedPointer(accessor), db_oid);
+      binder.BindNameToNode(common::ManagedPointer(stmt_list), common::ManagedPointer(&params),
+                            common::ManagedPointer(&param_types));
+
+      // Creating exec_ctx
+      std::unique_ptr<optimizer::AbstractCostModel> cost_model = std::make_unique<optimizer::TrivialCostModel>();
+
+      auto out_plan = trafficcop::TrafficCopUtil::Optimize(
+          common::ManagedPointer(txn), common::ManagedPointer(accessor), common::ManagedPointer(stmt_list), db_oid,
+          db_main->GetStatsStorage(), std::move(cost_model), optimizer_timeout_);
+
+      auto exec_ctx = std::make_unique<execution::exec::ExecutionContext>(
+          db_oid, common::ManagedPointer(txn), callback, out_plan->GetOutputSchema().Get(),
+          common::ManagedPointer(accessor), exec_settings, db_main->GetMetricsManager());
+
+      exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&params));
+
+      execution::compiler::ExecutableQuery::query_identifier.store(qid);
+      auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
+                                                                         execution::compiler::CompilationMode::OneShot);
+      // std::cout << "4. Compiled exec_query\n" << std::flush;
+
+      // exec_ctx->SetParams(common::ManagedPointer<const std::vector<parser::ConstantValueExpression>>(&query_id_to_param_[qid][0]));
+      // std::cout << "SetParams succ \n" << std::flush;
+      exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
+      // std::cout << "5. Run query succ \n" << std::flush;
+
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+
+      txn_manager->Abort(txn);
+      // std::cout << "6. Transaction Aborted \n" << std::flush;
+      param_types.clear();
+    }
+  }
 
   // retrieve the features
-  auto metrics_manager = db_main->GetMetricsManager();
+
   metrics_manager->Aggregate();
   const auto aggregated_data = reinterpret_cast<metrics::PipelineMetricRawData *>(
       metrics_manager->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE)).get());
-  std::cout << "size: " << aggregated_data->pipeline_data_.size() << std::endl << std::flush;
+  std::cout << "pipeline_data size: " << aggregated_data->pipeline_data_.size() << std::endl << std::flush;
   metrics_manager->ToCSV();
-  txn_manager->Abort(txn);
-  std::cout << "6. Transaction Aborted \n" << std::flush;
 
 }
 
