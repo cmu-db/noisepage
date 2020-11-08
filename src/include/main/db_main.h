@@ -395,8 +395,8 @@ class DBMain {
       std::unique_ptr<brain::Pilot> pilot = DISABLED;
       if (use_pilot_thread_) {
         pilot = std::make_unique<brain::Pilot>(common::ManagedPointer(db_main), pilot_forecast_interval_);
-        pilot_thread = std::make_unique<brain::PilotThread>(common::ManagedPointer(pilot), 
-                                                            std::chrono::microseconds{pilot_interval_}, pilot_planning_);
+        pilot_thread = std::make_unique<brain::PilotThread>(
+            common::ManagedPointer(pilot), std::chrono::microseconds{pilot_interval_}, pilot_planning_);
       }
 
       std::unique_ptr<optimizer::StatsStorage> stats_storage = DISABLED;
@@ -927,15 +927,11 @@ class DBMain {
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<brain::Pilot> GetPilot() const {
-    return common::ManagedPointer(pilot_);
-  }
+  common::ManagedPointer<brain::Pilot> GetPilot() const { return common::ManagedPointer(pilot_); }
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled
    */
-  common::ManagedPointer<brain::PilotThread> GetPilotThread() const {
-    return common::ManagedPointer(pilot_thread_);
-  }
+  common::ManagedPointer<brain::PilotThread> GetPilotThread() const { return common::ManagedPointer(pilot_thread_); }
 
   /**
    * @return ManagedPointer to the component, can be nullptr if disabled

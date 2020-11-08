@@ -157,7 +157,7 @@ void Callbacks::MetricsQueryTrace(void *const old_value, void *const new_value, 
 }
 
 void Callbacks::PilotEnablePlanning(void *const old_value, void *const new_value, DBMain *const db_main,
-                                   common::ManagedPointer<common::ActionContext> action_context) {
+                                    common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   bool new_status = *static_cast<bool *>(new_value);
   if (new_status)

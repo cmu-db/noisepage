@@ -196,7 +196,7 @@ class MetricsStore {
    * @param query_id id of the query
    * @param timestamp time of the query execution
    */
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp, 
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
                         catalog::db_oid_t oid) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");

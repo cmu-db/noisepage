@@ -268,12 +268,11 @@ ConstantValueExpression ConstantValueExpression::FromString(std::string val, uin
       return ConstantValueExpression(cve_type, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
-      return ConstantValueExpression(cve_type, 
+      return ConstantValueExpression(cve_type,
                                      execution::sql::TimestampVal(execution::sql::Timestamp::FromString(val)));
     }
     case type::TypeId::DATE: {
-      return ConstantValueExpression(cve_type, 
-                                     execution::sql::DateVal(execution::sql::Date::FromString(val)));
+      return ConstantValueExpression(cve_type, execution::sql::DateVal(execution::sql::Date::FromString(val)));
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
@@ -288,13 +287,13 @@ ConstantValueExpression ConstantValueExpression::FromString(std::string val, uin
 std::string ConstantValueExpression::GetTypeAsString() const {
   type::TypeId retValType = GetReturnValueType();
   switch (retValType) {
-    case type::TypeId::BOOLEAN: 
+    case type::TypeId::BOOLEAN:
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT:
-    case type::TypeId::DECIMAL: 
-    case type::TypeId::TIMESTAMP: 
+    case type::TypeId::DECIMAL:
+    case type::TypeId::TIMESTAMP:
     case type::TypeId::DATE:
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {

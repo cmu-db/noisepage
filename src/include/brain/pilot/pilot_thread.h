@@ -5,7 +5,6 @@
 
 #include "brain/pilot/pilot.h"
 
-
 namespace noisepage::brain {
 
 /**

@@ -2,7 +2,7 @@
 
 #include <queue>
 #include <tuple>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 
 #include "execution/exec_defs.h"
@@ -10,26 +10,23 @@
 
 namespace noisepage::brain {
 /**
- * 
+ *
  */
 class WorkloadForecastSegment {
  public:
   /**
    * Constructor for the .
    * @param query_ids
-   * @param num_executions_ the 
+   * @param num_executions_ the
    */
-  WorkloadForecastSegment(std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec);
-  
-  void Peek();
+  explicit WorkloadForecastSegment(std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec);
 
   std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec_;
 
  private:
- 
   /**
-   * 
+   *
    */
 };
 
-}  // namespace terrier::brain::forecast
+}  // namespace noisepage::brain
