@@ -48,36 +48,36 @@ void Pilot::ExecuteForecast() {
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
   if (!oldval) {
     settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, true, common::ManagedPointer(action_context),
-                               WorkloadForecast::EmptySetterCallback);
+                               EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(2));
   if (!oldcounter) {
     settings_manager_->SetBool(settings::Param::counters_enable, true, common::ManagedPointer(action_context),
-                               WorkloadForecast::EmptySetterCallback);
+                               EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(3));
   settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, 0, common::ManagedPointer(action_context),
-                            WorkloadForecast::EmptySetterCallback);
+                            EmptySetterCallback);
 
   forecastor_->ExecuteSegments(db_main_);
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(4));
   if (!oldval) {
     settings_manager_->SetBool(settings::Param::pipeline_metrics_enable, false, common::ManagedPointer(action_context),
-                               WorkloadForecast::EmptySetterCallback);
+                               EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(5));
   if (!oldcounter) {
     settings_manager_->SetBool(settings::Param::counters_enable, false, common::ManagedPointer(action_context),
-                               WorkloadForecast::EmptySetterCallback);
+                               EmptySetterCallback);
   }
 
   action_context = std::make_unique<common::ActionContext>(common::action_id_t(6));
   settings_manager_->SetInt(settings::Param::pipeline_metrics_interval, oldintv, common::ManagedPointer(action_context),
-                            WorkloadForecast::EmptySetterCallback);
+                            EmptySetterCallback);
 }
 
 void Pilot::LoadQueryTrace() {

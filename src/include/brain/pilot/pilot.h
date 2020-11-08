@@ -36,8 +36,19 @@ class Pilot {
    */
   explicit Pilot(const common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval);
 
+  /**
+   * WorkloadForecast object performing the query execution and feature gathering
+   */
   std::unique_ptr<brain::WorkloadForecast> forecastor_;
 
+  /**
+   * Empty Setter Callback for setting bool value for flags
+   */
+  static void EmptySetterCallback(common::ManagedPointer<common::ActionContext> action_context UNUSED_ATTRIBUTE) {}
+
+  /**
+   * Performs Pilot Logic, load and execute the predict queries while extracting pipeline features
+   */
   void PerformPlanning();
 
  private:
