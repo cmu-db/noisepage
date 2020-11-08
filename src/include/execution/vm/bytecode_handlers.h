@@ -1537,6 +1537,62 @@ VM_OP_WARM void OpPow(noisepage::execution::sql::Real *result, const noisepage::
 }
 
 // ---------------------------------------------------------
+// Atomic memory operations
+// ---------------------------------------------------------
+
+#define ATOMIC(OP, DEST, VAL) (__atomic_fetch_##OP((DEST), (VAL), __ATOMIC_SEQ_CST))
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicAnd1(uint8_t *ret, uint8_t *dest, uint8_t val) { *ret = ATOMIC(and, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicAnd2(uint16_t *ret, uint16_t *dest, uint16_t val) { *ret = ATOMIC(and, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicAnd4(uint32_t *ret, uint32_t *dest, uint32_t val) { *ret = ATOMIC(and, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicAnd8(uint64_t *ret, uint64_t *dest, uint64_t val) { *ret = ATOMIC(and, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicOr1(uint8_t *ret, uint8_t *dest, uint8_t val) { *ret = ATOMIC(or, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicOr2(uint16_t *ret, uint16_t *dest, uint16_t val) { *ret = ATOMIC(or, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicOr4(uint32_t *ret, uint32_t *dest, uint32_t val) { *ret = ATOMIC(or, dest, val); }
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" should be a pointer to a const)
+VM_OP_HOT void OpAtomicOr8(uint64_t *ret, uint64_t *dest, uint64_t val) { *ret = ATOMIC(or, dest, val); }
+
+#undef ATOMIC
+
+#define CMPXCHG(DEST, EXPECTED, DESIRED) \
+  (__atomic_compare_exchange_n((DEST), (EXPECTED), (DESIRED), false, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED))
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" and "expected" should be pointers to const)
+VM_OP_HOT void OpAtomicCompareExchange1(bool *ret, uint8_t *dest, uint8_t *expected, uint8_t desired) {
+  *ret = CMPXCHG(dest, expected, desired);
+}
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" and "expected" should be pointers to const)
+VM_OP_HOT void OpAtomicCompareExchange2(bool *ret, uint16_t *dest, uint16_t *expected, uint16_t desired) {
+  *ret = CMPXCHG(dest, expected, desired);
+}
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" and "expected" should be pointers to const)
+VM_OP_HOT void OpAtomicCompareExchange4(bool *ret, uint32_t *dest, uint32_t *expected, uint32_t desired) {
+  *ret = CMPXCHG(dest, expected, desired);
+}
+
+// NOLINTNEXTLINE (clang-tidy incorrectly thinks "dest" and "expected" should be pointers to const)
+VM_OP_HOT void OpAtomicCompareExchange8(bool *ret, uint64_t *dest, uint64_t *expected, uint64_t desired) {
+  *ret = CMPXCHG(dest, expected, desired);
+}
+
+#undef CMPXCHG
+// ---------------------------------------------------------
 // Null/Not Null predicates
 // ---------------------------------------------------------
 
