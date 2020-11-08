@@ -224,9 +224,13 @@ class ExecutionOperatingUnitFeature {
   }
 
   /**
-   * @return number of iterations as a reference
+   * Update num_loops under a given mode and value
+   * @param mode Mode to use for updating target
+   * @param val Value to apply for the update
    */
-  size_t &GetNumLoops() { return num_loops_; }
+  void UpdateNumLoops(ExecutionOperatingUnitFeatureUpdateMode mode, size_t val) {
+    ApplyValueUpdate(mode, &num_concurrent_, val);
+  }
 
   /**
    * @return number of iterations
