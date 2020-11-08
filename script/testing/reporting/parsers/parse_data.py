@@ -130,12 +130,14 @@ def parse_db_metadata():
     if the version.h moves and this is not updated. We use a fallback of
     unknown result so the tests won't fail if this happens"""
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
-    CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    # FIXME: The relative path for the version.h may change in the future
+    version_file_relative = '../../../../src/include/common/version.h'
+    version_file = os.path.join(curr_dir, version_file_relative)
     db_metadata = {'noisepage': {'db_version': UNKNOWN_RESULT}}
     try:
-        with open(CURRENT_DIR +
-                  '/../../../../src/include/common/version.h') as version_file:
-            match = re.search(regex, version_file.read())
+        with open(version_file) as f:
+            match = re.search(regex, f.read())
             db_metadata['noisepage']['db_version'] = match.group(1)
     except Exception as err:
         LOG.error(err)
