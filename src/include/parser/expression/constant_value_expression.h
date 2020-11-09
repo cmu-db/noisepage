@@ -232,6 +232,12 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return A string representation of this ConstantValueExpression. */
   std::string ToString() const;
 
+  /** @return A ConstantValueExpression from input string and type. */
+  static ConstantValueExpression FromString(const std::string &val_string, uint64_t type_id);
+
+  /** @return Type of the ConstantValueExpression as string. */
+  std::string GetTypeAsString() const;
+
   /**
    * @return expression serialized to json
    */
