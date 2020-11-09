@@ -16,9 +16,9 @@ pipeline {
     }
 
     stages {
-        stage('Binary Metrics') {
+        stage('Artifact Stats') {
             parallel{
-                stage('ubuntu-20.04/gcc-9.3 (binary metrics)') {
+                stage('ubuntu-20.04/gcc-9.3 (artifact stats)') {
                     agent {
                         docker {
                             image 'noisepage:focal'
@@ -27,11 +27,11 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script: 'python3 script/testing/binary_metrics/run_binary_metrics.py', lable: 'Binary Metrics'
+                        sh script: 'python3 script/testing/binary_metrics/run_artifact_stats.py', lable: 'Artifact Stats'
                     }
                 }
 
-                stage('macos-10.14/clang-8.0 (binary metrics)') {
+                stage('macos-10.14/clang-8.0 (artifact stats)') {
                     agent { label 'macos' }
                     environment {
                         LIBRARY_PATH="$LIBRARY_PATH:/usr/local/opt/libpqxx/lib/"
@@ -42,7 +42,7 @@ pipeline {
                     steps {
                         sh 'echo $NODE_NAME'
                         sh script:'echo y | sudo ./script/installation/packages.sh all', label: 'Installing packages'
-                        sh script: 'python3 script/testing/binary_metrics/run_binary_metrics.py', lable: 'Binary Metrics'
+                        sh script: 'python3 script/testing/binary_metrics/run_artifact_stats.py', lable: 'Artifact Stats'
                     }
                 }
             }

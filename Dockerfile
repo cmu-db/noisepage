@@ -11,4 +11,5 @@ COPY script/installation/packages.sh install-script.sh
 RUN echo y | ./install-script.sh all
 
 COPY . /repo
-WORKDIR /repo/build
+#WORKDIR /repo/build
+WORKDIR /repo

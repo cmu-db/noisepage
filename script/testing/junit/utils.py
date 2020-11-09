@@ -4,6 +4,7 @@ import argparse
 
 from oltpbench import constants
 
+
 def parse_command_line_args():
     '''Command line argument parsing methods'''
 

@@ -1,30 +1,32 @@
 #!/usr/bin/env python3
 import os
-import socket
 import subprocess
-import sys
 import time
-import traceback
 import shlex
-from typing import List
 from util.constants import (DEFAULT_DB_OUTPUT_FILE, DEFAULT_DB_HOST, DEFAULT_DB_PORT, DEFAULT_DB_BIN, DIR_REPO,
                             DB_START_ATTEMPTS)
-from util.test_case import TestCase
-from util.constants import LOG, ErrorCode
-from util.periodic_task import PeriodicTask
-from util.common import (run_command, print_file, run_check_pids,
-                         run_kill_server, print_pipe, update_mem_info)
+from util.constants import LOG
+from util.common import run_check_pids, run_kill_server, print_pipe
 
 
 class NoisePageServer:
-    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, built_type='', server_args=''): #TODO: figure out if I need some kinda 
-        self.db_output_file = DEFAULT_DB_OUTPUT_FILE
+    def __init__(self, host=DEFAULT_DB_HOST, port=DEFAULT_DB_PORT, build_type='', server_args='', db_output_file=DEFAULT_DB_OUTPUT_FILE):
+        """ 
+        This class creates an instance of the DB that can be started, stopped, or restarted. 
+
+        Args:
+            host - The hostname where the DB should run
+            port - The port where the DB should run
+            build_type - The name of the build (i.e. release, debug, etc.)
+            server_args - A string of server args as you would pass them in the command line
+            db_output_file - The file where the DB outputs its logs to
+        """
         self.db_host = host
         self.db_port = port
         self.build_path = get_build_path(build_type)
         self.server_args = server_args.strip()
+        self.db_output_file = db_output_file
         self.db_process = None
-        #TODO: Do I need to set db path??
 
     def run_db(self):
         """ Start the DB server """
@@ -33,12 +35,12 @@ class NoisePageServer:
             # Kill any other noisepage processes that our listening on our target port
             # early terminate the run_db if kill_server.py encounter any exceptions
             run_kill_server(self.db_port)
-            
+
             # use memory buffer to hold db logs
             db_run_command = f'{self.build_path} {self.server_args}'
-            self.db_process = subprocess.Popen(shlex.split(db_run_command),stdout=subprocess.PIPE, 
-                                                stderr=subprocess.PIPE)
-            LOG.info(f'Server start: {self.db_path} [PID={self.db_process.pid}]')
+            self.db_process = subprocess.Popen(shlex.split(db_run_command), stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE)
+            LOG.info(f'Server start: {self.build_path} [PID={self.db_process.pid}]')
 
             if not run_check_pids(self.db_process.pid):
                 # The DB process does not exist, try starting it again
@@ -48,24 +50,19 @@ class NoisePageServer:
                 raw_db_log_line = self.db_process.stdout.readline()
                 if not raw_db_log_line:
                     break
-                if self.has_db_started(raw_db_log_line):
+                if has_db_started(raw_db_log_line, self.db_port, self.db_process.pid):
                     LOG.info('DB process is verified as running')
                     return
+            time.sleep(2 ** attempt)  # exponential backoff
 
         raise RuntimeError(f'Failed to start DB after {DB_START_ATTEMPTS} attempts')
-
-    def has_db_started(raw_db_log_line):
-        log_line = raw_db_log_line.decode("utf-8").rstrip("\n")
-        LOG.debug(log_line)
-        check_line = f'[info] Listening on Unix domain socket with port {self.db_port} [PID={self.db_process.pid}]'
-        return log_line.endswith(check_line)
 
     def stop_db(self):
         """ Stop the Db server and print it's log file """
         if not self.db_process:
             LOG.debug('DB has already been stopped.')
-            return 
-        
+            return
+
         # get exit code if any
         self.db_process.poll()
         if self.db_process.returncode is not None:
@@ -79,28 +76,32 @@ class NoisePageServer:
         """ Restart the DB """
         self.stop_db()
         self.run_db()
-    
+
     def print_db_logs(self):
-        """	
-        Print out the remaining DB logs	
-        """
+        """	Print out the remaining DB logs	"""
         LOG.info("************ DB Logs Start ************")
         print_pipe(self.db_process)
         LOG.info("************* DB Logs End *************")
 
 
 def get_build_path(build_type):
+    """ Get the path to the binary """
     path_list = [
-        ("standard","build"),
-        ("CLion","cmake-build-{}".format(build_type)),
+        ("standard", "build"),
+        ("CLion", "cmake-build-{}".format(build_type)),
     ]
     for _, path in path_list:
-        db_bin_path = os.path.join(DIR_REPO, path, DEFAULT_DB_BIN)
+        db_bin_path = os.path.join(DIR_REPO, path, "bin", DEFAULT_DB_BIN)
+        LOG.debug(f'Tring to find build path in {db_bin_path}')
         if os.path.exists(db_bin_path):
             return db_bin_path
-    
+
     raise RuntimeError(f'No DB binary found in {path_list}')
 
 
-
-
+def has_db_started(raw_db_log_line, port, pid):
+    """ Check whether the db has started by checking its log """
+    log_line = raw_db_log_line.decode("utf-8").rstrip("\n")
+    LOG.debug(log_line)
+    check_line = f'[info] Listening on Unix domain socket with port {port} [PID={pid}]'
+    return log_line.endswith(check_line)

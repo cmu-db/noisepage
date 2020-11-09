@@ -10,14 +10,16 @@ sys.path.insert(0, base_path)
 from junit import constants
 from junit.utils import parse_command_line_args
 from junit.test_junit import TestJUnit
-from util.constants import LOG,ErrorCode
+from util.constants import LOG, ErrorCode
 from test_case_junit import TestCaseJUnit
 
+
 def section_header(title):
-    border = "+++ " + "="*100 + " +++\n"
+    border = "+++ " + "=" * 100 + " +++\n"
     middle = "+++ " + title.center(100) + " +++\n"
     return "\n\n" + border + middle + border
 # DEF
+
 
 if __name__ == "__main__":
 

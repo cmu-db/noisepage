@@ -107,7 +107,7 @@ def get_server_args(test_suite_json):
             server_args = '{SERVER_ARGS} -{ATTRIBUTE}={VALUE}'.format(
                 SERVER_ARGS=server_args, ATTRIBUTE=attribute, VALUE=value)
 
-            #Delete the logfile before each run
+            # Delete the logfile before each run
             if attribute == 'wal_file_path':
                 previous_logfile_path = str(value)
                 if os.path.exists(previous_logfile_path):

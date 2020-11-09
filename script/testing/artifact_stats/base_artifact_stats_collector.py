@@ -3,9 +3,10 @@ import shutil
 
 from util.constants import DIR_REPO
 
-class BaseBinaryMetricsCollector(object):
-    def __init__(self, isDebug=False):
-        self.isDebug = isDebug
+
+class BaseArtifactStatsCollector(object):
+    def __init__(self, is_debug=False):
+        self.is_debug = is_debug
         self.metrics = {}
         self.build_path = os.path.join(DIR_REPO, "build")
 
@@ -23,4 +24,4 @@ class BaseBinaryMetricsCollector(object):
 
     def get_metrics(self):
         """ Return all the metrics that were stored for this collector """
-        return self.metrics 
+        return self.metrics
