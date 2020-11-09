@@ -983,7 +983,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   auto car = state->range(3);
   auto type = static_cast<type::TypeId>(state->range(4));
   auto num_index = state->range(5);
-  if (settings.skip_large_rows_runs_ && num_rows >= settings.warmup_rows_limit_) {
+  if (settings.skip_large_rows_runs_ && num_rows > settings.warmup_rows_limit_) {
     return;
   }
 
@@ -1126,7 +1126,10 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     units->RecordOperatingUnit(execution::pipeline_id_t(1), std::move(pipe0_vec));
     exec_query.SetPipelineOperatingUnits(std::move(units));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-    BenchmarkExecQuery(1, &exec_query, nullptr, false, &empty_params, &exec_settings);
+
+    // Need to warmup a little bit
+    size_t num_iters = 1 + settings.warmup_iterations_num_;
+    BenchmarkExecQuery(num_iters, &exec_query, nullptr, false, &empty_params, &exec_settings);
   }
 
   // Drop the indexes
@@ -1682,7 +1685,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinSelfRunners)(benchmark::State &stat
     return;
   }
 
-  if (settings.skip_large_rows_runs_ && row >= settings.warmup_rows_limit_) {
+  if (settings.skip_large_rows_runs_ && row > settings.warmup_rows_limit_) {
     return;
   }
 
@@ -1737,7 +1740,7 @@ BENCHMARK_DEFINE_F(MiniRunners, SEQ4_HashJoinNonSelfRunners)(benchmark::State &s
     return;
   }
 
-  if (settings.skip_large_rows_runs_ && probe_row >= settings.warmup_rows_limit_) {
+  if (settings.skip_large_rows_runs_ && probe_row > settings.warmup_rows_limit_) {
     return;
   }
 
