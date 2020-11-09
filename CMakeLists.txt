@@ -977,7 +977,7 @@ endfunction()
 # Be careful that your prefixes are really unique, otherwise a test will be run multiple times.
 
 add_jumbotest("test/binder" "")
-add_jumbotest("test/catalog" "")
+add_jumbotest("test/catalog" "catalog_sql_test;")
 add_jumbotest("test/common" "bitmap_test;concurrent_bitmap_test;rusage_monitor_test;")
 add_jumbotest("test/execution" "ast;compiler_test;index_create_test;index_iterator_test;sql;storage_interface_test;util;vm;")
 add_jumbotest("test/integration" "")
@@ -996,6 +996,7 @@ add_jumbotest("test/type" "")
 # Read up on CTest resource groups: https://cmake.org/cmake/help/latest/manual/ctest.1.html#resource-allocation
 # All tests that try to launch the server on port 15721 must declare that here.
 set_tests_properties(
+        catalog_sql_test jumbotest_catalog_catalog_sql_test
         metrics_test jumbotest_metrics_metrics_test
         network_test jumbotest_network_network_test
         traffic_cop_test jumbotest_traffic_cop_traffic_cop_test
