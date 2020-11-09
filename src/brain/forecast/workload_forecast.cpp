@@ -100,7 +100,7 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
       execution::compiler::ExecutableQuery::query_identifier.store(qid);
       auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                          execution::compiler::CompilationMode::OneShot);
-      std::cout << qid << ";\n " << std::flush;
+      // std::cout << qid << ";\n " << std::flush;
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
       // std::cout << "5. Run query succ \n" << std::flush;
 
