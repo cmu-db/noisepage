@@ -34,10 +34,12 @@ WorkloadForecast::WorkloadForecast(
     std::unordered_map<std::string, execution::query_id_t> query_string_to_id,
     std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
         query_id_to_param,
+    std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid,
     uint64_t forecast_interval)
     : query_id_to_string_(query_id_to_string),
       query_string_to_id_(query_string_to_id),
       query_id_to_param_(query_id_to_param),
+      query_id_to_dboid_(query_id_to_dboid),
       forecast_interval_(forecast_interval) {
   CreateSegments(query_timestamp_to_id, num_executions);
 }
@@ -59,6 +61,7 @@ void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_m
   execution::exec::OutputCallback callback = consumer;
 
   execution::query_id_t qid;
+  catalog::db_oid_t db_oid;
   std::vector<type::TypeId> param_types;
   std::vector<parser::ConstantValueExpression> params;
 
@@ -74,7 +77,7 @@ void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_m
       txn = txn_manager->BeginTransaction();
       // std::cout << "1. Transaction began \n" << std::flush;
       auto stmt_list = parser::PostgresParser::BuildParseTree(query_id_to_string_[qid]);
-      catalog::db_oid_t db_oid = static_cast<catalog::db_oid_t>(1);
+      db_oid = static_cast<catalog::db_oid_t>(query_id_to_dboid_[qid]);
       // std::cout << "1.1. Got DB oid \n" << std::flush;
       std::unique_ptr<catalog::CatalogAccessor> accessor =
           catalog->GetAccessor(common::ManagedPointer(txn), db_oid, DISABLED);
@@ -99,11 +102,7 @@ void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_m
       execution::compiler::ExecutableQuery::query_identifier.store(qid);
       auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                          execution::compiler::CompilationMode::OneShot);
-      // std::cout << "4. Compiled exec_query\n" << std::flush;
 
-      // exec_ctx->SetParams(common::ManagedPointer<const
-      // std::vector<parser::ConstantValueExpression>>(&query_id_to_param_[qid][0])); std::cout << "SetParams succ \n"
-      // << std::flush;
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
       // std::cout << "5. Run query succ \n" << std::flush;
 

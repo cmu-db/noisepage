@@ -26,7 +26,8 @@ void Pilot::PerformPlanning() {
   LoadQueryTrace();
   LoadQueryText();
   forecastor_ = std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_,
-                                                   query_text_to_id_, query_id_to_params_, forecast_interval_);
+                                                   query_text_to_id_, query_id_to_params_, query_id_to_dboid_,
+                                                   forecast_interval_);
 
   db_main_->GetMetricsThread()->PauseMetrics();
   ExecuteForecast();
@@ -36,10 +37,8 @@ void Pilot::PerformPlanning() {
 void Pilot::ExecuteForecast() {
   NOISEPAGE_ASSERT(forecastor_ != nullptr, "Need forecastor initialized.");
 
-  // Then manually enable pipeline_metrics
   for (const auto &file : metrics::PipelineMetricRawData::FILES) unlink(std::string(file).c_str());
 
-  // forecastor_->ExecuteSegments(exec_ctx);
   auto settings_manager_ = db_main_->GetSettingsManager();
   bool oldval = settings_manager_->GetBool(settings::Param::pipeline_metrics_enable);
   bool oldcounter = settings_manager_->GetBool(settings::Param::counters_enable);
@@ -81,7 +80,7 @@ void Pilot::ExecuteForecast() {
 }
 
 void Pilot::LoadQueryTrace() {
-  uint8_t NUM_COLS = 4;
+  uint8_t NUM_COLS = 5;
   std::ifstream myFile("./query_trace.csv");
   // Make sure the file is open
   if (!myFile.is_open()) throw std::runtime_error("Could not open file");
@@ -126,12 +125,7 @@ void Pilot::LoadQueryTrace() {
         auto cve = parser::ConstantValueExpression::FromString(val_string.substr(0, pos),
                                                                std::stoi(type_string.substr(0, pos2)));
 
-        // if (cve.ToString() != val_string.substr(0, pos)) {
-        //   std::cout << cve.ToString() << " " << val_string.substr(0, pos) << std::endl;
-        // }
         param_vec.push_back(cve);
-        // std::cout << cve.ToString() << "," << std::flush;
-        // std::cout << val_vec.at(counter) << " " << val_string << ",\n" << std::flush;
       } else {
         // std::cout << "null value detected in query params recorded\n" << std::flush;
         null_detected = true;
@@ -144,14 +138,13 @@ void Pilot::LoadQueryTrace() {
     if (!null_detected) {
       if ((curr_size = query_id_to_params_[query_id].size()) < num_sample_) {
         query_id_to_params_[query_id].push_back(param_vec);
+        query_id_to_dboid_[query_id] = std::stoi(val_vec[4]);
         query_timestamp_to_id_[std::stoull(val_vec[1])] = std::make_pair(query_id, curr_size);
         num_executions_[query_id].push_back(1);
       } else {
         num_executions_[query_id][rand() % num_sample_]++;
       }
     }
-    // std::cout << "\n" << std::flush;
-    // std::cout << "\nnewline\n" << std::endl;
   }
   // Close file
   myFile.close();

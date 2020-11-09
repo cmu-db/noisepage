@@ -38,6 +38,7 @@ class WorkloadForecast {
    * @param query_id_to_string Map from a qid to the query text
    * @param query_string_to_id Map from a query's text to the qid
    * @param query_id_to_param Map from qid to a constant number of parameters
+   * @param query_id_to_dboid Map from qid to the database oid
    * @param forecast_interval Interval used to partition the queries into segments
    *
    */
@@ -47,6 +48,7 @@ class WorkloadForecast {
                    std::unordered_map<std::string, execution::query_id_t> query_string_to_id,
                    std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
                        query_id_to_param,
+                   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid,
                    uint64_t forecast_interval);
   /**
    * Sort queries by their timestamp, then partition by forecast_interval
@@ -69,6 +71,7 @@ class WorkloadForecast {
   std::unordered_map<std::string, execution::query_id_t> query_string_to_id_;
   std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
       query_id_to_param_;
+  std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid_;
   std::vector<WorkloadForecastSegment> forecast_segments_;
   uint64_t num_forecast_segment_;
   uint64_t forecast_interval_;

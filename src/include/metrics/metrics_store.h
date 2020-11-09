@@ -195,6 +195,8 @@ class MetricsStore {
    * Record query execution history
    * @param query_id id of the query
    * @param timestamp time of the query execution
+   * @param param parameter associated with this query
+   * @param oid database oid
    */
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,

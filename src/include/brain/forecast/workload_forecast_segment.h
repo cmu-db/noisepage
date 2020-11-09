@@ -22,7 +22,6 @@ class WorkloadForecastSegment {
 
  private:
   std::unordered_map<execution::query_id_t, uint64_t> id_to_num_exec_;
-
 };
 
 }  // namespace noisepage::brain
