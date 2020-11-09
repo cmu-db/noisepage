@@ -54,8 +54,8 @@ class WorkloadForecast {
    * @param query_timestamp_to_id Map from a timestamp to a query and an index that denotes a specific set of parameter
    * @param num_executions Number of executions associated with each query and a set of parameter
    */
-  void CreateSegments(std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id,
-                      std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions);
+  void CreateSegments(std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
+                      std::unordered_map<execution::query_id_t, std::vector<uint64_t>> &num_executions);
   /**
    * Execute all queries and the constant number of parameters associated with each
    * @param db_main Managed pointer to db_main

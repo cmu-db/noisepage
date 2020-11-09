@@ -233,7 +233,7 @@ class ConstantValueExpression : public AbstractExpression {
   std::string ToString() const;
 
   /** @return A ConstantValueExpression from input string and type. */
-  static ConstantValueExpression FromString(std::string val_string, uint64_t type_id);
+  static ConstantValueExpression FromString(const std::string &val_string, uint64_t type_id);
 
   /** @return Type of the ConstantValueExpression as string. */
   std::string GetTypeAsString() const;

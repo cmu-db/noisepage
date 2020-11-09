@@ -251,8 +251,8 @@ std::string ConstantValueExpression::ToString() const {
   }
 }
 
-ConstantValueExpression ConstantValueExpression::FromString(std::string val, uint64_t type_id) {
-  const type::TypeId cve_type = static_cast<type::TypeId>(type_id);
+ConstantValueExpression ConstantValueExpression::FromString(const std::string &val, uint64_t type_id) {
+  const auto cve_type = static_cast<type::TypeId>(type_id);
 
   switch (cve_type) {
     case type::TypeId::BOOLEAN: {
@@ -285,8 +285,8 @@ ConstantValueExpression ConstantValueExpression::FromString(std::string val, uin
 }
 
 std::string ConstantValueExpression::GetTypeAsString() const {
-  type::TypeId retValType = GetReturnValueType();
-  switch (retValType) {
+  type::TypeId ret_val_type = GetReturnValueType();
+  switch (ret_val_type) {
     case type::TypeId::BOOLEAN:
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
@@ -297,7 +297,7 @@ std::string ConstantValueExpression::GetTypeAsString() const {
     case type::TypeId::DATE:
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
-      return fmt::format("{}", retValType);
+      return fmt::format("{}", ret_val_type);
     }
     default:
       UNREACHABLE("Invalid TypeId.");

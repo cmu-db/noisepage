@@ -64,13 +64,13 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
   std::vector<type::TypeId> param_types;
   std::vector<parser::ConstantValueExpression> params;
 
-  for (auto it = query_id_to_param_.begin(); it != query_id_to_param_.end(); it++) {
-    qid = it->first;
-
-    for (auto i = 0; i < query_id_to_param_[qid].size(); i++) {
-      params = query_id_to_param_[qid][i];
-      for (auto param_it = params.begin(); param_it != params.end(); param_it++) {
-        param_types.push_back(param_it->GetReturnValueType());
+  for (auto &it : query_id_to_param_) {
+    qid = it.first;
+    for (auto &params_it : query_id_to_param_[qid]) {
+    // for (auto i = 0; i < query_id_to_param_[qid].size(); i++) {
+      params = params_it;
+      for (auto &param_it : params) {
+        param_types.push_back(param_it.GetReturnValueType());
       }
 
       txn = txn_manager->BeginTransaction();
@@ -129,25 +129,25 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
 }
 
 void WorkloadForecast::CreateSegments(
-    std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id,
-    std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions) {
+    std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
+    std::unordered_map<execution::query_id_t, std::vector<uint64_t>> &num_executions) {
   std::vector<WorkloadForecastSegment> segments;
 
   std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
 
   uint64_t curr_time = query_timestamp_to_id.begin()->first;
 
-  for (auto it = query_timestamp_to_id.begin(); it != query_timestamp_to_id.end(); it++) {
-    if (it->first > curr_time + forecast_interval_) {
-      segments.push_back(WorkloadForecastSegment(curr_segment));
-      curr_time = it->first;
+  for (auto &it : query_timestamp_to_id) {
+    if (it.first > curr_time + forecast_interval_) {
+      segments.emplace_back(curr_segment);
+      curr_time = it.first;
       curr_segment.clear();
     }
-    curr_segment[it->second.first] += num_executions[it->second.first][it->second.second];
+    curr_segment[it.second.first] += num_executions[it.second.first][it.second.second];
   }
 
-  if (curr_segment.size() > 0) {
-    segments.push_back(WorkloadForecastSegment(curr_segment));
+  if (!curr_segment.empty()) {
+    segments.emplace_back(curr_segment);
   }
   forecast_segments_ = segments;
   num_forecast_segment_ = segments.size();

@@ -84,8 +84,8 @@ class QueryTraceMetricRawData : public AbstractRawData {
     query_text_.emplace_back(query_id, query_text, timestamp);
   }
 
-  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp, std::string param_string,
-                        std::string type_string, const catalog::db_oid_t oid) {
+  void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp, const std::string &param_string,
+                        const std::string &type_string, const catalog::db_oid_t oid) {
     query_trace_.emplace_back(query_id, timestamp, param_string, type_string, oid);
   }
 
