@@ -45,6 +45,8 @@ Hi! Welcome to CMU DB.
    export ASAN_OPTIONS=detect_container_overflow=0
    ```
 
+   This configuration should be sufficient to successfully build NoisePage from the commandline. If you experience issues with this configuration, or while attempting to build NoisePage from within CLion, see the OSX section of the [troubleshooting](https://github.com/cmu-db/noisepage/tree/master/docs/dev_troubleshooting.md) page for potential remedies.
+
 ### Further reading
 
 You should learn a little about the following:
