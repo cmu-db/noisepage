@@ -94,7 +94,7 @@ class QueryTraceMetricRawData : public AbstractRawData {
         : query_id_(query_id), timestamp_(timestamp), query_text_(std::move(query_text)) {}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
-    std::string query_text_;
+    const std::string query_text_;
   };
 
   struct QueryTrace {
@@ -107,8 +107,8 @@ class QueryTraceMetricRawData : public AbstractRawData {
           oid_(oid) {}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
-    std::string param_string_;
-    std::string type_string_;
+    const std::string param_string_;
+    const std::string type_string_;
     const catalog::db_oid_t oid_;
   };
 
@@ -137,7 +137,7 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
         return;
       }
       param_stream << val.ToString();
-      type_stream << val.GetTypeAsString();
+      type_stream << type::TypeUtil::TypeIdToString(val.GetReturnValueType());
 
       param_stream << ";";
       type_stream << ";";
