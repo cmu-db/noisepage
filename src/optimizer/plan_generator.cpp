@@ -722,6 +722,10 @@ void PlanGenerator::BuildAggregatePlan(
   }
 
   auto agg_id = 0;
+  /* Each ExprMap represents a single group of tuples (i.e. one relation). For aggregates we manually output all the
+   * group by columns into the 0th relation and all the aggregate values into the 1st relation. Therefore we need a
+   * separate map for each.
+   */
   ExprMap gb_output_expr_map;
   ExprMap agg_output_expr_map;
   std::vector<planner::OutputSchema::Column> columns;
