@@ -256,7 +256,7 @@ ConstantValueExpression ConstantValueExpression::FromString(const std::string &v
 
   switch (cve_type) {
     case type::TypeId::BOOLEAN: {
-      return ConstantValueExpression(cve_type, execution::sql::BoolVal(std::stoi(val)));
+      return ConstantValueExpression(cve_type, execution::sql::BoolVal(std::stoi(val) != 0));
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:

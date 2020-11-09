@@ -171,14 +171,14 @@ void Pilot::LoadQueryText() {
 
   while (std::getline(my_file, line)) {
     // std::cout << line << "\n" << std::flush;
-    pos = line.find("\"");
+    pos = line.find('\"');
     if (pos == std::string::npos || pos < 3) {
       // no quotation mark found or no query_id found
       continue;
     }
     query_id = static_cast<execution::query_id_t>(std::stoi(line.substr(0, pos - 2)));
     line.erase(0, pos + 1);
-    pos = line.find("\"");
+    pos = line.find('\"');
 
     if (pos == std::string::npos) continue;
 

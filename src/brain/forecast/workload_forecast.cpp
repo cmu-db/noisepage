@@ -28,7 +28,7 @@
 namespace noisepage::brain {
 
 WorkloadForecast::WorkloadForecast(
-    std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> query_timestamp_to_id,
+    const std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
     std::unordered_map<execution::query_id_t, std::vector<uint64_t>> num_executions,
     std::unordered_map<execution::query_id_t, std::string> query_id_to_string,
     std::unordered_map<std::string, execution::query_id_t> query_string_to_id,
