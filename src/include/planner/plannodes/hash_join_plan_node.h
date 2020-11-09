@@ -73,12 +73,13 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    * @param predicate join predicate
    * @param left_hash_keys left side keys to be hashed on
    * @param right_hash_keys right side keys to be hashed on
+   * @param cardinality Estimated cardinality
    */
   HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                    std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                    common::ManagedPointer<parser::AbstractExpression> predicate,
                    std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
-                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys);
+                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys, int cardinality);
 
  public:
   /**

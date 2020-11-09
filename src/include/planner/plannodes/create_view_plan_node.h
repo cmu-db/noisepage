@@ -93,11 +93,12 @@ class CreateViewPlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param view_name  view name
    * @param view_query view query
+   * @param cardinality estimated cardinality
    */
   CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, std::string view_name,
-                     std::unique_ptr<parser::SelectStatement> view_query);
+                     std::unique_ptr<parser::SelectStatement> view_query, int cardinality);
 
  public:
   /** Default constructor for deserialization. */

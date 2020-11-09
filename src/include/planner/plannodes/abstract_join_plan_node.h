@@ -56,10 +56,11 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node.
    * @param join_type The logical join type.
    * @param predicate The join predicate.
+   * @param cardinality Estimated cardinality
    */
   AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                       common::ManagedPointer<parser::AbstractExpression> predicate);
+                       common::ManagedPointer<parser::AbstractExpression> predicate, int cardinality);
 
  public:
   /**

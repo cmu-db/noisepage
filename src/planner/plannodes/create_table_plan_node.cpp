@@ -14,7 +14,7 @@ std::unique_ptr<CreateTablePlanNode> CreateTablePlanNode::Builder::Build() {
   return std::unique_ptr<CreateTablePlanNode>(
       new CreateTablePlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_),
                               std::move(table_schema_), block_store_, has_primary_key_, std::move(primary_key_),
-                              std::move(foreign_keys_), std::move(con_uniques_), std::move(con_checks_)));
+                              std::move(foreign_keys_), std::move(con_uniques_), std::move(con_checks_), cardinality_));
 }
 
 CreateTablePlanNode::CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
@@ -23,8 +23,9 @@ CreateTablePlanNode::CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPla
                                          std::unique_ptr<catalog::Schema> table_schema,
                                          common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
                                          PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
-                                         std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                                         std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks,
+                                         int cardinality)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), cardinality),
       namespace_oid_(namespace_oid),
       table_name_(std::move(table_name)),
       table_schema_(std::move(table_schema)),

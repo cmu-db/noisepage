@@ -1897,6 +1897,7 @@ TEST_F(OperatorTransformerTest, AnalyzeTest) {
       plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
                                    output_cols, std::move(children_plans), std::move(children_expr_map));
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
+  EXPECT_EQ(plan_node->GetCardinality(), -1);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 1);
   EXPECT_EQ(analyze_plan->GetColumnOids().at(0), col_a1_oid);
@@ -1949,8 +1950,9 @@ TEST_F(OperatorTransformerTest, AnalyzeTest2) {
 
   auto plan_node =
       plan_generator.ConvertOpNode(txn_, accessor_.get(), transformed[0].get(), &property_set, required_cols,
-                                   output_cols, std::move(children_plans), std::move(children_expr_map));
+                                   output_cols, std::move(children_plans), std::move(children_expr_map), 0);
   EXPECT_EQ(plan_node->GetPlanNodeType(), planner::PlanNodeType::ANALYZE);
+  EXPECT_EQ(plan_node->GetCardinality(), 0);
   auto analyze_plan = common::ManagedPointer(plan_node).CastManagedPointerTo<planner::AnalyzePlanNode>();
   EXPECT_EQ(analyze_plan->GetColumnOids().size(), 0);
   EXPECT_EQ(analyze_plan->GetTableOid(), table_a_oid_);

@@ -55,9 +55,10 @@ class DropDatabasePlanNode : public AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_oid OID of the database to drop
+   * @param cardinality estimated cardinality
    */
   DropDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid);
+                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid, int cardinality);
 
  public:
   /**

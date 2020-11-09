@@ -11,16 +11,17 @@
 namespace noisepage::planner {
 
 std::unique_ptr<CreateIndexPlanNode> CreateIndexPlanNode::Builder::Build() {
-  return std::unique_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      namespace_oid_, table_oid_,
-                                                                      std::move(index_name_), std::move(schema_)));
+  return std::unique_ptr<CreateIndexPlanNode>(
+      new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
+                              std::move(index_name_), std::move(schema_), cardinality_));
 }
 
 CreateIndexPlanNode::CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                          std::unique_ptr<OutputSchema> output_schema,
                                          catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                                         std::string index_name, std::unique_ptr<catalog::IndexSchema> schema)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                                         std::string index_name, std::unique_ptr<catalog::IndexSchema> schema,
+                                         int cardinality)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), cardinality),
       namespace_oid_(namespace_oid),
       table_oid_(table_oid),
       index_name_(std::move(index_name)),

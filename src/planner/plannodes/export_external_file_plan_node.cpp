@@ -11,14 +11,14 @@
 namespace noisepage::planner {
 
 std::unique_ptr<ExportExternalFilePlanNode> ExportExternalFilePlanNode::Builder::Build() {
-  return std::unique_ptr<ExportExternalFilePlanNode>(
-      new ExportExternalFilePlanNode(std::move(children_), format_, file_name_, delimiter_, quote_, escape_));
+  return std::unique_ptr<ExportExternalFilePlanNode>(new ExportExternalFilePlanNode(
+      std::move(children_), format_, file_name_, delimiter_, quote_, escape_, cardinality_));
 }
 
 ExportExternalFilePlanNode::ExportExternalFilePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                                        parser::ExternalFileFormat format, std::string file_name,
-                                                       char delimiter, char quote, char escape)
-    : AbstractPlanNode(std::move(children), nullptr),
+                                                       char delimiter, char quote, char escape, int cardinality)
+    : AbstractPlanNode(std::move(children), nullptr, cardinality),
       format_(format),
       file_name_(std::move(file_name)),
       delimiter_(delimiter),

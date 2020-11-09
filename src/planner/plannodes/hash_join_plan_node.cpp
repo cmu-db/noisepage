@@ -12,15 +12,16 @@ namespace noisepage::planner {
 std::unique_ptr<HashJoinPlanNode> HashJoinPlanNode::Builder::Build() {
   return std::unique_ptr<HashJoinPlanNode>(new HashJoinPlanNode(std::move(children_), std::move(output_schema_),
                                                                 join_type_, join_predicate_, std::move(left_hash_keys_),
-                                                                std::move(right_hash_keys_)));
+                                                                std::move(right_hash_keys_), cardinality_));
 }
 
 HashJoinPlanNode::HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                    std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                                    common::ManagedPointer<parser::AbstractExpression> predicate,
                                    std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
-                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys)
-    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
+                                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys,
+                                   int cardinality)
+    : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate, cardinality),
       left_hash_keys_(std::move(left_hash_keys)),
       right_hash_keys_(std::move(right_hash_keys)) {}
 

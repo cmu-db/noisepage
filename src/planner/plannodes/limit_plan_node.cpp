@@ -11,12 +11,12 @@ namespace noisepage::planner {
 
 std::unique_ptr<LimitPlanNode> LimitPlanNode::Builder::Build() {
   return std::unique_ptr<LimitPlanNode>(
-      new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_));
+      new LimitPlanNode(std::move(children_), std::move(output_schema_), limit_, offset_, cardinality_));
 }
 
 LimitPlanNode::LimitPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                             std::unique_ptr<OutputSchema> output_schema, size_t limit, size_t offset)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)), limit_(limit), offset_(offset) {}
+                             std::unique_ptr<OutputSchema> output_schema, size_t limit, size_t offset, int cardinality)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), cardinality), limit_(limit), offset_(offset) {}
 
 common::hash_t LimitPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();

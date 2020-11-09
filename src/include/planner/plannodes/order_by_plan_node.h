@@ -100,10 +100,11 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param has_limit true if operator should perform a limit
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
+   * @param cardinality estimated cardinality
    */
   OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
-                  size_t limit, size_t offset);
+                  size_t limit, size_t offset, int cardinality);
 
  public:
   /**

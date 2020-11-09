@@ -12,12 +12,13 @@ namespace noisepage::planner {
 
 std::unique_ptr<DropDatabasePlanNode> DropDatabasePlanNode::Builder::Build() {
   return std::unique_ptr<DropDatabasePlanNode>(
-      new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_));
+      new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_, cardinality_));
 }
 
 DropDatabasePlanNode::DropDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                                           std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)), database_oid_(database_oid) {}
+                                           std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                                           int cardinality)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), cardinality), database_oid_(database_oid) {}
 
 common::hash_t DropDatabasePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();

@@ -54,6 +54,27 @@ class PlanGenerator : public OperatorVisitor {
   PlanGenerator();
 
   /**
+   * Converts an operator node with a cardinality value into a plan node.
+   *
+   * @param txn TransactionContext
+   * @param accessor CatalogAccessor
+   * @param op OperatorNode to convert
+   * @param required_props Required properties
+   * @param required_cols Columns that are required to be output
+   * @param output_cols Columns output by the Operator
+   * @param children_plans Children plan nodes
+   * @param children_expr_map Vector of children expression -> col offset mapping
+   * @param cardinality Estimated Cardinality
+   * @returns Output plan node
+   */
+  std::unique_ptr<planner::AbstractPlanNode> ConvertOpNode(
+      transaction::TransactionContext *txn, catalog::CatalogAccessor *accessor, AbstractOptimizerNode *op,
+      PropertySet *required_props, const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
+      std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
+      std::vector<ExprMap> &&children_expr_map, int cardinality);
+
+  /**
    * Converts an operator node into a plan node.
    *
    * @param txn TransactionContext
@@ -413,6 +434,11 @@ class PlanGenerator : public OperatorVisitor {
    * Transaction Context executing under
    */
   transaction::TransactionContext *txn_;
+
+  /**
+   * Estimated Cardinality for plan
+   */
+  int cardinality_;
 };
 
 }  // namespace optimizer

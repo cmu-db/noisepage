@@ -38,9 +38,10 @@ class ProjectionPlanNode : public AbstractPlanNode {
   /**
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param cardinality estimated cardinality
    */
   explicit ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                              std::unique_ptr<OutputSchema> output_schema);
+                              std::unique_ptr<OutputSchema> output_schema, int cardinality);
 
  public:
   /**

@@ -11,8 +11,9 @@ namespace noisepage::planner {
 
 AbstractJoinPlanNode::AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                                            std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                                           common::ManagedPointer<parser::AbstractExpression> predicate)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)),
+                                           common::ManagedPointer<parser::AbstractExpression> predicate,
+                                           int cardinality)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), cardinality),
       join_type_(join_type),
       join_predicate_(predicate) {}
 

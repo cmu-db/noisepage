@@ -57,9 +57,10 @@ class DropTablePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table to drop
+   * @param cardinality estimated cardinality
    */
   DropTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid);
+                    std::unique_ptr<OutputSchema> output_schema, catalog::table_oid_t table_oid, int cardinality);
 
  public:
   /**

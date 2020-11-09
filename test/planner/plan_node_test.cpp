@@ -102,6 +102,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
           .SetDatabaseOid(catalog::db_oid_t(0))
           .SetScanPredicate(common::ManagedPointer(scan_pred_1).CastManagedPointerTo<parser::AbstractExpression>())
           .SetIsForUpdateFlag(false)
+          .SetCardinality(2)
           .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_1->GetPlanNodeType());
@@ -110,6 +111,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(catalog::db_oid_t(0), seq_scan_1->GetDatabaseOid());
   EXPECT_EQ(parser::ExpressionType::STAR, seq_scan_1->GetScanPredicate()->GetExpressionType());
   EXPECT_FALSE(seq_scan_1->IsForUpdate());
+  EXPECT_EQ(2, seq_scan_1->GetCardinality());
 
   auto scan_pred_2 = std::make_unique<parser::StarExpression>();
   auto seq_scan_2 =
@@ -118,6 +120,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
           .SetDatabaseOid(catalog::db_oid_t(0))
           .SetScanPredicate(common::ManagedPointer(scan_pred_2).CastManagedPointerTo<parser::AbstractExpression>())
           .SetIsForUpdateFlag(false)
+          .SetCardinality(5)
           .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_2->GetPlanNodeType());
@@ -126,6 +129,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(catalog::db_oid_t(0), seq_scan_2->GetDatabaseOid());
   EXPECT_EQ(parser::ExpressionType::STAR, seq_scan_2->GetScanPredicate()->GetExpressionType());
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
+  EXPECT_EQ(5, seq_scan_2->GetCardinality());
 
   std::vector<std::unique_ptr<parser::AbstractExpression>> expr_children;
   expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table1", "col1"));

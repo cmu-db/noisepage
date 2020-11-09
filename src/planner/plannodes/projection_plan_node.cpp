@@ -9,12 +9,13 @@
 namespace noisepage::planner {
 
 std::unique_ptr<ProjectionPlanNode> ProjectionPlanNode::Builder::Build() {
-  return std::unique_ptr<ProjectionPlanNode>(new ProjectionPlanNode(std::move(children_), std::move(output_schema_)));
+  return std::unique_ptr<ProjectionPlanNode>(
+      new ProjectionPlanNode(std::move(children_), std::move(output_schema_), cardinality_));
 }
 
 ProjectionPlanNode::ProjectionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                                       std::unique_ptr<OutputSchema> output_schema)
-    : AbstractPlanNode(std::move(children), std::move(output_schema)) {}
+                                       std::unique_ptr<OutputSchema> output_schema, int cardinality)
+    : AbstractPlanNode(std::move(children), std::move(output_schema), cardinality) {}
 
 common::hash_t ProjectionPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();

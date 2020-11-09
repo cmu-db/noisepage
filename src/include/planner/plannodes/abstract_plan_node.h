@@ -53,6 +53,15 @@ class AbstractPlanNode {
       return *dynamic_cast<ConcreteType *>(this);
     }
 
+    /**
+     * @param cardinality estimated cardinality for plan node
+     * @return builder object
+     */
+    ConcreteType &SetCardinality(int cardinality) {
+      cardinality_ = cardinality;
+      return *dynamic_cast<ConcreteType *>(this);
+    }
+
    protected:
     /**
      * child plans
@@ -62,15 +71,20 @@ class AbstractPlanNode {
      * schema describing output of the node
      */
     std::unique_ptr<OutputSchema> output_schema_{nullptr};
+    /**
+     * Estimated cardinality
+     */
+    int cardinality_ = -1;
   };
 
   /**
    * Constructor for the base AbstractPlanNode. Derived plan nodes should call this constructor to set output_schema
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
+   * @param cardinality estimated cardinality
    */
   AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                   std::unique_ptr<OutputSchema> output_schema);
+                   std::unique_ptr<OutputSchema> output_schema, int cardinality);
 
  public:
   /**
@@ -129,6 +143,11 @@ class AbstractPlanNode {
    */
   common::ManagedPointer<OutputSchema> GetOutputSchema() const { return common::ManagedPointer(output_schema_); }
 
+  /**
+   * @return estimated cardinality
+   */
+  int GetCardinality() const { return cardinality_; }
+
   //===--------------------------------------------------------------------===//
   // JSON Serialization/Deserialization
   //===--------------------------------------------------------------------===//
@@ -179,6 +198,7 @@ class AbstractPlanNode {
 
   std::vector<std::unique_ptr<AbstractPlanNode>> children_;
   std::unique_ptr<OutputSchema> output_schema_;
+  int cardinality_;
 
   void SwapChildren() {
     // Should only be called from the runners!

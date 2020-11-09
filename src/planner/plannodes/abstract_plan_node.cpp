@@ -41,8 +41,8 @@
 namespace noisepage::planner {
 
 AbstractPlanNode::AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                                   std::unique_ptr<OutputSchema> output_schema)
-    : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
+                                   std::unique_ptr<OutputSchema> output_schema, int cardinality)
+    : children_(std::move(children)), output_schema_(std::move(output_schema)), cardinality_(cardinality) {}
 
 AbstractPlanNode::~AbstractPlanNode() = default;
 
