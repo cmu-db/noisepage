@@ -25,9 +25,9 @@ Pilot::Pilot(const common::ManagedPointer<DBMain> db_main, uint64_t forecast_int
 void Pilot::PerformPlanning() {
   LoadQueryTrace();
   LoadQueryText();
-  forecastor_ = std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_,
-                                                   query_text_to_id_, query_id_to_params_, query_id_to_dboid_,
-                                                   forecast_interval_);
+  forecastor_ =
+      std::make_unique<WorkloadForecast>(query_timestamp_to_id_, num_executions_, query_id_to_text_, query_text_to_id_,
+                                         query_id_to_params_, query_id_to_dboid_, forecast_interval_);
 
   db_main_->GetMetricsThread()->PauseMetrics();
   ExecuteForecast();

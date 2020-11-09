@@ -48,8 +48,7 @@ class WorkloadForecast {
                    std::unordered_map<std::string, execution::query_id_t> query_string_to_id,
                    std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
                        query_id_to_param,
-                   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid,
-                   uint64_t forecast_interval);
+                   std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid, uint64_t forecast_interval);
   /**
    * Sort queries by their timestamp, then partition by forecast_interval
    * @param query_timestamp_to_id Map from a timestamp to a query and an index that denotes a specific set of parameter
@@ -62,7 +61,6 @@ class WorkloadForecast {
    * @param db_main Managed pointer to db_main
    */
   void ExecuteSegments(const common::ManagedPointer<DBMain> db_main);
-
 
  private:
   std::vector<parser::ConstantValueExpression> SampleParam(execution::query_id_t qid);

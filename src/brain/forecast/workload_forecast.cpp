@@ -34,8 +34,7 @@ WorkloadForecast::WorkloadForecast(
     std::unordered_map<std::string, execution::query_id_t> query_string_to_id,
     std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
         query_id_to_param,
-    std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid,
-    uint64_t forecast_interval)
+    std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid, uint64_t forecast_interval)
     : query_id_to_string_(query_id_to_string),
       query_string_to_id_(query_string_to_id),
       query_id_to_param_(query_id_to_param),
