@@ -67,7 +67,6 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
   for (auto &it : query_id_to_param_) {
     qid = it.first;
     for (auto &params_it : query_id_to_param_[qid]) {
-    // for (auto i = 0; i < query_id_to_param_[qid].size(); i++) {
       params = params_it;
       for (auto &param_it : params) {
         param_types.push_back(param_it.GetReturnValueType());
@@ -101,7 +100,7 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
       execution::compiler::ExecutableQuery::query_identifier.store(qid);
       auto exec_query = execution::compiler::CompilationContext::Compile(*out_plan, exec_settings, accessor.get(),
                                                                          execution::compiler::CompilationMode::OneShot);
-
+      std::cout << qid << ";\n " << std::flush;
       exec_query->Run(common::ManagedPointer(exec_ctx), execution::vm::ExecutionMode::Interpret);
       // std::cout << "5. Run query succ \n" << std::flush;
 
