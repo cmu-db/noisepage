@@ -40,7 +40,7 @@ WorkloadForecast::WorkloadForecast(
       query_id_to_param_(std::move(query_id_to_param)),
       query_id_to_dboid_(std::move(query_id_to_dboid)),
       forecast_interval_(forecast_interval) {
-  CreateSegments(query_timestamp_to_id, num_executions);
+  CreateSegments(query_timestamp_to_id, &num_executions);
 }
 
 std::vector<parser::ConstantValueExpression> WorkloadForecast::SampleParam(execution::query_id_t qid) {
@@ -128,8 +128,8 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
 }
 
 void WorkloadForecast::CreateSegments(
-    std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
-    std::unordered_map<execution::query_id_t, std::vector<uint64_t>> &num_executions) {
+    const std::map<uint64_t, std::pair<execution::query_id_t, uint64_t>> &query_timestamp_to_id,
+    std::unordered_map<execution::query_id_t, std::vector<uint64_t>> *num_executions) {
   std::vector<WorkloadForecastSegment> segments;
 
   std::unordered_map<execution::query_id_t, uint64_t> curr_segment;
@@ -142,7 +142,7 @@ void WorkloadForecast::CreateSegments(
       curr_time = it.first;
       curr_segment.clear();
     }
-    curr_segment[it.second.first] += num_executions[it.second.first][it.second.second];
+    curr_segment[it.second.first] += (*num_executions)[it.second.first][it.second.second];
   }
 
   if (!curr_segment.empty()) {
