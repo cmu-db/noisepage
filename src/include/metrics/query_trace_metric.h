@@ -102,8 +102,8 @@ class QueryTraceMetricRawData : public AbstractRawData {
                std::string type_string, const catalog::db_oid_t oid)
         : query_id_(query_id),
           timestamp_(timestamp),
-          param_string_(param_string),
-          type_string_(type_string),
+          param_string_(std::move(param_string)),
+          type_string_(std::move(type_string)),
           oid_(oid) {}
     const execution::query_id_t query_id_;
     const uint64_t timestamp_;
@@ -125,21 +125,20 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
   friend class MetricsStore;
 
   void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
-    std::string qtext = query_text;
-    GetRawData()->RecordQueryText(query_id, "\"" + qtext + "\"", timestamp);
+    GetRawData()->RecordQueryText(query_id, "\"" + query_text + "\"", timestamp);
   }
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
                         catalog::db_oid_t oid) {
     std::ostringstream param_stream;
     std::ostringstream type_stream;
-    for (uint32_t n = 0; n < (*param).size(); n++) {
-      if ((*param)[n].IsNull()) {
+    for (const auto & val : (*param)) {
+      if (val.IsNull()) {
         return;
-      } else {
-        param_stream << (*param)[n].ToString();
-        type_stream << (*param)[n].GetTypeAsString();
       }
+      param_stream << val.ToString();
+      type_stream << val.GetTypeAsString();
+
       param_stream << ";";
       type_stream << ";";
     }

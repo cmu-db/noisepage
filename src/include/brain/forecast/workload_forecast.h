@@ -60,7 +60,7 @@ class WorkloadForecast {
    * Execute all queries and the constant number of parameters associated with each
    * @param db_main Managed pointer to db_main
    */
-  void ExecuteSegments(const common::ManagedPointer<DBMain> db_main);
+  void ExecuteSegments(common::ManagedPointer<DBMain> db_main);
 
  private:
   std::vector<parser::ConstantValueExpression> SampleParam(execution::query_id_t qid);

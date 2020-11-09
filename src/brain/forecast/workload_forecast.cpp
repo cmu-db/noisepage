@@ -35,10 +35,10 @@ WorkloadForecast::WorkloadForecast(
     std::unordered_map<execution::query_id_t, std::vector<std::vector<parser::ConstantValueExpression>>>
         query_id_to_param,
     std::unordered_map<execution::query_id_t, uint64_t> query_id_to_dboid, uint64_t forecast_interval)
-    : query_id_to_string_(query_id_to_string),
-      query_string_to_id_(query_string_to_id),
-      query_id_to_param_(query_id_to_param),
-      query_id_to_dboid_(query_id_to_dboid),
+    : query_id_to_string_(std::move(query_id_to_string)),
+      query_string_to_id_(std::move(query_string_to_id)),
+      query_id_to_param_(std::move(query_id_to_param)),
+      query_id_to_dboid_(std::move(query_id_to_dboid)),
       forecast_interval_(forecast_interval) {
   CreateSegments(query_timestamp_to_id, num_executions);
 }
@@ -47,7 +47,7 @@ std::vector<parser::ConstantValueExpression> WorkloadForecast::SampleParam(execu
   return query_id_to_param_[qid][rand() % query_id_to_param_[qid].size()];
 }
 
-void WorkloadForecast::ExecuteSegments(const common::ManagedPointer<DBMain> db_main) {
+void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
   auto txn_manager = db_main->GetTransactionLayer()->GetTransactionManager();
   auto catalog = db_main->GetCatalogLayer()->GetCatalog();
   transaction::TransactionContext *txn = nullptr;

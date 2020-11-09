@@ -17,7 +17,7 @@
 
 namespace noisepage::brain {
 
-Pilot::Pilot(const common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval)
+Pilot::Pilot(common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval)
     : db_main_(db_main), forecast_interval_(forecast_interval) {
   forecastor_ = nullptr;
 }

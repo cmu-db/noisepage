@@ -34,7 +34,7 @@ class Pilot {
    * @param db_main Managed Pointer to db_main
    * @param forecast_interval Interval used in the forecastor
    */
-  explicit Pilot(const common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval);
+  Pilot(common::ManagedPointer<DBMain> db_main, uint64_t forecast_interval);
 
   /**
    * WorkloadForecast object performing the query execution and feature gathering
