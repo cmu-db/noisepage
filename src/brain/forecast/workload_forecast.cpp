@@ -122,6 +122,9 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
           .get());
   NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= query_id_to_param_.size(),
                    "Expect at least one pipeline_metrics record for each query");
+  //  for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
+  //    std::cout << "qid: " << it->query_id_ << "; ppl_id: " << it->pipeline_id_ << std::endl << std::flush;
+  //  }
   metrics_manager->ToCSV();
 }
 

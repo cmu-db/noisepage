@@ -132,7 +132,7 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
                         catalog::db_oid_t oid) {
     std::ostringstream param_stream;
     std::ostringstream type_stream;
-    for (const auto & val : (*param)) {
+    for (const auto &val : (*param)) {
       if (val.IsNull()) {
         return;
       }
