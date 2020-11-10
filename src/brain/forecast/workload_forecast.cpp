@@ -115,14 +115,16 @@ void WorkloadForecast::ExecuteSegments(common::ManagedPointer<DBMain> db_main) {
   // retrieve the features
 
   metrics_manager->Aggregate();
-  const auto aggregated_data = reinterpret_cast<metrics::PipelineMetricRawData *>(
-      metrics_manager->AggregatedMetrics()
-          .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
-          .get());
-  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= query_id_to_param_.size(),
-                   "Expect at least one pipeline_metrics record for each query");
+  // Commented out since currently not performing any actions on aggregated data
+  //  const auto aggregated_data = reinterpret_cast<metrics::PipelineMetricRawData *>(
+  //      metrics_manager->AggregatedMetrics()
+  //          .at(static_cast<uint8_t>(metrics::MetricsComponent::EXECUTION_PIPELINE))
+  //          .get());
+  //  NOISEPAGE_ASSERT(aggregated_data->pipeline_data_.size() >= query_id_to_param_.size(),
+  //                   "Expect at least one pipeline_metrics record for each query");
+  //  printf("Printing qid and pipeline id to sanity check pipeline metrics recorded");
   //  for (auto it = aggregated_data->pipeline_data_.begin(); it != aggregated_data->pipeline_data_.end(); it++) {
-  //    std::cout << "qid: " << it->query_id_ << "; ppl_id: " << it->pipeline_id_ << std::endl << std::flush;
+  //    printf("qid: %u; ppl_id: %u", static_cast<uint>(it->query_id_), static_cast<uint32_t>(it->pipeline_id_));
   //  }
   metrics_manager->ToCSV();
 }
