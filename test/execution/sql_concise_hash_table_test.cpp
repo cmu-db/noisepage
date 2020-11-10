@@ -6,7 +6,7 @@
 #include "execution/sql/concise_hash_table.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sql::test {
+namespace noisepage::execution::sql::test {
 
 /// This is the tuple we insert into the hash table
 struct Tuple {
@@ -235,4 +235,4 @@ TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
   }
 }
 
-}  // namespace terrier::execution::sql::test
+}  // namespace noisepage::execution::sql::test

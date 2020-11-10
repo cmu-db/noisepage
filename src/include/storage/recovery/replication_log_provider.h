@@ -4,7 +4,7 @@
 
 #include "storage/recovery/abstract_log_provider.h"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 
 /**
  * TODO(Tianlei/Gus): Replace this file with Gus's version
@@ -17,4 +17,4 @@ class ReplicationLogProvider {
    */
   virtual void HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer);
 };
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

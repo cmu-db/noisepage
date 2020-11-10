@@ -10,16 +10,16 @@
 #include "catalog/index_schema.h"
 #include "optimizer/properties.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class CatalogAccessor;
 class IndexSchema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::parser {
+namespace noisepage::parser {
 class AbstractExpression;
-}  // namespace terrier::parser
+}  // namespace noisepage::parser
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Collection of helper functions related to working with Indexes
@@ -147,4 +147,4 @@ class IndexUtil {
   }
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

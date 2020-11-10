@@ -10,7 +10,7 @@
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
-namespace terrier {
+namespace noisepage {
 namespace parser {
 /**
  * AnalyzeStatement represents the sql "ANALYZE ...".
@@ -43,4 +43,4 @@ class AnalyzeStatement : public SQLStatement {
 };
 
 }  // namespace parser
-}  // namespace terrier
+}  // namespace noisepage

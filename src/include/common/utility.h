@@ -1,9 +1,9 @@
 #pragma once
 #include <string>
 
-namespace terrier {
+namespace noisepage {
 
 int TerrierClose(int fd);
 
 std::string TerrierErrorMessage();
-}  // namespace terrier
+}  // namespace noisepage

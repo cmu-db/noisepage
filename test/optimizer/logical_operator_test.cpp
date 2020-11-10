@@ -17,7 +17,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 // NOLINTNEXTLINE
 TEST(OperatorTests, LogicalInsertTest) {
@@ -77,26 +77,6 @@ TEST(OperatorTests, LogicalInsertTest) {
           .RegisterWithTxnContext(txn_context);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
-
-  // Make sure that we catch when the insert values do not match the
-  // number of columns that we are trying to insert into
-  // NOTE: We only do this for debug builds
-#ifndef NDEBUG
-  parser::AbstractExpression *bad_raw_values[] = {
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(1)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(2)),
-      new parser::ConstantValueExpression(type::TypeId::TINYINT, execution::sql::Integer(3))};
-  auto *bad_values = new std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(
-      {std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
-  EXPECT_DEATH(LogicalInsert::Make(
-                   database_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
-                       bad_values))
-                   .RegisterWithTxnContext(txn_context),
-               "Mismatched");
-  for (auto entry : bad_raw_values) delete entry;
-  delete bad_values;
-#endif
 
   // All operators created should be cleaned up on abort
   txn_manager.Abort(txn_context);
@@ -1515,15 +1495,6 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   EXPECT_FALSE(op1 == op11);
   EXPECT_NE(op1.Hash(), op11.Hash());
 
-#ifndef NDEBUG
-  EXPECT_DEATH(
-      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
-                                  {}, {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
-                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true)
-          .RegisterWithTxnContext(txn_context),
-      "Mismatched");
-#endif
-
   txn_manager.Abort(txn_context);
   delete txn_context;
 }
@@ -2218,4 +2189,4 @@ TEST(OperatorTests, LogicalDropViewTest) {
   delete txn_context;
 }
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

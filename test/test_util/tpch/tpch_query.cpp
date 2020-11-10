@@ -11,7 +11,7 @@
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 
-namespace terrier::tpch {
+namespace noisepage::tpch {
 
 std::tuple<std::unique_ptr<execution::compiler::ExecutableQuery>, std::unique_ptr<planner::AbstractPlanNode>>
 TPCHQuery::MakeExecutableQ1(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
@@ -983,7 +983,7 @@ TPCHQuery::MakeExecutableQ7(const std::unique_ptr<catalog::CatalogAccessor> &acc
 
     auto date_type = expr_maker.Constant(static_cast<int32_t>(execution::sql::DatePartType::YEAR));
     auto extract_year = expr_maker.Function("data_part", {l_shipdate, date_type}, type::TypeId::INTEGER,
-                                            terrier::catalog::postgres::DATE_PART_PRO_OID);
+                                            noisepage::catalog::postgres::DATE_PART_PRO_OID);
 
     l_seq_scan_out.AddOutput("l_year", extract_year);
     auto schema = l_seq_scan_out.MakeSchema();
@@ -2243,4 +2243,4 @@ TPCHQuery::MakeExecutableQ19(const std::unique_ptr<catalog::CatalogAccessor> &ac
   return std::make_tuple(std::move(query), std::move(agg));
 }
 
-}  // namespace terrier::tpch
+}  // namespace noisepage::tpch

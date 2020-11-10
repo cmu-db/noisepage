@@ -12,7 +12,7 @@
 #include "parser/expression/column_value_expression.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::optimizer {
+namespace noisepage::optimizer {
 
 /**
  * Derive stats for the root group using a group expression's children's stats
@@ -115,4 +115,4 @@ class StatsCalculator : public OperatorVisitor {
   OptimizerContext *context_;
 };
 
-}  // namespace terrier::optimizer
+}  // namespace noisepage::optimizer

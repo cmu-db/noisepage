@@ -10,17 +10,17 @@
 #include "execution/ast/builtins.h"
 #include "execution/vm/bytecode_emitter.h"
 
-namespace terrier::execution::ast {
+namespace noisepage::execution::ast {
 class Context;
 class FunctionType;
 class Type;
-}  // namespace terrier::execution::ast
+}  // namespace noisepage::execution::ast
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionSettings;
-}  // namespace terrier::execution::exec
+}  // namespace noisepage::execution::exec
 
-namespace terrier::execution::vm {
+namespace noisepage::execution::vm {
 
 class BytecodeModule;
 class LoopBuilder;
@@ -110,6 +110,8 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   void VisitBuiltinParamCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinStringCall(ast::CallExpr *call, ast::Builtin builtin);
   void VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAtomicArithmeticCall(ast::CallExpr *call, ast::Builtin builtin);
+  void VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *call);
 
   // Dispatched from VisitCallExpr() for handling builtins
   void VisitBuiltinCallExpr(ast::CallExpr *call);
@@ -138,6 +140,10 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
 
   // Visit an expression for its R-Value and return the local variable holding its result
   LocalVar VisitExpressionForRValue(ast::Expr *expr);
+
+  // Visit an expression for a SQL value.
+  LocalVar VisitExpressionForSQLValue(ast::Expr *expr);
+  void VisitExpressionForSQLValue(ast::Expr *expr, LocalVar dest);
 
   // Visit an expression for its R-Value, providing a destination variable where the result should be stored
   void VisitExpressionForRValue(ast::Expr *expr, LocalVar dest);
@@ -205,4 +211,4 @@ class BytecodeGenerator final : public ast::AstVisitor<BytecodeGenerator> {
   ExpressionResultScope *execution_result_{nullptr};
 };
 
-}  // namespace terrier::execution::vm
+}  // namespace noisepage::execution::vm

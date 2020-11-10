@@ -9,7 +9,7 @@
 #include "optimizer/operator_visitor.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace planner {
 class AbstractPlanNode;
@@ -416,4 +416,4 @@ class PlanGenerator : public OperatorVisitor {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

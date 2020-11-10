@@ -2,11 +2,11 @@
 
 #include "execution/compiler/operator/operator_translator.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class NestedLoopJoinPlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * A translator for nested-loop joins.
@@ -41,4 +41,4 @@ class NestedLoopJoinTranslator : public OperatorTranslator {
   const planner::NestedLoopJoinPlanNode &GetNLJPlan() const { return GetPlanAs<planner::NestedLoopJoinPlanNode>(); }
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

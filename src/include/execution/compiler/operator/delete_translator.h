@@ -6,15 +6,15 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/pipeline_driver.h"
 
-namespace terrier::catalog {
+namespace noisepage::catalog {
 class Schema;
-}  // namespace terrier::catalog
+}  // namespace noisepage::catalog
 
-namespace terrier::planner {
+namespace noisepage::planner {
 class DeletePlanNode;
-}  // namespace terrier::planner
+}  // namespace noisepage::planner
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 /**
  * Delete Translator
@@ -39,7 +39,7 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   /**
    * Initialize the counters.
    */
-  void InitializeQueryState(FunctionBuilder *function) const override;
+  void InitializePipelineState(const Pipeline &pipeline, FunctionBuilder *function) const override;
 
   /**
    * Implement deletion logic where it fills in the delete PR obtained from the StorageInterface struct
@@ -94,4 +94,4 @@ class DeleteTranslator : public OperatorTranslator, public PipelineDriver {
   StateDescriptor::Entry num_deletes_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

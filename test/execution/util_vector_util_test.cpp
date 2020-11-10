@@ -13,7 +13,7 @@
 #include "execution/util/timer.h"
 #include "execution/util/vector_util.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 class VectorUtilTest : public TplTest {};
 
@@ -369,4 +369,4 @@ TEST_F(VectorUtilTest, IntersectSelectionVectors) {
   out_count = VectorUtil::IntersectSelected(b, sizeof(b) / sizeof(b[0]), static_cast<sel_t *>(nullptr), 0, out);
   EXPECT_EQ(0u, out_count);
 }
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util

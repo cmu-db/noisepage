@@ -16,7 +16,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
 
-namespace terrier::execution {
+namespace noisepage::execution {
 
 class SqlBasedTest : public TplTest {
  public:
@@ -24,9 +24,10 @@ class SqlBasedTest : public TplTest {
 
   void SetUp() override {
     TplTest::SetUp();
-    // Initialize terrier objects
+    // Initialize noisepage objects
 
-    db_main_ = terrier::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
+    db_main_ = noisepage::DBMain::Builder().SetUseGC(true).SetUseGCThread(true).SetUseCatalog(true).Build();
+    metrics_manager_ = db_main_->GetMetricsManager();
 
     block_store_ = db_main_->GetStorageLayer()->GetBlockStore();
     catalog_ = db_main_->GetCatalogLayer()->GetCatalog();
@@ -49,27 +50,31 @@ class SqlBasedTest : public TplTest {
 
   common::ManagedPointer<storage::BlockStore> BlockStore() { return block_store_; }
 
-  std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
+  std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback *callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
-    return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback, schema,
-                                                    common::ManagedPointer(accessor_), *exec_settings_);
+    exec::OutputCallback empty = nullptr;
+    const auto &callback_ref = (callback == nullptr) ? empty : *callback;
+    return std::make_unique<exec::ExecutionContext>(test_db_oid_, common::ManagedPointer(test_txn_), callback_ref,
+                                                    schema, common::ManagedPointer(accessor_), *exec_settings_,
+                                                    metrics_manager_);
   }
 
   void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
     sql::TableGenerator table_generator{exec_ctx, block_store_, test_ns_oid_};
-    table_generator.GenerateTestTables(false);
+    table_generator.GenerateTestTables();
   }
 
   parser::ConstantValueExpression DummyCVE() {
     return parser::ConstantValueExpression(type::TypeId::INTEGER, execution::sql::Integer(0));
   }
 
-  std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {
+  std::unique_ptr<noisepage::catalog::CatalogAccessor> MakeAccessor() {
     return catalog_->GetAccessor(common::ManagedPointer(test_txn_), test_db_oid_, DISABLED);
   }
 
  private:
   std::unique_ptr<DBMain> db_main_;
+  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
   common::ManagedPointer<storage::BlockStore> block_store_;
   common::ManagedPointer<catalog::Catalog> catalog_;
   common::ManagedPointer<transaction::TransactionManager> txn_manager_;
@@ -93,7 +98,7 @@ static inline std::unique_ptr<sql::Vector> MakeVector(sql::TypeId type_id, uint3
   static inline std::unique_ptr<sql::Vector> Make##TYPE##Vector(/* NOLINT */                       \
                                                                 const std::vector<CPP_TYPE> &vals, \
                                                                 const std::vector<bool> &nulls) {  \
-    TERRIER_ASSERT(vals.size() == nulls.size(), "Value and NULL vector sizes don't match");        \
+    NOISEPAGE_ASSERT(vals.size() == nulls.size(), "Value and NULL vector sizes don't match");      \
     auto vec = Make##TYPE##Vector(vals.size());                                                    \
     for (uint64_t i = 0; i < vals.size(); i++) {                                                   \
       if (nulls[i]) {                                                                              \
@@ -118,4 +123,4 @@ MAKE_VEC_TYPE(Pointer, uintptr_t);
 
 #undef MAKE_VEC_TYPE
 
-}  // namespace terrier::execution
+}  // namespace noisepage::execution

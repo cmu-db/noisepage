@@ -2,9 +2,9 @@
 
 ## Folder structure
 - `util`(compatible with python3): all the common utilities for running all kinds of tests
-- `oltpbench`(compatible with python3): entry script to fire an oltp bench test
 - `junit`(compatible with python3): entry script to fire a junit test (and many other supporting configs)
-- `jdbc`(legacy shell script): entry script to fire a jdbc test (and many other supporting configs)
+- `micro_bench`(compatible with python3): entry script to run the microbenchmark tests
+- `oltpbench`(compatible with python3): entry script to fire an oltp bench test
 
 ## Util
 `util` folder contains a list of common Python scripts
@@ -34,7 +34,7 @@ If you specify the `--query-mode extended`, you then can also indicate the prepa
 `TestServer` is the base class for running all types of the tests. 
 
 ### Test workflow
-- check if the terrier bin exists
+- check if the noisepage bin exists
 - run the pre-suite task (test suite specific)
   - e.g. install oltp bin 
 - run the test sequentially

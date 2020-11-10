@@ -15,7 +15,7 @@ namespace csv {
 class CSVField;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 /**
  * This class reads table from files
  */
@@ -59,4 +59,4 @@ class TableReader {
   storage::BlockStore *store_;
   catalog::namespace_oid_t ns_oid_;
 };
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

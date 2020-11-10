@@ -5,11 +5,11 @@
 #include "execution/sql/operators/cast_operators.h"
 #include "execution/sql/value.h"
 
-namespace terrier::execution::exec {
+namespace noisepage::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 /**
  * Utility class to handle various SQL casting functions.
@@ -73,12 +73,12 @@ class CastingFunctions {
 
 // TODO(pmenon): Catch cast exceptions!
 
-#define CAST_HIDE_NULL_FAST(FROM_TYPE, TO_TYPE)                                        \
-  inline void CastingFunctions::CastTo##TO_TYPE(TO_TYPE *result, const FROM_TYPE &v) { \
-    using InputType = decltype(FROM_TYPE::val_);                                       \
-    using OutputType = decltype(TO_TYPE::val_);                                        \
-    result->is_null_ = v.is_null_;                                                     \
-    terrier::execution::sql::TryCast<InputType, OutputType>{}(v.val_, &result->val_);  \
+#define CAST_HIDE_NULL_FAST(FROM_TYPE, TO_TYPE)                                         \
+  inline void CastingFunctions::CastTo##TO_TYPE(TO_TYPE *result, const FROM_TYPE &v) {  \
+    using InputType = decltype(FROM_TYPE::val_);                                        \
+    using OutputType = decltype(TO_TYPE::val_);                                         \
+    result->is_null_ = v.is_null_;                                                      \
+    noisepage::execution::sql::TryCast<InputType, OutputType>{}(v.val_, &result->val_); \
   }
 
 #define CAST_HIDE_NULL(FROM_TYPE, TO_TYPE)                                             \
@@ -90,7 +90,7 @@ class CastingFunctions {
       return;                                                                          \
     }                                                                                  \
     OutputType output{};                                                               \
-    terrier::execution::sql::TryCast<InputType, OutputType>{}(v.val_, &output);        \
+    noisepage::execution::sql::TryCast<InputType, OutputType>{}(v.val_, &output);      \
     *result = TO_TYPE(output);                                                         \
   }
 
@@ -117,17 +117,17 @@ CAST_HIDE_NULL(StringVal, TimestampVal);
 #undef CAST_HIDE_NULL_FAST
 
 // Something to string.
-#define CAST_TO_STRING(FROM_TYPE)                                                                     \
-  inline void CastingFunctions::CastToStringVal(StringVal *result, exec::ExecutionContext *const ctx, \
-                                                const FROM_TYPE &v) {                                 \
-    /* TODO(pmenon): Perform an explicit if-check here because we expect string */                    \
-    /*               parsing to be costlier than a branch mis-prediction. Check! */                   \
-    if (v.is_null_) {                                                                                 \
-      *result = StringVal::Null();                                                                    \
-      return;                                                                                         \
-    }                                                                                                 \
-    const auto str = terrier::execution::sql::Cast<decltype(FROM_TYPE::val_), std::string>{}(v.val_); \
-    *result = StringVal(ctx->GetStringAllocator()->AddVarlen(str));                                   \
+#define CAST_TO_STRING(FROM_TYPE)                                                                       \
+  inline void CastingFunctions::CastToStringVal(StringVal *result, exec::ExecutionContext *const ctx,   \
+                                                const FROM_TYPE &v) {                                   \
+    /* TODO(pmenon): Perform an explicit if-check here because we expect string */                      \
+    /*               parsing to be costlier than a branch mis-prediction. Check! */                     \
+    if (v.is_null_) {                                                                                   \
+      *result = StringVal::Null();                                                                      \
+      return;                                                                                           \
+    }                                                                                                   \
+    const auto str = noisepage::execution::sql::Cast<decltype(FROM_TYPE::val_), std::string>{}(v.val_); \
+    *result = StringVal(ctx->GetStringAllocator()->AddVarlen(str));                                     \
   }
 
 CAST_TO_STRING(BoolVal);
@@ -138,4 +138,4 @@ CAST_TO_STRING(TimestampVal);
 
 #undef CAST_TO_STRING
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql

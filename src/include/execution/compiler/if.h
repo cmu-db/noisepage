@@ -3,7 +3,7 @@
 #include "execution/compiler/ast_fwd.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 
@@ -67,4 +67,4 @@ class If {
   bool completed_;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

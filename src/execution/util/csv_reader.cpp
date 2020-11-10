@@ -4,10 +4,10 @@
 
 #include <cstring>
 
-#include "execution/util/fast_double_parser.h"
+#include "fast_float/fast_float.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::util {
+namespace noisepage::execution::util {
 
 //===----------------------------------------------------------------------===//
 //
@@ -25,7 +25,7 @@ CSVFile::CSVFile(std::string_view path)
 bool CSVFile::Initialize() { return file_.IsOpen(); }
 
 void CSVFile::Consume(const std::size_t n) {
-  TERRIER_ASSERT(read_pos_ + n <= end_pos_, "Buffer overflow!");
+  NOISEPAGE_ASSERT(read_pos_ + n <= end_pos_, "Buffer overflow!");
   read_pos_ += n;
 }
 
@@ -75,7 +75,7 @@ bool CSVFile::Fill() {
 
 double CSVReader::CSVCell::AsDouble() const {
   double output = 0;
-  FastDoubleParser::ParseNumber(this->ptr_, &output);
+  fast_float::from_chars(this->ptr_, this->ptr_ + this->len_, output);
   return output;
 }
 
@@ -248,5 +248,5 @@ bool CSVReader::Advance() {
   return false;
 }
 
-}  // namespace terrier::execution::util
+}  // namespace noisepage::execution::util
 #endif

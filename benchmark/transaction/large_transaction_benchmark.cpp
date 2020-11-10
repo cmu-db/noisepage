@@ -5,7 +5,7 @@
 #include "benchmark_util/data_table_benchmark_util.h"
 #include "storage/garbage_collector_thread.h"
 
-namespace terrier {
+namespace noisepage {
 
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
@@ -168,4 +168,4 @@ BENCHMARK_REGISTER_F(LargeTransactionBenchmark, SingleStatementSelect)
     ->MinTime(1);
 // clang-format on
 
-}  // namespace terrier
+}  // namespace noisepage

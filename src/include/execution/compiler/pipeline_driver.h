@@ -4,7 +4,7 @@
 #include "execution/compiler/ast_fwd.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 class FunctionBuilder;
 class Pipeline;
@@ -34,4 +34,4 @@ class PipelineDriver {
   virtual void LaunchWork(FunctionBuilder *function, ast::Identifier work_func_name) const = 0;
 };
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

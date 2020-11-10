@@ -4,7 +4,7 @@
 
 #include "common/error/exception.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
   switch (type) {
@@ -146,6 +146,9 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
     case ExpressionType::STAR: {
       return "STAR";
     }
+    case ExpressionType::TABLE_STAR: {
+      return "TABLE_STAR";
+    }
     case ExpressionType::PLACEHOLDER: {
       return "PLACEHOLDER";
     }
@@ -162,4 +165,4 @@ std::string ExpressionTypeToString(ExpressionType type, bool short_str) {
   }
 }
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

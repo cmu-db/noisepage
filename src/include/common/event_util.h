@@ -7,7 +7,7 @@
 
 #include "common/error/exception.h"
 
-namespace terrier {
+namespace noisepage {
 
 /**
  * Static utility class with wrappers for libevent functions.
@@ -100,4 +100,4 @@ class EventUtil {
     return Wrap(event_base_dispatch(base), NonNegative, "Error in event base dispatch");
   }
 };
-}  // namespace terrier
+}  // namespace noisepage

@@ -4,7 +4,7 @@
 #include "execution/sema/sema.h"
 #include "execution/tpl_test.h"
 
-namespace terrier::execution::sema::test {
+namespace noisepage::execution::sema::test {
 
 class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
  public:
@@ -148,4 +148,4 @@ TEST_F(SemaBuiltinTest, CheckTrigBuiltins) {
   }
 }
 
-}  // namespace terrier::execution::sema::test
+}  // namespace noisepage::execution::sema::test

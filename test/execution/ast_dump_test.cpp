@@ -13,7 +13,7 @@
 #include "execution/tpl_test.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::execution::ast::test {
+namespace noisepage::execution::ast::test {
 
 /**
  * Magic macro so that we can easily add Visit methods to our extractor class
@@ -282,4 +282,4 @@ TEST_F(AstDumpTest, TypeTest) {
   CheckDump(src, constants);
 }
 
-}  // namespace terrier::execution::ast::test
+}  // namespace noisepage::execution::ast::test

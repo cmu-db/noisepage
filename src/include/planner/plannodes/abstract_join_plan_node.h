@@ -7,7 +7,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
-namespace terrier::planner {
+namespace noisepage::planner {
 
 /**
  * Base class for table joins.
@@ -59,10 +59,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    */
   AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                       common::ManagedPointer<parser::AbstractExpression> predicate)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        join_type_(join_type),
-        join_predicate_(predicate) {}
+                       common::ManagedPointer<parser::AbstractExpression> predicate);
 
  public:
   /**
@@ -130,4 +127,4 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
-}  // namespace terrier::planner
+}  // namespace noisepage::planner

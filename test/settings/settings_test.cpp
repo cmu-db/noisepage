@@ -10,7 +10,7 @@
 #include "settings/settings_manager.h"
 #include "test_util/test_harness.h"
 
-namespace terrier::settings {
+namespace noisepage::settings {
 
 class SettingsTests : public TerrierTest {
  protected:
@@ -225,4 +225,4 @@ TEST_F(SettingsTests, ConcurrentModifyTest) {
   EXPECT_EQ(buffer_pool_size_param, buffer_pool_size);
 }
 
-}  // namespace terrier::settings
+}  // namespace noisepage::settings

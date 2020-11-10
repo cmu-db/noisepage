@@ -19,9 +19,9 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
-#define LOG_FILE_NAME "./test.log"
+#define LOG_TEST_LOG_FILE_NAME "./test_log_test.log"
 
-namespace terrier::storage {
+namespace noisepage::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
   std::default_random_engine generator_;
@@ -32,9 +32,10 @@ class WriteAheadLoggingTests : public TerrierTest {
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
 
-    db_main_ = terrier::DBMain::Builder().SetWalFilePath(LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
+    db_main_ =
+        noisepage::DBMain::Builder().SetWalFilePath(LOG_TEST_LOG_FILE_NAME).SetUseLogging(true).SetUseGC(true).Build();
     txn_manager_ = db_main_->GetTransactionLayer()->GetTransactionManager();
     log_manager_ = db_main_->GetLogManager();
     store_ = db_main_->GetStorageLayer()->GetBlockStore();
@@ -44,7 +45,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     log_manager_->Start();  // all of the tests stop the LogManager, but DBMain's teardown logic expects it to still be
                             // running, so we'll just restart it
     // Delete log file
-    unlink(LOG_FILE_NAME);
+    unlink(LOG_TEST_LOG_FILE_NAME);
   }
 
   static void TestCommitCallback(void *const callback_arg) {
@@ -83,7 +84,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // If code path reaches here, we have a REDO record.
-    TERRIER_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
+    NOISEPAGE_ASSERT(record_type == storage::LogRecordType::REDO, "Unknown record type during test deserialization");
 
     // Read in col_ids
     // IDs read individually since we can't guarantee memory layout of vector
@@ -187,7 +188,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   std::unordered_map<transaction::timestamp_t, RandomDataTableTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
-  storage::BufferedLogReader in(LOG_FILE_NAME);
+  storage::BufferedLogReader in(LOG_TEST_LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
@@ -265,7 +266,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
   int log_records_count = 0;
-  storage::BufferedLogReader in(LOG_FILE_NAME);
+  storage::BufferedLogReader in(LOG_TEST_LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
@@ -342,7 +343,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 
   // Read records, look for the abort record
   bool found_abort_record = false;
-  storage::BufferedLogReader in(LOG_FILE_NAME);
+  storage::BufferedLogReader in(LOG_TEST_LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
@@ -402,7 +403,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
 
   // Read records, make sure we don't see an abort record
   bool found_abort_record = false;
-  storage::BufferedLogReader in(LOG_FILE_NAME);
+  storage::BufferedLogReader in(LOG_TEST_LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
@@ -447,4 +448,4 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyCallbackTest) {
   // DeferredAction
   db_main_->GetTransactionLayer()->GetDeferredActionManager()->RegisterDeferredAction([=]() { delete sql_table; });
 }
-}  // namespace terrier::storage
+}  // namespace noisepage::storage

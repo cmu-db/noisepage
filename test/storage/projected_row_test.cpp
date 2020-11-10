@@ -9,7 +9,7 @@
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
 
-namespace terrier {
+namespace noisepage {
 
 struct ProjectedRowTests : public TerrierTest {
   std::default_random_engine generator_;
@@ -136,4 +136,4 @@ TEST_F(ProjectedRowTests, Alignment) {
     delete[] buffer;
   }
 }
-}  // namespace terrier
+}  // namespace noisepage

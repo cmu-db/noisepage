@@ -1,8 +1,9 @@
 #include "parser/expression/type_cast_expression.h"
 
+#include "binder/sql_node_visitor.h"
 #include "common/json.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 
 std::unique_ptr<AbstractExpression> TypeCastExpression::Copy() const {
   std::vector<std::unique_ptr<AbstractExpression>> children;
@@ -19,6 +20,10 @@ std::unique_ptr<AbstractExpression> TypeCastExpression::CopyWithChildren(
   return expr;
 }
 
+void TypeCastExpression::Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) {
+  v->Visit(common::ManagedPointer(this));
+}
+
 DEFINE_JSON_BODY_DECLARATIONS(TypeCastExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

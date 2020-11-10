@@ -3,7 +3,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/function_builder.h"
 
-namespace terrier::execution::compiler {
+namespace noisepage::execution::compiler {
 
 Loop::Loop(FunctionBuilder *function, ast::Stmt *init, ast::Expr *condition, ast::Stmt *next)
     : function_(function),
@@ -46,4 +46,4 @@ void Loop::EndLoop() {
   completed_ = true;
 }
 
-}  // namespace terrier::execution::compiler
+}  // namespace noisepage::execution::compiler

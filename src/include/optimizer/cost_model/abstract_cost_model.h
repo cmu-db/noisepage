@@ -2,7 +2,7 @@
 
 #include "optimizer/operator_visitor.h"
 
-namespace terrier {
+namespace noisepage {
 
 namespace catalog {
 class CatalogAccessor;
@@ -35,4 +35,4 @@ class AbstractCostModel : public OperatorVisitor {
 };
 
 }  // namespace optimizer
-}  // namespace terrier
+}  // namespace noisepage

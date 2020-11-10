@@ -1,11 +1,12 @@
 #pragma once
+
 #include <memory>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace noisepage::parser {
 /**
  * ParameterValueExpression represents a parameter's offset in an expression.
  * TODO(WAN): give an example. I believe this is 0-indexed, look at ParamRefTransform code path. Good beginner task?
@@ -46,18 +47,14 @@ class ParameterValueExpression : public AbstractExpression {
    */
   std::unique_ptr<AbstractExpression> CopyWithChildren(
       std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
-    TERRIER_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
+    NOISEPAGE_ASSERT(children.empty(), "ParameterValueExpression should have 0 children");
     return Copy();
   }
 
   /** @return offset in the expression */
   uint32_t GetValueIdx() const { return value_idx_; }
 
-  common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
-    return hash;
-  }
+  common::hash_t Hash() const override;
 
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
@@ -65,7 +62,7 @@ class ParameterValueExpression : public AbstractExpression {
     return GetValueIdx() == other.GetValueIdx();
   }
 
-  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override { v->Visit(common::ManagedPointer(this)); }
+  void Accept(common::ManagedPointer<binder::SqlNodeVisitor> v) override;
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override;
@@ -81,4 +78,4 @@ class ParameterValueExpression : public AbstractExpression {
 
 DEFINE_JSON_HEADER_DECLARATIONS(ParameterValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace noisepage::parser

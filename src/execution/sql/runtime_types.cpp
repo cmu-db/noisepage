@@ -5,7 +5,7 @@
 #include "common/error/exception.h"
 #include "spdlog/fmt/fmt.h"
 
-namespace terrier::execution::sql {
+namespace noisepage::execution::sql {
 
 namespace {
 
@@ -655,4 +655,4 @@ Timestamp Timestamp::FromYMDHMSMU(int32_t year, int32_t month, int32_t day, int3
   return Timestamp(result);
 }
 
-}  // namespace terrier::execution::sql
+}  // namespace noisepage::execution::sql
