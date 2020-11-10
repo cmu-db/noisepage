@@ -6,8 +6,8 @@
 #include "binder/bind_node_visitor.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "common/managed_pointer.h"
-#include "execution/exec/execution_settings.h"
 #include "execution/exec/execution_context.h"
+#include "execution/exec/execution_settings.h"
 #include "optimizer/abstract_optimizer_node.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/logical_operators.h"
@@ -45,15 +45,14 @@ namespace noisepage::planner {
 class PlanNodeCardinalityTest : public TpccPlanTest {
  public:
   static void CheckCardinality(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                                                 std::unique_ptr<planner::AbstractPlanNode> plan) {
+                               std::unique_ptr<planner::AbstractPlanNode> plan) {
     const planner::AbstractPlanNode *node = plan.get();
     EXPECT_EQ(node->GetCardinality(), -1);
   }
 
   void OptimizeQuery(const std::string &query, catalog::table_oid_t tbl_oid,
-                                   void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt,
-                                                 catalog::table_oid_t tbl_oid,
-                                                 std::unique_ptr<planner::AbstractPlanNode> plan)) {
+                     void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                                   std::unique_ptr<planner::AbstractPlanNode> plan)) {
     BeginTransaction();
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
     auto sel_stmt = stmt_list->GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
@@ -62,9 +61,9 @@ class PlanNodeCardinalityTest : public TpccPlanTest {
     EndTransaction(true);
   }
 
-  std::unique_ptr<planner::AbstractPlanNode> Optimize(const std::string &query,
-                                                                    catalog::table_oid_t tbl_oid,
-                                                                    parser::StatementType stmt_type) {
+
+  std::unique_ptr<planner::AbstractPlanNode> Optimize(const std::string &query, catalog::table_oid_t tbl_oid,
+                                                      parser::StatementType stmt_type) {
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
 
     // Bind + Transform
@@ -135,4 +134,4 @@ TEST_F(PlanNodeCardinalityTest, Test) {
   // std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_D_ID = 1 AND NO_W_ID = 2 ORDER BY NO_O_ID LIMIT 1";
   OptimizeQuery(query, tbl_new_order_, CheckCardinality);
 }
-}
+}  // namespace noisepage::planner
