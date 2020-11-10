@@ -69,7 +69,7 @@ T ConstantValueExpression::Peek() const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> ||
                 std::is_same_v<T, int64_t>) {  // NOLINT: bugprone-suspicious-semicolon: seems like a false positive
-                                               // because of constexpr
+    // because of constexpr
     return static_cast<T>(GetInteger().val_);
   }
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
@@ -251,53 +251,35 @@ std::string ConstantValueExpression::ToString() const {
   }
 }
 
-ConstantValueExpression ConstantValueExpression::FromString(const std::string &val, uint64_t type_id) {
-  const auto cve_type = static_cast<type::TypeId>(type_id);
-
-  switch (cve_type) {
+ConstantValueExpression ConstantValueExpression::FromString(const std::string &val, type::TypeId type_id) {
+  switch (type_id) {
     case type::TypeId::BOOLEAN: {
-      return ConstantValueExpression(cve_type, execution::sql::BoolVal(std::stoi(val) != 0));
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::BoolVal::Null());
+      return ConstantValueExpression(type_id, execution::sql::BoolVal(std::stoi(val) != 0));
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
-      return ConstantValueExpression(cve_type, execution::sql::Integer(std::stoll(val)));
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::Integer::Null());
+      return ConstantValueExpression(type_id, execution::sql::Integer(std::stoll(val)));
     }
     case type::TypeId::DECIMAL: {
-      return ConstantValueExpression(cve_type, execution::sql::Real(std::stod(val)));
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::Real::Null());
+      return ConstantValueExpression(type_id, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
-      return ConstantValueExpression(cve_type,
-                                     execution::sql::TimestampVal(execution::sql::Timestamp::FromString(val)));
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::TimestampVal::Null());
+      return ConstantValueExpression(type_id, execution::sql::TimestampVal(execution::sql::Timestamp::FromString(val)));
     }
     case type::TypeId::DATE: {
-      return ConstantValueExpression(cve_type, execution::sql::DateVal(execution::sql::Date::FromString(val)));
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::DateVal::Null());
+      return ConstantValueExpression(type_id, execution::sql::DateVal(execution::sql::Date::FromString(val)));
     }
     case type::TypeId::VARCHAR:
     case type::TypeId::VARBINARY: {
       auto string_val = execution::sql::ValueUtil::CreateStringVal(val);
-      return ConstantValueExpression(cve_type, string_val.first, std::move(string_val.second));
-    }
-    default:
-      UNREACHABLE("Invalid TypeId.");
-  }
-}
-
-std::string ConstantValueExpression::GetTypeAsString() const {
-  type::TypeId ret_val_type = GetReturnValueType();
-  switch (ret_val_type) {
-    case type::TypeId::BOOLEAN:
-    case type::TypeId::TINYINT:
-    case type::TypeId::SMALLINT:
-    case type::TypeId::INTEGER:
-    case type::TypeId::BIGINT:
-    case type::TypeId::DECIMAL:
-    case type::TypeId::TIMESTAMP:
-    case type::TypeId::DATE:
-    case type::TypeId::VARCHAR:
-    case type::TypeId::VARBINARY: {
-      return fmt::format("{}", ret_val_type);
+      return ConstantValueExpression(type_id, string_val.first, std::move(string_val.second));
     }
     default:
       UNREACHABLE("Invalid TypeId.");

@@ -122,8 +122,9 @@ void Pilot::LoadQueryTrace() {
     std::vector<parser::ConstantValueExpression> param_vec;
     while ((pos = val_string.find(';')) != std::string::npos && (pos2 = type_string.find(';')) != std::string::npos) {
       if (pos > 0) {
-        auto cve = parser::ConstantValueExpression::FromString(val_string.substr(0, pos),
-                                                               std::stoi(type_string.substr(0, pos2)));
+        auto cve =
+            parser::ConstantValueExpression::FromString(val_string.substr(0, pos),
+                                                        type::TypeUtil::TypeIdFromString(type_string.substr(0, pos2)));
 
         param_vec.push_back(cve);
       } else {
