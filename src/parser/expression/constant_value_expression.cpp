@@ -254,21 +254,26 @@ std::string ConstantValueExpression::ToString() const {
 ConstantValueExpression ConstantValueExpression::FromString(const std::string &val, type::TypeId type_id) {
   switch (type_id) {
     case type::TypeId::BOOLEAN: {
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::BoolVal::Null());
       return ConstantValueExpression(type_id, execution::sql::BoolVal(std::stoi(val) != 0));
     }
     case type::TypeId::TINYINT:
     case type::TypeId::SMALLINT:
     case type::TypeId::INTEGER:
     case type::TypeId::BIGINT: {
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::Integer::Null());
       return ConstantValueExpression(type_id, execution::sql::Integer(std::stoll(val)));
     }
     case type::TypeId::DECIMAL: {
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::Real::Null());
       return ConstantValueExpression(type_id, execution::sql::Real(std::stod(val)));
     }
     case type::TypeId::TIMESTAMP: {
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::TimestampVal::Null());
       return ConstantValueExpression(type_id, execution::sql::TimestampVal(execution::sql::Timestamp::FromString(val)));
     }
     case type::TypeId::DATE: {
+      if (val == "") return ConstantValueExpression(type_id, execution::sql::DateVal::Null());
       return ConstantValueExpression(type_id, execution::sql::DateVal(execution::sql::Date::FromString(val)));
     }
     case type::TypeId::VARCHAR:

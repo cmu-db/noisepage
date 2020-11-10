@@ -134,11 +134,11 @@ class QueryTraceMetric : public AbstractMetric<QueryTraceMetricRawData> {
     std::ostringstream type_stream;
     for (const auto &val : (*param)) {
       if (val.IsNull()) {
-        return;
+        param_stream << "";
+      } else {
+        param_stream << val.ToString();
       }
-      param_stream << val.ToString();
       type_stream << type::TypeUtil::TypeIdToString(val.GetReturnValueType());
-
       param_stream << ";";
       type_stream << ";";
     }
