@@ -95,7 +95,6 @@ void Pilot::LoadQueryTrace() {
   // Read data, line by line
   execution::query_id_t query_id;
   size_t pos, pos2, colnum, curr_size;
-  bool null_detected = false;
   std::vector<std::string> val_vec(num_cols, "");
 
   while (std::getline(my_file, line)) {
@@ -121,31 +120,23 @@ void Pilot::LoadQueryTrace() {
 
     std::vector<parser::ConstantValueExpression> param_vec;
     while ((pos = val_string.find(';')) != std::string::npos && (pos2 = type_string.find(';')) != std::string::npos) {
-      if (pos > 0) {
-        auto cve =
-            parser::ConstantValueExpression::FromString(val_string.substr(0, pos),
-                                                        type::TypeUtil::TypeIdFromString(type_string.substr(0, pos2)));
-
-        param_vec.push_back(cve);
-      } else {
-        // std::cout << "null value detected in query params recorded\n" << std::flush;
-        null_detected = true;
-        break;
-      }
+      auto cve =
+          parser::ConstantValueExpression::FromString(val_string.substr(0, pos),
+                                                      type::TypeUtil::TypeIdFromString(type_string.substr(0, pos2)));
+      param_vec.push_back(cve);
       val_string.erase(0, pos + 1);
       type_string.erase(0, pos2 + 1);
     }
 
-    if (!null_detected) {
-      if ((curr_size = query_id_to_params_[query_id].size()) < num_sample_) {
-        query_id_to_params_[query_id].push_back(param_vec);
-        query_id_to_dboid_[query_id] = std::stoi(val_vec[4]);
-        query_timestamp_to_id_[std::stoull(val_vec[1])] = std::make_pair(query_id, curr_size);
-        num_executions_[query_id].push_back(1);
-      } else {
-        num_executions_[query_id][rand() % num_sample_]++;
-      }
+    if ((curr_size = query_id_to_params_[query_id].size()) < num_sample_) {
+      query_id_to_params_[query_id].push_back(param_vec);
+      query_id_to_dboid_[query_id] = std::stoi(val_vec[4]);
+      query_timestamp_to_id_[std::stoull(val_vec[1])] = std::make_pair(query_id, curr_size);
+      num_executions_[query_id].push_back(1);
+    } else {
+      num_executions_[query_id][rand() % num_sample_]++;
     }
+
   }
   // Close file
   my_file.close();
