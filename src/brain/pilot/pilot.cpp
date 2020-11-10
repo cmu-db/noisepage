@@ -120,9 +120,8 @@ void Pilot::LoadQueryTrace() {
 
     std::vector<parser::ConstantValueExpression> param_vec;
     while ((pos = val_string.find(';')) != std::string::npos && (pos2 = type_string.find(';')) != std::string::npos) {
-      auto cve =
-          parser::ConstantValueExpression::FromString(val_string.substr(0, pos),
-                                                      type::TypeUtil::TypeIdFromString(type_string.substr(0, pos2)));
+      auto cve = parser::ConstantValueExpression::FromString(
+          val_string.substr(0, pos), type::TypeUtil::TypeIdFromString(type_string.substr(0, pos2)));
       param_vec.push_back(cve);
       val_string.erase(0, pos + 1);
       type_string.erase(0, pos2 + 1);
@@ -136,7 +135,6 @@ void Pilot::LoadQueryTrace() {
     } else {
       num_executions_[query_id][rand() % num_sample_]++;
     }
-
   }
   // Close file
   my_file.close();
