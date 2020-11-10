@@ -502,7 +502,7 @@ class MiniRunners : public benchmark::Fixture {
   void BenchmarkExecQuery(int64_t num_iters, execution::compiler::ExecutableQuery *exec_query,
                           planner::OutputSchema *out_schema, bool commit,
                           std::vector<std::vector<parser::ConstantValueExpression>> *params = &empty_params,
-                          execution::exec::ExecutionSettings *settings = nullptr, bool disable_metrics = false) {
+                          execution::exec::ExecutionSettings *settings = nullptr) {
     transaction::TransactionContext *txn = nullptr;
     std::unique_ptr<catalog::CatalogAccessor> accessor = nullptr;
     std::vector<std::vector<parser::ConstantValueExpression>> param_ref = *params;
@@ -511,7 +511,7 @@ class MiniRunners : public benchmark::Fixture {
     execution::exec::OutputCallback callback = consumer;
     for (auto i = 0; i < num_iters; i++) {
       common::ManagedPointer<metrics::MetricsManager> metrics_manager = nullptr;
-      if (i == num_iters - 1 && !disable_metrics) {
+      if (i == num_iters - 1) {
         metrics_manager_->RegisterThread();
         metrics_manager = metrics_manager_;
       }
@@ -541,7 +541,7 @@ class MiniRunners : public benchmark::Fixture {
       else
         txn_manager_->Abort(txn);
 
-      if (i == num_iters - 1 && !disable_metrics) {
+      if (i == num_iters - 1) {
         metrics_manager_->Aggregate();
         metrics_manager_->UnregisterThread();
       }
@@ -980,16 +980,15 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
   auto key_num = state->range(0);
   auto tbl_cols = state->range(1);
   auto num_rows = state->range(2);
-  auto car = state->range(3);
-  auto type = static_cast<type::TypeId>(state->range(4));
-  auto num_index = state->range(5);
+  auto type = static_cast<type::TypeId>(state->range(3));
+  auto num_index = state->range(4);
   if (settings.skip_large_rows_runs_ && num_rows > settings.warmup_rows_limit_) {
     return;
   }
 
   // Create the indexes
   auto cols = ConstructColumns("", type, type::TypeId::INVALID, key_num, 0);
-  auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, car);
+  auto tbl_name = ConstructTableName(type, type::TypeId::INVALID, tbl_cols, 0, num_rows, num_rows);
   for (auto i = 0; i < num_index; i++) {
     auto settings = GetExecutionSettings(false);
     auto units = std::make_unique<brain::PipelineOperatingUnits>();
@@ -1127,8 +1126,7 @@ void MiniRunners::ExecuteIndexOperation(benchmark::State *state, bool is_insert)
     exec_query.SetPipelineOperatingUnits(std::move(units));
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    // Need to warmup a little bit
-    size_t num_iters = 1 + settings.warmup_iterations_num_;
+    auto num_iters = 1 + settings.index_model_warmup_iterations_num_;
     BenchmarkExecQuery(num_iters, &exec_query, nullptr, false, &empty_params, &exec_settings);
   }
 

@@ -414,7 +414,7 @@ void MiniRunnersArgumentGenerator::GenCreateIndexMixedArguments(OutputArgs *b, c
 
 void MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b, const MiniRunnersSettings &settings,
                                                                  const MiniRunnersDataConfig &config) {
-  auto &num_indexes = config.sweep_index_insdel_nums_;
+  auto num_indexes = {settings.index_model_batch_size_};
   const auto row_nums = config.GetRowNumbersWithLimit(settings.data_rows_limit_);
   auto types = {type::TypeId::INTEGER, type::TypeId::BIGINT};
   auto num_cols = config.sweep_index_col_nums_;
@@ -423,21 +423,7 @@ void MiniRunnersArgumentGenerator::GenIndexInsertDeleteArguments(OutputArgs *b, 
     for (auto type : types) {
       for (auto col : num_cols) {
         for (auto row : row_nums) {
-          int64_t car = 1;
-          if (row > settings.create_index_small_limit_) {
-            // For these, we get a memory explosion if the cardinality is too low.
-            while (car < row) {
-              car *= 2;
-            }
-            car = car / (pow(2, settings.create_index_large_cardinality_num_));
-          }
-
-          while (car < row) {
-            b->push_back({col, 15, row, car, static_cast<int64_t>(type), num_index});
-            car *= 2;
-          }
-
-          b->push_back({col, 15, row, row, static_cast<int64_t>(type), num_index});
+          b->push_back({col, 15, row, static_cast<int64_t>(type), num_index});
         }
       }
     }
