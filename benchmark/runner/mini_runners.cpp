@@ -2229,8 +2229,8 @@ void RunBenchmarkSequence(int rerun_counter) {
   argv[0] = "mini_runners";
   argv[1] = buffer;
 
-  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret};
-  // noisepage::execution::vm::ExecutionMode::Compiled};
+  auto vm_modes = {noisepage::execution::vm::ExecutionMode::Interpret,
+                   noisepage::execution::vm::ExecutionMode::Compiled};
   for (size_t i = 0; i < filters.size(); i++) {
     for (auto &filter : filters[i]) {
       for (auto mode : vm_modes) {
