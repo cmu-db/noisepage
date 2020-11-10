@@ -61,7 +61,6 @@ class PlanNodeCardinalityTest : public TpccPlanTest {
     EndTransaction(true);
   }
 
-
   std::unique_ptr<planner::AbstractPlanNode> Optimize(const std::string &query, catalog::table_oid_t tbl_oid,
                                                       parser::StatementType stmt_type) {
     auto stmt_list = parser::PostgresParser::BuildParseTree(query);
