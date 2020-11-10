@@ -93,6 +93,12 @@ class TypeUtil {
     }
   }
 
+  /**
+   * This function should act as the inverse of TypeIdToString, used for converting the recorded type back to Types
+   * @param type_string string representation of the type, expected to be one of the returns in TypeIdToString
+   * @return a type::TypeId type
+   * @throw Conversion_Exception if the string is not one of the expected values
+   */
   static type::TypeId TypeIdFromString(const std::string &type_string) {
     if (type_string == "INVALID") {
       return type::TypeId::INVALID;
