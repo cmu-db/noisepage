@@ -70,7 +70,7 @@ class UpdatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetIndexedUpdate(bool indexed_update) {
-      indexed_update_ = true;
+      indexed_update_ = indexed_update;
       return *this;
     }
 
