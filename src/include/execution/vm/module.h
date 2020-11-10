@@ -156,7 +156,7 @@ class Module {
 
  private:
   // The module containing all TBC (i.e., bytecode) for the TPL program.
-  std::unique_ptr<BytecodeModule> bytecode_module_;
+  std::shared_ptr<BytecodeModule> bytecode_module_; // TODO make sure to make this not shared
 
   // The module containing compiled machine code for the TPL program.
   std::unique_ptr<LLVMEngine::CompiledModule> jit_module_;
@@ -212,7 +212,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
-      //TODO @wuwen: copy module here
+      //TODO @wuwen: copy bytecode module here
       //TODO @kunal: make sure to instantiate compilation manager in the upper parts of the system. maybe just making the task queue static works?
 
       CompileToMachineCodeAsync();

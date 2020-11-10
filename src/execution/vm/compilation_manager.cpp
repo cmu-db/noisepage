@@ -11,41 +11,33 @@ namespace noisepage::execution::vm {
 class CompilationManager::AsyncCompileTask : public tbb::task {
  public:
   // Construct an asynchronous compilation task to compile the the module
-  explicit AsyncCompileTask(Module *module) : module_(module){}
+  explicit AsyncCompileTask(std::shared_ptr<BytecodeModule> bytecode_module)
+      : bytecode_module_(bytecode_module),
+        functions_(std::atomic<void *>[](bytecode_module_->GetFunctionCount())){}
 
   // Execute
   tbb::task *execute() override {
-    // This simply invokes Module::CompileToMachineCode() asynchronously.
-    std::call_once(module_->compiled_flag_, [this]() {
-      // Exit if the module has already been compiled. This might happen if
-      // requested to execute in adaptive mode by concurrent threads.
-      if (module_->jit_module_ != nullptr) {
-        return;
-      }
-
       // JIT the module.
-      LLVMEngine::CompilerOptions options;
-      module_->jit_module_ = LLVMEngine::Compile(*(module_->bytecode_module_), options);
+    LLVMEngine::CompilerOptions options;
+    auto jit_module = LLVMEngine::Compile(*bytecode_module_, options);
 
-      // JIT completed successfully. For each function in the module, pull out its
-      // compiled implementation into the function cache, atomically replacing any
-      // previous implementation.
-      for (const auto &func_info : module_->bytecode_module_->GetFunctionsInfo()) {
-        auto *jit_function = module_->jit_module_->GetFunctionPointer(func_info.GetName());
-        NOISEPAGE_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
-        module_->functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
-      }
+    // JIT completed successfully. For each function in the module, pull out its
+    // compiled implementation into the function cache, atomically replacing any
+    // previous implementation.
+    for (const auto &func_info : bytecode_module_->GetFunctionsInfo()) {
+      auto *jit_function = jit_module->GetFunctionPointer(func_info.GetName());
+      NOISEPAGE_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
+      functions_[func_info.GetId()].store(jit_function, std::memory_order_relaxed);
+    }
 
-      //handle_to_machine_code_[*module_] = module_->jit_module_;
-    });
     // Done. There's no next task, so return null.
     return nullptr;
-  }
+  };
 
  private:
-  Module *module_;
-  std::once_flag compiled_flag_;
-
+  // TODO: is the poking mechanism going to be a future / promise?
+  std::shared_ptr<BytecodeModule> bytecode_module_;
+  std::atomic<void *>[] *functions_;
 };
 
 /*
@@ -56,9 +48,9 @@ std::unique_ptr<LLVMEngine::CompiledModule> CompilationManager::getMachineCode(M
 }
 */
 
-void CompilationManager::addModule(Module *module) {
-  auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(module);
+void CompilationManager::addModule(std::shared_ptr<BytecodeModule> bytecode_module) {
+  auto *compile_task = new (tbb::task::allocate_root()) AsyncCompileTask(bytecode_module);
   tbb::task::enqueue(*compile_task);
 }
 
-}
+}  // namespace noisepage::execution::vm

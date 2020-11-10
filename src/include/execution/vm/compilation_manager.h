@@ -20,7 +20,7 @@ class CompilationManager {
   //std::unique_ptr<LLVMEngine::CompiledModule> getMachineCode(Module *module);
 
   // Send a module to the compilation manager for compilation.
-  void addModule(Module *module);
+  void addModule(std::shared_ptr<BytecodeModule> bytecode_module_);
 
  private:
   class AsyncCompileTask;
