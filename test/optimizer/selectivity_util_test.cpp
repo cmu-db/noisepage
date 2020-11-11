@@ -98,24 +98,24 @@ class SelectivityUtilTests : public TerrierTest {
     column_stats_obj_5_.GetTopK()->Increment(false, 20);
 
     // TODO(arvindsk) The histogram class currently does not support VARCHAR entries. Templatize the histogram class.
-//    column_stats_obj_6_ = NewColumnStats<execution::sql::StringVal>(
-//        catalog::db_oid_t(6), catalog::table_oid_t(6), catalog::col_oid_t (6), 10, 5, 0.5, 10, 10, 10, true);
-//    // Values and frequencies.
-//    std::vector<std::pair<std::string_view, int>> vals_6 = {{"hello", 2}, {"abc", 1}, {"def", 1}, {"xyz", 1}};
-//
-//    // Construct Top k variable.
-//    for (int i = 0; i < vals_6.size(); ++i) {
-//      storage::VarlenEntry value;
-//      value.Create(vals_6[i].first);
-//      column_stats_obj_6_.GetTopK()->Increment(value, vals_6[i].second);
-//    }
-//
-//    // Construct histogram.
-//    for (int i = 0; i < vals_3.size(); ++i) {
-//      for (int j = 0; j < vals_3[i].second; ++j) {
-//        column_stats_obj_3_.GetHistogram()->Increment(vals_3[i].first);
-//      }
-//    }
+    //    column_stats_obj_6_ = NewColumnStats<execution::sql::StringVal>(
+    //        catalog::db_oid_t(6), catalog::table_oid_t(6), catalog::col_oid_t (6), 10, 5, 0.5, 10, 10, 10, true);
+    //    // Values and frequencies.
+    //    std::vector<std::pair<std::string_view, int>> vals_6 = {{"hello", 2}, {"abc", 1}, {"def", 1}, {"xyz", 1}};
+    //
+    //    // Construct Top k variable.
+    //    for (int i = 0; i < vals_6.size(); ++i) {
+    //      storage::VarlenEntry value;
+    //      value.Create(vals_6[i].first);
+    //      column_stats_obj_6_.GetTopK()->Increment(value, vals_6[i].second);
+    //    }
+    //
+    //    // Construct histogram.
+    //    for (int i = 0; i < vals_3.size(); ++i) {
+    //      for (int j = 0; j < vals_3[i].second; ++j) {
+    //        column_stats_obj_3_.GetHistogram()->Increment(vals_3[i].first);
+    //      }
+    //    }
   }
 };
 
@@ -135,7 +135,7 @@ TEST_F(SelectivityUtilTests, TestFloatLessThan) {
   double res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Real>>(&column_stats_obj_1_), value_condition);
 
-  ASSERT_DOUBLE_EQ(res, 1.f);
+  ASSERT_DOUBLE_EQ(res, 0.8);
 
   // TEST PART 2
   const_value_expr_ptr =
@@ -360,8 +360,7 @@ TEST_F(SelectivityUtilTests, TestIntegerLessThanEqual) {
   res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
-  // True value is 0.1. TODO(arvindsk) make '<=' better here.
-  ASSERT_DOUBLE_EQ(0, res);
+  ASSERT_DOUBLE_EQ(0.1, res);
 }
 
 // NOLINTNEXTLINE
@@ -407,8 +406,7 @@ TEST_F(SelectivityUtilTests, TestIntegerGreaterThan) {
   res = selectivity_util.ComputeSelectivity(
       common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(&column_stats_obj_2_), value_condition);
 
-  // True value is 0.7. TODO(arvindsk) Making '<=' better will fix this.
-  ASSERT_FLOAT_EQ(0.8, res);
+  ASSERT_FLOAT_EQ(0.7, res);
 }
 
 // NOLINTNEXTLINE
@@ -461,8 +459,8 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
   const_value_expr_ptr =
       std::make_unique<parser::ConstantValueExpression>(type::TypeId::BOOLEAN, execution::sql::BoolVal(false));
   // Create a value condition to pass to SelectivityUtil.
-  value_condition = ValueCondition(catalog::col_oid_t(5), parser::ExpressionType::COMPARE_EQUAL,
-                                 std::move(const_value_expr_ptr));
+  value_condition =
+      ValueCondition(catalog::col_oid_t(5), parser::ExpressionType::COMPARE_EQUAL, std::move(const_value_expr_ptr));
 
   // Compute selectivity for col = true.
   res = selectivity_util.ComputeSelectivity(

@@ -12,8 +12,8 @@ namespace noisepage::optimizer {
 static constexpr double DEFAULT_SELECTIVITY = 0.5;
 
 /**
- * A utility class for computing the selectivity of columns based on
- * column statistics.
+ * A utility class for computing the selectivity (Values satisfying a condition / Total values in column)
+ * of columns based on column statistics.
  * Supported operators for selectivity calculations are:
  * - EQUAL
  * - NOT EQUAL
@@ -48,6 +48,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = LessThanOrEqualTo(column_stats, condition) - Equal(column_stats, condition);
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -70,6 +71,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double GreaterThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = 1 - LessThanOrEqualTo(column_stats, condition) - column_stats->GetFracNull();
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -83,7 +85,8 @@ class SelectivityUtil {
   template <typename T>
   static double GreaterThanOrEqualTo(common::ManagedPointer<NewColumnStats<T>> column_stats,
                                      const ValueCondition &condition) {
-    double res = 1 - LessThan(column_stats, condition) - column_stats->GetFracNull();
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
+    double res = 1.0 - LessThan(column_stats, condition) - column_stats->GetFracNull();
     return std::max(std::min(res, 1.0), 0.0);
   }
 
@@ -104,6 +107,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double NotEqual(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
+    if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = 1 - Equal(column_stats, condition) - column_stats->GetFracNull();
     return std::max(std::min(res, 1.0), 0.0);
   }
@@ -130,7 +134,7 @@ class SelectivityUtil {
    */
   template <typename T>
   static double NotLike(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
-    return 1 - Like(column_stats, condition);
+    return DEFAULT_SELECTIVITY;
   }
 
   /**

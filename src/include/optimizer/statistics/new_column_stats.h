@@ -45,8 +45,7 @@ class NewColumnStats {
         column_id_(column_id),
         num_rows_(num_rows),
         cardinality_(cardinality),
-        frac_null_(frac_null),
-        is_base_table_{is_base_table} {
+        frac_null_(frac_null) {
     top_k_ptr = new TopKElements<CppType>(k_value, top_k_width);
     histogram_ptr = new Histogram<CppType>(histogram_max_bins);
   }
@@ -138,10 +137,5 @@ class NewColumnStats {
    * Histogram for the column values.
    */
   common::ManagedPointer<Histogram<CppType>> histogram_ptr;
-
-  /**
-   * tells whether column is from a base table
-   */
-  bool is_base_table_;
 };
 }  // namespace noisepage::optimizer

@@ -48,11 +48,15 @@ double SelectivityUtil::LessThanOrEqualTo(common::ManagedPointer<NewColumnStats<
   // Use histogram to estimate selectivity
   auto histogram = column_stats->GetHistogram();
 
-  if (value <= histogram->GetMinValue()) return 0;
-  if (value > histogram->GetMaxValue()) return 1;
+  if (value < histogram->GetMinValue()) return 0;
+  if (value >= histogram->GetMaxValue()) return 1.0 - column_stats->GetFracNull();
   double res =
       static_cast<double>(histogram->EstimateItemCount(value)) / static_cast<double>(column_stats->GetNumRows());
-  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be within valid range");
+  // There is a possibility that histogram's <= estimate is lesser than it is supposed to be.
+  // In the case where the estimate is smaller than estimate for equal, we adjust the selectivity to
+  // that of the Equal operator.
+  res = std::max(res, Equal(column_stats, condition));
+  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "Selectivity of operator must be within valid range");
   return res;
 }
 
@@ -75,7 +79,7 @@ double SelectivityUtil::Equal(common::ManagedPointer<NewColumnStats<T>> column_s
 
   double res = value_frequency_estimate / static_cast<double>(numrows);
 
-  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "res must be in valid range");
+  NOISEPAGE_ASSERT(res >= 0 && res <= 1, "Selectivity of operator must be within valid range");
   return res;
 }
 
