@@ -1840,6 +1840,63 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
   call->SetType(GetBuiltinType(return_kind));
 }
 
+void Sema::CheckAtomicCall(ast::CallExpr *call, ast::Builtin builtin) {
+  const auto &call_args = call->Arguments();
+
+  // Permissive arg check to protect the following argument dereference
+  if (!CheckArgCountAtLeast(call, 1)) return;
+
+  auto operand_type = call_args[0]->GetType()->GetPointeeType();
+  if (operand_type == nullptr) {
+    ReportIncorrectCallArg(call, 0, "'dest' must be pointer to an integral type");
+    return;
+  }
+
+  auto builtin_type = operand_type->SafeAs<ast::BuiltinType>();
+  if (builtin_type == nullptr || !builtin_type->IsIntegral()) {
+    ReportIncorrectCallArg(call, 0, "cannot perform atomic operations on non-integral types");
+    return;
+  }
+
+  if (builtin_type->GetSize() > 8) {
+    ReportIncorrectCallArg(call, 0, "cannot perform atomic operations on integrals wider than 8-bytes");
+    return;
+  }
+
+  switch (builtin) {
+    case ast::Builtin::AtomicAnd:
+    case ast::Builtin::AtomicOr: {
+      if (!CheckArgCount(call, 2)) return;
+
+      if (call_args[1]->GetType() != builtin_type) {
+        ReportIncorrectCallArg(call, 1, builtin_type);
+        return;
+      }
+
+      call->SetType(builtin_type);
+      break;
+    }
+    case ast::Builtin::AtomicCompareExchange: {
+      if (!CheckArgCount(call, 3)) return;
+
+      if (call_args[1]->GetType()->GetPointeeType() != builtin_type) {
+        ReportIncorrectCallArg(call, 1, builtin_type->PointerTo());
+        return;
+      }
+
+      if (call_args[2]->GetType() != builtin_type) {
+        ReportIncorrectCallArg(call, 2, builtin_type);
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
+    default:
+      UNREACHABLE("Impossible atomic call");
+  }
+}
+
 void Sema::CheckResultBufferCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCount(call, 1)) {
     return;
@@ -3571,6 +3628,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::PtrCast: {
       UNREACHABLE("Pointer cast should be handled outside switch ...");
+    }
+    case ast::Builtin::AtomicAnd:
+    case ast::Builtin::AtomicOr:
+    case ast::Builtin::AtomicCompareExchange: {
+      CheckAtomicCall(call, builtin);
+      break;
     }
     case ast::Builtin::AbortTxn: {
       CheckBuiltinAbortCall(call);
