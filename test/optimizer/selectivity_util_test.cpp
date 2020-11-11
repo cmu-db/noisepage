@@ -468,4 +468,68 @@ TEST_F(SelectivityUtilTests, TestBoolEqual) {
 
   ASSERT_DOUBLE_EQ(0.2, res);
 }
+
+// NOLINTNEXTLINE
+TEST_F(SelectivityUtilTests, TestNullColStats) {
+  // TEST for DEFAULT_SELECTIVITY when column stats is nullptr with different operators.
+  // Create a constant value expression to pass to ValueCondition.
+  std::unique_ptr<parser::ConstantValueExpression> const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  ValueCondition value_condition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_NOT_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  // Compute selectivity for col != 4.
+  double res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr), value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition = ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_EQUAL,
+                                 std::move(const_value_expr_ptr));
+  res = selectivity_util.ComputeSelectivity(
+      common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr), value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition =
+      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN, std::move(const_value_expr_ptr));
+  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+                                            value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition =
+      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO, std::move(const_value_expr_ptr));
+  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+                                            value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition =
+      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN, std::move(const_value_expr_ptr));
+  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+                                            value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+
+  // Create a constant value expression to pass to ValueCondition.
+  const_value_expr_ptr =
+      std::make_unique<parser::ConstantValueExpression>(type::TypeId::INTEGER, execution::sql::Integer(4));
+  // Create a value condition to pass to SelectivityUtil.
+  value_condition =
+      ValueCondition(catalog::col_oid_t(3), parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO, std::move(const_value_expr_ptr));
+  res = selectivity_util.ComputeSelectivity(common::ManagedPointer<NewColumnStats<execution::sql::Integer>>(nullptr),
+                                            value_condition);
+  ASSERT_DOUBLE_EQ(DEFAULT_SELECTIVITY, res);
+}
 }  // namespace noisepage::optimizer

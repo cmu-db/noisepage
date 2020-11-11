@@ -50,6 +50,10 @@ class SelectivityUtil {
   static double LessThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = LessThanOrEqualTo(column_stats, condition) - Equal(column_stats, condition);
+    // Leave some room for acceptable error because of double calculations.
+    NOISEPAGE_ASSERT(
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
 
@@ -73,6 +77,10 @@ class SelectivityUtil {
   static double GreaterThan(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = 1 - LessThanOrEqualTo(column_stats, condition) - column_stats->GetFracNull();
+    // Leave some room for acceptable error because of double calculations.
+    NOISEPAGE_ASSERT(
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
 
@@ -87,6 +95,10 @@ class SelectivityUtil {
                                      const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = 1.0 - LessThan(column_stats, condition) - column_stats->GetFracNull();
+    // Leave some room for acceptable error because of double calculations.
+    NOISEPAGE_ASSERT(
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
 
@@ -109,6 +121,10 @@ class SelectivityUtil {
   static double NotEqual(common::ManagedPointer<NewColumnStats<T>> column_stats, const ValueCondition &condition) {
     if (column_stats == nullptr) return DEFAULT_SELECTIVITY;
     double res = 1 - Equal(column_stats, condition) - column_stats->GetFracNull();
+    // Leave some room for acceptable error because of double calculations.
+    NOISEPAGE_ASSERT(
+        res + std::numeric_limits<double>::epsilon() >= 0 && res <= 1 - std::numeric_limits<double>::epsilon(),
+        "Selectivity of operator must be within valid range");
     return std::max(std::min(res, 1.0), 0.0);
   }
 
