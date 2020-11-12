@@ -12,6 +12,7 @@
 #include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_task.h"
 #include "storage/record_buffer.h"
+#include "storage/replication/replication_manager.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
@@ -34,14 +35,16 @@ class LogSerializerTask : public common::DedicatedThreadTask {
                              RecordBufferSegmentPool *buffer_pool,
                              common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                              common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
-                             std::condition_variable *disk_log_writer_thread_cv)
+                             std::condition_variable *disk_log_writer_thread_cv,
+                             common::ManagedPointer<ReplicationManager> replication_manager)
       : run_task_(false),
         serialization_interval_(serialization_interval),
         buffer_pool_(buffer_pool),
         filled_buffer_(nullptr),
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue),
-        disk_log_writer_thread_cv_(disk_log_writer_thread_cv) {}
+        disk_log_writer_thread_cv_(disk_log_writer_thread_cv),
+        replication_manager_(replication_manager) {}
 
   /**
    * Runs main disk log writer loop. Called by thread registry upon initialization of thread
@@ -121,6 +124,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
   // Condition variable to signal disk log consumer task thread that a new full buffer has been pushed to the queue
   std::condition_variable *disk_log_writer_thread_cv_;
+
+  // Replication manager to provide logs for
+  common::ManagedPointer<storage::ReplicationManager> replication_manager_;
 
   /**
    * Main serialization loop. Calls Process every interval. Processes all the accumulated log records and
