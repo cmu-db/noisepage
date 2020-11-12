@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import os
 import distro
@@ -28,10 +28,10 @@ def parse_oltpbench_data(results_dir):
         metrics (dict): The metrics gathered from the result of the test
     """
     env_metadata = parse_jenkins_env_vars()
-    files_metadata, timestamp, type, parameters, metrics = parse_oltpbench_files(
+    files_metadata, timestamp, benchmark_type, parameters, metrics = parse_oltpbench_files(
         results_dir)
     metadata = {**env_metadata, **files_metadata}
-    return metadata, timestamp, type, parameters, metrics
+    return metadata, timestamp, benchmark_type, parameters, metrics
 
 
 def parse_microbenchmark_data(artifact_processor_comparison):
@@ -98,26 +98,29 @@ def parse_oltpbench_files(results_dir):
         metrics (dict): The summary measurements that were gathered from the test.
     """
     config_parameters = parse_config_file(results_dir + '/oltpbench.expconfig')
-    metadata, timestamp, type, summary_parameters, metrics = parse_summary_file(
+    metadata, timestamp, benchmark_type, summary_parameters, metrics = parse_summary_file(
         results_dir + '/oltpbench.summary')
-    metrics['incremental_metrics'] = parse_res_file(
-        results_dir + '/oltpbench.res')
+    metrics['incremental_metrics'] = parse_res_file(results_dir +
+                                                    '/oltpbench.res')
     parameters = {**summary_parameters, **config_parameters}
-    return metadata, timestamp, type, parameters, metrics
+    return metadata, timestamp, benchmark_type, parameters, metrics
 
 
 def parse_microbenchmark_comparison(artifact_processor_comparison):
     """ Extract the relevant information from the artifact_processor_comparison 
     and parse out the test name and suite"""
-    metrics_fields = ['throughput', 'stdev_throughput', 'tolerance',
-                      'status', 'iterations', 'ref_throughput', 'num_results']
+    metrics_fields = [
+        'throughput', 'stdev_throughput', 'tolerance', 'status', 'iterations',
+        'ref_throughput', 'num_results'
+    ]
     test_suite, test_name = artifact_processor_comparison.get(
         'suite'), artifact_processor_comparison.get('test')
 
     metrics = {}
     for key, value in artifact_processor_comparison.items():
         if key in metrics_fields:
-            metrics[key] = round(value, 15) if isinstance(value, (float, Decimal)) else value
+            metrics[key] = round(value, 15) if isinstance(
+                value, (float, Decimal)) else value
     return test_suite, test_name, metrics
 
 
@@ -127,15 +130,14 @@ def parse_db_metadata():
     if the version.h moves and this is not updated. We use a fallback of
     unknown result so the tests won't fail if this happens"""
     regex = r"NOISEPAGE_VERSION[=\s].*(\d.\d.\d)"
-    CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-    db_metadata = {
-        'noisepage': {
-            'db_version': UNKNOWN_RESULT
-        }
-    }
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    # FIXME: The relative path for the version.h may change in the future
+    version_file_relative = '../../../../src/include/common/version.h'
+    version_file = os.path.join(curr_dir, version_file_relative)
+    db_metadata = {'noisepage': {'db_version': UNKNOWN_RESULT}}
     try:
-        with open(CURRENT_DIR + '/../../../../src/include/common/version.h') as version_file:
-            match = re.search(regex, version_file.read())
+        with open(version_file) as f:
+            match = re.search(regex, f.read())
             db_metadata['noisepage']['db_version'] = match.group(1)
     except Exception as err:
         LOG.error(err)

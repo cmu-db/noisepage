@@ -17,7 +17,7 @@ Please provide a short summary of the feature you would like implemented.
 If possible, include a description of the desired solution you have in mind. Ideally, a series of steps outlining what is required and a plan to implement would be the most helpful for our developers! An [example](https://github.com/cmu-db/noisepage/issues/879) from an issue by @mbutrovich follows:
 
 This is an issue to track and discuss toolchain updates that we may want to explore this summer.
-- [ ] Ubuntu 20.04 LTS: this will bump GCC support to 9.3, and also bump any dependencies like TBB
+- [x] Ubuntu 20.04 LTS: this will bump GCC support to 9.3, and also bump any dependencies like TBB
 - [ ] LLVM 10 for runtime code generation
 - [ ] LLVM 10 for code quality (clang-format, clang-tidy): this may require code changes for new clang-tidy checks
    third_party folder (xxHash, spdlog, json, etc.)
@@ -38,9 +38,13 @@ Please provide a short summary of the bug observed.
 ## Environment
 To address the bug, especially if it environment specific, we need to know what kind of configuration you are running on. Please include the following:
 
-**OS**: Ubuntu 18.04 (LTS) or macOS 10.14+ (specify version).
+**OS**: Ubuntu (LTS) 20.04 or macOS 10.14+ (please specify version).
 
 **Compiler**: GCC 7.0+ or Clang 8.0+. 
+
+**CMake Profile**: `Debug`, `Release`, `FastDebug`, or `Relwithdebinfo`. If exists across all cmake profiles on a platform-compiler combo, then please say so.
+
+**Jenkins/CI**: If the bug has been observed in CI, please link to the Jenkins/CI build so that the bug can be referenced. Please make sure that if the issue has appeared on a PR branch that the PR itself is not causing the issue.
 
 **Note:** we do not support any other toolchains at the moment, so please do not create bug reports if you are building on other environments. Please see the [wiki page](https://github.com/cmu-db/noisepage/wiki/System-Setup) on our supported systems.
 

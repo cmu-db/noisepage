@@ -1887,6 +1887,61 @@ void BytecodeGenerator::VisitBuiltinArithmeticCall(ast::CallExpr *call, ast::Bui
   GetExecutionResult()->SetDestination(dest);
 }
 
+void BytecodeGenerator::VisitBuiltinAtomicArithmeticCall(ast::CallExpr *call, ast::Builtin builtin) {
+  const auto &args = call->Arguments();
+  LocalVar dest = VisitExpressionForRValue(args[0]);
+  LocalVar val = VisitExpressionForRValue(args[1]);
+  LocalVar ret;
+
+  if (GetExecutionResult() != nullptr) {
+    ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+    GetExecutionResult()->SetDestination(ret.ValueOf());
+  } else {
+    ret = GetCurrentFunction()->NewLocal(call->GetType());
+  }
+
+  auto operand_size = args[1]->GetType()->GetSize();  // Base operand size
+  Bytecode op_code;
+  if (operand_size == 1) {
+    op_code = builtin == ast::Builtin::AtomicAnd ? Bytecode::AtomicAnd1 : Bytecode::AtomicOr1;
+  } else if (operand_size == 2) {
+    op_code = builtin == ast::Builtin::AtomicAnd ? Bytecode::AtomicAnd2 : Bytecode::AtomicOr2;
+  } else if (operand_size == 4) {
+    op_code = builtin == ast::Builtin::AtomicAnd ? Bytecode::AtomicAnd4 : Bytecode::AtomicOr4;
+  } else {
+    NOISEPAGE_ASSERT(operand_size == 8, "Unexpected integral size");
+    op_code = builtin == ast::Builtin::AtomicAnd ? Bytecode::AtomicAnd8 : Bytecode::AtomicOr8;
+  }
+  GetEmitter()->Emit(op_code, ret, dest, val);
+}
+
+void BytecodeGenerator::VisitBuiltinAtomicCompareExchangeCall(ast::CallExpr *call) {
+  const auto &args = call->Arguments();
+  LocalVar dest = VisitExpressionForRValue(args[0]);
+  LocalVar expected = VisitExpressionForRValue(args[1]);
+  LocalVar desired = VisitExpressionForRValue(args[2]);
+  LocalVar ret;
+
+  if (GetExecutionResult() != nullptr) {
+    ret = GetExecutionResult()->GetOrCreateDestination(call->GetType());
+    GetExecutionResult()->SetDestination(ret.ValueOf());
+  } else {
+    ret = GetCurrentFunction()->NewLocal(call->GetType());
+  }
+
+  auto operand_size = args[2]->GetType()->GetSize();  // Base operand size
+  if (operand_size == 1) {
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange1, ret, dest, expected, desired);
+  } else if (operand_size == 2) {
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange2, ret, dest, expected, desired);
+  } else if (operand_size == 4) {
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange4, ret, dest, expected, desired);
+  } else {
+    NOISEPAGE_ASSERT(operand_size == 8, "Unexpected type size");
+    GetEmitter()->Emit(Bytecode::AtomicCompareExchange8, ret, dest, expected, desired);
+  }
+}
+
 void BytecodeGenerator::VisitBuiltinSizeOfCall(ast::CallExpr *call) {
   ast::Type *target_type = call->Arguments()[0]->GetType();
   LocalVar size_var = GetExecutionResult()->GetOrCreateDestination(call->GetType());
@@ -2835,6 +2890,15 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::Abs:
     case ast::Builtin::Mod: {
       VisitBuiltinArithmeticCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::AtomicAnd:
+    case ast::Builtin::AtomicOr: {
+      VisitBuiltinAtomicArithmeticCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::AtomicCompareExchange: {
+      VisitBuiltinAtomicCompareExchangeCall(call);
       break;
     }
     case ast::Builtin::PRSetBool:
