@@ -40,19 +40,20 @@ LOG_handler.setFormatter(LOG_formatter)
 LOG.addHandler(LOG_handler)
 LOG.setLevel(logging.INFO)
 
-
 # API endpoints for Performance Storage Service
 # Each pair represents different environment. One could choose where the benchmark testing result will be uploaded to
 # The default is none, which means that the testing result won't be uploaded to any server
 PERFORMANCE_STORAGE_SERVICE_API = {
-    "none":"",
-    "test":"https://incrudibles-testing.db.pdl.cmu.edu/performance-results",
-    "staging":"https://incrudibles-staging.db.pdl.cmu.edu/performance-results",
-    "prod":"https://incrudibles-production.db.pdl.cmu.edu/performance-results"
+    "none": "",
+    "test": "https://incrudibles-testing.db.pdl.cmu.edu/performance-results",
+    "staging":
+    "https://incrudibles-staging.db.pdl.cmu.edu/performance-results",
+    "prod": "https://incrudibles-production.db.pdl.cmu.edu/performance-results"
 }
 # Scripts with psutils
 FILE_CHECK_PIDS = os.path.join(DIR_TESTING, "check_pids.py")
 FILE_KILL_SERVER = os.path.join(DIR_TESTING, "kill_server.py")
+FILE_COLLECT_MEM_INFO = os.path.join(DIR_TESTING, "collect_mem_info.py")
 
 # Command paths
 LSOF_PATH_LINUX = "lsof"
@@ -60,6 +61,12 @@ LSOF_PATH_MACOS = "/usr/sbin/lsof"
 
 # OS family
 OS_FAMILY_DARWIN = "darwin"
+
+# Memory info collection
+MEM_INFO_SPLITTER = ","
+
+# Incremental metrics
+INCREMENTAL_METRIC_FREQ = 5  # collect incremental metrics every 5 seconds by default
 
 
 # error code
@@ -72,4 +79,3 @@ class ErrorCode:
 class CommandLineStr:
     TRUE = "TRUE"
     FALSE = "FALSE"
-
