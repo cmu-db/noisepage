@@ -6,9 +6,14 @@
 #include <unordered_map>
 #include <utility>
 
+#include "common/container/concurrent_queue.h"
 #include "common/managed_pointer.h"
 #include "messenger/connection_destination.h"
 #include "messenger/messenger.h"
+#include "network/network_io_utils.h"
+#include "storage/recovery/replication_log_provider.h"
+#include "storage/write_ahead_log/log_io.h"
+#include "storage/write_ahead_log/log_record.h"
 
 namespace noisepage::replication {
 
@@ -58,7 +63,8 @@ class ReplicationManager {
   static constexpr uint64_t REPLICATION_CARDIAC_ARREST_MS = 5000;
 
   ReplicationManager(common::ManagedPointer<messenger::Messenger> messenger, const std::string &network_identity,
-                     uint16_t port, const std::string &replication_hosts_path);
+                     uint16_t port, const std::string &replication_hosts_path,
+                     common::ManagedPointer<storage::ReplicationLogProvider> provider);
 
   void ReplicaConnect(const std::string &replica_name, const std::string &hostname, uint16_t port);
 
@@ -79,6 +85,22 @@ class ReplicationManager {
     return replicas;
   }
 
+  /**
+   * Adds a record buffer to the current queue.
+   * @param network_buffer The buffer to be added to the queue.
+   */
+  void AddLogRecordBuffer(storage::BufferedLogWriter *network_buffer);
+
+  /**
+   * Serialize log record buffer to json. This operation empties the record
+   * buffer queue.
+   * @return serialized json
+   */
+  nlohmann::json SerializeLogRecords();
+
+  /** Parse the log record buffer and redirect to replication log provider for recovery. */
+  void RecoverFromSerializedLogRecords(const std::string &string_view);
+
  private:
   void EventLoop(common::ManagedPointer<messenger::Messenger> messenger, const messenger::ZmqMessage &msg);
   void ReplicaHeartbeat(const std::string &replica_name);
@@ -96,6 +118,12 @@ class ReplicationManager {
   std::unordered_map<std::string, Replica> replicas_;  //< Replica Name -> Connection ID.
   std::mutex mutex_;
   std::condition_variable cvar_;
+
+  common::ManagedPointer<storage::ReplicationLogProvider> provider_;
+  /** Keeps track of currently stored record buffers. */
+  common::ConcurrentQueue<storage::SerializedLogs> replication_consumer_queue_;
+  /** Used for determining whether the message being sent over is used for replication. */
+  const std::string replication_message_identifier_ = "replication";
 };
 
 }  // namespace noisepage::replication

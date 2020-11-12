@@ -13,8 +13,8 @@
 #include "common/managed_pointer.h"
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
+#include "replication/replication_manager.h"
 #include "storage/record_buffer.h"
-#include "storage/replication/replication_manager.h"
 #include "storage/write_ahead_log/log_io.h"
 #include "storage/write_ahead_log/log_record.h"
 
@@ -60,7 +60,7 @@ class LogManager : public common::DedicatedThreadOwner {
              std::chrono::microseconds persist_interval, uint64_t persist_threshold,
              common::ManagedPointer<RecordBufferSegmentPool> buffer_pool,
              common::ManagedPointer<noisepage::common::DedicatedThreadRegistry> thread_registry,
-             common::ManagedPointer<ReplicationManager> replication_manager)
+             common::ManagedPointer<replication::ReplicationManager> replication_manager)
       : DedicatedThreadOwner(thread_registry),
         run_log_manager_(false),
         log_file_path_(std::move(log_file_path)),
@@ -165,7 +165,7 @@ class LogManager : public common::DedicatedThreadOwner {
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
 
-  common::ManagedPointer<storage::ReplicationManager> replication_manager_;
+  common::ManagedPointer<replication::ReplicationManager> replication_manager_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

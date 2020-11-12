@@ -7,6 +7,7 @@
 
 #include "catalog/catalog.h"
 #include "common/action_context.h"
+#include "common/container/concurrent_queue.h"
 #include "common/dedicated_thread_registry.h"
 #include "common/managed_pointer.h"
 #include "messenger/messenger.h"
@@ -365,16 +366,27 @@ class DBMain {
 
       if (use_replication_) {
         NOISEPAGE_ASSERT(use_messenger_, "Replication uses the messenger subsystem.");
+        auto log_provider =
+            std::make_unique<storage::ReplicationLogProvider>(replication_timeout_, use_synchronous_replication_);
         replication_manager = std::make_unique<replication::ReplicationManager>(
-            messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_);
+            messenger_layer->GetMessenger(), network_identity_, replication_port_, replication_hosts_path_,
+            common::ManagedPointer(log_provider));
       }
 
       std::unique_ptr<storage::LogManager> log_manager = DISABLED;
       if (use_logging_) {
-        log_manager = std::make_unique<storage::LogManager>(
-            wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
-            std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
-            common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry));
+        if (use_replication_) {
+          log_manager = std::make_unique<storage::LogManager>(
+              wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
+              std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
+              common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry),
+              common::ManagedPointer(replication_manager));
+        } else {
+          log_manager = std::make_unique<storage::LogManager>(
+              wal_file_path_, wal_num_buffers_, std::chrono::microseconds{wal_serialization_interval_},
+              std::chrono::microseconds{wal_persist_interval_}, wal_persist_threshold_,
+              common::ManagedPointer(buffer_segment_pool), common::ManagedPointer(thread_registry), nullptr);
+        }
         log_manager->Start();
       }
 
@@ -643,6 +655,24 @@ class DBMain {
     }
 
     /**
+     * @param identity Replication timeout
+     * @return self reference for chaining
+     */
+    Builder &SetReplicationTimeout(const uint16_t timeout_seconds) {
+      replication_timeout_ = std::chrono::seconds(timeout_seconds);
+      return *this;
+    }
+
+    /**
+     * @param identity Synchronous replication
+     * @return self reference for chaining
+     */
+    Builder &SetSynchronousReplication(const bool value) {
+      use_synchronous_replication_ = value;
+      return *this;
+    }
+
+    /**
      * @param value RecordBufferSegmentPool argument
      * @return self reference for chaining
      */
@@ -764,6 +794,8 @@ class DBMain {
     uint16_t messenger_port_ = 9022;
     uint16_t replication_port_ = 15445;
     std::string replication_hosts_path_ = "replication.conf";
+    std::chrono::seconds replication_timeout_{10};
+    bool use_synchronous_replication_ = false;
 
     /**
      * Instantiates the SettingsManager and reads all of the settings to override the Builder's settings.

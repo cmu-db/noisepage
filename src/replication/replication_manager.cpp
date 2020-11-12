@@ -17,8 +17,9 @@ Replica::Replica(common::ManagedPointer<noisepage::messenger::Messenger> messeng
 
 ReplicationManager::ReplicationManager(common::ManagedPointer<noisepage::messenger::Messenger> messenger,
                                        const std::string &network_identity, uint16_t port,
-                                       const std::string &replication_hosts_path)
-    : messenger_(messenger), identity_(network_identity), port_(port) {
+                                       const std::string &replication_hosts_path,
+                                       common::ManagedPointer<storage::ReplicationLogProvider> provider)
+    : messenger_(messenger), identity_(network_identity), port_(port), provider_(provider) {
   auto listen_destination = messenger::ConnectionDestination::MakeTCP("", "127.0.0.1", port);
   messenger_->ListenForConnection(listen_destination, network_identity,
                                   [this](common::ManagedPointer<messenger::Messenger> messenger,
@@ -150,9 +151,62 @@ void ReplicationManager::ReplicaHeartbeat(const std::string &replica_name) {
   REPLICATION_LOG_INFO(fmt::format("Replica {}: heartbeat end.", replica_name));
 }
 
+void ReplicationManager::AddLogRecordBuffer(storage::BufferedLogWriter *network_buffer) {
+  replication_consumer_queue_.Enqueue(std::make_pair(network_buffer, std::vector<storage::CommitCallback>()));
+}
+
 common::ManagedPointer<noisepage::messenger::ConnectionId> ReplicationManager::GetReplicaConnection(
     const std::string &replica_name) {
   return replicas_.at(replica_name).GetConnectionId();
+}
+
+nlohmann::json ReplicationManager::SerializeLogRecords() {
+  // Grab buffers in queue.
+  std::deque<storage::BufferedLogWriter *> temp_buffer_queue;
+  uint64_t data_size = 0;
+  storage::SerializedLogs logs;
+  while (!replication_consumer_queue_.Empty()) {
+    replication_consumer_queue_.Dequeue(&logs);
+    data_size += logs.first->GetBufferSize();
+    temp_buffer_queue.push_back(logs.first);
+  }
+
+  // Build JSON object.
+  nlohmann::json j;
+  j[replication_message_identifier_] = true;
+
+  std::string message_content;
+  uint64_t message_size = 0;
+  for (auto *buffer : temp_buffer_queue) {
+    message_size += buffer->GetBufferSize();
+    message_content += buffer->GetBuffer();
+  }
+
+  j["size"] = message_size;
+  j["content"] = nlohmann::json::to_cbor(message_content);
+  STORAGE_LOG_INFO("Sending replication message of size ", message_size);
+
+  return j;
+}
+
+void ReplicationManager::RecoverFromSerializedLogRecords(const std::string &string_view) {
+  // Parse the message.
+  nlohmann::json message = nlohmann::json::parse(string_view);
+
+  // Get the original replication info.
+  size_t message_size = message["size"];
+
+  std::unique_ptr<network::ReadBuffer> buffer(new network::ReadBuffer(message_size));
+  std::vector<uint8_t> message_content_raw = message["content"];
+  std::string message_content = nlohmann::json::from_cbor(message_content_raw);
+
+  // Fill in a ReadBuffer for converting to log record.
+  std::vector<unsigned char> message_content_buffer(message_content.begin(), message_content.end());
+  network::ReadBufferView view(message_size, message_content_buffer.begin());
+  buffer->FillBufferFrom(view, message_size);
+
+  // Pass to log provider for recovery.
+  provider_->HandBufferToReplication(std::move(buffer));
 }
 
 }  // namespace noisepage::replication
