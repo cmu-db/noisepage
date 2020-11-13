@@ -20,6 +20,7 @@
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
+#include "parser/expression/type_cast_expression.h"
 
 namespace noisepage::parser {
 
@@ -479,6 +480,9 @@ class ExpressionUtil {
       auto def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause());
       auto type = case_expr->GetReturnValueType();
       return std::make_unique<CaseExpression>(type, std::move(clauses), std::move(def_cond));
+    } else if (expr->GetExpressionType() == ExpressionType::OPERATOR_CAST) {
+      NOISEPAGE_ASSERT(children_size == 1, "TypeCastExpression should have exactly 1 child.");
+      return expr->GetChild(0)->Copy();
     }
 
     return expr->CopyWithChildren(std::move(children));
