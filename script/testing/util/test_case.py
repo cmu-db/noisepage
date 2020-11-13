@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
+
 from util import constants
 from util.common import *
+from util.mem_metrics import MemoryMetrics
+
 
 class TestCase:
     """Class of a test case, could be part of a test suite"""
-
     def __init__(self, args):
         """ Locations and misc. variable initialization """
         # clean up the command line args
@@ -24,6 +27,9 @@ class TestCase:
 
         # whether the DB should restart before the test begin
         self.db_restart = True
+
+        # memory metrics
+        self.mem_metrics = MemoryMetrics()
 
     def run_pre_test(self):
         pass
