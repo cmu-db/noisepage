@@ -181,8 +181,10 @@ class MetricsStore {
 
   /**
    * Record queries generated
+   * @param db_oid database oid
    * @param query_id id of the query
    * @param query_text text of the query
+   * @param param parameter associated with this query
    * @param timestamp time of query generation
    */
   void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
@@ -198,7 +200,6 @@ class MetricsStore {
    * @param query_id id of the query
    * @param timestamp time of the query execution
    * @param param parameter associated with this query
-   * @param oid database oid
    */
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
                         common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
