@@ -451,6 +451,38 @@ SELECT AVG(DISTINCT gpa) as distinctGpaAvg, AVG(gpa) as gpaAvg, COUNT(DISTINCT n
 3.7000000000000015
 1
 
+query TR rowsort
+SELECT name, MAX(gpa) FROM studentTable GROUP BY name HAVING MAX(gpa) > 3.5
+----
+Billy
+3.7
+John
+4
+Kanye
+3.7
+Will
+3.7
+
+query T rowsort
+SELECT name FROM studentTable GROUP BY name HAVING AVG(gpa) > 3.5
+----
+Billy
+John
+Kanye
+Will
+
+query T rowsort
+SELECT name FROM studentTable GROUP BY name HAVING MAX(gpa) > 3.7 AND AVG(age) >= 20
+----
+John
+
+query TRR rowsort
+SELECT name, MAX(gpa), AVG(age) FROM studentTable GROUP BY name HAVING MAX(gpa) > 3.7 AND AVG(age) >= 20
+----
+John
+4
+20.0000000000000000
+
 statement ok
 DROP TABLE studentTable
 
