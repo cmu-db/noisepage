@@ -25,10 +25,10 @@ def parse_summary_file(path):
         summary = json.load(summary_file)
         metadata = parse_metadata(summary)
         timestamp = parse_timestamp(summary)
-        type = parse_type(summary)
+        benchmark_type = parse_benchmark_type(summary)
         parameters = parse_parameters(summary)
         metrics = parse_metrics(summary)
-        return metadata, timestamp, type, parameters, metrics
+        return metadata, timestamp, benchmark_type, parameters, metrics
 
 
 def parse_metadata(summary):
@@ -54,7 +54,7 @@ def parse_timestamp(summary):
     return int(get_value_by_pattern(summary, 'timestamp', str(time())))
 
 
-def parse_type(summary):
+def parse_benchmark_type(summary):
     """ Get the benchmark type (i.e tpcc) from the summary file data """
     return summary.get('Benchmark Type', UNKNOWN_RESULT)
 
