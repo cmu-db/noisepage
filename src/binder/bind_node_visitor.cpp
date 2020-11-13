@@ -664,14 +664,6 @@ void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConjunctionExpression
     sherpa_->SetDesiredType(child, type::TypeId::BOOLEAN);
   }
   SqlNodeVisitor::Visit(expr);
-
-  // If any of the operands are typecasts, the typecast children should have been casted by now. Pull the children up.
-  for (size_t i = 0; i < expr->GetChildrenSize(); ++i) {
-    auto child = expr->GetChild(i);
-    if (parser::ExpressionType::OPERATOR_CAST == child->GetExpressionType()) {
-      expr->SetChild(i, child->GetChild(0));
-    }
-  }
 }
 
 void BindNodeVisitor::Visit(common::ManagedPointer<parser::ConstantValueExpression> expr) {
