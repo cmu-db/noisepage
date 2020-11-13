@@ -185,10 +185,12 @@ class MetricsStore {
    * @param query_text text of the query
    * @param timestamp time of query generation
    */
-  void RecordQueryText(const execution::query_id_t query_id, const std::string &query_text, const uint64_t timestamp) {
+  void RecordQueryText(catalog::db_oid_t db_oid, const execution::query_id_t query_id, const std::string &query_text,
+                       common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
+                       const uint64_t timestamp) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryText(query_id, query_text, timestamp);
+    query_trace_metric_->RecordQueryText(db_oid, query_id, query_text, param, timestamp);
   }
 
   /**
@@ -199,11 +201,10 @@ class MetricsStore {
    * @param oid database oid
    */
   void RecordQueryTrace(const execution::query_id_t query_id, const uint64_t timestamp,
-                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param,
-                        catalog::db_oid_t oid) {
+                        common::ManagedPointer<const std::vector<parser::ConstantValueExpression>> param) {
     NOISEPAGE_ASSERT(ComponentEnabled(MetricsComponent::QUERY_TRACE), "QueryTraceMetric not enabled.");
     NOISEPAGE_ASSERT(query_trace_metric_ != nullptr, "QueryTraceMetric not allocated. Check MetricsStore constructor.");
-    query_trace_metric_->RecordQueryTrace(query_id, timestamp, param, oid);
+    query_trace_metric_->RecordQueryTrace(query_id, timestamp, param);
   }
 
   /**
